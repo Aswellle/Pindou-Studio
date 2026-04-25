@@ -1,180 +1,114 @@
 {
-  "app": {
-    "title": "ビードスタジオ",
-    "subtitle": "次世代ビードパターンデザイン工具"
-  },
-  "nav": {
-    "canvas": "キャンバス",
-    "gallery": "ギャラリー",
-    "tutorials": "チュートリアル"
-  },
-  "palette": {
-    "title": "カラーパレット",
-    "brand": {
-      "perler": "Perler (アメリカ)",
-      "hama": "Hama (デンマーク)",
-      "artkal": "Artkal (中国/オランダ)"
-    },
-    "search": "カラーを検索...",
-    "recent": "最近使用",
-    "colors": "色"
-  },
-  "quantizer": {
-    "title": "画像をビードに",
-    "dragDrop": "画像をここにドロップ",
-    "or": "または",
-    "browse": "ファイルを参照",
-    "paste": "画像を貼り付け (Ctrl+V)",
-    "changeImage": "画像を変更",
-    "settings": "量子化設定",
-    "palette": "対象パレット",
-    "gridSize": "キャンバスサイズ",
-    "maxColors": "最大カラー数",
-    "standard": "標準",
-    "large": "大",
-    "extraLarge": "特大",
-    "processing": "処理中",
-    "preview": "プレビュー",
-    "colorsUsed": "使用カラー",
-    "generate": "パターンを生成",
-    "reset": "リセット",
-    "applyToCanvas": "キャンバスに適用"
-  },
-  "canvas": {
-    "size": "キャンバスサイズ",
-    "tool": {
-      "pencil": "鉛筆",
-      "eraser": "消しゴム",
-      "fill": "塗りつぶし",
-      "hand": "移動"
-    }
-  },
-  "export": {
-    "title": "エクスポート",
-    "png": "PNG 画像",
-    "svg": "SVG ベクター",
-    "text": "パターン テキスト"
-  },
-  "gallery": {
-    "title": "テンプレートギャラリー",
-    "search": "テンプレートを検索...",
-    "categories": {
-      "all": "すべて",
-      "animal": "動物",
-      "food": "食べ物",
-      "icon": "アイコン",
-      "holiday": "祝日",
-      "character": "キャラクター"
-    },
-    "difficulty": {
-      "all": "すべて",
-      "easy": "簡単",
-      "medium": "中級",
-      "hard": "上級"
-    },
-    "favorites": "お気に入り",
-    "myWorks": "マイ作品",
-    "loadTemplate": "テンプレートを読み込む",
-    "addToFavorites": "お気に入りに追加",
-    "removeFromFavorites": "お気に入りから削除"
-  },
-  "tutorials": {
-    "title": "チュートリアル",
-    "gettingStarted": "入門",
-    "whatIsBead": "ビードとは",
-    "basicTools": "基本工具",
-    "firstProject": "最初のプロジェクト：ハートの作り方",
-    "advancedTips": "応用テクニック",
-    "gradientEffect": "グラデーション効果の作り方",
-    "complexPatterns": "複雑なパターンの分割制作",
-    "ironingTips": "アイロン技巧と注意点は",
-    "templateUsage": "テンプレートの使用",
-    "importTemplate": "テンプレートをインポート",
-    "modifyPattern": "既存のパターンを修正",
-    "customColors": "カスタムカラーの置換",
-    "faq": "よくある質問",
-    "beadArrangement": "ビード配置技巧",
-    "ironingGuide": "アイロン温度ガイド",
-    "storageTips": "作品の保存方法",
-    "progress": "進捗",
-    "completed": "完了",
-    "markComplete": "完了としてマーク"
-  },
-  "settings": {
-    "title": "設定",
-    "language": "言語",
-    "theme": "テーマ",
-    "themes": {
-      "light": "ライト",
-      "dark": "ダーク",
-      "auto": "システムに従う"
-    },
-    "autoSave": "自動保存",
-    "showGrid": "グリッド線を表示",
-    "beadShape": "ビード形状",
-    "beadShapes": {
-      "circle": "丸い",
-      "square": "四角い"
-    }
-  },
+  "app": { "title": "ビードスタジオ", "subtitle": "次世代ビードパターンデザイン工具" },
+  "nav": { "canvas": "キャンバス", "gallery": "ギャラリー", "tutorials": "チュートリアル" },
   "auth": {
-    "login": "ログイン",
-    "register": "登録",
-    "logout": "ログアウト",
-    "email": "メールアドレス",
-    "password": "パスワード",
-    "confirmPassword": "パスワードを確認",
-    "welcomeBack": "おかえりなさい！",
-    "createAccount": "新規アカウント作成",
-    "noAccount": "アカウントをお持ちでない方？",
-    "hasAccount": "すでにアカウントをお持ちの方？"
-  },
-  "common": {
-    "save": "保存",
-    "cancel": "キャンセル",
-    "clear": "クリア",
-    "undo": "元に戻す",
-    "redo": "やり直し",
-    "delete": "削除",
-    "edit": "編集",
-    "confirm": "確認",
-    "loading": "読み込み中...",
-    "error": "エラー",
-    "success": "成功",
-    "close": "閉じる",
-    "back": "戻る",
-    "next": "次へ",
-    "previous": "前へ"
-  },
-  "header": {
-    "imageToBead": "画像をビードに"
-  },
-  "tools": {
-    "title": "工具",
-    "import": "インポート",
-    "imageToBead": "画像をビードに",
-    "canvasSize": "キャンバスサイズ",
-    "quickActions": "クイックアクション",
-    "smallIcon": "小アイコン",
-    "standard": "標準",
-    "large": "大",
-    "extraLarge": "特大"
-  },
-  "exportPanel": {
-    "title": "パターンをエクスポート",
-    "totalBeads": "総ビード数",
-    "colorsUsed": "使用カラー",
-    "colorStats": "カラー統計"
-  },
-  "colorPalette": {
-    "title": "カラーパレット",
-    "perlerColors": "Perler カラーリスト"
+    "login": "ログイン", "register": "登録", "logout": "ログアウト",
+    "email": "メールアドレス", "password": "パスワード", "confirmPassword": "パスワードを確認",
+    "welcomeBack": "おかえりなさい！", "createAccount": "新規アカウント作成",
+    "noAccount": "アカウントをお持ちでない方？", "hasAccount": "すでにアカウントをお持ちの方？",
+    "registerNow": "今すぐ登録", "loginNow": "今すぐログイン",
+    "processing": "処理中..."
   },
   "errors": {
     "invalidEmail": "有効なメールアドレスを入力してください",
     "passwordTooShort": "パスワードは6文字以上必要です",
-    "passwordMismatch": "パスワードが一致しません",
-    "uploadFailed": "アップロードに失敗しました",
-    "quantizationFailed": "量子化に失敗しました"
+    "passwordMismatch": "パスワードが一致しません"
+  },
+  "palette": {
+    "title": "カラーパレット",
+    "brand": { "perler": "Perler (アメリカ)", "hama": "Hama (デンマーク)", "artkal": "Artkal (中国/オランダ)" },
+    "search": "カラーを検索...", "recent": "最近使用", "colors": "色",
+    "title2": "ビードパレット", "expand": "パレットを展開", "collapse": "パレットを折りたたむ"
+  },
+  "canvas": {
+    "size": "キャンバスサイズ",
+    "tool": { "pencil": "鉛筆", "eraser": "消しゴム", "fill": "塗りつぶし", "hand": "移動" }
+  },
+  "tools": {
+    "title": "工具", "canvasSize": "キャンバスサイズ", "quickActions": "クイックアクション",
+    "import": "インポート", "imageToBead": "画像をビードに",
+    "expand": "ツールバーを展開", "collapse": "ツールバーを折りたたむ",
+    "clear": "クリア", "undo": "元に戻す",
+    "clearCanvas": "キャンバスをクリア", "undoAction": "元に戻す",
+    "cells": "セル",
+    "presets": {
+      "squareGroup": "正方形", "rectangleGroup": "長方形", "customGroup": "カスタム",
+      "smallIcon": "小アイコン", "standard": "標準", "large": "大",
+      "extraLarge": "特大", "huge": "超大", "superHuge": "超々大",
+      "landscape": "横向き", "portrait": "縦向き", "custom": "カスタムサイズ..."
+    },
+    "customSizePrompt": "キャンバスサイズを入力（例：87x58 または 87）：",
+    "widthRange": "幅は9から200の間である必要があります",
+    "heightRange": "高さは9から200の間である必要があります"
+  },
+  "gallery": {
+    "title": "テンプレートギャラリー", "subtitle": "テンプレートを閲覧してインスピレーションを得ましょう",
+    "search": "テンプレートを検索...", "allTemplates": "すべてのテンプレート",
+    "myFavorites": "お気に入り", "myWorks": "マイ作品",
+    "category": "カテゴリ：", "difficulty": "難易度：",
+    "categories": { "all": "すべて", "animal": "動物", "food": "食べ物", "icon": "アイコン", "holiday": "祝日" },
+    "difficulties": { "all": "すべて", "easy": "簡単", "medium": "中級", "hard": "上級" },
+    "noWorks": "保存された作品がありません",
+    "noWorksHint": "キャンバスで作品を作ってからエクスポートして保存しましょう",
+    "noResults": "一致するテンプレートが見つかりません",
+    "noResultsHint": "検索条件やフィルターを調整してみてください",
+    "workName": "作品", "load": "読み込む", "delete": "削除",
+    "myWorksSectionTitle": "マイ作品"
+  },
+  "export": {
+    "title": "エクスポート", "png": "PNG 画像", "svg": "SVG ベクター", "text": "パターン テキスト",
+    "patternSheet": "ビードシート PNG", "patternSheetSVG": "ビードシート SVG",
+    "exporting": "生成中"
+  },
+  "quantizer": {
+    "title": "画像をビードに", "dragDrop": "画像をここにドロップ", "or": "または",
+    "browse": "ファイルを参照", "paste": "画像を貼り付け (Ctrl+V)", "changeImage": "画像を変更",
+    "settings": "量子化設定", "palette": "対象パレット", "gridSize": "キャンバスサイズ",
+    "maxColors": "最大カラー数", "colors": "色", "processing": "処理中",
+    "preview": "プレビュー", "colorsUsed": "使用カラー", "generate": "パターンを生成",
+    "reset": "リセット", "applyToCanvas": "キャンバスに適用",
+    "autoRecommended": "自動 · サイズに基づく推奨",
+    "longSide": "長辺（セル）", "actualSize": "実際のサイズ", "aspectRatio": "アスペクト比",
+    "uploadFirst": "先に画像をアップロードしてください",
+    "widthPlaceholder": "幅", "heightPlaceholder": "高さ",
+    "settingsChanged": "設定が変更されました", "regenerateHint": "生成ボタンをクリックして更新",
+    "ditheringApplied": "ディザリング適用済み",
+    "algorithm": "アルゴリズム",
+    "dithering": {
+      "none": "ディザリングなし（クリーンなエッジ）",
+      "floydSteinberg": "Floyd-Steinberg（スムーズなグラデーション）",
+      "ordered": "秩序ディザリング（規則的なテクスチャ）"
+    },
+    "algorithmHint": "ディザリングはよりスムーズなカラー遷移を作ります",
+    "quality": "処理品質",
+    "qualityModes": { "high": "高品質（推奨、~3-5秒）", "fast": "高速プレビュー（~1秒）" },
+    "qualityHint": "高品質モードはより多くのイテレーションでカラーマッチングを改善します",
+    "removeBackground": "背景を自動削除",
+    "removeBackgroundHint": "単色背景を検出して透明にマークします",
+    "brightness": "明るさ", "contrast": "コントラスト",
+    "colorHint": "シンプル 12-24 · イラスト 28-48 · 複雑 48-72 · 高精細 72+",
+    "unsavedTitle": "未保存の変更があります",
+    "unsavedBody": "生成されたパターンがまだ適用されていません。閉じると失われます。",
+    "continueEditing": "編集を続ける", "discardClose": "破棄して閉じる",
+    "processingAlgo": "CIEDE2000カラーマッチングを使用中",
+    "presets": {
+      "29x29": "29 × 29（標準）", "57x57": "57 × 57（大）",
+      "114x114": "114 × 114（特大）", "140x140": "140 × 140（プロ）",
+      "57x29": "57 × 29（横向き）", "29x57": "29 × 57（縦向き）",
+      "aspect": "画像のアスペクト比に合わせる", "custom": "カスタム幅×高さ"
+    }
+  },
+  "tutorials": {
+    "title": "チュートリアル目次", "markAllRead": "すべて既読にする", "reset": "リセット",
+    "steps": "手順", "tips": "ヒント", "diagram": "図",
+    "noSelection": "左からチュートリアルを選択してください",
+    "prev": "前へ：", "next": "次へ：", "noMore": "なし"
+  },
+  "stats": { "noData": "データなし", "beads": "個のビード", "colors": "色" },
+  "common": {
+    "save": "保存", "cancel": "キャンセル", "clear": "クリア", "undo": "元に戻す",
+    "redo": "やり直し", "delete": "削除", "edit": "編集", "confirm": "確認",
+    "loading": "読み込み中...", "error": "エラー", "success": "成功",
+    "close": "閉じる", "back": "戻る", "next": "次へ", "previous": "前へ"
   }
 }

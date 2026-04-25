@@ -1,65 +1,114 @@
 {
-  "app": {
-    "title": "拼豆Studio",
-    "subtitle": "新一代拼豆图纸设计工具"
+  "app": { "title": "拼豆Studio", "subtitle": "新一代拼豆图纸设计工具" },
+  "nav": { "canvas": "画布", "gallery": "图库", "tutorials": "教程" },
+  "auth": {
+    "login": "登录", "register": "注册", "logout": "退出登录",
+    "email": "邮箱", "password": "密码", "confirmPassword": "确认密码",
+    "welcomeBack": "欢迎回来！", "createAccount": "创建新账户",
+    "noAccount": "还没有账户？", "hasAccount": "已有账户？",
+    "registerNow": "立即注册", "loginNow": "立即登录",
+    "processing": "处理中..."
   },
-  "nav": {
-    "canvas": "画布",
-    "gallery": "图库",
-    "tutorials": "教程"
+  "errors": {
+    "invalidEmail": "请输入有效的邮箱地址",
+    "passwordTooShort": "密码至少需要6个字符",
+    "passwordMismatch": "两次输入的密码不一致"
   },
   "palette": {
     "title": "色卡",
-    "brand": {
-      "perler": "Perler (美国)",
-      "hama": "Hama (丹麦)",
-      "artkal": "Artkal (中国/荷兰)"
-    },
-    "search": "搜索颜色...",
-    "recent": "最近使用",
-    "colors": "色"
-  },
-  "quantizer": {
-    "title": "图片转拼豆",
-    "dragDrop": "拖拽图片到这里",
-    "or": "或",
-    "browse": "浏览文件",
-    "paste": "粘贴图片 (Ctrl+V)",
-    "changeImage": "更换图片",
-    "settings": "量化设置",
-    "palette": "目标色卡",
-    "gridSize": "画布尺寸",
-    "maxColors": "目标颜色数",
-    "standard": "标准",
-    "large": "大图",
-    "extraLarge": "超大",
-    "processing": "处理中",
-    "preview": "预览",
-    "colorsUsed": "使用颜色",
-    "generate": "生成图纸",
-    "reset": "重新上传",
-    "applyToCanvas": "应用到画布"
+    "brand": { "perler": "Perler (美国)", "hama": "Hama (丹麦)", "artkal": "Artkal (中国/荷兰)" },
+    "search": "搜索颜色...", "recent": "最近使用", "colors": "色",
+    "title2": "拼豆色卡", "expand": "展开色卡", "collapse": "收起色卡"
   },
   "canvas": {
     "size": "画布尺寸",
-    "tool": {
-      "pencil": "画笔",
-      "eraser": "橡皮擦",
-      "fill": "填充",
-      "hand": "抓手"
-    }
+    "tool": { "pencil": "画笔", "eraser": "橡皮擦", "fill": "填充", "hand": "抓手" }
+  },
+  "tools": {
+    "title": "工具", "canvasSize": "画布尺寸", "quickActions": "快捷操作",
+    "import": "导入", "imageToBead": "图片转拼豆",
+    "expand": "展开工具栏", "collapse": "收起工具栏",
+    "clear": "清空", "undo": "撤销",
+    "clearCanvas": "清空画布", "undoAction": "撤销",
+    "cells": "格",
+    "presets": {
+      "squareGroup": "方形", "rectangleGroup": "矩形", "customGroup": "自定义",
+      "smallIcon": "小图标", "standard": "标准", "large": "大图",
+      "extraLarge": "超大", "huge": "巨幅", "superHuge": "超巨幅",
+      "landscape": "横向", "portrait": "纵向", "custom": "自定义尺寸..."
+    },
+    "customSizePrompt": "请输入画布尺寸（如：87x58 或 87）：",
+    "widthRange": "宽度必须在 9-200 之间",
+    "heightRange": "高度必须在 9-200 之间"
+  },
+  "gallery": {
+    "title": "图库", "subtitle": "浏览预设模板，获取创作灵感",
+    "search": "搜索模板...", "allTemplates": "全部模板",
+    "myFavorites": "我的收藏", "myWorks": "我的作品",
+    "category": "分类：", "difficulty": "难度：",
+    "categories": { "all": "全部", "animal": "动物", "food": "食物", "icon": "图标", "holiday": "节日" },
+    "difficulties": { "all": "全部", "easy": "简单", "medium": "中等", "hard": "困难" },
+    "noWorks": "还没有保存的作品",
+    "noWorksHint": "在画布上创作后，点击导出按钮保存作品",
+    "noResults": "没有找到匹配的模板",
+    "noResultsHint": "尝试调整搜索条件或筛选器",
+    "workName": "作品", "load": "加载", "delete": "删除",
+    "myWorksSectionTitle": "我的作品"
   },
   "export": {
-    "title": "导出图纸",
-    "png": "PNG 图片",
-    "svg": "SVG 矢量",
-    "text": "图纸文本"
+    "title": "导出图纸", "png": "PNG 图片", "svg": "SVG 矢量", "text": "图纸文本",
+    "patternSheet": "拼豆图纸 PNG", "patternSheetSVG": "拼豆图纸 SVG",
+    "exporting": "生成中"
   },
+  "quantizer": {
+    "title": "图片转拼豆", "dragDrop": "拖拽图片到这里", "or": "或",
+    "browse": "浏览文件", "paste": "粘贴图片 (Ctrl+V)", "changeImage": "更换图片",
+    "settings": "量化设置", "palette": "目标色卡", "gridSize": "画布尺寸",
+    "maxColors": "目标颜色数", "colors": "色", "processing": "处理中",
+    "preview": "预览", "colorsUsed": "使用颜色", "generate": "生成图纸",
+    "reset": "重新上传", "applyToCanvas": "应用到画布",
+    "autoRecommended": "自动 · 根据尺寸推荐",
+    "longSide": "长边像素数", "actualSize": "实际尺寸", "aspectRatio": "宽高比",
+    "uploadFirst": "请先上传图片",
+    "widthPlaceholder": "宽", "heightPlaceholder": "高",
+    "settingsChanged": "设置已变更", "regenerateHint": "点击上方按钮重新生成",
+    "ditheringApplied": "已应用抖动",
+    "algorithm": "算法",
+    "dithering": {
+      "none": "无抖动（干净边缘）",
+      "floydSteinberg": "Floyd-Steinberg（渐变过渡好）",
+      "ordered": "有序抖动（规律纹理）"
+    },
+    "algorithmHint": "抖动可产生更平滑的颜色过渡",
+    "quality": "处理质量",
+    "qualityModes": { "high": "高质量（推荐，~3-5秒）", "fast": "快速预览（~1秒）" },
+    "qualityHint": "高质量模式使用更多次迭代优化配色",
+    "removeBackground": "自动移除背景",
+    "removeBackgroundHint": "检测纯色背景并标记为透明（适合有背景的截图）",
+    "brightness": "亮度", "contrast": "对比度",
+    "colorHint": "简单图 12-24 · 插画 28-48 · 复杂图 48-72 · 极高细节 72+",
+    "unsavedTitle": "有未保存的更改",
+    "unsavedBody": "您有已生成但未应用的图纸。关闭后将丢失。",
+    "continueEditing": "继续编辑", "discardClose": "放弃并关闭",
+    "processingAlgo": "使用 CIEDE2000 精准配色算法",
+    "presets": {
+      "29x29": "29 × 29（标准）", "57x57": "57 × 57（大图）",
+      "114x114": "114 × 114（超大）", "140x140": "140 × 140（专业站）",
+      "57x29": "57 × 29（横幅）", "29x57": "29 × 57（竖幅）",
+      "aspect": "按原图比例（指定长边）", "custom": "自定义宽×高"
+    }
+  },
+  "tutorials": {
+    "title": "教程目录", "markAllRead": "全部标为已读", "reset": "重置",
+    "steps": "操作步骤", "tips": "小贴士", "diagram": "示意图",
+    "noSelection": "选择一个教程开始学习",
+    "prev": "上一篇：", "next": "下一篇：", "noMore": "没有了"
+  },
+  "stats": { "noData": "暂无数据", "beads": "颗珠子", "colors": "种颜色" },
   "common": {
-    "save": "保存",
-    "cancel": "取消",
-    "clear": "清空",
-    "undo": "撤销",
-    "loading": "加载中..."
+    "save": "保存", "cancel": "取消", "clear": "清空", "undo": "撤销",
+    "redo": "重做", "delete": "删除", "edit": "编辑", "confirm": "确认",
+    "loading": "加载中...", "error": "错误", "success": "成功",
+    "close": "关闭", "back": "返回", "next": "下一步", "previous": "上一步"
   }
 }

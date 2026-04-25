@@ -1,180 +1,114 @@
 {
-  "app": {
-    "title": "비드 스튜디오",
-    "subtitle": "차세대 비즈 패턴 디자인 도구"
-  },
-  "nav": {
-    "canvas": "캔버스",
-    "gallery": "갤러리",
-    "tutorials": "튜토리얼"
-  },
-  "palette": {
-    "title": "컬러 팔레트",
-    "brand": {
-      "perler": "Perler (미국)",
-      "hama": "Hama (덴마크)",
-      "artkal": "Artkal (중국/네덜란드)"
-    },
-    "search": "컬러 검색...",
-    "recent": "최근 사용",
-    "colors": "색상"
-  },
-  "quantizer": {
-    "title": "이미지를 비즈로",
-    "dragDrop": "여기에 이미지를 드롭하세요",
-    "or": "또는",
-    "browse": "파일 찾아보기",
-    "paste": "이미지 붙여넣기 (Ctrl+V)",
-    "changeImage": "이미지 변경",
-    "settings": "양자화 설정",
-    "palette": "대상 팔레트",
-    "gridSize": "캔버스 크기",
-    "maxColors": "최대 색상 수",
-    "standard": "표준",
-    "large": "대형",
-    "extraLarge": "초대형",
-    "processing": "처리 중",
-    "preview": "미리보기",
-    "colorsUsed": "사용된 색상",
-    "generate": "패턴 생성",
-    "reset": "초기화",
-    "applyToCanvas": "캔버스에 적용"
-  },
-  "canvas": {
-    "size": "캔버스 크기",
-    "tool": {
-      "pencil": "연필",
-      "eraser": "지우개",
-      "fill": "채우기",
-      "hand": "손"
-    }
-  },
-  "export": {
-    "title": "내보내기",
-    "png": "PNG 이미지",
-    "svg": "SVG 벡터",
-    "text": "패턴 텍스트"
-  },
-  "gallery": {
-    "title": "템플릿 갤러리",
-    "search": "템플릿 검색...",
-    "categories": {
-      "all": "전체",
-      "animal": "동물",
-      "food": "음식",
-      "icon": "아이콘",
-      "holiday": "휴일",
-      "character": "캐릭터"
-    },
-    "difficulty": {
-      "all": "전체",
-      "easy": "쉬움",
-      "medium": "중급",
-      "hard": "어려움"
-    },
-    "favorites": "즐겨찾기",
-    "myWorks": "내 작품",
-    "loadTemplate": "템플릿 불러오기",
-    "addToFavorites": "즐겨찾기에 추가",
-    "removeFromFavorites": "즐겨찾기에서 제거"
-  },
-  "tutorials": {
-    "title": "튜토리얼",
-    "gettingStarted": "入门",
-    "whatIsBead": "비즈란?",
-    "basicTools": "기본 도구",
-    "firstProject": "첫 번째 프로젝트: 하트 만들기",
-    "advancedTips": "응용 팁",
-    "gradientEffect": "그라데이션 효과 만드는 법",
-    "complexPatterns": "복잡한 패턴 분할 제작",
-    "ironingTips": "아이론 기술과 주의사항",
-    "templateUsage": "템플릿 사용",
-    "importTemplate": "템플릿 가져오기",
-    "modifyPattern": "기존 패턴 수정",
-    "customColors": "커스텀 컬러 교체",
-    "faq": "자주 묻는 질문",
-    "beadArrangement": "비즈 배치 기술",
-    "ironingGuide": "아이론 온도 가이드",
-    "storageTips": "작품 보관 방법",
-    "progress": "진행률",
-    "completed": "완료",
-    "markComplete": "완료로 표시"
-  },
-  "settings": {
-    "title": "설정",
-    "language": "언어",
-    "theme": "테마",
-    "themes": {
-      "light": "라이트",
-      "dark": "다크",
-      "auto": "시스템 설정"
-    },
-    "autoSave": "자동 저장",
-    "showGrid": "그리드 선 표시",
-    "beadShape": "비즈 모양",
-    "beadShapes": {
-      "circle": "원형",
-      "square": "사각형"
-    }
-  },
+  "app": { "title": "비드 스튜디오", "subtitle": "차세대 비드 패턴 디자인 도구" },
+  "nav": { "canvas": "캔버스", "gallery": "갤러리", "tutorials": "튜토리얼" },
   "auth": {
-    "login": "로그인",
-    "register": "注册",
-    "logout": "로그아웃",
-    "email": "이메일",
-    "password": "비밀번호",
-    "confirmPassword": "비밀번호 확인",
-    "welcomeBack": "환영합니다!",
-    "createAccount": "새 계정 만들기",
-    "noAccount": "계정이 없으신가요?",
-    "hasAccount": "이미 계정이 있으신가요?"
-  },
-  "common": {
-    "save": "保存",
-    "cancel": "취소",
-    "clear": "지우기",
-    "undo": "실행 취소",
-    "redo": "다시 실행",
-    "delete": "삭제",
-    "edit": "편집",
-    "confirm": "확인",
-    "loading": "로딩 중...",
-    "error": "오류",
-    "success": "성공",
-    "close": "닫기",
-    "back": "뒤로",
-    "next": "다음",
-    "previous": "이전"
-  },
-  "header": {
-    "imageToBead": "이미지를 비즈로"
-  },
-  "tools": {
-    "title": "도구",
-    "import": "가져오기",
-    "imageToBead": "이미지를 비즈로",
-    "canvasSize": "캔버스 크기",
-    "quickActions": "빠른 작업",
-    "smallIcon": "소형 아이콘",
-    "standard": "표준",
-    "large": "대형",
-    "extraLarge": "초대형"
-  },
-  "exportPanel": {
-    "title": "패턴 내보내기",
-    "totalBeads": "총 비즈 수",
-    "colorsUsed": "사용된 색상",
-    "colorStats": "색상 통계"
-  },
-  "colorPalette": {
-    "title": "컬러 팔레트",
-    "perlerColors": "Perler 컬러 리스트"
+    "login": "로그인", "register": "회원가입", "logout": "로그아웃",
+    "email": "이메일", "password": "비밀번호", "confirmPassword": "비밀번호 확인",
+    "welcomeBack": "다시 오셨군요!", "createAccount": "새 계정 만들기",
+    "noAccount": "계정이 없으신가요?", "hasAccount": "이미 계정이 있으신가요?",
+    "registerNow": "지금 가입", "loginNow": "지금 로그인",
+    "processing": "처리 중..."
   },
   "errors": {
     "invalidEmail": "유효한 이메일 주소를 입력하세요",
     "passwordTooShort": "비밀번호는 6자 이상이어야 합니다",
-    "passwordMismatch": "비밀번호가 일치하지 않습니다",
-    "uploadFailed": "업로드에 실패했습니다",
-    "quantizationFailed": "양자화에 실패했습니다"
+    "passwordMismatch": "비밀번호가 일치하지 않습니다"
+  },
+  "palette": {
+    "title": "색상 팔레트",
+    "brand": { "perler": "Perler (미국)", "hama": "Hama (덴마크)", "artkal": "Artkal (중국/네덜란드)" },
+    "search": "색상 검색...", "recent": "최근 사용", "colors": "색",
+    "title2": "비드 팔레트", "expand": "팔레트 펼치기", "collapse": "팔레트 접기"
+  },
+  "canvas": {
+    "size": "캔버스 크기",
+    "tool": { "pencil": "연필", "eraser": "지우개", "fill": "채우기", "hand": "이동" }
+  },
+  "tools": {
+    "title": "도구", "canvasSize": "캔버스 크기", "quickActions": "빠른 작업",
+    "import": "가져오기", "imageToBead": "이미지를 비드로",
+    "expand": "도구 모음 펼치기", "collapse": "도구 모음 접기",
+    "clear": "지우기", "undo": "실행 취소",
+    "clearCanvas": "캔버스 지우기", "undoAction": "실행 취소",
+    "cells": "칸",
+    "presets": {
+      "squareGroup": "정사각형", "rectangleGroup": "직사각형", "customGroup": "사용자 지정",
+      "smallIcon": "작은 아이콘", "standard": "표준", "large": "크게",
+      "extraLarge": "매우 크게", "huge": "초대형", "superHuge": "초초대형",
+      "landscape": "가로형", "portrait": "세로형", "custom": "사용자 정의 크기..."
+    },
+    "customSizePrompt": "캔버스 크기를 입력하세요 (예: 87x58 또는 87):",
+    "widthRange": "너비는 9에서 200 사이여야 합니다",
+    "heightRange": "높이는 9에서 200 사이여야 합니다"
+  },
+  "gallery": {
+    "title": "갤러리", "subtitle": "사전 설정 템플릿을 둘러보고 영감을 얻으세요",
+    "search": "템플릿 검색...", "allTemplates": "모든 템플릿",
+    "myFavorites": "즐겨찾기", "myWorks": "내 작품",
+    "category": "카테고리:", "difficulty": "난이도:",
+    "categories": { "all": "전체", "animal": "동물", "food": "음식", "icon": "아이콘", "holiday": "명절" },
+    "difficulties": { "all": "전체", "easy": "쉬움", "medium": "보통", "hard": "어려움" },
+    "noWorks": "저장된 작품이 없습니다",
+    "noWorksHint": "캔버스에서 작품을 만든 후 내보내기 버튼을 클릭하세요",
+    "noResults": "일치하는 템플릿이 없습니다",
+    "noResultsHint": "검색어나 필터를 조정해 보세요",
+    "workName": "작품", "load": "불러오기", "delete": "삭제",
+    "myWorksSectionTitle": "내 작품"
+  },
+  "export": {
+    "title": "패턴 내보내기", "png": "PNG 이미지", "svg": "SVG 벡터", "text": "패턴 텍스트",
+    "patternSheet": "비드 시트 PNG", "patternSheetSVG": "비드 시트 SVG",
+    "exporting": "생성 중"
+  },
+  "quantizer": {
+    "title": "이미지를 비드로", "dragDrop": "이미지를 여기에 드롭", "or": "또는",
+    "browse": "파일 찾아보기", "paste": "이미지 붙여넣기 (Ctrl+V)", "changeImage": "이미지 변경",
+    "settings": "양자화 설정", "palette": "대상 팔레트", "gridSize": "캔버스 크기",
+    "maxColors": "최대 색상 수", "colors": "색", "processing": "처리 중",
+    "preview": "미리보기", "colorsUsed": "사용 색상", "generate": "패턴 생성",
+    "reset": "다시 업로드", "applyToCanvas": "캔버스에 적용",
+    "autoRecommended": "자동 · 크기에 따라 추천",
+    "longSide": "긴 쪽 (칸)", "actualSize": "실제 크기", "aspectRatio": "가로세로 비율",
+    "uploadFirst": "먼저 이미지를 업로드하세요",
+    "widthPlaceholder": "너비", "heightPlaceholder": "높이",
+    "settingsChanged": "설정이 변경됨", "regenerateHint": "생성 버튼을 클릭하여 업데이트",
+    "ditheringApplied": "디더링 적용됨",
+    "algorithm": "알고리즘",
+    "dithering": {
+      "none": "디더링 없음 (깔끔한 경계)",
+      "floydSteinberg": "Floyd-Steinberg (부드러운 그라데이션)",
+      "ordered": "순서 디더링 (규칙적 질감)"
+    },
+    "algorithmHint": "디더링은 더 부드러운 색상 전환을 만듭니다",
+    "quality": "처리 품질",
+    "qualityModes": { "high": "고품질 (권장, ~3-5초)", "fast": "빠른 미리보기 (~1초)" },
+    "qualityHint": "고품질 모드는 더 많은 반복으로 색상 매칭을 개선합니다",
+    "removeBackground": "배경 자동 제거",
+    "removeBackgroundHint": "단색 배경을 감지하여 투명으로 표시합니다",
+    "brightness": "밝기", "contrast": "대비",
+    "colorHint": "단순 12-24 · 일러스트 28-48 · 복잡 48-72 · 고세밀 72+",
+    "unsavedTitle": "저장되지 않은 변경 사항",
+    "unsavedBody": "생성된 패턴이 적용되지 않았습니다. 닫으면 사라집니다.",
+    "continueEditing": "계속 편집", "discardClose": "버리고 닫기",
+    "processingAlgo": "CIEDE2000 색상 매칭 사용 중",
+    "presets": {
+      "29x29": "29 × 29 (표준)", "57x57": "57 × 57 (크게)",
+      "114x114": "114 × 114 (매우 크게)", "140x140": "140 × 140 (전문가)",
+      "57x29": "57 × 29 (가로형)", "29x57": "29 × 57 (세로형)",
+      "aspect": "이미지 비율에 맞추기", "custom": "사용자 정의 너비 × 높이"
+    }
+  },
+  "tutorials": {
+    "title": "튜토리얼 목차", "markAllRead": "모두 읽음으로 표시", "reset": "초기화",
+    "steps": "단계", "tips": "팁", "diagram": "다이어그램",
+    "noSelection": "왼쪽에서 튜토리얼을 선택하세요",
+    "prev": "이전: ", "next": "다음: ", "noMore": "없음"
+  },
+  "stats": { "noData": "데이터 없음", "beads": "개 비드", "colors": "가지 색상" },
+  "common": {
+    "save": "저장", "cancel": "취소", "clear": "지우기", "undo": "실행 취소",
+    "redo": "다시 실행", "delete": "삭제", "edit": "편집", "confirm": "확인",
+    "loading": "로딩 중...", "error": "오류", "success": "성공",
+    "close": "닫기", "back": "뒤로", "next": "다음", "previous": "이전"
   }
 }

@@ -1,65 +1,114 @@
 {
-  "app": {
-    "title": "Bead Studio",
-    "subtitle": "Next-generation bead pattern design tool"
+  "app": { "title": "Bead Studio", "subtitle": "Next-generation bead pattern design tool" },
+  "nav": { "canvas": "Canvas", "gallery": "Gallery", "tutorials": "Tutorials" },
+  "auth": {
+    "login": "Login", "register": "Register", "logout": "Logout",
+    "email": "Email", "password": "Password", "confirmPassword": "Confirm Password",
+    "welcomeBack": "Welcome back!", "createAccount": "Create a new account",
+    "noAccount": "Don't have an account?", "hasAccount": "Already have an account?",
+    "registerNow": "Register now", "loginNow": "Login now",
+    "processing": "Processing..."
   },
-  "nav": {
-    "canvas": "Canvas",
-    "gallery": "Gallery",
-    "tutorials": "Tutorials"
+  "errors": {
+    "invalidEmail": "Please enter a valid email address",
+    "passwordTooShort": "Password must be at least 6 characters",
+    "passwordMismatch": "Passwords do not match"
   },
   "palette": {
     "title": "Color Palette",
-    "brand": {
-      "perler": "Perler (USA)",
-      "hama": "Hama (Denmark)",
-      "artkal": "Artkal (China/Netherlands)"
-    },
-    "search": "Search colors...",
-    "recent": "Recently used",
-    "colors": "colors"
-  },
-  "quantizer": {
-    "title": "Image to Beads",
-    "dragDrop": "Drop image here",
-    "or": "or",
-    "browse": "Browse Files",
-    "paste": "Paste Image (Ctrl+V)",
-    "changeImage": "Change Image",
-    "settings": "Quantize Settings",
-    "palette": "Target Palette",
-    "gridSize": "Canvas Size",
-    "maxColors": "Max Colors",
-    "standard": "Standard",
-    "large": "Large",
-    "extraLarge": "Extra Large",
-    "processing": "Processing",
-    "preview": "Preview",
-    "colorsUsed": "Colors Used",
-    "generate": "Generate Pattern",
-    "reset": "Reset",
-    "applyToCanvas": "Apply to Canvas"
+    "brand": { "perler": "Perler (USA)", "hama": "Hama (Denmark)", "artkal": "Artkal (China/Netherlands)" },
+    "search": "Search colors...", "recent": "Recently used", "colors": "colors",
+    "title2": "Bead Palette", "expand": "Expand palette", "collapse": "Collapse palette"
   },
   "canvas": {
     "size": "Canvas Size",
-    "tool": {
-      "pencil": "Pencil",
-      "eraser": "Eraser",
-      "fill": "Fill",
-      "hand": "Hand"
-    }
+    "tool": { "pencil": "Pencil", "eraser": "Eraser", "fill": "Fill", "hand": "Hand" }
+  },
+  "tools": {
+    "title": "Tools", "canvasSize": "Canvas Size", "quickActions": "Quick Actions",
+    "import": "Import", "imageToBead": "Image to Beads",
+    "expand": "Expand toolbar", "collapse": "Collapse toolbar",
+    "clear": "Clear", "undo": "Undo",
+    "clearCanvas": "Clear Canvas", "undoAction": "Undo",
+    "cells": "cells",
+    "presets": {
+      "squareGroup": "Square", "rectangleGroup": "Rectangle", "customGroup": "Custom",
+      "smallIcon": "Small Icon", "standard": "Standard", "large": "Large",
+      "extraLarge": "Extra Large", "huge": "Huge", "superHuge": "Super Huge",
+      "landscape": "Landscape", "portrait": "Portrait", "custom": "Custom size..."
+    },
+    "customSizePrompt": "Enter canvas size (e.g. 87x58 or 87):",
+    "widthRange": "Width must be between 9 and 200",
+    "heightRange": "Height must be between 9 and 200"
+  },
+  "gallery": {
+    "title": "Gallery", "subtitle": "Browse preset templates for inspiration",
+    "search": "Search templates...", "allTemplates": "All Templates",
+    "myFavorites": "My Favorites", "myWorks": "My Works",
+    "category": "Category:", "difficulty": "Difficulty:",
+    "categories": { "all": "All", "animal": "Animals", "food": "Food", "icon": "Icons", "holiday": "Holidays" },
+    "difficulties": { "all": "All", "easy": "Easy", "medium": "Medium", "hard": "Hard" },
+    "noWorks": "No saved works yet",
+    "noWorksHint": "Create something on the canvas, then click export to save",
+    "noResults": "No matching templates found",
+    "noResultsHint": "Try adjusting your search or filters",
+    "workName": "Work", "load": "Load", "delete": "Delete",
+    "myWorksSectionTitle": "My Works"
   },
   "export": {
-    "title": "Export Pattern",
-    "png": "PNG Image",
-    "svg": "SVG Vector",
-    "text": "Pattern Text"
+    "title": "Export Pattern", "png": "PNG Image", "svg": "SVG Vector", "text": "Pattern Text",
+    "patternSheet": "Bead Sheet PNG", "patternSheetSVG": "Bead Sheet SVG",
+    "exporting": "Generating"
   },
+  "quantizer": {
+    "title": "Image to Beads", "dragDrop": "Drop image here", "or": "or",
+    "browse": "Browse Files", "paste": "Paste Image (Ctrl+V)", "changeImage": "Change Image",
+    "settings": "Quantize Settings", "palette": "Target Palette", "gridSize": "Canvas Size",
+    "maxColors": "Max Colors", "colors": "colors", "processing": "Processing",
+    "preview": "Preview", "colorsUsed": "Colors Used", "generate": "Generate Pattern",
+    "reset": "Reset", "applyToCanvas": "Apply to Canvas",
+    "autoRecommended": "Auto · Recommended for size",
+    "longSide": "Long side (cells)", "actualSize": "Actual size", "aspectRatio": "aspect ratio",
+    "uploadFirst": "Upload an image first",
+    "widthPlaceholder": "W", "heightPlaceholder": "H",
+    "settingsChanged": "Settings changed", "regenerateHint": "Click Generate to update",
+    "ditheringApplied": "Dithering applied",
+    "algorithm": "Algorithm",
+    "dithering": {
+      "none": "No dithering (clean edges)",
+      "floydSteinberg": "Floyd-Steinberg (smooth gradients)",
+      "ordered": "Ordered dithering (regular texture)"
+    },
+    "algorithmHint": "Dithering creates smoother color transitions",
+    "quality": "Processing Quality",
+    "qualityModes": { "high": "High quality (recommended, ~3-5s)", "fast": "Fast preview (~1s)" },
+    "qualityHint": "High quality uses more iterations for better color matching",
+    "removeBackground": "Auto remove background",
+    "removeBackgroundHint": "Detects solid backgrounds and marks them transparent",
+    "brightness": "Brightness", "contrast": "Contrast",
+    "colorHint": "Simple 12-24 · Illustration 28-48 · Complex 48-72 · High detail 72+",
+    "unsavedTitle": "Unsaved Changes",
+    "unsavedBody": "You have a generated pattern that hasn't been applied. It will be lost if you close.",
+    "continueEditing": "Continue Editing", "discardClose": "Discard & Close",
+    "processingAlgo": "Using CIEDE2000 color matching",
+    "presets": {
+      "29x29": "29 × 29 (Standard)", "57x57": "57 × 57 (Large)",
+      "114x114": "114 × 114 (Extra Large)", "140x140": "140 × 140 (Professional)",
+      "57x29": "57 × 29 (Landscape)", "29x57": "29 × 57 (Portrait)",
+      "aspect": "Match image aspect ratio", "custom": "Custom width × height"
+    }
+  },
+  "tutorials": {
+    "title": "Tutorial Contents", "markAllRead": "Mark all as read", "reset": "Reset",
+    "steps": "Steps", "tips": "Tips", "diagram": "Diagram",
+    "noSelection": "Select a tutorial from the left to begin",
+    "prev": "Previous: ", "next": "Next: ", "noMore": "None"
+  },
+  "stats": { "noData": "No data yet", "beads": "beads", "colors": "colors" },
   "common": {
-    "save": "Save",
-    "cancel": "Cancel",
-    "clear": "Clear",
-    "undo": "Undo",
-    "loading": "Loading..."
+    "save": "Save", "cancel": "Cancel", "clear": "Clear", "undo": "Undo",
+    "redo": "Redo", "delete": "Delete", "edit": "Edit", "confirm": "Confirm",
+    "loading": "Loading...", "error": "Error", "success": "Success",
+    "close": "Close", "back": "Back", "next": "Next", "previous": "Previous"
   }
 }
