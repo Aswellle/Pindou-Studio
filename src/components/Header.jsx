@@ -1,7 +1,7 @@
 import { useTranslation } from 'react-i18next'
 import LanguageSelector from './Header/LanguageSelector'
 
-export default function Header({ user, onLogin, onRegister, onLogout, currentPage, onPageChange }) {
+export default function Header({ user, onLogin, onRegister, onLogout, onSave, currentPage, onPageChange }) {
   const { t } = useTranslation()
 
   const navItems = [
@@ -51,6 +51,16 @@ export default function Header({ user, onLogin, onRegister, onLogout, currentPag
       </div>
 
       <div className="header-right">
+        {currentPage === 'canvas' && onSave && (
+          <button onClick={onSave} className="btn btn-ghost save-work-btn">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/>
+              <polyline points="17 21 17 13 7 13 7 21"/>
+              <polyline points="7 3 7 8 15 8"/>
+            </svg>
+            {t('gallery.saveTitle')}
+          </button>
+        )}
         <LanguageSelector />
         {user ? (
           <div className="user-menu">
@@ -126,6 +136,12 @@ export default function Header({ user, onLogin, onRegister, onLogout, currentPag
         .user-name {
           font-size: 14px;
           color: var(--text-secondary);
+        }
+        .save-work-btn {
+          display: flex;
+          align-items: center;
+          gap: 6px;
+          font-size: 13px;
         }
       `}</style>
     </header>
