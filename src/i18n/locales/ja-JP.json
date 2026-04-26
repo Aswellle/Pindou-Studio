@@ -59,7 +59,7 @@
     "saveNamePlaceholder": "作品名を入力してください",
     "saveConfirm": "保存する",
     "savedToast": "マイ作品に保存しました",
-    "exportProfessional": "専門モード（グリッド＋色番号）",
+    "exportProfessional": "専門モード（グリッド＋色ID）",
     "exportRealistic": "展示モード（リアルなビーズ）"
   },
   "export": {

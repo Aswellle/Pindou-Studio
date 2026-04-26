@@ -59,7 +59,7 @@
     "saveNamePlaceholder": "작품 이름을 입력하세요",
     "saveConfirm": "저장",
     "savedToast": "내 작품에 저장되었습니다",
-    "exportProfessional": "전문 모드 (격자 + 색상 ID)",
+    "exportProfessional": "전문가 모드 (격자 + ID)",
     "exportRealistic": "전시 모드 (사실적인 비드)"
   },
   "export": {

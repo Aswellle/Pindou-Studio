@@ -59,7 +59,7 @@
     "saveNamePlaceholder": "Enter a name for your work",
     "saveConfirm": "Confirm",
     "savedToast": "Saved to My Works",
-    "exportProfessional": "Professional (Grid + Color IDs)",
+    "exportProfessional": "Professional (Grid + IDs)",
     "exportRealistic": "Display (Realistic Beads)"
   },
   "export": {
