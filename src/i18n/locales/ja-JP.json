@@ -53,7 +53,14 @@
     "noResults": "一致するテンプレートが見つかりません",
     "noResultsHint": "検索条件やフィルターを調整してみてください",
     "workName": "作品", "load": "読み込む", "delete": "削除",
-    "myWorksSectionTitle": "マイ作品"
+    "myWorksSectionTitle": "マイ作品",
+    "saveTitle": "作品を保存",
+    "saveNameLabel": "作品名",
+    "saveNamePlaceholder": "作品名を入力してください",
+    "saveConfirm": "保存する",
+    "savedToast": "マイ作品に保存しました",
+    "exportProfessional": "専門モード（グリッド＋色番号）",
+    "exportRealistic": "展示モード（リアルなビーズ）"
   },
   "export": {
     "title": "エクスポート", "png": "PNG 画像", "svg": "SVG ベクター", "text": "パターン テキスト",
@@ -110,5 +117,12 @@
     "redo": "やり直し", "delete": "削除", "edit": "編集", "confirm": "確認",
     "loading": "読み込み中...", "error": "エラー", "success": "成功",
     "close": "閉じる", "back": "戻る", "next": "次へ", "previous": "前へ"
+  },
+  "templates": {
+    "names": {
+      "bear": "クマ", "strawberry": "イチゴ", "heart": "ハート",
+      "pikachu": "ピカチュウ", "christmasTree": "クリスマスツリー", "unicorn": "ユニコーン",
+      "burger": "バーガー", "rainbow": "レインボー"
+    }
   }
 }

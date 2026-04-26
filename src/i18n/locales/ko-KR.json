@@ -53,7 +53,14 @@
     "noResults": "일치하는 템플릿이 없습니다",
     "noResultsHint": "검색어나 필터를 조정해 보세요",
     "workName": "작품", "load": "불러오기", "delete": "삭제",
-    "myWorksSectionTitle": "내 작품"
+    "myWorksSectionTitle": "내 작품",
+    "saveTitle": "작품 저장",
+    "saveNameLabel": "작품 이름",
+    "saveNamePlaceholder": "작품 이름을 입력하세요",
+    "saveConfirm": "저장",
+    "savedToast": "내 작품에 저장되었습니다",
+    "exportProfessional": "전문 모드 (격자 + 색상 ID)",
+    "exportRealistic": "전시 모드 (사실적인 비드)"
   },
   "export": {
     "title": "패턴 내보내기", "png": "PNG 이미지", "svg": "SVG 벡터", "text": "패턴 텍스트",
@@ -110,5 +117,12 @@
     "redo": "다시 실행", "delete": "삭제", "edit": "편집", "confirm": "확인",
     "loading": "로딩 중...", "error": "오류", "success": "성공",
     "close": "닫기", "back": "뒤로", "next": "다음", "previous": "이전"
+  },
+  "templates": {
+    "names": {
+      "bear": "곰", "strawberry": "딸기", "heart": "하트",
+      "pikachu": "피카츄", "christmasTree": "크리스마스 트리", "unicorn": "유니콘",
+      "burger": "햄버거", "rainbow": "무지개"
+    }
   }
 }

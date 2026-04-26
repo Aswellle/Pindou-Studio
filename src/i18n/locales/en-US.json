@@ -53,7 +53,14 @@
     "noResults": "No matching templates found",
     "noResultsHint": "Try adjusting your search or filters",
     "workName": "Work", "load": "Load", "delete": "Delete",
-    "myWorksSectionTitle": "My Works"
+    "myWorksSectionTitle": "My Works",
+    "saveTitle": "Save Work",
+    "saveNameLabel": "Work Name",
+    "saveNamePlaceholder": "Enter a name for your work",
+    "saveConfirm": "Confirm",
+    "savedToast": "Saved to My Works",
+    "exportProfessional": "Professional (Grid + Color IDs)",
+    "exportRealistic": "Display (Realistic Beads)"
   },
   "export": {
     "title": "Export Pattern", "png": "PNG Image", "svg": "SVG Vector", "text": "Pattern Text",
@@ -110,5 +117,12 @@
     "redo": "Redo", "delete": "Delete", "edit": "Edit", "confirm": "Confirm",
     "loading": "Loading...", "error": "Error", "success": "Success",
     "close": "Close", "back": "Back", "next": "Next", "previous": "Previous"
+  },
+  "templates": {
+    "names": {
+      "bear": "Bear", "strawberry": "Strawberry", "heart": "Heart",
+      "pikachu": "Pikachu", "christmasTree": "Christmas Tree", "unicorn": "Unicorn",
+      "burger": "Burger", "rainbow": "Rainbow"
+    }
   }
 }

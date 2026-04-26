@@ -53,7 +53,14 @@
     "noResults": "没有找到匹配的模板",
     "noResultsHint": "尝试调整搜索条件或筛选器",
     "workName": "作品", "load": "加载", "delete": "删除",
-    "myWorksSectionTitle": "我的作品"
+    "myWorksSectionTitle": "我的作品",
+    "saveTitle": "保存作品",
+    "saveNameLabel": "作品名称",
+    "saveNamePlaceholder": "请输入作品名称",
+    "saveConfirm": "确认保存",
+    "savedToast": "已保存到我的作品",
+    "exportProfessional": "专业模式（方格 + 色号）",
+    "exportRealistic": "展示模式（拟真珠子）"
   },
   "export": {
     "title": "导出图纸", "png": "PNG 图片", "svg": "SVG 矢量", "text": "图纸文本",
@@ -110,5 +117,12 @@
     "redo": "重做", "delete": "删除", "edit": "编辑", "confirm": "确认",
     "loading": "加载中...", "error": "错误", "success": "成功",
     "close": "关闭", "back": "返回", "next": "下一步", "previous": "上一步"
+  },
+  "templates": {
+    "names": {
+      "bear": "小熊", "strawberry": "草莓", "heart": "爱心",
+      "pikachu": "皮卡丘", "christmasTree": "圣诞树", "unicorn": "独角兽",
+      "burger": "汉堡", "rainbow": "彩虹"
+    }
   }
 }
