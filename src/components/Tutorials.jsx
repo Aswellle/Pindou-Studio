@@ -1,7 +1,135 @@
 import { useState, useEffect } from 'react'
+import { useTranslation } from 'react-i18next'
 import { TUTORIALS, getAllTutorials } from '../data/tutorials'
 
+// Inline SVG 图示，不引入图片文件
+const SVG_DIAGRAMS = {
+  'ironing-motion': (
+    <svg width="280" height="180" viewBox="0 0 280 180" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <rect width="280" height="180" rx="12" fill="#f5f5f5"/>
+      {/* pegboard dots */}
+      {Array.from({length: 6}).map((_, i) =>
+        Array.from({length: 9}).map((_, j) => (
+          <circle key={`${i}-${j}`} cx={28 + j*28} cy={28 + i*28} r={5} fill="#e0e0e0"/>
+        ))
+      )}
+      {/* concentric arcs */}
+      <path d="M80 120 Q140 40 200 120" stroke="#1976D2" strokeWidth="3" fill="none" strokeDasharray="6 4"/>
+      <path d="M60 120 Q140 10 220 120" stroke="#1976D2" strokeWidth="2" fill="none" strokeDasharray="6 4" opacity="0.5"/>
+      <path d="M40 120 Q140 -20 240 120" stroke="#1976D2" strokeWidth="1.5" fill="none" strokeDasharray="6 4" opacity="0.25"/>
+      <polygon points="200,116 210,120 202,124" fill="#1976D2"/>
+      <polygon points="220,116 230,120 222,124" fill="#1976D2" opacity="0.5"/>
+      {/* iron */}
+      <rect x="100" y="130" width="80" height="36" rx="8" fill="#607D8B"/>
+      <rect x="140" y="130" width="45" height="36" rx="4" fill="#78909C"/>
+      <rect x="100" y="133" width="80" height="5" rx="2.5" fill="#90A4AE"/>
+      <text x="140" y="174" textAnchor="middle" fontSize="11" fill="#9E9E9E">画圆弧熨烫，从中心向外</text>
+    </svg>
+  ),
+  'pressing-stack': (
+    <svg width="280" height="180" viewBox="0 0 280 180" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <rect width="280" height="180" rx="12" fill="#f5f5f5"/>
+      {/* bead pattern board */}
+      <rect x="60" y="40" width="160" height="100" rx="8" fill="#FFECB3" stroke="#FFC107" strokeWidth="2"/>
+      {/* books stacked */}
+      <rect x="50" y="90" width="180" height="16" rx="3" fill="#8D6E63"/>
+      <rect x="50" y="106" width="180" height="16" rx="3" fill="#795548"/>
+      <rect x="50" y="122" width="180" height="16" rx="3" fill="#6D4C41"/>
+      {/* arrows down */}
+      <path d="M100 30 L100 38" stroke="#E53935" strokeWidth="3"/>
+      <polygon points="96,38 104,38 100,45" fill="#E53935"/>
+      <path d="M140 30 L140 38" stroke="#E53935" strokeWidth="3"/>
+      <polygon points="136,38 144,38 140,45" fill="#E53935"/>
+      <path d="M180 30 L180 38" stroke="#E53935" strokeWidth="3"/>
+      <polygon points="176,38 184,38 180,45" fill="#E53935"/>
+      <text x="140" y="158" textAnchor="middle" fontSize="11" fill="#9E9E9E">书本压住，冷却 ≥30 分钟</text>
+    </svg>
+  ),
+}
+
+// 富文本 block 渲染器
+function BlockRenderer({ blocks = [] }) {
+  if (!blocks || blocks.length === 0) return null
+  return (
+    <div className="block-renderer">
+      {blocks.map((block, i) => {
+        switch (block.type) {
+          case 'paragraph':
+            return <p key={i} className="block-paragraph">{block.text}</p>
+          case 'heading2':
+            return <h2 key={i} className="block-h2">{block.text}</h2>
+          case 'heading3':
+            return <h3 key={i} className="block-h3">{block.text}</h3>
+          case 'callout': {
+            const variantColors = {
+              tip:     { bg: '#E8F5E9', border: '#4CAF50', title: '#2E7D32' },
+              warning:  { bg: '#FFF8E1', border: '#FFC107', title: '#F57F17' },
+              danger:   { bg: '#FFEBEE', border: '#E53935', title: '#C62828' },
+              info:     { bg: '#E3F2FD', border: '#1976D2', title: '#1565C0' },
+            }
+            const c = variantColors[block.variant] || variantColors.info
+            return (
+              <div key={i} className="block-callout" style={{ background: c.bg, borderLeft: `4px solid ${c.border}` }}>
+                {block.title && <div className="callout-title" style={{ color: c.title }}>{block.title}</div>}
+                <div className="callout-text">{block.text}</div>
+              </div>
+            )
+          }
+          case 'bulletList':
+            return (
+              <ul key={i} className="block-bullet-list">
+                {block.items.map((item, j) => <li key={j}>{item}</li>)}
+              </ul>
+            )
+          case 'numberedList':
+            return (
+              <ol key={i} className="block-numbered-list">
+                {block.items.map((item, j) => <li key={j}>{item}</li>)}
+              </ol>
+            )
+          case 'table':
+            return (
+              <div key={i} className="block-table-wrap">
+                <table className="block-table">
+                  <thead>
+                    <tr>{block.headers.map((h, j) => <th key={j}>{h}</th>)}</tr>
+                  </thead>
+                  <tbody>
+                    {block.rows.map((row, j) => (
+                      <tr key={j}>{row.map((cell, k) => <td key={k}>{cell}</td>)}</tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )
+          case 'divider':
+            return <hr key={i} className="block-divider"/>
+          case 'svgDiagram': {
+            const diagram = SVG_DIAGRAMS[block.id]
+            return diagram ? (
+              <figure key={i} className="block-svg-diagram">
+                {diagram}
+                {block.caption && <figcaption className="svg-caption">{block.caption}</figcaption>}
+              </figure>
+            ) : null
+          }
+          case 'keyPoint':
+            return (
+              <div key={i} className="block-key-point">
+                <span className="key-point-bar"/>
+                <span className="key-point-text">{block.text}</span>
+              </div>
+            )
+          default:
+            return null
+        }
+      })}
+    </div>
+  )
+}
+
 export default function Tutorials() {
+  const { t } = useTranslation()
   const [expandedSections, setExpandedSections] = useState(['getting-started'])
   const [selectedTutorial, setSelectedTutorial] = useState(TUTORIALS[0].children[0])
   const [readProgress, setReadProgress] = useState(() => {
@@ -58,7 +186,7 @@ export default function Tutorials() {
     <div className="tutorials-page">
       <div className="tutorials-sidebar">
         <div className="sidebar-header">
-          <h2 className="sidebar-title">教程目录</h2>
+          <h2 className="sidebar-title">{t('tutorials.title')}</h2>
           <div className="progress-info">
             <div className="progress-bar">
               <div
@@ -69,8 +197,8 @@ export default function Tutorials() {
             <span className="progress-text">{readProgress.length}/{totalTutorials}</span>
           </div>
           <div className="progress-actions">
-            <button className="progress-btn" onClick={markAllRead}>全部标为已读</button>
-            <button className="progress-btn reset" onClick={resetProgress}>重置</button>
+            <button className="progress-btn" onClick={markAllRead}>{t('tutorials.markAllRead')}</button>
+            <button className="progress-btn reset" onClick={resetProgress}>{t('tutorials.reset')}</button>
           </div>
         </div>
 
@@ -142,69 +270,41 @@ export default function Tutorials() {
             </div>
 
             <div className="content-body">
-              {/* 教程正文 */}
-              <div className="tutorial-content">
-                {selectedTutorial.content.split('\n\n').map((paragraph, index) => (
-                  <p key={index}>{paragraph}</p>
-                ))}
-              </div>
-
-              {/* 步骤列表 */}
-              {selectedTutorial.steps && (
-                <div className="steps-section">
-                  <h3 className="steps-title">
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                      <path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/>
-                      <polyline points="14 2 14 8 20 8"/>
-                      <line x1="16" y1="13" x2="8" y2="13"/>
-                      <line x1="16" y1="17" x2="8" y2="17"/>
-                      <line x1="10" y1="9" x2="8" y2="9"/>
-                    </svg>
-                    操作步骤
-                  </h3>
-                  <ol className="steps-list">
-                    {selectedTutorial.steps.map((step, index) => (
-                      <li key={index} className="step-item">
-                        <span className="step-number">{index + 1}</span>
-                        <span className="step-text">{step}</span>
-                      </li>
-                    ))}
-                  </ol>
-                </div>
+              {selectedTutorial.blocks && selectedTutorial.blocks.length > 0 ? (
+                <BlockRenderer blocks={selectedTutorial.blocks} />
+              ) : (
+                <>
+                  {selectedTutorial.content && (
+                    <div className="tutorial-content">
+                      {selectedTutorial.content.split('\n\n').map((paragraph, index) => (
+                        <p key={index} className="block-paragraph">{paragraph}</p>
+                      ))}
+                    </div>
+                  )}
+                  {selectedTutorial.steps && selectedTutorial.steps.length > 0 && (
+                    <div className="steps-section">
+                      <h3 className="steps-title">{t('tutorials.steps')}</h3>
+                      <ol className="steps-list">
+                        {selectedTutorial.steps.map((step, index) => (
+                          <li key={index} className="step-item">
+                            <span className="step-number">{index + 1}</span>
+                            <span className="step-text">{step}</span>
+                          </li>
+                        ))}
+                      </ol>
+                    </div>
+                  )}
+                  {selectedTutorial.tips && (
+                    <div className="tips-box">
+                      <div className="tips-header">{t('tutorials.tips')}</div>
+                      <p className="tips-content">{selectedTutorial.tips}</p>
+                    </div>
+                  )}
+                </>
               )}
-
-              {/* 提示框 */}
-              {selectedTutorial.tips && (
-                <div className="tips-box">
-                  <div className="tips-header">
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                      <circle cx="12" cy="12" r="10"/>
-                      <line x1="12" y1="16" x2="12" y2="12"/>
-                      <line x1="12" y1="8" x2="12.01" y2="8"/>
-                    </svg>
-                    <span>小贴士</span>
-                  </div>
-                  <p className="tips-content">{selectedTutorial.tips}</p>
-                </div>
-              )}
-
-              {/* 图片占位 */}
-              <div className="image-placeholder">
-                <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
-                  <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
-                  <circle cx="8.5" cy="8.5" r="1.5"/>
-                  <polyline points="21 15 16 10 5 21"/>
-                </svg>
-                <span>示意图</span>
+              <div className="content-footer">
+                <NavigationButtons currentTutorial={selectedTutorial} onSelect={selectTutorial} />
               </div>
-            </div>
-
-            {/* 导航按钮 */}
-            <div className="content-footer">
-              <NavigationButtons
-                currentTutorial={selectedTutorial}
-                onSelect={selectTutorial}
-              />
             </div>
           </>
         ) : (
@@ -213,7 +313,7 @@ export default function Tutorials() {
               <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/>
               <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/>
             </svg>
-            <p>选择一个教程开始学习</p>
+            <p>{t('tutorials.noSelection')}</p>
           </div>
         )}
       </div>
@@ -530,6 +630,71 @@ export default function Tutorials() {
           display: flex;
           justify-content: space-between;
         }
+        /* Block Renderer */
+        .block-renderer { margin-bottom: 32px; }
+        .block-paragraph {
+          font-size: 15px; line-height: 1.8;
+          color: var(--text-secondary); margin-bottom: 16px;
+        }
+        .block-h2 {
+          font-size: 20px; font-weight: 700;
+          color: var(--text-primary); margin: 32px 0 16px;
+          padding-left: 12px; border-left: 4px solid var(--accent);
+        }
+        .block-h3 {
+          font-size: 16px; font-weight: 600;
+          color: var(--text-primary); margin: 24px 0 12px;
+        }
+        .block-callout {
+          border-radius: 0 8px 8px 0; padding: 14px 18px; margin-bottom: 16px;
+        }
+        .callout-title { font-size: 14px; font-weight: 700; margin-bottom: 6px; }
+        .callout-text { font-size: 14px; line-height: 1.6; color: var(--text-secondary); }
+        .block-bullet-list, .block-numbered-list {
+          padding-left: 20px; margin-bottom: 16px;
+        }
+        .block-bullet-list li, .block-numbered-list li {
+          font-size: 14px; line-height: 1.7;
+          color: var(--text-secondary); margin-bottom: 6px;
+        }
+        .block-table-wrap {
+          overflow-x: auto; margin-bottom: 16px;
+          border-radius: 8px; border: 1px solid var(--border-color);
+        }
+        .block-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+        .block-table th {
+          background: var(--bg-secondary); padding: 10px 14px;
+          text-align: left; font-weight: 600;
+          color: var(--text-primary); border-bottom: 2px solid var(--border-color);
+        }
+        .block-table td {
+          padding: 9px 14px; color: var(--text-secondary);
+          border-bottom: 1px solid var(--border-color);
+        }
+        .block-table tr:last-child td { border-bottom: none; }
+        .block-divider {
+          border: none; border-top: 2px solid var(--border-color); margin: 28px 0;
+        }
+        .block-svg-diagram {
+          display: flex; flex-direction: column; align-items: center;
+          margin: 24px 0; background: white;
+          border-radius: 12px; padding: 16px;
+          box-shadow: 0 2px 12px rgba(0,0,0,0.07);
+        }
+        .svg-caption { font-size: 12px; color: var(--text-muted); margin-top: 8px; text-align: center; }
+        .block-key-point {
+          display: flex; gap: 12px; align-items: flex-start;
+          background: #FFF8E1; border-left: 4px solid #FF8F00;
+          border-radius: 0 8px 8px 0; padding: 12px 16px; margin-bottom: 16px;
+        }
+        .key-point-bar {
+          width: 4px; min-height: 20px; background: #FF8F00;
+          border-radius: 2px; flex-shrink: 0; margin-top: 2px;
+        }
+        .key-point-text {
+          font-size: 14px; line-height: 1.6;
+          color: #E65100; font-weight: 500;
+        }
       `}</style>
     </div>
   )
@@ -537,6 +702,7 @@ export default function Tutorials() {
 
 // 导航按钮组件
 function NavigationButtons({ currentTutorial, onSelect }) {
+  const { t } = useTranslation()
   const allTutorials = getAllTutorials()
   const currentIndex = allTutorials.findIndex(t => t.id === currentTutorial?.id)
 
@@ -554,14 +720,14 @@ function NavigationButtons({ currentTutorial, onSelect }) {
           <path d="M19 12H5"/>
           <path d="M12 19l-7-7 7-7"/>
         </svg>
-        上一篇：{prevTutorial?.title || '没有了'}
+        {t('tutorials.prev')}{prevTutorial?.title || t('tutorials.noMore')}
       </button>
       <button
         className="nav-btn"
         disabled={!nextTutorial}
         onClick={() => nextTutorial && onSelect(nextTutorial)}
       >
-        下一篇：{nextTutorial?.title || '没有了'}
+        {t('tutorials.next')}{nextTutorial?.title || t('tutorials.noMore')}
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
           <path d="M5 12h14"/>
           <path d="M12 5l7 7-7 7"/>
