@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react'
 import { useTranslation } from 'react-i18next'
 import { TEMPLATES, CATEGORIES, DIFFICULTIES } from '../data/templates'
 import { getPalette } from '../data/palettes'
+import { exportAsPNG } from '../services/BeadPatternExporter'
 
 const CELL_SIZE = 8
 
@@ -23,10 +24,19 @@ export default function Gallery({ onLoadTemplate, onSaveWork, onLoadWork, savedW
   })
   const [showFavorites, setShowFavorites] = useState(false)
   const [showMyWorks, setShowMyWorks] = useState(false)
+  const [exportMenuId, setExportMenuId] = useState(null)
+  const [exportingId, setExportingId] = useState(null)
 
   useEffect(() => {
     localStorage.setItem('gallery-favorites', JSON.stringify(favorites))
   }, [favorites])
+
+  useEffect(() => {
+    if (!exportMenuId) return
+    const close = () => setExportMenuId(null)
+    document.addEventListener('click', close)
+    return () => document.removeEventListener('click', close)
+  }, [exportMenuId])
 
   const filteredTemplates = TEMPLATES.filter(template => {
     const translatedName = t(`templates.names.${template.nameKey}`, template.nameKey)
@@ -50,6 +60,25 @@ export default function Gallery({ onLoadTemplate, onSaveWork, onLoadWork, savedW
       case 'medium': return '#FF9800'
       case 'hard': return '#E53935'
       default: return '#999'
+    }
+  }
+
+  const handleExportTemplate = async (template, beadStyle, e) => {
+    e.stopPropagation()
+    setExportMenuId(null)
+    setExportingId(template.id)
+    try {
+      const palette = getPalette('perler')
+      await exportAsPNG(
+        template.pattern,
+        template.size,
+        'perler',
+        t(`templates.names.${template.nameKey}`, template.nameKey),
+        palette,
+        { beadStyle, gridWidth: null, gridHeight: null }
+      )
+    } finally {
+      setExportingId(null)
     }
   }
 
@@ -226,6 +255,38 @@ export default function Gallery({ onLoadTemplate, onSaveWork, onLoadWork, savedW
                       <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
                     </svg>
                   </button>
+                  <button
+                    className="export-btn"
+                    onClick={e => {
+                      e.stopPropagation()
+                      setExportMenuId(exportMenuId === template.id ? null : template.id)
+                    }}
+                    disabled={exportingId === template.id}
+                    title="导出图纸"
+                  >
+                    {exportingId === template.id ? (
+                      <svg className="spinning" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                        <path d="M21 12a9 9 0 1 1-6.219-8.56"/>
+                      </svg>
+                    ) : (
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                        <polyline points="7 10 12 15 17 10"/>
+                        <line x1="12" y1="15" x2="12" y2="3"/>
+                      </svg>
+                    )}
+                  </button>
+
+                  {exportMenuId === template.id && (
+                    <div className="export-menu" onClick={e => e.stopPropagation()}>
+                      <button onClick={e => handleExportTemplate(template, 'professional', e)}>
+                        {t('gallery.exportProfessional')}
+                      </button>
+                      <button onClick={e => handleExportTemplate(template, 'realistic', e)}>
+                        {t('gallery.exportRealistic')}
+                      </button>
+                    </div>
+                  )}
                 </div>
                 <div className="template-info">
                   <h3 className="template-name">{t(`templates.names.${template.nameKey}`, template.nameKey)}</h3>
@@ -420,6 +481,63 @@ export default function Gallery({ onLoadTemplate, onSaveWork, onLoadWork, savedW
         }
         .favorite-btn:hover {
           transform: scale(1.1);
+        }
+        .export-btn {
+          position: absolute;
+          bottom: 8px;
+          right: 8px;
+          width: 32px;
+          height: 32px;
+          border-radius: 50%;
+          background: white;
+          border: none;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+          transition: transform 0.2s;
+          cursor: pointer;
+          color: #555;
+        }
+        .export-btn:hover:not(:disabled) {
+          transform: scale(1.1);
+        }
+        .export-btn:disabled {
+          opacity: 0.6;
+          cursor: default;
+        }
+        .export-menu {
+          position: absolute;
+          bottom: 44px;
+          right: 8px;
+          background: var(--bg-primary);
+          border: 1px solid var(--border-color);
+          border-radius: 8px;
+          box-shadow: 0 4px 16px rgba(0,0,0,0.14);
+          z-index: 10;
+          overflow: hidden;
+          min-width: 210px;
+        }
+        .export-menu button {
+          display: block;
+          width: 100%;
+          padding: 10px 16px;
+          text-align: left;
+          font-size: 13px;
+          border: none;
+          background: transparent;
+          cursor: pointer;
+          color: var(--text-primary);
+        }
+        .export-menu button:hover {
+          background: var(--bg-secondary);
+        }
+        @keyframes spin {
+          from { transform: rotate(0deg); }
+          to { transform: rotate(360deg); }
+        }
+        .spinning {
+          animation: spin 1s linear infinite;
         }
         .template-info {
           padding: 12px 16px;
