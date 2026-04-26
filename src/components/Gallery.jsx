@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react'
+import { useTranslation } from 'react-i18next'
 import { TEMPLATES, CATEGORIES, DIFFICULTIES } from '../data/templates'
 import { getPalette } from '../data/palettes'
 
@@ -11,10 +12,11 @@ const resolveToHex = (colorVal, palette) => {
   return found ? found.hex : colorVal
 }
 
-export default function Gallery({ onLoadTemplate, onSaveWork, savedWorks = [] }) {
+export default function Gallery({ onLoadTemplate, onSaveWork, onLoadWork, savedWorks = [] }) {
+  const { t } = useTranslation()
   const [searchTerm, setSearchTerm] = useState('')
-  const [selectedCategory, setSelectedCategory] = useState('全部')
-  const [selectedDifficulty, setSelectedDifficulty] = useState('全部')
+  const [selectedCategory, setSelectedCategory] = useState('all')
+  const [selectedDifficulty, setSelectedDifficulty] = useState('all')
   const [favorites, setFavorites] = useState(() => {
     const saved = localStorage.getItem('gallery-favorites')
     return saved ? JSON.parse(saved) : []
@@ -22,21 +24,19 @@ export default function Gallery({ onLoadTemplate, onSaveWork, savedWorks = [] })
   const [showFavorites, setShowFavorites] = useState(false)
   const [showMyWorks, setShowMyWorks] = useState(false)
 
-  // 保存收藏到 localStorage
   useEffect(() => {
     localStorage.setItem('gallery-favorites', JSON.stringify(favorites))
   }, [favorites])
 
-  // 筛选模板
   const filteredTemplates = TEMPLATES.filter(template => {
-    const matchesSearch = template.name.toLowerCase().includes(searchTerm.toLowerCase())
-    const matchesCategory = selectedCategory === '全部' || template.category === selectedCategory
-    const matchesDifficulty = selectedDifficulty === '全部' || template.difficulty === selectedDifficulty
+    const translatedName = t(`templates.names.${template.nameKey}`, template.nameKey)
+    const matchesSearch = translatedName.toLowerCase().includes(searchTerm.toLowerCase())
+    const matchesCategory = selectedCategory === 'all' || template.category === selectedCategory
+    const matchesDifficulty = selectedDifficulty === 'all' || template.difficulty === selectedDifficulty
     const matchesFavorite = !showFavorites || favorites.includes(template.id)
     return matchesSearch && matchesCategory && matchesDifficulty && matchesFavorite
   })
 
-  // 切换收藏
   const toggleFavorite = (id, e) => {
     e.stopPropagation()
     setFavorites(prev =>
@@ -44,12 +44,11 @@ export default function Gallery({ onLoadTemplate, onSaveWork, savedWorks = [] })
     )
   }
 
-  // 获取难度颜色
   const getDifficultyColor = (difficulty) => {
     switch (difficulty) {
-      case '简单': return '#4CAF50'
-      case '中等': return '#FF9800'
-      case '困难': return '#E53935'
+      case 'easy': return '#4CAF50'
+      case 'medium': return '#FF9800'
+      case 'hard': return '#E53935'
       default: return '#999'
     }
   }
@@ -57,11 +56,10 @@ export default function Gallery({ onLoadTemplate, onSaveWork, savedWorks = [] })
   return (
     <div className="gallery-page">
       <div className="gallery-header">
-        <h1 className="gallery-title">图库</h1>
-        <p className="gallery-subtitle">浏览预设模板，获取创作灵感</p>
+        <h1 className="gallery-title">{t('gallery.title')}</h1>
+        <p className="gallery-subtitle">{t('gallery.subtitle')}</p>
       </div>
 
-      {/* 搜索和筛选栏 */}
       <div className="gallery-toolbar">
         <div className="search-box">
           <svg className="search-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -70,7 +68,7 @@ export default function Gallery({ onLoadTemplate, onSaveWork, savedWorks = [] })
           </svg>
           <input
             type="text"
-            placeholder="搜索模板..."
+            placeholder={t('gallery.search')}
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             className="search-input"
@@ -82,39 +80,38 @@ export default function Gallery({ onLoadTemplate, onSaveWork, savedWorks = [] })
             className={`filter-tab ${!showFavorites && !showMyWorks ? 'active' : ''}`}
             onClick={() => { setShowFavorites(false); setShowMyWorks(false) }}
           >
-            全部模板
+            {t('gallery.allTemplates')}
           </button>
           <button
             className={`filter-tab ${showFavorites ? 'active' : ''}`}
             onClick={() => { setShowFavorites(!showFavorites); setShowMyWorks(false) }}
           >
-            我的收藏 ({favorites.length})
+            {t('gallery.myFavorites')} ({favorites.length})
           </button>
           <button
             className={`filter-tab ${showMyWorks ? 'active' : ''}`}
             onClick={() => { setShowMyWorks(!showMyWorks); setShowFavorites(false) }}
           >
-            我的作品 ({savedWorks.length})
+            {t('gallery.myWorks')} ({savedWorks.length})
           </button>
         </div>
       </div>
 
-      {/* 分类标签 */}
       <div className="category-bar">
         <div className="category-group">
-          <span className="category-label">分类：</span>
+          <span className="category-label">{t('gallery.category')}</span>
           {CATEGORIES.map(cat => (
             <button
               key={cat}
               className={`category-btn ${selectedCategory === cat ? 'active' : ''}`}
               onClick={() => setSelectedCategory(cat)}
             >
-              {cat}
+              {t(`gallery.categories.${cat}`)}
             </button>
           ))}
         </div>
         <div className="difficulty-group">
-          <span className="category-label">难度：</span>
+          <span className="category-label">{t('gallery.difficulty')}</span>
           {DIFFICULTIES.map(diff => (
             <button
               key={diff}
@@ -122,17 +119,16 @@ export default function Gallery({ onLoadTemplate, onSaveWork, savedWorks = [] })
               onClick={() => setSelectedDifficulty(diff)}
               style={{ '--diff-color': getDifficultyColor(diff) }}
             >
-              {diff}
+              {t(`gallery.difficulties.${diff}`)}
             </button>
           ))}
         </div>
       </div>
 
-      {/* 模板网格 */}
       <div className="gallery-content">
         {showMyWorks ? (
           <div className="works-section">
-            <h2 className="section-title">我的作品</h2>
+            <h2 className="section-title">{t('gallery.myWorksSectionTitle')}</h2>
             {savedWorks.length === 0 ? (
               <div className="empty-state">
                 <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
@@ -140,59 +136,66 @@ export default function Gallery({ onLoadTemplate, onSaveWork, savedWorks = [] })
                   <path d="M3 9h18"/>
                   <path d="M9 21V9"/>
                 </svg>
-                <p>还没有保存的作品</p>
-                <span>在画布上创作后，点击导出按钮保存作品</span>
+                <p>{t('gallery.noWorks')}</p>
+                <span>{t('gallery.noWorksHint')}</span>
               </div>
             ) : (
               <div className="works-grid">
-                {savedWorks.map((work, index) => (
-                  <div key={index} className="work-card">
-                    <div className="work-thumbnail">
-                      <canvas
-                        width={work.gridSize * CELL_SIZE}
-                        height={work.gridSize * CELL_SIZE}
-                        style={{ imageRendering: 'pixelated' }}
-                        ref={(canvas) => {
-                          if (!canvas) return
-                          const ctx = canvas.getContext('2d')
-                          const palette = getPalette(work.paletteId || 'perler')
-                          ctx.fillStyle = '#ffffff'
-                          ctx.fillRect(0, 0, work.gridSize * CELL_SIZE, work.gridSize * CELL_SIZE)
-                          for (let y = 0; y < work.gridSize; y++) {
-                            for (let x = 0; x < work.gridSize; x++) {
-                              const hex = resolveToHex(work.canvasData[y]?.[x], palette)
-                              if (hex) {
-                                ctx.fillStyle = hex
-                                ctx.fillRect(x * CELL_SIZE, y * CELL_SIZE, CELL_SIZE - 1, CELL_SIZE - 1)
+                {savedWorks.map((work, index) => {
+                  const w = work.gridWidth || work.gridSize
+                  const h = work.gridHeight || work.gridSize
+                  const displayName = work.name || (t('gallery.workName') + ' ' + (index + 1))
+                  const displayDate = work.savedAt ? work.savedAt.slice(0, 10) : ''
+                  return (
+                    <div key={work.id ?? index} className="work-card">
+                      <div className="work-thumbnail">
+                        <canvas
+                          width={w * CELL_SIZE}
+                          height={h * CELL_SIZE}
+                          style={{ imageRendering: 'pixelated', maxWidth: '100%', maxHeight: '160px' }}
+                          ref={(canvas) => {
+                            if (!canvas) return
+                            const ctx = canvas.getContext('2d')
+                            const palette = getPalette(work.paletteId || 'perler')
+                            ctx.fillStyle = '#ffffff'
+                            ctx.fillRect(0, 0, w * CELL_SIZE, h * CELL_SIZE)
+                            for (let y = 0; y < h; y++) {
+                              for (let x = 0; x < w; x++) {
+                                const hex = resolveToHex(work.canvasData[y]?.[x], palette)
+                                if (hex) {
+                                  ctx.fillStyle = hex
+                                  ctx.fillRect(x * CELL_SIZE, y * CELL_SIZE, CELL_SIZE - 1, CELL_SIZE - 1)
+                                }
                               }
                             }
-                          }
-                        }}
-                      />
+                          }}
+                        />
+                      </div>
+                      <div className="work-info">
+                        <span className="work-name">{displayName}</span>
+                        <span className="work-size">{w} × {h}</span>
+                        {displayDate && <span className="work-date">{displayDate}</span>}
+                      </div>
+                      <div className="work-actions">
+                        <button
+                          className="work-btn load"
+                          onClick={() => onLoadWork ? onLoadWork(work) : onLoadTemplate(work.canvasData, work.gridSize)}
+                        >
+                          {t('gallery.load')}
+                        </button>
+                        <button
+                          className="work-btn delete"
+                          onClick={() => {
+                            const newWorks = savedWorks.filter((_, i) => i !== index)
+                            onSaveWork(newWorks)
+                          }}
+                        >
+                          {t('gallery.delete')}
+                        </button>
+                      </div>
                     </div>
-                    <div className="work-info">
-                      <span className="work-name">作品 {index + 1}</span>
-                      <span className="work-size">{work.gridSize} x {work.gridSize}</span>
-                    </div>
-                    <div className="work-actions">
-                      <button
-                        className="work-btn load"
-                        onClick={() => onLoadTemplate(work.canvasData, work.gridSize)}
-                      >
-                        加载
-                      </button>
-                      <button
-                        className="work-btn delete"
-                        onClick={() => {
-                          const newWorks = savedWorks.filter((_, i) => i !== index)
-                          onSaveWork(newWorks)
-                        }}
-                      >
-                        删除
-                      </button>
-                    </div>
-                  </div>
-                ))}
+                  )
+                })}
               </div>
             )}
           </div>
@@ -202,8 +205,8 @@ export default function Gallery({ onLoadTemplate, onSaveWork, savedWorks = [] })
               <circle cx="11" cy="11" r="8"/>
               <path d="M21 21l-4.35-4.35"/>
             </svg>
-            <p>没有找到匹配的模板</p>
-            <span>尝试调整搜索条件或筛选器</span>
+            <p>{t('gallery.noResults')}</p>
+            <span>{t('gallery.noResultsHint')}</span>
           </div>
         ) : (
           <div className="templates-grid">
@@ -225,17 +228,17 @@ export default function Gallery({ onLoadTemplate, onSaveWork, savedWorks = [] })
                   </button>
                 </div>
                 <div className="template-info">
-                  <h3 className="template-name">{template.name}</h3>
+                  <h3 className="template-name">{t(`templates.names.${template.nameKey}`, template.nameKey)}</h3>
                   <div className="template-meta">
                     <span className="template-size">{template.size} x {template.size}</span>
                     <span
                       className="template-difficulty"
                       style={{ '--diff-color': getDifficultyColor(template.difficulty) }}
                     >
-                      {template.difficulty}
+                      {t(`gallery.difficulties.${template.difficulty}`)}
                     </span>
                   </div>
-                  <span className="template-category">{template.category}</span>
+                  <span className="template-category">{t(`gallery.categories.${template.category}`)}</span>
                 </div>
                 <div className="template-colors">
                   {template.colors.map((color, i) => (
@@ -372,7 +375,7 @@ export default function Gallery({ onLoadTemplate, onSaveWork, savedWorks = [] })
         }
         .templates-grid {
           display: grid;
-          grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+          grid-template-columns: repeat(3, 1fr);
           gap: 20px;
         }
         .template-card {
@@ -483,7 +486,7 @@ export default function Gallery({ onLoadTemplate, onSaveWork, savedWorks = [] })
         }
         .works-grid {
           display: grid;
-          grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+          grid-template-columns: repeat(3, 1fr);
           gap: 16px;
         }
         .work-card {
@@ -500,8 +503,8 @@ export default function Gallery({ onLoadTemplate, onSaveWork, savedWorks = [] })
         .work-info {
           padding: 12px;
           display: flex;
-          justify-content: space-between;
-          align-items: center;
+          flex-direction: column;
+          gap: 2px;
         }
         .work-name {
           font-weight: 600;
@@ -509,6 +512,10 @@ export default function Gallery({ onLoadTemplate, onSaveWork, savedWorks = [] })
         }
         .work-size {
           font-size: 12px;
+          color: var(--text-muted);
+        }
+        .work-date {
+          font-size: 11px;
           color: var(--text-muted);
         }
         .work-actions {
@@ -546,7 +553,6 @@ export default function Gallery({ onLoadTemplate, onSaveWork, savedWorks = [] })
   )
 }
 
-// 缩略图组件（使用独立组件避免 useRef 混乱）
 function ThumbnailCanvas({ pattern, size }) {
   const canvasRef = useRef(null)
 
