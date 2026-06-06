@@ -68,8 +68,10 @@ export default function Canvas({
     const scaledH = canvasHeight * scale
     // Allow dragging well beyond the grid edges — user can pan freely.
     // Bounce-back resistance only kicks in when grid would go off-screen.
-    const extraX = Math.max((scaledW - cW) / 2 + BOUNDS_BOOST, BOUNDS_BOOST * 2)
-    const extraY = Math.max((scaledH - cH) / 2 + BOUNDS_BOOST, BOUNDS_BOOST * 2)
+    // With transform-origin:50% 50%, canvas center = (cx, cy) from container center.
+    // To see either edge, center must reach ±(containerHalf + scaledHalf).
+    const extraX = (scaledW + cW) / 2 + BOUNDS_BOOST
+    const extraY = (scaledH + cH) / 2 + BOUNDS_BOOST
     return {
       minX: -extraX,
       maxX: extraX,
@@ -255,12 +257,12 @@ export default function Canvas({
 
     if (Math.abs(newScale - oldScale) < 0.001) return
 
-    // 保持光标下的canvas坐标位置不变
-    const dtx = cursorX * (1 - newScale / oldScale)
-    const dty = cursorY * (1 - newScale / oldScale)
-
-    const rawCX = transform.cx + dtx
-    const rawCY = transform.cy + dty
+    // Keep the canvas point under the cursor fixed.
+    // With transform-origin:50% 50%, canvas center = (cx, cy).
+    // Correct formula: new_center = cursor + (old_center - cursor) * (newScale/oldScale)
+    const ratio = newScale / oldScale
+    const rawCX = cursorX + (transform.cx - cursorX) * ratio
+    const rawCY = cursorY + (transform.cy - cursorY) * ratio
     const clamped = softClamp(rawCX, rawCY, newScale)
 
     setTransform({ scale: newScale, cx: clamped.x, cy: clamped.y })
@@ -494,9 +496,10 @@ export default function Canvas({
       const pcx = (e.touches[0].clientX + e.touches[1].clientX) / 2 - rect.left - rect.width / 2
       const pcy = (e.touches[0].clientY + e.touches[1].clientY) / 2 - rect.top - rect.height / 2
 
-      // 保持pinch中心canvas坐标不变
-      const rawCX = startCX + pcx * (1 - newScale / startScale)
-      const rawCY = startCY + pcy * (1 - newScale / startScale)
+      // Same formula as wheel zoom: keep pinch-center point fixed on canvas.
+      const pinchRatio = newScale / startScale
+      const rawCX = pcx + (startCX - pcx) * pinchRatio
+      const rawCY = pcy + (startCY - pcy) * pinchRatio
       const clamped = softClamp(rawCX, rawCY, newScale)
 
       setTransform({ scale: newScale, cx: clamped.x, cy: clamped.y })
@@ -749,7 +752,7 @@ export default function Canvas({
           position: absolute;
           left: 50%;
           top: 50%;
-          transform-origin: 0 0;
+          transform-origin: 50% 50%;
           background: white;
           border-radius: 12px;
           padding: 12px;
