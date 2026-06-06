@@ -30,7 +30,7 @@ export default function App() {
   const [gridSize, setGridSize] = useState(29)
   const [gridWidth, setGridWidth] = useState(null)
   const [gridHeight, setGridHeight] = useState(null)
-  const { canvasData, canUndo, canRedo, setCanvas, resetCanvas, undo, redo } = useHistory()
+  const { canvasData, canUndo, canRedo, drawCanvas, setCanvas, resetCanvas, undo, redo } = useHistory()
   const { works: savedWorks, saveWork, updateWorks: handleSaveWork } = useSavedWorks()
 
   const [leftSidebarCollapsed, setLeftSidebarCollapsed] = useState(false)
@@ -52,7 +52,20 @@ export default function App() {
     }
   }, [gridSize])
 
+  // Keyboard shortcuts: Ctrl+Z undo, Ctrl+Y / Ctrl+Shift+Z redo
+  useEffect(() => {
+    const handler = (e) => {
+      const ctrl = e.ctrlKey || e.metaKey
+      if (!ctrl) return
+      if (e.key === 'z' && !e.shiftKey) { e.preventDefault(); undo() }
+      else if (e.key === 'y' || (e.key === 'z' && e.shiftKey)) { e.preventDefault(); redo() }
+    }
+    window.addEventListener('keydown', handler)
+    return () => window.removeEventListener('keydown', handler)
+  }, [undo, redo])
+
   const handleClearCanvas = () => {
+    if (canvasData && canvasData.every(row => row.every(cell => cell === null))) return
     const rows = gridHeight || gridSize
     const cols = gridWidth || gridSize
     setCanvas(Array(rows).fill(null).map(() => Array(cols).fill(null)))
@@ -189,6 +202,7 @@ export default function App() {
     selectedColor,
     tool,
     canvasData,
+    onDraw: drawCanvas,
     onCanvasChange: setCanvas,
   }
 

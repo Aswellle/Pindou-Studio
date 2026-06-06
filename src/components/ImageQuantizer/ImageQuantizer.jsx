@@ -150,46 +150,19 @@ export default function ImageQuantizer({ onApply, onClose }) {
     }
   }, [onClose])
 
-  // 保存当前结果（用于恢复）
-  const handleSaveForLater = useCallback(() => {
-    if (result) {
-      setLastGeneratedResult(result)
-      setLastGeneratedSettings({
-        selectedPalette,
-        gridWidth,
-        gridHeight,
-        maxColors,
-        dithering,
-        brightness,
-        contrast,
-        removeBackground,
-        qualityMode
-      })
-    }
-  }, [result, selectedPalette, gridWidth, gridHeight, maxColors, dithering, brightness, contrast, removeBackground, qualityMode])
-
-  // 恢复之前保存的结果
-  const handleRestoreResult = useCallback(() => {
-    if (lastGeneratedResult && lastGeneratedSettings) {
-      setSelectedPalette(lastGeneratedSettings.selectedPalette)
-      setGridWidth(lastGeneratedSettings.gridWidth)
-      setGridHeight(lastGeneratedSettings.gridHeight)
-      setMaxColors(lastGeneratedSettings.maxColors)
-      setDithering(lastGeneratedSettings.dithering)
-      setBrightness(lastGeneratedSettings.brightness)
-      setContrast(lastGeneratedSettings.contrast)
-      setRemoveBackground(lastGeneratedSettings.removeBackground ?? true)
-      setQualityMode(lastGeneratedSettings.qualityMode ?? 'high')
-      setHasUnsavedChanges(false)
-      // 直接使用保存的结果，不需要重新计算
-      reset()
-      // 等待 reset 完成后再设置
-      setTimeout(() => {
-        // 手动触发结果更新
-        handleGenerate()
-      }, 0)
-    }
-  }, [lastGeneratedResult, lastGeneratedSettings, reset, brightness, contrast, removeBackground, qualityMode])
+  // 完全重置：清除图片、结果和所有状态，回到上传界面
+  const handleFullReset = useCallback(() => {
+    reset()
+    setPreviewUrl(null)
+    setHasUnsavedChanges(false)
+    setLastGeneratedResult(null)
+    setLastGeneratedSettings(null)
+    setResultGridSize(null)
+    setGridPreset('29x29')
+    setGridWidth(29)
+    setGridHeight(29)
+    setHasUserTouchedMaxColors(false)
+  }, [reset])
 
   // 监听设置变化
   useEffect(() => {
@@ -694,31 +667,33 @@ export default function ImageQuantizer({ onApply, onClose }) {
                 onClick={handleGenerate}
                 disabled={!previewUrl || isProcessing}
               >
-                {isProcessing ? t('quantizer.processing', '处理中') : t('quantizer.generate', '生成图纸')}
+                {isProcessing ? `${t('quantizer.processing', '处理中')}…` : t('quantizer.generate', '生成图纸')}
               </button>
             </>
           ) : (
             <>
               <button
-                className="btn btn-secondary"
-                onClick={() => {
-                  reset()
-                  setPreviewUrl(null)
-                  setHasUnsavedChanges(false)
-                  setLastGeneratedResult(null)
-                  setLastGeneratedSettings(null)
-                  setResultGridSize(null)
-                  setGridPreset('29x29')
-                  setGridWidth(29)
-                  setGridHeight(29)
-                  setHasUserTouchedMaxColors(false)
-                }}
+                className="btn btn-ghost"
+                onClick={handleFullReset}
+                disabled={isProcessing}
+                style={{ marginRight: 'auto' }}
               >
                 {t('quantizer.reset', '重新上传')}
               </button>
               <button
-                className="btn btn-primary"
+                className={`btn ${hasUnsavedChanges ? 'btn-primary' : 'btn-secondary'}`}
+                onClick={handleGenerate}
+                disabled={isProcessing}
+                title={hasUnsavedChanges ? t('quantizer.paramsChangedHint', '参数已变更，点击按新参数重新生成') : ''}
+              >
+                {isProcessing
+                  ? `${t('quantizer.processing', '处理中')}…`
+                  : `${t('quantizer.regenerate', '重新生成')}${hasUnsavedChanges ? ' ●' : ''}`}
+              </button>
+              <button
+                className={`btn ${hasUnsavedChanges ? 'btn-secondary' : 'btn-primary'}`}
                 onClick={handleApply}
+                disabled={isProcessing}
               >
                 {t('quantizer.applyToCanvas', '应用到画布')}
               </button>

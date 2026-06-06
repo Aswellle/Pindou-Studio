@@ -14,6 +14,7 @@ export default function Canvas({
   selectedColor,
   tool,
   canvasData,
+  onDraw,
   onCanvasChange,
 }) {
   const canvasRef = useRef(null)
@@ -49,6 +50,7 @@ export default function Canvas({
 
   // 双指触控状态
   const pinchRef = useRef(null) // { startDist, startScale, startCX, startCY }
+  const strokeAccumRef = useRef(null) // accumulated canvas state during a drag stroke
 
   const cols = gridWidth || gridSize
   const rows = gridHeight || gridSize
@@ -175,33 +177,50 @@ export default function Canvas({
   // ─────────────────────────────────────────────────────────────────
   // 填色逻辑
   // ─────────────────────────────────────────────────────────────────
-  const drawCell = useCallback((x, y) => {
+  // Snapshot canvasData into the stroke accumulator at the start of each stroke
+  const startStroke = useCallback(() => {
     if (!canvasData) return
-    const newData = canvasData.map(row => [...row])
+    strokeAccumRef.current = canvasData.map(row => [...row])
+  }, [canvasData])
 
-    if (tool === 'pencil') {
-      newData[y][x] = selectedColor
-    } else if (tool === 'eraser') {
-      newData[y][x] = null
-    } else if (tool === 'fill') {
-      const targetColor = canvasData[y][x]
-      const fillColor = selectedColor
-      if (targetColor === fillColor) return
-      const stack = [[x, y]]
-      const visited = new Set()
-      while (stack.length > 0) {
-        const [cx, cy] = stack.pop()
-        const key = `${cx},${cy}`
-        if (visited.has(key)) continue
-        if (cx < 0 || cx >= cols || cy < 0 || cy >= rows) continue
-        if (canvasData[cy][cx] !== targetColor) continue
-        visited.add(key)
-        newData[cy][cx] = fillColor
-        stack.push([cx + 1, cy], [cx - 1, cy], [cx, cy + 1], [cx, cy - 1])
-      }
+  // Apply pencil/eraser to the accumulator and emit via onDraw (no history entry)
+  const paintToStroke = useCallback((x, y) => {
+    if (!strokeAccumRef.current) return
+    if (tool === 'pencil') strokeAccumRef.current[y][x] = selectedColor
+    else if (tool === 'eraser') strokeAccumRef.current[y][x] = null
+    onDraw(strokeAccumRef.current)
+  }, [tool, selectedColor, onDraw])
+
+  // Flood-fill into the accumulator and emit via onDraw (no history entry)
+  const applyFill = useCallback((x, y) => {
+    const source = strokeAccumRef.current
+    if (!source) return
+    const targetColor = source[y][x]
+    if (targetColor === selectedColor) return
+    const newData = source.map(row => [...row])
+    const stack = [[x, y]]
+    const visited = new Set()
+    while (stack.length > 0) {
+      const [cx, cy] = stack.pop()
+      const key = `${cx},${cy}`
+      if (visited.has(key)) continue
+      if (cx < 0 || cx >= cols || cy < 0 || cy >= rows) continue
+      if (source[cy][cx] !== targetColor) continue
+      visited.add(key)
+      newData[cy][cx] = selectedColor
+      stack.push([cx + 1, cy], [cx - 1, cy], [cx, cy + 1], [cx, cy - 1])
     }
-    onCanvasChange(newData)
-  }, [canvasData, selectedColor, tool, cols, rows, onCanvasChange])
+    strokeAccumRef.current = newData
+    onDraw(newData)
+  }, [selectedColor, cols, rows, onDraw])
+
+  // Commit the accumulated stroke to history (PUSH) — called on mouseUp/mouseLeave
+  const commitStroke = useCallback(() => {
+    if (strokeAccumRef.current) {
+      onCanvasChange(strokeAccumRef.current)
+      strokeAccumRef.current = null
+    }
+  }, [onCanvasChange])
 
   // ─────────────────────────────────────────────────────────────────
   // 适应屏幕
@@ -296,7 +315,9 @@ export default function Canvas({
       if (pos) {
         isDrawingRef.current = true
         drawStartRef.current = { x: e.clientX, y: e.clientY }
-        drawCell(pos.x, pos.y)
+        startStroke()
+        if (tool === 'pencil' || tool === 'eraser') paintToStroke(pos.x, pos.y)
+        else if (tool === 'fill') applyFill(pos.x, pos.y)
       }
       panHasStartedRef.current = false
       isPanningRef.current = false
@@ -312,7 +333,7 @@ export default function Canvas({
     isDrawingRef.current = false
     panCursorStartRef.current = { x: cursorX, y: cursorY }
     panStartRef.current = { x: transform.cx, y: transform.cy }
-  }, [isOverCanvas, getGridPos, drawCell, transform, tool])
+  }, [isOverCanvas, getGridPos, startStroke, paintToStroke, applyFill, transform, tool])
 
   const handleContainerMouseMove = useCallback((e) => {
     const rect = containerRef.current?.getBoundingClientRect()
@@ -331,9 +352,10 @@ export default function Canvas({
         const pos = getGridPos(e.clientX, e.clientY)
         setHoverCell(pos)
         if (pos) {
-          drawCell(pos.x, pos.y)
+          paintToStroke(pos.x, pos.y)
         } else if (distMoved > DRAW_THRESHOLD) {
-          // Dragged off canvas → switch to pan
+          // Dragged off canvas → commit stroke and switch to pan
+          commitStroke()
           panHasStartedRef.current = true
           isPanningRef.current = true
           isDrawingRef.current = false
@@ -344,7 +366,8 @@ export default function Canvas({
       }
 
       if (distMoved > DRAW_THRESHOLD) {
-        // Exceeded threshold → switch to pan mode
+        // Exceeded threshold → commit stroke and switch to pan mode
+        commitStroke()
         panHasStartedRef.current = true
         isPanningRef.current = true
         isDrawingRef.current = false
@@ -355,7 +378,7 @@ export default function Canvas({
         // Within threshold → draw (only if actually on a cell)
         const pos = getGridPos(e.clientX, e.clientY)
         setHoverCell(pos)
-        if (pos) drawCell(pos.x, pos.y)
+        if (pos) applyFill(pos.x, pos.y)
         return
       }
     }
@@ -373,21 +396,23 @@ export default function Canvas({
       const clamped = softClamp(rawCX, rawCY, prev.scale)
       return { ...prev, cx: clamped.x, cy: clamped.y }
     })
-  }, [getGridPos, drawCell, softClamp, tool])
+  }, [getGridPos, paintToStroke, applyFill, commitStroke, softClamp, tool])
 
   const handleContainerMouseUp = useCallback(() => {
+    if (isDrawingRef.current) commitStroke()
     isDrawingRef.current = false
     isPanningRef.current = false
     panHasStartedRef.current = false
     setPanActive(false)
-  }, [])
+  }, [commitStroke])
 
   const handleContainerMouseLeave = useCallback(() => {
+    if (isDrawingRef.current) commitStroke()
     isDrawingRef.current = false
     isPanningRef.current = false
     setPanActive(false)
     setHoverCell(null)
-  }, [])
+  }, [commitStroke])
 
   // PC hover
   const handleMouseMove = useCallback((e) => {
@@ -572,7 +597,11 @@ export default function Canvas({
 
       // 单指点击(未移动)且在grid上 → 填色（抓手工具不绘制）
       if (tool !== 'hand' && touchStartRef.current?.gridPos && !touchMovedRef.current) {
-        drawCell(touchStartRef.current.gridPos.x, touchStartRef.current.gridPos.y)
+        const { x, y } = touchStartRef.current.gridPos
+        startStroke()
+        if (tool === 'pencil' || tool === 'eraser') paintToStroke(x, y)
+        else if (tool === 'fill') applyFill(x, y)
+        commitStroke()
       }
 
       // 惯性
@@ -604,7 +633,7 @@ export default function Canvas({
         }
       }
     }
-  }, [drawCell, getGridPos, transform, startMomentum, tool])
+  }, [startStroke, paintToStroke, applyFill, commitStroke, getGridPos, transform, startMomentum, tool])
 
   const handleTouchCancel = useCallback(() => {
     stopMomentum()

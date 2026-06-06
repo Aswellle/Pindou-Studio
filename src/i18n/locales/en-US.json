@@ -73,7 +73,7 @@
     "settings": "Quantize Settings", "palette": "Target Palette", "gridSize": "Canvas Size",
     "maxColors": "Max Colors", "colors": "colors", "processing": "Processing",
     "preview": "Preview", "colorsUsed": "Colors Used", "generate": "Generate Pattern",
-    "reset": "Reset", "applyToCanvas": "Apply to Canvas",
+    "reset": "Reset", "regenerate": "Regenerate", "paramsChangedHint": "Settings changed — click to regenerate with new parameters", "applyToCanvas": "Apply to Canvas",
     "autoRecommended": "Auto · Recommended for size",
     "longSide": "Long side (cells)", "actualSize": "Actual size", "aspectRatio": "aspect ratio",
     "uploadFirst": "Upload an image first",

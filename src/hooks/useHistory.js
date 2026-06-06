@@ -9,6 +9,9 @@ function reducer(state, action) {
       const next = pushHistory(state.history, state.historyIndex, action.data)
       return { canvasData: action.data, history: next.history, historyIndex: next.historyIndex }
     }
+    // DRAW: update display without creating a history entry (used during drag strokes)
+    case 'DRAW':
+      return { ...state, canvasData: action.data }
     case 'RESET':
       return { canvasData: action.data, history: [JSON.stringify(action.data)], historyIndex: 0 }
     case 'UNDO': {
@@ -37,6 +40,7 @@ export function useHistory() {
     canvasData: state.canvasData,
     canUndo: state.historyIndex > 0,
     canRedo: state.historyIndex < state.history.length - 1,
+    drawCanvas: (data) => dispatch({ type: 'DRAW', data }),
     setCanvas: (data) => dispatch({ type: 'PUSH', data }),
     resetCanvas: (data) => dispatch({ type: 'RESET', data }),
     undo: () => dispatch({ type: 'UNDO' }),

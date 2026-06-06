@@ -73,7 +73,7 @@
     "settings": "量化设置", "palette": "目标色卡", "gridSize": "画布尺寸",
     "maxColors": "目标颜色数", "colors": "色", "processing": "处理中",
     "preview": "预览", "colorsUsed": "使用颜色", "generate": "生成图纸",
-    "reset": "重新上传", "applyToCanvas": "应用到画布",
+    "reset": "重新上传", "regenerate": "重新生成", "paramsChangedHint": "参数已变更，点击按新参数重新生成", "applyToCanvas": "应用到画布",
     "autoRecommended": "自动 · 根据尺寸推荐",
     "longSide": "长边像素数", "actualSize": "实际尺寸", "aspectRatio": "宽高比",
     "uploadFirst": "请先上传图片",

@@ -73,7 +73,7 @@
     "settings": "量子化設定", "palette": "対象パレット", "gridSize": "キャンバスサイズ",
     "maxColors": "最大カラー数", "colors": "色", "processing": "処理中",
     "preview": "プレビュー", "colorsUsed": "使用カラー", "generate": "パターンを生成",
-    "reset": "リセット", "applyToCanvas": "キャンバスに適用",
+    "reset": "リセット", "regenerate": "再生成", "paramsChangedHint": "設定が変更されました。クリックして新しいパラメータで再生成", "applyToCanvas": "キャンバスに適用",
     "autoRecommended": "自動 · サイズに基づく推奨",
     "longSide": "長辺（セル）", "actualSize": "実際のサイズ", "aspectRatio": "アスペクト比",
     "uploadFirst": "先に画像をアップロードしてください",

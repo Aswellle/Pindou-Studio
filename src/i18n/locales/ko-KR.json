@@ -73,7 +73,7 @@
     "settings": "양자화 설정", "palette": "대상 팔레트", "gridSize": "캔버스 크기",
     "maxColors": "최대 색상 수", "colors": "색", "processing": "처리 중",
     "preview": "미리보기", "colorsUsed": "사용 색상", "generate": "패턴 생성",
-    "reset": "다시 업로드", "applyToCanvas": "캔버스에 적용",
+    "reset": "다시 업로드", "regenerate": "재생성", "paramsChangedHint": "설정이 변경되었습니다. 새 매개변수로 재생성하려면 클릭", "applyToCanvas": "캔버스에 적용",
     "autoRecommended": "자동 · 크기에 따라 추천",
     "longSide": "긴 쪽 (칸)", "actualSize": "실제 크기", "aspectRatio": "가로세로 비율",
     "uploadFirst": "먼저 이미지를 업로드하세요",
