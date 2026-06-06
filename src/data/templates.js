@@ -2,73 +2,73 @@
 export const TEMPLATES = [
   {
     id: 1,
-    name: '小熊',
+    nameKey: 'bear',
     size: 29,
-    difficulty: '简单',
-    category: '动物',
+    difficulty: 'easy',
+    category: 'animal',
     colors: ['#8D6E63', '#A1887F', '#795548'],
     pattern: generateBearPattern()
   },
   {
     id: 2,
-    name: '草莓',
+    nameKey: 'strawberry',
     size: 29,
-    difficulty: '简单',
-    category: '食物',
+    difficulty: 'easy',
+    category: 'food',
     colors: ['#E53935', '#4CAF50', '#FFEB3B'],
     pattern: generateStrawberryPattern()
   },
   {
     id: 3,
-    name: '爱心',
+    nameKey: 'heart',
     size: 29,
-    difficulty: '简单',
-    category: '图标',
+    difficulty: 'easy',
+    category: 'icon',
     colors: ['#E53935', '#FF8A80'],
     pattern: generateHeartPattern()
   },
   {
     id: 4,
-    name: '皮卡丘',
+    nameKey: 'pikachu',
     size: 29,
-    difficulty: '困难',
-    category: '动物',
+    difficulty: 'hard',
+    category: 'animal',
     colors: ['#FDD835', '#000000', '#E53935'],
     pattern: generatePikachuPattern()
   },
   {
     id: 5,
-    name: '圣诞树',
+    nameKey: 'christmasTree',
     size: 29,
-    difficulty: '中等',
-    category: '节日',
+    difficulty: 'medium',
+    category: 'holiday',
     colors: ['#32CD32', '#E53935', '#FDD835'],
     pattern: generateChristmasTreePattern()
   },
   {
     id: 6,
-    name: '独角兽',
+    nameKey: 'unicorn',
     size: 29,
-    difficulty: '困难',
-    category: '动物',
+    difficulty: 'hard',
+    category: 'animal',
     colors: ['#F06292', '#BA68C8', '#FDD835'],
     pattern: generateUnicornPattern()
   },
   {
     id: 7,
-    name: '汉堡',
+    nameKey: 'burger',
     size: 29,
-    difficulty: '中等',
-    category: '食物',
+    difficulty: 'medium',
+    category: 'food',
     colors: ['#FFB74D', '#8D6E63', '#4CAF50', '#E53935'],
     pattern: generateBurgerPattern()
   },
   {
     id: 8,
-    name: '彩虹',
+    nameKey: 'rainbow',
     size: 29,
-    difficulty: '简单',
-    category: '图标',
+    difficulty: 'easy',
+    category: 'icon',
     colors: ['#E53935', '#FF9800', '#FDD835', '#4CAF50', '#1976D2'],
     pattern: generateRainbowPattern()
   }
@@ -367,5 +367,5 @@ function generateRainbowPattern() {
   return grid
 }
 
-export const CATEGORIES = ['全部', '动物', '食物', '图标', '节日']
-export const DIFFICULTIES = ['全部', '简单', '中等', '困难']
+export const CATEGORIES = ['all', 'animal', 'food', 'icon', 'holiday']
+export const DIFFICULTIES = ['all', 'easy', 'medium', 'hard']

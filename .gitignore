@@ -35,6 +35,15 @@ coverage/
 # Misc
 *.local
 
+# Claude Code tool state (session files, not source)
+.omc/
+.claude/
+.gstack/
+.full-review/
+
+# Debug scripts
+prep-zoom.js
+
 # Documentation (kept separate from source)
 CLAUDE.md
 开发日志/
@@ -44,5 +53,3 @@ CLAUDE.md
 系统架构与DB设计.md
 重构PRD.md
 sidebar_test.png
-.claude/
-.gstack/

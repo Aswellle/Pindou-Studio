@@ -1,6 +1,8 @@
 import { useState } from 'react'
+import { useTranslation } from 'react-i18next'
 
 export default function AuthModal({ mode, onClose, onLogin, onRegister, onSwitchMode }) {
+  const { t } = useTranslation()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
@@ -43,13 +45,13 @@ export default function AuthModal({ mode, onClose, onLogin, onRegister, onSwitch
         </button>
 
         <div className="auth-header">
-          <h2>{isLogin ? '登录' : '注册'}</h2>
-          <p>{isLogin ? '欢迎回来！' : '创建新账户'}</p>
+          <h2>{isLogin ? t('auth.login') : t('auth.register')}</h2>
+          <p>{isLogin ? t('auth.welcomeBack') : t('auth.createAccount')}</p>
         </div>
 
         <form onSubmit={handleSubmit}>
           <div className="form-group">
-            <label htmlFor="email">邮箱</label>
+            <label htmlFor="email">{t('auth.email')}</label>
             <input
               id="email"
               type="email"
@@ -60,12 +62,12 @@ export default function AuthModal({ mode, onClose, onLogin, onRegister, onSwitch
               required
             />
             {error && !validateEmail(email) && (
-              <span className="error-message">请输入有效的邮箱地址</span>
+              <span className="error-message">{t('errors.invalidEmail')}</span>
             )}
           </div>
 
           <div className="form-group">
-            <label htmlFor="password">密码</label>
+            <label htmlFor="password">{t('auth.password')}</label>
             <input
               id="password"
               type="password"
@@ -76,13 +78,13 @@ export default function AuthModal({ mode, onClose, onLogin, onRegister, onSwitch
               required
             />
             {password.length > 0 && password.length < 6 && (
-              <span className="hint">密码至少需要6个字符</span>
+              <span className="hint">{t('errors.passwordTooShort')}</span>
             )}
           </div>
 
           {!isLogin && (
             <div className="form-group">
-              <label htmlFor="confirmPassword">确认密码</label>
+              <label htmlFor="confirmPassword">{t('auth.confirmPassword')}</label>
               <input
                 id="confirmPassword"
                 type="password"
@@ -93,7 +95,7 @@ export default function AuthModal({ mode, onClose, onLogin, onRegister, onSwitch
                 required
               />
               {confirmPassword && confirmPassword !== password && (
-                <span className="error-message">两次输入的密码不一致</span>
+                <span className="error-message">{t('errors.passwordMismatch')}</span>
               )}
             </div>
           )}
@@ -114,23 +116,23 @@ export default function AuthModal({ mode, onClose, onLogin, onRegister, onSwitch
             className="btn btn-primary btn-full"
             disabled={loading || (!isLogin && password !== confirmPassword)}
           >
-            {loading ? '处理中...' : (isLogin ? '登录' : '注册')}
+            {loading ? t('auth.processing') : (isLogin ? t('auth.login') : t('auth.register'))}
           </button>
         </form>
 
         <div className="auth-footer">
           {isLogin ? (
             <>
-              还没有账户？
+              {t('auth.noAccount')}
               <button className="link-btn" onClick={() => onSwitchMode('register')}>
-                立即注册
+                {t('auth.registerNow')}
               </button>
             </>
           ) : (
             <>
-              已有账户？
+              {t('auth.hasAccount')}
               <button className="link-btn" onClick={() => onSwitchMode('login')}>
-                立即登录
+                {t('auth.loginNow')}
               </button>
             </>
           )}

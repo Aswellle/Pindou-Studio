@@ -1,3 +1,5 @@
+import { useTranslation } from 'react-i18next'
+
 // Perler Beads 经典颜色列表
 const PERLER_COLORS = [
   // 红色系
@@ -25,12 +27,13 @@ const PERLER_COLORS = [
 ]
 
 export default function ColorPalette({ selectedColor, onColorSelect, collapsed, onToggleCollapse }) {
+  const { t } = useTranslation()
   return (
     <div className={`palette-drawer ${collapsed ? 'collapsed' : ''}`}>
       <button
         className="drawer-toggle right-toggle"
         onClick={onToggleCollapse}
-        title={collapsed ? '展开色卡' : '收起色卡'}
+        title={collapsed ? t('palette.expand') : t('palette.collapse')}
       >
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
           {collapsed ? (
@@ -43,7 +46,7 @@ export default function ColorPalette({ selectedColor, onColorSelect, collapsed, 
 
       <div className="palette-inner">
         <div className="palette-header">
-          <h3 className="palette-title">拼豆色卡</h3>
+          <h3 className="palette-title">{t('palette.title2')}</h3>
           <p className="palette-subtitle">Perler Beads Colors</p>
         </div>
 

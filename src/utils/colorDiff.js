@@ -69,9 +69,8 @@ export function ciede2000(lab1, lab2) {
   const kL = 1
   const kC = 1
   const kH = 1
-  const k1 = 0.045
-  const k2 = 0.065
-  const k3 = 0.015
+  const k1 = 0.045  // SC weight (CIEDE2000 standard)
+  const k2 = 0.015  // SH weight (CIEDE2000 standard) — was wrongly 0.065
 
   // Calculate C and h
   const C1 = Math.sqrt(a1 * a1 + b1 * b1)

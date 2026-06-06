@@ -1,40 +1,34 @@
-import { useState } from 'react'
+import { useState, useMemo } from 'react'
+import { useTranslation } from 'react-i18next'
 import { PERLER_COLORS } from './ColorPalette'
 import { getPalette } from '../data/palettes'
 import { exportAsPNG, exportAsSVG } from '../services/BeadPatternExporter'
-
-// 将品牌 ID（如 'P18'）解析为 hex 字符串，以便 Canvas/SVG 正确渲染
-const resolveToHex = (colorVal, palette) => {
-  if (!colorVal) return null
-  if (typeof colorVal === 'string' && colorVal.startsWith('#')) return colorVal
-  const found = palette.colors.find(c => c.id === colorVal)
-  return found ? found.hex : colorVal
-}
+import { resolveToHex } from '../services/colorUtils'
 
 export default function ExportPanel({ canvasData, gridSize, gridWidth, gridHeight, designName = '拼豆图案', paletteId = 'perler' }) {
+  const { t } = useTranslation()
   const [showExport, setShowExport] = useState(false)
   const [exportProgress, setExportProgress] = useState(0)
   const [isExporting, setIsExporting] = useState(false)
+  const [exportError, setExportError] = useState(null)
+  const [beadStyle, setBeadStyle] = useState('professional')
   const palette = getPalette(paletteId)
 
-  // 统计每种颜色的数量（以品牌 ID 为 key，兼容 hex 字符串）
-  const getColorCount = () => {
-    if (!canvasData) return {}
+  // Actual dimensions (support rectangular grids)
+  const actualWidth = gridWidth || gridSize
+  const actualHeight = gridHeight || gridSize
 
+  const { colorCounts, totalBeads } = useMemo(() => {
+    if (!canvasData) return { colorCounts: {}, totalBeads: 0 }
     const counts = {}
-    for (let y = 0; y < gridSize; y++) {
-      for (let x = 0; x < gridSize; x++) {
+    for (let y = 0; y < actualHeight; y++) {
+      for (let x = 0; x < actualWidth; x++) {
         const color = canvasData[y]?.[x]
-        if (color) {
-          counts[color] = (counts[color] || 0) + 1
-        }
+        if (color) counts[color] = (counts[color] || 0) + 1
       }
     }
-    return counts
-  }
-
-  const colorCounts = getColorCount()
-  const totalBeads = Object.values(colorCounts).reduce((a, b) => a + b, 0)
+    return { colorCounts: counts, totalBeads: Object.values(counts).reduce((a, b) => a + b, 0) }
+  }, [canvasData, actualWidth, actualHeight])
 
   const handleExportImage = () => {
     if (!canvasData) return
@@ -43,15 +37,15 @@ export default function ExportPanel({ canvasData, gridSize, gridWidth, gridHeigh
     const BEAD_RADIUS = CELL_SIZE / 2 - 1
 
     const canvas = document.createElement('canvas')
-    canvas.width = gridSize * CELL_SIZE
-    canvas.height = gridSize * CELL_SIZE
+    canvas.width = actualWidth * CELL_SIZE
+    canvas.height = actualHeight * CELL_SIZE
     const ctx = canvas.getContext('2d')
 
     ctx.fillStyle = '#ffffff'
     ctx.fillRect(0, 0, canvas.width, canvas.height)
 
-    for (let y = 0; y < gridSize; y++) {
-      for (let x = 0; x < gridSize; x++) {
+    for (let y = 0; y < actualHeight; y++) {
+      for (let x = 0; x < actualWidth; x++) {
         const color = canvasData[y]?.[x]
         const hex = resolveToHex(color, palette)
         if (hex) {
@@ -69,7 +63,7 @@ export default function ExportPanel({ canvasData, gridSize, gridWidth, gridHeigh
     }
 
     const link = document.createElement('a')
-    link.download = `bead-pattern-${gridSize}x${gridSize}.png`
+    link.download = `bead-pattern-${actualWidth}x${actualHeight}.png`
     link.href = canvas.toDataURL('image/png')
     link.click()
   }
@@ -79,9 +73,9 @@ export default function ExportPanel({ canvasData, gridSize, gridWidth, gridHeigh
     const today = new Date().toISOString().split('T')[0]
 
     let text = `拼豆图纸\n`
-    text += `${gridSize} x ${gridSize} 格子\n`
+    text += `${actualWidth} x ${actualHeight} 格子\n`
     text += `日期：${today}\n`
-    text += `${'═'.repeat(gridSize * 3 + 10)}\n\n`
+    text += `${'═'.repeat(Math.max(actualWidth, actualHeight) * 3 + 10)}\n\n`
 
     // 颜色对照表（按使用频率排序）
     const sortedColors = Object.entries(colorCounts).sort((a, b) => b[1] - a[1])
@@ -95,18 +89,18 @@ export default function ExportPanel({ canvasData, gridSize, gridWidth, gridHeigh
 
     // 带编号的图纸
     text += `【图纸】每格一个数字，00表示空\n`
-    text += `${'─'.repeat(gridSize * 3 + 3)}\n`
+    text += `${'─'.repeat(Math.max(actualWidth, actualHeight) * 3 + 3)}\n`
 
     // 列编号
     text += '   '
-    for (let x = 0; x < gridSize; x++) {
+    for (let x = 0; x < actualWidth; x++) {
       text += String.fromCharCode(65 + (x % 26))  // A, B, C... 循环
     }
     text += '\n'
 
-    for (let y = 0; y < gridSize; y++) {
+    for (let y = 0; y < actualHeight; y++) {
       text += String(y + 1).padStart(3, ' ') + ' '
-      for (let x = 0; x < gridSize; x++) {
+      for (let x = 0; x < actualWidth; x++) {
         const color = canvasData[y]?.[x]
         if (color) {
           const idx = PERLER_COLORS.indexOf(color)
@@ -121,7 +115,7 @@ export default function ExportPanel({ canvasData, gridSize, gridWidth, gridHeigh
 
     const blob = new Blob([text], { type: 'text/plain;charset=utf-8' })
     const link = document.createElement('a')
-    link.download = `bead-pattern-${gridSize}x${gridSize}.txt`
+    link.download = `bead-pattern-${actualWidth}x${actualHeight}.txt`
     link.href = URL.createObjectURL(blob)
     link.click()
   }
@@ -132,11 +126,11 @@ export default function ExportPanel({ canvasData, gridSize, gridWidth, gridHeigh
     const CELL_SIZE = 20
     const BEAD_RADIUS = CELL_SIZE / 2 - 1
 
-    let svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${gridSize * CELL_SIZE} ${gridSize * CELL_SIZE}">\n`
-    svg += `  <rect width="${gridSize * CELL_SIZE}" height="${gridSize * CELL_SIZE}" fill="white"/>\n`
+    let svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${actualWidth * CELL_SIZE} ${actualHeight * CELL_SIZE}">\n`
+    svg += `  <rect width="${actualWidth * CELL_SIZE}" height="${actualHeight * CELL_SIZE}" fill="white"/>\n`
 
-    for (let y = 0; y < gridSize; y++) {
-      for (let x = 0; x < gridSize; x++) {
+    for (let y = 0; y < actualHeight; y++) {
+      for (let x = 0; x < actualWidth; x++) {
         const color = canvasData[y]?.[x]
         const hex = resolveToHex(color, palette)
         if (hex) {
@@ -150,7 +144,7 @@ export default function ExportPanel({ canvasData, gridSize, gridWidth, gridHeigh
 
     const blob = new Blob([svg], { type: 'image/svg+xml' })
     const link = document.createElement('a')
-    link.download = `bead-pattern-${gridSize}x${gridSize}.svg`
+    link.download = `bead-pattern-${actualWidth}x${actualHeight}.svg`
     link.href = URL.createObjectURL(blob)
     link.click()
   }
@@ -159,18 +153,26 @@ export default function ExportPanel({ canvasData, gridSize, gridWidth, gridHeigh
     if (!canvasData || isExporting) return
     setIsExporting(true)
     setExportProgress(0)
-    await exportAsPNG(canvasData, gridSize, paletteId, designName, palette, {
-      gridWidth,
-      gridHeight,
-      onProgress: (_phase, pct) => setExportProgress(Math.round(pct * 100))
-    })
-    setIsExporting(false)
-    setExportProgress(0)
+    setExportError(null)
+    try {
+      await exportAsPNG(canvasData, gridSize, paletteId, designName, palette, {
+        gridWidth,
+        gridHeight,
+        beadStyle,
+        onProgress: (_phase, pct) => setExportProgress(Math.round(pct * 100))
+      })
+    } catch (err) {
+      console.error('Export failed:', err)
+      setExportError('导出失败，请检查画布内容后重试。')
+    } finally {
+      setIsExporting(false)
+      setExportProgress(0)
+    }
   }
 
   const handleExportPatternSheetSVG = () => {
     if (!canvasData) return
-    exportAsSVG(canvasData, gridSize, paletteId, designName, palette, gridWidth, gridHeight)
+    exportAsSVG(canvasData, gridSize, paletteId, designName, palette, gridWidth, gridHeight, beadStyle)
   }
 
   return (
@@ -184,7 +186,7 @@ export default function ExportPanel({ canvasData, gridSize, gridWidth, gridHeigh
           <polyline points="7,10 12,15 17,10"/>
           <line x1="12" y1="15" x2="12" y2="3"/>
         </svg>
-        导出图纸
+        {t('export.title')}
         <span className={`arrow ${showExport ? 'up' : ''}`}>▼</span>
       </button>
 
@@ -197,7 +199,7 @@ export default function ExportPanel({ canvasData, gridSize, gridWidth, gridHeigh
                 <circle cx="8.5" cy="8.5" r="1.5"/>
                 <polyline points="21,15 16,10 5,21"/>
               </svg>
-              PNG 图片
+              {t('export.png')}
             </button>
             <button onClick={handleExportSVG} className="btn btn-secondary">
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -205,7 +207,7 @@ export default function ExportPanel({ canvasData, gridSize, gridWidth, gridHeigh
                 <polyline points="2,17 12,22 22,17"/>
                 <polyline points="2,12 12,17 22,12"/>
               </svg>
-              SVG 矢量
+              {t('export.svg')}
             </button>
             <button onClick={handleExportText} className="btn btn-secondary">
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -214,9 +216,25 @@ export default function ExportPanel({ canvasData, gridSize, gridWidth, gridHeigh
                 <line x1="16" y1="13" x2="8" y2="13"/>
                 <line x1="16" y1="17" x2="8" y2="17"/>
               </svg>
-              图纸文本
+              {t('export.text')}
             </button>
             <div className="export-divider" />
+            <div className="export-style-group">
+              <label className="style-label">图纸风格</label>
+              <select
+                value={beadStyle}
+                onChange={e => setBeadStyle(e.target.value)}
+                className="style-select"
+              >
+                <option value="professional">专业模式（方格 + 色号）</option>
+                <option value="realistic">展示模式（拟真珠子）</option>
+              </select>
+              <span className="setting-hint">
+                {beadStyle === 'professional'
+                  ? '适合对照图纸贴珠，每格标注色号'
+                  : '适合预览、分享、相册封面'}
+              </span>
+            </div>
             <button onClick={handleExportPatternSheet} className="btn btn-primary btn-pattern" disabled={isExporting}>
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                 <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
@@ -225,11 +243,16 @@ export default function ExportPanel({ canvasData, gridSize, gridWidth, gridHeigh
                 <line x1="9" y1="3" x2="9" y2="21"/>
                 <line x1="15" y1="3" x2="15" y2="21"/>
               </svg>
-              {isExporting ? `生成中 ${exportProgress}%` : '拼豆图纸 PNG'}
+              {isExporting ? `${t('export.exporting')} ${exportProgress}%` : t('export.patternSheet')}
             </button>
             {isExporting && (
               <div style={{ height: 4, background: '#e0e0e0', borderRadius: 2, margin: '4px 0' }}>
                 <div style={{ height: '100%', width: `${exportProgress}%`, background: '#4a90d9', borderRadius: 2, transition: 'width 0.1s' }} />
+              </div>
+            )}
+            {exportError && (
+              <div style={{ fontSize: 11, color: '#e53935', padding: '4px 2px', lineHeight: 1.4 }}>
+                {exportError}
               </div>
             )}
             <button onClick={handleExportPatternSheetSVG} className="btn btn-secondary">
@@ -240,7 +263,7 @@ export default function ExportPanel({ canvasData, gridSize, gridWidth, gridHeigh
                 <line x1="9" y1="3" x2="9" y2="21"/>
                 <line x1="15" y1="3" x2="15" y2="21"/>
               </svg>
-              拼豆图纸 SVG
+              {t('export.patternSheetSVG')}
             </button>
           </div>
         </div>
@@ -251,8 +274,7 @@ export default function ExportPanel({ canvasData, gridSize, gridWidth, gridHeigh
           background: var(--bg-primary);
           border: 1px solid var(--border-color);
           border-radius: 12px;
-          overflow: hidden;
-          width: 200px;
+          width: 100%;
         }
         .export-toggle {
           width: 100%;
@@ -356,6 +378,32 @@ export default function ExportPanel({ canvasData, gridSize, gridWidth, gridHeigh
         }
         .btn-pattern:hover {
           background: linear-gradient(135deg, #C62828 0%, #B71C1C 100%);
+        }
+        .export-style-group {
+          display: flex;
+          flex-direction: column;
+          gap: 4px;
+          padding: 4px 0 2px;
+        }
+        .style-label {
+          font-size: 11px;
+          font-weight: 600;
+          color: var(--text-secondary);
+        }
+        .style-select {
+          width: 100%;
+          padding: 6px 8px;
+          border: 1px solid var(--border-color);
+          border-radius: 6px;
+          background: var(--bg-secondary);
+          font-size: 12px;
+          cursor: pointer;
+          color: var(--text-primary);
+        }
+        .setting-hint {
+          font-size: 11px;
+          color: var(--text-muted);
+          line-height: 1.3;
         }
       `}</style>
     </div>

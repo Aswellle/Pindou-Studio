@@ -28,8 +28,8 @@
     "title": "工具", "canvasSize": "画布尺寸", "quickActions": "快捷操作",
     "import": "导入", "imageToBead": "图片转拼豆",
     "expand": "展开工具栏", "collapse": "收起工具栏",
-    "clear": "清空", "undo": "撤销",
-    "clearCanvas": "清空画布", "undoAction": "撤销",
+    "clear": "清空", "undo": "撤销", "redo": "重做",
+    "clearCanvas": "清空画布", "undoAction": "撤销 (Ctrl+Z)", "redoAction": "重做 (Ctrl+Y)",
     "cells": "格",
     "presets": {
       "squareGroup": "方形", "rectangleGroup": "矩形", "customGroup": "自定义",

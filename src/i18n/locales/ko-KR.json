@@ -28,8 +28,8 @@
     "title": "도구", "canvasSize": "캔버스 크기", "quickActions": "빠른 작업",
     "import": "가져오기", "imageToBead": "이미지를 비드로",
     "expand": "도구 모음 펼치기", "collapse": "도구 모음 접기",
-    "clear": "지우기", "undo": "실행 취소",
-    "clearCanvas": "캔버스 지우기", "undoAction": "실행 취소",
+    "clear": "지우기", "undo": "실행 취소", "redo": "다시 실행",
+    "clearCanvas": "캔버스 지우기", "undoAction": "실행 취소 (Ctrl+Z)", "redoAction": "다시 실행 (Ctrl+Y)",
     "cells": "칸",
     "presets": {
       "squareGroup": "정사각형", "rectangleGroup": "직사각형", "customGroup": "사용자 지정",

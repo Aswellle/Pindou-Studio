@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import i18n from '../i18n/index.js'
 
 const STORAGE_KEY = 'bead_studio_auth'
 
@@ -24,11 +25,11 @@ export function useAuth() {
       setTimeout(() => {
         // 简单验证演示
         if (!email || !email.includes('@')) {
-          reject(new Error('请输入有效的邮箱地址'))
+          reject(new Error(i18n.t('errors.invalidEmail')))
           return
         }
         if (password.length < 6) {
-          reject(new Error('密码至少需要6个字符'))
+          reject(new Error(i18n.t('errors.passwordTooShort')))
           return
         }
 
@@ -49,15 +50,15 @@ export function useAuth() {
     return new Promise((resolve, reject) => {
       setTimeout(() => {
         if (!email || !email.includes('@')) {
-          reject(new Error('请输入有效的邮箱地址'))
+          reject(new Error(i18n.t('errors.invalidEmail')))
           return
         }
         if (password.length < 6) {
-          reject(new Error('密码至少需要6个字符'))
+          reject(new Error(i18n.t('errors.passwordTooShort')))
           return
         }
         if (password !== confirmPassword) {
-          reject(new Error('两次输入的密码不一致'))
+          reject(new Error(i18n.t('errors.passwordMismatch')))
           return
         }
 

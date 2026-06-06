@@ -3,6 +3,17 @@
  */
 
 /**
+ * Resolve a color value (brand ID like 'P18' or hex string) to a hex string.
+ * Returns null if the value cannot be resolved.
+ */
+export function resolveToHex(colorVal, palette) {
+  if (!colorVal) return null
+  if (typeof colorVal === 'string' && colorVal.startsWith('#')) return colorVal
+  const found = palette?.colors?.find(c => c.id === colorVal)
+  return found ? found.hex : null
+}
+
+/**
  * Convert hex color to RGB
  */
 export function hexToRgb(hex) {

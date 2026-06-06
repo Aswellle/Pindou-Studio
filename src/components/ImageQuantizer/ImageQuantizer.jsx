@@ -410,13 +410,13 @@ export default function ImageQuantizer({ onApply, onClose }) {
                 disabled={isProcessing}
               >
                 {GRID_PRESETS.map(p => (
-                  <option key={p.key} value={p.key}>{p.label}</option>
+                  <option key={p.key} value={p.key}>{t('quantizer.presets.' + p.key)}</option>
                 ))}
               </select>
               {gridPreset === 'aspect' && (
                 <div className="aspect-mode-inputs">
                   <label style={{ fontSize: 12, color: '#666' }}>
-                    长边像素数: {longSide}
+                    {t('quantizer.longSide')}: {longSide}
                   </label>
                   <input
                     type="range"
@@ -428,9 +428,9 @@ export default function ImageQuantizer({ onApply, onClose }) {
                   />
                   <div style={{ fontSize: 12, color: '#888', marginTop: 4 }}>
                     {previewUrl ? (
-                      <>实际尺寸: <strong>{gridWidth} × {gridHeight}</strong>（宽高比 {imageAspectRatio.toFixed(3)}）</>
+                      <>{t('quantizer.actualSize')}: <strong>{gridWidth} × {gridHeight}</strong>（{t('quantizer.aspectRatio')} {imageAspectRatio.toFixed(3)}）</>
                     ) : (
-                      <>请先上传图片</>
+                      <>{t('quantizer.uploadFirst')}</>
                     )}
                   </div>
                 </div>
@@ -444,7 +444,7 @@ export default function ImageQuantizer({ onApply, onClose }) {
                     value={gridWidth}
                     onChange={e => setGridWidth(Math.max(9, Math.min(200, Number(e.target.value))))}
                     disabled={isProcessing}
-                    placeholder="宽"
+                    placeholder={t('quantizer.widthPlaceholder')}
                   />
                   <span>×</span>
                   <input
@@ -454,7 +454,7 @@ export default function ImageQuantizer({ onApply, onClose }) {
                     value={gridHeight}
                     onChange={e => setGridHeight(Math.max(9, Math.min(200, Number(e.target.value))))}
                     disabled={isProcessing}
-                    placeholder="高"
+                    placeholder={t('quantizer.heightPlaceholder')}
                   />
                 </div>
               )}
@@ -465,7 +465,7 @@ export default function ImageQuantizer({ onApply, onClose }) {
                 {t('quantizer.maxColors', '目标颜色数')}: {maxColors}
                 {!hasUserTouchedMaxColors && (
                   <span style={{ marginLeft: 8, fontSize: 11, color: '#888' }}>
-                    （自动 · 根据尺寸推荐）
+                    （{t('quantizer.autoRecommended')}）
                   </span>
                 )}
               </label>
@@ -485,38 +485,38 @@ export default function ImageQuantizer({ onApply, onClose }) {
                 <span>96</span>
               </div>
               <span className="setting-hint">
-                简单图 12-24 · 插画 28-48 · 复杂图 48-72 · 极高细节 72+
+                {t('quantizer.colorHint')}
               </span>
             </div>
 
             <div className="setting-item">
-              <label>算法</label>
+              <label>{t('quantizer.algorithm')}</label>
               <select
                 value={dithering}
                 onChange={e => setDithering(e.target.value)}
                 disabled={isProcessing}
               >
-                <option value="none">无抖动（干净边缘）</option>
-                <option value="floyd-steinberg">Floyd-Steinberg（渐变过渡好）</option>
-                <option value="ordered">有序抖动（规律纹理）</option>
+                <option value="none">{t('quantizer.dithering.none')}</option>
+                <option value="floyd-steinberg">{t('quantizer.dithering.floydSteinberg')}</option>
+                <option value="ordered">{t('quantizer.dithering.ordered')}</option>
               </select>
               <span className="setting-hint">
-                抖动可产生更平滑的颜色过渡
+                {t('quantizer.algorithmHint')}
               </span>
             </div>
 
             <div className="setting-item">
-              <label>处理质量</label>
+              <label>{t('quantizer.quality')}</label>
               <select
                 value={qualityMode}
                 onChange={e => setQualityMode(e.target.value)}
                 disabled={isProcessing}
               >
-                <option value="high">高质量（推荐，~3-5秒）</option>
-                <option value="fast">快速预览（~1秒）</option>
+                <option value="high">{t('quantizer.qualityModes.high')}</option>
+                <option value="fast">{t('quantizer.qualityModes.fast')}</option>
               </select>
               <span className="setting-hint">
-                高质量模式使用更多次迭代优化配色
+                {t('quantizer.qualityHint')}
               </span>
             </div>
 
@@ -528,16 +528,16 @@ export default function ImageQuantizer({ onApply, onClose }) {
                   onChange={e => setRemoveBackground(e.target.checked)}
                   disabled={isProcessing}
                 />
-                <span>自动移除背景</span>
+                <span>{t('quantizer.removeBackground')}</span>
               </label>
               <span className="setting-hint">
-                检测纯色背景并标记为透明（适合有背景的截图）
+                {t('quantizer.removeBackgroundHint')}
               </span>
             </div>
 
             <div className="setting-item">
               <label>
-                亮度: {brightness > 0 ? `+${brightness}` : brightness}
+                {t('quantizer.brightness')}: {brightness > 0 ? `+${brightness}` : brightness}
               </label>
               <input
                 type="range"
@@ -555,7 +555,7 @@ export default function ImageQuantizer({ onApply, onClose }) {
 
             <div className="setting-item">
               <label>
-                对比度: {contrast > 0 ? `+${contrast}` : contrast}
+                {t('quantizer.contrast')}: {contrast > 0 ? `+${contrast}` : contrast}
               </label>
               <input
                 type="range"
@@ -583,7 +583,7 @@ export default function ImageQuantizer({ onApply, onClose }) {
               <span className="progress-text">
                 {t('quantizer.processing', '处理中')}... {progress}%
                 <br />
-                <small>使用 CIEDE2000 精准配色算法</small>
+                <small>{t('quantizer.processingAlgo')}</small>
               </span>
             </div>
           )}
@@ -599,7 +599,7 @@ export default function ImageQuantizer({ onApply, onClose }) {
               <h3>
                 {t('quantizer.preview', '预览')}
                 {hasUnsavedChanges && (
-                  <span className="settings-changed-warning">（设置已变更）</span>
+                  <span className="settings-changed-warning">（{t('quantizer.settingsChanged')}）</span>
                 )}
               </h3>
               <div className="result-preview">
@@ -670,9 +670,9 @@ export default function ImageQuantizer({ onApply, onClose }) {
               </div>
               <div className="color-summary">
                 <span>{t('quantizer.colorsUsed', '使用颜色')}: {Object.keys(result.colorStats).length}</span>
-                {dithering !== 'none' && <span className="dithering-badge">已应用抖动</span>}
+                {dithering !== 'none' && <span className="dithering-badge">{t('quantizer.ditheringApplied')}</span>}
                 {hasUnsavedChanges && (
-                  <span className="regenerate-hint">点击上方按钮重新生成</span>
+                  <span className="regenerate-hint">{t('quantizer.regenerateHint')}</span>
                 )}
               </div>
             </div>
@@ -730,8 +730,8 @@ export default function ImageQuantizer({ onApply, onClose }) {
         {showUnsavedDialog && (
           <div className="modal-overlay" onClick={() => setShowUnsavedDialog(false)}>
             <div className="modal-content unsaved-dialog" onClick={e => e.stopPropagation()}>
-              <h3>有未保存的更改</h3>
-              <p>您有已生成但未应用的图纸。关闭后将丢失。</p>
+              <h3>{t('quantizer.unsavedTitle')}</h3>
+              <p>{t('quantizer.unsavedBody')}</p>
               <div className="unsaved-dialog-buttons">
                 <button
                   className="btn btn-secondary"
@@ -740,13 +740,13 @@ export default function ImageQuantizer({ onApply, onClose }) {
                     pendingCloseRef.current = false
                   }}
                 >
-                  继续编辑
+                  {t('quantizer.continueEditing')}
                 </button>
                 <button
                   className="btn btn-primary"
                   onClick={handleDiscardChanges}
                 >
-                  放弃并关闭
+                  {t('quantizer.discardClose')}
                 </button>
               </div>
             </div>

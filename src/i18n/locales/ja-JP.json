@@ -28,8 +28,8 @@
     "title": "工具", "canvasSize": "キャンバスサイズ", "quickActions": "クイックアクション",
     "import": "インポート", "imageToBead": "画像をビードに",
     "expand": "ツールバーを展開", "collapse": "ツールバーを折りたたむ",
-    "clear": "クリア", "undo": "元に戻す",
-    "clearCanvas": "キャンバスをクリア", "undoAction": "元に戻す",
+    "clear": "クリア", "undo": "元に戻す", "redo": "やり直し",
+    "clearCanvas": "キャンバスをクリア", "undoAction": "元に戻す (Ctrl+Z)", "redoAction": "やり直し (Ctrl+Y)",
     "cells": "セル",
     "presets": {
       "squareGroup": "正方形", "rectangleGroup": "長方形", "customGroup": "カスタム",

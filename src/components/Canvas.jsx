@@ -5,6 +5,7 @@ const MIN_SCALE = 0.3
 const MAX_SCALE = 5
 const MOMENTUM_FRICTION = 0.88
 const MOMENTUM_THRESHOLD = 0.5
+const BOUNDS_BOOST = 200 // Extra space beyond visible area before bounce-back kicks in
 
 export default function Canvas({
   gridSize,
@@ -16,6 +17,7 @@ export default function Canvas({
   onCanvasChange,
 }) {
   const canvasRef = useRef(null)
+  const overlayRef = useRef(null)
   const containerRef = useRef(null)
 
   const [hoverCell, setHoverCell] = useState(null)
@@ -54,31 +56,39 @@ export default function Canvas({
   const canvasHeight = rows * CELL_SIZE
 
   // ─────────────────────────────────────────────────────────────────
-  // _bounds: 依据当前scale计算canvas中心的合法范围
+  // _bounds: Allow free panning with soft bounce-back at extremes.
+  // Grid can be dragged to any position; bounds only provide resistance
+  // near the edges to prevent it from disappearing off-screen entirely.
   // ─────────────────────────────────────────────────────────────────
   const getBounds = useCallback((scale) => {
     const rect = containerRef.current?.getBoundingClientRect()
-    if (!rect) return { minX: 0, maxX: 0, minY: 0, maxY: 0 }
+    if (!rect) return { minX: -BOUNDS_BOOST, maxX: BOUNDS_BOOST, minY: -BOUNDS_BOOST, maxY: BOUNDS_BOOST }
     const { width: cW, height: cH } = rect
     const scaledW = canvasWidth * scale
     const scaledH = canvasHeight * scale
-    // canvas > 容器：允许平移直到边缘对齐
-    // canvas < 容器：允许在容器内自由移动（不锁中心）
-    const halfW = scaledW >= cW ? (scaledW - cW) / 2 : (cW - scaledW) / 2
-    const halfH = scaledH >= cH ? (scaledH - cH) / 2 : (cH - scaledH) / 2
-    return { minX: -halfW, maxX: halfW, minY: -halfH, maxY: halfH }
+    // Allow dragging well beyond the grid edges — user can pan freely.
+    // Bounce-back resistance only kicks in when grid would go off-screen.
+    const extraX = Math.max((scaledW - cW) / 2 + BOUNDS_BOOST, BOUNDS_BOOST * 2)
+    const extraY = Math.max((scaledH - cH) / 2 + BOUNDS_BOOST, BOUNDS_BOOST * 2)
+    return {
+      minX: -extraX,
+      maxX: extraX,
+      minY: -extraY,
+      maxY: extraY,
+    }
   }, [canvasWidth, canvasHeight])
 
-  const clampCanvasCenter = useCallback((cx, cy, scale) => {
+  // Inline clamp: avoids separate useCallback that captures stale getBounds
+  const softClamp = useCallback((cx, cy, scale) => {
     const { minX, maxX, minY, maxY } = getBounds(scale)
     return {
-      x: Math.max(minX, Math.min(maxX, cx)),
-      y: Math.max(minY, Math.min(maxY, cy)),
+      x: cx < minX ? minX : cx > maxX ? maxX : cx,
+      y: cy < minY ? minY : cy > maxY ? maxY : cy,
     }
   }, [getBounds])
 
   // ─────────────────────────────────────────────────────────────────
-  // 绘制网格
+  // Effect 1: full grid redraw — only when cell data changes (expensive)
   // ─────────────────────────────────────────────────────────────────
   useEffect(() => {
     const canvas = canvasRef.current
@@ -113,6 +123,17 @@ export default function Canvas({
       ctx.lineTo(canvasWidth, i * CELL_SIZE)
       ctx.stroke()
     }
+  }, [canvasData, cols, rows, canvasWidth, canvasHeight])
+
+  // ─────────────────────────────────────────────────────────────────
+  // Effect 2: hover highlight on transparent overlay (cheap — 1 cell)
+  // Runs on every mousemove but never touches the base canvas.
+  // ─────────────────────────────────────────────────────────────────
+  useEffect(() => {
+    const overlay = overlayRef.current
+    if (!overlay) return
+    const ctx = overlay.getContext('2d')
+    ctx.clearRect(0, 0, canvasWidth, canvasHeight)
 
     if (hoverCell && tool === 'pencil') {
       ctx.fillStyle = 'rgba(0, 0, 0, 0.08)'
@@ -121,7 +142,7 @@ export default function Canvas({
       ctx.lineWidth = 2
       ctx.strokeRect(hoverCell.x * CELL_SIZE, hoverCell.y * CELL_SIZE, CELL_SIZE, CELL_SIZE)
     }
-  }, [canvasData, cols, rows, hoverCell, tool, canvasWidth, canvasHeight])
+  }, [hoverCell, tool, canvasWidth, canvasHeight])
 
   // ─────────────────────────────────────────────────────────────────
   // 坐标转换
@@ -181,6 +202,27 @@ export default function Canvas({
   }, [canvasData, selectedColor, tool, cols, rows, onCanvasChange])
 
   // ─────────────────────────────────────────────────────────────────
+  // 适应屏幕
+  // ─────────────────────────────────────────────────────────────────
+  const fitToScreen = useCallback(() => {
+    const rect = containerRef.current?.getBoundingClientRect()
+    if (!rect) return
+    const availableW = rect.width - 24
+    const availableH = rect.height - 24
+    const scaleX = availableW / canvasWidth
+    const scaleY = availableH / canvasHeight
+    const newScale = Math.max(MIN_SCALE, Math.min(MAX_SCALE, Math.min(scaleX, scaleY)))
+    setTransform({ scale: newScale, cx: 0, cy: 0 })
+  }, [canvasWidth, canvasHeight])
+
+  // 大网格自动适应屏幕
+  useEffect(() => {
+    if (cols > 50 || rows > 50) {
+      fitToScreen()
+    }
+  }, [cols, rows])
+
+  // ─────────────────────────────────────────────────────────────────
   // 重置
   // ─────────────────────────────────────────────────────────────────
   const resetTransform = useCallback(() => {
@@ -219,10 +261,10 @@ export default function Canvas({
 
     const rawCX = transform.cx + dtx
     const rawCY = transform.cy + dty
-    const clamped = clampCanvasCenter(rawCX, rawCY, newScale)
+    const clamped = softClamp(rawCX, rawCY, newScale)
 
     setTransform({ scale: newScale, cx: clamped.x, cy: clamped.y })
-  }, [transform, clampCanvasCenter])
+  }, [transform, softClamp])
 
   // ─────────────────────────────────────────────────────────────────
   // PC: 鼠标拖拽平移（canvas内外均可）
@@ -238,7 +280,7 @@ export default function Canvas({
     if (tool === 'hand') {
       e.preventDefault()
       isPanningRef.current = true
-      panHasStartedRef.current = true
+      panHasStartedRef.current = false  // Wait for movement threshold (3px)
       isDrawingRef.current = false
       setPanActive(true)
       panCursorStartRef.current = { x: cursorX, y: cursorY }
@@ -326,10 +368,10 @@ export default function Canvas({
     const rawCY = panStartRef.current.y + deltaY
 
     setTransform(prev => {
-      const clamped = clampCanvasCenter(rawCX, rawCY, prev.scale)
+      const clamped = softClamp(rawCX, rawCY, prev.scale)
       return { ...prev, cx: clamped.x, cy: clamped.y }
     })
-  }, [getGridPos, drawCell, clampCanvasCenter, tool])
+  }, [getGridPos, drawCell, softClamp, tool])
 
   const handleContainerMouseUp = useCallback(() => {
     isDrawingRef.current = false
@@ -378,7 +420,7 @@ export default function Canvas({
       setTransform(prev => {
         const rawCX = prev.cx + vx
         const rawCY = prev.cy + vy
-        const clamped = clampCanvasCenter(rawCX, rawCY, prev.scale)
+        const clamped = softClamp(rawCX, rawCY, prev.scale)
         return { ...prev, cx: clamped.x, cy: clamped.y }
       })
       velocityRef.current = {
@@ -388,7 +430,7 @@ export default function Canvas({
       momentumRef.current = requestAnimationFrame(applyMomentum)
     }
     momentumRef.current = requestAnimationFrame(applyMomentum)
-  }, [stopMomentum, clampCanvasCenter])
+  }, [stopMomentum, softClamp])
 
   const handleTouchStart = useCallback((e) => {
     e.preventDefault()
@@ -455,7 +497,7 @@ export default function Canvas({
       // 保持pinch中心canvas坐标不变
       const rawCX = startCX + pcx * (1 - newScale / startScale)
       const rawCY = startCY + pcy * (1 - newScale / startScale)
-      const clamped = clampCanvasCenter(rawCX, rawCY, newScale)
+      const clamped = softClamp(rawCX, rawCY, newScale)
 
       setTransform({ scale: newScale, cx: clamped.x, cy: clamped.y })
       return
@@ -486,7 +528,7 @@ export default function Canvas({
         const rawCX = touchPanCanvasStartRef.current.x + cursorX - touchPanCursorStartRef.current.x
         const rawCY = touchPanCanvasStartRef.current.y + cursorY - touchPanCursorStartRef.current.y
         setTransform(prev => {
-          const clamped = clampCanvasCenter(rawCX, rawCY, prev.scale)
+          const clamped = softClamp(rawCX, rawCY, prev.scale)
           return { ...prev, cx: clamped.x, cy: clamped.y }
         })
         return
@@ -511,13 +553,13 @@ export default function Canvas({
           const rawCX = touchPanCanvasStartRef.current.x + cursorX - touchPanCursorStartRef.current.x
           const rawCY = touchPanCanvasStartRef.current.y + cursorY - touchPanCursorStartRef.current.y
           setTransform(prev => {
-            const clamped = clampCanvasCenter(rawCX, rawCY, prev.scale)
+            const clamped = softClamp(rawCX, rawCY, prev.scale)
             return { ...prev, cx: clamped.x, cy: clamped.y }
           })
         }
       }
     }
-  }, [getGridPos, transform, clampCanvasCenter])
+  }, [getGridPos, transform, softClamp])
 
   const handleTouchEnd = useCallback((e) => {
     e.preventDefault()
@@ -585,12 +627,15 @@ export default function Canvas({
 
   return (
     <div className="canvas-wrapper">
-      <div className="canvas-info">
+<div className="canvas-info">
         <span>{cols} × {rows}</span>
         <span>|</span>
         <span>{Math.round(transform.scale * 100)}%</span>
         <button className="reset-btn" onClick={resetTransform} title="双击重置">
           重置
+        </button>
+        <button className="fit-btn" onClick={fitToScreen} title="适应屏幕">
+          适应
         </button>
       </div>
 
@@ -610,19 +655,33 @@ export default function Canvas({
         style={{ cursor: tool === 'hand' ? (panActive ? 'grabbing' : 'grab') : (panActive ? 'grabbing' : 'default') }}
       >
         <div className="canvas-inner" style={transformStyle}>
-          <canvas
-            ref={canvasRef}
-            width={canvasWidth}
-            height={canvasHeight}
-            onMouseMove={handleMouseMove}
-            onMouseLeave={handleMouseLeave}
-            style={{
-              imageRendering: 'pixelated',
-              touchAction: 'none',
-              display: 'block',
-              cursor: tool === 'hand' ? (panActive ? 'grabbing' : 'grab') : (panActive ? 'grabbing' : 'crosshair'),
-            }}
-          />
+          <div style={{ position: 'relative', lineHeight: 0 }}>
+            <canvas
+              ref={canvasRef}
+              width={canvasWidth}
+              height={canvasHeight}
+              onMouseMove={handleMouseMove}
+              onMouseLeave={handleMouseLeave}
+              style={{
+                imageRendering: 'pixelated',
+                touchAction: 'none',
+                display: 'block',
+                cursor: tool === 'hand' ? (panActive ? 'grabbing' : 'grab') : (panActive ? 'grabbing' : 'crosshair'),
+              }}
+            />
+            <canvas
+              ref={overlayRef}
+              width={canvasWidth}
+              height={canvasHeight}
+              style={{
+                position: 'absolute',
+                top: 0,
+                left: 0,
+                imageRendering: 'pixelated',
+                pointerEvents: 'none',
+              }}
+            />
+          </div>
         </div>
       </div>
 
@@ -659,8 +718,22 @@ export default function Canvas({
           cursor: pointer;
           transition: all 0.2s;
         }
-        .reset-btn:hover {
+.reset-btn:hover {
           background: #2563eb;
+          transform: scale(1.05);
+        }
+        .fit-btn {
+          background: #10b981;
+          color: white;
+          border: none;
+          padding: 4px 12px;
+          border-radius: 12px;
+          font-size: 12px;
+          cursor: pointer;
+          transition: all 0.2s;
+        }
+        .fit-btn:hover {
+          background: #059669;
           transform: scale(1.05);
         }
         .canvas-container {

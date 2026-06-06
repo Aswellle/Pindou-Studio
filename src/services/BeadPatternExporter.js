@@ -47,6 +47,19 @@ function drawBead(ctx, cx, cy, radius, hexColor) {
 }
 
 /**
+ * 根据背景颜色的相对亮度，返回适合叠加在其上的文字色。
+ * ITU-R BT.601 公式；阈值 128 是专业拼豆站实测值。
+ * 用 #b8b8b8 而非纯白，避免暗底文字过于刺眼。
+ */
+function textColorForBg(hex) {
+  const r = parseInt(hex.slice(1, 3), 16)
+  const g = parseInt(hex.slice(3, 5), 16)
+  const b = parseInt(hex.slice(5, 7), 16)
+  const lum = 0.299 * r + 0.587 * g + 0.114 * b
+  return lum > 128 ? '#1a1a1a' : '#b8b8b8'
+}
+
+/**
  * 根据品牌色号 ID 或 HEX 查找色卡颜色信息
  * canvasData 单元格存储品牌色号 (如 P01, H23) 或 hex 字符串（向后兼容）
  */
@@ -159,12 +172,19 @@ function groupColorStats(colorStats, totalBeads) {
  * @param {string} options.paletteId - 色卡ID
  * @param {string} options.designName - 设计名称
  * @param {Object} options.palette - 色卡数据
- * @returns {HTMLCanvasElement} 生成的canvas元素
+ * @returns {Promise<HTMLCanvasElement>} 生成的canvas元素
  */
-export async function generateBeadPatternSheet({ canvasData, gridSize, gridWidth, gridHeight, paletteId, designName = '未命名', palette, onProgress = null }) {
+export async function generateBeadPatternSheet({
+  canvasData, gridSize, gridWidth, gridHeight, paletteId,
+  designName = '未命名', palette, onProgress = null,
+  beadStyle = 'realistic',
+  showCodes = null
+}) {
   // 支持矩形网格（Phase 3）
   const cols = gridWidth || gridSize || (canvasData[0]?.length ?? gridSize)
   const rows = gridHeight || gridSize || canvasData.length
+  const useProMode = (beadStyle === 'professional')
+  const drawCodes = showCodes ?? useProMode
 
   // 配置参数
   const CELL_SIZE = 28        // 每格像素大小（适合打印）
@@ -282,14 +302,24 @@ export async function generateBeadPatternSheet({ canvasData, gridSize, gridWidth
     for (const item of items) {
       if (colorY + colorItemH > colorPanelY + colorPanelHeight - 10) break
 
-      // 颜色圆点
-      ctx.beginPath()
-      ctx.arc(colorPanelX + 20, colorY + colorItemH / 2, 8, 0, Math.PI * 2)
-      ctx.fillStyle = item.hex
-      ctx.fill()
-      ctx.strokeStyle = 'rgba(0,0,0,0.22)'
-      ctx.lineWidth = 0.8
-      ctx.stroke()
+      // 色块：专业模式用方形（与图纸方格形状一致），拟真模式用圆形
+      if (useProMode) {
+        const swX = colorPanelX + 10
+        const swY = colorY + colorItemH / 2 - 10
+        ctx.fillStyle = item.hex
+        ctx.fillRect(swX, swY, 20, 20)
+        ctx.strokeStyle = 'rgba(0,0,0,0.15)'
+        ctx.lineWidth = 1
+        ctx.strokeRect(swX + 0.5, swY + 0.5, 19, 19)
+      } else {
+        ctx.beginPath()
+        ctx.arc(colorPanelX + 20, colorY + colorItemH / 2, 8, 0, Math.PI * 2)
+        ctx.fillStyle = item.hex
+        ctx.fill()
+        ctx.strokeStyle = 'rgba(0,0,0,0.22)'
+        ctx.lineWidth = 0.8
+        ctx.stroke()
+      }
 
       // 色号 + 名称
       const label = item.id !== item.name ? `${item.id} ${item.name}` : item.name
@@ -359,6 +389,10 @@ export async function generateBeadPatternSheet({ canvasData, gridSize, gridWidth
   }
 
   // 绘制珠子 — 分帧（每 2000 颗让出主线程一次，避免 UI 冻结）
+  // 'realistic'    : 径向渐变 + 高光 + 中心孔（展示用）
+  // 'professional' : 方形填色 + 色号标注（工艺施工用）
+  const codeFontSize = Math.max(9, Math.floor(CELL_SIZE * 0.38))
+  const codeFont = `bold ${codeFontSize}px "Helvetica Neue", "Arial", sans-serif`
   const total = rows * cols
   const BATCH_SIZE = 2000
   let processed = 0
@@ -370,9 +404,26 @@ export async function generateBeadPatternSheet({ canvasData, gridSize, gridWidth
         let paletteColor = findPaletteColorById(cell, palette)
         if (!paletteColor && cell.startsWith('#')) paletteColor = findClosestPaletteColor(cell, palette)
         const hexColor = paletteColor?.hex || (cell.startsWith('#') ? cell : '#888888')
-        const cx = gridStartX + x * CELL_SIZE + CELL_SIZE / 2
-        const cy = gridStartY + y * CELL_SIZE + CELL_SIZE / 2
-        drawBead(ctx, cx, cy, BEAD_RADIUS, hexColor)
+        const codeLabel = paletteColor?.id || ''
+        const cellX = gridStartX + x * CELL_SIZE
+        const cellY = gridStartY + y * CELL_SIZE
+        const cx = cellX + CELL_SIZE / 2
+        const cy = cellY + CELL_SIZE / 2
+
+        if (useProMode) {
+          // +0.5 / -1 留 1px 给网格线
+          ctx.fillStyle = hexColor
+          ctx.fillRect(cellX + 0.5, cellY + 0.5, CELL_SIZE - 1, CELL_SIZE - 1)
+          if (drawCodes && codeLabel && CELL_SIZE >= 14) {
+            ctx.fillStyle = textColorForBg(hexColor)
+            ctx.font = codeFont
+            ctx.textAlign = 'center'
+            ctx.textBaseline = 'middle'
+            ctx.fillText(codeLabel, cx, cy + 1)
+          }
+        } else {
+          drawBead(ctx, cx, cy, BEAD_RADIUS, hexColor)
+        }
       }
       processed++
       if (processed % BATCH_SIZE === 0) {
@@ -382,6 +433,39 @@ export async function generateBeadPatternSheet({ canvasData, gridSize, gridWidth
     }
   }
   if (onProgress) onProgress('beads', 1)
+
+  // 专业模式：珠子方块绘制完后，在上层补画网格线
+  // 细线作分隔，每 10 格加粗一条（专业图纸惯例，便于手工对照坐标）
+  if (useProMode) {
+    ctx.strokeStyle = 'rgba(255,255,255,0.5)'
+    ctx.lineWidth = 1
+    for (let i = 0; i <= cols; i++) {
+      ctx.beginPath()
+      ctx.moveTo(gridStartX + i * CELL_SIZE + 0.5, gridStartY)
+      ctx.lineTo(gridStartX + i * CELL_SIZE + 0.5, gridStartY + gridPixelH)
+      ctx.stroke()
+    }
+    for (let i = 0; i <= rows; i++) {
+      ctx.beginPath()
+      ctx.moveTo(gridStartX, gridStartY + i * CELL_SIZE + 0.5)
+      ctx.lineTo(gridStartX + gridPixelW, gridStartY + i * CELL_SIZE + 0.5)
+      ctx.stroke()
+    }
+    ctx.strokeStyle = 'rgba(0,0,0,0.25)'
+    ctx.lineWidth = 1.5
+    for (let i = 0; i <= cols; i += 10) {
+      ctx.beginPath()
+      ctx.moveTo(gridStartX + i * CELL_SIZE + 0.5, gridStartY)
+      ctx.lineTo(gridStartX + i * CELL_SIZE + 0.5, gridStartY + gridPixelH)
+      ctx.stroke()
+    }
+    for (let i = 0; i <= rows; i += 10) {
+      ctx.beginPath()
+      ctx.moveTo(gridStartX, gridStartY + i * CELL_SIZE + 0.5)
+      ctx.lineTo(gridStartX + gridPixelW, gridStartY + i * CELL_SIZE + 0.5)
+      ctx.stroke()
+    }
+  }
 
   // ========== 5. 绘制图例 ==========
   ctx.fillStyle = '#f0f0f0'
@@ -434,7 +518,8 @@ export async function exportAsPNG(canvasData, gridSize, paletteId, designName, p
     gridWidth: options.gridWidth,
     gridHeight: options.gridHeight,
     paletteId, designName, palette,
-    onProgress: options.onProgress
+    onProgress: options.onProgress,
+    beadStyle: options.beadStyle
   })
 
   const link = document.createElement('a')
@@ -443,10 +528,18 @@ export async function exportAsPNG(canvasData, gridSize, paletteId, designName, p
   link.click()
 }
 
+function escapeSVG(str) {
+  return String(str)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+}
+
 /**
  * 导出为 SVG (简化版，仅网格和珠子)
  */
-export function exportAsSVG(canvasData, gridSize, paletteId, designName, palette, gridWidth, gridHeight) {
+export function exportAsSVG(canvasData, gridSize, paletteId, designName, palette, gridWidth, gridHeight, beadStyle = 'realistic') {
   const CELL_SIZE = 28
   const BEAD_RADIUS = CELL_SIZE / 2 - 2
   const HEADER_HEIGHT = 80
@@ -458,6 +551,8 @@ export function exportAsSVG(canvasData, gridSize, paletteId, designName, palette
 
   const cols = gridWidth || gridSize || (canvasData[0]?.length ?? gridSize)
   const rows = gridHeight || gridSize || canvasData.length
+  const useProMode = (beadStyle === 'professional')
+  const codeFontSize = Math.max(9, Math.floor(CELL_SIZE * 0.38))
   const gridPixelW = cols * CELL_SIZE
   const gridPixelH = rows * CELL_SIZE
   const svgW = gridPixelW + ROW_LABEL_WIDTH + PADDING * 2 + SVG_PANEL_WIDTH
@@ -468,7 +563,7 @@ export function exportAsSVG(canvasData, gridSize, paletteId, designName, palette
   <style>text { font-family: "Fira Code", "Microsoft YaHei", sans-serif; }</style>
   <rect width="100%" height="100%" fill="white"/>
   <rect x="0" y="0" width="${svgW}" height="${HEADER_HEIGHT}" fill="#2c2c2c"/>
-  <text x="${svgW / 2}" y="${HEADER_HEIGHT / 2 - 12}" fill="white" font-size="24" font-weight="bold" text-anchor="middle">${designName}</text>
+  <text x="${svgW / 2}" y="${HEADER_HEIGHT / 2 - 12}" fill="white" font-size="24" font-weight="bold" text-anchor="middle">${escapeSVG(designName)}</text>
   <text x="${svgW / 2}" y="${HEADER_HEIGHT / 2 + 18}" fill="#aaaaaa" font-size="14" text-anchor="middle">${cols} × ${rows} 格子</text>
 `
 
@@ -495,16 +590,28 @@ export function exportAsSVG(canvasData, gridSize, paletteId, designName, palette
     for (let x = 0; x < cols; x++) {
       const cell = canvasData[y]?.[x]
       if (!cell) continue
-      let paletteColor = palette?.colors.find(c => c.id === cell)
-      if (!paletteColor && cell.startsWith('#')) paletteColor = null
+      let paletteColor = findPaletteColorById(cell, palette)
+      if (!paletteColor && cell.startsWith('#')) paletteColor = findClosestPaletteColor(cell, palette)
       const hexColor = paletteColor?.hex || (cell.startsWith('#') ? cell : '#888888')
-      const cx = gridStartX + x * CELL_SIZE + CELL_SIZE / 2
-      const cy = gridStartY + y * CELL_SIZE + CELL_SIZE / 2
-      // SVG 中使用径向渐变模拟塑料质感
-      const gid = `g${y}_${x}`
-      svg += `  <defs><radialGradient id="${gid}" cx="35%" cy="35%" r="65%"><stop offset="0%" stop-color="${hexColor}" stop-opacity="1.4"/><stop offset="50%" stop-color="${hexColor}"/><stop offset="100%" stop-color="${hexColor}" stop-opacity="0.82"/></radialGradient></defs>\n`
-      svg += `  <circle cx="${cx}" cy="${cy}" r="${BEAD_RADIUS}" fill="url(#${gid})"/>\n`
-      svg += `  <circle cx="${cx - BEAD_RADIUS * 0.28}" cy="${cy - BEAD_RADIUS * 0.28}" r="${BEAD_RADIUS * 0.28}" fill="rgba(255,255,255,0.38)"/>\n`
+      const codeLabel = paletteColor?.id || ''
+      const cellX = gridStartX + x * CELL_SIZE
+      const cellY = gridStartY + y * CELL_SIZE
+      const cx = cellX + CELL_SIZE / 2
+      const cy = cellY + CELL_SIZE / 2
+
+      if (useProMode) {
+        const textColor = textColorForBg(hexColor)
+        svg += `  <rect x="${cellX + 0.5}" y="${cellY + 0.5}" width="${CELL_SIZE - 1}" height="${CELL_SIZE - 1}" fill="${hexColor}" stroke="rgba(255,255,255,0.5)" stroke-width="1"/>\n`
+        if (codeLabel) {
+          svg += `  <text x="${cx}" y="${cy}" fill="${textColor}" font-family="Helvetica Neue, Arial, sans-serif" font-size="${codeFontSize}" font-weight="bold" text-anchor="middle" dominant-baseline="central">${codeLabel}</text>\n`
+        }
+      } else {
+        // SVG 中使用径向渐变模拟塑料质感
+        const gid = `g${y}_${x}`
+        svg += `  <defs><radialGradient id="${gid}" cx="35%" cy="35%" r="65%"><stop offset="0%" stop-color="${hexColor}" stop-opacity="1.4"/><stop offset="50%" stop-color="${hexColor}"/><stop offset="100%" stop-color="${hexColor}" stop-opacity="0.82"/></radialGradient></defs>\n`
+        svg += `  <circle cx="${cx}" cy="${cy}" r="${BEAD_RADIUS}" fill="url(#${gid})"/>\n`
+        svg += `  <circle cx="${cx - BEAD_RADIUS * 0.28}" cy="${cy - BEAD_RADIUS * 0.28}" r="${BEAD_RADIUS * 0.28}" fill="rgba(255,255,255,0.38)"/>\n`
+      }
     }
   }
 
@@ -542,7 +649,13 @@ export function exportAsSVG(canvasData, gridSize, paletteId, designName, palette
       const countText = cfg.warn ? `${item.count}颗 ⚠` : `${item.count}颗`
       const textColor = cfg.warn ? '#cc3333' : '#333333'
       const countColor = cfg.warn ? '#cc3333' : '#555555'
-      svg += `  <circle cx="${panelX + 20}" cy="${colorY + svgItemH / 2}" r="8" fill="${item.hex}" stroke="rgba(0,0,0,0.22)" stroke-width="0.8"/>\n`
+      if (useProMode) {
+        const swX = panelX + 10
+        const swY = colorY + svgItemH / 2 - 10
+        svg += `  <rect x="${swX + 0.5}" y="${swY + 0.5}" width="19" height="19" fill="${item.hex}" stroke="rgba(0,0,0,0.15)" stroke-width="1"/>\n`
+      } else {
+        svg += `  <circle cx="${panelX + 20}" cy="${colorY + svgItemH / 2}" r="8" fill="${item.hex}" stroke="rgba(0,0,0,0.22)" stroke-width="0.8"/>\n`
+      }
       svg += `  <text x="${panelX + 34}" y="${colorY + svgItemH / 2 + 4}" fill="${textColor}" font-size="10">${truncated}</text>\n`
       svg += `  <text x="${panelX + SVG_PANEL_WIDTH - 10}" y="${colorY + svgItemH / 2 + 4}" fill="${countColor}" font-size="10" text-anchor="end">${countText}</text>\n`
       colorY += svgItemH

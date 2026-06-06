@@ -28,8 +28,8 @@
     "title": "Tools", "canvasSize": "Canvas Size", "quickActions": "Quick Actions",
     "import": "Import", "imageToBead": "Image to Beads",
     "expand": "Expand toolbar", "collapse": "Collapse toolbar",
-    "clear": "Clear", "undo": "Undo",
-    "clearCanvas": "Clear Canvas", "undoAction": "Undo",
+    "clear": "Clear", "undo": "Undo", "redo": "Redo",
+    "clearCanvas": "Clear Canvas", "undoAction": "Undo (Ctrl+Z)", "redoAction": "Redo (Ctrl+Y)",
     "cells": "cells",
     "presets": {
       "squareGroup": "Square", "rectangleGroup": "Rectangle", "customGroup": "Custom",

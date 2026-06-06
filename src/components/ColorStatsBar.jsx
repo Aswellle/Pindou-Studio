@@ -7,48 +7,46 @@
  *   gridSize: current canvas dimension
  *   paletteId: current palette id (for brand color resolution)
  */
+import { useMemo } from 'react'
+import { useTranslation } from 'react-i18next'
 import { getPalette } from '../data/palettes'
-
-const resolveToHex = (colorVal, palette) => {
-  if (!colorVal) return null
-  if (typeof colorVal === 'string' && colorVal.startsWith('#')) return colorVal
-  const found = palette.colors.find(c => c.id === colorVal)
-  return found ? found.hex : colorVal
-}
+import { resolveToHex } from '../services/colorUtils'
 
 export default function ColorStatsBar({ canvasData, gridSize, paletteId }) {
+  const { t } = useTranslation()
+
+  const { total, colorCount, colorList } = useMemo(() => {
+    if (!canvasData) return { total: 0, colorCount: 0, colorList: [] }
+    const palette = getPalette(paletteId || 'perler')
+    const counts = {}
+    let total = 0
+    const rows = canvasData.length
+    const cols = rows > 0 ? canvasData[0].length : 0
+    for (let y = 0; y < rows; y++) {
+      for (let x = 0; x < cols; x++) {
+        const hex = resolveToHex(canvasData[y]?.[x], palette)
+        if (hex) {
+          counts[hex] = (counts[hex] || 0) + 1
+          total++
+        }
+      }
+    }
+    const colorList = Object.entries(counts)
+      .sort((a, b) => b[1] - a[1])
+      .map(([hex, count]) => {
+        const pc = palette.colors.find(c => c.hex?.toLowerCase() === hex.toLowerCase())
+        return { hex, count, label: pc ? `${pc.id} ${pc.nameZh || pc.name}` : hex }
+      })
+    return { total, colorCount: colorList.length, colorList }
+  }, [canvasData, paletteId])
+
   if (!canvasData) {
     return (
       <div className="color-stats-bar empty">
-        <div className="stats-empty-text">暂无数据</div>
+        <div className="stats-empty-text">{t('stats.noData')}</div>
       </div>
     )
   }
-
-  const palette = getPalette(paletteId || 'perler')
-  const counts = {}
-  let total = 0
-
-  // Determine actual grid dimensions
-  const rows = canvasData.length
-  const cols = rows > 0 ? canvasData[0].length : 0
-
-  for (let y = 0; y < rows; y++) {
-    for (let x = 0; x < cols; x++) {
-      const raw = canvasData[y]?.[x]
-      const hex = resolveToHex(raw, palette)
-      if (hex) {
-        // Use the hex as the key (works for both old hex-format and new ID-format data)
-        counts[hex] = (counts[hex] || 0) + 1
-        total++
-      }
-    }
-  }
-
-  const colorCount = Object.keys(counts).length
-  const colorList = Object.entries(counts)
-    .sort((a, b) => b[1] - a[1])
-    .slice(0, 6)
 
   return (
     <div className="color-stats-bar">
@@ -59,32 +57,27 @@ export default function ColorStatsBar({ canvasData, gridSize, paletteId }) {
             <circle cx="12" cy="12" r="10"/>
           </svg>
           <span className="stats-chip-value">{total}</span>
-          <span className="stats-chip-label">颗珠子</span>
+          <span className="stats-chip-label">{t('stats.beads')}</span>
         </div>
         <div className="stats-chip">
           <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
             <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/>
           </svg>
           <span className="stats-chip-value">{colorCount}</span>
-          <span className="stats-chip-label">种颜色</span>
+          <span className="stats-chip-label">{t('stats.colors')}</span>
         </div>
       </div>
 
-      {/* Color swatches */}
+      {/* Color swatches — scrollable list showing all colors with brand IDs */}
       {colorList.length > 0 && (
         <div className="stats-swatches">
-          {colorList.map(([hex, count]) => (
-            <div key={hex} className="stats-swatch-item" title={`${hex} — ${count}颗`}>
-              <span
-                className="stats-swatch-dot"
-                style={{ backgroundColor: hex }}
-              />
+          {colorList.map(({ hex, count, label }) => (
+            <div key={hex} className="stats-swatch-item" title={`${hex} — ${count} ${t('stats.beads')}`}>
+              <span className="stats-swatch-dot" style={{ backgroundColor: hex }} />
+              <span className="stats-swatch-hex">{label}</span>
               <span className="stats-swatch-count">{count}</span>
             </div>
           ))}
-          {colorCount > 6 && (
-            <span className="stats-more">+{colorCount - 6}</span>
-          )}
         </div>
       )}
 
@@ -136,17 +129,27 @@ export default function ColorStatsBar({ canvasData, gridSize, paletteId }) {
         }
         .stats-swatches {
           display: flex;
-          flex-wrap: wrap;
-          gap: 6px;
-          align-items: center;
+          flex-direction: column;
+          gap: 3px;
+          max-height: 180px;
+          overflow-y: auto;
+          overflow-x: hidden;
+        }
+        .stats-swatches::-webkit-scrollbar {
+          width: 3px;
+        }
+        .stats-swatches::-webkit-scrollbar-thumb {
+          background: var(--border-color);
+          border-radius: 2px;
         }
         .stats-swatch-item {
           display: flex;
           align-items: center;
-          gap: 3px;
+          gap: 6px;
           background: var(--bg-secondary);
-          border-radius: 6px;
+          border-radius: 5px;
           padding: 3px 6px;
+          flex-shrink: 0;
         }
         .stats-swatch-dot {
           width: 10px;
@@ -155,17 +158,20 @@ export default function ColorStatsBar({ canvasData, gridSize, paletteId }) {
           border: 1px solid rgba(0,0,0,0.1);
           flex-shrink: 0;
         }
+        .stats-swatch-hex {
+          font-size: 10px;
+          color: var(--text-muted);
+          flex: 1;
+          min-width: 0;
+          overflow: hidden;
+          text-overflow: ellipsis;
+          white-space: nowrap;
+        }
         .stats-swatch-count {
           font-size: 11px;
           font-weight: 600;
           color: var(--text-secondary);
-          min-width: 16px;
-          text-align: right;
-        }
-        .stats-more {
-          font-size: 11px;
-          color: var(--text-muted);
-          padding: 3px 4px;
+          flex-shrink: 0;
         }
       `}</style>
     </div>
