@@ -69,6 +69,8 @@
     "title": "패턴 내보내기", "png": "PNG 이미지", "svg": "SVG 벡터", "text": "패턴 텍스트",
     "patternSheet": "비드 시트 PNG", "patternSheetSVG": "비드 시트 SVG",
     "exporting": "생성 중",
+    "quickSection": "빠른 미리보기", "quickSectionHint": "공유나 간단한 확인용 단순 이미지",
+    "proSection": "비드 도안 시트", "proSectionHint": "색상 코드가 표시된 전체 도안, 비드 배치 참고용",
     "styleLabel": "도안 스타일",
     "professionalHint": "대조하며 비드를 붙이기에 적합, 각 칸에 색상 ID 표시",
     "realisticHint": "미리보기, 공유, 앨범 커버에 적합",

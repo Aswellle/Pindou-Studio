@@ -69,6 +69,8 @@
     "title": "エクスポート", "png": "PNG 画像", "svg": "SVG ベクター", "text": "パターン テキスト",
     "patternSheet": "ビードシート PNG", "patternSheetSVG": "ビードシート SVG",
     "exporting": "生成中",
+    "quickSection": "クイックプレビュー", "quickSectionHint": "共有やちょっとした確認向けのシンプルな画像",
+    "proSection": "ビード図案シート", "proSectionHint": "色番号付きの完全な図案、ビーズを並べる際の参照用",
     "styleLabel": "図案スタイル",
     "professionalHint": "見比べながらビーズを貼るのに最適、各マスに色番号を表示",
     "realisticHint": "プレビュー、共有、アルバム表紙に最適",

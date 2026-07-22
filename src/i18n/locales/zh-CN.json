@@ -69,6 +69,8 @@
     "title": "导出图纸", "png": "PNG 图片", "svg": "SVG 矢量", "text": "图纸文本",
     "patternSheet": "拼豆图纸 PNG", "patternSheetSVG": "拼豆图纸 SVG",
     "exporting": "生成中",
+    "quickSection": "快速预览", "quickSectionHint": "简单图形，用于分享或快速查看",
+    "proSection": "拼豆图纸", "proSectionHint": "带色号标注的完整图纸，适合按图贴珠",
     "styleLabel": "图纸风格",
     "professionalHint": "适合对照图纸贴珠，每格标注色号",
     "realisticHint": "适合预览、分享、相册封面",

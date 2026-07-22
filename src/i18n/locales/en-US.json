@@ -69,6 +69,8 @@
     "title": "Export Pattern", "png": "PNG Image", "svg": "SVG Vector", "text": "Pattern Text",
     "patternSheet": "Bead Sheet PNG", "patternSheetSVG": "Bead Sheet SVG",
     "exporting": "Generating",
+    "quickSection": "Quick Preview", "quickSectionHint": "Simple graphics for sharing or a quick look",
+    "proSection": "Bead Pattern Sheet", "proSectionHint": "Full sheet with color codes, ready for bead-by-bead placement",
     "styleLabel": "Sheet Style",
     "professionalHint": "Best for bead-by-bead reference, each cell labeled with a color ID",
     "realisticHint": "Best for previewing, sharing, or album covers",
