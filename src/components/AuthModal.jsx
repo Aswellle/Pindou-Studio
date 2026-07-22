@@ -157,12 +157,12 @@ export default function AuthModal({ mode, onClose, onLogin, onRegister, onSwitch
             margin-bottom: 24px;
           }
           .auth-header h2 {
-            font-size: 24px;
+            font-size: var(--text-2xl);
             margin-bottom: 4px;
           }
           .auth-header p {
             color: var(--text-muted);
-            font-size: 14px;
+            font-size: var(--text-md);
           }
           .error-banner {
             display: flex;
@@ -173,7 +173,7 @@ export default function AuthModal({ mode, onClose, onLogin, onRegister, onSwitch
             border: 1px solid var(--error-border);
             border-radius: 6px;
             color: var(--error);
-            font-size: 13px;
+            font-size: var(--text-base);
             margin-bottom: 16px;
           }
           .auth-footer {
@@ -181,12 +181,12 @@ export default function AuthModal({ mode, onClose, onLogin, onRegister, onSwitch
             margin-top: 24px;
             padding-top: 24px;
             border-top: 1px solid var(--border-color);
-            font-size: 14px;
+            font-size: var(--text-md);
             color: var(--text-secondary);
           }
           .link-btn {
             color: var(--accent);
-            font-weight: 600;
+            font-weight: var(--font-weight-semibold);
             margin-left: 4px;
             background: none;
             border: none;

@@ -330,13 +330,13 @@ export default function Gallery({ onLoadTemplate, onSaveWork, onLoadWork, savedW
           margin-bottom: 32px;
         }
         .gallery-title {
-          font-size: 28px;
-          font-weight: 600;
+          font-size: var(--text-3xl);
+          font-weight: var(--font-weight-semibold);
           margin-bottom: 8px;
         }
         .gallery-subtitle {
           color: var(--text-secondary);
-          font-size: 14px;
+          font-size: var(--text-md);
         }
         .gallery-toolbar {
           display: flex;
@@ -362,7 +362,7 @@ export default function Gallery({ onLoadTemplate, onSaveWork, onLoadWork, savedW
           padding: 12px 12px 12px 40px;
           border: 2px solid var(--border-color);
           border-radius: 8px;
-          font-size: 14px;
+          font-size: var(--text-md);
           background: var(--bg-secondary);
           transition: border-color 0.2s;
         }
@@ -380,7 +380,7 @@ export default function Gallery({ onLoadTemplate, onSaveWork, onLoadWork, savedW
           padding: 8px 16px;
           border: 2px solid var(--border-color);
           border-radius: 6px;
-          font-size: 13px;
+          font-size: var(--text-base);
           background: transparent;
           color: var(--text-secondary);
           transition: all 0.2s;
@@ -409,15 +409,15 @@ export default function Gallery({ onLoadTemplate, onSaveWork, onLoadWork, savedW
           flex-wrap: wrap;
         }
         .category-label {
-          font-size: 12px;
+          font-size: var(--text-sm);
           color: var(--text-secondary);
-          font-weight: 600;
+          font-weight: var(--font-weight-semibold);
         }
         .category-btn, .difficulty-btn {
           padding: 6px 12px;
           border: 1px solid var(--border-color);
           border-radius: 4px;
-          font-size: 12px;
+          font-size: var(--text-sm);
           background: var(--bg-primary);
           color: var(--text-secondary);
           transition: all 0.2s;
@@ -527,7 +527,7 @@ export default function Gallery({ onLoadTemplate, onSaveWork, onLoadWork, savedW
           width: 100%;
           padding: 10px 16px;
           text-align: left;
-          font-size: 13px;
+          font-size: var(--text-base);
           border: none;
           background: transparent;
           cursor: pointer;
@@ -547,8 +547,8 @@ export default function Gallery({ onLoadTemplate, onSaveWork, onLoadWork, savedW
           padding: 12px 16px;
         }
         .template-name {
-          font-size: 16px;
-          font-weight: 600;
+          font-size: var(--text-lg);
+          font-weight: var(--font-weight-semibold);
           margin-bottom: 4px;
         }
         .template-meta {
@@ -558,18 +558,18 @@ export default function Gallery({ onLoadTemplate, onSaveWork, onLoadWork, savedW
           margin-bottom: 4px;
         }
         .template-size {
-          font-size: 12px;
+          font-size: var(--text-sm);
           color: var(--text-muted);
         }
         .template-difficulty {
-          font-size: 11px;
+          font-size: var(--text-xs);
           padding: 2px 8px;
           border-radius: 10px;
           background: var(--diff-color);
           color: white;
         }
         .template-category {
-          font-size: 11px;
+          font-size: var(--text-xs);
           color: var(--text-muted);
         }
         .template-colors {
@@ -596,14 +596,14 @@ export default function Gallery({ onLoadTemplate, onSaveWork, onLoadWork, savedW
           opacity: 0.5;
         }
         .empty-state p {
-          font-size: 16px;
+          font-size: var(--text-lg);
           margin-bottom: 4px;
         }
         .empty-state span {
-          font-size: 13px;
+          font-size: var(--text-base);
         }
         .section-title {
-          font-size: 20px;
+          font-size: var(--text-2xl);
           margin-bottom: 20px;
         }
         .works-grid {
@@ -629,15 +629,15 @@ export default function Gallery({ onLoadTemplate, onSaveWork, onLoadWork, savedW
           gap: 2px;
         }
         .work-name {
-          font-weight: 600;
-          font-size: 14px;
+          font-weight: var(--font-weight-semibold);
+          font-size: var(--text-md);
         }
         .work-size {
-          font-size: 12px;
+          font-size: var(--text-sm);
           color: var(--text-muted);
         }
         .work-date {
-          font-size: 11px;
+          font-size: var(--text-xs);
           color: var(--text-muted);
         }
         .work-actions {
@@ -650,8 +650,8 @@ export default function Gallery({ onLoadTemplate, onSaveWork, onLoadWork, savedW
           padding: 8px;
           border: none;
           border-radius: 4px;
-          font-size: 12px;
-          font-weight: 600;
+          font-size: var(--text-sm);
+          font-weight: var(--font-weight-semibold);
           cursor: pointer;
           transition: all 0.2s;
         }

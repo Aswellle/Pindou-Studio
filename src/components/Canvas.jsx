@@ -742,7 +742,7 @@ export default function Canvas({
         .canvas-info {
           display: flex;
           gap: 12px;
-          font-size: 13px;
+          font-size: var(--text-base);
           color: var(--text-secondary);
           justify-content: center;
           align-items: center;
@@ -758,7 +758,7 @@ export default function Canvas({
           border: none;
           padding: 4px 12px;
           border-radius: 12px;
-          font-size: 12px;
+          font-size: var(--text-sm);
           cursor: pointer;
           transition: all 0.2s;
         }
@@ -772,7 +772,7 @@ export default function Canvas({
           border: none;
           padding: 4px 12px;
           border-radius: 12px;
-          font-size: 12px;
+          font-size: var(--text-sm);
           cursor: pointer;
           transition: all 0.2s;
         }

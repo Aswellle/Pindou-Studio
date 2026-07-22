@@ -95,7 +95,7 @@ export default function ColorStatsBar({ canvasData, gridSize, paletteId }) {
           justify-content: center;
         }
         .stats-empty-text {
-          font-size: 12px;
+          font-size: var(--text-sm);
           color: var(--text-muted);
         }
         .stats-summary {
@@ -117,13 +117,13 @@ export default function ColorStatsBar({ canvasData, gridSize, paletteId }) {
           flex-shrink: 0;
         }
         .stats-chip-value {
-          font-size: 16px;
-          font-weight: 700;
+          font-size: var(--text-lg);
+          font-weight: var(--font-weight-bold);
           color: var(--text-primary);
           line-height: 1;
         }
         .stats-chip-label {
-          font-size: 11px;
+          font-size: var(--text-xs);
           color: var(--text-muted);
           white-space: nowrap;
         }
@@ -159,7 +159,8 @@ export default function ColorStatsBar({ canvasData, gridSize, paletteId }) {
           flex-shrink: 0;
         }
         .stats-swatch-hex {
-          font-size: 10px;
+          font-family: var(--font-mono);
+          font-size: var(--text-xs);
           color: var(--text-muted);
           flex: 1;
           min-width: 0;
@@ -168,8 +169,9 @@ export default function ColorStatsBar({ canvasData, gridSize, paletteId }) {
           white-space: nowrap;
         }
         .stats-swatch-count {
-          font-size: 11px;
-          font-weight: 600;
+          font-family: var(--font-mono);
+          font-size: var(--text-xs);
+          font-weight: var(--font-weight-semibold);
           color: var(--text-secondary);
           flex-shrink: 0;
         }

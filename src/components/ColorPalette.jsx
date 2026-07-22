@@ -139,8 +139,8 @@ export default function ColorPalette({ selectedColor, onColorSelect, collapsed, 
           left: -12px;
         }
         .palette-title {
-          font-size: 14px;
-          font-weight: 600;
+          font-size: var(--text-md);
+          font-weight: var(--font-weight-semibold);
           margin-bottom: 4px;
         }
         .collapsed .palette-title,
@@ -148,7 +148,7 @@ export default function ColorPalette({ selectedColor, onColorSelect, collapsed, 
           display: none;
         }
         .palette-subtitle {
-          font-size: 11px;
+          font-size: var(--text-xs);
           color: var(--text-muted);
         }
         .palette-scroll {
@@ -203,8 +203,9 @@ export default function ColorPalette({ selectedColor, onColorSelect, collapsed, 
           min-width: 0;
         }
         .color-hex {
-          font-size: 12px;
-          font-weight: 600;
+          font-family: var(--font-mono);
+          font-size: var(--text-sm);
+          font-weight: var(--font-weight-semibold);
           display: block;
           margin-bottom: 4px;
         }
@@ -213,8 +214,8 @@ export default function ColorPalette({ selectedColor, onColorSelect, collapsed, 
           padding: 6px 8px;
           border: 1px solid var(--border-color);
           border-radius: 4px;
-          font-size: 11px;
-          font-family: inherit;
+          font-family: var(--font-mono);
+          font-size: var(--text-xs);
         }
       `}</style>
     </div>

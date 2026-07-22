@@ -37,13 +37,13 @@
 
 .color-hex {
   flex: 1;
-  font-size: 14px;
-  font-weight: 500;
+  font-size: var(--text-md);
+  font-weight: var(--font-weight-medium);
   text-align: left;
 }
 
 .toggle-icon {
-  font-size: 10px;
+  font-size: var(--text-xs);
   color: var(--text-muted);
 }
 
@@ -66,7 +66,7 @@
   border-radius: 16px;
   border: 1px solid var(--border-color);
   background: var(--bg-primary);
-  font-size: 12px;
+  font-size: var(--text-sm);
   white-space: nowrap;
   cursor: pointer;
 }
@@ -82,7 +82,7 @@
 }
 
 .section-label {
-  font-size: 11px;
+  font-size: var(--text-xs);
   color: var(--text-muted);
   display: block;
   margin-bottom: 8px;

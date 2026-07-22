@@ -347,8 +347,8 @@ export default function Tutorials() {
           border-bottom: 1px solid var(--border-color);
         }
         .sidebar-title {
-          font-size: 18px;
-          font-weight: 600;
+          font-size: var(--text-xl);
+          font-weight: var(--font-weight-semibold);
           margin-bottom: 12px;
         }
         .progress-info {
@@ -371,7 +371,7 @@ export default function Tutorials() {
           transition: width 0.3s ease;
         }
         .progress-text {
-          font-size: 12px;
+          font-size: var(--text-sm);
           color: var(--text-muted);
           white-space: nowrap;
         }
@@ -381,7 +381,7 @@ export default function Tutorials() {
         }
         .progress-btn {
           padding: 6px 10px;
-          font-size: 11px;
+          font-size: var(--text-xs);
           border: 1px solid var(--border-color);
           border-radius: 4px;
           background: var(--bg-primary);
@@ -426,12 +426,12 @@ export default function Tutorials() {
           background: var(--bg-tertiary);
         }
         .section-icon {
-          font-size: 16px;
+          font-size: var(--text-lg);
         }
         .section-title {
           flex: 1;
-          font-size: 14px;
-          font-weight: 600;
+          font-size: var(--text-md);
+          font-weight: var(--font-weight-semibold);
         }
         .chevron {
           color: var(--text-muted);
@@ -467,7 +467,7 @@ export default function Tutorials() {
           stroke: white;
         }
         .tutorial-title {
-          font-size: 13px;
+          font-size: var(--text-base);
         }
         .check-icon {
           flex-shrink: 0;
@@ -485,7 +485,7 @@ export default function Tutorials() {
           display: flex;
           align-items: center;
           gap: 8px;
-          font-size: 13px;
+          font-size: var(--text-base);
           color: var(--text-muted);
           margin-bottom: 12px;
         }
@@ -493,8 +493,8 @@ export default function Tutorials() {
           color: var(--text-secondary);
         }
         .content-title {
-          font-size: 28px;
-          font-weight: 600;
+          font-size: var(--text-3xl);
+          font-weight: var(--font-weight-semibold);
         }
         .content-body {
           max-width: 800px;
@@ -503,7 +503,7 @@ export default function Tutorials() {
           margin-bottom: 32px;
         }
         .tutorial-content p {
-          font-size: 15px;
+          font-size: var(--text-lg);
           line-height: 1.8;
           color: var(--text-secondary);
           margin-bottom: 16px;
@@ -521,8 +521,8 @@ export default function Tutorials() {
           display: flex;
           align-items: center;
           gap: 8px;
-          font-size: 16px;
-          font-weight: 600;
+          font-size: var(--text-lg);
+          font-weight: var(--font-weight-semibold);
           margin-bottom: 16px;
           color: var(--text-primary);
         }
@@ -550,11 +550,11 @@ export default function Tutorials() {
           background: var(--accent);
           color: white;
           border-radius: 50%;
-          font-size: 12px;
-          font-weight: 600;
+          font-size: var(--text-sm);
+          font-weight: var(--font-weight-semibold);
         }
         .step-text {
-          font-size: 14px;
+          font-size: var(--text-md);
           line-height: 1.6;
           padding-top: 2px;
           color: var(--text-secondary);
@@ -570,13 +570,13 @@ export default function Tutorials() {
           display: flex;
           align-items: center;
           gap: 8px;
-          font-size: 14px;
-          font-weight: 600;
+          font-size: var(--text-md);
+          font-weight: var(--font-weight-semibold);
           color: var(--secondary-accent-hover);
           margin-bottom: 8px;
         }
         .tips-content {
-          font-size: 14px;
+          font-size: var(--text-md);
           line-height: 1.6;
           color: var(--secondary-accent-hover);
         }
@@ -594,7 +594,7 @@ export default function Tutorials() {
           margin-bottom: 24px;
         }
         .image-placeholder span {
-          font-size: 13px;
+          font-size: var(--text-base);
         }
         .content-footer {
           max-width: 800px;
@@ -622,7 +622,7 @@ export default function Tutorials() {
           border: 2px solid var(--border-color);
           border-radius: 6px;
           background: transparent;
-          font-size: 14px;
+          font-size: var(--text-md);
           cursor: pointer;
           transition: all 0.2s;
         }
@@ -641,38 +641,38 @@ export default function Tutorials() {
         /* Block Renderer */
         .block-renderer { margin-bottom: 32px; }
         .block-paragraph {
-          font-size: 15px; line-height: 1.8;
+          font-size: var(--text-lg); line-height: 1.8;
           color: var(--text-secondary); margin-bottom: 16px;
         }
         .block-h2 {
-          font-size: 20px; font-weight: 700;
+          font-size: var(--text-2xl); font-weight: var(--font-weight-bold);
           color: var(--text-primary); margin: 32px 0 16px;
           padding-left: 12px; border-left: 4px solid var(--accent);
         }
         .block-h3 {
-          font-size: 16px; font-weight: 600;
+          font-size: var(--text-lg); font-weight: var(--font-weight-semibold);
           color: var(--text-primary); margin: 24px 0 12px;
         }
         .block-callout {
           border-radius: 0 8px 8px 0; padding: 14px 18px; margin-bottom: 16px;
         }
-        .callout-title { font-size: 14px; font-weight: 700; margin-bottom: 6px; }
-        .callout-text { font-size: 14px; line-height: 1.6; color: var(--text-secondary); }
+        .callout-title { font-size: var(--text-md); font-weight: var(--font-weight-bold); margin-bottom: 6px; }
+        .callout-text { font-size: var(--text-md); line-height: 1.6; color: var(--text-secondary); }
         .block-bullet-list, .block-numbered-list {
           padding-left: 20px; margin-bottom: 16px;
         }
         .block-bullet-list li, .block-numbered-list li {
-          font-size: 14px; line-height: 1.7;
+          font-size: var(--text-md); line-height: 1.7;
           color: var(--text-secondary); margin-bottom: 6px;
         }
         .block-table-wrap {
           overflow-x: auto; margin-bottom: 16px;
           border-radius: 8px; border: 1px solid var(--border-color);
         }
-        .block-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+        .block-table { width: 100%; border-collapse: collapse; font-size: var(--text-base); }
         .block-table th {
           background: var(--bg-secondary); padding: 10px 14px;
-          text-align: left; font-weight: 600;
+          text-align: left; font-weight: var(--font-weight-semibold);
           color: var(--text-primary); border-bottom: 2px solid var(--border-color);
         }
         .block-table td {
@@ -689,7 +689,7 @@ export default function Tutorials() {
           border-radius: 12px; padding: 16px;
           box-shadow: 0 2px 12px rgba(0,0,0,0.07);
         }
-        .svg-caption { font-size: 12px; color: var(--text-muted); margin-top: 8px; text-align: center; }
+        .svg-caption { font-size: var(--text-sm); color: var(--text-muted); margin-top: 8px; text-align: center; }
         .block-key-point {
           display: flex; gap: 12px; align-items: flex-start;
           background: var(--warning-bg); border-left: 4px solid var(--warning);
@@ -700,8 +700,8 @@ export default function Tutorials() {
           border-radius: 2px; flex-shrink: 0; margin-top: 2px;
         }
         .key-point-text {
-          font-size: 14px; line-height: 1.6;
-          color: #a3691f; font-weight: 500;
+          font-size: var(--text-md); line-height: 1.6;
+          color: #a3691f; font-weight: var(--font-weight-medium);
         }
       `}</style>
     </div>

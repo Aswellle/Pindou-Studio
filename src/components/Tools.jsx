@@ -252,8 +252,8 @@ export default function Tools({
           right: -12px;
         }
         .tools-title {
-          font-size: 14px;
-          font-weight: 600;
+          font-size: var(--text-md);
+          font-weight: var(--font-weight-semibold);
           margin-bottom: 16px;
         }
         .collapsed .tools-title {
@@ -267,7 +267,8 @@ export default function Tools({
         }
         .tool-label {
           display: block;
-          font-size: 11px;
+          font-size: var(--text-xs);
+          font-weight: var(--font-weight-medium);
           color: var(--text-muted);
           text-transform: uppercase;
           letter-spacing: 0.5px;
@@ -302,7 +303,7 @@ export default function Tools({
           padding: 10px 12px;
           border: 2px solid var(--border-color);
           border-radius: 6px;
-          font-size: 13px;
+          font-size: var(--text-base);
           background: var(--bg-primary);
           cursor: pointer;
         }
@@ -311,7 +312,7 @@ export default function Tools({
         }
         .current-size-info {
           margin-top: 6px;
-          font-size: 11px;
+          font-size: var(--text-xs);
           color: var(--text-muted);
           text-align: center;
         }
@@ -329,7 +330,8 @@ export default function Tools({
           border-radius: 6px;
           border: 1px solid var(--border-color);
           background: var(--bg-primary);
-          font-size: 12px;
+          font-size: var(--text-sm);
+          font-weight: var(--font-weight-medium);
           display: flex;
           align-items: center;
           justify-content: center;
@@ -350,7 +352,7 @@ export default function Tools({
           padding: 8px 4px;
         }
         .icon-btn span {
-          font-size: 11px;
+          font-size: var(--text-xs);
           line-height: 1;
         }
         .quantizer-btn {

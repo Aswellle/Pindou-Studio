@@ -98,8 +98,8 @@ export default function Header({ user, onLogin, onRegister, onLogout, onSave, cu
           gap: 10px;
         }
         .logo-text {
-          font-size: 18px;
-          font-weight: 600;
+          font-size: var(--text-xl);
+          font-weight: var(--font-weight-semibold);
         }
         .nav {
           display: flex;
@@ -108,7 +108,7 @@ export default function Header({ user, onLogin, onRegister, onLogout, onSave, cu
         .nav-link {
           padding: 8px 16px;
           border-radius: 6px;
-          font-size: 14px;
+          font-size: var(--text-md);
           color: var(--text-secondary);
           transition: all 0.2s;
           background: transparent;
@@ -121,7 +121,7 @@ export default function Header({ user, onLogin, onRegister, onLogout, onSave, cu
         }
         .nav-link.active {
           color: var(--text-primary);
-          font-weight: 600;
+          font-weight: var(--font-weight-semibold);
           background: var(--bg-secondary);
         }
         .auth-buttons {
@@ -134,14 +134,14 @@ export default function Header({ user, onLogin, onRegister, onLogout, onSave, cu
           gap: 12px;
         }
         .user-name {
-          font-size: 14px;
+          font-size: var(--text-md);
           color: var(--text-secondary);
         }
         .save-work-btn {
           display: flex;
           align-items: center;
           gap: 6px;
-          font-size: 13px;
+          font-size: var(--text-base);
         }
       `}</style>
     </header>

@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useRef, useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
 import { PERLER_COLORS } from './ColorPalette'
 import { getPalette } from '../data/palettes'
@@ -16,6 +16,18 @@ export default function ExportPanel({ canvasData, gridSize, gridWidth, gridHeigh
   const [exportError, setExportError] = useState(null)
   const [beadStyle, setBeadStyle] = useState('professional')
   const palette = getPalette(paletteId)
+  const panelRef = useRef(null)
+
+  // Desktop sidebar instance: when expanding, scroll the panel fully into
+  // view within the scrolling .left-sidebar ancestor. Skip for the mobile
+  // modal, which already renders full-height and has its own overlay scroll.
+  useEffect(() => {
+    if (!showExport || isModal || !panelRef.current) return
+    const raf = requestAnimationFrame(() => {
+      panelRef.current?.scrollIntoView({ behavior: 'smooth', block: 'end' })
+    })
+    return () => cancelAnimationFrame(raf)
+  }, [showExport, isModal])
 
   // Actual dimensions (support rectangular grids)
   const actualWidth = gridWidth || gridSize
@@ -179,7 +191,7 @@ export default function ExportPanel({ canvasData, gridSize, gridWidth, gridHeigh
   }
 
   const panel = (
-    <div className="export-panel">
+    <div className="export-panel" ref={panelRef}>
       <button
         className="export-toggle"
         onClick={() => setShowExport(!showExport)}
@@ -314,8 +326,8 @@ export default function ExportPanel({ canvasData, gridSize, gridWidth, gridHeigh
           display: flex;
           align-items: center;
           gap: 8px;
-          font-size: 13px;
-          font-weight: 600;
+          font-size: var(--text-base);
+          font-weight: var(--font-weight-semibold);
           background: none;
           border: none;
           cursor: pointer;
@@ -326,7 +338,7 @@ export default function ExportPanel({ canvasData, gridSize, gridWidth, gridHeigh
         }
         .arrow {
           margin-left: auto;
-          font-size: 10px;
+          font-size: var(--text-xs);
           transition: transform 0.2s;
         }
         .arrow.up {
@@ -348,11 +360,11 @@ export default function ExportPanel({ canvasData, gridSize, gridWidth, gridHeigh
           flex-direction: column;
         }
         .stat-value {
-          font-size: 18px;
-          font-weight: 600;
+          font-size: var(--text-xl);
+          font-weight: var(--font-weight-semibold);
         }
         .stat-label {
-          font-size: 10px;
+          font-size: var(--text-xs);
           color: var(--text-muted);
           text-transform: uppercase;
         }
@@ -360,7 +372,7 @@ export default function ExportPanel({ canvasData, gridSize, gridWidth, gridHeigh
           margin-bottom: 12px;
         }
         .color-legend h4 {
-          font-size: 11px;
+          font-size: var(--text-xs);
           color: var(--text-secondary);
           margin-bottom: 6px;
         }
@@ -384,8 +396,9 @@ export default function ExportPanel({ canvasData, gridSize, gridWidth, gridHeigh
           border: 1px solid var(--border-color);
         }
         .legend-count {
-          font-size: 11px;
-          font-weight: 600;
+          font-family: var(--font-mono);
+          font-size: var(--text-xs);
+          font-weight: var(--font-weight-semibold);
         }
         .export-buttons {
           display: flex;
@@ -395,7 +408,7 @@ export default function ExportPanel({ canvasData, gridSize, gridWidth, gridHeigh
         .export-buttons .btn {
           justify-content: flex-start;
           padding: 10px 12px;
-          font-size: 12px;
+          font-size: var(--text-sm);
         }
         .export-divider {
           height: 1px;
@@ -406,7 +419,7 @@ export default function ExportPanel({ canvasData, gridSize, gridWidth, gridHeigh
           background: linear-gradient(135deg, var(--accent) 0%, #c25a34 100%);
           color: white;
           border: none;
-          font-weight: 600;
+          font-weight: var(--font-weight-semibold);
         }
         .btn-pattern:hover {
           background: linear-gradient(135deg, #c25a34 0%, #a84a29 100%);
@@ -418,8 +431,8 @@ export default function ExportPanel({ canvasData, gridSize, gridWidth, gridHeigh
           padding: 4px 0 2px;
         }
         .style-label {
-          font-size: 11px;
-          font-weight: 600;
+          font-size: var(--text-xs);
+          font-weight: var(--font-weight-semibold);
           color: var(--text-secondary);
         }
         .style-select {
@@ -428,12 +441,12 @@ export default function ExportPanel({ canvasData, gridSize, gridWidth, gridHeigh
           border: 1px solid var(--border-color);
           border-radius: 6px;
           background: var(--bg-secondary);
-          font-size: 12px;
+          font-size: var(--text-sm);
           cursor: pointer;
           color: var(--text-primary);
         }
         .setting-hint {
-          font-size: 11px;
+          font-size: var(--text-xs);
           color: var(--text-muted);
           line-height: 1.3;
         }
@@ -461,12 +474,12 @@ export default function ExportPanel({ canvasData, gridSize, gridWidth, gridHeigh
           margin-bottom: 8px;
         }
         .section-title {
-          font-size: 12px;
-          font-weight: 700;
+          font-size: var(--text-sm);
+          font-weight: var(--font-weight-bold);
           color: var(--text-primary);
         }
         .section-hint {
-          font-size: 10.5px;
+          font-size: var(--text-xs);
           color: var(--text-muted);
           line-height: 1.3;
         }
