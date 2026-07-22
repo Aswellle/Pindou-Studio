@@ -107,6 +107,9 @@
     "unsavedBody": "生成されたパターンがまだ適用されていません。閉じると失われます。",
     "continueEditing": "編集を続ける", "discardClose": "破棄して閉じる",
     "processingAlgo": "CIEDE2000カラーマッチングを使用中",
+    "techBadge": "CIEDE2000 スマート配色", "techBadgeHint": "知覚均等な色差アルゴリズムで人の目に近い配色を実現",
+    "stepUpload": "画像をアップロード", "stepConfigure": "設定を調整", "stepResult": "結果を確認",
+    "dropActive": "ドロップしてアップロード",
     "presets": {
       "29x29": "29 × 29（標準）", "57x57": "57 × 57（大）",
       "114x114": "114 × 114（特大）", "140x140": "140 × 140（プロ）",

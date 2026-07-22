@@ -78,6 +78,7 @@ export default function ImageQuantizer({ onApply, onClose }) {
   const [lastGeneratedResult, setLastGeneratedResult] = useState(null)
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false)
   const [resultGridSize, setResultGridSize] = useState(null)
+  const [isDragActive, setIsDragActive] = useState(false)
 
   const fileInputRef = useRef(null)
   const pendingCloseRef = useRef(false)
@@ -192,6 +193,7 @@ export default function ImageQuantizer({ onApply, onClose }) {
 
   const handleDrop = useCallback((e) => {
     e.preventDefault()
+    setIsDragActive(false)
     const file = e.dataTransfer.files[0]
     if (file && file.type.startsWith('image/')) {
       const url = URL.createObjectURL(file)
@@ -206,6 +208,12 @@ export default function ImageQuantizer({ onApply, onClose }) {
 
   const handleDragOver = useCallback((e) => {
     e.preventDefault()
+    setIsDragActive(true)
+  }, [])
+
+  const handleDragLeave = useCallback((e) => {
+    e.preventDefault()
+    setIsDragActive(false)
   }, [])
 
   const handlePaste = useCallback((e) => {
@@ -297,17 +305,45 @@ export default function ImageQuantizer({ onApply, onClose }) {
     <div className="image-quantizer-overlay" onClick={handleClose}>
       <div className="image-quantizer-modal" onClick={e => e.stopPropagation()}>
         <div className="quantizer-header">
-          <h2>{t('quantizer.title', '图片转拼豆')}</h2>
+          <div className="quantizer-header-title">
+            <h2>{t('quantizer.title', '图片转拼豆')}</h2>
+            <span className="tech-badge" title={t('quantizer.techBadgeHint')}>
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                <path d="M12 2l1.5 4.5L18 8l-4.5 1.5L12 14l-1.5-4.5L6 8l4.5-1.5L12 2z"/>
+                <path d="M19 15l0.8 2.2L22 18l-2.2 0.8L19 21l-0.8-2.2L16 18l2.2-0.8L19 15z"/>
+              </svg>
+              {t('quantizer.techBadge', 'CIEDE2000 智能配色')}
+            </span>
+          </div>
           <button className="close-btn" onClick={handleClose}>×</button>
+        </div>
+
+        {/* 步骤指示条 — 上传 → 设置 → 预览，让流程一目了然 */}
+        <div className="quantizer-steps">
+          <div className={`step-item ${!previewUrl ? 'active' : 'done'}`}>
+            <span className="step-dot">{previewUrl ? '✓' : '1'}</span>
+            <span className="step-label">{t('quantizer.stepUpload', '上传图片')}</span>
+          </div>
+          <div className="step-connector" />
+          <div className={`step-item ${previewUrl && !result ? 'active' : result ? 'done' : ''}`}>
+            <span className="step-dot">{result ? '✓' : '2'}</span>
+            <span className="step-label">{t('quantizer.stepConfigure', '调整设置')}</span>
+          </div>
+          <div className="step-connector" />
+          <div className={`step-item ${result ? 'active' : ''}`}>
+            <span className="step-dot">3</span>
+            <span className="step-label">{t('quantizer.stepResult', '预览成品')}</span>
+          </div>
         </div>
 
         <div className="quantizer-content">
           <div className="upload-section">
             {!previewUrl ? (
               <div
-                className="upload-zone"
+                className={`upload-zone ${isDragActive ? 'drag-active' : ''}`}
                 onDrop={handleDrop}
                 onDragOver={handleDragOver}
+                onDragLeave={handleDragLeave}
                 onClick={() => fileInputRef.current?.click()}
               >
                 <input
@@ -317,8 +353,13 @@ export default function ImageQuantizer({ onApply, onClose }) {
                   onChange={handleFileSelect}
                   hidden
                 />
-                <div className="upload-icon">📷</div>
-                <p>{t('quantizer.dragDrop', '拖拽图片到这里')}</p>
+                <div className="upload-icon-badge">
+                  <span className="upload-icon-ring" />
+                  <span className="upload-icon">📷</span>
+                </div>
+                <p className="upload-main-text">
+                  {isDragActive ? t('quantizer.dropActive', '松开鼠标上传图片') : t('quantizer.dragDrop', '拖拽图片到这里')}
+                </p>
                 <p className="upload-or">{t('quantizer.or', '或')}</p>
                 <button className="btn btn-secondary">
                   {t('quantizer.browse', '浏览文件')}
@@ -327,7 +368,9 @@ export default function ImageQuantizer({ onApply, onClose }) {
               </div>
             ) : (
               <div className="preview-section">
-                <img src={previewUrl} alt="Preview" className="preview-image" />
+                <div className="preview-image-frame">
+                  <img src={previewUrl} alt="Preview" className="preview-image" />
+                </div>
                 <button
                   className="btn btn-ghost change-btn"
                   onClick={() => fileInputRef.current?.click()}
@@ -346,7 +389,7 @@ export default function ImageQuantizer({ onApply, onClose }) {
           </div>
 
           <div className="settings-section">
-            <h3>{t('quantizer.settings', '量化设置')}</h3>
+            <h3><span className="settings-icon">⚙</span>{t('quantizer.settings', '量化设置')}</h3>
 
             <div className="setting-item">
               <label>{t('quantizer.palette', '目标色卡')}</label>
@@ -568,8 +611,9 @@ export default function ImageQuantizer({ onApply, onClose }) {
           )}
 
           {result && (
-            <div className="result-section">
+            <div className="result-section reveal-in">
               <h3>
+                <span className="result-sparkle">✨</span>
                 {t('quantizer.preview', '预览')}
                 {hasUnsavedChanges && (
                   <span className="settings-changed-warning">（{t('quantizer.settingsChanged')}）</span>
@@ -663,10 +707,15 @@ export default function ImageQuantizer({ onApply, onClose }) {
                 {t('common.cancel', '取消')}
               </button>
               <button
-                className="btn btn-primary"
+                className={`btn btn-primary btn-generate ${previewUrl && !isProcessing ? 'btn-generate-glow' : ''}`}
                 onClick={handleGenerate}
                 disabled={!previewUrl || isProcessing}
               >
+                {!isProcessing && (
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <path d="M12 2l1.5 4.5L18 8l-4.5 1.5L12 14l-1.5-4.5L6 8l4.5-1.5L12 2z"/>
+                  </svg>
+                )}
                 {isProcessing ? `${t('quantizer.processing', '处理中')}…` : t('quantizer.generate', '生成图纸')}
               </button>
             </>

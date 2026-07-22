@@ -107,6 +107,9 @@
     "unsavedBody": "You have a generated pattern that hasn't been applied. It will be lost if you close.",
     "continueEditing": "Continue Editing", "discardClose": "Discard & Close",
     "processingAlgo": "Using CIEDE2000 color matching",
+    "techBadge": "CIEDE2000 Smart Matching", "techBadgeHint": "Uses perceptually uniform color difference for human-eye-accurate matching",
+    "stepUpload": "Upload Image", "stepConfigure": "Adjust Settings", "stepResult": "Preview Result",
+    "dropActive": "Release to upload",
     "presets": {
       "29x29": "29 × 29 (Standard)", "57x57": "57 × 57 (Large)",
       "114x114": "114 × 114 (Extra Large)", "140x140": "140 × 140 (Professional)",

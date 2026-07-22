@@ -107,6 +107,9 @@
     "unsavedBody": "생성된 패턴이 적용되지 않았습니다. 닫으면 사라집니다.",
     "continueEditing": "계속 편집", "discardClose": "버리고 닫기",
     "processingAlgo": "CIEDE2000 색상 매칭 사용 중",
+    "techBadge": "CIEDE2000 스마트 매칭", "techBadgeHint": "지각적으로 균일한 색차 알고리즘으로 사람 눈에 가까운 색상 매칭",
+    "stepUpload": "이미지 업로드", "stepConfigure": "설정 조정", "stepResult": "결과 미리보기",
+    "dropActive": "놓아서 업로드",
     "presets": {
       "29x29": "29 × 29 (표준)", "57x57": "57 × 57 (크게)",
       "114x114": "114 × 114 (매우 크게)", "140x140": "140 × 140 (전문가)",

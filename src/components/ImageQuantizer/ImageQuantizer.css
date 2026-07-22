@@ -34,6 +34,32 @@
   font-weight: var(--font-weight-semibold);
 }
 
+.quantizer-header-title {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+/* 技术亮点徽章 — 强调专业配色算法，制造第一印象记忆点 */
+.tech-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 9px;
+  border-radius: 999px;
+  background: linear-gradient(135deg, var(--accent-soft), rgba(74, 155, 142, 0.14));
+  color: var(--accent-hover);
+  font-size: var(--text-xs);
+  font-weight: var(--font-weight-semibold);
+  white-space: nowrap;
+}
+
+.tech-badge svg {
+  color: var(--secondary-accent);
+  flex-shrink: 0;
+}
+
 .close-btn {
   width: 32px;
   height: 32px;
@@ -53,6 +79,72 @@
   color: var(--text-primary);
 }
 
+/* 步骤指示条 — 上传/设置/预览三步一览，降低认知负担 */
+.quantizer-steps {
+  display: flex;
+  align-items: center;
+  padding: 14px 24px;
+  background: var(--bg-secondary);
+  border-bottom: 1px solid var(--border-color);
+  flex-shrink: 0;
+}
+
+.step-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--text-muted);
+  transition: color 0.25s;
+}
+
+.step-dot {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: var(--bg-tertiary);
+  color: var(--text-muted);
+  font-size: var(--text-xs);
+  font-weight: var(--font-weight-bold);
+  flex-shrink: 0;
+  transition: all 0.25s;
+}
+
+.step-item.active .step-dot {
+  background: var(--accent);
+  color: white;
+  box-shadow: 0 0 0 4px var(--accent-soft);
+}
+
+.step-item.active .step-label {
+  color: var(--text-primary);
+  font-weight: var(--font-weight-semibold);
+}
+
+.step-item.done .step-dot {
+  background: var(--secondary-accent);
+  color: white;
+}
+
+.step-item.done .step-label {
+  color: var(--secondary-accent-hover);
+}
+
+.step-label {
+  font-size: var(--text-sm);
+  white-space: nowrap;
+}
+
+.step-connector {
+  flex: 1;
+  height: 2px;
+  background: var(--border-color);
+  margin: 0 10px;
+  min-width: 16px;
+}
+
 .quantizer-content {
   flex: 1;
   overflow-y: auto;
@@ -70,6 +162,8 @@
   text-align: center;
   cursor: pointer;
   transition: all 0.2s;
+  position: relative;
+  background: var(--bg-primary);
 }
 
 .upload-zone:hover {
@@ -77,14 +171,51 @@
   background: var(--bg-secondary);
 }
 
+.upload-zone.drag-active {
+  border-color: var(--accent);
+  border-style: solid;
+  background: var(--accent-soft);
+  transform: scale(1.01);
+}
+
+.upload-icon-badge {
+  position: relative;
+  width: 72px;
+  height: 72px;
+  margin: 0 auto 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.upload-icon-ring {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--accent-soft), rgba(74, 155, 142, 0.16));
+  animation: pulseRing 2.4s ease-in-out infinite;
+}
+
+@keyframes pulseRing {
+  0%, 100% { transform: scale(0.94); opacity: 0.7; }
+  50% { transform: scale(1.06); opacity: 1; }
+}
+
 .upload-icon {
-  font-size: 48px;
-  margin-bottom: 16px;
+  position: relative;
+  font-size: 40px;
+  line-height: 1;
 }
 
 .upload-zone p {
   color: var(--text-secondary);
   margin-bottom: 8px;
+}
+
+.upload-zone p.upload-main-text {
+  font-size: var(--text-md);
+  font-weight: var(--font-weight-semibold);
+  color: var(--text-primary);
 }
 
 .upload-or {
@@ -102,11 +233,19 @@
   text-align: center;
 }
 
+.preview-image-frame {
+  display: inline-block;
+  padding: 6px;
+  border-radius: 12px;
+  background: linear-gradient(135deg, var(--accent-soft), var(--bg-tertiary));
+  margin-bottom: 12px;
+}
+
 .preview-image {
+  display: block;
   max-width: 100%;
   max-height: 200px;
   border-radius: 8px;
-  margin-bottom: 12px;
 }
 
 .change-btn {
@@ -114,10 +253,18 @@
 }
 
 .settings-section h3 {
+  display: flex;
+  align-items: center;
+  gap: 6px;
   font-size: var(--text-md);
   font-weight: var(--font-weight-semibold);
   margin-bottom: 16px;
   color: var(--text-secondary);
+}
+
+.settings-icon {
+  color: var(--accent);
+  font-size: var(--text-md);
 }
 
 .setting-item {
@@ -223,10 +370,33 @@
   margin-top: 24px;
 }
 
+/* 结果揭幕动画 — 生成完成时给用户一个"成果登场"的仪式感 */
+.result-section.reveal-in {
+  animation: resultReveal 0.45s ease-out;
+}
+
+@keyframes resultReveal {
+  from { opacity: 0; transform: translateY(10px) scale(0.985); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
 .result-section h3 {
+  display: flex;
+  align-items: center;
+  gap: 6px;
   font-size: var(--text-md);
   font-weight: var(--font-weight-semibold);
   margin-bottom: 12px;
+}
+
+.result-sparkle {
+  display: inline-block;
+  animation: sparkleSpin 1.2s ease-out;
+}
+
+@keyframes sparkleSpin {
+  from { transform: scale(0.5) rotate(-15deg); opacity: 0; }
+  to { transform: scale(1) rotate(0deg); opacity: 1; }
 }
 
 .result-preview {
@@ -281,6 +451,24 @@
   gap: 12px;
   padding: 16px 24px;
   border-top: 1px solid var(--border-color);
+}
+
+/* "生成图纸" 主按钮 — 图片就位后用呼吸光晕吸引点击，是整个流程的关键强调点 */
+.btn-generate {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.btn-generate-glow {
+  position: relative;
+  box-shadow: 0 0 0 0 var(--accent-soft);
+  animation: ctaGlow 2.2s ease-in-out infinite;
+}
+
+@keyframes ctaGlow {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(232, 115, 74, 0.35); }
+  50% { box-shadow: 0 0 0 8px rgba(232, 115, 74, 0); }
 }
 
 /* 未保存更改对话框 */

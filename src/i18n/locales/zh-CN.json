@@ -107,6 +107,9 @@
     "unsavedBody": "您有已生成但未应用的图纸。关闭后将丢失。",
     "continueEditing": "继续编辑", "discardClose": "放弃并关闭",
     "processingAlgo": "使用 CIEDE2000 精准配色算法",
+    "techBadge": "CIEDE2000 智能配色", "techBadgeHint": "采用感知均匀色差算法，配色更接近人眼视觉",
+    "stepUpload": "上传图片", "stepConfigure": "调整设置", "stepResult": "预览成品",
+    "dropActive": "松开鼠标上传图片",
     "presets": {
       "29x29": "29 × 29（标准）", "57x57": "57 × 57（大图）",
       "114x114": "114 × 114（超大）", "140x140": "140 × 140（专业站）",
