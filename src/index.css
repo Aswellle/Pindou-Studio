@@ -1,8 +1,5 @@
 @import "tailwindcss";
 
-/* Fira Code - 开源等宽字体 via Google Fonts, 仅用于代码/色号等定宽场景 */
-@import url('https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;600&display=swap');
-
 :root {
   /* 手作暖调 (warm handcraft) design tokens */
   --bg-primary: #fdfbf7;
@@ -35,8 +32,9 @@
   --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC",
     "Hiragino Kaku Gothic ProN", "Malgun Gothic", "Microsoft YaHei",
     "Noto Sans SC", Helvetica, Arial, sans-serif;
-  /* 等宽字体：仅用于色号 / HEX 值 / 表格式数字对齐场景 */
-  --font-mono: "Fira Code", Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+  /* 等宽字体：仅用于色号 / HEX 值 / 表格式数字对齐场景。不依赖 Google Fonts，
+     直接用系统自带等宽字体，避免国内网络环境下 fonts.googleapis.com 加载失败/超时 */
+  --font-mono: Menlo, Consolas, Monaco, "Liberation Mono", "Courier New", monospace;
 
   /* Font size scale */
   --text-xs: 11px;
