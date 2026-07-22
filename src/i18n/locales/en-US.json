@@ -22,7 +22,10 @@
   },
   "canvas": {
     "size": "Canvas Size",
-    "tool": { "pencil": "Pencil", "eraser": "Eraser", "fill": "Fill", "hand": "Hand" }
+    "tool": { "pencil": "Pencil", "eraser": "Eraser", "fill": "Fill", "hand": "Hand" },
+    "reset": "Reset", "fit": "Fit",
+    "resetTitle": "Double-click to reset", "fitTitle": "Fit to screen",
+    "autoFitToast": "Auto-fit to screen · Double-click canvas to reset"
   },
   "tools": {
     "title": "Tools", "canvasSize": "Canvas Size", "quickActions": "Quick Actions",
@@ -65,7 +68,11 @@
   "export": {
     "title": "Export Pattern", "png": "PNG Image", "svg": "SVG Vector", "text": "Pattern Text",
     "patternSheet": "Bead Sheet PNG", "patternSheetSVG": "Bead Sheet SVG",
-    "exporting": "Generating"
+    "exporting": "Generating",
+    "styleLabel": "Sheet Style",
+    "professionalHint": "Best for bead-by-bead reference, each cell labeled with a color ID",
+    "realisticHint": "Best for previewing, sharing, or album covers",
+    "exportFailed": "Export failed. Please check the canvas content and try again."
   },
   "quantizer": {
     "title": "Image to Beads", "dragDrop": "Drop image here", "or": "or",

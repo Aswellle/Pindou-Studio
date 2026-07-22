@@ -22,7 +22,10 @@
   },
   "canvas": {
     "size": "캔버스 크기",
-    "tool": { "pencil": "연필", "eraser": "지우개", "fill": "채우기", "hand": "이동" }
+    "tool": { "pencil": "연필", "eraser": "지우개", "fill": "채우기", "hand": "이동" },
+    "reset": "초기화", "fit": "맞춤",
+    "resetTitle": "더블클릭하여 초기화", "fitTitle": "화면에 맞추기",
+    "autoFitToast": "화면에 자동으로 맞췄습니다 · 캔버스를 더블클릭하면 초기화됩니다"
   },
   "tools": {
     "title": "도구", "canvasSize": "캔버스 크기", "quickActions": "빠른 작업",
@@ -65,7 +68,11 @@
   "export": {
     "title": "패턴 내보내기", "png": "PNG 이미지", "svg": "SVG 벡터", "text": "패턴 텍스트",
     "patternSheet": "비드 시트 PNG", "patternSheetSVG": "비드 시트 SVG",
-    "exporting": "생성 중"
+    "exporting": "생성 중",
+    "styleLabel": "도안 스타일",
+    "professionalHint": "대조하며 비드를 붙이기에 적합, 각 칸에 색상 ID 표시",
+    "realisticHint": "미리보기, 공유, 앨범 커버에 적합",
+    "exportFailed": "내보내기에 실패했습니다. 캔버스 내용을 확인한 후 다시 시도하세요."
   },
   "quantizer": {
     "title": "이미지를 비드로", "dragDrop": "이미지를 여기에 드롭", "or": "또는",

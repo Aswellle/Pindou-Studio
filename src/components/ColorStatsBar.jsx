@@ -155,7 +155,7 @@ export default function ColorStatsBar({ canvasData, gridSize, paletteId }) {
           width: 10px;
           height: 10px;
           border-radius: 50%;
-          border: 1px solid rgba(0,0,0,0.1);
+          border: 1px solid var(--border-color);
           flex-shrink: 0;
         }
         .stats-swatch-hex {

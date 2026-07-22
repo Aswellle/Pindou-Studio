@@ -22,7 +22,10 @@
   },
   "canvas": {
     "size": "キャンバスサイズ",
-    "tool": { "pencil": "鉛筆", "eraser": "消しゴム", "fill": "塗りつぶし", "hand": "移動" }
+    "tool": { "pencil": "鉛筆", "eraser": "消しゴム", "fill": "塗りつぶし", "hand": "移動" },
+    "reset": "リセット", "fit": "調整",
+    "resetTitle": "ダブルクリックでリセット", "fitTitle": "画面に合わせる",
+    "autoFitToast": "画面に自動調整しました · ダブルクリックでリセット"
   },
   "tools": {
     "title": "工具", "canvasSize": "キャンバスサイズ", "quickActions": "クイックアクション",
@@ -65,7 +68,11 @@
   "export": {
     "title": "エクスポート", "png": "PNG 画像", "svg": "SVG ベクター", "text": "パターン テキスト",
     "patternSheet": "ビードシート PNG", "patternSheetSVG": "ビードシート SVG",
-    "exporting": "生成中"
+    "exporting": "生成中",
+    "styleLabel": "図案スタイル",
+    "professionalHint": "見比べながらビーズを貼るのに最適、各マスに色番号を表示",
+    "realisticHint": "プレビュー、共有、アルバム表紙に最適",
+    "exportFailed": "エクスポートに失敗しました。キャンバスの内容を確認して再試行してください。"
   },
   "quantizer": {
     "title": "画像をビードに", "dragDrop": "画像をここにドロップ", "or": "または",

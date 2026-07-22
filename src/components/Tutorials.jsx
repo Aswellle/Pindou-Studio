@@ -62,10 +62,10 @@ function BlockRenderer({ blocks = [] }) {
             return <h3 key={i} className="block-h3">{block.text}</h3>
           case 'callout': {
             const variantColors = {
-              tip:     { bg: '#E8F5E9', border: '#4CAF50', title: '#2E7D32' },
-              warning:  { bg: '#FFF8E1', border: '#FFC107', title: '#F57F17' },
-              danger:   { bg: '#FFEBEE', border: '#E53935', title: '#C62828' },
-              info:     { bg: '#E3F2FD', border: '#1976D2', title: '#1565C0' },
+              tip:     { bg: '#e7f2ef', border: 'var(--secondary-accent)', title: 'var(--secondary-accent-hover)' },
+              warning:  { bg: 'var(--warning-bg)', border: 'var(--warning)', title: '#a3691f' },
+              danger:   { bg: 'var(--error-bg)', border: 'var(--error)', title: '#b53337' },
+              info:     { bg: '#e9edf5', border: '#5b6f9e', title: '#455586' },
             }
             const c = variantColors[block.variant] || variantColors.info
             return (
@@ -560,8 +560,8 @@ export default function Tutorials() {
           color: var(--text-secondary);
         }
         .tips-box {
-          background: linear-gradient(135deg, #E3F2FD 0%, #BBDEFB 100%);
-          border-left: 4px solid #1976D2;
+          background: linear-gradient(135deg, #e7f2ef 0%, #d7e9e5 100%);
+          border-left: 4px solid var(--secondary-accent);
           border-radius: 0 8px 8px 0;
           padding: 16px 20px;
           margin-bottom: 24px;
@@ -572,13 +572,13 @@ export default function Tutorials() {
           gap: 8px;
           font-size: 14px;
           font-weight: 600;
-          color: #1976D2;
+          color: var(--secondary-accent-hover);
           margin-bottom: 8px;
         }
         .tips-content {
           font-size: 14px;
           line-height: 1.6;
-          color: #1565C0;
+          color: var(--secondary-accent-hover);
         }
         .image-placeholder {
           display: flex;
@@ -692,16 +692,16 @@ export default function Tutorials() {
         .svg-caption { font-size: 12px; color: var(--text-muted); margin-top: 8px; text-align: center; }
         .block-key-point {
           display: flex; gap: 12px; align-items: flex-start;
-          background: #FFF8E1; border-left: 4px solid #FF8F00;
+          background: var(--warning-bg); border-left: 4px solid var(--warning);
           border-radius: 0 8px 8px 0; padding: 12px 16px; margin-bottom: 16px;
         }
         .key-point-bar {
-          width: 4px; min-height: 20px; background: #FF8F00;
+          width: 4px; min-height: 20px; background: var(--warning);
           border-radius: 2px; flex-shrink: 0; margin-top: 2px;
         }
         .key-point-text {
           font-size: 14px; line-height: 1.6;
-          color: #E65100; font-weight: 500;
+          color: #a3691f; font-weight: 500;
         }
       `}</style>
     </div>

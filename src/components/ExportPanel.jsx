@@ -163,7 +163,7 @@ export default function ExportPanel({ canvasData, gridSize, gridWidth, gridHeigh
       })
     } catch (err) {
       console.error('Export failed:', err)
-      setExportError('导出失败，请检查画布内容后重试。')
+      setExportError(t('export.exportFailed'))
     } finally {
       setIsExporting(false)
       setExportProgress(0)
@@ -220,19 +220,19 @@ export default function ExportPanel({ canvasData, gridSize, gridWidth, gridHeigh
             </button>
             <div className="export-divider" />
             <div className="export-style-group">
-              <label className="style-label">图纸风格</label>
+              <label className="style-label">{t('export.styleLabel')}</label>
               <select
                 value={beadStyle}
                 onChange={e => setBeadStyle(e.target.value)}
                 className="style-select"
               >
-                <option value="professional">专业模式（方格 + 色号）</option>
-                <option value="realistic">展示模式（拟真珠子）</option>
+                <option value="professional">{t('gallery.exportProfessional')}</option>
+                <option value="realistic">{t('gallery.exportRealistic')}</option>
               </select>
               <span className="setting-hint">
                 {beadStyle === 'professional'
-                  ? '适合对照图纸贴珠，每格标注色号'
-                  : '适合预览、分享、相册封面'}
+                  ? t('export.professionalHint')
+                  : t('export.realisticHint')}
               </span>
             </div>
             <button onClick={handleExportPatternSheet} className="btn btn-primary btn-pattern" disabled={isExporting}>
@@ -246,12 +246,12 @@ export default function ExportPanel({ canvasData, gridSize, gridWidth, gridHeigh
               {isExporting ? `${t('export.exporting')} ${exportProgress}%` : t('export.patternSheet')}
             </button>
             {isExporting && (
-              <div style={{ height: 4, background: '#e0e0e0', borderRadius: 2, margin: '4px 0' }}>
-                <div style={{ height: '100%', width: `${exportProgress}%`, background: '#4a90d9', borderRadius: 2, transition: 'width 0.1s' }} />
+              <div style={{ height: 4, background: 'var(--bg-tertiary)', borderRadius: 2, margin: '4px 0' }}>
+                <div style={{ height: '100%', width: `${exportProgress}%`, background: 'var(--secondary-accent)', borderRadius: 2, transition: 'width 0.1s' }} />
               </div>
             )}
             {exportError && (
-              <div style={{ fontSize: 11, color: '#e53935', padding: '4px 2px', lineHeight: 1.4 }}>
+              <div style={{ fontSize: 11, color: 'var(--error)', padding: '4px 2px', lineHeight: 1.4 }}>
                 {exportError}
               </div>
             )}
@@ -349,7 +349,7 @@ export default function ExportPanel({ canvasData, gridSize, gridWidth, gridHeigh
           width: 12px;
           height: 12px;
           border-radius: 2px;
-          border: 1px solid rgba(0,0,0,0.1);
+          border: 1px solid var(--border-color);
         }
         .legend-count {
           font-size: 11px;
@@ -371,13 +371,13 @@ export default function ExportPanel({ canvasData, gridSize, gridWidth, gridHeigh
           margin: 8px 0;
         }
         .btn-pattern {
-          background: linear-gradient(135deg, #E53935 0%, #C62828 100%);
+          background: linear-gradient(135deg, var(--accent) 0%, #c25a34 100%);
           color: white;
           border: none;
           font-weight: 600;
         }
         .btn-pattern:hover {
-          background: linear-gradient(135deg, #C62828 0%, #B71C1C 100%);
+          background: linear-gradient(135deg, #c25a34 0%, #a84a29 100%);
         }
         .export-style-group {
           display: flex;

@@ -400,7 +400,7 @@ export default function App() {
         <div className="save-toast">{t('gallery.savedToast')}</div>
       )}
       {fitToast && (
-        <div className="fit-toast">已自动适应屏幕 · 双击画布可重置</div>
+        <div className="fit-toast">{t('canvas.autoFitToast')}</div>
       )}
 
       <style>{`
@@ -453,13 +453,13 @@ export default function App() {
         }
         .save-dialog {
           background: var(--bg-primary);
-          border-radius: 12px;
+          border-radius: var(--radius-card);
           padding: 24px;
           width: 360px;
           display: flex;
           flex-direction: column;
           gap: 12px;
-          box-shadow: 0 8px 40px rgba(0,0,0,0.18);
+          box-shadow: 0 8px 40px rgba(43,36,32,0.18);
         }
         .save-dialog h3 {
           font-size: 18px;
@@ -490,12 +490,15 @@ export default function App() {
           justify-content: flex-end;
           margin-top: 4px;
         }
+        .save-dialog input:focus {
+          box-shadow: var(--shadow-card);
+        }
         .save-toast {
           position: fixed;
           top: 72px;
           left: 50%;
           transform: translateX(-50%);
-          background: #1a1a1a;
+          background: var(--text-primary);
           color: white;
           padding: 10px 24px;
           border-radius: 8px;
@@ -509,7 +512,7 @@ export default function App() {
           bottom: 88px;
           left: 50%;
           transform: translateX(-50%);
-          background: rgba(0, 0, 0, 0.72);
+          background: rgba(43, 36, 32, 0.82);
           color: white;
           padding: 8px 20px;
           border-radius: 20px;

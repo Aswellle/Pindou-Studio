@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect, useCallback } from 'react'
+import { useTranslation } from 'react-i18next'
 
 const CELL_SIZE = 16
 const MIN_SCALE = 0.3
@@ -17,6 +18,7 @@ export default function Canvas({
   onDraw,
   onCanvasChange,
 }) {
+  const { t } = useTranslation()
   const canvasRef = useRef(null)
   const overlayRef = useRef(null)
   const containerRef = useRef(null)
@@ -663,11 +665,11 @@ export default function Canvas({
         <span>{cols} × {rows}</span>
         <span>|</span>
         <span>{Math.round(transform.scale * 100)}%</span>
-        <button className="reset-btn" onClick={resetTransform} title="双击重置">
-          重置
+        <button className="reset-btn" onClick={resetTransform} title={t('canvas.resetTitle')}>
+          {t('canvas.reset')}
         </button>
-        <button className="fit-btn" onClick={fitToScreen} title="适应屏幕">
-          适应
+        <button className="fit-btn" onClick={fitToScreen} title={t('canvas.fitTitle')}>
+          {t('canvas.fit')}
         </button>
       </div>
 
@@ -731,17 +733,17 @@ export default function Canvas({
           display: flex;
           gap: 12px;
           font-size: 13px;
-          color: #6b7280;
+          color: var(--text-secondary);
           justify-content: center;
           align-items: center;
-          background: #f9fafb;
+          background: var(--bg-primary);
           padding: 8px 16px;
           border-radius: 20px;
-          border: 1px solid #e5e7eb;
+          border: 1px solid var(--border-color);
           flex-shrink: 0;
         }
         .reset-btn {
-          background: #3b82f6;
+          background: var(--secondary-accent);
           color: white;
           border: none;
           padding: 4px 12px;
@@ -751,11 +753,11 @@ export default function Canvas({
           transition: all 0.2s;
         }
 .reset-btn:hover {
-          background: #2563eb;
+          background: var(--secondary-accent-hover);
           transform: scale(1.05);
         }
         .fit-btn {
-          background: #10b981;
+          background: var(--accent);
           color: white;
           border: none;
           padding: 4px 12px;
@@ -765,7 +767,7 @@ export default function Canvas({
           transition: all 0.2s;
         }
         .fit-btn:hover {
-          background: #059669;
+          background: var(--accent-hover);
           transform: scale(1.05);
         }
         .canvas-container {
@@ -782,13 +784,13 @@ export default function Canvas({
           left: 50%;
           top: 50%;
           transform-origin: 50% 50%;
-          background: white;
-          border-radius: 12px;
+          background: var(--bg-primary);
+          border-radius: var(--radius-card);
           padding: 12px;
           box-shadow:
-            0 4px 6px -1px rgba(0, 0, 0, 0.1),
-            0 2px 4px -2px rgba(0, 0, 0, 0.1),
-            0 0 0 1px rgba(0, 0, 0, 0.05);
+            0 4px 6px -1px rgba(43, 36, 32, 0.08),
+            0 2px 4px -2px rgba(43, 36, 32, 0.08),
+            0 0 0 1px var(--border-color);
         }
       `}</style>
     </div>

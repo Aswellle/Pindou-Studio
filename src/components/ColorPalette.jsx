@@ -177,7 +177,7 @@ export default function ColorPalette({ selectedColor, onColorSelect, collapsed, 
         }
         .color-swatch.selected {
           border-color: var(--accent);
-          box-shadow: 0 0 0 2px white, 0 0 0 4px var(--accent);
+          box-shadow: 0 0 0 2px var(--bg-primary), 0 0 0 4px var(--accent);
         }
         .color-swatch[style*="FFFFFF"] {
           border: 1px solid var(--border-color);

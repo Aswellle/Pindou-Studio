@@ -303,7 +303,7 @@ export default function Tools({
           border: 2px solid var(--border-color);
           border-radius: 6px;
           font-size: 13px;
-          background: white;
+          background: var(--bg-primary);
           cursor: pointer;
         }
         .tool-select:focus {
@@ -328,7 +328,7 @@ export default function Tools({
           padding: 8px;
           border-radius: 6px;
           border: 1px solid var(--border-color);
-          background: white;
+          background: var(--bg-primary);
           font-size: 12px;
           display: flex;
           align-items: center;

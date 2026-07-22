@@ -141,7 +141,7 @@
   border: 2px solid var(--border-color);
   border-radius: 6px;
   font-size: 14px;
-  background: white;
+  background: var(--bg-primary);
 }
 
 .setting-item select:focus {
@@ -208,8 +208,8 @@
 
 .error-section {
   padding: 12px;
-  background: #FFF0F0;
-  border: 1px solid #FFD0D0;
+  background: var(--error-bg);
+  border: 1px solid var(--error-border);
   border-radius: 6px;
   margin: 16px 0;
 }
@@ -254,7 +254,7 @@
 }
 
 .dithering-badge {
-  background: linear-gradient(135deg, #7c8cf5, #a38be7);
+  background: linear-gradient(135deg, var(--accent), var(--secondary-accent));
   color: white;
   padding: 2px 8px;
   border-radius: 10px;
@@ -264,14 +264,14 @@
 
 .settings-changed-warning {
   font-size: 12px;
-  color: #f59e0b;
+  color: var(--warning);
   font-weight: normal;
   margin-left: 8px;
 }
 
 .regenerate-hint {
   font-size: 11px;
-  color: #f59e0b;
+  color: var(--warning);
   font-style: italic;
 }
 

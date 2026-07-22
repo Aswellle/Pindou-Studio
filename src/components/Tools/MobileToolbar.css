@@ -42,11 +42,16 @@
 
 .toolbar-tools .tool-btn.active .tool-icon {
   transform: scale(1.1);
+  color: var(--accent);
 }
 
 .tool-icon {
-  font-size: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-secondary);
   margin-bottom: 2px;
+  transition: transform 0.2s, color 0.2s;
 }
 
 .tool-label {
@@ -65,7 +70,7 @@
   border-radius: 50%;
   border: 1px solid var(--border-color);
   background: var(--bg-primary);
-  font-size: 18px;
+  color: var(--text-secondary);
   display: flex;
   align-items: center;
   justify-content: center;

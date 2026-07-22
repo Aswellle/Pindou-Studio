@@ -4,21 +4,32 @@
 @import url('https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;600&display=swap');
 
 :root {
-  --bg-primary: #ffffff;
-  --bg-secondary: #f8f8f8;
-  --bg-tertiary: #f0f0f0;
-  --text-primary: #1a1a1a;
-  --text-secondary: #555555;
-  --text-muted: #999999;
-  --border-color: #e5e5e5;
-  --accent: #1a1a1a;
-  --accent-hover: #333333;
-  --error: #ff3b30;
-  --success: #34c759;
-  --shadow-sm: rgba(0, 0, 0, 0.04);
-  --shadow-md: rgba(0, 0, 0, 0.08);
-  --shadow-lg: rgba(0, 0, 0, 0.12);
+  /* 手作暖调 (warm handcraft) design tokens */
+  --bg-primary: #fdfbf7;
+  --bg-secondary: #f7f1e6;
+  --bg-tertiary: #f1e8d9;
+  --text-primary: #2b2420;
+  --text-secondary: #6f6259;
+  --text-muted: #a3968a;
+  --border-color: #efe6da;
+  --accent: #e8734a;
+  --accent-hover: #d35f38;
+  --accent-soft: #fbe4d8;
+  --secondary-accent: #4a9b8e;
+  --secondary-accent-hover: #3d8377;
+  --error: #e5484d;
+  --error-bg: #fdf0ee;
+  --error-border: #f5d3cd;
+  --success: #4a9b8e;
+  --warning: #cf8a2c;
+  --warning-bg: #fbf0dc;
+  --warning-border: #f0dcb3;
+  --shadow-sm: rgba(43, 36, 32, 0.04);
+  --shadow-md: rgba(43, 36, 32, 0.08);
+  --shadow-lg: rgba(43, 36, 32, 0.14);
   --shadow: var(--shadow-md);
+  --shadow-card: 0 4px 16px rgba(232, 115, 74, 0.08);
+  --radius-card: 14px;
 }
 
 * {
@@ -80,11 +91,11 @@ input:focus, textarea:focus, button:focus {
 
 .modal-content {
   background: var(--bg-primary);
-  border-radius: 8px;
+  border-radius: var(--radius-card);
   padding: 32px;
   width: 100%;
   max-width: 400px;
-  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.2);
+  box-shadow: 0 20px 60px rgba(43, 36, 32, 0.18);
 }
 
 /* Form Styles */
@@ -160,7 +171,7 @@ input:focus, textarea:focus, button:focus {
 }
 
 .btn-primary:disabled {
-  background: #999;
+  background: var(--text-muted);
   cursor: not-allowed;
   transform: none;
   box-shadow: none;

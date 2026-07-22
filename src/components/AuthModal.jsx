@@ -169,8 +169,8 @@ export default function AuthModal({ mode, onClose, onLogin, onRegister, onSwitch
             align-items: center;
             gap: 8px;
             padding: 12px;
-            background: #FFF0F0;
-            border: 1px solid #FFD0D0;
+            background: var(--error-bg);
+            border: 1px solid var(--error-border);
             border-radius: 6px;
             color: var(--error);
             font-size: 13px;

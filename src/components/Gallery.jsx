@@ -56,10 +56,10 @@ export default function Gallery({ onLoadTemplate, onSaveWork, onLoadWork, savedW
 
   const getDifficultyColor = (difficulty) => {
     switch (difficulty) {
-      case 'easy': return '#4CAF50'
-      case 'medium': return '#FF9800'
-      case 'hard': return '#E53935'
-      default: return '#999'
+      case 'easy': return 'var(--secondary-accent)'
+      case 'medium': return 'var(--warning)'
+      case 'hard': return 'var(--error)'
+      default: return 'var(--text-muted)'
     }
   }
 
@@ -251,7 +251,7 @@ export default function Gallery({ onLoadTemplate, onSaveWork, onLoadWork, savedW
                     className={`favorite-btn ${favorites.includes(template.id) ? 'active' : ''}`}
                     onClick={(e) => toggleFavorite(template.id, e)}
                   >
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill={favorites.includes(template.id) ? '#E53935' : 'none'} stroke="#E53935" strokeWidth="2">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill={favorites.includes(template.id) ? 'var(--accent)' : 'none'} stroke="var(--accent)" strokeWidth="2">
                       <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
                     </svg>
                   </button>
@@ -262,10 +262,10 @@ export default function Gallery({ onLoadTemplate, onSaveWork, onLoadWork, savedW
                       setExportMenuId(exportMenuId === template.id ? null : template.id)
                     }}
                     disabled={exportingId === template.id}
-                    title="导出图纸"
+                    title={t('export.title')}
                     aria-expanded={exportMenuId === template.id}
                     aria-haspopup="menu"
-                    aria-label="导出图纸"
+                    aria-label={t('export.title')}
                   >
                     {exportingId === template.id ? (
                       <svg className="spinning" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -445,7 +445,7 @@ export default function Gallery({ onLoadTemplate, onSaveWork, onLoadWork, savedW
         .template-card {
           background: var(--bg-primary);
           border: 2px solid var(--border-color);
-          border-radius: 12px;
+          border-radius: var(--radius-card);
           overflow: hidden;
           cursor: pointer;
           transition: all 0.2s;
@@ -454,11 +454,11 @@ export default function Gallery({ onLoadTemplate, onSaveWork, onLoadWork, savedW
         .template-card:hover {
           border-color: var(--accent);
           transform: translateY(-4px);
-          box-shadow: 0 8px 24px var(--shadow);
+          box-shadow: var(--shadow-card);
         }
         .template-thumbnail {
           position: relative;
-          background: white;
+          background: var(--bg-primary);
           padding: 16px;
           display: flex;
           justify-content: center;
@@ -475,12 +475,12 @@ export default function Gallery({ onLoadTemplate, onSaveWork, onLoadWork, savedW
           width: 32px;
           height: 32px;
           border-radius: 50%;
-          background: white;
+          background: var(--bg-primary);
           border: none;
           display: flex;
           align-items: center;
           justify-content: center;
-          box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+          box-shadow: 0 2px 8px rgba(43,36,32,0.12);
           transition: transform 0.2s;
         }
         .favorite-btn:hover {
@@ -493,15 +493,15 @@ export default function Gallery({ onLoadTemplate, onSaveWork, onLoadWork, savedW
           width: 32px;
           height: 32px;
           border-radius: 50%;
-          background: white;
+          background: var(--bg-primary);
           border: none;
           display: flex;
           align-items: center;
           justify-content: center;
-          box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+          box-shadow: 0 2px 8px rgba(43,36,32,0.12);
           transition: transform 0.2s;
           cursor: pointer;
-          color: #555;
+          color: var(--text-secondary);
         }
         .export-btn:hover:not(:disabled) {
           transform: scale(1.1);
@@ -517,7 +517,7 @@ export default function Gallery({ onLoadTemplate, onSaveWork, onLoadWork, savedW
           background: var(--bg-primary);
           border: 1px solid var(--border-color);
           border-radius: 8px;
-          box-shadow: 0 4px 16px rgba(0,0,0,0.14);
+          box-shadow: 0 4px 16px rgba(43,36,32,0.14);
           z-index: 10;
           overflow: hidden;
           min-width: 210px;
@@ -581,7 +581,7 @@ export default function Gallery({ onLoadTemplate, onSaveWork, onLoadWork, savedW
           width: 12px;
           height: 12px;
           border-radius: 50%;
-          border: 1px solid rgba(0,0,0,0.1);
+          border: 1px solid var(--border-color);
         }
         .empty-state {
           display: flex;
@@ -613,11 +613,11 @@ export default function Gallery({ onLoadTemplate, onSaveWork, onLoadWork, savedW
         }
         .work-card {
           background: var(--bg-secondary);
-          border-radius: 8px;
+          border-radius: var(--radius-card);
           overflow: hidden;
         }
         .work-thumbnail {
-          background: white;
+          background: var(--bg-primary);
           padding: 12px;
           display: flex;
           justify-content: center;
@@ -660,14 +660,14 @@ export default function Gallery({ onLoadTemplate, onSaveWork, onLoadWork, savedW
           color: white;
         }
         .work-btn.load:hover {
-          background: #333;
+          background: var(--accent-hover);
         }
         .work-btn.delete {
           background: var(--bg-tertiary);
           color: var(--text-secondary);
         }
         .work-btn.delete:hover {
-          background: #ff3b30;
+          background: var(--error);
           color: white;
         }
       `}</style>
