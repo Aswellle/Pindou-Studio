@@ -289,6 +289,17 @@ export default function Canvas({
     setTransform({ scale: newScale, cx: clamped.x, cy: clamped.y })
   }, [transform, softClamp])
 
+  // React attaches onWheel as a passive listener by default, so preventDefault()
+  // inside a JSX-bound handler silently fails — trackpad pinch (wheel + ctrlKey)
+  // then falls through to the browser's own page zoom. Bind natively with
+  // { passive: false } so preventDefault actually blocks page zoom.
+  useEffect(() => {
+    const container = containerRef.current
+    if (!container) return
+    container.addEventListener('wheel', handleWheel, { passive: false })
+    return () => container.removeEventListener('wheel', handleWheel)
+  }, [handleWheel])
+
   // ─────────────────────────────────────────────────────────────────
   // PC: 鼠标拖拽平移（canvas内外均可）
   // ─────────────────────────────────────────────────────────────────
@@ -676,7 +687,6 @@ export default function Canvas({
       <div
         className="canvas-container"
         ref={containerRef}
-        onWheel={handleWheel}
         onMouseDown={handleContainerMouseDown}
         onMouseMove={handleContainerMouseMove}
         onMouseUp={handleContainerMouseUp}
