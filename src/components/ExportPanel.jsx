@@ -50,14 +50,19 @@ export default function ExportPanel({ canvasData, gridSize, gridWidth, gridHeigh
 
     const CELL_SIZE = 20
     const BEAD_RADIUS = CELL_SIZE / 2 - 1
+    // 超采样倍率，与 BeadPatternExporter 的专业/展示导出保持一致的清晰度
+    const QUICK_EXPORT_SCALE = 3
 
+    const canvasWidth = actualWidth * CELL_SIZE
+    const canvasHeight = actualHeight * CELL_SIZE
     const canvas = document.createElement('canvas')
-    canvas.width = actualWidth * CELL_SIZE
-    canvas.height = actualHeight * CELL_SIZE
+    canvas.width = canvasWidth * QUICK_EXPORT_SCALE
+    canvas.height = canvasHeight * QUICK_EXPORT_SCALE
     const ctx = canvas.getContext('2d')
+    ctx.scale(QUICK_EXPORT_SCALE, QUICK_EXPORT_SCALE)
 
     ctx.fillStyle = '#ffffff'
-    ctx.fillRect(0, 0, canvas.width, canvas.height)
+    ctx.fillRect(0, 0, canvasWidth, canvasHeight)
 
     for (let y = 0; y < actualHeight; y++) {
       for (let x = 0; x < actualWidth; x++) {

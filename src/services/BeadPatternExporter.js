@@ -8,6 +8,10 @@
  * 5. 图例说明
  */
 
+// PNG 导出超采样倍率：画布按 EXPORT_SCALE 倍物理像素渲染，
+// 所有绘制代码仍用逻辑坐标（ctx.scale 统一放大），放大查看/打印时网格色块和文字才不糊。
+const EXPORT_SCALE = 3
+
 // 拟真珠子渲染 — 与 ImageQuantizer 预览保持一致
 function drawBead(ctx, cx, cy, radius, hexColor) {
   const r = parseInt(hexColor.slice(1, 3), 16)
@@ -202,11 +206,13 @@ export async function generateBeadPatternSheet({
   const sheetWidth = gridPixelW + ROW_LABEL_WIDTH + PADDING * 2 + COLOR_PANEL_WIDTH
   const sheetHeight = gridPixelH + HEADER_HEIGHT + LEGEND_HEIGHT + COL_LABEL_HEIGHT + PADDING * 2
 
-  // 创建 canvas
+  // 创建 canvas — 物理像素按 EXPORT_SCALE 倍分辨率分配，
+  // ctx.scale 后所有绘制代码仍按逻辑尺寸（sheetWidth/sheetHeight）操作，无需改动下方坐标计算
   const canvas = document.createElement('canvas')
-  canvas.width = sheetWidth
-  canvas.height = sheetHeight
+  canvas.width = sheetWidth * EXPORT_SCALE
+  canvas.height = sheetHeight * EXPORT_SCALE
   const ctx = canvas.getContext('2d')
+  ctx.scale(EXPORT_SCALE, EXPORT_SCALE)
 
   // 白色背景
   ctx.fillStyle = '#ffffff'
