@@ -342,6 +342,24 @@ export default function Tutorials() {
           flex-direction: column;
           overflow: hidden;
         }
+        @media (max-width: 1024px) {
+          .tutorials-page {
+            flex-direction: column;
+            height: auto;
+          }
+          .tutorials-sidebar {
+            width: 100%;
+            max-height: 45vh;
+            border-right: none;
+            border-bottom: 1px solid var(--border-color);
+          }
+          .tutorials-content {
+            padding: 20px 16px;
+          }
+          .content-title {
+            font-size: var(--text-2xl);
+          }
+        }
         .sidebar-header {
           padding: 20px;
           border-bottom: 1px solid var(--border-color);

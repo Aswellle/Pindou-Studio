@@ -214,41 +214,109 @@ export default function App() {
         onLogin={openLogin}
         onRegister={openRegister}
         onLogout={logout}
+        onSave={currentPage === 'canvas' ? handleOpenSaveDialog : undefined}
         currentPage={currentPage}
         onPageChange={handlePageChange}
         simplified
       />
 
-      <div className="mobile-canvas-area">
-        <Canvas {...canvasProps} />
-      </div>
+      {currentPage === 'canvas' ? (
+        <>
+          <div className="mobile-canvas-area">
+            <Canvas {...canvasProps} />
+          </div>
 
-      <MobileColorPalette
-        selectedColor={selectedColor}
-        onColorSelect={setSelectedColor}
-        currentPalette={currentPalette}
-        onPaletteChange={setCurrentPalette}
-      />
+          <MobileColorPalette
+            selectedColor={selectedColor}
+            onColorSelect={setSelectedColor}
+            currentPalette={currentPalette}
+            onPaletteChange={setCurrentPalette}
+            canvasData={canvasData}
+          />
 
-      <MobileToolbar
-        tool={tool}
-        onToolChange={setTool}
-        onUndo={undo}
-        onRedo={redo}
-        canUndo={canUndo}
-        canRedo={canRedo}
-        onExport={() => setShowExport(true)}
-        onQuantize={() => setShowQuantizer(true)}
-      />
+          <MobileToolbar
+            tool={tool}
+            onToolChange={setTool}
+            gridSize={gridSize}
+            gridWidth={gridWidth}
+            gridHeight={gridHeight}
+            onGridSizeChange={handleGridSizeChange}
+            onGridDimensionsChange={handleGridDimensionsChange}
+            onUndo={undo}
+            onRedo={redo}
+            onClear={handleClearCanvas}
+            canUndo={canUndo}
+            canRedo={canRedo}
+            onExport={() => setShowExport(true)}
+            onQuantize={() => setShowQuantizer(true)}
+          />
+        </>
+      ) : (
+        <div className="mobile-page-area">
+          {renderPage()}
+        </div>
+      )}
 
       {showExport && (
         <ExportPanel
           canvasData={canvasData}
           gridSize={gridSize}
+          gridWidth={gridWidth}
+          gridHeight={gridHeight}
           designName={designName}
           paletteId={currentPalette}
           onClose={() => setShowExport(false)}
         />
+      )}
+
+      {showAuth && (
+        <AuthModal
+          mode={authMode}
+          onClose={() => setShowAuth(false)}
+          onLogin={login}
+          onRegister={register}
+          onSwitchMode={(mode) => setAuthMode(mode)}
+        />
+      )}
+
+      {showQuantizer && (
+        <Suspense fallback={null}>
+          <ImageQuantizer
+            onApply={handleQuantizerApply}
+            onClose={() => setShowQuantizer(false)}
+          />
+        </Suspense>
+      )}
+
+      {showSaveDialog && (
+        <div className="modal-overlay" onClick={() => setShowSaveDialog(false)}>
+          <div className="save-dialog" onClick={e => e.stopPropagation()}>
+            <h3>{t('gallery.saveTitle')}</h3>
+            <label>{t('gallery.saveNameLabel')}</label>
+            <input
+              autoFocus
+              type="text"
+              value={saveInputName}
+              onChange={e => setSaveInputName(e.target.value)}
+              placeholder={t('gallery.saveNamePlaceholder')}
+              onKeyDown={e => e.key === 'Enter' && handleConfirmSave()}
+            />
+            <div className="save-dialog-actions">
+              <button className="btn btn-ghost" onClick={() => setShowSaveDialog(false)}>
+                {t('common.cancel')}
+              </button>
+              <button className="btn btn-primary" onClick={handleConfirmSave}>
+                {t('gallery.saveConfirm')}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+      {saveToast && (
+        <div className="save-toast">{t('gallery.savedToast')}</div>
+      )}
+      {fitToast && (
+        <div className="fit-toast">{t('canvas.autoFitToast')}</div>
       )}
     </div>
   )

@@ -109,6 +109,8 @@ input:focus, textarea:focus, button:focus {
   justify-content: center;
   z-index: 1000;
   backdrop-filter: blur(4px);
+  padding: 16px;
+  box-sizing: border-box;
 }
 
 .modal-content {
@@ -117,7 +119,16 @@ input:focus, textarea:focus, button:focus {
   padding: 32px;
   width: 100%;
   max-width: 400px;
+  max-height: 100%;
+  overflow-y: auto;
   box-shadow: 0 20px 60px rgba(43, 36, 32, 0.18);
+  box-sizing: border-box;
+}
+
+@media (max-width: 480px) {
+  .modal-content {
+    padding: 24px 20px;
+  }
 }
 
 /* Form Styles */
@@ -412,8 +423,11 @@ input:focus, textarea:focus, button:focus {
   position: relative;
 }
 
-.mobile-layout .main-content {
-  margin-top: 0;
+.mobile-layout {
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
 }
 
 /* 移动端基础样式 */
@@ -454,28 +468,24 @@ input:focus, textarea:focus, button:focus {
   }
 }
 
-/* 移动端内容区域 */
-.mobile-layout .main-content {
-  margin-top: 60px;
-  padding-bottom: 120px; /* 为底部工具栏留空间 */
-}
-
+/* 画布画面：底部为双行工具栏（约96px）+ 色卡收起条（约64px）留空间 */
 .mobile-canvas-area {
+  flex: 1;
   display: flex;
   justify-content: center;
   align-items: center;
-  min-height: calc(100vh - 180px);
+  min-height: 0;
   overflow: auto;
   padding: 16px;
+  padding-bottom: calc(16px + 64px);
 }
 
-/* 移动端 Header 简化 */
-.header.simplified {
-  height: 50px;
-}
-
-.header.simplified .header-title {
-  font-size: 14px;
+/* 图库 / 教程页面在移动端的容器：占满 header 和底部工具栏之间的空间，自行滚动 */
+.mobile-page-area {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
 }
 
 /* Left Sidebar Layout */

@@ -44,6 +44,22 @@ const RedoIcon = () => (
   </svg>
 )
 
+const ClearIcon = () => (
+  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+    <polyline points="3,6 5,6 21,6" />
+    <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+  </svg>
+)
+
+const GridSizeIcon = () => (
+  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+    <rect x="3" y="3" width="7" height="7" rx="1" />
+    <rect x="14" y="3" width="7" height="7" rx="1" />
+    <rect x="3" y="14" width="7" height="7" rx="1" />
+    <rect x="14" y="14" width="7" height="7" rx="1" />
+  </svg>
+)
+
 const CameraIcon = () => (
   <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
     <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z" />
@@ -62,10 +78,16 @@ const ExportIcon = () => (
 export default function MobileToolbar({
   tool,
   onToolChange,
+  gridSize,
+  gridWidth,
+  gridHeight,
+  onGridSizeChange,
+  onGridDimensionsChange,
   onUndo,
   onRedo,
   canUndo,
   canRedo,
+  onClear,
   onExport,
   onQuantize,
 }) {
@@ -78,9 +100,44 @@ export default function MobileToolbar({
     { id: 'hand', label: t('canvas.tool.hand') },
   ]
 
+  const currentWidth = gridWidth || gridSize
+  const currentHeight = gridHeight || gridSize
+  const isRectangular = gridWidth !== null && gridHeight !== null
+
+  const handlePresetChange = (e) => {
+    const value = e.target.value
+    if (value === 'custom') {
+      const input = prompt(t('tools.customSizePrompt'), `${currentWidth}x${currentHeight}`)
+      if (!input) return
+      const parts = input.toLowerCase().split('x').map(s => parseInt(s.trim(), 10))
+      if (isNaN(parts[0]) || parts[0] < 9 || parts[0] > 200) {
+        alert(t('tools.widthRange'))
+        return
+      }
+      if (parts.length === 2) {
+        if (isNaN(parts[1]) || parts[1] < 9 || parts[1] > 200) {
+          alert(t('tools.heightRange'))
+          return
+        }
+        onGridDimensionsChange(parts[0], parts[1])
+      } else {
+        onGridDimensionsChange(parts[0], parts[0])
+      }
+      return
+    }
+    const parts = value.split('x').map(Number)
+    if (parts.length === 2) {
+      onGridDimensionsChange(parts[0], parts[1])
+    } else {
+      onGridSizeChange(parts[0])
+    }
+  }
+
+  const getCurrentPreset = () => (isRectangular ? `${currentWidth}x${currentHeight}` : String(currentWidth))
+
   return (
     <div className="mobile-toolbar">
-      <div className="toolbar-tools">
+      <div className="toolbar-row toolbar-tools">
         {tools.map((t_item) => (
           <button
             key={t_item.id}
@@ -93,7 +150,7 @@ export default function MobileToolbar({
         ))}
       </div>
 
-      <div className="toolbar-actions">
+      <div className="toolbar-row toolbar-actions">
         <button
           className="action-btn"
           onClick={onUndo}
@@ -112,6 +169,49 @@ export default function MobileToolbar({
         >
           <RedoIcon />
         </button>
+        <button
+          className="action-btn"
+          onClick={onClear}
+          title={t('tools.clearCanvas')}
+          aria-label={t('tools.clear')}
+        >
+          <ClearIcon />
+        </button>
+
+        <label className="action-btn grid-size-btn" title={t('tools.canvasSize')} aria-label={t('tools.canvasSize')}>
+          <GridSizeIcon />
+          <select
+            className="grid-size-select"
+            value={getCurrentPreset()}
+            onChange={handlePresetChange}
+            aria-label={t('tools.canvasSize')}
+          >
+            <optgroup label={`—— ${t('tools.presets.squareGroup')} ——`}>
+              <option value="29">29×29 {t('tools.presets.smallIcon')}</option>
+              <option value="57">57×57 {t('tools.presets.standard')}</option>
+              <option value="87">87×87 {t('tools.presets.large')}</option>
+              <option value="114">114×114 {t('tools.presets.extraLarge')}</option>
+              <option value="140">140×140 {t('tools.presets.huge')}</option>
+              <option value="170">170×170 {t('tools.presets.superHuge')}</option>
+            </optgroup>
+            <optgroup label={`—— ${t('tools.presets.rectangleGroup')} ——`}>
+              <option value="57x29">57×29 {t('tools.presets.landscape')}</option>
+              <option value="87x58">87×58 {t('tools.presets.landscape')}</option>
+              <option value="114x87">114×87 {t('tools.presets.landscape')}</option>
+              <option value="140x105">140×105 {t('tools.presets.landscape')}</option>
+              <option value="170x115">170×115 {t('tools.presets.landscape')}</option>
+              <option value="29x57">29×57 {t('tools.presets.portrait')}</option>
+              <option value="58x87">58×87 {t('tools.presets.portrait')}</option>
+              <option value="87x114">87×114 {t('tools.presets.portrait')}</option>
+              <option value="105x140">105×140 {t('tools.presets.portrait')}</option>
+              <option value="115x170">115×170 {t('tools.presets.portrait')}</option>
+            </optgroup>
+            <optgroup label={`—— ${t('tools.presets.customGroup')} ——`}>
+              <option value="custom">{t('tools.presets.custom')}</option>
+            </optgroup>
+          </select>
+        </label>
+
         <button className="action-btn" onClick={onQuantize} aria-label={t('tools.imageToBead')}>
           <CameraIcon />
         </button>

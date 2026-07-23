@@ -442,6 +442,15 @@ export default function Gallery({ onLoadTemplate, onSaveWork, onLoadWork, savedW
           grid-template-columns: repeat(3, 1fr);
           gap: 20px;
         }
+        @media (max-width: 640px) {
+          .gallery-page {
+            padding: 12px;
+          }
+          .templates-grid {
+            grid-template-columns: repeat(2, 1fr);
+            gap: 12px;
+          }
+        }
         .template-card {
           background: var(--bg-primary);
           border: 2px solid var(--border-color);
@@ -610,6 +619,12 @@ export default function Gallery({ onLoadTemplate, onSaveWork, onLoadWork, savedW
           display: grid;
           grid-template-columns: repeat(3, 1fr);
           gap: 16px;
+        }
+        @media (max-width: 640px) {
+          .works-grid {
+            grid-template-columns: repeat(2, 1fr);
+            gap: 12px;
+          }
         }
         .work-card {
           background: var(--bg-secondary);

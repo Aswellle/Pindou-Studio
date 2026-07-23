@@ -1,6 +1,7 @@
-import { useState } from 'react'
+import { useState, useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
 import { PALETTE_LIST } from '../../data/palettes'
+import { resolveToHex } from '../../services/colorUtils'
 import './MobileColorPalette.css'
 
 export default function MobileColorPalette({
@@ -8,12 +9,30 @@ export default function MobileColorPalette({
   onColorSelect,
   currentPalette,
   onPaletteChange,
+  canvasData,
 }) {
   const { t } = useTranslation()
   const [showPalette, setShowPalette] = useState(false)
 
   const palette = PALETTE_LIST.find(p => p.id === currentPalette) || PALETTE_LIST[0]
   const recentColors = JSON.parse(localStorage.getItem('bead_studio_recent_colors') || '[]')
+
+  // 珠子/颜色数统计 — 与桌面端 ColorStatsBar 同一算法，移动端用紧凑徽章展示
+  const { totalBeads, colorCount } = useMemo(() => {
+    if (!canvasData) return { totalBeads: 0, colorCount: 0 }
+    const seen = new Set()
+    let total = 0
+    for (const row of canvasData) {
+      for (const cell of row) {
+        const hex = resolveToHex(cell, palette)
+        if (hex) {
+          seen.add(hex)
+          total++
+        }
+      }
+    }
+    return { totalBeads: total, colorCount: seen.size }
+  }, [canvasData, palette])
 
   const handleColorSelect = (color) => {
     onColorSelect(color)
@@ -25,7 +44,7 @@ export default function MobileColorPalette({
 
   return (
     <div className="mobile-color-palette">
-      {/* 当前颜色预览 */}
+      {/* 当前颜色预览 + 珠子/颜色统计 */}
       <button
         className="current-color-btn"
         onClick={() => setShowPalette(!showPalette)}
@@ -35,6 +54,11 @@ export default function MobileColorPalette({
           style={{ backgroundColor: selectedColor }}
         />
         <span className="color-hex">{selectedColor}</span>
+        {totalBeads > 0 && (
+          <span className="mobile-stats-badge">
+            {totalBeads} {t('stats.beads')} · {colorCount} {t('stats.colors')}
+          </span>
+        )}
         <span className="toggle-icon">{showPalette ? '▲' : '▼'}</span>
       </button>
 

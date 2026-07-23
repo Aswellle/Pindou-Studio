@@ -1,7 +1,7 @@
 .mobile-color-palette {
   display: none;
   position: fixed;
-  bottom: 60px;
+  bottom: calc(100px + env(safe-area-inset-bottom, 0px));
   left: 0;
   right: 0;
   background: var(--bg-primary);
@@ -26,6 +26,7 @@
   border-radius: 8px;
   cursor: pointer;
   width: 100%;
+  min-height: 44px;
 }
 
 .color-preview {
@@ -33,18 +34,30 @@
   height: 32px;
   border-radius: 6px;
   border: 1px solid var(--border-color);
+  flex-shrink: 0;
 }
 
 .color-hex {
-  flex: 1;
   font-size: var(--text-md);
   font-weight: var(--font-weight-medium);
   text-align: left;
+  flex-shrink: 0;
+}
+
+.mobile-stats-badge {
+  flex: 1;
+  font-size: var(--text-xs);
+  color: var(--text-muted);
+  text-align: right;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .toggle-icon {
   font-size: var(--text-xs);
   color: var(--text-muted);
+  flex-shrink: 0;
 }
 
 .palette-expanded {
@@ -62,13 +75,14 @@
 }
 
 .brand-tab {
-  padding: 6px 12px;
+  padding: 8px 12px;
   border-radius: 16px;
   border: 1px solid var(--border-color);
   background: var(--bg-primary);
   font-size: var(--text-sm);
   white-space: nowrap;
   cursor: pointer;
+  min-height: 36px;
 }
 
 .brand-tab.active {
@@ -90,23 +104,35 @@
 
 .color-row {
   display: flex;
-  gap: 6px;
+  gap: 8px;
   overflow-x: auto;
   -webkit-overflow-scrolling: touch;
 }
 
 .color-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(28px, 1fr));
-  gap: 6px;
+  grid-template-columns: repeat(auto-fill, minmax(36px, 1fr));
+  gap: 8px;
 }
 
+/* 触控目标：36px 起（配合 gap 后有效间距接近可访问性建议的 44px），
+   避免拼豆色卡颜色多达 100 色时误触邻近色块 */
 .color-grid .color-swatch {
-  width: 28px;
-  height: 28px;
-  border-radius: 4px;
+  width: 36px;
+  height: 36px;
+  border-radius: 6px;
   border: 2px solid transparent;
   cursor: pointer;
+  transition: transform 0.15s;
+}
+
+.color-row .color-swatch {
+  width: 36px;
+  height: 36px;
+  border-radius: 6px;
+  border: 2px solid transparent;
+  cursor: pointer;
+  flex-shrink: 0;
   transition: transform 0.15s;
 }
 
@@ -114,7 +140,8 @@
   transform: scale(1.1);
 }
 
-.color-grid .color-swatch.selected {
+.color-grid .color-swatch.selected,
+.color-row .color-swatch.selected {
   border-color: var(--accent);
   box-shadow: 0 0 0 2px white, 0 0 0 4px var(--accent);
 }

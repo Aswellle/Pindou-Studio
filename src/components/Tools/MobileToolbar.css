@@ -6,34 +6,42 @@
   right: 0;
   background: var(--bg-primary);
   border-top: 1px solid var(--border-color);
-  padding: 8px 16px;
-  padding-bottom: calc(8px + env(safe-area-inset-bottom, 0px));
+  padding: 6px 12px;
+  padding-bottom: calc(6px + env(safe-area-inset-bottom, 0px));
   z-index: 100;
+  flex-direction: column;
+  gap: 4px;
 }
 
 @media (max-width: 1024px) {
   .mobile-toolbar {
     display: flex;
-    justify-content: space-between;
-    align-items: center;
   }
 }
 
-.toolbar-tools {
+.toolbar-row {
   display: flex;
+  align-items: center;
+  justify-content: space-between;
   gap: 4px;
 }
 
+.toolbar-tools {
+  justify-content: space-around;
+}
+
 .toolbar-tools .tool-btn {
+  flex: 1;
   display: flex;
   flex-direction: column;
   align-items: center;
-  padding: 8px 12px;
+  padding: 6px 4px;
   border-radius: 8px;
   background: transparent;
   border: none;
   cursor: pointer;
   transition: all 0.2s;
+  min-height: 44px;
 }
 
 .toolbar-tools .tool-btn.active {
@@ -60,13 +68,14 @@
 }
 
 .toolbar-actions {
-  display: flex;
-  gap: 8px;
+  justify-content: space-between;
 }
 
 .toolbar-actions .action-btn {
-  width: 44px;
-  height: 44px;
+  position: relative;
+  flex: 1;
+  min-width: 40px;
+  height: 40px;
   border-radius: 50%;
   border: 1px solid var(--border-color);
   background: var(--bg-primary);
@@ -91,4 +100,21 @@
   background: var(--accent);
   color: white;
   border-color: var(--accent);
+}
+
+/* 网格尺寸选择：用一个原生 <select> 叠在圆形按钮上，
+   点哪里都能弹出系统选择器，同时视觉上跟其他工具按钮一致 */
+.grid-size-btn {
+  padding: 0;
+  overflow: hidden;
+}
+
+.grid-size-select {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  opacity: 0;
+  border: none;
+  cursor: pointer;
 }
