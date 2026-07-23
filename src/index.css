@@ -90,6 +90,18 @@ input, button, textarea, select {
   font-family: inherit;
 }
 
+/* iOS Safari 会在聚焦 font-size < 16px 的文本输入控件时自动放大页面，
+   松开后不会自动缩回 100%，需要用户手动双指缩放复位。这里统一兜底：
+   移动/平板宽度下所有文本类输入控件强制 ≥16px，覆盖各组件内部更小的字号设置。
+   range/checkbox/radio/file 等非文本控件不触发该行为，排除以免影响原有视觉样式。 */
+@media (max-width: 1024px) {
+  input:not([type="range"]):not([type="checkbox"]):not([type="radio"]):not([type="file"]),
+  textarea,
+  select {
+    font-size: 16px !important;
+  }
+}
+
 button {
   cursor: pointer;
 }
