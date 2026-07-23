@@ -2,7 +2,7 @@
 
 > 专业的拼豆图纸在线设计工具，支持 Perler、Hama、Artkal 三大品牌色卡
 
-[![CI](https://github.com/Aswellle/Pin-Bead-Studio/actions/workflows/ci.yml/badge.svg)](https://github.com/Aswellle/Pin-Bead-Studio/actions/workflows/ci.yml)
+[![CI](https://github.com/Aswellle/Pindou-Studio/actions/workflows/ci.yml/badge.svg)](https://github.com/Aswellle/Pindou-Studio/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![React](https://img.shields.io/badge/React-18-61DAFB?logo=react)](https://react.dev)
 [![Vite](https://img.shields.io/badge/Vite-5-646CFF?logo=vite)](https://vitejs.dev)
@@ -30,9 +30,14 @@
 ### 🎨 三大品牌色卡
 | 品牌 | 色号范围 | 颜色数 |
 |------|---------|--------|
-| Perler | P01 – P77 | 77 色 |
+| Perler | P01 – P80 | 80 色 |
 | Hama | H01 – H56 | 56 色 |
-| Artkal | C01 – C72 | 72 色 |
+| Artkal | C01 – C100 | 100 色 |
+
+### 📚 图库与作品管理
+- **内置模板** — 8 个现成图案（动物、食物、图标、节日四大分类，简单/中等/困难三档难度）
+- **收藏与筛选** — 按分类、难度搜索和收藏喜欢的模板
+- **保存作品** — 命名保存当前画布，随时在"我的作品"中加载或删除
 
 ### 📄 图纸导出
 两种导出风格，均支持 PNG 和 SVG：
@@ -42,7 +47,10 @@
 | **专业模式** | 方形格 + 品牌色号标注 | 对照图纸贴珠 |
 | **展示模式** | 径向渐变拟真珠子效果 | 预览、分享、相册 |
 
-导出文件包含：行列坐标、颜色清单（按用量分主色/辅色/点缀色/微量色分组）、总珠数统计。
+导出文件包含：行列坐标、颜色清单（按用量分主色/辅色/点缀色/微量色分组）、总珠数统计。PNG 导出统一按 3 倍物理分辨率超采样渲染，放大查看或打印时网格、色号文字和颜色清单依然清晰。
+
+### 📖 拼豆教程
+内置 6 大分类、18 篇图文教程，覆盖入门、熨烫手法、防变形、配色设计、进阶技巧和作品保护，支持已读进度追踪。
 
 ### 🌐 多语言
 - 简体中文（默认）
@@ -62,8 +70,8 @@
 ### 安装
 
 ```bash
-git clone https://github.com/Aswellle/Pin-Bead-Studio.git
-cd Pin-Bead-Studio/bead-studio
+git clone https://github.com/Aswellle/Pindou-Studio.git
+cd Pindou-Studio/bead-studio
 npm install
 npm run dev
 ```
@@ -104,7 +112,7 @@ npm run test:run
 | 文件 | 测试内容 |
 |------|---------|
 | `src/utils/colorDiff.test.js` | CIEDE2000 算法（含 CIE 官方 10 组参考值），rgbToLab，findClosestColorCIEDE2000 |
-| `src/services/colorUtils.test.js` | resolveToHex（8 种边界情况），hexToRgb，rgbToHex，getTextColor |
+| `src/services/colorUtils.test.js` | resolveToHex（含多种边界情况），hexToRgb，rgbToHex，getTextColor |
 | `src/utils/historyUtils.test.js` | pushHistory（含上限截断），undoHistory，redoHistory（往返一致性） |
 
 ---
@@ -118,62 +126,11 @@ npm run test:run
 | 国际化 | react-i18next |
 | 图片处理 | Web Worker + Transferable ArrayBuffer |
 | 颜色科学 | CIEDE2000（Lab 色彩空间） |
-| 状态管理 | React `useState` / `useReducer`（主状态）|
+| 状态管理 | React `useState` / `useReducer`（主状态） |
 | 数据持久化 | localStorage（作品存储） |
 | 测试 | Vitest + @testing-library/react |
 | CI/CD | GitHub Actions |
-
----
-
-## 📁 项目结构
-
-```
-bead-studio/
-├── src/
-│   ├── App.jsx                          # 应用根组件（网格/工具/页面路由状态）
-│   ├── components/
-│   │   ├── Canvas.jsx                   # 网格画布：绘制 + CSS transform 平移缩放
-│   │   ├── ColorPalette.jsx             # 桌面色板选择器
-│   │   ├── ColorStatsBar.jsx            # 侧边栏颜色统计（品牌色号 + 用量）
-│   │   ├── ExportPanel.jsx              # 导出面板（PNG / SVG / 文本）
-│   │   ├── Gallery.jsx                  # 模板浏览器 + 已保存作品
-│   │   ├── Header.jsx                   # 顶部导航栏
-│   │   ├── Tools.jsx                    # 左侧工具栏（可折叠）
-│   │   ├── Tutorials.jsx                # 教程页面
-│   │   ├── ImageQuantizer/
-│   │   │   └── ImageQuantizer.jsx       # 图片量化对话框
-│   │   ├── ColorPalette/
-│   │   │   └── MobileColorPalette.jsx   # 移动端色板
-│   │   └── Tools/
-│   │       └── MobileToolbar.jsx        # 移动端工具栏
-│   ├── hooks/
-│   │   ├── useHistory.js                # 撤销/重做（useReducer，无 stale closure）
-│   │   ├── useSavedWorks.js             # 作品 localStorage 读写（含 quota 保护）
-│   │   ├── useAuth.js                   # 本地认证（localStorage，无后端）
-│   │   ├── useImageQuantizer.js         # Web Worker 桥接
-│   │   └── useResponsive.js             # 响应式断点检测
-│   ├── workers/
-│   │   └── imageQuantizer.worker.js     # 量化算法（K-means++, CIEDE2000, 抖动）
-│   ├── data/
-│   │   ├── palettes/                    # Perler / Hama / Artkal 色卡数据
-│   │   ├── templates.js                 # 内置模板图案
-│   │   └── tutorials.js                 # 教程内容定义
-│   ├── services/
-│   │   ├── BeadPatternExporter.js       # PNG/SVG 导出（专业/展示双模式）
-│   │   └── colorUtils.js                # 颜色工具函数（resolveToHex 等）
-│   ├── utils/
-│   │   ├── colorDiff.js                 # 独立 CIEDE2000 实现
-│   │   └── historyUtils.js              # 纯函数历史操作（pushHistory 等）
-│   └── i18n/
-│       ├── index.js                     # i18next 配置
-│       └── locales/                     # zh-CN / en-US / ja-JP / ko-KR
-├── scripts/
-│   └── check-i18n.js                    # i18n 键名一致性校验
-├── .github/
-│   └── workflows/ci.yml                 # CI：测试 + i18n 校验 + 构建
-├── docs/superpowers/                    # 设计规范与开发计划文档
-└── vite.config.js                       # Vite 配置（端口 5280，测试环境 jsdom）
-```
+| 部署 | Vercel（GitHub 集成，push 到 main 自动部署） |
 
 ---
 
