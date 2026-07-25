@@ -64,6 +64,24 @@ export default function App() {
     return () => window.removeEventListener('keydown', handler)
   }, [undo, redo])
 
+  // Lock body scroll while any modal is open; reset iOS Safari viewport offset on close
+  const anyModalOpen = showAuth || showQuantizer || showSaveDialog || showExport
+  useEffect(() => {
+    if (anyModalOpen) {
+      document.body.style.overflow = 'hidden'
+      document.body.style.position = 'fixed'
+      document.body.style.width = '100%'
+      document.body.style.top = `-${window.scrollY}px`
+    } else {
+      const scrollY = document.body.style.top
+      document.body.style.overflow = ''
+      document.body.style.position = ''
+      document.body.style.width = ''
+      document.body.style.top = ''
+      window.scrollTo(0, parseInt(scrollY || '0', 10) * -1)
+    }
+  }, [anyModalOpen])
+
   const handleClearCanvas = () => {
     if (canvasData && canvasData.every(row => row.every(cell => cell === null))) return
     const rows = gridHeight || gridSize
@@ -514,52 +532,13 @@ export default function App() {
           position: fixed;
           inset: 0;
           background: rgba(0,0,0,0.45);
+          backdrop-filter: blur(4px);
           display: flex;
           align-items: center;
           justify-content: center;
-          z-index: 500;
-        }
-        .save-dialog {
-          background: var(--bg-primary);
-          border-radius: var(--radius-card);
-          padding: 24px;
-          width: 360px;
-          display: flex;
-          flex-direction: column;
-          gap: 12px;
-          box-shadow: 0 8px 40px rgba(43,36,32,0.18);
-        }
-        .save-dialog h3 {
-          font-size: 18px;
-          font-weight: 600;
-          margin: 0;
-        }
-        .save-dialog label {
-          font-size: 13px;
-          color: var(--text-secondary);
-          margin-bottom: -4px;
-        }
-        .save-dialog input {
-          padding: 10px 12px;
-          border: 2px solid var(--border-color);
-          border-radius: 8px;
-          font-size: 14px;
-          background: var(--bg-secondary);
-          color: var(--text-primary);
-        }
-        .save-dialog input:focus {
-          border-color: var(--accent);
-          outline: none;
-          background: var(--bg-primary);
-        }
-        .save-dialog-actions {
-          display: flex;
-          gap: 8px;
-          justify-content: flex-end;
-          margin-top: 4px;
-        }
-        .save-dialog input:focus {
-          box-shadow: var(--shadow-card);
+          z-index: 1000;
+          padding: 16px;
+          box-sizing: border-box;
         }
         .save-toast {
           position: fixed;

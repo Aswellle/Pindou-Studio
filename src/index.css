@@ -143,6 +143,49 @@ input:focus, textarea:focus, button:focus {
   }
 }
 
+/* Save Dialog (global — used by both desktop and mobile layouts) */
+.save-dialog {
+  background: var(--bg-primary);
+  border-radius: var(--radius-card);
+  padding: 24px;
+  width: 360px;
+  max-width: calc(100vw - 32px);
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  box-shadow: 0 8px 40px rgba(43, 36, 32, 0.18);
+}
+.save-dialog h3 {
+  font-size: 18px;
+  font-weight: 600;
+  margin: 0;
+}
+.save-dialog label {
+  font-size: 13px;
+  color: var(--text-secondary);
+  margin-bottom: -4px;
+}
+.save-dialog input {
+  padding: 10px 12px;
+  border: 2px solid var(--border-color);
+  border-radius: 8px;
+  font-size: 16px;
+  background: var(--bg-secondary);
+  color: var(--text-primary);
+}
+.save-dialog input:focus {
+  border-color: var(--accent);
+  outline: none;
+  background: var(--bg-primary);
+  box-shadow: var(--shadow-card);
+}
+.save-dialog-actions {
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
+  margin-top: 4px;
+}
+
 /* Form Styles */
 .form-group {
   margin-bottom: 20px;
