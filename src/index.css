@@ -71,6 +71,7 @@ body {
 
 #root {
   height: 100vh;
+  height: 100dvh;
   display: flex;
   flex-direction: column;
   overflow: hidden;
@@ -359,6 +360,7 @@ input:focus, textarea:focus, button:focus {
 
 .app {
   height: 100vh;
+  height: 100dvh;
   display: flex;
   flex-direction: column;
   overflow: hidden;
@@ -479,7 +481,13 @@ input:focus, textarea:focus, button:focus {
 }
 
 .mobile-layout {
+  /* 用 100dvh 而非 100vh：移动端浏览器地址栏收起/展开时 100vh 会跟着变化，
+     任何滚动手势（即使被 overflow:hidden 挡住）都会触发地址栏动画，
+     进而让整屏跟着重新排布，视觉上顶部导航栏像是被顶上去了。
+     100dvh 跟随"当前可见视口"实时变化，不会引发这次整体重排。
+     不支持 dvh 的浏览器（旧版 Safari/WebView）会直接忽略该行，回退用上面的 100vh。 */
   height: 100vh;
+  height: 100dvh;
   display: flex;
   flex-direction: column;
   overflow: hidden;

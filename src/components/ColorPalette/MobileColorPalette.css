@@ -37,11 +37,30 @@
   flex-shrink: 0;
 }
 
-.color-hex {
+/* 色号 + 具体颜色名称（如"玉米黄"）纵向堆叠，普通用户不用记色号也能认出颜色 */
+.color-label {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  text-align: left;
+  min-width: 0;
+  flex-shrink: 0;
+}
+
+.color-name {
   font-size: var(--text-md);
   font-weight: var(--font-weight-medium);
-  text-align: left;
-  flex-shrink: 0;
+  color: var(--text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 120px;
+}
+
+.color-hex {
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  color: var(--text-muted);
 }
 
 .mobile-stats-badge {
@@ -109,23 +128,8 @@
   -webkit-overflow-scrolling: touch;
 }
 
-.color-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(36px, 1fr));
-  gap: 8px;
-}
-
 /* 触控目标：36px 起（配合 gap 后有效间距接近可访问性建议的 44px），
    避免拼豆色卡颜色多达 100 色时误触邻近色块 */
-.color-grid .color-swatch {
-  width: 36px;
-  height: 36px;
-  border-radius: 6px;
-  border: 2px solid transparent;
-  cursor: pointer;
-  transition: transform 0.15s;
-}
-
 .color-row .color-swatch {
   width: 36px;
   height: 36px;
@@ -136,12 +140,60 @@
   transition: transform 0.15s;
 }
 
-.color-grid .color-swatch:hover {
-  transform: scale(1.1);
-}
-
-.color-grid .color-swatch.selected,
 .color-row .color-swatch.selected {
   border-color: var(--accent);
   box-shadow: 0 0 0 2px white, 0 0 0 4px var(--accent);
+}
+
+/* 色卡网格：每个色块下面直接印出"色号 中文名"，不再只靠长按才出现的 title 提示 */
+.color-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(64px, 1fr));
+  gap: 8px;
+}
+
+.color-swatch-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 4px;
+  border: 2px solid transparent;
+  border-radius: 8px;
+  background: transparent;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.color-swatch-item:active {
+  background: var(--bg-tertiary);
+}
+
+.color-swatch-item.selected {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+}
+
+.color-swatch-item .color-swatch {
+  width: 36px;
+  height: 36px;
+  border-radius: 6px;
+  border: 1px solid var(--border-color);
+  flex-shrink: 0;
+}
+
+.color-swatch-label {
+  font-size: 10px;
+  line-height: 1.2;
+  color: var(--text-secondary);
+  text-align: center;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
+}
+
+.color-swatch-item.selected .color-swatch-label {
+  color: var(--accent-hover);
+  font-weight: var(--font-weight-semibold);
 }

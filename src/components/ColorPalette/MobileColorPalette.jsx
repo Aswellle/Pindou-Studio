@@ -17,6 +17,13 @@ export default function MobileColorPalette({
   const palette = PALETTE_LIST.find(p => p.id === currentPalette) || PALETTE_LIST[0]
   const recentColors = JSON.parse(localStorage.getItem('bead_studio_recent_colors') || '[]')
 
+  // 当前选中颜色在色卡里的具体名称（如"玉米黄"），找不到就只显示 HEX
+  const selectedColorInfo = useMemo(
+    () => palette.colors.find(c => c.hex?.toLowerCase() === selectedColor?.toLowerCase()),
+    [palette, selectedColor]
+  )
+  const selectedColorName = selectedColorInfo?.nameZh || selectedColorInfo?.name || ''
+
   // 珠子/颜色数统计 — 与桌面端 ColorStatsBar 同一算法，移动端用紧凑徽章展示
   const { totalBeads, colorCount } = useMemo(() => {
     if (!canvasData) return { totalBeads: 0, colorCount: 0 }
@@ -44,7 +51,7 @@ export default function MobileColorPalette({
 
   return (
     <div className="mobile-color-palette">
-      {/* 当前颜色预览 + 珠子/颜色统计 */}
+      {/* 当前颜色预览：色块 + 名称 + HEX，普通用户光看色号认不出颜色，这里直接把名字显示出来 */}
       <button
         className="current-color-btn"
         onClick={() => setShowPalette(!showPalette)}
@@ -53,7 +60,10 @@ export default function MobileColorPalette({
           className="color-preview"
           style={{ backgroundColor: selectedColor }}
         />
-        <span className="color-hex">{selectedColor}</span>
+        <span className="color-label">
+          {selectedColorName && <span className="color-name">{selectedColorName}</span>}
+          <span className="color-hex">{selectedColor}</span>
+        </span>
         {totalBeads > 0 && (
           <span className="mobile-stats-badge">
             {totalBeads} {t('stats.beads')} · {colorCount} {t('stats.colors')}
@@ -95,16 +105,19 @@ export default function MobileColorPalette({
             </div>
           )}
 
-          {/* 色卡网格 */}
+          {/* 色卡网格：色块下方直接印出色号+名称，不再只靠长按才出现的 title 提示 */}
           <div className="color-grid">
             {palette.colors.map((color) => (
               <button
                 key={color.id}
-                className={`color-swatch ${selectedColor === color.hex ? 'selected' : ''}`}
-                style={{ backgroundColor: color.hex }}
+                className={`color-swatch-item ${selectedColor === color.hex ? 'selected' : ''}`}
                 onClick={() => handleColorSelect(color.hex)}
-                title={color.nameZh || color.name}
-              />
+              >
+                <span className="color-swatch" style={{ backgroundColor: color.hex }} />
+                <span className="color-swatch-label">
+                  {color.id} {color.nameZh || color.name}
+                </span>
+              </button>
             ))}
           </div>
         </div>
