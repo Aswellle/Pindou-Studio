@@ -100,11 +100,13 @@ Google 是海外搜索的主要渠道，同时有助于全球可见性。
 
 1. 打开 [search.google.com/search-console](https://search.google.com/search-console)
 2. 登录 Google 账号
-3. 点击 **添加资源** → 选择 **域名** 前缀
-4. 输入：`https://tangnotes.site`
-5. 选择验证方式（推荐 **DNS 验证**）
+3. 点击 **添加资源** → 选择 **域名** 前缀（Domain property）
+4. 输入：`tangnotes.site`（注意：不包含 https:// 和尾部斜杠）
+5. 点击 **继续** → 选择验证方式
 
-### 2.2 DNS TXT 验证（推荐）
+### 2.2 验证方式
+
+#### 方式 A：DNS TXT 验证（推荐，永久有效）
 
 Google 会给你一条 TXT 记录，格式类似：
 
@@ -112,9 +114,31 @@ Google 会给你一条 TXT 记录，格式类似：
 |---------|---------|--------|
 | TXT | `@` | `google-site-verification=xxxxxxxxxxxxxxxx` |
 
-**操作**：登录 [阿里云 DNS 控制台](https://dc.console.aliyun.com/) → `tangnotes.site` → 解析设置 → 添加上述 TXT 记录。
+**操作**：
+1. 登录 [阿里云 DNS 控制台](https://dc.console.aliyun.com/) → `tangnotes.site` → 解析设置
+2. 添加上述 TXT 记录
+3. 回到 Google Search Console 点击 **验证**
 
 > DNS 传播通常需要 5 分钟到 24 小时。验证可能需要等待一段时间。
+> ✅ 优点：永久有效，添加一次即可，所有子域名自动继承。
+
+#### 方式 B：HTML 文件验证
+
+1. Google 会给你一个验证文件，如 `google1234567890.html`
+2. 下载该文件，放到本仓库的 `public/` 目录下（覆盖 `google_verify_placeholder.html` 或删除它后放入新文件）
+3. 推送部署到 Vercel
+4. 确保 `https://tangnotes.site/google1234567890.html` 可访问
+5. 回到 Google Search Console 点击 **验证**
+
+#### 方式 C：HTML 标签验证
+
+在 `index.html` 的 `<head>` 中添加 Google 给的 meta 标签：
+
+```html
+<meta name="google-site-verification" content="xxxxxxxxxxxxxxx" />
+```
+
+推送部署后回到 Search Console 点击验证。
 
 ### 2.3 提交 Sitemap
 
@@ -124,13 +148,23 @@ Google 会给你一条 TXT 记录，格式类似：
 2. 输入：`sitemap.xml`
 3. 点击 **提交**
 
-Google 会定期抓取并报告索引状态。
+Google 会显示处理状态：
+- **成功** — sitemap 已处理
+- **无法读取** — Google 无法访问 sitemap，检查 URL 是否正确
+- **等待中** — 正在处理，通常需要几小时到几天
 
-### 2.4 国际定位
+### 2.4 国际定位与多语言
 
 - 由于站点支持 4 种语言（zh/en/ja/ko），hreflang 标签已配置
 - Google 会自动将用户引导至对应语言版本
 - 可在 **国际定位** 报告中查看各语言表现
+- `og:locale:alternate` 标签已添加，帮助 Google 理解多语言关系
+
+### 2.5 监控与报告
+
+- **效果** 报告：查看搜索展示次数、点击次数、CTR、平均排名
+- **索引覆盖** 报告：查看哪些页面已索引、哪些有错误
+- **核心网页指标**：Google 评估页面体验（LCP、FID、CLS）— Speed Insights 已配置
 
 ---
 
