@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"
         xmlns:xhtml="http://www.w3.org/1999/xhtml"
-        xmlns:image="http://www.google.com/schemas/sitemap-image/1.1">
+        xmlns:mobile="http://www.baidu.com/schemas/sitemap-mobile/1/0">
 
   <!-- 首页 -->
   <url>
@@ -9,6 +9,7 @@
     <lastmod>2026-07-31</lastmod>
     <changefreq>weekly</changefreq>
     <priority>1.0</priority>
+    <mobile:mobile type="htmladapt"/>
     <xhtml:link rel="alternate" hreflang="zh-CN" href="https://tangnotes.site/"/>
     <xhtml:link rel="alternate" hreflang="en" href="https://tangnotes.site/?lang=en"/>
     <xhtml:link rel="alternate" hreflang="ja" href="https://tangnotes.site/?lang=ja"/>
@@ -21,6 +22,7 @@
     <lastmod>2026-07-31</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
+    <mobile:mobile type="htmladapt"/>
   </url>
 
   <!-- 教程 -->
@@ -29,6 +31,7 @@
     <lastmod>2026-07-31</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
+    <mobile:mobile type="htmladapt"/>
   </url>
 
 </urlset>
