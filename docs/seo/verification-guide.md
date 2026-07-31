@@ -53,11 +53,42 @@
 2. 提交：`https://tangnotes.site/sitemap.xml`
 3. 百度会定期抓取 sitemap 中的页面
 
-### 1.4 提升收录的建议
+> **百度规则要点**：
+> - Sitemap **不保证**所有 URL 都会被收录，收录取决于页面质量
+> - Sitemap 中的 `priority` 标签**不影响搜索排名**，仅表示站内相对重要性
+> - 每个 Sitemap 文件最多 50,000 条 URL，不超过 10MB
+> - URL 中**不要包含中文**（编码问题）
+> - 已配置移动协议标签 `<mobile:mobile type="htmladapt"/>`（代码匹配站点）
 
-- **主动推送**：在 **数据引入** → **API推送** 中，将新页面 URL 主动推送给百度
+### 1.4 API 推送（新内容发布时用）
+
+百度建议：**新链接生成/发布后立即提交效果最好**。
+
+1. 百度站长平台 → **数据引入** → **API 推送** → 获取你的 **16 位 token**
+2. 使用 curl 推送：
+
+```bash
+# 把 URL 写入文件（每行一个）
+echo "https://tangnotes.site/" > urls.txt
+
+# 执行推送（替换 YOUR_TOKEN）
+curl -H 'text/plain' --data-binary @urls.txt \
+  "http://data.zz.baidu.com/urls?site=tangnotes.site&token=YOUR_TOKEN"
+```
+
+3. 查看返回的 `success`（成功数）和 `remain`（剩余配额）
+
+> **百度规则要点**：
+> - **不要重复提交旧链接** — 浪费配额，频繁重复会降低配额甚至失去推送权限
+> - 每次最多推送 2,000 条 URL
+> - 配额由系统动态调整，提交越多有价值的新链接 → 配额越高
+> - 返回 `remain: 0` 说明当日配额用完
+
+### 1.5 提升收录的建议
+
 - **robots.txt**：已配置，确保 `Sitemap: https://tangnotes.site/sitemap.xml` 存在
-- **内容更新**：保持定期更新内容，百度偏好活跃站点
+- **内容质量**：百度根据页面质量决定是否收录，保持原创和更新
+- **避免低质重复**：提交大量重复/违规/低质量资源会触发配额降低
 
 ---
 
