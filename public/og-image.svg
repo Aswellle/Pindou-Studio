@@ -1,0 +1,74 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630" viewBox="0 0 1200 630">
+  <defs>
+    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#fdfbf7"/>
+      <stop offset="100%" style="stop-color:#fbe4d8"/>
+    </linearGradient>
+  </defs>
+
+  <!-- 背景 -->
+  <rect width="1200" height="630" fill="url(#bg)"/>
+
+  <!-- 装饰性拼豆网格（左侧） -->
+  <g transform="60,120">
+    <!-- 小熊图案简化像素画 -->
+    <rect x="0" y="40" width="40" height="40" rx="6" fill="#8D6E63"/>
+    <rect x="40" y="40" width="40" height="40" rx="6" fill="#8D6E63"/>
+    <rect x="80" y="40" width="40" height="40" rx="6" fill="#8D6E63"/>
+    <rect x="120" y="40" width="40" height="40" rx="6" fill="#8D6E63"/>
+    <rect x="160" y="40" width="40" height="40" rx="6" fill="#8D6E63"/>
+    <rect x="0" y="80" width="40" height="40" rx="6" fill="#8D6E63"/>
+    <rect x="40" y="80" width="40" height="40" rx="6" fill="#FFFFFF"/>
+    <rect x="80" y="80" width="40" height="40" rx="6" fill="#8D6E63"/>
+    <rect x="120" y="80" width="40" height="40" rx="6" fill="#FFFFFF"/>
+    <rect x="160" y="80" width="40" height="40" rx="6" fill="#8D6E63"/>
+    <rect x="40" y="120" width="40" height="40" rx="6" fill="#8D6E63"/>
+    <rect x="80" y="120" width="40" height="40" rx="6" fill="#FFD54F"/>
+    <rect x="120" y="120" width="40" height="40" rx="6" fill="#8D6E63"/>
+    <rect x="0" y="160" width="40" height="40" rx="6" fill="#8D6E63"/>
+    <rect x="40" y="160" width="40" height="40" rx="6" fill="#8D6E63"/>
+    <rect x="80" y="160" width="40" height="40" rx="6" fill="#8D6E63"/>
+    <rect x="120" y="160" width="40" height="40" rx="6" fill="#8D6E63"/>
+    <rect x="160" y="160" width="40" height="40" rx="6" fill="#8D6E63"/>
+    <rect x="40" y="200" width="40" height="40" rx="6" fill="#8D6E63"/>
+    <rect x="120" y="200" width="40" height="40" rx="6" fill="#8D6E63"/>
+  </g>
+
+  <!-- 右侧装饰色卡 -->
+  <g transform="900,80">
+    <rect width="60" height="60" rx="8" fill="#E53935"/>
+    <rect x="70" y="0" width="60" height="60" rx="8" fill="#FDD835"/>
+    <rect x="140" y="0" width="60" height="60" rx="8" fill="#32CD32"/>
+    <rect x="210" y="0" width="60" height="60" rx="8" fill="#1976D2"/>
+    <rect x="0" y="70" width="60" height="60" rx="8" fill="#F06292"/>
+    <rect x="70" y="70" width="60" height="60" rx="8" fill="#BA68C8"/>
+    <rect x="140" y="70" width="60" height="60" rx="8" fill="#00BCD4"/>
+    <rect x="210" y="70" width="60" height="60" rx="8" fill="#FF9800"/>
+  </g>
+
+  <!-- 主标题 -->
+  <text x="600" y="220" font-family="-apple-system, BlinkMacSystemFont, 'PingFang SC', 'Microsoft YaHei', sans-serif" font-size="72" font-weight="bold" fill="#2b2420" text-anchor="middle">拼豆Studio</text>
+
+  <!-- 副标题 -->
+  <text x="600" y="300" font-family="-apple-system, BlinkMacSystemFont, 'PingFang SC', 'Microsoft YaHei', sans-serif" font-size="32" fill="#6f6259" text-anchor="middle">在线拼豆图纸设计工具</text>
+
+  <!-- 特性标签 -->
+  <g transform="350,360">
+    <rect width="160" height="48" rx="24" fill="#e8734a"/>
+    <text x="80" y="30" font-family="-apple-system, BlinkMacSystemFont, 'PingFang SC', 'Microsoft YaHei', sans-serif" font-size="18" fill="#ffffff" text-anchor="middle" font-weight="bold">自由绘制</text>
+  </g>
+  <g transform="520,360">
+    <rect width="160" height="48" rx="24" fill="#4a9b8e"/>
+    <text x="80" y="30" font-family="-apple-system, BlinkMacSystemFont, 'PingFang SC', 'Microsoft YaHei', sans-serif" font-size="18" fill="#ffffff" text-anchor="middle" font-weight="bold">图片转拼豆</text>
+  </g>
+  <g transform="690,360">
+    <rect width="160" height="48" rx="24" fill="#e8734a"/>
+    <text x="80" y="30" font-family="-apple-system, BlinkMacSystemFont, 'PingFang SC', 'Microsoft YaHei', sans-serif" font-size="18" fill="#ffffff" text-anchor="middle" font-weight="bold">专业导出</text>
+  </g>
+
+  <!-- 品牌色卡标识 -->
+  <text x="600" y="460" font-family="-apple-system, BlinkMacSystemFont, 'PingFang SC', 'Microsoft YaHei', sans-serif" font-size="22" fill="#a3968a" text-anchor="middle">支持 Perler · Hama · Artkal 三大品牌色卡</text>
+
+  <!-- 底部 URL -->
+  <text x="600" y="560" font-family="Menlo, Consolas, monospace" font-size="20" fill="#a3968a" text-anchor="middle">pindou-studio.vercel.app</text>
+</svg>

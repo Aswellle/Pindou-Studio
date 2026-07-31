@@ -1,5 +1,6 @@
 import { useState, useEffect, lazy, Suspense } from 'react'
 import { useTranslation } from 'react-i18next'
+import { Helmet } from 'react-helmet-async'
 import AuthModal from './components/AuthModal'
 import Header from './components/Header'
 import Canvas from './components/Canvas'
@@ -572,10 +573,39 @@ export default function App() {
     </div>
   )
 
-  // 根据设备类型渲染不同布局
-  if (isMobile || isTablet) {
-    return renderMobileLayout()
+  // 根据当前页面生成动态 meta（SPA 各视图差异化 SEO）
+  const seoByPage = {
+    canvas: {
+      title: '拼豆Studio - 在线拼豆图纸设计工具 | 图片转拼豆',
+      description: '免费在线拼豆图纸设计工具，自由绘制拼豆图案，上传图片一键智能转拼豆图纸，支持Perler/Hama/Artkal三大品牌色卡。',
+    },
+    gallery: {
+      title: '拼豆模板图库 - 拼豆Studio | 动物·食物·图标·节日',
+      description: '浏览拼豆Studio内置模板图库，包含动物、食物、图标、节日四大分类，简单/中等/困难三档难度，一键加载模板开始创作。',
+    },
+    tutorials: {
+      title: '拼豆教程 - 拼豆Studio | 入门到进阶图文教程',
+      description: '拼豆Studio提供6大分类18篇拼豆图文教程，涵盖入门指南、熨烫手法、防变形、配色设计、进阶技巧、作品保护，适合新手和进阶玩家。',
+    },
   }
+  const seo = seoByPage[currentPage] || seoByPage.canvas
 
-  return renderDesktopLayout()
+  const appContent = isMobile || isTablet
+    ? renderMobileLayout()
+    : renderDesktopLayout()
+
+  return (
+    <>
+      <Helmet>
+        <title>{seo.title}</title>
+        <meta name="description" content={seo.description} />
+        <meta property="og:title" content={seo.title} />
+        <meta property="og:description" content={seo.description} />
+        <meta name="twitter:title" content={seo.title} />
+        <meta name="twitter:description" content={seo.description} />
+        <link rel="canonical" href={`https://pindou-studio.vercel.app/?page=${currentPage}`} />
+      </Helmet>
+      {appContent}
+    </>
+  )
 }

@@ -1,0 +1,21 @@
+# robots.txt for 拼豆Studio (Bead Studio)
+# https://pindou-studio.vercel.app/
+
+User-agent: *
+Allow: /
+Disallow: /api/
+Disallow: /_vercel/
+
+# 主要爬虫优化
+User-agent: Baiduspider
+Allow: /
+Disallow: /api/
+Disallow: /_vercel/
+
+User-agent: Googlebot
+Allow: /
+Disallow: /api/
+Disallow: /_vercel/
+
+# 站点地图
+Sitemap: https://pindou-studio.vercel.app/sitemap.xml

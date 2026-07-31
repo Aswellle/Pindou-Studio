@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"
+        xmlns:xhtml="http://www.w3.org/1999/xhtml"
+        xmlns:image="http://www.google.com/schemas/sitemap-image/1.1">
+
+  <!-- 首页 -->
+  <url>
+    <loc>https://pindou-studio.vercel.app/</loc>
+    <lastmod>2026-07-31</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>1.0</priority>
+    <xhtml:link rel="alternate" hreflang="zh-CN" href="https://pindou-studio.vercel.app/"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://pindou-studio.vercel.app/?lang=en"/>
+    <xhtml:link rel="alternate" hreflang="ja" href="https://pindou-studio.vercel.app/?lang=ja"/>
+    <xhtml:link rel="alternate" hreflang="ko" href="https://pindou-studio.vercel.app/?lang=ko"/>
+  </url>
+
+  <!-- 图库 -->
+  <url>
+    <loc>https://pindou-studio.vercel.app/?page=gallery</loc>
+    <lastmod>2026-07-31</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+  </url>
+
+  <!-- 教程 -->
+  <url>
+    <loc>https://pindou-studio.vercel.app/?page=tutorials</loc>
+    <lastmod>2026-07-31</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+
+</urlset>
