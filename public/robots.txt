@@ -1,5 +1,5 @@
 # robots.txt for 拼豆Studio (Bead Studio)
-# https://pindou-studio.vercel.app/
+# https://tangnotes.site/
 
 User-agent: *
 Allow: /
@@ -18,4 +18,4 @@ Disallow: /api/
 Disallow: /_vercel/
 
 # 站点地图
-Sitemap: https://pindou-studio.vercel.app/sitemap.xml
+Sitemap: https://tangnotes.site/sitemap.xml

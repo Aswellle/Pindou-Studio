@@ -603,7 +603,7 @@ export default function App() {
         <meta property="og:description" content={seo.description} />
         <meta name="twitter:title" content={seo.title} />
         <meta name="twitter:description" content={seo.description} />
-        <link rel="canonical" href={`https://pindou-studio.vercel.app/?page=${currentPage}`} />
+        <link rel="canonical" href={`https://tangnotes.site/?page=${currentPage}`} />
       </Helmet>
       {appContent}
     </>

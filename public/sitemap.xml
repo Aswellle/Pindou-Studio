@@ -5,19 +5,19 @@
 
   <!-- 首页 -->
   <url>
-    <loc>https://pindou-studio.vercel.app/</loc>
+    <loc>https://tangnotes.site/</loc>
     <lastmod>2026-07-31</lastmod>
     <changefreq>weekly</changefreq>
     <priority>1.0</priority>
-    <xhtml:link rel="alternate" hreflang="zh-CN" href="https://pindou-studio.vercel.app/"/>
-    <xhtml:link rel="alternate" hreflang="en" href="https://pindou-studio.vercel.app/?lang=en"/>
-    <xhtml:link rel="alternate" hreflang="ja" href="https://pindou-studio.vercel.app/?lang=ja"/>
-    <xhtml:link rel="alternate" hreflang="ko" href="https://pindou-studio.vercel.app/?lang=ko"/>
+    <xhtml:link rel="alternate" hreflang="zh-CN" href="https://tangnotes.site/"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://tangnotes.site/?lang=en"/>
+    <xhtml:link rel="alternate" hreflang="ja" href="https://tangnotes.site/?lang=ja"/>
+    <xhtml:link rel="alternate" hreflang="ko" href="https://tangnotes.site/?lang=ko"/>
   </url>
 
   <!-- 图库 -->
   <url>
-    <loc>https://pindou-studio.vercel.app/?page=gallery</loc>
+    <loc>https://tangnotes.site/?page=gallery</loc>
     <lastmod>2026-07-31</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
@@ -25,7 +25,7 @@
 
   <!-- 教程 -->
   <url>
-    <loc>https://pindou-studio.vercel.app/?page=tutorials</loc>
+    <loc>https://tangnotes.site/?page=tutorials</loc>
     <lastmod>2026-07-31</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
