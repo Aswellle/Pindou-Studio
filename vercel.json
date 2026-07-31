@@ -1,0 +1,15 @@
+{
+  "redirects": [
+    {
+      "source": "/:path*",
+      "has": [
+        {
+          "type": "host",
+          "value": "pindou-studio.vercel.app"
+        }
+      ],
+      "destination": "https://tangnotes.site/:path*",
+      "permanent": true
+    }
+  ]
+}
