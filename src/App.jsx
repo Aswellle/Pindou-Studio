@@ -22,6 +22,22 @@ const Tutorials = lazy(() => import('./components/Tutorials'))
 const ImageQuantizer = lazy(() => import('./components/ImageQuantizer/ImageQuantizer'))
 
 export default function App() {
+  // iOS Safari 后台标签页恢复时 100dvh 不会重新计算，导致视口高度错误、
+  // flex 布局把导航栏顶到状态栏后面。通过监听 visibilitychange 强制重算。
+  useEffect(() => {
+    const setVh = () => {
+      const vh = window.innerHeight * 0.01;
+      document.documentElement.style.setProperty('--vh', `${vh}px`);
+    };
+    setVh();
+    document.addEventListener('visibilitychange', setVh);
+    window.addEventListener('resize', setVh);
+    return () => {
+      document.removeEventListener('visibilitychange', setVh);
+      window.removeEventListener('resize', setVh);
+    };
+  }, []);
+
   const { t } = useTranslation()
   const { user, loading: authLoading, login, register, logout } = useAuth()
   const { isMobile, isTablet } = useResponsive()
