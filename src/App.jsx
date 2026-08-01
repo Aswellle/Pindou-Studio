@@ -15,6 +15,7 @@ import { useSavedWorks } from './hooks/useSavedWorks'
 import MobileToolbar from './components/Tools/MobileToolbar'
 import MobileColorPalette from './components/ColorPalette/MobileColorPalette'
 import { getPalette, PALETTES } from './data/palettes'
+import { PrivacyPolicy, TermsOfService } from './components/LegalPages'
 
 const Gallery = lazy(() => import('./components/Gallery'))
 const Tutorials = lazy(() => import('./components/Tutorials'))
@@ -276,6 +277,15 @@ export default function App() {
         </div>
       )}
 
+      <footer className="site-footer">
+        <div className="footer-links">
+          <button className="footer-link-btn" onClick={() => handlePageChange('privacy')}>隐私政策</button>
+          <button className="footer-link-btn" onClick={() => handlePageChange('terms')}>服务条款</button>
+          <a className="footer-link" href="https://github.com/Aswellle/Pindou-Studio" target="_blank" rel="noopener noreferrer">GitHub</a>
+        </div>
+        <p className="footer-copyright">© 2026 拼豆Studio. MIT License.</p>
+      </footer>
+
       {showExport && (
         <ExportPanel
           canvasData={canvasData}
@@ -418,6 +428,10 @@ export default function App() {
             <Tutorials />
           </Suspense>
         )
+      case 'privacy':
+        return <PrivacyPolicy />
+      case 'terms':
+        return <TermsOfService />
       default:
         return renderCanvasPage()
     }
@@ -439,6 +453,15 @@ export default function App() {
       <main className="main-content">
         {renderPage()}
       </main>
+
+      <footer className="site-footer">
+        <div className="footer-links">
+          <button className="footer-link-btn" onClick={() => handlePageChange('privacy')}>隐私政策</button>
+          <button className="footer-link-btn" onClick={() => handlePageChange('terms')}>服务条款</button>
+          <a className="footer-link" href="https://github.com/Aswellle/Pindou-Studio" target="_blank" rel="noopener noreferrer">GitHub</a>
+        </div>
+        <p className="footer-copyright">© 2026 拼豆Studio. MIT License.</p>
+      </footer>
 
       {showAuth && (
         <AuthModal
@@ -569,6 +592,38 @@ export default function App() {
           pointer-events: none;
           white-space: nowrap;
         }
+        .site-footer {
+          border-top: 1px solid var(--border-color);
+          padding: 20px 24px;
+          text-align: center;
+          background: var(--bg-secondary);
+          flex-shrink: 0;
+        }
+        .footer-links {
+          display: flex;
+          justify-content: center;
+          gap: 20px;
+          flex-wrap: wrap;
+          margin-bottom: 12px;
+        }
+        .footer-link, .footer-link-btn {
+          color: var(--text-secondary);
+          text-decoration: none;
+          font-size: 13px;
+          background: none;
+          border: none;
+          cursor: pointer;
+          padding: 0;
+          font-family: inherit;
+        }
+        .footer-link:hover, .footer-link-btn:hover {
+          color: var(--accent);
+          text-decoration: underline;
+        }
+        .footer-copyright {
+          color: var(--text-muted);
+          font-size: 12px;
+        }
       `}</style>
     </div>
   )
@@ -586,6 +641,14 @@ export default function App() {
     tutorials: {
       title: '拼豆教程 - 拼豆Studio | 入门到进阶图文教程',
       description: '拼豆Studio提供6大分类18篇拼豆图文教程，涵盖入门指南、熨烫手法、防变形、配色设计、进阶技巧、作品保护，适合新手和进阶玩家。',
+    },
+    privacy: {
+      title: '隐私政策 - 拼豆Studio',
+      description: '拼豆Studio隐私政策：了解我们如何收集、使用和保护您的个人信息。本工具绝大多数数据存储在您的浏览器本地。',
+    },
+    terms: {
+      title: '服务条款 - 拼豆Studio',
+      description: '拼豆Studio服务条款：使用本工具即表示您同意遵守本条款。了解您的权利与责任。',
     },
   }
   const seo = seoByPage[currentPage] || seoByPage.canvas
