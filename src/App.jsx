@@ -51,7 +51,7 @@ export default function App() {
   const [gridSize, setGridSize] = useState(29)
   const [gridWidth, setGridWidth] = useState(null)
   const [gridHeight, setGridHeight] = useState(null)
-  const { canvasData, canUndo, canRedo, drawCanvas, setCanvas, resetCanvas, undo, redo } = useHistory()
+  const { canvasData, committedData, canUndo, canRedo, drawCanvas, setCanvas, resetCanvas, undo, redo } = useHistory()
   const { works: savedWorks, saveWork, updateWorks: handleSaveWork } = useSavedWorks()
 
   const [leftSidebarCollapsed, setLeftSidebarCollapsed] = useState(false)
@@ -282,7 +282,7 @@ export default function App() {
             onColorSelect={setSelectedColor}
             currentPalette={currentPalette}
             onPaletteChange={setCurrentPalette}
-            canvasData={canvasData}
+            canvasData={committedData}
           />
 
           <MobileToolbar
@@ -310,7 +310,7 @@ export default function App() {
 
       {showExport && (
         <ExportPanel
-          canvasData={canvasData}
+          canvasData={committedData}
           gridSize={gridSize}
           gridWidth={gridWidth}
           gridHeight={gridHeight}
@@ -398,12 +398,12 @@ export default function App() {
         </div>
         <div className="left-sidebar-bottom">
           <ColorStatsBar
-            canvasData={canvasData}
+            canvasData={committedData}
             gridSize={gridSize}
             paletteId={currentPalette}
           />
           <ExportPanel
-            canvasData={canvasData}
+            canvasData={committedData}
             gridSize={gridSize}
             gridWidth={gridWidth}
             gridHeight={gridHeight}

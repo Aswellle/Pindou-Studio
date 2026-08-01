@@ -59,6 +59,7 @@ const Canvas = forwardRef(function Canvas({
   // 双指触控状态
   const pinchRef = useRef(null) // { startDist, startScale, startCX, startCY }
   const strokeAccumRef = useRef(null) // accumulated canvas state during a drag stroke
+  const drawRafRef = useRef(null) // pending rAF id for coalesced onDraw dispatch
 
   const cols = gridWidth || gridSize
   const rows = gridHeight || gridSize
@@ -191,13 +192,28 @@ const Canvas = forwardRef(function Canvas({
     strokeAccumRef.current = canvasData.map(row => [...row])
   }, [canvasData])
 
+  // Coalesce onDraw dispatches to at most once per animation frame. mousemove/touchmove
+  // fire far faster than the display can repaint (and much faster than a full-grid
+  // redraw + stats recompute can keep up on large grids), so calling onDraw synchronously
+  // on every event queued up a growing backlog of React state updates — the visible
+  // symptom was painted cells appearing several seconds after the cursor had already
+  // moved on. strokeAccumRef itself is still mutated synchronously so commitStroke always
+  // reads the final, up-to-date stroke regardless of how the rAF throttling lands.
+  const scheduleDraw = useCallback(() => {
+    if (drawRafRef.current != null) return
+    drawRafRef.current = requestAnimationFrame(() => {
+      drawRafRef.current = null
+      if (strokeAccumRef.current) onDraw(strokeAccumRef.current)
+    })
+  }, [onDraw])
+
   // Apply pencil/eraser to the accumulator and emit via onDraw (no history entry)
   const paintToStroke = useCallback((x, y) => {
     if (!strokeAccumRef.current) return
     if (tool === 'pencil') strokeAccumRef.current[y][x] = selectedColor
     else if (tool === 'eraser') strokeAccumRef.current[y][x] = null
-    onDraw(strokeAccumRef.current)
-  }, [tool, selectedColor, onDraw])
+    scheduleDraw()
+  }, [tool, selectedColor, scheduleDraw])
 
   // Flood-fill into the accumulator and emit via onDraw (no history entry)
   const applyFill = useCallback((x, y) => {
@@ -219,11 +235,17 @@ const Canvas = forwardRef(function Canvas({
       stack.push([cx + 1, cy], [cx - 1, cy], [cx, cy + 1], [cx, cy - 1])
     }
     strokeAccumRef.current = newData
-    onDraw(newData)
-  }, [selectedColor, cols, rows, onDraw])
+    scheduleDraw()
+  }, [selectedColor, cols, rows, scheduleDraw])
 
-  // Commit the accumulated stroke to history (PUSH) — called on mouseUp/mouseLeave
+  // Commit the accumulated stroke to history (PUSH) — called on mouseUp/mouseLeave.
+  // Cancel any pending throttled draw first: it would otherwise fire after
+  // strokeAccumRef.current is cleared to null and call onDraw(null).
   const commitStroke = useCallback(() => {
+    if (drawRafRef.current != null) {
+      cancelAnimationFrame(drawRafRef.current)
+      drawRafRef.current = null
+    }
     if (strokeAccumRef.current) {
       onCanvasChange(strokeAccumRef.current)
       strokeAccumRef.current = null
@@ -447,6 +469,13 @@ const Canvas = forwardRef(function Canvas({
 
   const handleMouseLeave = useCallback(() => {
     setHoverCell(null)
+  }, [])
+
+  // Cancel any pending throttled draw on unmount
+  useEffect(() => {
+    return () => {
+      if (drawRafRef.current != null) cancelAnimationFrame(drawRafRef.current)
+    }
   }, [])
 
   // ─────────────────────────────────────────────────────────────────
