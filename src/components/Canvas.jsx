@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect, useCallback, useImperativeHandle, forwardRef } from 'react'
 import { useTranslation } from 'react-i18next'
+import { useCanvasPainter } from '../hooks/useCanvasPainter'
 
 const CELL_SIZE = 16
 const MIN_SCALE = 0.3
@@ -14,15 +15,14 @@ const Canvas = forwardRef(function Canvas({
   gridHeight,
   selectedColor,
   tool,
-  canvasData,
-  onDraw,
+  committedData,
   onCanvasChange,
   onTransformChange,
 }, ref) {
   const { t } = useTranslation()
-  const canvasRef = useRef(null)
-  const overlayRef = useRef(null)
   const containerRef = useRef(null)
+  // overlayRef still needed by the hover effect's direct strokeRect calls.
+  const overlayRef = useRef(null)
 
   const [hoverCell, setHoverCell] = useState(null)
   const [panActive, setPanActive] = useState(false)
@@ -59,12 +59,15 @@ const Canvas = forwardRef(function Canvas({
   // 双指触控状态
   const pinchRef = useRef(null) // { startDist, startScale, startCX, startCY }
   const strokeAccumRef = useRef(null) // accumulated canvas state during a drag stroke
-  const drawRafRef = useRef(null) // pending rAF id for coalesced onDraw dispatch
 
   const cols = gridWidth || gridSize
   const rows = gridHeight || gridSize
   const canvasWidth = cols * CELL_SIZE
   const canvasHeight = rows * CELL_SIZE
+
+  // Direct painter: bypasses React state for per-frame stroke feedback. Committed
+  // state paints to the base canvas; in-progress strokes paint to an overlay layer.
+  const painter = useCanvasPainter({ canvasWidth, canvasHeight, CELL_SIZE })
 
   // ─────────────────────────────────────────────────────────────────
   // _bounds: Allow free panning with soft bounce-back at extremes.
@@ -101,67 +104,42 @@ const Canvas = forwardRef(function Canvas({
   }, [getBounds])
 
   // ─────────────────────────────────────────────────────────────────
-  // Effect 1: full grid redraw — only when cell data changes (expensive)
+  // Effect 1: repaint the BASE canvas — only when committedData or grid
+  // dimensions change (infrequent: commit / undo / redo / reset / resize).
+  // The live stroke feedback is painted on the overlay layer by the painter,
+  // so this expensive full-grid scan no longer runs on every mousemove tick.
   // ─────────────────────────────────────────────────────────────────
   useEffect(() => {
-    const canvas = canvasRef.current
-    if (!canvas) return
-    const ctx = canvas.getContext('2d')
+    painter.repaintBase(committedData, cols, rows)
+  }, [committedData, cols, rows, painter])
 
-    ctx.fillStyle = '#ffffff'
-    ctx.fillRect(0, 0, canvasWidth, canvasHeight)
-
-    if (canvasData) {
-      for (let y = 0; y < rows; y++) {
-        for (let x = 0; x < cols; x++) {
-          if (canvasData[y]?.[x]) {
-            ctx.fillStyle = canvasData[y][x]
-            ctx.fillRect(x * CELL_SIZE, y * CELL_SIZE, CELL_SIZE, CELL_SIZE)
-          }
-        }
+  // ─────────────────────────────────────────────────────────────────
+  // Effect 2: hover highlight on the overlay layer (cheap — 1 cell).
+  // Skipped while a stroke is in progress: the overlay is then owned by the
+  // stroke-painting path (paintToStroke / applyFill), not the hover effect.
+  // When not drawing, the overlay contains ONLY the hover cell, so clearing
+  // it fully on each change is safe and avoids a trail.
+  // ─────────────────────────────────────────────────────────────────
+  useEffect(() => {
+    if (isDrawingRef.current) return
+    painter.clearOverlay()
+    if (hoverCell && tool === 'pencil') {
+      const ctx = painter.overlayRef.current?.getContext('2d')
+      if (ctx) {
+        ctx.fillStyle = 'rgba(0, 0, 0, 0.08)'
+        ctx.fillRect(hoverCell.x * CELL_SIZE, hoverCell.y * CELL_SIZE, CELL_SIZE, CELL_SIZE)
+        ctx.strokeStyle = 'rgba(0, 0, 0, 0.3)'
+        ctx.lineWidth = 2
+        ctx.strokeRect(hoverCell.x * CELL_SIZE, hoverCell.y * CELL_SIZE, CELL_SIZE, CELL_SIZE)
       }
     }
-
-    ctx.strokeStyle = '#d4d4d4'
-    ctx.lineWidth = 0.5
-    for (let i = 0; i <= cols; i++) {
-      ctx.beginPath()
-      ctx.moveTo(i * CELL_SIZE, 0)
-      ctx.lineTo(i * CELL_SIZE, canvasHeight)
-      ctx.stroke()
-    }
-    for (let i = 0; i <= rows; i++) {
-      ctx.beginPath()
-      ctx.moveTo(0, i * CELL_SIZE)
-      ctx.lineTo(canvasWidth, i * CELL_SIZE)
-      ctx.stroke()
-    }
-  }, [canvasData, cols, rows, canvasWidth, canvasHeight])
-
-  // ─────────────────────────────────────────────────────────────────
-  // Effect 2: hover highlight on transparent overlay (cheap — 1 cell)
-  // Runs on every mousemove but never touches the base canvas.
-  // ─────────────────────────────────────────────────────────────────
-  useEffect(() => {
-    const overlay = overlayRef.current
-    if (!overlay) return
-    const ctx = overlay.getContext('2d')
-    ctx.clearRect(0, 0, canvasWidth, canvasHeight)
-
-    if (hoverCell && tool === 'pencil') {
-      ctx.fillStyle = 'rgba(0, 0, 0, 0.08)'
-      ctx.fillRect(hoverCell.x * CELL_SIZE, hoverCell.y * CELL_SIZE, CELL_SIZE, CELL_SIZE)
-      ctx.strokeStyle = 'rgba(0, 0, 0, 0.3)'
-      ctx.lineWidth = 2
-      ctx.strokeRect(hoverCell.x * CELL_SIZE, hoverCell.y * CELL_SIZE, CELL_SIZE, CELL_SIZE)
-    }
-  }, [hoverCell, tool, canvasWidth, canvasHeight])
+  }, [hoverCell, tool, painter])
 
   // ─────────────────────────────────────────────────────────────────
   // 坐标转换
   // ─────────────────────────────────────────────────────────────────
   const getGridPos = useCallback((clientX, clientY) => {
-    const canvas = canvasRef.current
+    const canvas = painter.baseRef.current
     if (!canvas) return null
     const rect = canvas.getBoundingClientRect()
     const scaleX = canvas.width / rect.width
@@ -170,52 +148,48 @@ const Canvas = forwardRef(function Canvas({
     const y = Math.floor((clientY - rect.top) * scaleY / CELL_SIZE)
     if (x >= 0 && x < cols && y >= 0 && y < rows) return { x, y }
     return null
-  }, [cols, rows])
+  }, [cols, rows, painter])
 
   // 检测鼠标/触控是否在canvas区域内（考虑缩放和变换）
   const isOverCanvas = useCallback((clientX, clientY) => {
-    const canvas = canvasRef.current
+    const canvas = painter.baseRef.current
     if (!canvas || !containerRef.current) return false
     const rect = canvas.getBoundingClientRect()
     return (
       clientX >= rect.left && clientX <= rect.right &&
       clientY >= rect.top && clientY <= rect.bottom
     )
-  }, [])
+  }, [painter])
 
   // ─────────────────────────────────────────────────────────────────
   // 填色逻辑
   // ─────────────────────────────────────────────────────────────────
-  // Snapshot canvasData into the stroke accumulator at the start of each stroke
+  // Snapshot committedData into the stroke accumulator at the start of each stroke.
+  // The base canvas already mirrors committedData, so the accumulator starts from
+  // the same authoritative state the user sees before the stroke.
   const startStroke = useCallback(() => {
-    if (!canvasData) return
-    strokeAccumRef.current = canvasData.map(row => [...row])
-  }, [canvasData])
+    if (!committedData) return
+    strokeAccumRef.current = committedData.map(row => [...row])
+  }, [committedData])
 
-  // Coalesce onDraw dispatches to at most once per animation frame. mousemove/touchmove
-  // fire far faster than the display can repaint (and much faster than a full-grid
-  // redraw + stats recompute can keep up on large grids), so calling onDraw synchronously
-  // on every event queued up a growing backlog of React state updates — the visible
-  // symptom was painted cells appearing several seconds after the cursor had already
-  // moved on. strokeAccumRef itself is still mutated synchronously so commitStroke always
-  // reads the final, up-to-date stroke regardless of how the rAF throttling lands.
-  const scheduleDraw = useCallback(() => {
-    if (drawRafRef.current != null) return
-    drawRafRef.current = requestAnimationFrame(() => {
-      drawRafRef.current = null
-      if (strokeAccumRef.current) onDraw(strokeAccumRef.current)
-    })
-  }, [onDraw])
-
-  // Apply pencil/eraser to the accumulator and emit via onDraw (no history entry)
+  // Apply pencil/eraser to the accumulator AND paint the result directly onto the
+  // overlay layer. No React state dispatch, no rAF throttle — the cell appears under
+  // the cursor on the same event tick, so a fast drag can never queue up a backlog
+  // of redraws. strokeAccumRef is still mutated synchronously so commitStroke reads
+  // the final, up-to-date stroke.
   const paintToStroke = useCallback((x, y) => {
     if (!strokeAccumRef.current) return
-    if (tool === 'pencil') strokeAccumRef.current[y][x] = selectedColor
-    else if (tool === 'eraser') strokeAccumRef.current[y][x] = null
-    scheduleDraw()
-  }, [tool, selectedColor, scheduleDraw])
+    if (tool === 'pencil') {
+      strokeAccumRef.current[y][x] = selectedColor
+      painter.paintOverlayCell(x, y, selectedColor)
+    } else if (tool === 'eraser') {
+      strokeAccumRef.current[y][x] = null
+      painter.clearOverlayCell(x, y)
+    }
+  }, [tool, selectedColor, painter])
 
-  // Flood-fill into the accumulator and emit via onDraw (no history entry)
+  // Flood-fill into the accumulator and paint the filled region onto the overlay.
+  // The fill result is shown immediately (no per-cell drag, so no backlog risk).
   const applyFill = useCallback((x, y) => {
     const source = strokeAccumRef.current
     if (!source) return
@@ -235,22 +209,26 @@ const Canvas = forwardRef(function Canvas({
       stack.push([cx + 1, cy], [cx - 1, cy], [cx, cy + 1], [cx, cy - 1])
     }
     strokeAccumRef.current = newData
-    scheduleDraw()
-  }, [selectedColor, cols, rows, scheduleDraw])
+    // Paint only the changed cells onto the overlay (the filled region).
+    for (let ry = 0; ry < rows; ry++) {
+      for (let rx = 0; rx < cols; rx++) {
+        if (newData[ry][rx] !== source[ry][rx]) {
+          painter.paintOverlayCell(rx, ry, newData[ry][rx])
+        }
+      }
+    }
+  }, [selectedColor, cols, rows, painter])
 
   // Commit the accumulated stroke to history (PUSH) — called on mouseUp/mouseLeave.
-  // Cancel any pending throttled draw first: it would otherwise fire after
-  // strokeAccumRef.current is cleared to null and call onDraw(null).
+  // The overlay preview is cleared; committedData updates via onCanvasChange and
+  // Effect 1 repaints the base layer from the new committed state.
   const commitStroke = useCallback(() => {
-    if (drawRafRef.current != null) {
-      cancelAnimationFrame(drawRafRef.current)
-      drawRafRef.current = null
-    }
+    painter.clearOverlay()
     if (strokeAccumRef.current) {
       onCanvasChange(strokeAccumRef.current)
       strokeAccumRef.current = null
     }
-  }, [onCanvasChange])
+  }, [onCanvasChange, painter])
 
   // ─────────────────────────────────────────────────────────────────
   // 适应屏幕
@@ -469,13 +447,6 @@ const Canvas = forwardRef(function Canvas({
 
   const handleMouseLeave = useCallback(() => {
     setHoverCell(null)
-  }, [])
-
-  // Cancel any pending throttled draw on unmount
-  useEffect(() => {
-    return () => {
-      if (drawRafRef.current != null) cancelAnimationFrame(drawRafRef.current)
-    }
   }, [])
 
   // ─────────────────────────────────────────────────────────────────
@@ -742,7 +713,8 @@ const Canvas = forwardRef(function Canvas({
         <div className="canvas-inner" style={transformStyle}>
           <div style={{ position: 'relative', lineHeight: 0 }}>
             <canvas
-              ref={canvasRef}
+              ref={painter.canvasRefCallback}
+              data-id="base"
               width={canvasWidth}
               height={canvasHeight}
               onMouseMove={handleMouseMove}
@@ -755,7 +727,8 @@ const Canvas = forwardRef(function Canvas({
               }}
             />
             <canvas
-              ref={overlayRef}
+              ref={painter.canvasRefCallback}
+              data-id="overlay"
               width={canvasWidth}
               height={canvasHeight}
               style={{
