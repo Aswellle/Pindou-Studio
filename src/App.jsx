@@ -23,21 +23,35 @@ const Tutorials = lazy(() => import('./components/Tutorials'))
 const ImageQuantizer = lazy(() => import('./components/ImageQuantizer/ImageQuantizer'))
 
 export default function App() {
-  // iOS Safari 后台标签页恢复时 100dvh 不会重新计算，导致视口高度错误、
-  // flex 布局把导航栏顶到状态栏后面。通过监听 visibilitychange 强制重算。
+  // iOS Safari 视口测量：window.innerHeight 返回的是「大视口」高度
+  // （URL 栏收起时的全屏高度，约等于 100vh），比可见区域高出一个 URL 栏，
+  // 页面会在 body 层产生滚动，iOS 后台标签页恢复时把整页上推、
+  // 导航栏顶到状态栏后面。取 innerHeight 与 visualViewport.height 的
+  // 较小值 = 稳定「小视口」(svh 语义)，布局永不溢出。
+  // visibilitychange 触发时浏览器尚未提交新视口，故在下一帧再测量；
+  // pageshow(persisted) 覆盖 bfcache 恢复；visualViewport resize 覆盖
+  // URL 栏 / 键盘弹起等动态场景。
   useEffect(() => {
     const setVh = () => {
-      const vh = window.innerHeight * 0.01;
-      document.documentElement.style.setProperty('--vh', `${vh}px`);
-    };
-    setVh();
-    document.addEventListener('visibilitychange', setVh);
-    window.addEventListener('resize', setVh);
+      const inner = window.innerHeight || 0
+      const visual = window.visualViewport?.height ?? inner
+      const vh = Math.min(inner, visual) * 0.01
+      document.documentElement.style.setProperty('--vh', `${vh}px`)
+    }
+    const measureNextFrame = () => requestAnimationFrame(setVh)
+    const onShow = (e) => { if (e.persisted) measureNextFrame() }
+    setVh()
+    document.addEventListener('visibilitychange', measureNextFrame)
+    window.addEventListener('pageshow', onShow)
+    window.addEventListener('resize', setVh)
+    window.visualViewport?.addEventListener('resize', setVh)
     return () => {
-      document.removeEventListener('visibilitychange', setVh);
-      window.removeEventListener('resize', setVh);
-    };
-  }, []);
+      document.removeEventListener('visibilitychange', measureNextFrame)
+      window.removeEventListener('pageshow', onShow)
+      window.removeEventListener('resize', setVh)
+      window.visualViewport?.removeEventListener('resize', setVh)
+    }
+  }, [])
 
   const { t } = useTranslation()
   const { user, loading: authLoading, login, register, logout } = useAuth()

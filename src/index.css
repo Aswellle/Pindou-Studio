@@ -64,13 +64,17 @@ body {
   line-height: 1.5;
   background: var(--bg-primary);
   color: var(--text-primary);
+  /* iOS 上 100vh 是大视口（URL 栏收起时的全屏高度），会让文档比可见区域
+     高出一个 URL 栏、页面在 body 层可滚动，后台恢复时整页被上推。
+     100svh 恒等于 URL 栏展开时的可见高度，文档不溢出、不可滚动。 */
   min-height: 100vh;
+  min-height: 100svh;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
 
 #root {
-  height: calc(var(--vh, 1vh) * 100);
+  height: calc(var(--vh, 1svh) * 100);
   display: flex;
   flex-direction: column;
   overflow: hidden;
@@ -494,12 +498,15 @@ input:focus, textarea:focus, button:focus {
 }
 
 .mobile-layout {
-  /* 用 --vh 而非 100dvh：iOS Safari 后台恢复时 100dvh 不会重新计算，
-     导致视口高度"卡"在旧值，flex 布局把导航栏顶到状态栏后面。
-     JS 监听 visibilitychange 实时更新 --vh，彻底修复此问题。
-     不支持 CSS 变量的浏览器回退到 100vh。 */
+  /* 用 svh（小视口）而非 100vh/dvh：iOS Safari 上 100vh 等于「大视口」
+     （URL 栏收起时的全屏高度），比可见区域高出一个 URL 栏，页面在 body 层
+     可滚动，后台标签页恢复时整页被上推、导航栏顶到状态栏后面。
+     svh 恒等于 URL 栏展开时的可见高度，布局永不溢出，不会上推。
+     旧浏览器回退 100vh；--vh 由 App.jsx 按 svh 语义实时测量（小视口），
+     并覆盖键盘弹起等动态场景。 */
   height: 100vh;
-  height: calc(var(--vh, 1vh) * 100);
+  height: 100svh;
+  height: calc(var(--vh, 1svh) * 100);
   display: flex;
   flex-direction: column;
   overflow: hidden;
