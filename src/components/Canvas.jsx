@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect, useCallback } from 'react'
+import { useState, useRef, useEffect, useCallback, useImperativeHandle, forwardRef } from 'react'
 import { useTranslation } from 'react-i18next'
 
 const CELL_SIZE = 16
@@ -8,7 +8,7 @@ const MOMENTUM_FRICTION = 0.88
 const MOMENTUM_THRESHOLD = 0.5
 const BOUNDS_BOOST = 200 // Extra space beyond visible area before bounce-back kicks in
 
-export default function Canvas({
+const Canvas = forwardRef(function Canvas({
   gridSize,
   gridWidth,
   gridHeight,
@@ -17,7 +17,8 @@ export default function Canvas({
   canvasData,
   onDraw,
   onCanvasChange,
-}) {
+  onTransformChange,
+}, ref) {
   const { t } = useTranslation()
   const canvasRef = useRef(null)
   const overlayRef = useRef(null)
@@ -28,6 +29,17 @@ export default function Canvas({
 
   // 变换状态：scale + canvas画布中心在container中的位置
   const [transform, setTransform] = useState({ scale: 1, cx: 0, cy: 0 })
+
+  // 暴露 reset/fit 方法给父组件
+  useImperativeHandle(ref, () => ({
+    resetTransform,
+    fitToScreen,
+  }), [resetTransform, fitToScreen])
+
+  // 缩放比例变化时通知父组件
+  useEffect(() => {
+    onTransformChange?.(transform.scale)
+  }, [transform.scale, onTransformChange])
 
   // PC 拖拽平移
   const isPanningRef = useRef(false)
@@ -805,4 +817,6 @@ export default function Canvas({
       `}</style>
     </div>
   )
-}
+})
+
+export default Canvas

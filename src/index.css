@@ -536,8 +536,8 @@ input:focus, textarea:focus, button:focus {
   align-items: center;
   min-height: 0;
   overflow: auto;
-  padding: 16px;
-  padding-bottom: calc(16px + 64px);
+  padding: 8px;
+  padding-bottom: calc(8px + 64px);
 }
 
 /* 图库 / 教程页面在移动端的容器：占满 header 和底部工具栏之间的空间，自行滚动 */

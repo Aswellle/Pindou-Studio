@@ -1,4 +1,5 @@
 import { useTranslation } from 'react-i18next'
+import { PenTool, LayoutGrid, BookOpen, LogIn } from 'lucide-react'
 import LanguageSelector from './Header/LanguageSelector'
 
 export default function Header({ user, onLogin, onRegister, onLogout, onSave, currentPage, onPageChange, simplified }) {
@@ -47,26 +48,9 @@ export default function Header({ user, onLogin, onRegister, onLogout, onSave, cu
             >
               {simplified ? (
                 <span className="nav-icon">
-                  {item.id === 'canvas' && (
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                      <rect x="3" y="3" width="18" height="18" rx="2"/>
-                      <path d="M3 9h18M9 3v18"/>
-                    </svg>
-                  )}
-                  {item.id === 'gallery' && (
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                      <rect x="3" y="3" width="7" height="7" rx="1"/>
-                      <rect x="14" y="3" width="7" height="7" rx="1"/>
-                      <rect x="3" y="14" width="7" height="7" rx="1"/>
-                      <rect x="14" y="14" width="7" height="7" rx="1"/>
-                    </svg>
-                  )}
-                  {item.id === 'tutorials' && (
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                      <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/>
-                      <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/>
-                    </svg>
-                  )}
+                  {item.id === 'canvas' && <PenTool size={18} />}
+                  {item.id === 'gallery' && <LayoutGrid size={18} />}
+                  {item.id === 'tutorials' && <BookOpen size={18} />}
                 </span>
               ) : item.label}
             </button>
@@ -97,11 +81,7 @@ export default function Header({ user, onLogin, onRegister, onLogout, onSave, cu
           <div className="auth-buttons">
             {simplified ? (
               <button onClick={onLogin} className="btn btn-ghost icon-only-btn" aria-label={t('auth.login')} title={t('auth.login')}>
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                  <path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/>
-                  <polyline points="10 17 15 12 10 7"/>
-                  <line x1="15" y1="12" x2="3" y2="12"/>
-                </svg>
+                <LogIn size={18} />
               </button>
             ) : (
               <>

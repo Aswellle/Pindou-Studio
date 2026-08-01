@@ -16,6 +16,7 @@ import MobileToolbar from './components/Tools/MobileToolbar'
 import MobileColorPalette from './components/ColorPalette/MobileColorPalette'
 import { getPalette, PALETTES } from './data/palettes'
 import { PrivacyPolicy, TermsOfService } from './components/LegalPages'
+import MobileCanvasInfoBar from './components/MobileCanvasInfoBar'
 
 const Gallery = lazy(() => import('./components/Gallery'))
 const Tutorials = lazy(() => import('./components/Tutorials'))
@@ -41,6 +42,8 @@ export default function App() {
   const { t } = useTranslation()
   const { user, loading: authLoading, login, register, logout } = useAuth()
   const { isMobile, isTablet } = useResponsive()
+  const canvasRef = useRef(null)
+  const [mobileScale, setMobileScale] = useState(1)
   const [showAuth, setShowAuth] = useState(false)
   const [authMode, setAuthMode] = useState('login')
   const [selectedColor, setSelectedColor] = useState('#E53935')
@@ -258,8 +261,20 @@ export default function App() {
 
       {currentPage === 'canvas' ? (
         <>
+          <MobileCanvasInfoBar
+            gridSize={gridSize}
+            gridWidth={gridWidth}
+            gridHeight={gridHeight}
+            scale={mobileScale}
+            onReset={() => canvasRef.current?.resetTransform()}
+            onFit={() => canvasRef.current?.fitToScreen()}
+          />
           <div className="mobile-canvas-area">
-            <Canvas {...canvasProps} />
+            <Canvas
+              {...canvasProps}
+              ref={canvasRef}
+              onTransformChange={setMobileScale}
+            />
           </div>
 
           <MobileColorPalette
@@ -382,7 +397,6 @@ export default function App() {
           />
         </div>
         <div className="left-sidebar-bottom">
-          <div className="sidebar-divider" />
           <ColorStatsBar
             canvasData={canvasData}
             gridSize={gridSize}
