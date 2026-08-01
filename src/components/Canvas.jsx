@@ -30,12 +30,6 @@ const Canvas = forwardRef(function Canvas({
   // 变换状态：scale + canvas画布中心在container中的位置
   const [transform, setTransform] = useState({ scale: 1, cx: 0, cy: 0 })
 
-  // 暴露 reset/fit 方法给父组件
-  useImperativeHandle(ref, () => ({
-    resetTransform,
-    fitToScreen,
-  }), [resetTransform, fitToScreen])
-
   // 缩放比例变化时通知父组件
   useEffect(() => {
     onTransformChange?.(transform.scale)
@@ -272,6 +266,12 @@ const Canvas = forwardRef(function Canvas({
     setPanActive(false)
     setTransform({ scale: 1, cx: 0, cy: 0 })
   }, [])
+
+  // 暴露 reset/fit 方法给父组件（必须在 resetTransform/fitToScreen 之后）
+  useImperativeHandle(ref, () => ({
+    resetTransform,
+    fitToScreen,
+  }), [resetTransform, fitToScreen])
 
   // ─────────────────────────────────────────────────────────────────
   // PC: 鼠标滚轮缩放（以光标为中心）
