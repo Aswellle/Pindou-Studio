@@ -51,6 +51,9 @@ AGENTS.md
 baidu_verify_*.html
 google*.html
 
+# SEO internal docs
+docs/seo/
+
 # Debug scripts
 prep-zoom.js
 
