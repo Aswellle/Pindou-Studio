@@ -764,6 +764,12 @@ const Canvas = forwardRef(function Canvas({
           border: 1px solid var(--border-color);
           flex-shrink: 0;
         }
+        /* 移动端：隐藏画布上方旧控件，由 MobileCanvasInfoBar 替代 */
+        @media (max-width: 640px) {
+          .canvas-info {
+            display: none !important;
+          }
+        }
         .reset-btn {
           background: var(--secondary-accent);
           color: white;
