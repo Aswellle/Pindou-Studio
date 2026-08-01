@@ -108,6 +108,10 @@ export function PrivacyPolicy() {
           padding: 32px 24px 64px;
           color: var(--text-primary);
           line-height: 1.8;
+          height: 100%;
+          overflow-y: auto;
+          overflow-x: hidden;
+          box-sizing: border-box;
         }
         .legal-container h1 {
           font-size: 28px;
@@ -259,6 +263,10 @@ export function TermsOfService() {
           padding: 32px 24px 64px;
           color: var(--text-primary);
           line-height: 1.8;
+          height: 100%;
+          overflow-y: auto;
+          overflow-x: hidden;
+          box-sizing: border-box;
         }
         .legal-container h1 {
           font-size: 28px;
