@@ -1,4 +1,4 @@
-import { useState, useEffect, lazy, Suspense } from 'react'
+import { useState, useEffect, lazy, Suspense, useRef } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Helmet } from 'react-helmet-async'
 import AuthModal from './components/AuthModal'
