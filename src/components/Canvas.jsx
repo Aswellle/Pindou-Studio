@@ -67,7 +67,7 @@ const Canvas = forwardRef(function Canvas({
 
   // Direct painter: bypasses React state for per-frame stroke feedback. Committed
   // state paints to the base canvas; in-progress strokes paint to an overlay layer.
-  const painter = useCanvasPainter({ canvasWidth, canvasHeight, CELL_SIZE })
+  const painter = useCanvasPainter({ canvasWidth, canvasHeight, cellSize: CELL_SIZE })
 
   // ─────────────────────────────────────────────────────────────────
   // _bounds: Allow free panning with soft bounce-back at extremes.
@@ -713,8 +713,7 @@ const Canvas = forwardRef(function Canvas({
         <div className="canvas-inner" style={transformStyle}>
           <div style={{ position: 'relative', lineHeight: 0 }}>
             <canvas
-              ref={painter.canvasRefCallback}
-              data-id="base"
+              ref={painter.baseRefCallback}
               width={canvasWidth}
               height={canvasHeight}
               onMouseMove={handleMouseMove}
@@ -727,8 +726,7 @@ const Canvas = forwardRef(function Canvas({
               }}
             />
             <canvas
-              ref={painter.canvasRefCallback}
-              data-id="overlay"
+              ref={painter.overlayRefCallback}
               width={canvasWidth}
               height={canvasHeight}
               style={{
