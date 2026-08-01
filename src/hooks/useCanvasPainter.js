@@ -16,23 +16,19 @@ import { useCallback, useMemo, useRef } from 'react'
  *   overlay — live stroke feedback during an active drag; cells are painted on
  *             entry and cleared on erase / stroke end (no full-grid scan).
  *
- * The hook attaches to the two <canvas> elements via a single ref callback that
- * dispatches by data-id, so the component stays declarative.
+ * The base layer paints from BOTH the data effect (committedData/cols/rows
+ * change) AND the base ref callback (node attach). The callback path guarantees
+ * the grid is visible from the first frame regardless of effect ordering; the
+ * effect path handles later data updates.
  */
 export function useCanvasPainter({ canvasWidth, canvasHeight, cellSize }) {
   const baseRef = useRef(null)
   const overlayRef = useRef(null)
+  // Always-latest paint state, written by repaintBase, read by the base ref
+  // callback so it can repaint immediately on attach.
+  const paintStateRef = useRef({ committedData: null, cols: 0, rows: 0 })
 
-  // Ref callback: assign each <canvas> to the right internal ref by data-id.
-  const canvasRefCallback = useCallback((node) => {
-    if (!node) return
-    if (node.dataset.id === 'base') baseRef.current = node
-    else if (node.dataset.id === 'overlay') overlayRef.current = node
-  }, [])
-
-  // Repaint the entire base layer from committedData. Called only when committedData
-  // or grid dimensions change (stroke commit / undo / redo / reset / resize).
-  const repaintBase = useCallback((committedData, cols, rows) => {
+  const doRepaintBase = useCallback((committedData, cols, rows) => {
     const canvas = baseRef.current
     if (!canvas) return
     const ctx = canvas.getContext('2d')
@@ -68,6 +64,27 @@ export function useCanvasPainter({ canvasWidth, canvasHeight, cellSize }) {
     }
   }, [canvasWidth, canvasHeight, cellSize])
 
+  // Base-layer callback ref: store the node AND repaint immediately on attach so
+  // the grid is visible from the first frame, independent of effect timing.
+  const baseRefCallback = useCallback((node) => {
+    baseRef.current = node
+    if (node) {
+      const { committedData, cols, rows } = paintStateRef.current
+      doRepaintBase(committedData, cols, rows)
+    }
+  }, [doRepaintBase])
+
+  // Overlay-layer callback ref: just store the node.
+  const overlayRefCallback = useCallback((node) => {
+    overlayRef.current = node
+  }, [])
+
+  // Public repaint entry for the data effect: record latest state, then paint.
+  const repaintBase = useCallback((committedData, cols, rows) => {
+    paintStateRef.current = { committedData, cols, rows }
+    doRepaintBase(committedData, cols, rows)
+  }, [doRepaintBase])
+
   // Paint one cell on the overlay layer (live stroke feedback).
   const paintOverlayCell = useCallback((x, y, hex) => {
     const canvas = overlayRef.current
@@ -93,17 +110,15 @@ export function useCanvasPainter({ canvasWidth, canvasHeight, cellSize }) {
     ctx.clearRect(0, 0, canvasWidth, canvasHeight)
   }, [canvasWidth, canvasHeight])
 
-  // Memoize the returned API object so callers can depend on a stable reference
-  // (prevents churning their useCallback/useEffect dependency arrays every render).
+  // Memoize the returned API object so callers can depend on a stable reference.
   return useMemo(() => ({
-    canvasRefCallback,
-    // Exposed so callers can draw hover highlights / overlays that need strokeRect
-    // (the hover effect) — keeps the painter as the single owner of both layers.
+    baseRefCallback,
+    overlayRefCallback,
     baseRef,
     overlayRef,
     repaintBase,
     paintOverlayCell,
     clearOverlayCell,
     clearOverlay,
-  }), [canvasRefCallback, repaintBase, paintOverlayCell, clearOverlayCell, clearOverlay])
+  }), [baseRefCallback, overlayRefCallback, repaintBase, paintOverlayCell, clearOverlayCell, clearOverlay])
 }
