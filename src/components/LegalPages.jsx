@@ -4,11 +4,17 @@ import { useTranslation } from 'react-i18next';
    Privacy Policy
    ───────────────────────────────────────────────────────────── */
 
-export function PrivacyPolicy() {
+export function PrivacyPolicy({ onBack }) {
   const { t } = useTranslation();
 
   return (
     <div className="legal-page">
+      <button className="legal-back-btn" onClick={onBack} aria-label="返回">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <polyline points="15 18 9 12 15 6"/>
+        </svg>
+        <span>返回</span>
+      </button>
       <div className="legal-container">
         <h1>隐私政策</h1>
         <p className="legal-updated">最后更新：2026年8月1日</p>
@@ -116,6 +122,56 @@ export function PrivacyPolicy() {
           overflow-x: hidden;
           box-sizing: border-box;
         }
+        /* 返回按钮 — PC 端：左上角内联按钮 */
+        .legal-back-btn {
+          display: inline-flex;
+          align-items: center;
+          gap: 6px;
+          padding: 8px 16px;
+          margin-bottom: 20px;
+          font-size: 14px;
+          font-weight: 500;
+          color: var(--text-secondary);
+          background: var(--bg-secondary);
+          border: 1px solid var(--border-color);
+          border-radius: 8px;
+          cursor: pointer;
+          transition: all 0.2s;
+          font-family: inherit;
+        }
+        .legal-back-btn:hover {
+          color: var(--accent);
+          border-color: var(--accent);
+          background: var(--accent-soft);
+        }
+        .legal-back-btn svg { flex-shrink: 0; }
+        /* 移动端：底部固定悬浮圆角按钮 */
+        @media (max-width: 640px) {
+          .legal-back-btn {
+            position: fixed;
+            bottom: 24px;
+            left: 50%;
+            transform: translateX(-50%);
+            margin-bottom: 0;
+            padding: 12px 24px;
+            font-size: 15px;
+            background: var(--text-primary);
+            color: white;
+            border: none;
+            border-radius: 24px;
+            box-shadow: 0 4px 16px rgba(43,36,32,0.2);
+            z-index: 50;
+          }
+          .legal-back-btn:hover {
+            background: var(--accent);
+            color: white;
+            border: none;
+          }
+          .legal-back-btn:active {
+            transform: translateX(-50%) scale(0.96);
+          }
+          .legal-page { padding-bottom: 88px; }
+        }
         .legal-container h1 {
           font-size: 28px;
           font-weight: 700;
@@ -172,11 +228,17 @@ export function PrivacyPolicy() {
    Terms of Service
    ───────────────────────────────────────────────────────────── */
 
-export function TermsOfService() {
+export function TermsOfService({ onBack }) {
   const { t } = useTranslation();
 
   return (
     <div className="legal-page">
+      <button className="legal-back-btn" onClick={onBack} aria-label="返回">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <polyline points="15 18 9 12 15 6"/>
+        </svg>
+        <span>返回</span>
+      </button>
       <div className="legal-container">
         <h1>服务条款</h1>
         <p className="legal-updated">最后更新：2026年8月1日</p>
@@ -270,6 +332,56 @@ export function TermsOfService() {
           overflow-y: auto;
           overflow-x: hidden;
           box-sizing: border-box;
+        }
+        /* 返回按钮 — PC 端：左上角内联按钮 */
+        .legal-back-btn {
+          display: inline-flex;
+          align-items: center;
+          gap: 6px;
+          padding: 8px 16px;
+          margin-bottom: 20px;
+          font-size: 14px;
+          font-weight: 500;
+          color: var(--text-secondary);
+          background: var(--bg-secondary);
+          border: 1px solid var(--border-color);
+          border-radius: 8px;
+          cursor: pointer;
+          transition: all 0.2s;
+          font-family: inherit;
+        }
+        .legal-back-btn:hover {
+          color: var(--accent);
+          border-color: var(--accent);
+          background: var(--accent-soft);
+        }
+        .legal-back-btn svg { flex-shrink: 0; }
+        /* 移动端：底部固定悬浮圆角按钮 */
+        @media (max-width: 640px) {
+          .legal-back-btn {
+            position: fixed;
+            bottom: 24px;
+            left: 50%;
+            transform: translateX(-50%);
+            margin-bottom: 0;
+            padding: 12px 24px;
+            font-size: 15px;
+            background: var(--text-primary);
+            color: white;
+            border: none;
+            border-radius: 24px;
+            box-shadow: 0 4px 16px rgba(43,36,32,0.2);
+            z-index: 50;
+          }
+          .legal-back-btn:hover {
+            background: var(--accent);
+            color: white;
+            border: none;
+          }
+          .legal-back-btn:active {
+            transform: translateX(-50%) scale(0.96);
+          }
+          .legal-page { padding-bottom: 88px; }
         }
         .legal-container h1 {
           font-size: 28px;

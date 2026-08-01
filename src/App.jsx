@@ -437,9 +437,9 @@ export default function App() {
           </Suspense>
         )
       case 'privacy':
-        return <PrivacyPolicy />
+        return <PrivacyPolicy onBack={() => handlePageChange('canvas')} />
       case 'terms':
-        return <TermsOfService />
+        return <TermsOfService onBack={() => handlePageChange('canvas')} />
       default:
         return renderCanvasPage()
     }
