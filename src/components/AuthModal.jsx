@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 
-export default function AuthModal({ mode, onClose, onLogin, onRegister, onSwitchMode }) {
+export default function AuthModal({ mode, onClose, onLogin, onRegister, onSwitchMode, onNavigatePage }) {
   const { t } = useTranslation()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
@@ -138,6 +138,12 @@ export default function AuthModal({ mode, onClose, onLogin, onRegister, onSwitch
           )}
         </div>
 
+        <div className="auth-legal">
+          <button className="legal-link-btn" onClick={() => onNavigatePage('privacy')}>隐私政策</button>
+          <span className="legal-divider">·</span>
+          <button className="legal-link-btn" onClick={() => onNavigatePage('terms')}>服务条款</button>
+        </div>
+
         <style>{`
           .close-btn {
             position: absolute;
@@ -183,6 +189,29 @@ export default function AuthModal({ mode, onClose, onLogin, onRegister, onSwitch
             border-top: 1px solid var(--border-color);
             font-size: var(--text-md);
             color: var(--text-secondary);
+          }
+          .auth-legal {
+            text-align: center;
+            margin-top: 16px;
+            font-size: var(--text-sm);
+            color: var(--text-muted);
+          }
+          .legal-link-btn {
+            color: var(--text-muted);
+            background: none;
+            border: none;
+            cursor: pointer;
+            padding: 0 4px;
+            font-size: inherit;
+            font-family: inherit;
+          }
+          .legal-link-btn:hover {
+            color: var(--accent);
+            text-decoration: underline;
+          }
+          .legal-divider {
+            color: var(--text-muted);
+            margin: 0 2px;
           }
           .link-btn {
             color: var(--accent);

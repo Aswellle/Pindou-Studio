@@ -277,15 +277,6 @@ export default function App() {
         </div>
       )}
 
-      <footer className="site-footer">
-        <div className="footer-links">
-          <button className="footer-link-btn" onClick={() => handlePageChange('privacy')}>隐私政策</button>
-          <button className="footer-link-btn" onClick={() => handlePageChange('terms')}>服务条款</button>
-          <a className="footer-link" href="https://github.com/Aswellle/Pindou-Studio" target="_blank" rel="noopener noreferrer">GitHub</a>
-        </div>
-        <p className="footer-copyright">© 2026 拼豆Studio. MIT License.</p>
-      </footer>
-
       {showExport && (
         <ExportPanel
           canvasData={canvasData}
@@ -305,6 +296,7 @@ export default function App() {
           onLogin={login}
           onRegister={register}
           onSwitchMode={(mode) => setAuthMode(mode)}
+          onNavigatePage={(page) => { setShowAuth(false); handlePageChange(page); }}
         />
       )}
 
@@ -454,15 +446,6 @@ export default function App() {
         {renderPage()}
       </main>
 
-      <footer className="site-footer">
-        <div className="footer-links">
-          <button className="footer-link-btn" onClick={() => handlePageChange('privacy')}>隐私政策</button>
-          <button className="footer-link-btn" onClick={() => handlePageChange('terms')}>服务条款</button>
-          <a className="footer-link" href="https://github.com/Aswellle/Pindou-Studio" target="_blank" rel="noopener noreferrer">GitHub</a>
-        </div>
-        <p className="footer-copyright">© 2026 拼豆Studio. MIT License.</p>
-      </footer>
-
       {showAuth && (
         <AuthModal
           mode={authMode}
@@ -470,6 +453,7 @@ export default function App() {
           onLogin={login}
           onRegister={register}
           onSwitchMode={(mode) => setAuthMode(mode)}
+          onNavigatePage={(page) => { setShowAuth(false); handlePageChange(page); }}
         />
       )}
 
@@ -591,38 +575,6 @@ export default function App() {
           z-index: 200;
           pointer-events: none;
           white-space: nowrap;
-        }
-        .site-footer {
-          border-top: 1px solid var(--border-color);
-          padding: 20px 24px;
-          text-align: center;
-          background: var(--bg-secondary);
-          flex-shrink: 0;
-        }
-        .footer-links {
-          display: flex;
-          justify-content: center;
-          gap: 20px;
-          flex-wrap: wrap;
-          margin-bottom: 12px;
-        }
-        .footer-link, .footer-link-btn {
-          color: var(--text-secondary);
-          text-decoration: none;
-          font-size: 13px;
-          background: none;
-          border: none;
-          cursor: pointer;
-          padding: 0;
-          font-family: inherit;
-        }
-        .footer-link:hover, .footer-link-btn:hover {
-          color: var(--accent);
-          text-decoration: underline;
-        }
-        .footer-copyright {
-          color: var(--text-muted);
-          font-size: 12px;
         }
       `}</style>
     </div>
