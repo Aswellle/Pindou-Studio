@@ -1,5 +1,4 @@
 import { useTranslation } from 'react-i18next'
-import { RotateCcw, Maximize2 } from 'lucide-react'
 
 /**
  * 移动端画布信息条 — 紧凑显示在 Header 下方
@@ -23,18 +22,18 @@ export default function MobileCanvasInfoBar({
     <div className="mobile-canvas-info-bar">
       <span className="info-size">{w}×{h}</span>
       <span className="info-scale">{scalePercent}%</span>
-      <button className="info-btn" onClick={onReset} aria-label={t('canvas.reset')} title={t('canvas.reset')}>
-        <RotateCcw size={14} />
+      <button className="info-reset-btn" onClick={onReset} title={t('canvas.resetTitle')}>
+        {t('canvas.reset')}
       </button>
-      <button className="info-btn" onClick={onFit} aria-label={t('canvas.fit')} title={t('canvas.fit')}>
-        <Maximize2 size={14} />
+      <button className="info-fit-btn" onClick={onFit} title={t('canvas.fitTitle')}>
+        {t('canvas.fit')}
       </button>
 
       <style>{`
         .mobile-canvas-info-bar {
           display: flex;
           align-items: center;
-          gap: 8px;
+          gap: 6px;
           padding: 4px 12px;
           background: var(--bg-secondary);
           border-bottom: 1px solid var(--border-color);
@@ -53,25 +52,45 @@ export default function MobileCanvasInfoBar({
           font-variant-numeric: tabular-nums;
           margin-right: auto;
         }
-        .info-btn {
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          width: 28px;
-          height: 28px;
-          border: 1px solid var(--border-color);
-          border-radius: 6px;
-          background: var(--bg-primary);
-          color: var(--text-secondary);
+        .info-reset-btn {
+          background: var(--secondary-accent);
+          color: white;
+          border: none;
+          padding: 3px 10px;
+          border-radius: 10px;
+          font-size: 11px;
+          font-weight: 500;
           cursor: pointer;
-          transition: all 0.15s;
+          transition: all 0.2s;
+          font-family: inherit;
+          white-space: nowrap;
         }
-        .info-btn:hover {
-          color: var(--accent);
-          border-color: var(--accent);
+        .info-reset-btn:hover {
+          background: var(--secondary-accent-hover);
+          transform: scale(1.05);
         }
-        .info-btn:active {
-          background: var(--accent-soft);
+        .info-reset-btn:active {
+          transform: scale(0.96);
+        }
+        .info-fit-btn {
+          background: var(--accent);
+          color: white;
+          border: none;
+          padding: 3px 10px;
+          border-radius: 10px;
+          font-size: 11px;
+          font-weight: 500;
+          cursor: pointer;
+          transition: all 0.2s;
+          font-family: inherit;
+          white-space: nowrap;
+        }
+        .info-fit-btn:hover {
+          background: var(--accent-hover);
+          transform: scale(1.05);
+        }
+        .info-fit-btn:active {
+          transform: scale(0.96);
         }
       `}</style>
     </div>

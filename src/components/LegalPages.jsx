@@ -122,6 +122,21 @@ export function PrivacyPolicy({ onBack }) {
           overflow-x: hidden;
           box-sizing: border-box;
         }
+        /* 法律页面滚动条 — 统一站点风格 */
+        .legal-page::-webkit-scrollbar {
+          width: 6px;
+        }
+        .legal-page::-webkit-scrollbar-track {
+          background: var(--bg-secondary);
+          border-radius: 3px;
+        }
+        .legal-page::-webkit-scrollbar-thumb {
+          background: var(--border-color);
+          border-radius: 3px;
+        }
+        .legal-page::-webkit-scrollbar-thumb:hover {
+          background: var(--text-muted);
+        }
         /* 返回按钮 — PC 端：左上角内联按钮 */
         .legal-back-btn {
           display: inline-flex;
@@ -332,6 +347,21 @@ export function TermsOfService({ onBack }) {
           overflow-y: auto;
           overflow-x: hidden;
           box-sizing: border-box;
+        }
+        /* 法律页面滚动条 — 统一站点风格 */
+        .legal-page::-webkit-scrollbar {
+          width: 6px;
+        }
+        .legal-page::-webkit-scrollbar-track {
+          background: var(--bg-secondary);
+          border-radius: 3px;
+        }
+        .legal-page::-webkit-scrollbar-thumb {
+          background: var(--border-color);
+          border-radius: 3px;
+        }
+        .legal-page::-webkit-scrollbar-thumb:hover {
+          background: var(--text-muted);
         }
         /* 返回按钮 — PC 端：左上角内联按钮 */
         .legal-back-btn {

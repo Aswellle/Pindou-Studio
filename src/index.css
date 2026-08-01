@@ -136,6 +136,21 @@ input:focus, textarea:focus, button:focus {
   box-shadow: 0 20px 60px rgba(43, 36, 32, 0.18);
   box-sizing: border-box;
 }
+/* 注册/登录弹窗滚动条 — 统一站点风格 */
+.modal-content::-webkit-scrollbar {
+  width: 6px;
+}
+.modal-content::-webkit-scrollbar-track {
+  background: var(--bg-secondary);
+  border-radius: 3px;
+}
+.modal-content::-webkit-scrollbar-thumb {
+  background: var(--border-color);
+  border-radius: 3px;
+}
+.modal-content::-webkit-scrollbar-thumb:hover {
+  background: var(--text-muted);
+}
 
 @media (max-width: 480px) {
   .modal-content {
