@@ -44,6 +44,13 @@ coverage/
 # Internal design docs / AI planning notes
 docs/superpowers/
 
+# AI agent instructions
+AGENTS.md
+
+# Search engine verification files
+baidu_verify_*.html
+google*.html
+
 # Debug scripts
 prep-zoom.js
 
