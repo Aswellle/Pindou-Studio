@@ -16,17 +16,23 @@ const resolveToHex = (colorVal, palette) => {
   return found ? found.hex : colorVal
 }
 
-export default function Gallery({ onLoadTemplate, onSaveWork, onLoadWork, savedWorks = [] }) {
+export default function Gallery({ onLoadTemplate, onSaveWork, onLoadWork, savedWorks = [], cloudStore }) {
   const { t } = useTranslation()
-  // 自定义模板(后台管理页上传)与内置模板合并展示,自定义在前
-  const customStore = useCustomTemplates()
-  const allTemplates = useMemo(() => [...customStore.templates, ...TEMPLATES], [customStore.templates])
+  // 云端启用时,模板库完全来自云端(RLS 公开只读);未启用时回退本地模式
+  // (内置模板 + localStorage 自定义模板,自定义在前)
+  const localStore = useCustomTemplates()
+  const cloudEnabled = !!cloudStore?.enabled
+  const allTemplates = useMemo(
+    () => cloudEnabled ? (cloudStore?.templates || []) : [...localStore.templates, ...TEMPLATES],
+    [cloudEnabled, cloudStore, localStore.templates]
+  )
+  const customCategories = cloudEnabled ? (cloudStore?.categories || []) : localStore.categories
   const categoryOptions = useMemo(
-    () => [...new Set([...CATEGORIES, ...customStore.categories.map(c => c.id)])],
-    [customStore.categories]
+    () => [...new Set([...CATEGORIES, ...customCategories.map(c => c.id)])],
+    [customCategories]
   )
   const getCategoryLabel = (cat) => {
-    const custom = customStore.categories.find(c => c.id === cat)
+    const custom = customCategories.find(c => c.id === cat)
     return custom ? custom.label : t(`gallery.categories.${cat}`, cat)
   }
   const [searchTerm, setSearchTerm] = useState('')
@@ -242,6 +248,20 @@ export default function Gallery({ onLoadTemplate, onSaveWork, onLoadWork, savedW
                 })}
               </div>
             )}
+          </div>
+        ) : cloudEnabled && cloudStore?.loading ? (
+          <div className="empty-state">
+            <p>{t('gallery.cloudLoading')}</p>
+          </div>
+        ) : cloudEnabled && allTemplates.length === 0 ? (
+          <div className="empty-state">
+            <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+              <circle cx="12" cy="12" r="10"/>
+              <path d="M12 8v8"/>
+              <path d="M12 16.5v.01"/>
+            </svg>
+            <p>{t('gallery.cloudEmpty')}</p>
+            <span>{t('gallery.cloudEmptyHint')}</span>
           </div>
         ) : filteredTemplates.length === 0 ? (
           <div className="empty-state">

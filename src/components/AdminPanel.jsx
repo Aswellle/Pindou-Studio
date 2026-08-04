@@ -1,8 +1,35 @@
 import { useState, useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
-import { CATEGORIES, DIFFICULTIES, normalizeCustomTemplate } from '../data/templates'
-import useCustomTemplates from '../hooks/useCustomTemplates'
+import { CATEGORIES, DIFFICULTIES, TEMPLATES, normalizeCustomTemplate } from '../data/templates'
 import ThumbnailCanvas from './ThumbnailCanvas'
+
+// 门禁/提示卡片的共用样式
+function GateStyle() {
+  return (
+    <style>{`
+      .admin-gate {
+        max-width: 420px;
+        margin: 40px auto;
+        background: var(--bg-primary);
+        border: 1px solid var(--border-color);
+        border-radius: var(--radius-card);
+        padding: 28px 24px;
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+        text-align: center;
+      }
+      .admin-gate svg { margin: 0 auto; }
+      .admin-gate .admin-btn { align-self: center; padding: 8px 32px; }
+      .admin-gate .admin-subtitle { line-height: 1.6; }
+      .admin-account {
+        font-size: 12px;
+        color: var(--text-muted);
+        font-family: ui-monospace, monospace;
+      }
+    `}</style>
+  )
+}
 
 // 供 AI Agent / 手工上传参考的统一协议示例(可复制到「JSON 导入」直接导入)
 const EXAMPLE_JSON = JSON.stringify({
@@ -20,86 +47,20 @@ const EXAMPLE_JSON = JSON.stringify({
 }, null, 2)
 
 // ─────────────────────────────────────────────────────────────
-// 管理密码门禁
-// 无后端,账号注册可被任何人自建,故用「管理密码」保护后台:
-// 密码以 SHA-256 哈希存 localStorage(admin-pin-hash);
-// 解锁状态存 sessionStorage(admin-unlocked),刷新当前标签页需重新输入,
-// 新建标签页需重新解锁,可手动锁定。
+// 后台访问门禁(真实账号体系)
+// · 云端未配置 → 显示配置指引
+// · 未登录 → 引导通过 AuthModal 登录/注册(注册需邮箱验证)
+// · 非 admin 账号 → 无权限提示
+// · admin → 管理内容(云端模板库 CRUD,RLS 服务端强制 admin 权限)
 // ─────────────────────────────────────────────────────────────
-const PIN_KEY = 'admin-pin-hash'
-const UNLOCK_KEY = 'admin-unlocked'
-const MIN_PIN_LENGTH = 4
-
-async function sha256(text) {
-  const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(text))
-  return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2, '0')).join('')
-}
-
-export default function AdminPanel() {
+export default function AdminPanel({ user, isAdmin, authLoading, onLogin, onLogout, onResetPassword, cloudStore }) {
   const { t } = useTranslation()
-  const store = useCustomTemplates()
   const [tab, setTab] = useState('templates')
-  const [unlocked, setUnlocked] = useState(() => sessionStorage.getItem(UNLOCK_KEY) === '1')
-  const [hasPin, setHasPin] = useState(() => !!localStorage.getItem(PIN_KEY))
-  const [pinInput, setPinInput] = useState('')
-  const [setupPin, setSetupPin] = useState('')
-  const [setupPin2, setSetupPin2] = useState('')
-  const [gateError, setGateError] = useState('')
-  const [showChangePin, setShowChangePin] = useState(false)
-  const [oldPin, setOldPin] = useState('')
-  const [newPin, setNewPin] = useState('')
-  const [newPin2, setNewPin2] = useState('')
-  const [pinMessage, setPinMessage] = useState('')
+  const [resetMsg, setResetMsg] = useState('')
 
-  const handleUnlock = async () => {
-    if (!pinInput) return
-    const hash = await sha256(pinInput)
-    if (hash === localStorage.getItem(PIN_KEY)) {
-      sessionStorage.setItem(UNLOCK_KEY, '1')
-      setUnlocked(true)
-      setGateError('')
-      setPinInput('')
-    } else {
-      setGateError(t('admin.gate.wrongPin'))
-      setPinInput('')
-    }
-  }
+  const cloudEnabled = !!cloudStore?.enabled
 
-  const handleSetup = async () => {
-    if (setupPin.length < MIN_PIN_LENGTH) { setGateError(t('admin.gate.tooShort')); return }
-    if (setupPin !== setupPin2) { setGateError(t('admin.gate.mismatch')); return }
-    localStorage.setItem(PIN_KEY, await sha256(setupPin))
-    sessionStorage.setItem(UNLOCK_KEY, '1')
-    setHasPin(true)
-    setUnlocked(true)
-    setGateError('')
-  }
-
-  const handleChangePin = async () => {
-    if ((await sha256(oldPin)) !== localStorage.getItem(PIN_KEY)) {
-      setGateError(t('admin.gate.wrongPin'))
-      return
-    }
-    if (newPin.length < MIN_PIN_LENGTH) { setGateError(t('admin.gate.tooShort')); return }
-    if (newPin !== newPin2) { setGateError(t('admin.gate.mismatch')); return }
-    localStorage.setItem(PIN_KEY, await sha256(newPin))
-    setOldPin('')
-    setNewPin('')
-    setNewPin2('')
-    setGateError('')
-    setShowChangePin(false)
-    setPinMessage(t('admin.gate.updated'))
-    setTimeout(() => setPinMessage(''), 2000)
-  }
-
-  const handleLock = () => {
-    sessionStorage.removeItem(UNLOCK_KEY)
-    setUnlocked(false)
-    setShowChangePin(false)
-  }
-
-  // 未解锁 → 密码门禁界面
-  if (!unlocked) {
+  if (!cloudEnabled) {
     return (
       <div className="admin-panel">
         <div className="admin-gate">
@@ -107,69 +68,62 @@ export default function AdminPanel() {
             <rect x="3" y="11" width="18" height="11" rx="2" />
             <path d="M7 11V7a5 5 0 0 1 10 0v4" />
           </svg>
-          <h1 className="admin-title">{hasPin ? t('admin.gate.title') : t('admin.gate.setTitle')}</h1>
-          <p className="admin-subtitle">{hasPin ? t('admin.gate.hint') : t('admin.gate.setHint')}</p>
-
-          {hasPin ? (
-            <>
-              <input
-                className="admin-input"
-                type="password"
-                autoFocus
-                placeholder={t('admin.gate.password')}
-                value={pinInput}
-                onChange={e => { setPinInput(e.target.value); setGateError('') }}
-                onKeyDown={e => { if (e.key === 'Enter') handleUnlock() }}
-              />
-              <button className="admin-btn primary" onClick={handleUnlock}>{t('admin.gate.unlock')}</button>
-            </>
-          ) : (
-            <>
-              <input
-                className="admin-input"
-                type="password"
-                autoFocus
-                placeholder={t('admin.gate.password')}
-                value={setupPin}
-                onChange={e => { setSetupPin(e.target.value); setGateError('') }}
-              />
-              <input
-                className="admin-input"
-                type="password"
-                placeholder={t('admin.gate.confirm')}
-                value={setupPin2}
-                onChange={e => { setSetupPin2(e.target.value); setGateError('') }}
-                onKeyDown={e => { if (e.key === 'Enter') handleSetup() }}
-              />
-              <button className="admin-btn primary" onClick={handleSetup}>{t('admin.gate.setBtn')}</button>
-            </>
-          )}
-
-          {gateError && <div className="admin-gate-error">{gateError}</div>}
+          <h1 className="admin-title">{t('admin.gate.setupTitle')}</h1>
+          <p className="admin-subtitle">{t('admin.gate.setupHint')}</p>
         </div>
-        <style>{`
-          .admin-gate {
-            max-width: 360px;
-            margin: 40px auto;
-            background: var(--bg-primary);
-            border: 1px solid var(--border-color);
-            border-radius: var(--radius-card);
-            padding: 28px 24px;
-            display: flex;
-            flex-direction: column;
-            gap: 12px;
-            text-align: center;
-          }
-          .admin-gate svg { margin: 0 auto; }
-          .admin-gate .admin-input { text-align: center; }
-          .admin-gate .admin-btn { align-self: center; padding: 8px 32px; }
-          .admin-gate-error {
-            color: var(--error);
-            font-size: var(--text-sm);
-          }
-        `}</style>
+        <GateStyle />
       </div>
     )
+  }
+
+  if (authLoading) {
+    return (
+      <div className="admin-panel">
+        <div className="admin-empty">{t('admin.gate.checking')}</div>
+      </div>
+    )
+  }
+
+  if (!user) {
+    return (
+      <div className="admin-panel">
+        <div className="admin-gate">
+          <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" strokeWidth="1.8">
+            <rect x="3" y="11" width="18" height="11" rx="2" />
+            <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+          </svg>
+          <h1 className="admin-title">{t('admin.gate.loginTitle')}</h1>
+          <p className="admin-subtitle">{t('admin.gate.loginHint')}</p>
+          <button className="admin-btn primary" onClick={onLogin}>{t('admin.gate.loginBtn')}</button>
+        </div>
+        <GateStyle />
+      </div>
+    )
+  }
+
+  if (!isAdmin) {
+    return (
+      <div className="admin-panel">
+        <div className="admin-gate">
+          <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="var(--error)" strokeWidth="1.8">
+            <circle cx="12" cy="12" r="10" />
+            <path d="M12 8v4" />
+            <path d="M12 16h.01" />
+          </svg>
+          <h1 className="admin-title">{t('admin.gate.noPermission')}</h1>
+          <p className="admin-subtitle">{t('admin.gate.noPermissionHint')}</p>
+          <button className="admin-btn secondary" onClick={onLogout}>{t('admin.signOut')}</button>
+        </div>
+        <GateStyle />
+      </div>
+    )
+  }
+
+  const handleResetPassword = () => {
+    if (!user?.email) return
+    onResetPassword(user.email)
+      .then(() => setResetMsg(t('admin.resetSent')))
+      .catch(() => setResetMsg(''))
   }
 
   return (
@@ -177,42 +131,16 @@ export default function AdminPanel() {
       <div className="admin-header">
         <h1 className="admin-title">{t('admin.title')}</h1>
         <p className="admin-subtitle">{t('admin.subtitle')}</p>
-        <div className="admin-actions" style={{ marginTop: 8 }}>
-          <button className="admin-btn secondary small" onClick={() => { setShowChangePin(!showChangePin); setGateError('') }}>
-            {t('admin.changePassword')}
+        <div className="admin-actions" style={{ marginTop: 8, alignItems: 'center' }}>
+          <span className="admin-account">{user.email} · Admin</span>
+          <button className="admin-btn secondary small" onClick={handleResetPassword}>
+            {t('admin.resetPassword')}
           </button>
-          <button className="admin-btn secondary small" onClick={handleLock}>
-            {t('admin.lock')}
+          <button className="admin-btn secondary small" onClick={onLogout}>
+            {t('admin.signOut')}
           </button>
         </div>
-        {pinMessage && <div className="admin-result ok" style={{ marginTop: 8 }}>{pinMessage}</div>}
-        {showChangePin && (
-          <div className="admin-card" style={{ marginTop: 12 }}>
-            <h3>{t('admin.changePasswordTitle')}</h3>
-            <div className="admin-field">
-              <label>{t('admin.oldPassword')}</label>
-              <input className="admin-input" type="password" value={oldPin}
-                onChange={e => { setOldPin(e.target.value); setGateError('') }} />
-            </div>
-            <div className="admin-grid-2">
-              <div className="admin-field">
-                <label>{t('admin.newPassword')}</label>
-                <input className="admin-input" type="password" value={newPin}
-                  onChange={e => { setNewPin(e.target.value); setGateError('') }} />
-              </div>
-              <div className="admin-field">
-                <label>{t('admin.confirmNewPassword')}</label>
-                <input className="admin-input" type="password" value={newPin2}
-                  onChange={e => { setNewPin2(e.target.value); setGateError('') }} />
-              </div>
-            </div>
-            {gateError && <div className="admin-gate-error">{gateError}</div>}
-            <div className="admin-actions">
-              <button className="admin-btn primary" onClick={handleChangePin}>{t('admin.save')}</button>
-              <button className="admin-btn secondary" onClick={() => { setShowChangePin(false); setGateError('') }}>{t('admin.cancel')}</button>
-            </div>
-          </div>
-        )}
+        {resetMsg && <div className="admin-result ok" style={{ marginTop: 8 }}>{resetMsg}</div>}
       </div>
 
       <div className="admin-tabs">
@@ -227,9 +155,9 @@ export default function AdminPanel() {
         </button>
       </div>
 
-      {tab === 'templates' && <TemplateManager store={store} />}
-      {tab === 'import' && <JsonImporter store={store} />}
-      {tab === 'categories' && <CategoryManager store={store} />}
+      {tab === 'templates' && <TemplateManager store={cloudStore} />}
+      {tab === 'import' && <JsonImporter store={cloudStore} />}
+      {tab === 'categories' && <CategoryManager store={cloudStore} />}
 
       <style>{`
         .admin-panel {
@@ -480,6 +408,53 @@ export default function AdminPanel() {
 // ─────────────────────────────────────────────────────────────
 // 模板管理(列表 + 新增/编辑表单)
 // ─────────────────────────────────────────────────────────────
+// 本地数据一次性迁移到云端(内置模板 + 本机自定义模板/分类)
+function MigrationCard({ store }) {
+  const { t } = useTranslation()
+  const [running, setRunning] = useState(false)
+  const [result, setResult] = useState(null)
+  const localCustomCount = useMemo(() => {
+    try {
+      return JSON.parse(localStorage.getItem('custom-templates') || '[]').length
+    } catch {
+      return 0
+    }
+  }, [])
+
+  const run = async () => {
+    setRunning(true)
+    setResult(null)
+    const res = await store.migrateLocalToCloud()
+    setRunning(false)
+    setResult(res)
+  }
+
+  return (
+    <div className="admin-card">
+      <h3>{t('admin.cloud.migrateTitle')}</h3>
+      <p className="admin-field-hint">{t('admin.cloud.migrateHint')}</p>
+      <p className="admin-field-hint">
+        {t('admin.cloud.localCounts', { builtin: TEMPLATES.length, custom: localCustomCount })}
+      </p>
+      <div className="admin-actions">
+        <button className="admin-btn primary" disabled={running} onClick={run}>
+          {running ? t('auth.processing') : t('admin.cloud.migrateBtn')}
+        </button>
+      </div>
+      {result?.ok && (
+        <div className="admin-result ok" style={{ marginTop: 8 }}>
+          {t('admin.cloud.migrateDone', { n: result.count })}
+        </div>
+      )}
+      {result && !result.ok && (
+        <div className="admin-result warn" style={{ marginTop: 8 }}>
+          {t('admin.cloud.migrateFail', { detail: result.message })}
+        </div>
+      )}
+    </div>
+  )
+}
+
 function TemplateManager({ store }) {
   const { t } = useTranslation()
   const [search, setSearch] = useState('')
@@ -500,6 +475,7 @@ function TemplateManager({ store }) {
 
   return (
     <div>
+      <MigrationCard store={store} />
       <div className="admin-card">
         <input
           className="admin-input admin-search"
@@ -588,7 +564,7 @@ function TemplateForm({ store, editing, initial, onDone }) {
     }
   }, [patternJson, name, nameZh, category, difficulty])
 
-  const handleSave = () => {
+  const handleSave = async () => {
     let pattern
     try {
       pattern = JSON.parse(patternJson)
@@ -597,7 +573,9 @@ function TemplateForm({ store, editing, initial, onDone }) {
       return
     }
     const input = { name, nameZh, category, difficulty, pattern }
-    const res = editing === 'new' ? store.addTemplate(input) : store.updateTemplate(editing, input)
+    const res = editing === 'new'
+      ? await store.addTemplate(input)
+      : await store.updateTemplate(editing, input)
     if (!res.ok) {
       setErrors(res.errors)
       return
@@ -691,7 +669,7 @@ function JsonImporter({ store }) {
   const [result, setResult] = useState(null)
   const [copied, setCopied] = useState(false)
 
-  const handleImport = () => {
+  const handleImport = async () => {
     setResult(null)
     let parsed
     try {
@@ -704,11 +682,11 @@ function JsonImporter({ store }) {
     const items = Array.isArray(parsed) ? parsed : [parsed]
     let ok = 0
     const failed = []
-    items.forEach((item, index) => {
-      const res = store.addTemplate(item)
+    for (let index = 0; index < items.length; index++) {
+      const res = await store.addTemplate(items[index])
       if (res.ok) ok++
       else failed.push({ index: index + 1, errors: res.errors })
-    })
+    }
     setResult({ ok, failed })
   }
 
@@ -788,9 +766,9 @@ function CategoryManager({ store }) {
 
   const builtin = CATEGORIES.filter(c => c !== 'all')
 
-  const handleSave = () => {
+  const handleSave = async () => {
     const res = editingId === null
-      ? store.addCategory({ id: id.trim(), label: label.trim() })
+      ? await store.addCategory({ id: id.trim(), label: label.trim() })
       : store.updateCategory(editingId, { id: id.trim(), label: label.trim() })
     if (!res.ok) {
       setErrors(res.errors)

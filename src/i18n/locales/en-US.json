@@ -22,12 +22,24 @@
     "hasAccount": "Already have an account?",
     "registerNow": "Register now",
     "loginNow": "Login now",
-    "processing": "Processing..."
+    "processing": "Processing...",
+    "forgotPassword": "Forgot password?",
+    "resetTitle": "Reset Password",
+    "resetHint": "Enter your registered email and we will send a reset link.",
+    "sendReset": "Send Reset Link",
+    "resetSent": "Reset link sent. Check your inbox.",
+    "verifyEmailTitle": "Verify Your Email",
+    "verifyEmailHint": "Registration successful! Check your email and click the verification link to sign in."
   },
   "errors": {
     "invalidEmail": "Please enter a valid email address",
     "passwordTooShort": "Password must be at least 6 characters",
-    "passwordMismatch": "Passwords do not match"
+    "passwordMismatch": "Passwords do not match",
+    "invalidCredentials": "Incorrect email or password",
+    "emailNotConfirmed": "Email not verified yet, click the link in your email first",
+    "emailInUse": "This email is already registered",
+    "tooManyAttempts": "Too many attempts. Try again later.",
+    "cloudNotConfigured": "Cloud not configured, accounts are unavailable"
   },
   "palette": {
     "title": "Color Palette",
@@ -126,7 +138,10 @@
     "saveConfirm": "Confirm",
     "savedToast": "Saved to My Works",
     "exportProfessional": "Professional (Grid + IDs)",
-    "exportRealistic": "Display (Realistic Beads)"
+    "exportRealistic": "Display (Realistic Beads)",
+    "cloudLoading": "Loading cloud template library...",
+    "cloudEmpty": "Cloud template library is empty",
+    "cloudEmptyHint": "An admin should sign in and run the local migration on the Templates tab."
   },
   "export": {
     "title": "Export Pattern",
@@ -338,27 +353,30 @@
       "emptyPattern": "Pattern cannot be all empty",
       "jsonParse": "JSON parse failed:",
       "categoryFieldsRequired": "Both category ID and label are required",
-      "categoryExists": "This category ID already exists"
+      "categoryExists": "This category ID already exists",
+      "dbError": "Database operation failed:",
+      "cloudNotConfigured": "Cloud not configured"
     },
     "gate": {
-      "title": "Password Required",
-      "hint": "This is the template library admin. Enter the admin password to continue.",
-      "password": "Admin password",
-      "unlock": "Unlock",
-      "setTitle": "Set Admin Password",
-      "setHint": "First-time setup: choose an admin password (at least 4 characters).",
-      "confirm": "Confirm password",
-      "setBtn": "Set & Enter",
-      "wrongPin": "Incorrect password, try again",
-      "mismatch": "Passwords do not match",
-      "tooShort": "Password must be at least 4 characters",
-      "updated": "Admin password updated"
+      "setupTitle": "Cloud Not Configured",
+      "setupHint": "Follow docs/SUPABASE_SETUP.md to configure Supabase (VITE_SUPABASE_URL / VITE_SUPABASE_ANON_KEY) and redeploy to enable accounts and the cloud template library.",
+      "loginTitle": "Admin Login",
+      "loginHint": "Sign in with the admin account to manage the template library (first-time: register, verify email, then grant admin role).",
+      "loginBtn": "Login / Sign Up",
+      "noPermission": "No Admin Permission",
+      "noPermissionHint": "Only accounts marked as admin can access the backend. Contact the site administrator.",
+      "checking": "Checking session..."
     },
-    "changePassword": "Change Password",
-    "lock": "Lock",
-    "changePasswordTitle": "Change Admin Password",
-    "oldPassword": "Current password",
-    "newPassword": "New password",
-    "confirmNewPassword": "Confirm new password"
+    "signOut": "Sign Out",
+    "resetPassword": "Change Password",
+    "resetSent": "Password reset email sent. Check your inbox.",
+    "cloud": {
+      "migrateTitle": "Migrate Local Data to Cloud",
+      "migrateHint": "Write built-in templates and this device localStorage custom templates/categories into the cloud library (safe to re-run, no duplicates).",
+      "migrateBtn": "Start Migration",
+      "migrateDone": "Migration complete: {{n}} templates written",
+      "migrateFail": "Migration failed: {{detail}}",
+      "localCounts": "To migrate: {{builtin}} built-in + {{custom}} local custom"
+    }
   }
 }

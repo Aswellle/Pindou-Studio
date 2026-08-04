@@ -22,12 +22,24 @@
     "hasAccount": "已有账户？",
     "registerNow": "立即注册",
     "loginNow": "立即登录",
-    "processing": "处理中..."
+    "processing": "处理中...",
+    "forgotPassword": "忘记密码?",
+    "resetTitle": "重置密码",
+    "resetHint": "输入注册邮箱,我们将发送重置链接",
+    "sendReset": "发送重置链接",
+    "resetSent": "重置链接已发送,请查收邮件",
+    "verifyEmailTitle": "请验证邮箱",
+    "verifyEmailHint": "注册成功!请前往邮箱点击验证链接后再登录"
   },
   "errors": {
     "invalidEmail": "请输入有效的邮箱地址",
     "passwordTooShort": "密码至少需要6个字符",
-    "passwordMismatch": "两次输入的密码不一致"
+    "passwordMismatch": "两次输入的密码不一致",
+    "invalidCredentials": "邮箱或密码错误",
+    "emailNotConfirmed": "邮箱尚未验证,请先点击邮件中的验证链接",
+    "emailInUse": "该邮箱已注册",
+    "tooManyAttempts": "尝试过于频繁,请稍后再试",
+    "cloudNotConfigured": "云端未配置,无法使用账号功能"
   },
   "palette": {
     "title": "色卡",
@@ -126,7 +138,10 @@
     "saveConfirm": "确认保存",
     "savedToast": "已保存到我的作品",
     "exportProfessional": "专业模式（方格 + 色号）",
-    "exportRealistic": "展示模式（拟真珠子）"
+    "exportRealistic": "展示模式（拟真珠子）",
+    "cloudLoading": "正在加载云端模板库...",
+    "cloudEmpty": "云端模板库为空",
+    "cloudEmptyHint": "请管理员登录后台,在「模板管理」页完成本地数据迁移"
   },
   "export": {
     "title": "导出图纸",
@@ -338,27 +353,30 @@
       "emptyPattern": "图案不能全为空",
       "jsonParse": "JSON 解析失败:",
       "categoryFieldsRequired": "分类 ID 与名称均必填",
-      "categoryExists": "该分类 ID 已存在"
+      "categoryExists": "该分类 ID 已存在",
+      "dbError": "数据库操作失败:",
+      "cloudNotConfigured": "云端未配置"
     },
     "gate": {
-      "title": "需要密码",
-      "hint": "该页面为模板库管理后台,请输入管理密码访问",
-      "password": "管理密码",
-      "unlock": "解锁",
-      "setTitle": "设置管理密码",
-      "setHint": "首次使用请先设置管理密码(至少 4 位)",
-      "confirm": "确认密码",
-      "setBtn": "设置并进入",
-      "wrongPin": "密码错误,请重试",
-      "mismatch": "两次输入的密码不一致",
-      "tooShort": "密码至少 4 位",
-      "updated": "管理密码已更新"
+      "setupTitle": "云端未配置",
+      "setupHint": "请按照 docs/SUPABASE_SETUP.md 完成 Supabase 配置(VITE_SUPABASE_URL / VITE_SUPABASE_ANON_KEY)后重新部署,即可使用账号体系与云端模板库",
+      "loginTitle": "管理员登录",
+      "loginHint": "请使用管理员账号登录以访问模板库后台(首次使用:注册 → 邮箱验证 → 授予 admin 权限)",
+      "loginBtn": "登录 / 注册",
+      "noPermission": "当前账号无管理员权限",
+      "noPermissionHint": "只有被标记为 admin 的账号才能访问后台,请与站点管理员联系",
+      "checking": "正在检查登录状态..."
     },
-    "changePassword": "修改密码",
-    "lock": "锁定",
-    "changePasswordTitle": "修改管理密码",
-    "oldPassword": "当前密码",
-    "newPassword": "新密码",
-    "confirmNewPassword": "确认新密码"
+    "signOut": "退出登录",
+    "resetPassword": "修改密码",
+    "resetSent": "密码重置邮件已发送,请查收邮箱",
+    "cloud": {
+      "migrateTitle": "迁移本地数据到云端",
+      "migrateHint": "将内置模板与当前设备 localStorage 中的自定义模板/分类一次性写入云端模板库(可重复执行,不会产生重复)",
+      "migrateBtn": "开始迁移",
+      "migrateDone": "迁移完成,共写入 {{n}} 个模板",
+      "migrateFail": "迁移失败:{{detail}}",
+      "localCounts": "待迁移:内置 {{builtin}} 个 + 本机自定义 {{custom}} 个"
+    }
   }
 }

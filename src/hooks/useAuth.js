@@ -1,84 +1,121 @@
-import { useState, useEffect } from 'react'
-import i18n from '../i18n/index.js'
+import { useState, useEffect, useCallback } from 'react'
+import { supabase } from '../services/supabase'
 
-const STORAGE_KEY = 'bead_studio_auth'
-
+/**
+ * 真实账号体系(Supabase Auth):
+ * 邮箱+密码注册(需邮箱验证)/ 登录 / 密码重置邮件 / 退出。
+ * 会话由 Supabase 管理(refresh token 持久化),跨设备同一账号登录。
+ * 管理员身份:profiles.role === 'admin'(见 supabase/migrations/0001_init.sql)。
+ * 云端未配置(VITE_SUPABASE_URL 缺失)时,本 hook 返回未登录状态,
+ * 不抛错 —— 站点其余功能可继续以本地模式运行。
+ */
 export function useAuth() {
   const [user, setUser] = useState(null)
+  const [isAdmin, setIsAdmin] = useState(false)
   const [loading, setLoading] = useState(true)
 
-  useEffect(() => {
-    // 从 localStorage 恢复登录状态
-    const saved = localStorage.getItem(STORAGE_KEY)
-    if (saved) {
-      try {
-        setUser(JSON.parse(saved))
-      } catch {
-        localStorage.removeItem(STORAGE_KEY)
-      }
+  const refreshProfile = useCallback(async (userId) => {
+    if (!supabase || !userId) {
+      setIsAdmin(false)
+      return
     }
-    setLoading(false)
+    try {
+      const { data } = await supabase
+        .from('profiles')
+        .select('role')
+        .eq('id', userId)
+        .maybeSingle()
+      setIsAdmin(data?.role === 'admin')
+    } catch {
+      setIsAdmin(false)
+    }
   }, [])
 
-  const login = (email, password) => {
-    return new Promise((resolve, reject) => {
-      setTimeout(() => {
-        // 简单验证演示
-        if (!email || !email.includes('@')) {
-          reject(new Error(i18n.t('errors.invalidEmail')))
-          return
-        }
-        if (password.length < 6) {
-          reject(new Error(i18n.t('errors.passwordTooShort')))
-          return
-        }
-
-        const userData = {
-          id: Date.now(),
-          email,
-          name: email.split('@')[0],
-          createdAt: new Date().toISOString()
-        }
-        setUser(userData)
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(userData))
-        resolve(userData)
-      }, 500)
+  // 会话恢复 + 实时监听登录态变化
+  useEffect(() => {
+    if (!supabase) {
+      setLoading(false)
+      return
+    }
+    let mounted = true
+    supabase.auth.getSession().then(({ data }) => {
+      if (!mounted) return
+      if (data.session?.user) {
+        setUser({
+          id: data.session.user.id,
+          email: data.session.user.email,
+          name: data.session.user.email?.split('@')[0] || '',
+        })
+        refreshProfile(data.session.user.id)
+      }
+      setLoading(false)
     })
-  }
 
-  const register = (email, password, confirmPassword) => {
-    return new Promise((resolve, reject) => {
-      setTimeout(() => {
-        if (!email || !email.includes('@')) {
-          reject(new Error(i18n.t('errors.invalidEmail')))
-          return
-        }
-        if (password.length < 6) {
-          reject(new Error(i18n.t('errors.passwordTooShort')))
-          return
-        }
-        if (password !== confirmPassword) {
-          reject(new Error(i18n.t('errors.passwordMismatch')))
-          return
-        }
-
-        const userData = {
-          id: Date.now(),
-          email,
-          name: email.split('@')[0],
-          createdAt: new Date().toISOString()
-        }
-        setUser(userData)
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(userData))
-        resolve(userData)
-      }, 500)
+    const { data: sub } = supabase.auth.onAuthStateChange((event, session) => {
+      if (event === 'SIGNED_OUT' || !session?.user) {
+        setUser(null)
+        setIsAdmin(false)
+        return
+      }
+      if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
+        setUser({
+          id: session.user.id,
+          email: session.user.email,
+          name: session.user.email?.split('@')[0] || '',
+        })
+        refreshProfile(session.user.id)
+      }
     })
-  }
 
-  const logout = () => {
+    return () => {
+      mounted = false
+      sub.subscription.unsubscribe()
+    }
+  }, [refreshProfile])
+
+  const login = useCallback(async (email, password) => {
+    if (!supabase) throw new Error('CLOUD_NOT_CONFIGURED')
+    const { error } = await supabase.auth.signInWithPassword({ email, password })
+    if (error) throw error
+    // 登录状态由 onAuthStateChange 统一更新
+  }, [])
+
+  const register = useCallback(async (email, password, confirmPassword) => {
+    if (!supabase) throw new Error('CLOUD_NOT_CONFIGURED')
+    if (password !== confirmPassword) {
+      throw new Error('PASSWORD_MISMATCH')
+    }
+    // 开启邮箱验证:注册后需点击邮件中的验证链接才能登录
+    const { error } = await supabase.auth.signUp({
+      email,
+      password,
+      options: { emailRedirectTo: window.location.origin },
+    })
+    if (error) throw error
+  }, [])
+
+  const resetPassword = useCallback(async (email) => {
+    if (!supabase) throw new Error('CLOUD_NOT_CONFIGURED')
+    const { error } = await supabase.auth.resetPasswordForEmail(email, {
+      redirectTo: window.location.origin,
+    })
+    if (error) throw error
+  }, [])
+
+  const logout = useCallback(async () => {
+    if (supabase) await supabase.auth.signOut()
     setUser(null)
-    localStorage.removeItem(STORAGE_KEY)
-  }
+    setIsAdmin(false)
+  }, [])
 
-  return { user, loading, login, register, logout }
+  return {
+    user,
+    isAdmin,
+    loading,
+    login,
+    register,
+    resetPassword,
+    logout,
+    refreshProfile,
+  }
 }

@@ -22,12 +22,24 @@
     "hasAccount": "すでにアカウントをお持ちの方？",
     "registerNow": "今すぐ登録",
     "loginNow": "今すぐログイン",
-    "processing": "処理中..."
+    "processing": "処理中...",
+    "forgotPassword": "パスワードをお忘れですか?",
+    "resetTitle": "パスワードリセット",
+    "resetHint": "登録済みのメールアドレスを入力してください。リセットリンクを送信します。",
+    "sendReset": "リセットリンクを送信",
+    "resetSent": "リセットリンクを送信しました。メールを確認してください。",
+    "verifyEmailTitle": "メールを認証してください",
+    "verifyEmailHint": "登録が完了しました!メールの認証リンクをクリックしてからログインしてください。"
   },
   "errors": {
     "invalidEmail": "有効なメールアドレスを入力してください",
     "passwordTooShort": "パスワードは6文字以上必要です",
-    "passwordMismatch": "パスワードが一致しません"
+    "passwordMismatch": "パスワードが一致しません",
+    "invalidCredentials": "メールアドレスまたはパスワードが正しくありません",
+    "emailNotConfirmed": "メールが未認証です。メール内のリンクを先にクリックしてください",
+    "emailInUse": "このメールアドレスは既に登録されています",
+    "tooManyAttempts": "試行回数が多すぎます。しばらくしてから再試行してください。",
+    "cloudNotConfigured": "クラウド未設定のためアカウント機能は利用できません"
   },
   "palette": {
     "title": "カラーパレット",
@@ -126,7 +138,10 @@
     "saveConfirm": "保存する",
     "savedToast": "マイ作品に保存しました",
     "exportProfessional": "専門モード（グリッド＋色ID）",
-    "exportRealistic": "展示モード（リアルなビーズ）"
+    "exportRealistic": "展示モード（リアルなビーズ）",
+    "cloudLoading": "クラウドテンプレートライブラリを読み込み中...",
+    "cloudEmpty": "クラウドテンプレートライブラリは空です",
+    "cloudEmptyHint": "管理者がログインし、「テンプレート管理」タブでローカルデータの移行を実行してください。"
   },
   "export": {
     "title": "エクスポート",
@@ -338,27 +353,30 @@
       "emptyPattern": "パターンをすべて空にすることはできません",
       "jsonParse": "JSON の解析に失敗:",
       "categoryFieldsRequired": "カテゴリ ID と名前は両方必須です",
-      "categoryExists": "このカテゴリ ID は既に存在します"
+      "categoryExists": "このカテゴリ ID は既に存在します",
+      "dbError": "データベース操作に失敗:",
+      "cloudNotConfigured": "クラウド未設定"
     },
     "gate": {
-      "title": "パスワードが必要です",
-      "hint": "これはテンプレートライブラリ管理画面です。管理パスワードを入力してください",
-      "password": "管理パスワード",
-      "unlock": "ロック解除",
-      "setTitle": "管理パスワードの設定",
-      "setHint": "初回設定:管理パスワードを設定してください(4 文字以上)",
-      "confirm": "パスワードの確認",
-      "setBtn": "設定して入る",
-      "wrongPin": "パスワードが違います。もう一度お試しください",
-      "mismatch": "パスワードが一致しません",
-      "tooShort": "パスワードは 4 文字以上にしてください",
-      "updated": "管理パスワードを更新しました"
+      "setupTitle": "クラウド未設定",
+      "setupHint": "docs/SUPABASE_SETUP.md に従って Supabase を設定(VITE_SUPABASE_URL / VITE_SUPABASE_ANON_KEY)し、再デプロイするとアカウントとクラウドテンプレートが利用できます。",
+      "loginTitle": "管理者ログイン",
+      "loginHint": "管理者アカウントでログインしてテンプレートライブラリを管理してください(初回:登録 → メール認証 → admin 権限付与)",
+      "loginBtn": "ログイン / 登録",
+      "noPermission": "管理者権限がありません",
+      "noPermissionHint": "admin とマークされたアカウントのみバックエンドにアクセスできます。サイト管理者に連絡してください。",
+      "checking": "セッションを確認中..."
     },
-    "changePassword": "パスワード変更",
-    "lock": "ロック",
-    "changePasswordTitle": "管理パスワードの変更",
-    "oldPassword": "現在のパスワード",
-    "newPassword": "新しいパスワード",
-    "confirmNewPassword": "新しいパスワードの確認"
+    "signOut": "ログアウト",
+    "resetPassword": "パスワード変更",
+    "resetSent": "パスワードリセットメールを送信しました。メールを確認してください。",
+    "cloud": {
+      "migrateTitle": "ローカルデータをクラウドへ移行",
+      "migrateHint": "内蔵テンプレートとこの端末の localStorage のカスタムテンプレート/カテゴリをクラウドに書き込みます(繰り返し実行しても重複しません)。",
+      "migrateBtn": "移行を開始",
+      "migrateDone": "移行完了:{{n}} 件のテンプレートを書き込みました",
+      "migrateFail": "移行に失敗:{{detail}}",
+      "localCounts": "移行対象:内蔵 {{builtin}} 件 + ローカルカスタム {{custom}} 件"
+    }
   }
 }

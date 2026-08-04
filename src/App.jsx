@@ -13,6 +13,7 @@ import { useResponsive } from './hooks/useResponsive'
 import { useHistory } from './hooks/useHistory'
 import { useSavedWorks } from './hooks/useSavedWorks'
 import MobileToolbar from './components/Tools/MobileToolbar'
+import useCloudTemplates from './hooks/useCloudTemplates'
 import MobileColorPalette from './components/ColorPalette/MobileColorPalette'
 import { getPalette, PALETTES } from './data/palettes'
 import { PrivacyPolicy, TermsOfService } from './components/LegalPages'
@@ -55,7 +56,9 @@ export default function App() {
   }, [])
 
   const { t } = useTranslation()
-  const { user, loading: authLoading, login, register, logout } = useAuth()
+  const { user, isAdmin, loading: authLoading, login, register, resetPassword, logout } = useAuth()
+  // 云端模板库(单个实例提升到 App,图库与后台共享同一份数据)
+  const cloudStore = useCloudTemplates()
   const { isMobile, isTablet } = useResponsive()
   const canvasRef = useRef(null)
   const [mobileScale, setMobileScale] = useState(1)
@@ -340,6 +343,7 @@ export default function App() {
           onClose={() => setShowAuth(false)}
           onLogin={login}
           onRegister={register}
+          onResetPassword={resetPassword}
           onSwitchMode={(mode) => setAuthMode(mode)}
           onNavigatePage={(page) => { setShowAuth(false); handlePageChange(page); }}
         />
@@ -455,6 +459,7 @@ export default function App() {
               onSaveWork={handleSaveWork}
               onLoadWork={handleLoadWork}
               savedWorks={savedWorks}
+              cloudStore={cloudStore}
             />
           </Suspense>
         )
@@ -467,7 +472,15 @@ export default function App() {
       case 'admin':
         return (
           <Suspense fallback={<div style={{ padding: 40, textAlign: 'center', color: 'var(--text-muted)' }}>加载中...</div>}>
-            <AdminPanel />
+            <AdminPanel
+              user={user}
+              isAdmin={isAdmin}
+              authLoading={authLoading}
+              onLogin={openLogin}
+              onLogout={logout}
+              onResetPassword={resetPassword}
+              cloudStore={cloudStore}
+            />
           </Suspense>
         )
       case 'privacy':
@@ -502,6 +515,7 @@ export default function App() {
           onClose={() => setShowAuth(false)}
           onLogin={login}
           onRegister={register}
+          onResetPassword={resetPassword}
           onSwitchMode={(mode) => setAuthMode(mode)}
           onNavigatePage={(page) => { setShowAuth(false); handlePageChange(page); }}
         />

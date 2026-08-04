@@ -22,12 +22,24 @@
     "hasAccount": "이미 계정이 있으신가요?",
     "registerNow": "지금 가입",
     "loginNow": "지금 로그인",
-    "processing": "처리 중..."
+    "processing": "처리 중...",
+    "forgotPassword": "비밀번호를 잊으셨나요?",
+    "resetTitle": "비밀번호 재설정",
+    "resetHint": "가입한 이메일을 입력하면 재설정 링크를 보내드립니다.",
+    "sendReset": "재설정 링크 보내기",
+    "resetSent": "재설정 링크를 보냈습니다. 메일함을 확인하세요.",
+    "verifyEmailTitle": "이메일을 인증하세요",
+    "verifyEmailHint": "가입 완료! 메일의 인증 링크를 클릭한 후 로그인하세요."
   },
   "errors": {
     "invalidEmail": "유효한 이메일 주소를 입력하세요",
     "passwordTooShort": "비밀번호는 6자 이상이어야 합니다",
-    "passwordMismatch": "비밀번호가 일치하지 않습니다"
+    "passwordMismatch": "비밀번호가 일치하지 않습니다",
+    "invalidCredentials": "이메일 또는 비밀번호가 올바르지 않습니다",
+    "emailNotConfirmed": "이메일이 아직 인증되지 않았습니다. 메일의 링크를 먼저 클릭하세요",
+    "emailInUse": "이미 가입된 이메일입니다",
+    "tooManyAttempts": "시도 횟수가 너무 많습니다. 잠시 후 다시 시도하세요.",
+    "cloudNotConfigured": "클라우드 미설정으로 계정 기능을 사용할 수 없습니다"
   },
   "palette": {
     "title": "색상 팔레트",
@@ -126,7 +138,10 @@
     "saveConfirm": "저장",
     "savedToast": "내 작품에 저장되었습니다",
     "exportProfessional": "전문가 모드 (격자 + ID)",
-    "exportRealistic": "전시 모드 (사실적인 비드)"
+    "exportRealistic": "전시 모드 (사실적인 비드)",
+    "cloudLoading": "클라우드 템플릿 라이브러리 로드 중...",
+    "cloudEmpty": "클라우드 템플릿 라이브러리가 비어 있습니다",
+    "cloudEmptyHint": "관리자가 로그인하여 '템플릿 관리' 탭에서 로컬 데이터 마이그레이션을 실행하세요."
   },
   "export": {
     "title": "패턴 내보내기",
@@ -338,27 +353,30 @@
       "emptyPattern": "패턴이 모두 비어 있을 수 없습니다",
       "jsonParse": "JSON 구문 분석 실패:",
       "categoryFieldsRequired": "카테고리 ID와 이름이 모두 필요합니다",
-      "categoryExists": "이 카테고리 ID가 이미 존재합니다"
+      "categoryExists": "이 카테고리 ID가 이미 존재합니다",
+      "dbError": "데이터베이스 작업 실패:",
+      "cloudNotConfigured": "클라우드 미설정"
     },
     "gate": {
-      "title": "비밀번호 필요",
-      "hint": "템플릿 라이브러리 관리 페이지입니다. 관리 비밀번호를 입력하세요",
-      "password": "관리 비밀번호",
-      "unlock": "잠금 해제",
-      "setTitle": "관리 비밀번호 설정",
-      "setHint": "첫 사용 시 관리 비밀번호를 설정하세요(4자 이상)",
-      "confirm": "비밀번호 확인",
-      "setBtn": "설정 후 입장",
-      "wrongPin": "비밀번호가 올바르지 않습니다. 다시 시도하세요",
-      "mismatch": "비밀번호가 일치하지 않습니다",
-      "tooShort": "비밀번호는 최소 4자 이상이어야 합니다",
-      "updated": "관리 비밀번호가 변경되었습니다"
+      "setupTitle": "클라우드 미설정",
+      "setupHint": "docs/SUPABASE_SETUP.md에 따라 Supabase를 설정(VITE_SUPABASE_URL / VITE_SUPABASE_ANON_KEY)하고 다시 배포하면 계정과 클라우드 템플릿 라이브러리를 사용할 수 있습니다.",
+      "loginTitle": "관리자 로그인",
+      "loginHint": "관리자 계정으로 로그인하여 템플릿 라이브러리를 관리하세요(첫 사용: 가입 → 이메일 인증 → admin 권한 부여)",
+      "loginBtn": "로그인 / 가입",
+      "noPermission": "관리자 권한이 없습니다",
+      "noPermissionHint": "admin으로 표시된 계정만 백엔드에 접근할 수 있습니다. 사이트 관리자에게 문의하세요.",
+      "checking": "세션 확인 중..."
     },
-    "changePassword": "비밀번호 변경",
-    "lock": "잠금",
-    "changePasswordTitle": "관리 비밀번호 변경",
-    "oldPassword": "현재 비밀번호",
-    "newPassword": "새 비밀번호",
-    "confirmNewPassword": "새 비밀번호 확인"
+    "signOut": "로그아웃",
+    "resetPassword": "비밀번호 변경",
+    "resetSent": "비밀번호 재설정 메일을 보냈습니다. 메일함을 확인하세요.",
+    "cloud": {
+      "migrateTitle": "로컬 데이터를 클라우드로 마이그레이션",
+      "migrateHint": "내장 템플릿과 이 기기의 localStorage 사용자 정의 템플릿/카테고리를 클라우드에 기록합니다(반복 실행해도 중복되지 않음).",
+      "migrateBtn": "마이그레이션 시작",
+      "migrateDone": "마이그레이션 완료: 템플릿 {{n}}개 기록",
+      "migrateFail": "마이그레이션 실패: {{detail}}",
+      "localCounts": "마이그레이션 대상: 내장 {{builtin}}개 + 로컬 사용자 정의 {{custom}}개"
+    }
   }
 }
