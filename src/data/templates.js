@@ -369,3 +369,94 @@ function generateRainbowPattern() {
 
 export const CATEGORIES = ['all', 'animal', 'food', 'icon', 'holiday']
 export const DIFFICULTIES = ['all', 'easy', 'medium', 'hard']
+
+// ─────────────────────────────────────────────────────────────
+// 自定义模板统一协议(AI Agent 可按下述格式直接生成可上传的模板 JSON)
+// {
+//   "name": "Pikachu",      // 必填:显示名称
+//   "nameZh": "皮卡丘",      // 可选:中文名称
+//   "category": "animal",   // 必填:分类 id(内置: animal/food/icon/holiday,或自定义分类 id)
+//   "difficulty": "easy",   // 可选: easy | medium | hard,默认 easy
+//   "pattern": [[null, "#FFD700", "#FFD700", null], ...]  // 必填:二维数组,元素为 #RRGGBB 或 null
+// }
+// colors 字段可省略 —— 前端展示的珠子圆点由系统从 pattern 自动识别。
+// ─────────────────────────────────────────────────────────────
+const HEX_RE = /^#[0-9a-fA-F]{6}$/
+const DIFFICULTY_IDS = ['easy', 'medium', 'hard']
+
+// 从 pattern 提取用到的颜色(按首次出现顺序)
+export function extractPatternColors(pattern) {
+  const seen = []
+  for (const row of pattern || []) {
+    for (const cell of row || []) {
+      if (cell && !seen.includes(cell)) seen.push(cell)
+    }
+  }
+  return seen
+}
+
+// 校验 + 规范化自定义模板输入,返回 { ok, template?, errors?: [{ code, detail? }] }
+export function normalizeCustomTemplate(input) {
+  const errors = []
+  if (!input || typeof input !== 'object' || Array.isArray(input)) {
+    return { ok: false, errors: [{ code: 'notObject' }] }
+  }
+  const name = typeof input.name === 'string' ? input.name.trim() : ''
+  if (!name) errors.push({ code: 'nameRequired' })
+  const category = typeof input.category === 'string' ? input.category.trim() : ''
+  if (!category) errors.push({ code: 'categoryRequired' })
+  const difficulty = DIFFICULTY_IDS.includes(input.difficulty) ? input.difficulty : 'easy'
+  const nameZh = typeof input.nameZh === 'string' ? input.nameZh.trim() : ''
+
+  const pattern = input.pattern
+  if (!Array.isArray(pattern) || pattern.length === 0) {
+    errors.push({ code: 'patternRequired' })
+    return { ok: false, errors }
+  }
+
+  const normalized = []
+  let nonEmpty = 0
+  let maxRowLen = 0
+  for (let y = 0; y < pattern.length; y++) {
+    const row = pattern[y]
+    if (!Array.isArray(row)) {
+      errors.push({ code: 'rowNotArray', detail: `(行 ${y + 1})` })
+      continue
+    }
+    if (row.length === 0) {
+      errors.push({ code: 'emptyRow', detail: `(行 ${y + 1})` })
+      continue
+    }
+    const normRow = []
+    for (let x = 0; x < row.length; x++) {
+      const cell = row[x]
+      if (cell === null || cell === undefined || cell === '') {
+        normRow.push(null)
+      } else if (typeof cell === 'string' && HEX_RE.test(cell)) {
+        normRow.push(cell.toUpperCase())
+        nonEmpty++
+      } else {
+        errors.push({ code: 'invalidColor', detail: `(行 ${y + 1}, 列 ${x + 1}): ${String(cell).slice(0, 12)}` })
+      }
+    }
+    maxRowLen = Math.max(maxRowLen, normRow.length)
+    normalized.push(normRow)
+  }
+  if (nonEmpty === 0) errors.push({ code: 'emptyPattern' })
+  if (errors.length > 0) return { ok: false, errors }
+
+  const size = Math.max(normalized.length, maxRowLen)
+  return {
+    ok: true,
+    template: {
+      id: null, // 由调用方(useCustomTemplates)分配
+      name,
+      nameZh,
+      category,
+      difficulty,
+      size,
+      colors: extractPatternColors(normalized),
+      pattern: normalized,
+    },
+  }
+}

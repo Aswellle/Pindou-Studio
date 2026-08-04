@@ -21,6 +21,7 @@ import MobileCanvasInfoBar from './components/MobileCanvasInfoBar'
 const Gallery = lazy(() => import('./components/Gallery'))
 const Tutorials = lazy(() => import('./components/Tutorials'))
 const ImageQuantizer = lazy(() => import('./components/ImageQuantizer/ImageQuantizer'))
+const AdminPanel = lazy(() => import('./components/AdminPanel'))
 
 export default function App() {
   // iOS Safari 视口测量：window.innerHeight 返回的是「大视口」高度
@@ -461,6 +462,12 @@ export default function App() {
         return (
           <Suspense fallback={<div style={{ padding: 40, textAlign: 'center', color: 'var(--text-muted)' }}>加载中...</div>}>
             <Tutorials />
+          </Suspense>
+        )
+      case 'admin':
+        return (
+          <Suspense fallback={<div style={{ padding: 40, textAlign: 'center', color: 'var(--text-muted)' }}>加载中...</div>}>
+            <AdminPanel />
           </Suspense>
         )
       case 'privacy':

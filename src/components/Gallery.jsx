@@ -1,8 +1,11 @@
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useMemo } from 'react'
+import { createPortal } from 'react-dom'
 import { useTranslation } from 'react-i18next'
-import { TEMPLATES, CATEGORIES, DIFFICULTIES } from '../data/templates'
+import { TEMPLATES, CATEGORIES, DIFFICULTIES, extractPatternColors } from '../data/templates'
 import { getPalette } from '../data/palettes'
 import { exportAsPNG } from '../services/BeadPatternExporter'
+import useCustomTemplates from '../hooks/useCustomTemplates'
+import ThumbnailCanvas from './ThumbnailCanvas'
 
 const CELL_SIZE = 8
 
@@ -15,6 +18,17 @@ const resolveToHex = (colorVal, palette) => {
 
 export default function Gallery({ onLoadTemplate, onSaveWork, onLoadWork, savedWorks = [] }) {
   const { t } = useTranslation()
+  // 自定义模板(后台管理页上传)与内置模板合并展示,自定义在前
+  const customStore = useCustomTemplates()
+  const allTemplates = useMemo(() => [...customStore.templates, ...TEMPLATES], [customStore.templates])
+  const categoryOptions = useMemo(
+    () => [...new Set([...CATEGORIES, ...customStore.categories.map(c => c.id)])],
+    [customStore.categories]
+  )
+  const getCategoryLabel = (cat) => {
+    const custom = customStore.categories.find(c => c.id === cat)
+    return custom ? custom.label : t(`gallery.categories.${cat}`, cat)
+  }
   const [searchTerm, setSearchTerm] = useState('')
   const [selectedCategory, setSelectedCategory] = useState('all')
   const [selectedDifficulty, setSelectedDifficulty] = useState('all')
@@ -38,19 +52,20 @@ export default function Gallery({ onLoadTemplate, onSaveWork, onLoadWork, savedW
     return () => document.removeEventListener('click', close)
   }, [exportMenuId])
 
-  const filteredTemplates = TEMPLATES.filter(template => {
-    const translatedName = t(`templates.names.${template.nameKey}`, template.nameKey)
-    const matchesSearch = translatedName.toLowerCase().includes(searchTerm.toLowerCase())
+  const filteredTemplates = allTemplates.filter(template => {
+    const displayName = (template.nameZh || template.name || '').toLowerCase()
+    const translatedName = t(`templates.names.${template.nameKey}`, template.nameKey).toLowerCase()
+    const matchesSearch = (displayName || translatedName).includes(searchTerm.toLowerCase())
     const matchesCategory = selectedCategory === 'all' || template.category === selectedCategory
     const matchesDifficulty = selectedDifficulty === 'all' || template.difficulty === selectedDifficulty
-    const matchesFavorite = !showFavorites || favorites.includes(template.id)
+    const matchesFavorite = !showFavorites || favorites.some(f => String(f) === String(template.id))
     return matchesSearch && matchesCategory && matchesDifficulty && matchesFavorite
   })
 
   const toggleFavorite = (id, e) => {
     e.stopPropagation()
     setFavorites(prev =>
-      prev.includes(id) ? prev.filter(f => f !== id) : [...prev, id]
+      prev.some(f => String(f) === String(id)) ? prev.filter(f => String(f) !== String(id)) : [...prev, id]
     )
   }
 
@@ -129,13 +144,13 @@ export default function Gallery({ onLoadTemplate, onSaveWork, onLoadWork, savedW
       <div className="category-bar">
         <div className="category-group">
           <span className="category-label">{t('gallery.category')}</span>
-          {CATEGORIES.map(cat => (
+          {categoryOptions.map(cat => (
             <button
               key={cat}
               className={`category-btn ${selectedCategory === cat ? 'active' : ''}`}
               onClick={() => setSelectedCategory(cat)}
             >
-              {t(`gallery.categories.${cat}`)}
+              {getCategoryLabel(cat)}
             </button>
           ))}
         </div>
@@ -248,7 +263,7 @@ export default function Gallery({ onLoadTemplate, onSaveWork, onLoadWork, savedW
                 <div className="template-thumbnail">
                   <ThumbnailCanvas pattern={template.pattern} size={template.size} />
                   <button
-                    className={`favorite-btn ${favorites.includes(template.id) ? 'active' : ''}`}
+                    className={`favorite-btn ${favorites.some(f => String(f) === String(template.id)) ? 'active' : ''}`}
                     onClick={(e) => toggleFavorite(template.id, e)}
                   >
                     <svg width="16" height="16" viewBox="0 0 24 24" fill={favorites.includes(template.id) ? 'var(--accent)' : 'none'} stroke="var(--accent)" strokeWidth="2">
@@ -280,14 +295,13 @@ export default function Gallery({ onLoadTemplate, onSaveWork, onLoadWork, savedW
                     )}
                   </button>
 
-                  {exportMenuId === template.id && (
-                    <>
-                      {/* 移动端遮罩:点击遮罩关闭(阻止冒泡到卡片的加载模板) */}
-                      <div
-                        className="export-menu-backdrop"
-                        onClick={e => { e.stopPropagation(); setExportMenuId(null) }}
-                        aria-hidden="true"
-                      />
+                  {exportMenuId === template.id && createPortal(
+                    // portal 到 document.body:彻底脱离模板卡片的 overflow:hidden 与
+                    // 任何祖先 transform/包含块陷阱,对话框永不被卡片边框裁剪
+                    <div
+                      className="export-menu-overlay"
+                      onClick={e => { e.stopPropagation(); setExportMenuId(null) }}
+                    >
                       <div className="export-menu" role="menu" onClick={e => e.stopPropagation()}>
                         <button role="menuitem" onClick={e => handleExportTemplate(template, 'professional', e)}>
                           {t('gallery.exportProfessional')}
@@ -296,11 +310,14 @@ export default function Gallery({ onLoadTemplate, onSaveWork, onLoadWork, savedW
                           {t('gallery.exportRealistic')}
                         </button>
                       </div>
-                    </>
+                    </div>,
+                    document.body
                   )}
                 </div>
                 <div className="template-info">
-                  <h3 className="template-name">{t(`templates.names.${template.nameKey}`, template.nameKey)}</h3>
+                  <h3 className="template-name">
+                    {template.name ? (template.nameZh || template.name) : t(`templates.names.${template.nameKey}`, template.nameKey)}
+                  </h3>
                   <div className="template-meta">
                     <span className="template-size">{template.size} x {template.size}</span>
                     <span
@@ -310,14 +327,16 @@ export default function Gallery({ onLoadTemplate, onSaveWork, onLoadWork, savedW
                       {t(`gallery.difficulties.${template.difficulty}`)}
                     </span>
                   </div>
-                  <span className="template-category">{t(`gallery.categories.${template.category}`)}</span>
+                  <span className="template-category">{getCategoryLabel(template.category)}</span>
                 </div>
+                {/* 珠子颜色圆点由系统从 pattern 自动识别(统一协议可省略 colors 字段) */}
                 <div className="template-colors">
-                  {template.colors.map((color, i) => (
+                  {extractPatternColors(template.pattern).map((color, i) => (
                     <span
                       key={i}
                       className="color-dot"
                       style={{ backgroundColor: color }}
+                      title={color}
                     />
                   ))}
                 </div>
@@ -458,28 +477,6 @@ export default function Gallery({ onLoadTemplate, onSaveWork, onLoadWork, savedW
             grid-template-columns: repeat(2, 1fr);
             gap: 12px;
           }
-          /* 移动端导出对话框改为屏幕居中的对话框,不再受卡片
-             overflow:hidden / 边框裁剪,弹在视口正中便于点按 */
-          .export-menu-backdrop {
-            display: block;
-          }
-          .export-menu {
-            position: fixed;
-            left: 50%;
-            top: 50%;
-            transform: translate(-50%, -50%);
-            bottom: auto;
-            right: auto;
-            z-index: 1001;
-            min-width: 240px;
-            width: min(320px, calc(100vw - 48px));
-          }
-          /* iOS 粘滞 :hover 会给卡片加上 transform,而 transform 会把
-             fixed 后代(上面的导出对话框)的包含块锁定在卡片内,
-             导致对话框定位失效,故移动端禁用卡片的 hover 位移 */
-          .template-card:hover {
-            transform: none;
-          }
         }
         .template-card {
           background: var(--bg-primary);
@@ -549,17 +546,26 @@ export default function Gallery({ onLoadTemplate, onSaveWork, onLoadWork, savedW
           opacity: 0.6;
           cursor: default;
         }
+        /* 导出对话框由 .export-menu-overlay(fixed 全屏遮罩 + flex 居中)承载,
+           portal 渲染到 document.body,不被卡片容器裁剪 */
+        .export-menu-overlay {
+          position: fixed;
+          inset: 0;
+          background: rgba(0, 0, 0, 0.4);
+          z-index: 1000;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          padding: 16px;
+          box-sizing: border-box;
+        }
         .export-menu {
-          position: absolute;
-          bottom: 44px;
-          right: 8px;
           background: var(--bg-primary);
           border: 1px solid var(--border-color);
           border-radius: 8px;
-          box-shadow: 0 4px 16px rgba(43,36,32,0.14);
-          z-index: 10;
+          box-shadow: 0 4px 16px rgba(43,36,32,0.2);
           overflow: hidden;
-          min-width: 210px;
+          width: min(320px, 100%);
         }
         .export-menu button {
           display: block;
@@ -574,14 +580,6 @@ export default function Gallery({ onLoadTemplate, onSaveWork, onLoadWork, savedW
         }
         .export-menu button:hover {
           background: var(--bg-secondary);
-        }
-        /* 移动端遮罩(默认隐藏,≤640px 显示)。fixed 定位 + z-index 压在卡片上方 */
-        .export-menu-backdrop {
-          position: fixed;
-          inset: 0;
-          background: rgba(0, 0, 0, 0.4);
-          z-index: 1000;
-          display: none;
         }
         @keyframes spin {
           from { transform: rotate(0deg); }
@@ -725,36 +723,5 @@ export default function Gallery({ onLoadTemplate, onSaveWork, onLoadWork, savedW
         }
       `}</style>
     </div>
-  )
-}
-
-function ThumbnailCanvas({ pattern, size }) {
-  const canvasRef = useRef(null)
-
-  useEffect(() => {
-    const canvas = canvasRef.current
-    if (!canvas || !pattern) return
-
-    const ctx = canvas.getContext('2d')
-    ctx.fillStyle = '#ffffff'
-    ctx.fillRect(0, 0, size * CELL_SIZE, size * CELL_SIZE)
-
-    for (let y = 0; y < size && y < pattern.length; y++) {
-      for (let x = 0; x < size && pattern[y] && x < pattern[y].length; x++) {
-        if (pattern[y][x]) {
-          ctx.fillStyle = pattern[y][x]
-          ctx.fillRect(x * CELL_SIZE, y * CELL_SIZE, CELL_SIZE - 1, CELL_SIZE - 1)
-        }
-      }
-    }
-  }, [pattern, size])
-
-  return (
-    <canvas
-      ref={canvasRef}
-      width={size * CELL_SIZE}
-      height={size * CELL_SIZE}
-      style={{ imageRendering: 'pixel' }}
-    />
   )
 }

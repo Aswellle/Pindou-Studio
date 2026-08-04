@@ -8,7 +8,8 @@ export default function Header({ user, onLogin, onRegister, onLogout, onSave, cu
   const navItems = [
     { id: 'canvas', label: t('nav.canvas') },
     { id: 'gallery', label: t('nav.gallery') },
-    { id: 'tutorials', label: t('nav.tutorials') }
+    { id: 'tutorials', label: t('nav.tutorials') },
+    { id: 'admin', label: t('nav.admin') }
   ]
 
   return (
