@@ -339,6 +339,26 @@
       "jsonParse": "JSON 解析失败:",
       "categoryFieldsRequired": "分类 ID 与名称均必填",
       "categoryExists": "该分类 ID 已存在"
-    }
+    },
+    "gate": {
+      "title": "需要密码",
+      "hint": "该页面为模板库管理后台,请输入管理密码访问",
+      "password": "管理密码",
+      "unlock": "解锁",
+      "setTitle": "设置管理密码",
+      "setHint": "首次使用请先设置管理密码(至少 4 位)",
+      "confirm": "确认密码",
+      "setBtn": "设置并进入",
+      "wrongPin": "密码错误,请重试",
+      "mismatch": "两次输入的密码不一致",
+      "tooShort": "密码至少 4 位",
+      "updated": "管理密码已更新"
+    },
+    "changePassword": "修改密码",
+    "lock": "锁定",
+    "changePasswordTitle": "修改管理密码",
+    "oldPassword": "当前密码",
+    "newPassword": "新密码",
+    "confirmNewPassword": "确认新密码"
   }
 }

@@ -339,6 +339,26 @@
       "jsonParse": "JSON の解析に失敗:",
       "categoryFieldsRequired": "カテゴリ ID と名前は両方必須です",
       "categoryExists": "このカテゴリ ID は既に存在します"
-    }
+    },
+    "gate": {
+      "title": "パスワードが必要です",
+      "hint": "これはテンプレートライブラリ管理画面です。管理パスワードを入力してください",
+      "password": "管理パスワード",
+      "unlock": "ロック解除",
+      "setTitle": "管理パスワードの設定",
+      "setHint": "初回設定:管理パスワードを設定してください(4 文字以上)",
+      "confirm": "パスワードの確認",
+      "setBtn": "設定して入る",
+      "wrongPin": "パスワードが違います。もう一度お試しください",
+      "mismatch": "パスワードが一致しません",
+      "tooShort": "パスワードは 4 文字以上にしてください",
+      "updated": "管理パスワードを更新しました"
+    },
+    "changePassword": "パスワード変更",
+    "lock": "ロック",
+    "changePasswordTitle": "管理パスワードの変更",
+    "oldPassword": "現在のパスワード",
+    "newPassword": "新しいパスワード",
+    "confirmNewPassword": "新しいパスワードの確認"
   }
 }

@@ -339,6 +339,26 @@
       "jsonParse": "JSON 구문 분석 실패:",
       "categoryFieldsRequired": "카테고리 ID와 이름이 모두 필요합니다",
       "categoryExists": "이 카테고리 ID가 이미 존재합니다"
-    }
+    },
+    "gate": {
+      "title": "비밀번호 필요",
+      "hint": "템플릿 라이브러리 관리 페이지입니다. 관리 비밀번호를 입력하세요",
+      "password": "관리 비밀번호",
+      "unlock": "잠금 해제",
+      "setTitle": "관리 비밀번호 설정",
+      "setHint": "첫 사용 시 관리 비밀번호를 설정하세요(4자 이상)",
+      "confirm": "비밀번호 확인",
+      "setBtn": "설정 후 입장",
+      "wrongPin": "비밀번호가 올바르지 않습니다. 다시 시도하세요",
+      "mismatch": "비밀번호가 일치하지 않습니다",
+      "tooShort": "비밀번호는 최소 4자 이상이어야 합니다",
+      "updated": "관리 비밀번호가 변경되었습니다"
+    },
+    "changePassword": "비밀번호 변경",
+    "lock": "잠금",
+    "changePasswordTitle": "관리 비밀번호 변경",
+    "oldPassword": "현재 비밀번호",
+    "newPassword": "새 비밀번호",
+    "confirmNewPassword": "새 비밀번호 확인"
   }
 }

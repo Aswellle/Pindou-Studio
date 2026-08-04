@@ -19,16 +19,200 @@ const EXAMPLE_JSON = JSON.stringify({
   ],
 }, null, 2)
 
+// ─────────────────────────────────────────────────────────────
+// 管理密码门禁
+// 无后端,账号注册可被任何人自建,故用「管理密码」保护后台:
+// 密码以 SHA-256 哈希存 localStorage(admin-pin-hash);
+// 解锁状态存 sessionStorage(admin-unlocked),刷新当前标签页需重新输入,
+// 新建标签页需重新解锁,可手动锁定。
+// ─────────────────────────────────────────────────────────────
+const PIN_KEY = 'admin-pin-hash'
+const UNLOCK_KEY = 'admin-unlocked'
+const MIN_PIN_LENGTH = 4
+
+async function sha256(text) {
+  const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(text))
+  return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2, '0')).join('')
+}
+
 export default function AdminPanel() {
   const { t } = useTranslation()
   const store = useCustomTemplates()
   const [tab, setTab] = useState('templates')
+  const [unlocked, setUnlocked] = useState(() => sessionStorage.getItem(UNLOCK_KEY) === '1')
+  const [hasPin, setHasPin] = useState(() => !!localStorage.getItem(PIN_KEY))
+  const [pinInput, setPinInput] = useState('')
+  const [setupPin, setSetupPin] = useState('')
+  const [setupPin2, setSetupPin2] = useState('')
+  const [gateError, setGateError] = useState('')
+  const [showChangePin, setShowChangePin] = useState(false)
+  const [oldPin, setOldPin] = useState('')
+  const [newPin, setNewPin] = useState('')
+  const [newPin2, setNewPin2] = useState('')
+  const [pinMessage, setPinMessage] = useState('')
+
+  const handleUnlock = async () => {
+    if (!pinInput) return
+    const hash = await sha256(pinInput)
+    if (hash === localStorage.getItem(PIN_KEY)) {
+      sessionStorage.setItem(UNLOCK_KEY, '1')
+      setUnlocked(true)
+      setGateError('')
+      setPinInput('')
+    } else {
+      setGateError(t('admin.gate.wrongPin'))
+      setPinInput('')
+    }
+  }
+
+  const handleSetup = async () => {
+    if (setupPin.length < MIN_PIN_LENGTH) { setGateError(t('admin.gate.tooShort')); return }
+    if (setupPin !== setupPin2) { setGateError(t('admin.gate.mismatch')); return }
+    localStorage.setItem(PIN_KEY, await sha256(setupPin))
+    sessionStorage.setItem(UNLOCK_KEY, '1')
+    setHasPin(true)
+    setUnlocked(true)
+    setGateError('')
+  }
+
+  const handleChangePin = async () => {
+    if ((await sha256(oldPin)) !== localStorage.getItem(PIN_KEY)) {
+      setGateError(t('admin.gate.wrongPin'))
+      return
+    }
+    if (newPin.length < MIN_PIN_LENGTH) { setGateError(t('admin.gate.tooShort')); return }
+    if (newPin !== newPin2) { setGateError(t('admin.gate.mismatch')); return }
+    localStorage.setItem(PIN_KEY, await sha256(newPin))
+    setOldPin('')
+    setNewPin('')
+    setNewPin2('')
+    setGateError('')
+    setShowChangePin(false)
+    setPinMessage(t('admin.gate.updated'))
+    setTimeout(() => setPinMessage(''), 2000)
+  }
+
+  const handleLock = () => {
+    sessionStorage.removeItem(UNLOCK_KEY)
+    setUnlocked(false)
+    setShowChangePin(false)
+  }
+
+  // 未解锁 → 密码门禁界面
+  if (!unlocked) {
+    return (
+      <div className="admin-panel">
+        <div className="admin-gate">
+          <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" strokeWidth="1.8">
+            <rect x="3" y="11" width="18" height="11" rx="2" />
+            <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+          </svg>
+          <h1 className="admin-title">{hasPin ? t('admin.gate.title') : t('admin.gate.setTitle')}</h1>
+          <p className="admin-subtitle">{hasPin ? t('admin.gate.hint') : t('admin.gate.setHint')}</p>
+
+          {hasPin ? (
+            <>
+              <input
+                className="admin-input"
+                type="password"
+                autoFocus
+                placeholder={t('admin.gate.password')}
+                value={pinInput}
+                onChange={e => { setPinInput(e.target.value); setGateError('') }}
+                onKeyDown={e => { if (e.key === 'Enter') handleUnlock() }}
+              />
+              <button className="admin-btn primary" onClick={handleUnlock}>{t('admin.gate.unlock')}</button>
+            </>
+          ) : (
+            <>
+              <input
+                className="admin-input"
+                type="password"
+                autoFocus
+                placeholder={t('admin.gate.password')}
+                value={setupPin}
+                onChange={e => { setSetupPin(e.target.value); setGateError('') }}
+              />
+              <input
+                className="admin-input"
+                type="password"
+                placeholder={t('admin.gate.confirm')}
+                value={setupPin2}
+                onChange={e => { setSetupPin2(e.target.value); setGateError('') }}
+                onKeyDown={e => { if (e.key === 'Enter') handleSetup() }}
+              />
+              <button className="admin-btn primary" onClick={handleSetup}>{t('admin.gate.setBtn')}</button>
+            </>
+          )}
+
+          {gateError && <div className="admin-gate-error">{gateError}</div>}
+        </div>
+        <style>{`
+          .admin-gate {
+            max-width: 360px;
+            margin: 40px auto;
+            background: var(--bg-primary);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-card);
+            padding: 28px 24px;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            text-align: center;
+          }
+          .admin-gate svg { margin: 0 auto; }
+          .admin-gate .admin-input { text-align: center; }
+          .admin-gate .admin-btn { align-self: center; padding: 8px 32px; }
+          .admin-gate-error {
+            color: var(--error);
+            font-size: var(--text-sm);
+          }
+        `}</style>
+      </div>
+    )
+  }
 
   return (
     <div className="admin-panel">
       <div className="admin-header">
         <h1 className="admin-title">{t('admin.title')}</h1>
         <p className="admin-subtitle">{t('admin.subtitle')}</p>
+        <div className="admin-actions" style={{ marginTop: 8 }}>
+          <button className="admin-btn secondary small" onClick={() => { setShowChangePin(!showChangePin); setGateError('') }}>
+            {t('admin.changePassword')}
+          </button>
+          <button className="admin-btn secondary small" onClick={handleLock}>
+            {t('admin.lock')}
+          </button>
+        </div>
+        {pinMessage && <div className="admin-result ok" style={{ marginTop: 8 }}>{pinMessage}</div>}
+        {showChangePin && (
+          <div className="admin-card" style={{ marginTop: 12 }}>
+            <h3>{t('admin.changePasswordTitle')}</h3>
+            <div className="admin-field">
+              <label>{t('admin.oldPassword')}</label>
+              <input className="admin-input" type="password" value={oldPin}
+                onChange={e => { setOldPin(e.target.value); setGateError('') }} />
+            </div>
+            <div className="admin-grid-2">
+              <div className="admin-field">
+                <label>{t('admin.newPassword')}</label>
+                <input className="admin-input" type="password" value={newPin}
+                  onChange={e => { setNewPin(e.target.value); setGateError('') }} />
+              </div>
+              <div className="admin-field">
+                <label>{t('admin.confirmNewPassword')}</label>
+                <input className="admin-input" type="password" value={newPin2}
+                  onChange={e => { setNewPin2(e.target.value); setGateError('') }} />
+              </div>
+            </div>
+            {gateError && <div className="admin-gate-error">{gateError}</div>}
+            <div className="admin-actions">
+              <button className="admin-btn primary" onClick={handleChangePin}>{t('admin.save')}</button>
+              <button className="admin-btn secondary" onClick={() => { setShowChangePin(false); setGateError('') }}>{t('admin.cancel')}</button>
+            </div>
+          </div>
+        )}
       </div>
 
       <div className="admin-tabs">

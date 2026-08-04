@@ -339,6 +339,26 @@
       "jsonParse": "JSON parse failed:",
       "categoryFieldsRequired": "Both category ID and label are required",
       "categoryExists": "This category ID already exists"
-    }
+    },
+    "gate": {
+      "title": "Password Required",
+      "hint": "This is the template library admin. Enter the admin password to continue.",
+      "password": "Admin password",
+      "unlock": "Unlock",
+      "setTitle": "Set Admin Password",
+      "setHint": "First-time setup: choose an admin password (at least 4 characters).",
+      "confirm": "Confirm password",
+      "setBtn": "Set & Enter",
+      "wrongPin": "Incorrect password, try again",
+      "mismatch": "Passwords do not match",
+      "tooShort": "Password must be at least 4 characters",
+      "updated": "Admin password updated"
+    },
+    "changePassword": "Change Password",
+    "lock": "Lock",
+    "changePasswordTitle": "Change Admin Password",
+    "oldPassword": "Current password",
+    "newPassword": "New password",
+    "confirmNewPassword": "Confirm new password"
   }
 }
