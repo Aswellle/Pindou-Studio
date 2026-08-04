@@ -281,14 +281,22 @@ export default function Gallery({ onLoadTemplate, onSaveWork, onLoadWork, savedW
                   </button>
 
                   {exportMenuId === template.id && (
-                    <div className="export-menu" role="menu" onClick={e => e.stopPropagation()}>
-                      <button role="menuitem" onClick={e => handleExportTemplate(template, 'professional', e)}>
-                        {t('gallery.exportProfessional')}
-                      </button>
-                      <button role="menuitem" onClick={e => handleExportTemplate(template, 'realistic', e)}>
-                        {t('gallery.exportRealistic')}
-                      </button>
-                    </div>
+                    <>
+                      {/* 移动端遮罩:点击遮罩关闭(阻止冒泡到卡片的加载模板) */}
+                      <div
+                        className="export-menu-backdrop"
+                        onClick={e => { e.stopPropagation(); setExportMenuId(null) }}
+                        aria-hidden="true"
+                      />
+                      <div className="export-menu" role="menu" onClick={e => e.stopPropagation()}>
+                        <button role="menuitem" onClick={e => handleExportTemplate(template, 'professional', e)}>
+                          {t('gallery.exportProfessional')}
+                        </button>
+                        <button role="menuitem" onClick={e => handleExportTemplate(template, 'realistic', e)}>
+                          {t('gallery.exportRealistic')}
+                        </button>
+                      </div>
+                    </>
                   )}
                 </div>
                 <div className="template-info">
@@ -450,6 +458,28 @@ export default function Gallery({ onLoadTemplate, onSaveWork, onLoadWork, savedW
             grid-template-columns: repeat(2, 1fr);
             gap: 12px;
           }
+          /* 移动端导出对话框改为屏幕居中的对话框,不再受卡片
+             overflow:hidden / 边框裁剪,弹在视口正中便于点按 */
+          .export-menu-backdrop {
+            display: block;
+          }
+          .export-menu {
+            position: fixed;
+            left: 50%;
+            top: 50%;
+            transform: translate(-50%, -50%);
+            bottom: auto;
+            right: auto;
+            z-index: 1001;
+            min-width: 240px;
+            width: min(320px, calc(100vw - 48px));
+          }
+          /* iOS 粘滞 :hover 会给卡片加上 transform,而 transform 会把
+             fixed 后代(上面的导出对话框)的包含块锁定在卡片内,
+             导致对话框定位失效,故移动端禁用卡片的 hover 位移 */
+          .template-card:hover {
+            transform: none;
+          }
         }
         .template-card {
           background: var(--bg-primary);
@@ -544,6 +574,14 @@ export default function Gallery({ onLoadTemplate, onSaveWork, onLoadWork, savedW
         }
         .export-menu button:hover {
           background: var(--bg-secondary);
+        }
+        /* 移动端遮罩(默认隐藏,≤640px 显示)。fixed 定位 + z-index 压在卡片上方 */
+        .export-menu-backdrop {
+          position: fixed;
+          inset: 0;
+          background: rgba(0, 0, 0, 0.4);
+          z-index: 1000;
+          display: none;
         }
         @keyframes spin {
           from { transform: rotate(0deg); }

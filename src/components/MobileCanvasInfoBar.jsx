@@ -84,6 +84,9 @@ export default function MobileCanvasInfoBar({
           transition: all 0.2s;
           font-family: inherit;
           white-space: nowrap;
+          /* 与「重置」按钮拉开间距(容器 gap 6px + 此处 6px = 12px),
+             减少移动端误触,不改变按钮大小与样式 */
+          margin-left: 6px;
         }
         .info-fit-btn:hover {
           background: var(--accent-hover);

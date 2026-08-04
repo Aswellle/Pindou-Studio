@@ -112,4 +112,52 @@ describe('Canvas grid rendering + click-to-fill wiring', () => {
     const committed = onCanvasChange.mock.calls[0][0]
     expect(committed[1][1]).toBe('#ff0000')
   })
+
+  // 触控:pinch 缩放时有一根手指抬起后,剩余手指的抬起不得被当作点按填色。
+  // 回归背景:2→1 切换时 touchEnd 会把剩余手指重登记为单指起点,
+  // 最后一指抬起时命中"单指点击"分支而填色(真实业务只允许单指起落填色)。
+  test('pinch zoom does not fill a cell when one finger lifts and the last one lifts', () => {
+    const { container, onCanvasChange } = renderCanvas()
+    const canvasContainer = container.querySelector('.canvas-container')
+
+    // 双指落下 → 开始 pinch
+    fireEvent.touchStart(canvasContainer, {
+      touches: [
+        { clientX: 16, clientY: 24, identifier: 0 },
+        { clientX: 32, clientY: 24, identifier: 1 },
+      ],
+    })
+    // 双指张开 → 缩放
+    fireEvent.touchMove(canvasContainer, {
+      touches: [
+        { clientX: 8, clientY: 24, identifier: 0 },
+        { clientX: 40, clientY: 24, identifier: 1 },
+      ],
+    })
+    // 一根手指抬起(剩余一根落在格子上)
+    fireEvent.touchEnd(canvasContainer, {
+      touches: [{ clientX: 24, clientY: 24, identifier: 1 }],
+    })
+    // 最后一根手指抬起
+    fireEvent.touchEnd(canvasContainer, { touches: [] })
+
+    // pinch 后的手指抬起不得触发填色/提交
+    expect(onCanvasChange).not.toHaveBeenCalled()
+    const cellFills = mock.calls.fillRect.filter(r => r.x === 16 && r.y === 16 && r.w === 16 && r.h === 16)
+    expect(cellFills).toHaveLength(0)
+  })
+
+  // 正向对照:普通单指点按仍要填色(防误伤)
+  test('single-finger tap on a cell still fills', () => {
+    const { container, onCanvasChange } = renderCanvas()
+    const canvasContainer = container.querySelector('.canvas-container')
+
+    fireEvent.touchStart(canvasContainer, {
+      touches: [{ clientX: 24, clientY: 24, identifier: 0 }],
+    })
+    fireEvent.touchEnd(canvasContainer, { touches: [] })
+
+    expect(onCanvasChange).toHaveBeenCalledTimes(1)
+    expect(onCanvasChange.mock.calls[0][0][1][1]).toBe('#ff0000')
+  })
 })

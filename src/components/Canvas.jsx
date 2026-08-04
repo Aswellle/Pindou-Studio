@@ -58,6 +58,10 @@ const Canvas = forwardRef(function Canvas({
 
   // 双指触控状态
   const pinchRef = useRef(null) // { startDist, startScale, startCX, startCY }
+  // 本次手势是否发生过双指(≥2指)。pinch 期间抬起一根手指后,touchEnd 会把
+  // 剩余手指重新登记为单指起点,若不加标记,最后一指抬起时会被误判为
+  // "单指点按"而填色。真实业务里只有"单指起、单指落"的手势才允许填色。
+  const wasPinchingRef = useRef(false)
   const strokeAccumRef = useRef(null) // accumulated canvas state during a drag stroke
 
   const cols = gridWidth || gridSize
@@ -491,8 +495,8 @@ const Canvas = forwardRef(function Canvas({
     const rect = containerRef.current?.getBoundingClientRect()
     if (!rect) return
 
-    if (e.touches.length === 2) {
-      // 双指 → 开始pinch
+    if (e.touches.length >= 2) {
+      // 双指及以上 → 开始pinch,同时清除单指点击状态
       pinchRef.current = {
         startDist: Math.hypot(
           e.touches[0].clientX - e.touches[1].clientX,
@@ -504,6 +508,7 @@ const Canvas = forwardRef(function Canvas({
       }
       touchStartRef.current = null
       touchMovedRef.current = false
+      wasPinchingRef.current = true
       return
     }
 
@@ -513,6 +518,8 @@ const Canvas = forwardRef(function Canvas({
       const cursorY = t.clientY - rect.top - rect.height / 2
       const gridPos = tool === 'hand' ? null : getGridPos(t.clientX, t.clientY)
 
+      // 单指手势在此开始(必然是全新手势,不可能是 pinch 的延续),允许点按填色
+      wasPinchingRef.current = false
       touchStartRef.current = { x: t.clientX, y: t.clientY, gridPos }
       touchMovedRef.current = false
       velocityRef.current = { x: 0, y: 0 }
@@ -620,8 +627,9 @@ const Canvas = forwardRef(function Canvas({
     if (e.touches.length === 0) {
       pinchRef.current = null
 
-      // 单指点击(未移动)且在grid上 → 填色（抓手工具不绘制）
-      if (tool !== 'hand' && touchStartRef.current?.gridPos && !touchMovedRef.current) {
+      // 单指点击(未移动)且在grid上 → 填色（抓手工具不绘制;
+      // pinch 结束后的剩余手指抬起不算点按,不得填色）
+      if (tool !== 'hand' && !wasPinchingRef.current && touchStartRef.current?.gridPos && !touchMovedRef.current) {
         const { x, y } = touchStartRef.current.gridPos
         startStroke()
         if (tool === 'pencil' || tool === 'eraser') paintToStroke(x, y)
@@ -637,10 +645,12 @@ const Canvas = forwardRef(function Canvas({
 
       touchStartRef.current = null
       touchMovedRef.current = false
+      wasPinchingRef.current = false
       setHoverCell(null)
     } else if (e.touches.length === 1) {
-      // 从双指切回单指
+      // 从双指切回单指:剩余手指只是 pinch 的延续,抬起时不得触发点按填色
       pinchRef.current = null
+      wasPinchingRef.current = true
       const t = e.touches[0]
       const rect = containerRef.current?.getBoundingClientRect()
       if (rect) {
@@ -665,6 +675,7 @@ const Canvas = forwardRef(function Canvas({
     touchStartRef.current = null
     touchMovedRef.current = false
     pinchRef.current = null
+    wasPinchingRef.current = false
     setHoverCell(null)
   }, [stopMomentum])
 
