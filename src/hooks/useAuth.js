@@ -128,6 +128,47 @@ export function useAuth() {
     if (error) throw error
   }, [])
 
+  // ── 邮箱验证码(OTP)流程:国内网络无法打开 Supabase 验证链接,
+  //    验证码在站点内输入,全程无需打开外部链接 ────────────────
+  // 发送 6 位验证码(shouldCreateUser=false 时仅对已存在邮箱发码,用于
+  // 重置密码/登录;注册流程传 true 自动创建占位用户)
+  const sendOtp = useCallback(async (email, shouldCreateUser = true) => {
+    if (!supabase) throw new Error('CLOUD_NOT_CONFIGURED')
+    const { error } = await supabase.auth.signInWithOtp({
+      email,
+      options: { shouldCreateUser },
+    })
+    if (error) throw error
+  }, [])
+
+  // 校验验证码并建立会话(等价于验证邮箱归属)
+  const verifyOtp = useCallback(async (email, token) => {
+    if (!supabase) throw new Error('CLOUD_NOT_CONFIGURED')
+    const { error } = await supabase.auth.verifyOtp({ email, token, type: 'email' })
+    if (error) throw error
+    // 会话状态由 onAuthStateChange 统一更新
+  }, [])
+
+  // 设置/更新密码(需要会话:验证码验证后或已登录)
+  const setPassword = useCallback(async (password) => {
+    if (!supabase) throw new Error('CLOUD_NOT_CONFIGURED')
+    const { error } = await supabase.auth.updateUser({ password })
+    if (error) throw error
+  }, [])
+
+  // 验证旧密码(通过再次登录校验)
+  const verifyPassword = useCallback(async (email, password) => {
+    if (!supabase) throw new Error('CLOUD_NOT_CONFIGURED')
+    const { error } = await supabase.auth.signInWithPassword({ email, password })
+    if (error) throw error
+  }, [])
+
+  // 已登录用户修改密码:旧密码验证 + 设置新密码
+  const changePassword = useCallback(async (email, oldPassword, newPassword) => {
+    await verifyPassword(email, oldPassword)
+    await setPassword(newPassword)
+  }, [verifyPassword, setPassword])
+
   const logout = useCallback(async () => {
     if (supabase) await supabase.auth.signOut()
     setUser(null)
@@ -144,5 +185,10 @@ export function useAuth() {
     logout,
     refreshProfile,
     updateProfile,
+    sendOtp,
+    verifyOtp,
+    setPassword,
+    verifyPassword,
+    changePassword,
   }
 }

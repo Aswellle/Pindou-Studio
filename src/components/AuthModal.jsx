@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Eye, EyeOff } from 'lucide-react'
 
@@ -13,48 +13,116 @@ function useErrorMapper() {
     if (/email not confirmed/i.test(msg)) return t('errors.emailNotConfirmed')
     if (/already registered/i.test(msg)) return t('errors.emailInUse')
     if (/rate limit/i.test(msg)) return t('errors.tooManyAttempts')
+    if (/signup|sign up|not found/i.test(msg)) return t('errors.emailNotFound')
     return msg
   }
 }
 
-export default function AuthModal({ mode, onClose, onLogin, onRegister, onResetPassword, onSwitchMode, onNavigatePage }) {
+const RESEND_COOLDOWN = 60 // 重新发送验证码倒计时(秒)
+
+export default function AuthModal({ mode, onClose, onLogin, onRegister, onResetPassword, onSwitchMode, onNavigatePage, onSendOtp, onVerifyOtp, onSetPassword }) {
   const { t } = useTranslation()
   const mapError = useErrorMapper()
-  const [view, setView] = useState(mode === 'register' ? 'register' : 'login') // login | register | reset
+  // 视图:login | register | reset | verify(验证码输入) | setPassword(设置新密码)
+  const [view, setView] = useState(mode === 'register' ? 'register' : 'login')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
+  const [newPassword, setNewPassword] = useState('')
+  const [newPassword2, setNewPassword2] = useState('')
+  const [token, setToken] = useState('')
   const [showPassword, setShowPassword] = useState(false)
   const [showConfirm, setShowConfirm] = useState(false)
+  const [showNew, setShowNew] = useState(false)
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
-  const [registered, setRegistered] = useState(false) // 注册成功待邮箱验证
-  const [resetSent, setResetSent] = useState(false)
+  const [pendingEmail, setPendingEmail] = useState('')
+  const [pendingPassword, setPendingPassword] = useState('')
+  const [verifyMode, setVerifyMode] = useState('register') // register | reset
+  const [cooldown, setCooldown] = useState(0)
+  const cooldownRef = useRef(null)
+
+  useEffect(() => {
+    if (cooldown <= 0) return
+    cooldownRef.current = setTimeout(() => setCooldown(c => c - 1), 1000)
+    return () => clearTimeout(cooldownRef.current)
+  }, [cooldown])
 
   const switchView = (v) => {
     setView(v)
     setError('')
-    setRegistered(false)
-    setResetSent(false)
     if (v === 'login' || v === 'register') onSwitchMode(v)
   }
 
-  const handleSubmit = async (e) => {
+  // 发送验证码
+  const sendCode = async (targetEmail, shouldCreateUser) => {
+    setError('')
+    setLoading(true)
+    try {
+      await onSendOtp(targetEmail, shouldCreateUser)
+      setCooldown(RESEND_COOLDOWN)
+    } catch (err) {
+      setError(mapError(err))
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  // ── 登录(邮箱+密码) ─────────────────────────────────────
+  const handleLogin = async (e) => {
     e.preventDefault()
     setError('')
     setLoading(true)
-
     try {
-      if (view === 'login') {
-        await onLogin(email, password)
+      await onLogin(email, password)
+      onClose()
+    } catch (err) {
+      setError(mapError(err))
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  // ── 注册:先验证码验证邮箱,验证通过后设置密码 ──────────────
+  const handleRegister = async (e) => {
+    e.preventDefault()
+    if (password !== confirmPassword) {
+      setError(t('errors.passwordMismatch'))
+      return
+    }
+    setPendingEmail(email.trim())
+    setPendingPassword(password)
+    setVerifyMode('register')
+    await sendCode(email.trim(), true)
+    if (!error) setView('verify')
+  }
+
+  // ── 忘记密码:验证码验证 → 设置新密码 ──────────────────────
+  const handleReset = async (e) => {
+    e.preventDefault()
+    setPendingEmail(email.trim())
+    setVerifyMode('reset')
+    await sendCode(email.trim(), false)
+    if (!error) setView('verify')
+  }
+
+  // ── 验证码提交 ──────────────────────────────────────────
+  const handleVerify = async (e) => {
+    e.preventDefault()
+    if (token.trim().length < 6) {
+      setError(t('auth.codeInvalid'))
+      return
+    }
+    setError('')
+    setLoading(true)
+    try {
+      await onVerifyOtp(pendingEmail, token.trim())
+      if (verifyMode === 'register') {
+        // 注册:验证码证明邮箱归属,设置注册密码
+        await onSetPassword(pendingPassword)
         onClose()
-      } else if (view === 'register') {
-        await onRegister(email, password, confirmPassword)
-        // 邮箱验证开启:注册成功但尚未登录,提示去邮箱验证
-        setRegistered(true)
       } else {
-        await onResetPassword(email)
-        setResetSent(true)
+        setView('setPassword')
       }
     } catch (err) {
       setError(mapError(err))
@@ -63,7 +131,30 @@ export default function AuthModal({ mode, onClose, onLogin, onRegister, onResetP
     }
   }
 
-  const validateEmail = (email) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)
+  // ── 设置新密码(重置流程) ────────────────────────────────
+  const handleSetPassword = async (e) => {
+    e.preventDefault()
+    if (newPassword.length < 6) {
+      setError(t('errors.passwordTooShort'))
+      return
+    }
+    if (newPassword !== newPassword2) {
+      setError(t('errors.passwordMismatch'))
+      return
+    }
+    setError('')
+    setLoading(true)
+    try {
+      await onSetPassword(newPassword)
+      onClose()
+    } catch (err) {
+      setError(mapError(err))
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const validateEmail = (em) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(em)
 
   return (
     <div className="modal-overlay" onClick={onClose}>
@@ -77,27 +168,128 @@ export default function AuthModal({ mode, onClose, onLogin, onRegister, onResetP
 
         <div className="auth-header">
           <h2>
-            {view === 'login' ? t('auth.login') : view === 'register' ? t('auth.register') : t('auth.resetTitle')}
+            {view === 'login' ? t('auth.login')
+              : view === 'register' ? t('auth.register')
+              : view === 'reset' ? t('auth.resetTitle')
+              : view === 'verify' ? t('auth.verifyTitle')
+              : t('auth.setPasswordTitle')}
           </h2>
           <p>
-            {view === 'login' ? t('auth.welcomeBack') : view === 'register' ? t('auth.createAccount') : t('auth.resetHint')}
+            {view === 'login' ? t('auth.welcomeBack')
+              : view === 'register' ? t('auth.createAccount')
+              : view === 'reset' ? t('auth.resetHint')
+              : view === 'verify' ? t('auth.verifyHint', { email: pendingEmail })
+              : t('auth.setPasswordHint')}
           </p>
         </div>
 
-        {registered ? (
-          <div className="auth-verify">
-            <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" strokeWidth="1.8">
-              <path d="M22 2 11 13"/>
-              <path d="M22 2 15 22l-4-9-9-4 20-7z"/>
-            </svg>
-            <p>{t('auth.verifyEmailTitle')}</p>
-            <p className="hint">{t('auth.verifyEmailHint')}</p>
-            <button className="btn btn-primary btn-full" onClick={() => switchView('login')}>
-              {t('auth.loginNow')}
+        {/* ── 验证码输入视图 ─────────────────────────────── */}
+        {view === 'verify' ? (
+          <form onSubmit={handleVerify}>
+            <div className="form-group">
+              <label htmlFor="token">{t('auth.code')}</label>
+              <input
+                id="token"
+                type="text"
+                inputMode="numeric"
+                autoComplete="one-time-code"
+                maxLength={6}
+                value={token}
+                onChange={(e) => setToken(e.target.value.replace(/\D/g, ''))}
+                placeholder="••••••"
+                className="code-input"
+                autoFocus
+                required
+              />
+              <span className="hint">{t('auth.codeHint')}</span>
+            </div>
+
+            {error && (
+              <div className="error-banner">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <circle cx="12" cy="12" r="10"/>
+                  <line x1="12" y1="8" x2="12" y2="12"/>
+                  <line x1="12" y1="16" x2="12.01" y2="16"/>
+                </svg>
+                {error}
+              </div>
+            )}
+
+            <button type="submit" className="btn btn-primary btn-full" disabled={loading || token.length < 6}>
+              {loading ? t('auth.processing') : t('auth.verifyBtn')}
             </button>
-          </div>
+
+            <div className="resend-row">
+              <button
+                type="button"
+                className="link-btn"
+                disabled={cooldown > 0 || loading}
+                onClick={() => sendCode(pendingEmail, verifyMode === 'register')}
+              >
+                {cooldown > 0 ? t('auth.resendIn', { n: cooldown }) : t('auth.resend')}
+              </button>
+            </div>
+          </form>
+        ) : view === 'setPassword' ? (
+          /* ── 设置新密码视图(重置流程) ─────────────────── */
+          <form onSubmit={handleSetPassword}>
+            <div className="form-group">
+              <label htmlFor="newPassword">{t('auth.newPassword')}</label>
+              <div className="password-input-wrap">
+                <input
+                  id="newPassword"
+                  type={showNew ? 'text' : 'password'}
+                  value={newPassword}
+                  onChange={(e) => setNewPassword(e.target.value)}
+                  placeholder="••••••••"
+                  required
+                />
+                <button
+                  type="button"
+                  className="password-toggle"
+                  onClick={() => setShowNew(!showNew)}
+                  aria-label={showNew ? t('auth.hidePassword') : t('auth.showPassword')}
+                  tabIndex={-1}
+                >
+                  {showNew ? <EyeOff size={18} /> : <Eye size={18} />}
+                </button>
+              </div>
+            </div>
+            <div className="form-group">
+              <label htmlFor="newPassword2">{t('auth.confirmPassword')}</label>
+              <div className="password-input-wrap">
+                <input
+                  id="newPassword2"
+                  type={showNew ? 'text' : 'password'}
+                  value={newPassword2}
+                  onChange={(e) => setNewPassword2(e.target.value)}
+                  placeholder="••••••••"
+                  required
+                />
+              </div>
+              {newPassword2 && newPassword2 !== newPassword && (
+                <span className="error-message">{t('errors.passwordMismatch')}</span>
+              )}
+            </div>
+
+            {error && (
+              <div className="error-banner">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <circle cx="12" cy="12" r="10"/>
+                  <line x1="12" y1="8" x2="12" y2="12"/>
+                  <line x1="12" y1="16" x2="12.01" y2="16"/>
+                </svg>
+                {error}
+              </div>
+            )}
+
+            <button type="submit" className="btn btn-primary btn-full" disabled={loading}>
+              {loading ? t('auth.processing') : t('auth.setPasswordBtn')}
+            </button>
+          </form>
         ) : (
-          <form onSubmit={handleSubmit}>
+          /* ── 登录 / 注册 / 重置 表单视图 ───────────────── */
+          <form onSubmit={view === 'login' ? handleLogin : view === 'register' ? handleRegister : handleReset}>
             <div className="form-group">
               <label htmlFor="email">{t('auth.email')}</label>
               <input
@@ -175,22 +367,18 @@ export default function AuthModal({ mode, onClose, onLogin, onRegister, onResetP
               </div>
             )}
 
-            {resetSent && (
-              <div className="auth-verify hint">{t('auth.resetSent')}</div>
-            )}
-
             <button type="submit" className="btn btn-primary btn-full" disabled={loading}>
               {loading
                 ? t('auth.processing')
                 : view === 'login' ? t('auth.login')
                 : view === 'register' ? t('auth.register')
-                : t('auth.sendReset')}
+                : t('auth.sendCode')}
             </button>
           </form>
         )}
 
         <div className="auth-footer">
-          {view === 'login' ? (
+          {view === 'login' && (
             <>
               {t('auth.noAccount')}
               <button className="link-btn" onClick={() => switchView('register')}>
@@ -202,14 +390,26 @@ export default function AuthModal({ mode, onClose, onLogin, onRegister, onResetP
                 </button>
               </div>
             </>
-          ) : view === 'register' ? (
+          )}
+          {view === 'register' && (
             <>
               {t('auth.hasAccount')}
               <button className="link-btn" onClick={() => switchView('login')}>
                 {t('auth.loginNow')}
               </button>
             </>
-          ) : (
+          )}
+          {view === 'reset' && (
+            <button className="link-btn" onClick={() => switchView('login')}>
+              {t('auth.loginNow')}
+            </button>
+          )}
+          {view === 'verify' && (
+            <button className="link-btn" onClick={() => switchView(verifyMode === 'register' ? 'register' : 'reset')}>
+              {t('auth.changeEmail')}
+            </button>
+          )}
+          {view === 'setPassword' && (
             <button className="link-btn" onClick={() => switchView('login')}>
               {t('auth.loginNow')}
             </button>
@@ -235,6 +435,19 @@ export default function AuthModal({ mode, onClose, onLogin, onRegister, onResetP
           .close-btn:hover {
             color: var(--text-primary);
             background: var(--bg-secondary);
+          }
+          .auth-header {
+            text-align: center;
+            margin-bottom: 24px;
+          }
+          .auth-header h2 {
+            font-size: var(--text-2xl);
+            margin-bottom: 4px;
+          }
+          .auth-header p {
+            color: var(--text-muted);
+            font-size: var(--text-md);
+            word-break: break-all;
           }
           .password-input-wrap {
             position: relative;
@@ -262,17 +475,20 @@ export default function AuthModal({ mode, onClose, onLogin, onRegister, onResetP
             color: var(--text-primary);
             background: var(--bg-secondary);
           }
-          .auth-header {
+          .code-input {
             text-align: center;
-            margin-bottom: 24px;
+            font-size: 24px !important;
+            letter-spacing: 12px;
+            font-variant-numeric: tabular-nums;
           }
-          .auth-header h2 {
-            font-size: var(--text-2xl);
-            margin-bottom: 4px;
+          .resend-row {
+            text-align: center;
+            margin-top: 16px;
           }
-          .auth-header p {
+          .resend-row .link-btn:disabled {
             color: var(--text-muted);
-            font-size: var(--text-md);
+            cursor: default;
+            text-decoration: none;
           }
           .error-banner {
             display: flex;
@@ -284,21 +500,6 @@ export default function AuthModal({ mode, onClose, onLogin, onRegister, onResetP
             border-radius: 6px;
             color: var(--error);
             font-size: var(--text-base);
-            margin-bottom: 16px;
-          }
-          .auth-verify {
-            text-align: center;
-            padding: 16px 0;
-          }
-          .auth-verify svg {
-            margin: 0 auto 12px;
-          }
-          .auth-verify p {
-            margin: 6px 0;
-          }
-          .auth-verify .hint {
-            color: var(--text-muted);
-            font-size: var(--text-md);
             margin-bottom: 16px;
           }
           .auth-footer {

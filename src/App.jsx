@@ -55,7 +55,8 @@ export default function App() {
     }
   }, [])
 
-  const { user, isAdmin, loading: authLoading, login, register, resetPassword, logout, updateProfile } = useAuth()
+  const { user, isAdmin, loading: authLoading, login, register, resetPassword, logout, updateProfile,
+    sendOtp, verifyOtp, setPassword, changePassword } = useAuth()
   const cloudStore = useCloudTemplates()
   const { isMobile, isTablet } = useResponsive()
   const canvasRef = useRef(null)
@@ -337,6 +338,7 @@ export default function App() {
           onPageChange={handlePageChange}
           onResetPassword={resetPassword}
           onUpdateProfile={updateProfile}
+          onChangePassword={changePassword}
         />
       )}
 
@@ -395,6 +397,9 @@ export default function App() {
           onLogin={login}
           onRegister={register}
           onResetPassword={resetPassword}
+          onSendOtp={sendOtp}
+          onVerifyOtp={verifyOtp}
+          onSetPassword={setPassword}
           onSwitchMode={(mode) => setAuthMode(mode)}
           onNavigatePage={(page) => { setShowAuth(false); handlePageChange(page); }}
         />
@@ -522,6 +527,7 @@ export default function App() {
           onPageChange={handlePageChange}
           onResetPassword={resetPassword}
           onUpdateProfile={updateProfile}
+          onChangePassword={changePassword}
           simplified
         />
       )}
@@ -628,6 +634,9 @@ export default function App() {
           onLogin={login}
           onRegister={register}
           onResetPassword={resetPassword}
+          onSendOtp={sendOtp}
+          onVerifyOtp={verifyOtp}
+          onSetPassword={setPassword}
           onSwitchMode={(mode) => setAuthMode(mode)}
           onNavigatePage={(page) => { setShowAuth(false); handlePageChange(page); }}
         />

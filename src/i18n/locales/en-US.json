@@ -31,7 +31,21 @@
     "verifyEmailTitle": "Verify Your Email",
     "verifyEmailHint": "Registration successful! Check your email and click the verification link to sign in.",
     "showPassword": "Show password",
-    "hidePassword": "Hide password"
+    "hidePassword": "Hide password",
+    "verifyTitle": "Email Verification",
+    "verifyHint": "A verification code was sent to {{email}}. Enter it below (no link to open).",
+    "code": "Verification code",
+    "codeHint": "6-digit code, check your email",
+    "verifyBtn": "Verify & Continue",
+    "resend": "Resend code",
+    "resendIn": "Resend in {{n}}s",
+    "sendCode": "Send Code",
+    "changeEmail": "Change email",
+    "codeInvalid": "Invalid code format (6 digits)",
+    "setPasswordTitle": "Set New Password",
+    "setPasswordHint": "Verified. Set a new password to sign in.",
+    "newPassword": "New password",
+    "setPasswordBtn": "Set Password"
   },
   "errors": {
     "invalidEmail": "Please enter a valid email address",
@@ -41,7 +55,8 @@
     "emailNotConfirmed": "Email not verified yet, click the link in your email first",
     "emailInUse": "This email is already registered",
     "tooManyAttempts": "Too many attempts. Try again later.",
-    "cloudNotConfigured": "Cloud not configured, accounts are unavailable"
+    "cloudNotConfigured": "Cloud not configured, accounts are unavailable",
+    "emailNotFound": "This email is not registered"
   },
   "palette": {
     "title": "Color Palette",
@@ -427,6 +442,14 @@
     "resetConfirmText": "A password reset email will be sent to {{email}}. Send it?",
     "confirmSend": "Send",
     "resetSent": "Password reset email sent. Check your inbox",
-    "nicknameRequired": "Nickname cannot be empty"
+    "nicknameRequired": "Nickname cannot be empty",
+    "changePassword": "Change Password",
+    "changePasswordTitle": "Change Password",
+    "oldPassword": "Current password",
+    "newPassword": "New password",
+    "confirmNewPassword": "Confirm new password",
+    "oldPasswordRequired": "Enter your current password",
+    "wrongPassword": "Current password is incorrect",
+    "passwordUpdated": "Password updated"
   }
 }

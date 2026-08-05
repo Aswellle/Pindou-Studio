@@ -31,7 +31,21 @@
     "verifyEmailTitle": "请验证邮箱",
     "verifyEmailHint": "注册成功!请前往邮箱点击验证链接后再登录",
     "showPassword": "显示密码",
-    "hidePassword": "隐藏密码"
+    "hidePassword": "隐藏密码",
+    "verifyTitle": "邮箱验证",
+    "verifyHint": "验证码已发送至 {{email}},请在下方输入(无需打开任何链接)",
+    "code": "验证码",
+    "codeHint": "6 位数字验证码,请在邮件中查看",
+    "verifyBtn": "验证并继续",
+    "resend": "重新发送验证码",
+    "resendIn": "{{n}} 秒后可重新发送",
+    "sendCode": "发送验证码",
+    "changeEmail": "更换邮箱",
+    "codeInvalid": "验证码格式不正确(应为 6 位数字)",
+    "setPasswordTitle": "设置新密码",
+    "setPasswordHint": "验证通过,请设置新的登录密码",
+    "newPassword": "新密码",
+    "setPasswordBtn": "确认设置"
   },
   "errors": {
     "invalidEmail": "请输入有效的邮箱地址",
@@ -41,7 +55,8 @@
     "emailNotConfirmed": "邮箱尚未验证,请先点击邮件中的验证链接",
     "emailInUse": "该邮箱已注册",
     "tooManyAttempts": "尝试过于频繁,请稍后再试",
-    "cloudNotConfigured": "云端未配置,无法使用账号功能"
+    "cloudNotConfigured": "云端未配置,无法使用账号功能",
+    "emailNotFound": "该邮箱尚未注册"
   },
   "palette": {
     "title": "色卡",
@@ -427,6 +442,14 @@
     "resetConfirmText": "将向 {{email}} 发送密码重置邮件。确认发送?",
     "confirmSend": "确认发送",
     "resetSent": "密码重置邮件已发送,请查收邮箱",
-    "nicknameRequired": "昵称不能为空"
+    "nicknameRequired": "昵称不能为空",
+    "changePassword": "修改密码",
+    "changePasswordTitle": "修改密码",
+    "oldPassword": "当前密码",
+    "newPassword": "新密码",
+    "confirmNewPassword": "确认新密码",
+    "oldPasswordRequired": "请输入当前密码",
+    "wrongPassword": "当前密码错误",
+    "passwordUpdated": "密码已更新"
   }
 }

@@ -31,7 +31,21 @@
     "verifyEmailTitle": "メールを認証してください",
     "verifyEmailHint": "登録が完了しました!メールの認証リンクをクリックしてからログインしてください。",
     "showPassword": "パスワードを表示",
-    "hidePassword": "パスワードを隠す"
+    "hidePassword": "パスワードを隠す",
+    "verifyTitle": "メール認証",
+    "verifyHint": "{{email}} に認証コードを送信しました。下に入力してください(リンクを開く必要はありません)",
+    "code": "認証コード",
+    "codeHint": "6 桁の数字コードをメールでご確認ください",
+    "verifyBtn": "認証して続行",
+    "resend": "コードを再送信",
+    "resendIn": "{{n}} 秒後に再送信できます",
+    "sendCode": "認証コードを送信",
+    "changeEmail": "メールを変更",
+    "codeInvalid": "認証コードの形式が正しくありません(6 桁の数字)",
+    "setPasswordTitle": "新しいパスワードを設定",
+    "setPasswordHint": "認証に成功しました。新しいパスワードを設定してください",
+    "newPassword": "新しいパスワード",
+    "setPasswordBtn": "設定する"
   },
   "errors": {
     "invalidEmail": "有効なメールアドレスを入力してください",
@@ -41,7 +55,8 @@
     "emailNotConfirmed": "メールが未認証です。メール内のリンクを先にクリックしてください",
     "emailInUse": "このメールアドレスは既に登録されています",
     "tooManyAttempts": "試行回数が多すぎます。しばらくしてから再試行してください。",
-    "cloudNotConfigured": "クラウド未設定のためアカウント機能は利用できません"
+    "cloudNotConfigured": "クラウド未設定のためアカウント機能は利用できません",
+    "emailNotFound": "このメールアドレスは登録されていません"
   },
   "palette": {
     "title": "カラーパレット",
@@ -427,6 +442,14 @@
     "resetConfirmText": "{{email}} にパスワードリセットメールを送信します。送信しますか?",
     "confirmSend": "送信する",
     "resetSent": "パスワードリセットメールを送信しました。メールを確認してください",
-    "nicknameRequired": "ニックネームは空にできません"
+    "nicknameRequired": "ニックネームは空にできません",
+    "changePassword": "パスワード変更",
+    "changePasswordTitle": "パスワード変更",
+    "oldPassword": "現在のパスワード",
+    "newPassword": "新しいパスワード",
+    "confirmNewPassword": "新しいパスワードの確認",
+    "oldPasswordRequired": "現在のパスワードを入力してください",
+    "wrongPassword": "現在のパスワードが正しくありません",
+    "passwordUpdated": "パスワードを更新しました"
   }
 }

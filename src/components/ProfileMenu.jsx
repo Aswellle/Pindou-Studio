@@ -9,16 +9,23 @@ import AvatarCropper from './AvatarCropper'
  * 头像展示 / 上传图片 + 圆形裁剪 / 修改昵称 / 修改密码(邮件确认)/ 退出登录。
  * PC 与移动端共用同一模态框,内部布局响应式自适应。
  */
-export default function ProfileMenu({ user, onClose, onLogout, onResetPassword, onUpdateProfile }) {
+export default function ProfileMenu({ user, onClose, onLogout, onResetPassword, onUpdateProfile, onChangePassword }) {
   const { t } = useTranslation()
   const [nickname, setNickname] = useState(user?.nickname || '')
   const [nickSaved, setNickSaved] = useState(false)
   const [busy, setBusy] = useState(false)
   const [avatarSrc, setAvatarSrc] = useState(null) // 待裁剪的图片 dataURL
-  const [confirmReset, setConfirmReset] = useState(false)
   const [message, setMessage] = useState('')
   const fileRef = useRef(null)
   const cropperRef = useRef(null)
+  // 修改密码(旧密码验证)状态
+  const [showChangePw, setShowChangePw] = useState(false)
+  const [oldPw, setOldPw] = useState('')
+  const [newPw, setNewPw] = useState('')
+  const [newPw2, setNewPw2] = useState('')
+  const [pwError, setPwError] = useState('')
+  const [pwBusy, setPwBusy] = useState(false)
+  const [pwSaved, setPwSaved] = useState(false)
 
   const saveNickname = async () => {
     const trimmed = nickname.trim()
@@ -77,13 +84,26 @@ export default function ProfileMenu({ user, onClose, onLogout, onResetPassword, 
     }
   }
 
-  const handleReset = () => {
-    onResetPassword(user.email)
-      .then(() => {
-        setConfirmReset(false)
-        setMessage(t('profile.resetSent'))
-      })
-      .catch(() => setConfirmReset(false))
+  // 修改密码:旧密码验证 + 新密码
+  const handleChangePassword = async () => {
+    if (!oldPw) { setPwError(t('profile.oldPasswordRequired')); return }
+    if (newPw.length < 6) { setPwError(t('errors.passwordTooShort')); return }
+    if (newPw !== newPw2) { setPwError(t('errors.passwordMismatch')); return }
+    setPwBusy(true)
+    setPwError('')
+    try {
+      await onChangePassword(user.email, oldPw, newPw)
+      setPwSaved(true)
+      setTimeout(() => setPwSaved(false), 2000)
+      setOldPw('')
+      setNewPw('')
+      setNewPw2('')
+      setShowChangePw(false)
+    } catch (e) {
+      setPwError(t('profile.wrongPassword'))
+    } finally {
+      setPwBusy(false)
+    }
   }
 
   return (
@@ -161,23 +181,62 @@ export default function ProfileMenu({ user, onClose, onLogout, onResetPassword, 
         {message && <p className="profile-message">{message}</p>}
 
         <div className="profile-section profile-actions">
-          <button className="btn btn-ghost" onClick={() => setConfirmReset(true)}>
-            {t('profile.resetPassword')}
+          <button className="btn btn-ghost" onClick={() => { setShowChangePw(!showChangePw); setPwError('') }}>
+            {t('profile.changePassword')}
           </button>
           <button className="btn btn-danger" onClick={onLogout}>
             {t('auth.logout')}
           </button>
         </div>
 
-        {confirmReset && (
-          <div className="modal-overlay" onClick={() => setConfirmReset(false)}>
-            <div className="modal-content confirm-box" onClick={e => e.stopPropagation()}>
-              <h3>{t('profile.resetConfirmTitle')}</h3>
-              <p>{t('profile.resetConfirmText', { email: user.email })}</p>
-              <div className="confirm-actions">
-                <button className="btn btn-primary" onClick={handleReset}>{t('profile.confirmSend')}</button>
-                <button className="btn btn-ghost" onClick={() => setConfirmReset(false)}>{t('common.cancel')}</button>
-              </div>
+        {showChangePw && (
+          <div className="profile-section change-pw">
+            <h3>{t('profile.changePasswordTitle')}</h3>
+            <div className="form-group">
+              <label htmlFor="oldPw">{t('profile.oldPassword')}</label>
+              <input
+                id="oldPw"
+                type="password"
+                className="profile-input"
+                value={oldPw}
+                onChange={e => { setOldPw(e.target.value); setPwError('') }}
+                placeholder="••••••••"
+                autoComplete="current-password"
+              />
+            </div>
+            <div className="form-group">
+              <label htmlFor="newPw">{t('profile.newPassword')}</label>
+              <input
+                id="newPw"
+                type="password"
+                className="profile-input"
+                value={newPw}
+                onChange={e => { setNewPw(e.target.value); setPwError('') }}
+                placeholder="••••••••"
+                autoComplete="new-password"
+              />
+            </div>
+            <div className="form-group">
+              <label htmlFor="newPw2">{t('profile.confirmNewPassword')}</label>
+              <input
+                id="newPw2"
+                type="password"
+                className="profile-input"
+                value={newPw2}
+                onChange={e => { setNewPw2(e.target.value); setPwError('') }}
+                placeholder="••••••••"
+                autoComplete="new-password"
+              />
+            </div>
+            {pwError && <p className="profile-message">{pwError}</p>}
+            {pwSaved && <p className="profile-success">{t('profile.passwordUpdated')}</p>}
+            <div className="crop-actions">
+              <button className="btn btn-primary" disabled={pwBusy} onClick={handleChangePassword}>
+                {pwBusy ? t('auth.processing') : t('common.save')}
+              </button>
+              <button className="btn btn-ghost" disabled={pwBusy} onClick={() => { setShowChangePw(false); setPwError('') }}>
+                {t('common.cancel')}
+              </button>
             </div>
           </div>
         )}
@@ -275,6 +334,18 @@ export default function ProfileMenu({ user, onClose, onLogout, onResetPassword, 
             border-top: 1px solid var(--border-color);
             padding-top: 16px;
             margin-bottom: 0;
+          }
+          .change-pw {
+            border-top: 1px solid var(--border-color);
+            padding-top: 16px;
+          }
+          .change-pw .form-group { margin-bottom: 12px; }
+          .change-pw .form-group label {
+            display: block;
+            font-size: 12px;
+            font-weight: 600;
+            margin-bottom: 6px;
+            color: var(--text-secondary);
           }
           .btn-danger {
             background: var(--error);
