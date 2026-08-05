@@ -1,0 +1,31 @@
+{
+  "mailer_otp_length": 6,
+  "mailer_subjects_confirmation": "【拼豆Studio】确认您的邮箱",
+  "mailer_templates_confirmation_content": "<div style=\"max-width:480px;margin:0 auto;padding:24px;font-family:'Microsoft YaHei','PingFang SC',sans-serif;color:#2b2420;\"><h2 style=\"color:#e8734a;\">欢迎注册拼豆Studio!</h2><p>请点击下方按钮确认您的邮箱地址,完成注册:</p><p style=\"text-align:center;\"><a href=\"{{ .ConfirmationURL }}\" style=\"display:inline-block;background:#e8734a;color:#ffffff;padding:10px 28px;border-radius:8px;text-decoration:none;\">确认邮箱</a></p><p>如果按钮无法点击,请复制以下链接到浏览器打开:</p><p style=\"word-break:break-all;color:#6f6259;\">{{ .ConfirmationURL }}</p><p>如非本人操作,请忽略此邮件。</p><hr style=\"border:none;border-top:1px solid #efe6da;margin:24px 0;\"/><p style=\"color:#a3968a;font-size:12px;\">拼豆Studio — 拼豆图纸在线设计工具</p></div>",
+  "mailer_subjects_email_change": "【拼豆Studio】确认更换邮箱",
+  "mailer_templates_email_change_content": "<div style=\"max-width:480px;margin:0 auto;padding:24px;font-family:'Microsoft YaHei','PingFang SC',sans-serif;color:#2b2420;\"><h2 style=\"color:#e8734a;\">确认更换邮箱</h2><p>您请求将账号邮箱更换为 <strong>{{ .NewEmail }}</strong>,请点击下方按钮确认:</p><p style=\"text-align:center;\"><a href=\"{{ .ConfirmationURL }}\" style=\"display:inline-block;background:#e8734a;color:#ffffff;padding:10px 28px;border-radius:8px;text-decoration:none;\">确认更换</a></p><p>如非本人操作,请忽略此邮件。</p><hr style=\"border:none;border-top:1px solid #efe6da;margin:24px 0;\"/><p style=\"color:#a3968a;font-size:12px;\">拼豆Studio — 拼豆图纸在线设计工具</p></div>",
+  "mailer_subjects_invite": "【拼豆Studio】邀请加入",
+  "mailer_templates_invite_content": "<div style=\"max-width:480px;margin:0 auto;padding:24px;font-family:'Microsoft YaHei','PingFang SC',sans-serif;color:#2b2420;\"><h2 style=\"color:#e8734a;\">您收到了一个邀请</h2><p>您被邀请加入拼豆Studio,请点击下方按钮创建账号:</p><p style=\"text-align:center;\"><a href=\"{{ .ConfirmationURL }}\" style=\"display:inline-block;background:#e8734a;color:#ffffff;padding:10px 28px;border-radius:8px;text-decoration:none;\">接受邀请</a></p><p>如非本人操作,请忽略此邮件。</p><hr style=\"border:none;border-top:1px solid #efe6da;margin:24px 0;\"/><p style=\"color:#a3968a;font-size:12px;\">拼豆Studio — 拼豆图纸在线设计工具</p></div>",
+  "mailer_subjects_magic_link": "【拼豆Studio】您的验证码:{{ .Token }}",
+  "mailer_templates_magic_link_content": "<div style=\"max-width:480px;margin:0 auto;padding:24px;font-family:'Microsoft YaHei','PingFang SC',sans-serif;color:#2b2420;\"><h2 style=\"color:#e8734a;\">拼豆Studio 邮箱验证</h2><p>您好,您正在进行邮箱验证,验证码为:</p><p style=\"text-align:center;font-size:32px;font-weight:bold;letter-spacing:10px;color:#2b2420;background:#f7f1e6;border-radius:8px;padding:12px;\">{{ .Token }}</p><p>验证码 10 分钟内有效,请勿泄露给他人。</p><p>如非本人操作,请忽略此邮件。</p><hr style=\"border:none;border-top:1px solid #efe6da;margin:24px 0;\"/><p style=\"color:#a3968a;font-size:12px;\">拼豆Studio — 拼豆图纸在线设计工具</p></div>",
+  "mailer_subjects_reauthentication": "【拼豆Studio】您的验证码:{{ .Token }}",
+  "mailer_templates_reauthentication_content": "<div style=\"max-width:480px;margin:0 auto;padding:24px;font-family:'Microsoft YaHei','PingFang SC',sans-serif;color:#2b2420;\"><h2 style=\"color:#e8734a;\">拼豆Studio 安全验证</h2><p>您正在进行敏感操作二次验证,验证码为:</p><p style=\"text-align:center;font-size:32px;font-weight:bold;letter-spacing:10px;color:#2b2420;background:#f7f1e6;border-radius:8px;padding:12px;\">{{ .Token }}</p><p>验证码 10 分钟内有效,请勿泄露给他人。</p><p>如非本人操作,请立即修改密码并忽略此邮件。</p><hr style=\"border:none;border-top:1px solid #efe6da;margin:24px 0;\"/><p style=\"color:#a3968a;font-size:12px;\">拼豆Studio — 拼豆图纸在线设计工具</p></div>",
+  "mailer_subjects_recovery": "【拼豆Studio】重置您的密码",
+  "mailer_templates_recovery_content": "<div style=\"max-width:480px;margin:0 auto;padding:24px;font-family:'Microsoft YaHei','PingFang SC',sans-serif;color:#2b2420;\"><h2 style=\"color:#e8734a;\">重置您的密码</h2><p>我们收到了重置密码的请求,请点击下方按钮设置新密码:</p><p style=\"text-align:center;\"><a href=\"{{ .ConfirmationURL }}\" style=\"display:inline-block;background:#e8734a;color:#ffffff;padding:10px 28px;border-radius:8px;text-decoration:none;\">重置密码</a></p><p>如果按钮无法点击,请复制以下链接到浏览器打开:</p><p style=\"word-break:break-all;color:#6f6259;\">{{ .ConfirmationURL }}</p><p>如非本人操作,请忽略此邮件。</p><hr style=\"border:none;border-top:1px solid #efe6da;margin:24px 0;\"/><p style=\"color:#a3968a;font-size:12px;\">拼豆Studio — 拼豆图纸在线设计工具</p></div>",
+  "mailer_subjects_custom_contents": {
+    "MAILER_SUBJECTS_CONFIRMATION": true,
+    "MAILER_SUBJECTS_EMAIL_CHANGE": true,
+    "MAILER_SUBJECTS_INVITE": true,
+    "MAILER_SUBJECTS_MAGIC_LINK": true,
+    "MAILER_SUBJECTS_REAUTHENTICATION": true,
+    "MAILER_SUBJECTS_RECOVERY": true
+  },
+  "mailer_templates_custom_contents": {
+    "MAILER_TEMPLATES_CONFIRMATION_CONTENT": true,
+    "MAILER_TEMPLATES_EMAIL_CHANGE_CONTENT": true,
+    "MAILER_TEMPLATES_INVITE_CONTENT": true,
+    "MAILER_TEMPLATES_MAGIC_LINK_CONTENT": true,
+    "MAILER_TEMPLATES_REAUTHENTICATION_CONTENT": true,
+    "MAILER_TEMPLATES_RECOVERY_CONTENT": true
+  }
+}
