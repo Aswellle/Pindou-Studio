@@ -52,7 +52,12 @@ export default function Header({ user, onLogin, onRegister, onLogout, onSave, cu
                 <span className="nav-icon">
                   <item.icon size={18} />
                 </span>
-              ) : item.label}
+              ) : (
+                <span className="nav-label">
+                  <item.icon size={16} />
+                  {item.label}
+                </span>
+              )}
             </NavLink>
           ))}
         </nav>
@@ -141,6 +146,13 @@ export default function Header({ user, onLogin, onRegister, onLogout, onSave, cu
           background: transparent;
           border: none;
           cursor: pointer;
+          text-decoration: none;
+        }
+        .nav-label {
+          display: inline-flex;
+          align-items: center;
+          gap: 6px;
+        }
         }
         .header.simplified .nav-link {
           padding: 8px;

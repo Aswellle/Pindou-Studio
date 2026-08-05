@@ -35,6 +35,8 @@
   /* 等宽字体：仅用于色号 / HEX 值 / 表格式数字对齐场景。不依赖 Google Fonts，
      直接用系统自带等宽字体，避免国内网络环境下 fonts.googleapis.com 加载失败/超时 */
   --font-mono: Menlo, Consolas, Monaco, "Liberation Mono", "Courier New", monospace;
+  /* 展示字体(标题/品牌/强调)：霞鹜文楷，手作艺术感 —— 桌面端启用 */
+  --font-display: "LXGW WenKai", "Noto Sans SC", var(--font-sans);
 
   /* Font size scale */
   --text-xs: 11px;
@@ -616,4 +618,52 @@ input:focus, textarea:focus, button:focus {
 /* Palette drawer in sidebar context */
 .right-sidebar .palette-drawer {
   height: 100%;
+}
+
+/* ─────────────────────────────────────────────────────────────
+   桌面端(≥1025px)字体与排版打磨
+   Windows 上微软雅黑渲染粗糙:正文改用思源黑体(Noto Sans SC),
+   标题/品牌/强调用霞鹜文楷(LXGW WenKai,手作艺术感,契合拼豆创作)。
+   移动端(≤1024px)保持系统字体栈,完全不受影响。
+   ───────────────────────────────────────────────────────────── */
+@media (min-width: 1025px) {
+  body {
+    font-family: "Noto Sans SC", var(--font-sans);
+    letter-spacing: 0.01em;
+  }
+  /* 标题 / 品牌 / 强调文本 → 霞鹜文楷 */
+  h1, h2, h3, h4, h5,
+  .logo-text,
+  .nav-link,
+  .admin-title,
+  .admin-card h3,
+  .template-name,
+  .work-name,
+  .section-title,
+  .filter-tab,
+  .category-btn,
+  .difficulty-btn,
+  .save-dialog h3,
+  .modal-content .auth-header h2 {
+    font-family: var(--font-display);
+    letter-spacing: 0.02em;
+  }
+  /* 数字密集场景:尺寸 / 色号 / 百分比 / 统计 → 表格数字对齐 */
+  .canvas-info,
+  .info-size,
+  .info-scale,
+  .template-size,
+  .color-stats,
+  .palette-count,
+  .admin-template-sub,
+  .admin-category-id,
+  .tools-grid-size {
+    font-variant-numeric: tabular-nums;
+  }
+  /* 字体平滑(Windows 上改善抗锯齿) */
+  body {
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+  }
 }

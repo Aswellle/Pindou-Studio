@@ -1,4 +1,5 @@
 import { useTranslation } from 'react-i18next'
+import { Pencil, Eraser, PaintBucket, Hand, Undo2, Redo2, Trash2, ChevronLeft, ChevronRight } from 'lucide-react'
 
 export default function Tools({
   tool,
@@ -66,13 +67,7 @@ export default function Tools({
         onClick={onToggleCollapse}
         title={collapsed ? t('tools.expand') : t('tools.collapse')}
       >
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-          {collapsed ? (
-            <path d="M9 18l6-6-6-6"/>
-          ) : (
-            <path d="M15 18l-6-6 6-6"/>
-          )}
-        </svg>
+        {collapsed ? <ChevronRight size={16} /> : <ChevronLeft size={16} />}
       </button>
 
       <div className="tools-content">
@@ -85,42 +80,28 @@ export default function Tools({
               onClick={() => onToolChange('pencil')}
               title={t('canvas.tool.pencil')}
             >
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"/>
-              </svg>
+              <Pencil size={20} />
             </button>
             <button
               className={`tool-btn ${tool === 'eraser' ? 'active' : ''}`}
               onClick={() => onToolChange('eraser')}
               title={t('canvas.tool.eraser')}
             >
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <path d="M20 20H7L3 16l9-9 8 8-4 4"/>
-                <path d="M6.5 12.5l4 4"/>
-              </svg>
+              <Eraser size={20} />
             </button>
             <button
               className={`tool-btn ${tool === 'fill' ? 'active' : ''}`}
               onClick={() => onToolChange('fill')}
               title={t('canvas.tool.fill')}
             >
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <path d="M19 11l-8-8-8.5 8.5a5.5 5.5 0 0 0 7.78 7.78L19 11z"/>
-                <path d="M20 23a2 2 0 0 0 2-2c0-1.5-2-2.5-2-4s2-2.5 2-4"/>
-                <path d="M3 21l3-3"/>
-              </svg>
+              <PaintBucket size={20} />
             </button>
             <button
               className={`tool-btn ${tool === 'hand' ? 'active' : ''}`}
               onClick={() => onToolChange('hand')}
               title={t('canvas.tool.hand')}
             >
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <path d="M18 11V6a2 2 0 0 0-4 0v0"/>
-                <path d="M14 10V4a2 2 0 0 0-4 0v2"/>
-                <path d="M10 10.5V6a2 2 0 0 0-4 0v8"/>
-                <path d="M18 8a2 2 0 1 1 4 0v6a8 8 0 0 1-8 8h-2c-2.8 0-4.5-.86-5.99-2.34l-3.6-3.6a2 2 0 0 1 2.83-2.82L7 15"/>
-              </svg>
+              <Hand size={20} />
             </button>
           </div>
         </div>
@@ -167,24 +148,15 @@ export default function Tools({
           <label className="tool-label">{t('tools.quickActions')}</label>
           <div className="quick-actions">
             <button className="action-btn clear-btn" onClick={onClear} title={t('tools.clearCanvas')}>
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <polyline points="3,6 5,6 21,6"/>
-                <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
-              </svg>
+              <Trash2 size={16} />
               {t('tools.clear')}
             </button>
             <button className="action-btn icon-btn" onClick={onUndo} disabled={!canUndo} title={t('tools.undoAction')}>
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <path d="M3 7v6h6"/>
-                <path d="M21 17a9 9 0 0 0-9-9 9 9 0 0 0-6 2.3L3 13"/>
-              </svg>
+              <Undo2 size={18} />
               <span>{t('tools.undo')}</span>
             </button>
             <button className="action-btn icon-btn" onClick={onRedo} disabled={!canRedo} title={t('tools.redoAction')}>
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <path d="M21 7v6h-6"/>
-                <path d="M3 17a9 9 0 0 1 9-9 9 9 0 0 1 6 2.3L21 13"/>
-              </svg>
+              <Redo2 size={18} />
               <span>{t('tools.redo')}</span>
             </button>
           </div>
