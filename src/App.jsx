@@ -290,6 +290,7 @@ export default function App() {
             gridSize={gridSize}
             paletteId={currentPalette}
           />
+          {/* 桌面端侧边栏常驻实例:不传 onClose(有 onClose 会被判定为模态框实例并默认展开) */}
           <ExportPanel
             canvasData={canvasData}
             gridSize={gridSize}
@@ -297,7 +298,6 @@ export default function App() {
             gridHeight={gridHeight}
             designName={designName}
             paletteId={currentPalette}
-            onClose={() => setShowExport(false)}
           />
         </div>
       </aside>
@@ -711,4 +711,7 @@ export default function App() {
       `}</style>
     </div>
   )
+
+  // 根据设备类型返回对应布局
+  return isMobile || isTablet ? renderMobileLayout() : renderDesktopLayout()
 }
