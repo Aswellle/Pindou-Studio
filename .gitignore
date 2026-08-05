@@ -42,7 +42,7 @@ coverage/
 .full-review/
 
 # Internal design docs / AI planning notes
-docs/superpowers/
+docs/
 
 # AI agent instructions
 AGENTS.md
