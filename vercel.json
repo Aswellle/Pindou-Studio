@@ -11,5 +11,9 @@
       "destination": "https://tangnotes.site/:path*",
       "permanent": true
     }
+  ],
+  "rewrites": [
+    { "source": "/(admin|gallery|tutorials|privacy|terms)", "destination": "/index.html" },
+    { "source": "/:path*", "destination": "/index.html" }
   ]
 }

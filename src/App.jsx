@@ -1,4 +1,5 @@
 import { useState, useEffect, lazy, Suspense, useRef } from 'react'
+import { Routes, Route, useNavigate, useLocation, Navigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { Helmet } from 'react-helmet-async'
 import AuthModal from './components/AuthModal'
@@ -25,14 +26,11 @@ const ImageQuantizer = lazy(() => import('./components/ImageQuantizer/ImageQuant
 const AdminPanel = lazy(() => import('./components/AdminPanel'))
 
 export default function App() {
-  // iOS Safari 视口测量：window.innerHeight 返回的是「大视口」高度
-  // （URL 栏收起时的全屏高度，约等于 100vh），比可见区域高出一个 URL 栏，
-  // 页面会在 body 层产生滚动，iOS 后台标签页恢复时把整页上推、
-  // 导航栏顶到状态栏后面。取 innerHeight 与 visualViewport.height 的
-  // 较小值 = 稳定「小视口」(svh 语义)，布局永不溢出。
-  // visibilitychange 触发时浏览器尚未提交新视口，故在下一帧再测量；
-  // pageshow(persisted) 覆盖 bfcache 恢复；visualViewport resize 覆盖
-  // URL 栏 / 键盘弹起等动态场景。
+  const { t } = useTranslation()
+  const navigate = useNavigate()
+  const location = useLocation()
+
+  // iOS Safari 视口测量
   useEffect(() => {
     const setVh = () => {
       const inner = window.innerHeight || 0
@@ -55,9 +53,7 @@ export default function App() {
     }
   }, [])
 
-  const { t } = useTranslation()
   const { user, isAdmin, loading: authLoading, login, register, resetPassword, logout } = useAuth()
-  // 云端模板库(单个实例提升到 App,图库与后台共享同一份数据)
   const cloudStore = useCloudTemplates()
   const { isMobile, isTablet } = useResponsive()
   const canvasRef = useRef(null)
@@ -74,7 +70,6 @@ export default function App() {
 
   const [leftSidebarCollapsed, setLeftSidebarCollapsed] = useState(false)
   const [rightSidebarCollapsed, setRightSidebarCollapsed] = useState(false)
-  const [currentPage, setCurrentPage] = useState('canvas')
   const [showQuantizer, setShowQuantizer] = useState(false)
   const [showExport, setShowExport] = useState(false)
   const [currentPalette, setCurrentPalette] = useState('perler')
@@ -83,6 +78,14 @@ export default function App() {
   const [saveInputName, setSaveInputName] = useState('')
   const [saveToast, setSaveToast] = useState(false)
   const [fitToast, setFitToast] = useState(false)
+
+  // 从 URL 路径推导当前页面(用于 Header 高亮与条件渲染)
+  const currentPage = location.pathname.startsWith('/gallery') ? 'gallery'
+    : location.pathname.startsWith('/tutorials') ? 'tutorials'
+    : location.pathname.startsWith('/admin') ? 'admin'
+    : location.pathname.startsWith('/privacy') ? 'privacy'
+    : location.pathname.startsWith('/terms') ? 'terms'
+    : 'canvas'
 
   // Initialize blank canvas on first render and when grid size changes with no data
   useEffect(() => {
@@ -185,7 +188,7 @@ export default function App() {
     setGridWidth(null)
     setGridHeight(null)
     resetCanvas(pattern)
-    setCurrentPage('canvas')
+    navigate('/')
   }
 
   const handleLoadWork = (work) => {
@@ -194,17 +197,9 @@ export default function App() {
     setGridHeight(work.gridHeight ?? null)
     setCurrentPalette(work.paletteId || 'perler')
     resetCanvas(work.canvasData)
-    setCurrentPage('canvas')
+    navigate('/')
   }
 
-  // 页面切换
-  const handlePageChange = (page) => {
-    setCurrentPage(page)
-  }
-
-  // Enhanced resolveToHex for the quantizer apply path: falls back to searching
-  // ALL palettes in case the user switched brands after quantizing.
-  // Components that always know their palette use colorUtils.resolveToHex instead.
   const resolveToHexAllPalettes = (colorVal, palette) => {
     if (!colorVal) return null
     if (typeof colorVal === 'string' && colorVal.startsWith('#')) return colorVal
@@ -222,7 +217,6 @@ export default function App() {
     const w = options.gridWidth || options.gridSize
     const h = options.gridHeight || options.gridSize
 
-    // Validate dimensions match
     if (quantizedCanvasData.length !== h) {
       console.error('量化结果高度不匹配:', quantizedCanvasData.length, 'vs', h)
       return
@@ -238,14 +232,13 @@ export default function App() {
     setGridWidth(w !== h ? w : null)
     setGridHeight(w !== h ? h : null)
 
-    // 将品牌 ID（如 'P18'）解析为 hex 字符串，以便 Canvas 正确渲染
     const palette = getPalette(options.palette || currentPalette)
     const resolvedData = quantizedCanvasData.map(row =>
       row.map(cell => resolveToHexAllPalettes(cell, palette))
     )
     resetCanvas(resolvedData)
     if (options.palette) setCurrentPalette(options.palette)
-    setCurrentPage('canvas')
+    navigate('/')
     if (w > 50 || h > 50) {
       setFitToast(true)
       setTimeout(() => setFitToast(false), 2500)
@@ -262,9 +255,74 @@ export default function App() {
     onCanvasChange: setCanvas,
   }
 
-  // 移动端布局
-  const renderMobileLayout = () => (
-    <div className="app mobile-layout">
+  // 页面切换(通过路由)
+  const handlePageChange = (page) => {
+    if (page === 'canvas') navigate('/')
+    else navigate(`/${page}`)
+  }
+
+  // 桌面端画布页
+  const renderCanvasPage = () => (
+    <div className="workspace">
+      <aside className={`sidebar left-sidebar${leftSidebarCollapsed ? ' collapsed' : ''}`}>
+        <div className="left-sidebar-top">
+          <Tools
+            tool={tool}
+            onToolChange={setTool}
+            gridSize={gridSize}
+            gridWidth={gridWidth}
+            gridHeight={gridHeight}
+            onGridSizeChange={handleGridSizeChange}
+            onGridDimensionsChange={handleGridDimensionsChange}
+            collapsed={leftSidebarCollapsed}
+            onToggleCollapse={() => setLeftSidebarCollapsed(!leftSidebarCollapsed)}
+            onUndo={undo}
+            onRedo={redo}
+            onClear={handleClearCanvas}
+            canUndo={canUndo}
+            canRedo={canRedo}
+            onOpenQuantizer={() => setShowQuantizer(true)}
+          />
+        </div>
+        <div className="left-sidebar-bottom">
+          <ColorStatsBar
+            canvasData={canvasData}
+            gridSize={gridSize}
+            paletteId={currentPalette}
+          />
+          <ExportPanel
+            canvasData={canvasData}
+            gridSize={gridSize}
+            gridWidth={gridWidth}
+            gridHeight={gridHeight}
+            designName={designName}
+            paletteId={currentPalette}
+            onClose={() => setShowExport(false)}
+          />
+        </div>
+      </aside>
+
+      <main className="canvas-area">
+        <Canvas {...canvasProps} />
+      </main>
+
+      <aside className="sidebar right-sidebar">
+        <ColorPalette
+          selectedColor={selectedColor}
+          onColorSelect={setSelectedColor}
+          currentPalette={currentPalette}
+          onPaletteChange={setCurrentPalette}
+          collapsed={rightSidebarCollapsed}
+          onToggleCollapse={() => setRightSidebarCollapsed(!rightSidebarCollapsed)}
+          canvasData={canvasData}
+        />
+      </aside>
+    </div>
+  )
+
+  // 桌面端布局
+  const renderDesktopLayout = () => (
+    <div className="app desktop-layout">
       <Header
         user={user}
         onLogin={openLogin}
@@ -273,57 +331,45 @@ export default function App() {
         onSave={currentPage === 'canvas' ? handleOpenSaveDialog : undefined}
         currentPage={currentPage}
         onPageChange={handlePageChange}
-        simplified
       />
 
-      {currentPage === 'canvas' ? (
-        <>
-          <MobileCanvasInfoBar
-            gridSize={gridSize}
-            gridWidth={gridWidth}
-            gridHeight={gridHeight}
-            scale={mobileScale}
-            onReset={() => canvasRef.current?.resetTransform()}
-            onFit={() => canvasRef.current?.fitToScreen()}
-          />
-          <div className="mobile-canvas-area">
-            <Canvas
-              {...canvasProps}
-              ref={canvasRef}
-              onTransformChange={setMobileScale}
-            />
-          </div>
-
-          <MobileColorPalette
-            selectedColor={selectedColor}
-            onColorSelect={setSelectedColor}
-            currentPalette={currentPalette}
-            onPaletteChange={setCurrentPalette}
-            canvasData={canvasData}
-          />
-
-          <MobileToolbar
-            tool={tool}
-            onToolChange={setTool}
-            gridSize={gridSize}
-            gridWidth={gridWidth}
-            gridHeight={gridHeight}
-            onGridSizeChange={handleGridSizeChange}
-            onGridDimensionsChange={handleGridDimensionsChange}
-            onUndo={undo}
-            onRedo={redo}
-            onClear={handleClearCanvas}
-            canUndo={canUndo}
-            canRedo={canRedo}
-            onExport={() => setShowExport(true)}
-            onQuantize={() => setShowQuantizer(true)}
-          />
-        </>
-      ) : (
-        <div className="mobile-page-area">
-          {renderPage()}
-        </div>
-      )}
+      <main className="main-content">
+        <Routes>
+          <Route path="/" element={renderCanvasPage()} />
+          <Route path="/gallery" element={
+            <Suspense fallback={<div style={{ padding: 40, textAlign: 'center', color: 'var(--text-muted)' }}>加载中...</div>}>
+              <Gallery
+                onLoadTemplate={handleLoadTemplate}
+                onSaveWork={handleSaveWork}
+                onLoadWork={handleLoadWork}
+                savedWorks={savedWorks}
+                cloudStore={cloudStore}
+              />
+            </Suspense>
+          } />
+          <Route path="/tutorials" element={
+            <Suspense fallback={<div style={{ padding: 40, textAlign: 'center', color: 'var(--text-muted)' }}>加载中...</div>}>
+              <Tutorials />
+            </Suspense>
+          } />
+          <Route path="/admin" element={
+            <Suspense fallback={<div style={{ padding: 40, textAlign: 'center', color: 'var(--text-muted)' }}>加载中...</div>}>
+              <AdminPanel
+                user={user}
+                isAdmin={isAdmin}
+                authLoading={authLoading}
+                onLogin={openLogin}
+                onLogout={logout}
+                onResetPassword={resetPassword}
+                cloudStore={cloudStore}
+              />
+            </Suspense>
+          } />
+          <Route path="/privacy" element={<PrivacyPolicy onBack={() => navigate('/')} />} />
+          <Route path="/terms" element={<TermsOfService onBack={() => navigate('/')} />} />
+          <Route path="*" element={<Navigate to="/" replace />} />
+        </Routes>
+      </main>
 
       {showExport && (
         <ExportPanel
@@ -388,89 +434,154 @@ export default function App() {
       {fitToast && (
         <div className="fit-toast">{t('canvas.autoFitToast')}</div>
       )}
+
+      <style>{`
+        .left-sidebar {
+          display: flex;
+          flex-direction: column;
+          overflow-y: auto;
+          overflow-x: hidden;
+          flex-shrink: 0;
+          height: calc(100vh - 60px);
+        }
+        .left-sidebar.collapsed {
+          width: 56px;
+          transition: width 0.2s ease;
+        }
+        .left-sidebar.collapsed .left-sidebar-bottom {
+          display: none;
+        }
+        .left-sidebar.collapsed .left-sidebar-top {
+          width: 56px;
+        }
+        .modal-overlay {
+          position: fixed;
+          inset: 0;
+          background: rgba(0,0,0,0.45);
+          backdrop-filter: blur(4px);
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          z-index: 1000;
+          padding: 16px;
+          box-sizing: border-box;
+        }
+        .save-toast {
+          position: fixed;
+          top: 72px;
+          left: 50%;
+          transform: translateX(-50%);
+          background: var(--text-primary);
+          color: white;
+          padding: 12px 24px;
+          border-radius: 20px;
+          font-size: var(--text-base);
+          z-index: 1100;
+          box-shadow: var(--shadow-card);
+          animation: toastIn 0.3s ease;
+        }
+        .fit-toast {
+          position: fixed;
+          top: 72px;
+          left: 50%;
+          transform: translateX(-50%);
+          background: var(--secondary-accent);
+          color: white;
+          padding: 12px 24px;
+          border-radius: 20px;
+          font-size: var(--text-base);
+          z-index: 1100;
+          box-shadow: var(--shadow-card);
+          animation: toastIn 0.3s ease;
+        }
+        @keyframes toastIn {
+          from { opacity: 0; transform: translateX(-50%) translateY(-10px); }
+          to { opacity: 1; transform: translateX(-50%) translateY(0); }
+        }
+      `}</style>
     </div>
   )
 
-  // 渲染画布页面（桌面端）
-  const renderCanvasPage = () => (
-    <div className="workspace">
-      <aside className={`sidebar left-sidebar${leftSidebarCollapsed ? ' collapsed' : ''}`}>
-        <div className="left-sidebar-top">
-          <Tools
-            tool={tool}
-            onToolChange={setTool}
-            gridSize={gridSize}
-            gridWidth={gridWidth}
-            gridHeight={gridHeight}
-            onGridSizeChange={handleGridSizeChange}
-            onGridDimensionsChange={handleGridDimensionsChange}
-            collapsed={leftSidebarCollapsed}
-            onToggleCollapse={() => setLeftSidebarCollapsed(!leftSidebarCollapsed)}
-            onUndo={undo}
-            onRedo={redo}
-            onClear={handleClearCanvas}
-            canUndo={canUndo}
-            canRedo={canRedo}
-            onOpenQuantizer={() => setShowQuantizer(true)}
-          />
-        </div>
-        <div className="left-sidebar-bottom">
-          <ColorStatsBar
-            canvasData={canvasData}
-            gridSize={gridSize}
-            paletteId={currentPalette}
-          />
-          <ExportPanel
-            canvasData={canvasData}
-            gridSize={gridSize}
-            gridWidth={gridWidth}
-            gridHeight={gridHeight}
-            designName={designName}
-            paletteId={currentPalette}
-          />
-        </div>
-      </aside>
+  // 移动端布局
+  const renderMobileLayout = () => (
+    <div className="app mobile-layout">
+      <Header
+        user={user}
+        onLogin={openLogin}
+        onRegister={openRegister}
+        onLogout={logout}
+        onSave={currentPage === 'canvas' ? handleOpenSaveDialog : undefined}
+        currentPage={currentPage}
+        onPageChange={handlePageChange}
+        simplified
+      />
 
-      <div className="canvas-area">
-        <Canvas {...canvasProps} />
-      </div>
-
-      <aside className="sidebar right-sidebar">
-        <ColorPalette
-          selectedColor={selectedColor}
-          onColorSelect={setSelectedColor}
-          currentPalette={currentPalette}
-          onPaletteChange={setCurrentPalette}
-          collapsed={rightSidebarCollapsed}
-          onToggleCollapse={() => setRightSidebarCollapsed(!rightSidebarCollapsed)}
-        />
-      </aside>
-    </div>
-  )
-
-  // 渲染当前页面
-  const renderPage = () => {
-    switch (currentPage) {
-      case 'gallery':
-        return (
-          <Suspense fallback={<div style={{ padding: 40, textAlign: 'center', color: 'var(--text-muted)' }}>加载中...</div>}>
-            <Gallery
-              onLoadTemplate={handleLoadTemplate}
-              onSaveWork={handleSaveWork}
-              onLoadWork={handleLoadWork}
-              savedWorks={savedWorks}
-              cloudStore={cloudStore}
+      <Routes>
+        <Route path="/" element={
+          <>
+            <MobileCanvasInfoBar
+              gridSize={gridSize}
+              gridWidth={gridWidth}
+              gridHeight={gridHeight}
+              scale={mobileScale}
+              onReset={() => canvasRef.current?.resetTransform()}
+              onFit={() => canvasRef.current?.fitToScreen()}
             />
-          </Suspense>
-        )
-      case 'tutorials':
-        return (
+            <div className="mobile-canvas-area">
+              <Canvas
+                {...canvasProps}
+                ref={canvasRef}
+                onTransformChange={setMobileScale}
+              />
+            </div>
+
+            <MobileColorPalette
+              selectedColor={selectedColor}
+              onColorSelect={setSelectedColor}
+              currentPalette={currentPalette}
+              onPaletteChange={setCurrentPalette}
+              canvasData={canvasData}
+            />
+
+            <MobileToolbar
+              tool={tool}
+              onToolChange={setTool}
+              gridSize={gridSize}
+              gridWidth={gridWidth}
+              gridHeight={gridHeight}
+              onGridSizeChange={handleGridSizeChange}
+              onGridDimensionsChange={handleGridDimensionsChange}
+              onUndo={undo}
+              onRedo={redo}
+              onClear={handleClearCanvas}
+              canUndo={canUndo}
+              canRedo={canRedo}
+              onExport={() => setShowExport(true)}
+              onQuantize={() => setShowQuantizer(true)}
+            />
+          </>
+        } />
+        <Route path="/gallery" element={
           <Suspense fallback={<div style={{ padding: 40, textAlign: 'center', color: 'var(--text-muted)' }}>加载中...</div>}>
-            <Tutorials />
+            <div className="mobile-page-area">
+              <Gallery
+                onLoadTemplate={handleLoadTemplate}
+                onSaveWork={handleSaveWork}
+                onLoadWork={handleLoadWork}
+                savedWorks={savedWorks}
+                cloudStore={cloudStore}
+              />
+            </div>
           </Suspense>
-        )
-      case 'admin':
-        return (
+        } />
+        <Route path="/tutorials" element={
+          <Suspense fallback={<div style={{ padding: 40, textAlign: 'center', color: 'var(--text-muted)' }}>加载中...</div>}>
+            <div className="mobile-page-area">
+              <Tutorials />
+            </div>
+          </Suspense>
+        } />
+        <Route path="/admin" element={
           <Suspense fallback={<div style={{ padding: 40, textAlign: 'center', color: 'var(--text-muted)' }}>加载中...</div>}>
             <AdminPanel
               user={user}
@@ -482,32 +593,23 @@ export default function App() {
               cloudStore={cloudStore}
             />
           </Suspense>
-        )
-      case 'privacy':
-        return <PrivacyPolicy onBack={() => handlePageChange('canvas')} />
-      case 'terms':
-        return <TermsOfService onBack={() => handlePageChange('canvas')} />
-      default:
-        return renderCanvasPage()
-    }
-  }
+        } />
+        <Route path="/privacy" element={<PrivacyPolicy onBack={() => navigate('/')} />} />
+        <Route path="/terms" element={<TermsOfService onBack={() => navigate('/')} />} />
+        <Route path="*" element={<Navigate to="/" replace />} />
+      </Routes>
 
-  // 桌面端布局
-  const renderDesktopLayout = () => (
-    <div className="app desktop-layout">
-      <Header
-        user={user}
-        onLogin={openLogin}
-        onRegister={openRegister}
-        onLogout={logout}
-        onSave={handleOpenSaveDialog}
-        currentPage={currentPage}
-        onPageChange={handlePageChange}
-      />
-
-      <main className="main-content">
-        {renderPage()}
-      </main>
+      {showExport && (
+        <ExportPanel
+          canvasData={canvasData}
+          gridSize={gridSize}
+          gridWidth={gridWidth}
+          gridHeight={gridHeight}
+          designName={designName}
+          paletteId={currentPalette}
+          onClose={() => setShowExport(false)}
+        />
+      )}
 
       {showAuth && (
         <AuthModal
@@ -562,44 +664,6 @@ export default function App() {
       )}
 
       <style>{`
-        .left-sidebar {
-          display: flex;
-          flex-direction: column;
-          overflow-y: auto;
-          overflow-x: hidden;
-          flex-shrink: 0;
-          height: calc(100vh - 60px);
-          padding: 8px;
-          gap: 8px;
-          box-sizing: border-box;
-        }
-        .left-sidebar-top {
-          flex-shrink: 0;
-        }
-        .left-sidebar-bottom {
-          flex-shrink: 0;
-          display: flex;
-          flex-direction: column;
-          gap: 8px;
-        }
-        .sidebar-divider {
-          height: 1px;
-          background: var(--border-color);
-          flex-shrink: 0;
-        }
-        .right-sidebar .palette-drawer {
-          height: 100%;
-        }
-        .left-sidebar.collapsed {
-          width: 56px;
-          transition: width 0.2s ease;
-        }
-        .left-sidebar.collapsed .left-sidebar-bottom {
-          display: none;
-        }
-        .left-sidebar.collapsed .left-sidebar-top {
-          width: 56px;
-        }
         .modal-overlay {
           position: fixed;
           inset: 0;
@@ -619,72 +683,32 @@ export default function App() {
           transform: translateX(-50%);
           background: var(--text-primary);
           color: white;
-          padding: 10px 24px;
-          border-radius: 8px;
-          font-size: 14px;
-          z-index: 1000;
-          pointer-events: none;
-          white-space: nowrap;
+          padding: 12px 24px;
+          border-radius: 20px;
+          font-size: var(--text-base);
+          z-index: 1100;
+          box-shadow: var(--shadow-card);
+          animation: toastIn 0.3s ease;
         }
         .fit-toast {
           position: fixed;
-          bottom: 88px;
+          top: 72px;
           left: 50%;
           transform: translateX(-50%);
-          background: rgba(43, 36, 32, 0.82);
+          background: var(--secondary-accent);
           color: white;
-          padding: 8px 20px;
+          padding: 12px 24px;
           border-radius: 20px;
-          font-size: 13px;
-          z-index: 200;
-          pointer-events: none;
-          white-space: nowrap;
+          font-size: var(--text-base);
+          z-index: 1100;
+          box-shadow: var(--shadow-card);
+          animation: toastIn 0.3s ease;
+        }
+        @keyframes toastIn {
+          from { opacity: 0; transform: translateX(-50%) translateY(-10px); }
+          to { opacity: 1; transform: translateX(-50%) translateY(0); }
         }
       `}</style>
     </div>
-  )
-
-  // 根据当前页面生成动态 meta（SPA 各视图差异化 SEO）
-  const seoByPage = {
-    canvas: {
-      title: '拼豆Studio - 在线拼豆图纸设计工具 | 图片转拼豆',
-      description: '免费在线拼豆图纸设计工具，自由绘制拼豆图案，上传图片一键智能转拼豆图纸，支持Perler/Hama/Artkal三大品牌色卡。',
-    },
-    gallery: {
-      title: '拼豆模板图库 - 拼豆Studio | 动物·食物·图标·节日',
-      description: '浏览拼豆Studio内置模板图库，包含动物、食物、图标、节日四大分类，简单/中等/困难三档难度，一键加载模板开始创作。',
-    },
-    tutorials: {
-      title: '拼豆教程 - 拼豆Studio | 入门到进阶图文教程',
-      description: '拼豆Studio提供6大分类18篇拼豆图文教程，涵盖入门指南、熨烫手法、防变形、配色设计、进阶技巧、作品保护，适合新手和进阶玩家。',
-    },
-    privacy: {
-      title: '隐私政策 - 拼豆Studio',
-      description: '拼豆Studio隐私政策：了解我们如何收集、使用和保护您的个人信息。本工具绝大多数数据存储在您的浏览器本地。',
-    },
-    terms: {
-      title: '服务条款 - 拼豆Studio',
-      description: '拼豆Studio服务条款：使用本工具即表示您同意遵守本条款。了解您的权利与责任。',
-    },
-  }
-  const seo = seoByPage[currentPage] || seoByPage.canvas
-
-  const appContent = isMobile || isTablet
-    ? renderMobileLayout()
-    : renderDesktopLayout()
-
-  return (
-    <>
-      <Helmet>
-        <title>{seo.title}</title>
-        <meta name="description" content={seo.description} />
-        <meta property="og:title" content={seo.title} />
-        <meta property="og:description" content={seo.description} />
-        <meta name="twitter:title" content={seo.title} />
-        <meta name="twitter:description" content={seo.description} />
-        <link rel="canonical" href={currentPage === 'canvas' ? 'https://tangnotes.site/' : `https://tangnotes.site/?page=${currentPage}`} />
-      </Helmet>
-      {appContent}
-    </>
   )
 }

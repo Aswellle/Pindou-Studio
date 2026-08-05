@@ -1,21 +1,22 @@
 import { useTranslation } from 'react-i18next'
+import { NavLink } from 'react-router-dom'
 import { PenTool, LayoutGrid, BookOpen, LogIn } from 'lucide-react'
 import LanguageSelector from './Header/LanguageSelector'
 
 export default function Header({ user, onLogin, onRegister, onLogout, onSave, currentPage, onPageChange, simplified }) {
   const { t } = useTranslation()
 
+  // 后台管理(admin)不在导航中显示,仅通过 /admin 路由访问
   const navItems = [
-    { id: 'canvas', label: t('nav.canvas') },
-    { id: 'gallery', label: t('nav.gallery') },
-    { id: 'tutorials', label: t('nav.tutorials') },
-    { id: 'admin', label: t('nav.admin') }
+    { id: 'canvas', path: '/', label: t('nav.canvas'), icon: PenTool },
+    { id: 'gallery', path: '/gallery', label: t('nav.gallery'), icon: LayoutGrid },
+    { id: 'tutorials', path: '/tutorials', label: t('nav.tutorials'), icon: BookOpen },
   ]
 
   return (
     <header className={`header ${simplified ? 'simplified' : ''}`}>
       <div className="header-left">
-        <div className="logo">
+        <NavLink to="/" className="logo">
           <svg width="32" height="32" viewBox="0 0 32 32" fill="none">
             <rect width="8" height="8" x="0" y="0" fill="#E53935"/>
             <rect width="8" height="8" x="8" y="0" fill="#FDD835"/>
@@ -35,26 +36,24 @@ export default function Header({ user, onLogin, onRegister, onLogout, onSave, cu
             <rect width="8" height="8" x="24" y="24" fill="#6D4C41"/>
           </svg>
           {!simplified && <span className="logo-text">{t('app.title')}</span>}
-        </div>
+        </NavLink>
       </div>
 
       <div className="header-center">
         <nav className="nav">
           {navItems.map(item => (
-            <button
+            <NavLink
               key={item.id}
+              to={item.path}
               className={`nav-link ${currentPage === item.id ? 'active' : ''}`}
-              onClick={() => onPageChange(item.id)}
               aria-label={item.label}
             >
               {simplified ? (
                 <span className="nav-icon">
-                  {item.id === 'canvas' && <PenTool size={18} />}
-                  {item.id === 'gallery' && <LayoutGrid size={18} />}
-                  {item.id === 'tutorials' && <BookOpen size={18} />}
+                  <item.icon size={18} />
                 </span>
               ) : item.label}
-            </button>
+            </NavLink>
           ))}
         </nav>
       </div>
