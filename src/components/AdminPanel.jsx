@@ -189,22 +189,22 @@ export default function AdminPanel({ user, isAdmin, authLoading, onLogin, onLogo
         <button role="tab" aria-selected={tab === 'templates'} className={`admin-tab ${tab === 'templates' ? 'active' : ''}`} onClick={() => setTab('templates')}>
           {t('admin.tab.templates')}
         </button>
-        <button role="tab" aria-selected={tab === 'users'} className={`admin-tab ${tab === 'users' ? 'active' : ''}`} onClick={() => setTab('users')}>
-          {t('admin.tab.users')}
-        </button>
         <button role="tab" aria-selected={tab === 'import'} className={`admin-tab ${tab === 'import' ? 'active' : ''}`} onClick={() => setTab('import')}>
           {t('admin.tab.import')}
         </button>
         <button role="tab" aria-selected={tab === 'categories'} className={`admin-tab ${tab === 'categories' ? 'active' : ''}`} onClick={() => setTab('categories')}>
           {t('admin.tab.categories')}
         </button>
+        <button role="tab" aria-selected={tab === 'users'} className={`admin-tab ${tab === 'users' ? 'active' : ''}`} onClick={() => setTab('users')}>
+          {t('admin.tab.users')}
+        </button>
       </div>
 
       <div className="admin-tab-content" key={tab}>
         {tab === 'templates' && <TemplateManager store={cloudStore} />}
-        {tab === 'users' && <UserManager />}
         {tab === 'import' && <JsonImporter store={cloudStore} />}
         {tab === 'categories' && <CategoryManager store={cloudStore} />}
+        {tab === 'users' && <UserManager />}
       </div>
 
       {/* 修改密码 → 确认对话框(确认后才发送重置邮件) */}
@@ -237,6 +237,7 @@ export default function AdminPanel({ user, isAdmin, authLoading, onLogin, onLogo
           flex: 1;
           min-height: 0;
           overflow-y: auto;
+          -webkit-overflow-scrolling: touch;
           scrollbar-gutter: stable;
           box-sizing: border-box;
         }
@@ -338,11 +339,13 @@ export default function AdminPanel({ user, isAdmin, authLoading, onLogin, onLogo
         }
         .admin-tab-content {
           min-height: 55vh;
-          animation: adminFadeIn 0.18s ease;
+          /* 仅透明度过渡:不使用 transform 动画 —— iOS Safari 在输入框聚焦
+             时若页面仍在播放 transform 动画,会触发渲染层失效导致局部白板 */
+          animation: adminFadeIn 0.15s ease;
         }
         @keyframes adminFadeIn {
-          from { opacity: 0; transform: translateY(4px); }
-          to { opacity: 1; transform: none; }
+          from { opacity: 0; }
+          to { opacity: 1; }
         }
         .admin-card {
           background: var(--bg-primary);
@@ -368,12 +371,19 @@ export default function AdminPanel({ user, isAdmin, authLoading, onLogin, onLogo
           font-family: inherit;
           background: var(--bg-primary);
           color: var(--text-primary);
-          transition: border-color 0.15s, box-shadow 0.15s;
+          transition: border-color 0.15s;
+          /* iOS Safari 输入框渲染稳定性:禁用原生外观 + 建立独立渲染层,
+             避免聚焦时触发整段内容白板的已知 bug */
+          -webkit-appearance: none;
+          appearance: none;
+          position: relative;
+          z-index: 1;
         }
         .admin-input:focus {
           outline: none;
           border-color: var(--accent);
-          box-shadow: 0 0 0 3px rgba(229, 57, 53, 0.12);
+          /* 聚焦光圈用 border 颜色表达,不用 box-shadow 扩散 ——
+             iOS 上 input 聚焦 + box-shadow 重绘偶发渲染异常 */
         }
         .admin-input::placeholder { color: var(--text-muted); }
         select.admin-input { cursor: pointer; }
