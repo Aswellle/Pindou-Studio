@@ -20,13 +20,8 @@ function GateStyle() {
         text-align: center;
       }
       .admin-gate svg { margin: 0 auto; }
-      .admin-gate .admin-btn { align-self: center; padding: 8px 32px; }
+      .admin-gate .admin-btn { align-self: center; padding: 0 32px; }
       .admin-gate .admin-subtitle { line-height: 1.6; }
-      .admin-account {
-        font-size: 12px;
-        color: var(--text-muted);
-        font-family: ui-monospace, monospace;
-      }
     `}</style>
   )
 }
@@ -129,9 +124,12 @@ export default function AdminPanel({ user, isAdmin, authLoading, onLogin, onLogo
   return (
     <div className="admin-panel">
       <div className="admin-header">
-        <h1 className="admin-title">{t('admin.title')}</h1>
-        <p className="admin-subtitle">{t('admin.subtitle')}</p>
-        <div className="admin-actions" style={{ marginTop: 8, alignItems: 'center' }}>
+        <div className="admin-header-main">
+          <h1 className="admin-title">{t('admin.title')}</h1>
+          <p className="admin-subtitle">{t('admin.subtitle')}</p>
+          {resetMsg && <div className="admin-result ok">{resetMsg}</div>}
+        </div>
+        <div className="admin-header-actions">
           <span className="admin-account">{user.email} · Admin</span>
           <button className="admin-btn secondary small" onClick={handleResetPassword}>
             {t('admin.resetPassword')}
@@ -140,24 +138,25 @@ export default function AdminPanel({ user, isAdmin, authLoading, onLogin, onLogo
             {t('admin.signOut')}
           </button>
         </div>
-        {resetMsg && <div className="admin-result ok" style={{ marginTop: 8 }}>{resetMsg}</div>}
       </div>
 
-      <div className="admin-tabs">
-        <button className={`admin-tab ${tab === 'templates' ? 'active' : ''}`} onClick={() => setTab('templates')}>
+      <div className="admin-tabs" role="tablist">
+        <button role="tab" aria-selected={tab === 'templates'} className={`admin-tab ${tab === 'templates' ? 'active' : ''}`} onClick={() => setTab('templates')}>
           {t('admin.tab.templates')}
         </button>
-        <button className={`admin-tab ${tab === 'import' ? 'active' : ''}`} onClick={() => setTab('import')}>
+        <button role="tab" aria-selected={tab === 'import'} className={`admin-tab ${tab === 'import' ? 'active' : ''}`} onClick={() => setTab('import')}>
           {t('admin.tab.import')}
         </button>
-        <button className={`admin-tab ${tab === 'categories' ? 'active' : ''}`} onClick={() => setTab('categories')}>
+        <button role="tab" aria-selected={tab === 'categories'} className={`admin-tab ${tab === 'categories' ? 'active' : ''}`} onClick={() => setTab('categories')}>
           {t('admin.tab.categories')}
         </button>
       </div>
 
-      {tab === 'templates' && <TemplateManager store={cloudStore} />}
-      {tab === 'import' && <JsonImporter store={cloudStore} />}
-      {tab === 'categories' && <CategoryManager store={cloudStore} />}
+      <div className="admin-tab-content" key={tab}>
+        {tab === 'templates' && <TemplateManager store={cloudStore} />}
+        {tab === 'import' && <JsonImporter store={cloudStore} />}
+        {tab === 'categories' && <CategoryManager store={cloudStore} />}
+      </div>
 
       <style>{`
         .admin-panel {
@@ -165,9 +164,41 @@ export default function AdminPanel({ user, isAdmin, authLoading, onLogin, onLogo
           margin: 0 auto;
           padding: 20px 16px 48px;
           font-size: var(--text-base);
+          /* PC 端父容器(.main-content overflow:hidden)内自持滚动;
+             scrollbar-gutter 常驻滚动条空间,避免 tab 切换时视口宽度抖动 */
+          height: 100%;
+          overflow-y: auto;
+          scrollbar-gutter: stable;
+          box-sizing: border-box;
         }
         .admin-header {
+          display: flex;
+          align-items: flex-start;
+          justify-content: space-between;
+          gap: 16px;
+          flex-wrap: wrap;
           margin-bottom: 16px;
+        }
+        .admin-header-main { min-width: 0; }
+        .admin-header-actions {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          flex-shrink: 0;
+          flex-wrap: wrap;
+        }
+        .admin-account {
+          display: inline-flex;
+          align-items: center;
+          gap: 6px;
+          background: var(--bg-secondary);
+          border: 1px solid var(--border-color);
+          border-radius: 999px;
+          padding: 3px 12px;
+          font-size: 12px;
+          color: var(--text-secondary);
+          font-family: ui-monospace, monospace;
+          white-space: nowrap;
         }
         .admin-title {
           font-size: var(--text-2xl);
@@ -182,26 +213,40 @@ export default function AdminPanel({ user, isAdmin, authLoading, onLogin, onLogo
         }
         .admin-tabs {
           display: flex;
-          gap: 8px;
+          gap: 6px;
           margin-bottom: 20px;
           border-bottom: 1px solid var(--border-color);
           padding-bottom: 10px;
+          overflow-x: auto;
         }
         .admin-tab {
           border: none;
-          background: var(--bg-secondary);
+          background: transparent;
           color: var(--text-secondary);
-          padding: 8px 16px;
-          border-radius: 10px;
+          height: 36px;
+          padding: 0 16px;
+          border-radius: 8px;
           cursor: pointer;
           font-size: var(--text-sm);
           font-weight: 500;
-          transition: all 0.2s;
+          font-family: inherit;
+          white-space: nowrap;
+          transition: background 0.15s, color 0.15s, box-shadow 0.15s;
         }
-        .admin-tab:hover { background: var(--bg-hover); }
+        .admin-tab:hover { background: var(--bg-hover); color: var(--text-primary); }
+        .admin-tab:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
         .admin-tab.active {
           background: var(--accent);
           color: white;
+          box-shadow: 0 2px 8px rgba(43, 36, 32, 0.18);
+        }
+        .admin-tab-content {
+          min-height: 55vh;
+          animation: adminFadeIn 0.18s ease;
+        }
+        @keyframes adminFadeIn {
+          from { opacity: 0; transform: translateY(4px); }
+          to { opacity: 1; transform: none; }
         }
         .admin-card {
           background: var(--bg-primary);
@@ -209,32 +254,39 @@ export default function AdminPanel({ user, isAdmin, authLoading, onLogin, onLogo
           border-radius: var(--radius-card);
           padding: 16px;
           margin-bottom: 16px;
+          box-shadow: 0 1px 3px rgba(43, 36, 32, 0.05);
         }
         .admin-card h3 {
           margin: 0 0 12px;
           font-size: var(--text-lg);
+          font-weight: var(--font-weight-semibold);
         }
         .admin-input {
           width: 100%;
           box-sizing: border-box;
+          height: 38px;
+          padding: 0 10px;
           border: 1px solid var(--border-color);
           border-radius: 8px;
-          padding: 8px 10px;
           font-size: var(--text-base);
           font-family: inherit;
           background: var(--bg-primary);
           color: var(--text-primary);
+          transition: border-color 0.15s, box-shadow 0.15s;
         }
         .admin-input:focus {
           outline: none;
           border-color: var(--accent);
+          box-shadow: 0 0 0 3px rgba(229, 57, 53, 0.12);
         }
+        .admin-input::placeholder { color: var(--text-muted); }
+        select.admin-input { cursor: pointer; }
         .admin-textarea {
           width: 100%;
           box-sizing: border-box;
           border: 1px solid var(--border-color);
           border-radius: 8px;
-          padding: 8px 10px;
+          padding: 10px;
           font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
           font-size: 12px;
           line-height: 1.5;
@@ -242,45 +294,60 @@ export default function AdminPanel({ user, isAdmin, authLoading, onLogin, onLogo
           color: var(--text-primary);
           min-height: 160px;
           resize: vertical;
+          transition: border-color 0.15s, box-shadow 0.15s;
+        }
+        .admin-textarea:focus {
+          outline: none;
+          border-color: var(--accent);
+          box-shadow: 0 0 0 3px rgba(229, 57, 53, 0.12);
         }
         .admin-field {
-          margin-bottom: 12px;
+          margin-bottom: 14px;
         }
         .admin-field label {
           display: block;
           font-size: var(--text-sm);
           font-weight: 500;
           color: var(--text-secondary);
-          margin-bottom: 4px;
+          margin-bottom: 6px;
         }
         .admin-field-hint {
           font-size: 12px;
           color: var(--text-muted);
-          margin-top: 4px;
+          margin-top: 6px;
+          line-height: 1.5;
         }
         .admin-actions {
           display: flex;
           gap: 8px;
           margin-top: 12px;
+          flex-wrap: wrap;
         }
         .admin-btn {
           border: none;
           border-radius: 8px;
-          padding: 8px 16px;
+          height: 36px;
+          padding: 0 16px;
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
           font-size: var(--text-sm);
           font-weight: 500;
           cursor: pointer;
-          transition: all 0.2s;
           font-family: inherit;
+          white-space: nowrap;
+          transition: background 0.15s, box-shadow 0.15s, transform 0.1s, opacity 0.15s;
         }
+        .admin-btn:active { transform: translateY(1px); }
+        .admin-btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
         .admin-btn.primary { background: var(--accent); color: white; }
-        .admin-btn.primary:hover { background: var(--accent-hover); }
-        .admin-btn.secondary { background: var(--bg-secondary); color: var(--text-primary); }
+        .admin-btn.primary:hover { background: var(--accent-hover); box-shadow: 0 2px 8px rgba(43, 36, 32, 0.18); }
+        .admin-btn.secondary { background: var(--bg-secondary); color: var(--text-primary); border: 1px solid var(--border-color); }
         .admin-btn.secondary:hover { background: var(--bg-hover); }
         .admin-btn.danger { background: var(--error); color: white; }
-        .admin-btn.danger:hover { opacity: 0.9; }
-        .admin-btn.small { padding: 4px 10px; font-size: 12px; }
-        .admin-btn:disabled { opacity: 0.5; cursor: default; }
+        .admin-btn.danger:hover { background: var(--error); opacity: 0.9; }
+        .admin-btn.small { height: 28px; padding: 0 10px; font-size: 12px; }
+        .admin-btn:disabled { opacity: 0.5; cursor: not-allowed; }
         .admin-errors {
           margin: 8px 0 0;
           padding: 10px 12px;
@@ -308,12 +375,18 @@ export default function AdminPanel({ user, isAdmin, authLoading, onLogin, onLogo
           border: 1px solid var(--border-color);
           border-radius: var(--radius-card);
           padding: 10px 12px;
+          transition: border-color 0.15s, box-shadow 0.15s;
+        }
+        .admin-template-row:hover {
+          border-color: var(--accent);
+          box-shadow: var(--shadow-card);
         }
         .admin-template-row .thumb {
           flex-shrink: 0;
           background: #fff;
           border-radius: 6px;
           padding: 4px;
+          border: 1px solid var(--border-color);
         }
         .admin-template-meta {
           flex: 1;
@@ -374,7 +447,7 @@ export default function AdminPanel({ user, isAdmin, authLoading, onLogin, onLogo
           display: flex;
           align-items: center;
           gap: 10px;
-          padding: 8px 0;
+          padding: 10px 0;
           border-bottom: 1px solid var(--border-color);
         }
         .admin-category-row:last-child { border-bottom: none; }
@@ -389,16 +462,20 @@ export default function AdminPanel({ user, isAdmin, authLoading, onLogin, onLogo
           display: flex;
           gap: 8px;
           margin-top: 12px;
+          flex-wrap: wrap;
         }
-        .admin-row-form .admin-input { flex: 1; }
+        .admin-row-form .admin-input { flex: 1; min-width: 140px; }
         .admin-grid-2 {
           display: grid;
           grid-template-columns: 1fr 1fr;
           gap: 12px;
         }
         @media (max-width: 640px) {
+          /* 移动端由 .mobile-page-area 负责滚动,容器自身不滚动 */
+          .admin-panel { height: auto; overflow: visible; }
           .admin-grid-2 { grid-template-columns: 1fr; }
           .admin-template-row { flex-wrap: wrap; }
+          .admin-header-actions { width: 100%; }
         }
       `}</style>
     </div>
