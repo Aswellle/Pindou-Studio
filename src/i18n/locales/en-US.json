@@ -312,7 +312,8 @@
     "tab": {
       "templates": "Templates",
       "import": "JSON Import",
-      "categories": "Categories"
+      "categories": "Categories",
+      "users": "Users"
     },
     "templatesEmpty": "No custom templates yet. Add one or import via JSON.",
     "addTemplate": "Add Template",
@@ -382,7 +383,31 @@
     },
     "resetConfirmTitle": "Confirm Password Reset",
     "resetConfirmText": "A password reset email will be sent to {{email}}. Send it?",
-    "confirmSend": "Send"
+    "confirmSend": "Send",
+    "users": {
+      "title": "User Dashboard",
+      "privacyNote": "Shows only registration data needed for operations (email/nickname/role/verification/joined). No sensitive data such as passwords, no behavior tracking.",
+      "total": "Registered",
+      "verified": "Verified Emails",
+      "unverified": "Unverified",
+      "admins": "Admins",
+      "recent30": "New (30d)",
+      "searchPlaceholder": "Search email or nickname",
+      "email": "Email",
+      "nickname": "Nickname",
+      "role": "Role",
+      "status": "Verification",
+      "registeredAt": "Joined",
+      "verifiedYes": "Verified",
+      "verifiedNo": "Unverified",
+      "roleAdmin": "Admin",
+      "roleUser": "User",
+      "empty": "No matching users",
+      "loadFailed": "Load failed",
+      "pagePrev": "Prev",
+      "pageNext": "Next",
+      "pageInfo": "Page {{page}}"
+    }
   },
   "profile": {
     "title": "Profile",

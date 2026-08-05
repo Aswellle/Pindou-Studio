@@ -312,7 +312,8 @@
     "tab": {
       "templates": "模板管理",
       "import": "JSON 导入",
-      "categories": "分类管理"
+      "categories": "分类管理",
+      "users": "用户管理"
     },
     "templatesEmpty": "暂无自定义模板,点击「添加新模板」或到「JSON 导入」上传",
     "addTemplate": "添加新模板",
@@ -382,7 +383,31 @@
     },
     "resetConfirmTitle": "确认发送重置邮件",
     "resetConfirmText": "将向 {{email}} 发送密码重置邮件。确认发送?",
-    "confirmSend": "确认发送"
+    "confirmSend": "确认发送",
+    "users": {
+      "title": "用户仪表盘",
+      "privacyNote": "仅展示平台运营所需的注册信息(邮箱/昵称/角色/验证状态/注册时间),不包含密码等敏感数据,不收集行为数据",
+      "total": "注册用户",
+      "verified": "已验证邮箱",
+      "unverified": "未验证邮箱",
+      "admins": "管理员",
+      "recent30": "近30天新增",
+      "searchPlaceholder": "搜索邮箱或昵称",
+      "email": "邮箱",
+      "nickname": "昵称",
+      "role": "角色",
+      "status": "验证状态",
+      "registeredAt": "注册时间",
+      "verifiedYes": "已验证",
+      "verifiedNo": "未验证",
+      "roleAdmin": "管理员",
+      "roleUser": "用户",
+      "empty": "暂无匹配用户",
+      "loadFailed": "加载失败",
+      "pagePrev": "上一页",
+      "pageNext": "下一页",
+      "pageInfo": "第 {{page}} 页"
+    }
   },
   "profile": {
     "title": "个人资料",

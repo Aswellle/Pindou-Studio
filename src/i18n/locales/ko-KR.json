@@ -312,7 +312,8 @@
     "tab": {
       "templates": "템플릿 관리",
       "import": "JSON 가져오기",
-      "categories": "카테고리 관리"
+      "categories": "카테고리 관리",
+      "users": "사용자 관리"
     },
     "templatesEmpty": "사용자 정의 템플릿이 없습니다. 추가하거나 JSON으로 가져오세요",
     "addTemplate": "템플릿 추가",
@@ -382,7 +383,31 @@
     },
     "resetConfirmTitle": "재설정 메일 보내기 확인",
     "resetConfirmText": "{{email}}로 비밀번호 재설정 메일을 보냅니다. 보내시겠습니까?",
-    "confirmSend": "보내기"
+    "confirmSend": "보내기",
+    "users": {
+      "title": "사용자 대시보드",
+      "privacyNote": "운영에 필요한 등록 정보만 표시합니다(이메일/닉네임/역할/인증 상태/가입일). 비밀번호 등 민감 정보와 행동 데이터는 포함하지 않습니다",
+      "total": "등록 사용자",
+      "verified": "인증된 이메일",
+      "unverified": "미인증 이메일",
+      "admins": "관리자",
+      "recent30": "최근 30일 신규",
+      "searchPlaceholder": "이메일 또는 닉네임 검색",
+      "email": "이메일",
+      "nickname": "닉네임",
+      "role": "역할",
+      "status": "인증 상태",
+      "registeredAt": "가입일",
+      "verifiedYes": "인증됨",
+      "verifiedNo": "미인증",
+      "roleAdmin": "관리자",
+      "roleUser": "사용자",
+      "empty": "일치하는 사용자가 없습니다",
+      "loadFailed": "로드 실패",
+      "pagePrev": "이전",
+      "pageNext": "다음",
+      "pageInfo": "{{page}}페이지"
+    }
   },
   "profile": {
     "title": "프로필",

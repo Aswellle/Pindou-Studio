@@ -312,7 +312,8 @@
     "tab": {
       "templates": "テンプレート管理",
       "import": "JSON インポート",
-      "categories": "カテゴリ管理"
+      "categories": "カテゴリ管理",
+      "users": "ユーザー管理"
     },
     "templatesEmpty": "カスタムテンプレートはまだありません。追加するか JSON からインポートしてください",
     "addTemplate": "テンプレート追加",
@@ -382,7 +383,31 @@
     },
     "resetConfirmTitle": "リセットメールの送信確認",
     "resetConfirmText": "{{email}} にパスワードリセットメールを送信します。送信しますか?",
-    "confirmSend": "送信する"
+    "confirmSend": "送信する",
+    "users": {
+      "title": "ユーザーダッシュボード",
+      "privacyNote": "運営に必要な登録情報のみ表示します(メール/ニックネーム/ロール/認証状態/登録日)。パスワード等の機密情報や行動データは含みません",
+      "total": "登録ユーザー",
+      "verified": "認証済みメール",
+      "unverified": "未認証メール",
+      "admins": "管理者",
+      "recent30": "30日以内の新規",
+      "searchPlaceholder": "メールまたはニックネームで検索",
+      "email": "メール",
+      "nickname": "ニックネーム",
+      "role": "ロール",
+      "status": "認証状態",
+      "registeredAt": "登録日",
+      "verifiedYes": "認証済み",
+      "verifiedNo": "未認証",
+      "roleAdmin": "管理者",
+      "roleUser": "ユーザー",
+      "empty": "該当するユーザーがいません",
+      "loadFailed": "読み込みに失敗しました",
+      "pagePrev": "前へ",
+      "pageNext": "次へ",
+      "pageInfo": "{{page}} ページ目"
+    }
   },
   "profile": {
     "title": "プロフィール",

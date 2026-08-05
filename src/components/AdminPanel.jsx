@@ -1,8 +1,9 @@
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useEffect, useCallback } from 'react'
 import { useTranslation } from 'react-i18next'
 import { CATEGORIES, DIFFICULTIES, TEMPLATES, normalizeCustomTemplate } from '../data/templates'
 import ThumbnailCanvas from './ThumbnailCanvas'
 import LoadingScreen from './LoadingScreen'
+import UserManager from './UserManager'
 
 // 门禁/提示卡片的共用样式
 function GateStyle() {
@@ -188,6 +189,9 @@ export default function AdminPanel({ user, isAdmin, authLoading, onLogin, onLogo
         <button role="tab" aria-selected={tab === 'templates'} className={`admin-tab ${tab === 'templates' ? 'active' : ''}`} onClick={() => setTab('templates')}>
           {t('admin.tab.templates')}
         </button>
+        <button role="tab" aria-selected={tab === 'users'} className={`admin-tab ${tab === 'users' ? 'active' : ''}`} onClick={() => setTab('users')}>
+          {t('admin.tab.users')}
+        </button>
         <button role="tab" aria-selected={tab === 'import'} className={`admin-tab ${tab === 'import' ? 'active' : ''}`} onClick={() => setTab('import')}>
           {t('admin.tab.import')}
         </button>
@@ -198,6 +202,7 @@ export default function AdminPanel({ user, isAdmin, authLoading, onLogin, onLogo
 
       <div className="admin-tab-content" key={tab}>
         {tab === 'templates' && <TemplateManager store={cloudStore} />}
+        {tab === 'users' && <UserManager />}
         {tab === 'import' && <JsonImporter store={cloudStore} />}
         {tab === 'categories' && <CategoryManager store={cloudStore} />}
       </div>
