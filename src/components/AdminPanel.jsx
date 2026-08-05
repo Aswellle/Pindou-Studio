@@ -71,11 +71,17 @@ const EXAMPLE_JSON = JSON.stringify({
 // · 非 admin 账号 → 无权限提示
 // · admin → 管理内容(云端模板库 CRUD,RLS 服务端强制 admin 权限)
 // ─────────────────────────────────────────────────────────────
-export default function AdminPanel({ user, isAdmin, authLoading, onLogin, onLogout, onResetPassword, cloudStore }) {
+export default function AdminPanel({ user, isAdmin, authLoading, onLogin, onLogout, onChangePassword, cloudStore }) {
   const { t } = useTranslation()
   const [tab, setTab] = useState('templates')
-  const [resetMsg, setResetMsg] = useState('')
-  const [confirmReset, setConfirmReset] = useState(false) // 修改密码确认对话框
+  // 修改密码(旧密码验证)模态框状态
+  const [showChangePw, setShowChangePw] = useState(false)
+  const [oldPw, setOldPw] = useState('')
+  const [newPw, setNewPw] = useState('')
+  const [newPw2, setNewPw2] = useState('')
+  const [pwError, setPwError] = useState('')
+  const [pwBusy, setPwBusy] = useState(false)
+  const [pwSaved, setPwSaved] = useState(false)
 
   const cloudEnabled = !!cloudStore?.enabled
 
@@ -147,19 +153,26 @@ export default function AdminPanel({ user, isAdmin, authLoading, onLogin, onLogo
     )
   }
 
-  // 修改密码:先弹确认对话框,确认后才发送重置邮件
-  const handleResetPassword = () => {
-    if (!user?.email) return
-    setConfirmReset(true)
-  }
-
-  const handleConfirmReset = () => {
-    onResetPassword(user.email)
-      .then(() => {
-        setConfirmReset(false)
-        setResetMsg(t('admin.resetSent'))
-      })
-      .catch(() => setConfirmReset(false))
+  // 修改密码:旧密码验证 + 新密码(与个人资料一致,不再发邮件)
+  const handleChangePassword = async () => {
+    if (!oldPw) { setPwError(t('profile.oldPasswordRequired')); return }
+    if (newPw.length < 6) { setPwError(t('errors.passwordTooShort')); return }
+    if (newPw !== newPw2) { setPwError(t('errors.passwordMismatch')); return }
+    setPwBusy(true)
+    setPwError('')
+    try {
+      await onChangePassword(user.email, oldPw, newPw)
+      setPwSaved(true)
+      setTimeout(() => setPwSaved(false), 2000)
+      setOldPw('')
+      setNewPw('')
+      setNewPw2('')
+      setShowChangePw(false)
+    } catch {
+      setPwError(t('profile.wrongPassword'))
+    } finally {
+      setPwBusy(false)
+    }
   }
 
   return (
@@ -168,7 +181,6 @@ export default function AdminPanel({ user, isAdmin, authLoading, onLogin, onLogo
         <div className="admin-header-main">
           <h1 className="admin-title">{t('admin.title')}</h1>
           <p className="admin-subtitle">{t('admin.subtitle')}</p>
-          {resetMsg && <div className="admin-result ok">{resetMsg}</div>}
         </div>
         <div className="admin-header-actions">
           <span className="admin-account">
@@ -176,8 +188,8 @@ export default function AdminPanel({ user, isAdmin, authLoading, onLogin, onLogo
             <span className="admin-account-name">{user.email}</span>
             <span className="admin-role-badge">ADMIN</span>
           </span>
-          <button className="admin-btn secondary" onClick={handleResetPassword}>
-            {t('admin.resetPassword')}
+          <button className="admin-btn secondary" onClick={() => { setShowChangePw(true); setPwError('') }}>
+            {t('profile.changePassword')}
           </button>
           <button className="admin-btn secondary" onClick={onLogout}>
             {t('admin.signOut')}
@@ -207,17 +219,46 @@ export default function AdminPanel({ user, isAdmin, authLoading, onLogin, onLogo
         {tab === 'users' && <UserManager />}
       </div>
 
-      {/* 修改密码 → 确认对话框(确认后才发送重置邮件) */}
-      {confirmReset && (
-        <AdminModal title={t('admin.resetConfirmTitle')} onClose={() => setConfirmReset(false)}>
-          <p className="admin-modal-text">
-            {t('admin.resetConfirmText', { email: user.email })}
-          </p>
+      {/* 修改密码 → 模态框(旧密码验证 + 新密码) */}
+      {showChangePw && (
+        <AdminModal title={t('profile.changePasswordTitle')} onClose={() => setShowChangePw(false)}>
+          <div className="admin-field">
+            <label>{t('profile.oldPassword')}</label>
+            <input
+              className="admin-input"
+              type="password"
+              value={oldPw}
+              onChange={e => { setOldPw(e.target.value); setPwError('') }}
+              autoComplete="current-password"
+            />
+          </div>
+          <div className="admin-field">
+            <label>{t('profile.newPassword')}</label>
+            <input
+              className="admin-input"
+              type="password"
+              value={newPw}
+              onChange={e => { setNewPw(e.target.value); setPwError('') }}
+              autoComplete="new-password"
+            />
+          </div>
+          <div className="admin-field">
+            <label>{t('profile.confirmNewPassword')}</label>
+            <input
+              className="admin-input"
+              type="password"
+              value={newPw2}
+              onChange={e => { setNewPw2(e.target.value); setPwError('') }}
+              autoComplete="new-password"
+            />
+          </div>
+          {pwError && <div className="admin-result warn">{pwError}</div>}
+          {pwSaved && <div className="admin-result ok">{t('profile.passwordUpdated')}</div>}
           <div className="admin-actions">
-            <button className="admin-btn primary" onClick={handleConfirmReset}>
-              {t('admin.confirmSend')}
+            <button className="admin-btn primary" disabled={pwBusy} onClick={handleChangePassword}>
+              {pwBusy ? t('auth.processing') : t('common.save')}
             </button>
-            <button className="admin-btn secondary" onClick={() => setConfirmReset(false)}>
+            <button className="admin-btn secondary" disabled={pwBusy} onClick={() => setShowChangePw(false)}>
               {t('admin.cancel')}
             </button>
           </div>

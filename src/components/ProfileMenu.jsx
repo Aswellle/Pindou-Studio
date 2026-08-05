@@ -9,7 +9,7 @@ import AvatarCropper from './AvatarCropper'
  * 头像展示 / 上传图片 + 圆形裁剪 / 修改昵称 / 修改密码(邮件确认)/ 退出登录。
  * PC 与移动端共用同一模态框,内部布局响应式自适应。
  */
-export default function ProfileMenu({ user, onClose, onLogout, onResetPassword, onUpdateProfile, onChangePassword }) {
+export default function ProfileMenu({ user, onClose, onLogout, onUpdateProfile, onChangePassword }) {
   const { t } = useTranslation()
   const [nickname, setNickname] = useState(user?.nickname || '')
   const [nickSaved, setNickSaved] = useState(false)

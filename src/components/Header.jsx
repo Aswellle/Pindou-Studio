@@ -6,7 +6,7 @@ import LanguageSelector from './Header/LanguageSelector'
 import Avatar from './Avatar'
 import ProfileMenu from './ProfileMenu'
 
-export default function Header({ user, onLogin, onRegister, onLogout, onSave, currentPage, onPageChange, simplified, onResetPassword, onUpdateProfile }) {
+export default function Header({ user, onLogin, onRegister, onLogout, onSave, currentPage, onPageChange, simplified, onUpdateProfile, onChangePassword }) {
   const { t } = useTranslation()
   const [showProfile, setShowProfile] = useState(false)
 
@@ -111,8 +111,8 @@ export default function Header({ user, onLogin, onRegister, onLogout, onSave, cu
           user={user}
           onClose={() => setShowProfile(false)}
           onLogout={onLogout}
-          onResetPassword={onResetPassword}
           onUpdateProfile={onUpdateProfile}
+          onChangePassword={onChangePassword}
         />
       )}
 

@@ -20,7 +20,7 @@ function useErrorMapper() {
 
 const RESEND_COOLDOWN = 60 // 重新发送验证码倒计时(秒)
 
-export default function AuthModal({ mode, onClose, onLogin, onRegister, onResetPassword, onSwitchMode, onNavigatePage, onSendOtp, onVerifyOtp, onSetPassword }) {
+export default function AuthModal({ mode, onClose, onLogin, onRegister, onSwitchMode, onNavigatePage, onSendOtp, onVerifyOtp, onSetPassword }) {
   const { t } = useTranslation()
   const mapError = useErrorMapper()
   // 视图:login | register | reset | verify(验证码输入) | setPassword(设置新密码)

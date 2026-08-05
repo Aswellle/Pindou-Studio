@@ -336,7 +336,6 @@ export default function App() {
           onSave={currentPage === 'canvas' ? handleOpenSaveDialog : undefined}
           currentPage={currentPage}
           onPageChange={handlePageChange}
-          onResetPassword={resetPassword}
           onUpdateProfile={updateProfile}
           onChangePassword={changePassword}
         />
@@ -368,7 +367,7 @@ export default function App() {
               authLoading={authLoading}
               onLogin={openLogin}
               onLogout={logout}
-              onResetPassword={resetPassword}
+              onChangePassword={changePassword}
               cloudStore={cloudStore}
             />
           } />
@@ -396,7 +395,6 @@ export default function App() {
           onClose={() => setShowAuth(false)}
           onLogin={login}
           onRegister={register}
-          onResetPassword={resetPassword}
           onSendOtp={sendOtp}
           onVerifyOtp={verifyOtp}
           onSetPassword={setPassword}
@@ -525,7 +523,6 @@ export default function App() {
           onSave={currentPage === 'canvas' ? handleOpenSaveDialog : undefined}
           currentPage={currentPage}
           onPageChange={handlePageChange}
-          onResetPassword={resetPassword}
           onUpdateProfile={updateProfile}
           onChangePassword={changePassword}
           simplified
@@ -605,7 +602,7 @@ export default function App() {
               authLoading={authLoading}
               onLogin={openLogin}
               onLogout={logout}
-              onResetPassword={resetPassword}
+              onChangePassword={changePassword}
               cloudStore={cloudStore}
             />
           </Suspense>
@@ -633,7 +630,6 @@ export default function App() {
           onClose={() => setShowAuth(false)}
           onLogin={login}
           onRegister={register}
-          onResetPassword={resetPassword}
           onSendOtp={sendOtp}
           onVerifyOtp={verifyOtp}
           onSetPassword={setPassword}
