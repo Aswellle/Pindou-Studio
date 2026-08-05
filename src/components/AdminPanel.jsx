@@ -74,6 +74,24 @@ const EXAMPLE_JSON = JSON.stringify({
 export default function AdminPanel({ user, isAdmin, authLoading, onLogin, onLogout, onChangePassword, cloudStore }) {
   const { t } = useTranslation()
   const [tab, setTab] = useState('templates')
+
+  // iOS Safari 已知 bug:overflow 滚动容器内的 input/textarea 聚焦时,
+  // 键盘弹起瞬间容器重排,偶发整段内容白屏。修复:聚焦瞬间把滚动容器
+  // overflow-y 切 hidden 再恢复,强制 iOS 重新布局重绘(用户无感知)。
+  useEffect(() => {
+    if (!/iPhone|iPad|iPod/i.test(navigator.userAgent || '')) return
+    const handler = (e) => {
+      const el = e.target
+      if (!el || (el.tagName !== 'INPUT' && el.tagName !== 'TEXTAREA')) return
+      const scroller = el.closest('.admin-panel')
+      if (scroller) {
+        scroller.style.overflowY = 'hidden'
+        requestAnimationFrame(() => { scroller.style.overflowY = '' })
+      }
+    }
+    document.addEventListener('focusin', handler, true)
+    return () => document.removeEventListener('focusin', handler, true)
+  }, [])
   // 修改密码(旧密码验证)模态框状态
   const [showChangePw, setShowChangePw] = useState(false)
   const [oldPw, setOldPw] = useState('')
@@ -278,7 +296,8 @@ export default function AdminPanel({ user, isAdmin, authLoading, onLogin, onLogo
           flex: 1;
           min-height: 0;
           overflow-y: auto;
-          -webkit-overflow-scrolling: touch;
+          /* 注意:不加 -webkit-overflow-scrolling:touch —— iOS 15+ 默认即该
+             行为,显式设置与滚动容器内 input 聚焦存在已知白屏冲突 bug */
           scrollbar-gutter: stable;
           box-sizing: border-box;
         }

@@ -23,18 +23,31 @@ export function getLanguageByCode(code) {
   return LANGUAGES.find(l => l.code === code) || LANGUAGES[0]
 }
 
+/**
+ * 检测浏览器首选语言并映射到站点支持的四种语言
+ * (zh-CN / en-US / ja-JP / ko-KR)。
+ * 依次遍历 navigator.languages 首选列表:
+ *  - 精确匹配(zh-CN / en-US / ja-JP / ko-KR)直接采用
+ *  - 前缀匹配(zh/en/ja/ko 变体,如 zh-TW→zh-CN、en-GB→en-US)
+ *  - 都不匹配 → 回退简体中文(zh-CN)
+ */
 export function detectBrowserLanguage() {
-  const browserLang = navigator.language || navigator.userLanguage
+  const candidates = navigator.languages?.length
+    ? navigator.languages
+    : [navigator.language || navigator.userLanguage]
 
-  // Exact match
-  if (LANGUAGES.some(l => l.code === browserLang)) {
-    return browserLang
+  for (const lang of candidates) {
+    if (!lang) continue
+    // 精确匹配
+    if (LANGUAGES.some(l => l.code === lang)) {
+      return lang
+    }
+    // 前缀匹配(zh / en / ja / ko)
+    const langCode = lang.split('-')[0]
+    const match = LANGUAGES.find(l => l.code.startsWith(langCode))
+    if (match) return match.code
   }
-
-  // Partial match
-  const langCode = browserLang.split('-')[0]
-  const match = LANGUAGES.find(l => l.code.startsWith(langCode))
-  return match?.code || 'zh-CN'
+  return 'zh-CN'
 }
 
 // Load saved language from localStorage
