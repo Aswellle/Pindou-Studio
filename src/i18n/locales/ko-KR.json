@@ -383,5 +383,24 @@
     "resetConfirmTitle": "재설정 메일 보내기 확인",
     "resetConfirmText": "{{email}}로 비밀번호 재설정 메일을 보냅니다. 보내시겠습니까?",
     "confirmSend": "보내기"
+  },
+  "profile": {
+    "title": "프로필",
+    "changeAvatar": "아바타 변경",
+    "uploadAvatar": "이미지 업로드",
+    "cropHint": "드래그하거나 핀치로 확대하여 유지할 영역을 선택하세요",
+    "confirmCrop": "자르기 적용",
+    "cancelCrop": "다시 선택",
+    "avatarUpdated": "아바타가 업데이트되었습니다",
+    "avatarFailed": "업로드 실패, 다시 시도하세요",
+    "nickname": "닉네임",
+    "nicknamePlaceholder": "닉네임을 입력하세요",
+    "saved": "저장됨",
+    "saveFailed": "저장 실패, 다시 시도하세요",
+    "resetPassword": "비밀번호 변경",
+    "resetConfirmTitle": "재설정 메일 보내기 확인",
+    "resetConfirmText": "{{email}}로 비밀번호 재설정 메일을 보냅니다. 보내시겠습니까?",
+    "confirmSend": "보내기",
+    "resetSent": "비밀번호 재설정 메일을 보냈습니다. 메일함을 확인하세요"
   }
 }

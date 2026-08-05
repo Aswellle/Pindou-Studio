@@ -55,7 +55,7 @@ export default function App() {
     }
   }, [])
 
-  const { user, isAdmin, loading: authLoading, login, register, resetPassword, logout } = useAuth()
+  const { user, isAdmin, loading: authLoading, login, register, resetPassword, logout, updateProfile } = useAuth()
   const cloudStore = useCloudTemplates()
   const { isMobile, isTablet } = useResponsive()
   const canvasRef = useRef(null)
@@ -335,6 +335,8 @@ export default function App() {
           onSave={currentPage === 'canvas' ? handleOpenSaveDialog : undefined}
           currentPage={currentPage}
           onPageChange={handlePageChange}
+          onResetPassword={resetPassword}
+          onUpdateProfile={updateProfile}
         />
       )}
 
@@ -518,6 +520,8 @@ export default function App() {
           onSave={currentPage === 'canvas' ? handleOpenSaveDialog : undefined}
           currentPage={currentPage}
           onPageChange={handlePageChange}
+          onResetPassword={resetPassword}
+          onUpdateProfile={updateProfile}
           simplified
         />
       )}

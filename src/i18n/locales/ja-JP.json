@@ -383,5 +383,24 @@
     "resetConfirmTitle": "リセットメールの送信確認",
     "resetConfirmText": "{{email}} にパスワードリセットメールを送信します。送信しますか?",
     "confirmSend": "送信する"
+  },
+  "profile": {
+    "title": "プロフィール",
+    "changeAvatar": "アバター変更",
+    "uploadAvatar": "画像をアップロード",
+    "cropHint": "ドラッグまたはピンチでズームし、残す範囲を選択してください",
+    "confirmCrop": "切り抜きを適用",
+    "cancelCrop": "選び直す",
+    "avatarUpdated": "アバターを更新しました",
+    "avatarFailed": "アップロードに失敗しました。もう一度お試しください",
+    "nickname": "ニックネーム",
+    "nicknamePlaceholder": "ニックネームを入力",
+    "saved": "保存しました",
+    "saveFailed": "保存に失敗しました。もう一度お試しください",
+    "resetPassword": "パスワード変更",
+    "resetConfirmTitle": "リセットメールの送信確認",
+    "resetConfirmText": "{{email}} にパスワードリセットメールを送信します。送信しますか?",
+    "confirmSend": "送信する",
+    "resetSent": "パスワードリセットメールを送信しました。メールを確認してください"
   }
 }

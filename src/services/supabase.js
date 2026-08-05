@@ -22,6 +22,9 @@ export const supabase =
 
 export const isCloudEnabled = () => supabase !== null
 
+// 供头像等 storage 公共 URL 拼接使用
+export const SUPABASE_URL = supabaseUrl || ''
+
 export function getSupabaseUrl() {
   return supabaseUrl || "fallback"
 }

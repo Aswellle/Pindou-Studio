@@ -383,5 +383,24 @@
     "resetConfirmTitle": "Confirm Password Reset",
     "resetConfirmText": "A password reset email will be sent to {{email}}. Send it?",
     "confirmSend": "Send"
+  },
+  "profile": {
+    "title": "Profile",
+    "changeAvatar": "Change Avatar",
+    "uploadAvatar": "Upload Image",
+    "cropHint": "Drag or pinch to zoom, select the area to keep",
+    "confirmCrop": "Apply Crop",
+    "cancelCrop": "Choose Again",
+    "avatarUpdated": "Avatar updated",
+    "avatarFailed": "Upload failed, please try again",
+    "nickname": "Nickname",
+    "nicknamePlaceholder": "Pick a nickname",
+    "saved": "Saved",
+    "saveFailed": "Save failed, please try again",
+    "resetPassword": "Change Password",
+    "resetConfirmTitle": "Confirm Password Reset",
+    "resetConfirmText": "A password reset email will be sent to {{email}}. Send it?",
+    "confirmSend": "Send",
+    "resetSent": "Password reset email sent. Check your inbox"
   }
 }

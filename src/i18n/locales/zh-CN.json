@@ -383,5 +383,24 @@
     "resetConfirmTitle": "确认发送重置邮件",
     "resetConfirmText": "将向 {{email}} 发送密码重置邮件。确认发送?",
     "confirmSend": "确认发送"
+  },
+  "profile": {
+    "title": "个人资料",
+    "changeAvatar": "更换头像",
+    "uploadAvatar": "上传图片",
+    "cropHint": "拖动图片或双指缩放,选取要保留的头像区域",
+    "confirmCrop": "确认裁剪",
+    "cancelCrop": "重新选择",
+    "avatarUpdated": "头像已更新",
+    "avatarFailed": "头像上传失败,请重试",
+    "nickname": "昵称",
+    "nicknamePlaceholder": "给自己起个昵称",
+    "saved": "已保存",
+    "saveFailed": "保存失败,请重试",
+    "resetPassword": "修改密码",
+    "resetConfirmTitle": "确认发送重置邮件",
+    "resetConfirmText": "将向 {{email}} 发送密码重置邮件。确认发送?",
+    "confirmSend": "确认发送",
+    "resetSent": "密码重置邮件已发送,请查收邮箱"
   }
 }

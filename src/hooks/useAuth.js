@@ -22,14 +22,36 @@ export function useAuth() {
     try {
       const { data } = await supabase
         .from('profiles')
-        .select('role')
+        .select('role, nickname, avatar_url')
         .eq('id', userId)
         .maybeSingle()
       setIsAdmin(data?.role === 'admin')
+      // 同步昵称/头像到当前 user(若已登录)
+      setUser(prev => prev && prev.id === userId ? {
+        ...prev,
+        nickname: data?.nickname || '',
+        avatarUrl: data?.avatar_url || '',
+      } : prev)
     } catch {
       setIsAdmin(false)
     }
   }, [])
+
+  // 更新个人资料(昵称 / 头像),成功后刷新本地 user
+  const updateProfile = useCallback(async ({ nickname, avatarUrl }) => {
+    if (!supabase) throw new Error('CLOUD_NOT_CONFIGURED')
+    const { data: { user: authUser } } = await supabase.auth.getUser()
+    if (!authUser) throw new Error('NOT_SIGNED_IN')
+    const patch = {}
+    if (nickname !== undefined) patch.nickname = nickname
+    if (avatarUrl !== undefined) patch.avatar_url = avatarUrl
+    const { error } = await supabase
+      .from('profiles')
+      .update(patch)
+      .eq('id', authUser.id)
+    if (error) throw error
+    await refreshProfile(authUser.id)
+  }, [refreshProfile])
 
   // 会话恢复 + 实时监听登录态变化
   useEffect(() => {
@@ -41,11 +63,7 @@ export function useAuth() {
     supabase.auth.getSession().then(({ data }) => {
       if (!mounted) return
       if (data.session?.user) {
-        setUser({
-          id: data.session.user.id,
-          email: data.session.user.email,
-          name: data.session.user.email?.split('@')[0] || '',
-        })
+        setUser(buildUser(data.session.user))
         refreshProfile(data.session.user.id)
       }
       setLoading(false)
@@ -58,11 +76,7 @@ export function useAuth() {
         return
       }
       if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
-        setUser({
-          id: session.user.id,
-          email: session.user.email,
-          name: session.user.email?.split('@')[0] || '',
-        })
+        setUser(buildUser(session.user))
         refreshProfile(session.user.id)
       }
     })
@@ -72,6 +86,18 @@ export function useAuth() {
       sub.subscription.unsubscribe()
     }
   }, [refreshProfile])
+
+  // 登录/会话恢复时带出昵称与头像
+  const buildUser = (sessionUser) => {
+    const email = sessionUser.email || ''
+    return {
+      id: sessionUser.id,
+      email,
+      name: email.split('@')[0] || '',
+      nickname: '',
+      avatarUrl: '',
+    }
+  }
 
   const login = useCallback(async (email, password) => {
     if (!supabase) throw new Error('CLOUD_NOT_CONFIGURED')
@@ -117,5 +143,6 @@ export function useAuth() {
     resetPassword,
     logout,
     refreshProfile,
+    updateProfile,
   }
 }
