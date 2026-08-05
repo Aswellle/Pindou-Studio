@@ -21,3 +21,7 @@ export const supabase =
     : null
 
 export const isCloudEnabled = () => supabase !== null
+
+export function getSupabaseUrl() {
+  return supabaseUrl
+}
