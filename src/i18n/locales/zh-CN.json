@@ -426,6 +426,7 @@
     "resetConfirmTitle": "确认发送重置邮件",
     "resetConfirmText": "将向 {{email}} 发送密码重置邮件。确认发送?",
     "confirmSend": "确认发送",
-    "resetSent": "密码重置邮件已发送,请查收邮箱"
+    "resetSent": "密码重置邮件已发送,请查收邮箱",
+    "nicknameRequired": "昵称不能为空"
   }
 }

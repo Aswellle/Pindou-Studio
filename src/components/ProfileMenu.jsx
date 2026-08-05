@@ -1,30 +1,8 @@
-import { useState, useRef, useCallback } from 'react'
+import { useState, useRef } from 'react'
 import { useTranslation } from 'react-i18next'
-import Cropper from 'react-easy-crop'
 import { supabase, SUPABASE_URL } from '../services/supabase'
 import Avatar from './Avatar'
-
-// 将图片源裁剪为正方形 blob(固定输出 240×240 webp)
-async function getCroppedBlob(imageSrc, croppedAreaPixels) {
-  const image = await new Promise((resolve, reject) => {
-    const img = new Image()
-    img.onload = () => resolve(img)
-    img.onerror = reject
-    img.src = imageSrc
-  })
-  const SIZE = 240
-  const canvas = document.createElement('canvas')
-  canvas.width = SIZE
-  canvas.height = SIZE
-  const ctx = canvas.getContext('2d')
-  ctx.drawImage(
-    image,
-    croppedAreaPixels.x, croppedAreaPixels.y,
-    croppedAreaPixels.width, croppedAreaPixels.height,
-    0, 0, SIZE, SIZE
-  )
-  return new Promise((resolve) => canvas.toBlob(resolve, 'image/webp', 0.9))
-}
+import AvatarCropper from './AvatarCropper'
 
 /**
  * 个人资料设置菜单(模态框):
@@ -37,18 +15,22 @@ export default function ProfileMenu({ user, onClose, onLogout, onResetPassword, 
   const [nickSaved, setNickSaved] = useState(false)
   const [busy, setBusy] = useState(false)
   const [avatarSrc, setAvatarSrc] = useState(null) // 待裁剪的图片 dataURL
-  const [crop, setCrop] = useState({ x: 0, y: 0 })
-  const [zoom, setZoom] = useState(1)
-  const [croppedAreaPixels, setCroppedAreaPixels] = useState(null)
   const [confirmReset, setConfirmReset] = useState(false)
   const [message, setMessage] = useState('')
   const fileRef = useRef(null)
+  const cropperRef = useRef(null)
 
   const saveNickname = async () => {
+    const trimmed = nickname.trim()
+    // 非空校验:空昵称不允许保存
+    if (!trimmed) {
+      setMessage(t('profile.nicknameRequired'))
+      return
+    }
     setBusy(true)
     setMessage('')
     try {
-      await onUpdateProfile({ nickname: nickname.trim() })
+      await onUpdateProfile({ nickname: trimmed })
       setNickSaved(true)
       setTimeout(() => setNickSaved(false), 1500)
     } catch {
@@ -62,25 +44,16 @@ export default function ProfileMenu({ user, onClose, onLogout, onResetPassword, 
     const file = e.target.files?.[0]
     if (!file) return
     const reader = new FileReader()
-    reader.onload = () => {
-      setAvatarSrc(reader.result)
-      setCrop({ x: 0, y: 0 })
-      setZoom(1)
-    }
+    reader.onload = () => setAvatarSrc(reader.result)
     reader.readAsDataURL(file)
     e.target.value = '' // 允许重复选择同一文件
   }
 
-  const onCropComplete = useCallback((_, pixels) => {
-    setCroppedAreaPixels(pixels)
-  }, [])
-
-  const confirmAvatar = async () => {
-    if (!avatarSrc || !croppedAreaPixels) return
+  // 裁剪器输出 blob → 上传 storage → 更新 profile
+  const confirmAvatar = async (blob) => {
     setBusy(true)
     setMessage('')
     try {
-      const blob = await getCroppedBlob(avatarSrc, croppedAreaPixels)
       const path = `${user.id}/${Date.now()}.webp`
       const { error: upErr } = await supabase.storage
         .from('avatars')
@@ -132,24 +105,18 @@ export default function ProfileMenu({ user, onClose, onLogout, onResetPassword, 
         </div>
 
         {avatarSrc ? (
-          /* 裁剪视图:圆形裁剪 + 缩放,确认后上传 */
+          /* 裁剪视图:自实现圆形裁剪器(拖动平移 + 滚轮/双指缩放) */
           <div className="crop-section">
-            <div className="crop-stage">
-              <Cropper
-                image={avatarSrc}
-                crop={crop}
-                zoom={zoom}
-                aspect={1}
-                cropShape="round"
-                showGrid={false}
-                onCropChange={setCrop}
-                onZoomChange={setZoom}
-                onCropComplete={onCropComplete}
-              />
-            </div>
+            <AvatarCropper
+              ref={cropperRef}
+              imageSrc={avatarSrc}
+              onConfirm={confirmAvatar}
+              onCancel={() => setAvatarSrc(null)}
+              busy={busy}
+            />
             <p className="profile-hint">{t('profile.cropHint')}</p>
             <div className="crop-actions">
-              <button className="btn btn-primary" disabled={busy} onClick={confirmAvatar}>
+              <button className="btn btn-primary" disabled={busy} onClick={() => cropperRef.current?.output()}>
                 {t('profile.confirmCrop')}
               </button>
               <button className="btn btn-ghost" disabled={busy} onClick={() => setAvatarSrc(null)}>

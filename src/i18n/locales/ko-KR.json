@@ -426,6 +426,7 @@
     "resetConfirmTitle": "재설정 메일 보내기 확인",
     "resetConfirmText": "{{email}}로 비밀번호 재설정 메일을 보냅니다. 보내시겠습니까?",
     "confirmSend": "보내기",
-    "resetSent": "비밀번호 재설정 메일을 보냈습니다. 메일함을 확인하세요"
+    "resetSent": "비밀번호 재설정 메일을 보냈습니다. 메일함을 확인하세요",
+    "nicknameRequired": "닉네임은 비워둘 수 없습니다"
   }
 }

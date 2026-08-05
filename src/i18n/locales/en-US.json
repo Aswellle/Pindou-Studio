@@ -426,6 +426,7 @@
     "resetConfirmTitle": "Confirm Password Reset",
     "resetConfirmText": "A password reset email will be sent to {{email}}. Send it?",
     "confirmSend": "Send",
-    "resetSent": "Password reset email sent. Check your inbox"
+    "resetSent": "Password reset email sent. Check your inbox",
+    "nicknameRequired": "Nickname cannot be empty"
   }
 }

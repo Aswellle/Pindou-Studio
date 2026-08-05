@@ -426,6 +426,7 @@
     "resetConfirmTitle": "リセットメールの送信確認",
     "resetConfirmText": "{{email}} にパスワードリセットメールを送信します。送信しますか?",
     "confirmSend": "送信する",
-    "resetSent": "パスワードリセットメールを送信しました。メールを確認してください"
+    "resetSent": "パスワードリセットメールを送信しました。メールを確認してください",
+    "nicknameRequired": "ニックネームは空にできません"
   }
 }
