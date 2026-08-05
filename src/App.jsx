@@ -323,17 +323,20 @@ export default function App() {
   // 桌面端布局
   const renderDesktopLayout = () => (
     <div className="app desktop-layout">
-      <Header
-        user={user}
-        onLogin={openLogin}
-        onRegister={openRegister}
-        onLogout={logout}
-        onSave={currentPage === 'canvas' ? handleOpenSaveDialog : undefined}
-        currentPage={currentPage}
-        onPageChange={handlePageChange}
-      />
+      {/* 后台管理页隐藏顶部导航栏,专注管理界面 */}
+      {currentPage !== 'admin' && (
+        <Header
+          user={user}
+          onLogin={openLogin}
+          onRegister={openRegister}
+          onLogout={logout}
+          onSave={currentPage === 'canvas' ? handleOpenSaveDialog : undefined}
+          currentPage={currentPage}
+          onPageChange={handlePageChange}
+        />
+      )}
 
-      <main className="main-content">
+      <main className="main-content" style={currentPage === 'admin' ? { marginTop: 0 } : undefined}>
         <Routes>
           <Route path="/" element={renderCanvasPage()} />
           <Route path="/gallery" element={
@@ -505,16 +508,19 @@ export default function App() {
   // 移动端布局
   const renderMobileLayout = () => (
     <div className="app mobile-layout">
-      <Header
-        user={user}
-        onLogin={openLogin}
-        onRegister={openRegister}
-        onLogout={logout}
-        onSave={currentPage === 'canvas' ? handleOpenSaveDialog : undefined}
-        currentPage={currentPage}
-        onPageChange={handlePageChange}
-        simplified
-      />
+      {/* 后台管理页隐藏顶部导航栏,专注管理界面 */}
+      {currentPage !== 'admin' && (
+        <Header
+          user={user}
+          onLogin={openLogin}
+          onRegister={openRegister}
+          onLogout={logout}
+          onSave={currentPage === 'canvas' ? handleOpenSaveDialog : undefined}
+          currentPage={currentPage}
+          onPageChange={handlePageChange}
+          simplified
+        />
+      )}
 
       <Routes>
         <Route path="/" element={

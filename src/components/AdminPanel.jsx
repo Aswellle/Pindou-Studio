@@ -26,6 +26,27 @@ function GateStyle() {
   )
 }
 
+// 后台共用模态框:全屏遮罩 + 居中卡片 + 标题栏 + 内容区自滚动。
+// 新增/编辑/删除确认等操作统一走模态框,减少页面纵向滚动。
+function AdminModal({ title, onClose, wide, children }) {
+  return (
+    <div className="admin-modal-overlay" onClick={onClose}>
+      <div className={`admin-modal${wide ? ' wide' : ''}`} onClick={e => e.stopPropagation()}>
+        <div className="admin-modal-header">
+          <h3>{title}</h3>
+          <button className="admin-modal-close" onClick={onClose} aria-label="close">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <line x1="18" y1="6" x2="6" y2="18"/>
+              <line x1="6" y1="6" x2="18" y2="18"/>
+            </svg>
+          </button>
+        </div>
+        <div className="admin-modal-body">{children}</div>
+      </div>
+    </div>
+  )
+}
+
 // 供 AI Agent / 手工上传参考的统一协议示例(可复制到「JSON 导入」直接导入)
 const EXAMPLE_JSON = JSON.stringify({
   name: 'Duck',
@@ -130,11 +151,15 @@ export default function AdminPanel({ user, isAdmin, authLoading, onLogin, onLogo
           {resetMsg && <div className="admin-result ok">{resetMsg}</div>}
         </div>
         <div className="admin-header-actions">
-          <span className="admin-account">{user.email} · Admin</span>
-          <button className="admin-btn secondary small" onClick={handleResetPassword}>
+          <span className="admin-account">
+            <span className="admin-avatar">{(user.email || 'A')[0].toUpperCase()}</span>
+            <span className="admin-account-name">{user.email}</span>
+            <span className="admin-role-badge">ADMIN</span>
+          </span>
+          <button className="admin-btn secondary" onClick={handleResetPassword}>
             {t('admin.resetPassword')}
           </button>
-          <button className="admin-btn secondary small" onClick={onLogout}>
+          <button className="admin-btn secondary" onClick={onLogout}>
             {t('admin.signOut')}
           </button>
         </div>
@@ -164,9 +189,12 @@ export default function AdminPanel({ user, isAdmin, authLoading, onLogin, onLogo
           margin: 0 auto;
           padding: 20px 16px 48px;
           font-size: var(--text-base);
-          /* PC 端父容器(.main-content overflow:hidden)内自持滚动;
-             scrollbar-gutter 常驻滚动条空间,避免 tab 切换时视口宽度抖动 */
-          height: 100%;
+          /* 后台全屏布局:在 flex 容器内占满并自持滚动(桌面 main-content 与
+             移动端 mobile-layout 均无顶部导航时);scrollbar-gutter 常驻滚动条
+             空间,避免 tab 切换时视口宽度抖动 */
+          width: 100%;
+          flex: 1;
+          min-height: 0;
           overflow-y: auto;
           scrollbar-gutter: stable;
           box-sizing: border-box;
@@ -190,15 +218,42 @@ export default function AdminPanel({ user, isAdmin, authLoading, onLogin, onLogo
         .admin-account {
           display: inline-flex;
           align-items: center;
-          gap: 6px;
-          background: var(--bg-secondary);
+          gap: 10px;
+          background: linear-gradient(135deg, var(--bg-secondary), var(--bg-hover));
           border: 1px solid var(--border-color);
           border-radius: 999px;
-          padding: 3px 12px;
-          font-size: 12px;
-          color: var(--text-secondary);
-          font-family: ui-monospace, monospace;
+          padding: 6px 18px 6px 6px;
+          font-size: var(--text-base);
+          color: var(--text-primary);
           white-space: nowrap;
+          box-shadow: 0 1px 3px rgba(43, 36, 32, 0.08);
+        }
+        .admin-avatar {
+          width: 32px;
+          height: 32px;
+          border-radius: 50%;
+          background: var(--accent);
+          color: white;
+          font-size: 15px;
+          font-weight: 700;
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          flex-shrink: 0;
+          box-shadow: inset 0 -2px 4px rgba(0, 0, 0, 0.15);
+        }
+        .admin-account-name {
+          font-weight: 600;
+          font-size: var(--text-md);
+        }
+        .admin-role-badge {
+          background: var(--accent);
+          color: white;
+          font-size: 11px;
+          font-weight: 700;
+          letter-spacing: 0.6px;
+          border-radius: 999px;
+          padding: 3px 10px;
         }
         .admin-title {
           font-size: var(--text-2xl);
@@ -470,12 +525,91 @@ export default function AdminPanel({ user, isAdmin, authLoading, onLogin, onLogo
           grid-template-columns: 1fr 1fr;
           gap: 12px;
         }
+        /* ── 模态框 ───────────────────────────────────────── */
+        .admin-modal-overlay {
+          position: fixed;
+          inset: 0;
+          background: rgba(0, 0, 0, 0.45);
+          backdrop-filter: blur(4px);
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          z-index: 1000;
+          padding: 16px;
+          box-sizing: border-box;
+        }
+        .admin-modal {
+          background: var(--bg-primary);
+          border: 1px solid var(--border-color);
+          border-radius: 16px;
+          box-shadow: 0 8px 32px rgba(43, 36, 32, 0.22);
+          width: min(480px, 100%);
+          max-height: 85vh;
+          display: flex;
+          flex-direction: column;
+          overflow: hidden;
+          animation: adminModalIn 0.18s ease;
+        }
+        .admin-modal.wide { width: min(720px, 100%); }
+        @keyframes adminModalIn {
+          from { opacity: 0; transform: translateY(12px) scale(0.98); }
+          to { opacity: 1; transform: none; }
+        }
+        .admin-modal-header {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          gap: 12px;
+          padding: 14px 20px;
+          border-bottom: 1px solid var(--border-color);
+          flex-shrink: 0;
+        }
+        .admin-modal-header h3 {
+          margin: 0;
+          font-size: var(--text-lg);
+          font-weight: var(--font-weight-semibold);
+        }
+        .admin-modal-close {
+          border: none;
+          background: var(--bg-secondary);
+          width: 32px;
+          height: 32px;
+          border-radius: 50%;
+          cursor: pointer;
+          color: var(--text-secondary);
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          flex-shrink: 0;
+          transition: background 0.15s, color 0.15s;
+        }
+        .admin-modal-close:hover { background: var(--bg-hover); color: var(--text-primary); }
+        .admin-modal-body {
+          padding: 20px;
+          overflow-y: auto;
+          min-height: 0;
+        }
+        .admin-modal-text {
+          margin: 0 0 4px;
+          font-size: var(--text-base);
+          color: var(--text-primary);
+          word-break: break-all;
+        }
+        /* 卡片标题行:标题 + 右侧操作按钮 */
+        .admin-card-head {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          gap: 12px;
+          margin-bottom: 12px;
+        }
+        .admin-card-head h3 { margin: 0; }
+
         @media (max-width: 640px) {
-          /* 移动端由 .mobile-page-area 负责滚动,容器自身不滚动 */
-          .admin-panel { height: auto; overflow: visible; }
           .admin-grid-2 { grid-template-columns: 1fr; }
           .admin-template-row { flex-wrap: wrap; }
           .admin-header-actions { width: 100%; }
+          .admin-account { width: 100%; justify-content: flex-start; }
         }
       `}</style>
     </div>
@@ -535,7 +669,10 @@ function MigrationCard({ store }) {
 function TemplateManager({ store }) {
   const { t } = useTranslation()
   const [search, setSearch] = useState('')
-  const [editing, setEditing] = useState(null) // null=不编辑, 'new'=新增, id=编辑某模板
+  // 'new' 或模板 id → 打开新增/编辑模态框;null 关闭
+  const [editing, setEditing] = useState(null)
+  // 待删除确认的模板 → 打开删除确认模态框
+  const [deleting, setDeleting] = useState(null)
 
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase()
@@ -543,12 +680,6 @@ function TemplateManager({ store }) {
       !q || tpl.name.toLowerCase().includes(q) || (tpl.nameZh || '').toLowerCase().includes(q)
     )
   }, [store.templates, search])
-
-  const confirmDelete = (tpl) => {
-    if (window.confirm(`${t('admin.deleteConfirm')}\n「${tpl.nameZh || tpl.name}」`)) {
-      store.deleteTemplate(tpl.id)
-    }
-  }
 
   return (
     <div>
@@ -566,15 +697,6 @@ function TemplateManager({ store }) {
           </button>
         </div>
       </div>
-
-      {editing && (
-        <TemplateForm
-          store={store}
-          editing={editing}
-          initial={editing === 'new' ? null : store.templates.find(tpl => tpl.id === editing)}
-          onDone={() => setEditing(null)}
-        />
-      )}
 
       {filtered.length === 0 ? (
         <div className="admin-empty">{t('admin.templatesEmpty')}</div>
@@ -601,13 +723,52 @@ function TemplateManager({ store }) {
                 <button className="admin-btn secondary small" onClick={() => setEditing(tpl.id)}>
                   {t('admin.editTemplate')}
                 </button>
-                <button className="admin-btn danger small" onClick={() => confirmDelete(tpl)}>
+                <button className="admin-btn danger small" onClick={() => setDeleting(tpl)}>
                   {t('admin.delete')}
                 </button>
               </div>
             </div>
           ))}
         </div>
+      )}
+
+      {/* 新增/编辑模板 → 模态框(不插入列表顶部,列表位置保持不变) */}
+      {editing && (
+        <AdminModal
+          title={editing === 'new' ? t('admin.addTemplate') : t('admin.editTemplate')}
+          onClose={() => setEditing(null)}
+          wide
+        >
+          <TemplateForm
+            store={store}
+            editing={editing}
+            initial={editing === 'new' ? null : store.templates.find(tpl => tpl.id === editing)}
+            onDone={() => setEditing(null)}
+          />
+        </AdminModal>
+      )}
+
+      {/* 删除确认 → 模态框(替代 window.confirm) */}
+      {deleting && (
+        <AdminModal title={t('admin.deleteConfirm')} onClose={() => setDeleting(null)}>
+          <p className="admin-modal-text">
+            「{deleting.nameZh || deleting.name}」
+          </p>
+          <div className="admin-actions">
+            <button
+              className="admin-btn danger"
+              onClick={async () => {
+                await store.deleteTemplate(deleting.id)
+                setDeleting(null)
+              }}
+            >
+              {t('admin.delete')}
+            </button>
+            <button className="admin-btn secondary" onClick={() => setDeleting(null)}>
+              {t('admin.cancel')}
+            </button>
+          </div>
+        </AdminModal>
       )}
     </div>
   )
@@ -661,8 +822,7 @@ function TemplateForm({ store, editing, initial, onDone }) {
   }
 
   return (
-    <div className="admin-card">
-      <h3>{editing === 'new' ? t('admin.addTemplate') : t('admin.editTemplate')}</h3>
+    <div>
       <div className="admin-grid-2">
         <div className="admin-field">
           <label>{t('admin.name')}</label>
@@ -840,13 +1000,15 @@ function CategoryManager({ store }) {
   const [label, setLabel] = useState('')
   const [editingId, setEditingId] = useState(null)
   const [errors, setErrors] = useState([])
+  const [showForm, setShowForm] = useState(false) // 新增/编辑分类模态框
+  const [deleting, setDeleting] = useState(null)   // 待删除确认的分类
 
   const builtin = CATEGORIES.filter(c => c !== 'all')
 
   const handleSave = async () => {
     const res = editingId === null
       ? await store.addCategory({ id: id.trim(), label: label.trim() })
-      : store.updateCategory(editingId, { id: id.trim(), label: label.trim() })
+      : await store.updateCategory(editingId, { id: id.trim(), label: label.trim() })
     if (!res.ok) {
       setErrors(res.errors)
       return
@@ -855,6 +1017,7 @@ function CategoryManager({ store }) {
     setId('')
     setLabel('')
     setEditingId(null)
+    setShowForm(false)
   }
 
   const startEdit = (cat) => {
@@ -862,12 +1025,23 @@ function CategoryManager({ store }) {
     setId(cat.id)
     setLabel(cat.label)
     setErrors([])
+    setShowForm(true)
+  }
+
+  const closeForm = () => {
+    setShowForm(false)
+    setEditingId(null)
+    setId('')
+    setLabel('')
+    setErrors([])
   }
 
   return (
     <div>
       <div className="admin-card">
-        <h3>{t('admin.builtinCategories')}</h3>
+        <div className="admin-card-head">
+          <h3>{t('admin.builtinCategories')}</h3>
+        </div>
         <div>
           {builtin.map(cat => (
             <div key={cat} className="admin-category-row">
@@ -879,7 +1053,12 @@ function CategoryManager({ store }) {
       </div>
 
       <div className="admin-card">
-        <h3>{t('admin.customCategories')}</h3>
+        <div className="admin-card-head">
+          <h3>{t('admin.customCategories')}</h3>
+          <button className="admin-btn primary small" onClick={() => { setEditingId(null); setId(''); setLabel(''); setErrors([]); setShowForm(true) }}>
+            {t('admin.addCategory')}
+          </button>
+        </div>
         {store.categories.length === 0 ? (
           <div className="admin-empty">{t('admin.noCustomCategories')}</div>
         ) : (
@@ -891,49 +1070,73 @@ function CategoryManager({ store }) {
                 <button className="admin-btn secondary small" onClick={() => startEdit(cat)}>
                   {t('admin.editTemplate')}
                 </button>
-                <button
-                  className="admin-btn danger small"
-                  onClick={() => {
-                    if (window.confirm(`${t('admin.deleteConfirm')}\n「${cat.label}」`)) store.deleteCategory(cat.id)
-                  }}
-                >
+                <button className="admin-btn danger small" onClick={() => setDeleting(cat)}>
                   {t('admin.delete')}
                 </button>
               </div>
             ))}
           </div>
         )}
+      </div>
 
-        <div className="admin-row-form">
-          <input
-            className="admin-input"
-            placeholder={t('admin.categoryId')}
-            value={id}
-            onChange={e => setId(e.target.value)}
-          />
-          <input
-            className="admin-input"
-            placeholder={t('admin.categoryLabel')}
-            value={label}
-            onChange={e => setLabel(e.target.value)}
-          />
-          <button className="admin-btn primary" onClick={handleSave}>
-            {editingId === null ? t('admin.addCategory') : t('admin.save')}
-          </button>
-          {editingId !== null && (
-            <button className="admin-btn secondary" onClick={() => { setEditingId(null); setId(''); setLabel('') }}>
+      {/* 新增/编辑分类 → 模态框 */}
+      {showForm && (
+        <AdminModal
+          title={editingId === null ? t('admin.addCategory') : t('admin.editTemplate')}
+          onClose={closeForm}
+        >
+          <div className="admin-field">
+            <label>{t('admin.categoryId')}</label>
+            <input
+              className="admin-input"
+              placeholder={t('admin.categoryId')}
+              value={id}
+              onChange={e => setId(e.target.value)}
+            />
+          </div>
+          <div className="admin-field">
+            <label>{t('admin.categoryLabel')}</label>
+            <input
+              className="admin-input"
+              placeholder={t('admin.categoryLabel')}
+              value={label}
+              onChange={e => setLabel(e.target.value)}
+            />
+          </div>
+          {errors.length > 0 && (
+            <ul className="admin-errors">
+              {errors.map((err, i) => (
+                <li key={i}>{t(`admin.err.${err.code}`)}</li>
+              ))}
+            </ul>
+          )}
+          <div className="admin-actions">
+            <button className="admin-btn primary" onClick={handleSave}>{t('admin.save')}</button>
+            <button className="admin-btn secondary" onClick={closeForm}>{t('admin.cancel')}</button>
+          </div>
+        </AdminModal>
+      )}
+
+      {/* 删除确认 → 模态框 */}
+      {deleting && (
+        <AdminModal title={t('admin.deleteConfirm')} onClose={() => setDeleting(null)}>
+          <p className="admin-modal-text">「{deleting.label}」</p>
+          <div className="admin-actions">
+            <button
+              className="admin-btn danger"
+              onClick={async () => {
+                await store.deleteCategory(deleting.id)
+                setDeleting(null)
+              }}
+            >
+              {t('admin.delete')}
+            </button>
+            <button className="admin-btn secondary" onClick={() => setDeleting(null)}>
               {t('admin.cancel')}
             </button>
-          )}
-        </div>
-        {errors.length > 0 && (
-          <ul className="admin-errors">
-            {errors.map((err, i) => (
-              <li key={i}>{t(`admin.err.${err.code}`)}</li>
-            ))}
-          </ul>
-        )}
-      </div>
+          </div>
+        </AdminModal>
+      )}
     </div>
   )
 }
