@@ -56,51 +56,61 @@ create trigger on_auth_user_created
   after insert on auth.users
   for each row execute procedure public.handle_new_user();
 
+-- ── 管理员判定函数(security definer 绕过 RLS,避免策略子查询递归) ──
+-- 策略内禁止直接子查询 profiles(会触发 infinite recursion),统一走此函数。
+create or replace function public.is_admin()
+returns boolean
+language sql
+security definer
+set search_path = public
+stable
+as $$
+  select exists (
+    select 1 from public.profiles where id = auth.uid() and role = 'admin'
+  );
+$$;
+
 -- ── 行级安全(RLS) ───────────────────────────────────────────
 alter table public.templates enable row level security;
 alter table public.categories enable row level security;
 alter table public.profiles enable row level security;
 
 -- 模板:任何人可读(游客浏览图库)
+drop policy if exists "templates_public_read" on public.templates;
 create policy "templates_public_read"
   on public.templates for select
   using (true);
 
 -- 模板:仅 admin 可写
+drop policy if exists "templates_admin_write" on public.templates;
 create policy "templates_admin_write"
   on public.templates for all
-  using (
-    exists (select 1 from public.profiles p where p.id = auth.uid() and p.role = 'admin')
-  )
-  with check (
-    exists (select 1 from public.profiles p where p.id = auth.uid() and p.role = 'admin')
-  );
+  using (public.is_admin())
+  with check (public.is_admin());
 
 -- 分类:任何人可读
+drop policy if exists "categories_public_read" on public.categories;
 create policy "categories_public_read"
   on public.categories for select
   using (true);
 
 -- 分类:仅 admin 可写
+drop policy if exists "categories_admin_write" on public.categories;
 create policy "categories_admin_write"
   on public.categories for all
-  using (
-    exists (select 1 from public.profiles p where p.id = auth.uid() and p.role = 'admin')
-  )
-  with check (
-    exists (select 1 from public.profiles p where p.id = auth.uid() and p.role = 'admin')
-  );
+  using (public.is_admin())
+  with check (public.is_admin());
 
 -- profiles:本人可读自己,admin 可读全部
+drop policy if exists "profiles_self_read" on public.profiles;
 create policy "profiles_self_read"
   on public.profiles for select
   using (auth.uid() = id);
 
+drop policy if exists "profiles_admin_read" on public.profiles;
 create policy "profiles_admin_read"
   on public.profiles for select
-  using (
-    exists (select 1 from public.profiles p where p.id = auth.uid() and p.role = 'admin')
-  );
+  using (public.is_admin());
 
 -- ── 管理员账号开通(注册并验证邮箱后执行,email 换成你的管理员邮箱) ──
 -- update public.profiles
