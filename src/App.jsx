@@ -5,6 +5,7 @@ import { Helmet } from 'react-helmet-async'
 import AuthModal from './components/AuthModal'
 import Header from './components/Header'
 import Canvas from './components/Canvas'
+import LoadingScreen from './components/LoadingScreen'
 import ColorPalette from './components/ColorPalette'
 import Tools from './components/Tools'
 import ExportPanel from './components/ExportPanel'
@@ -23,7 +24,8 @@ import MobileCanvasInfoBar from './components/MobileCanvasInfoBar'
 const Gallery = lazy(() => import('./components/Gallery'))
 const Tutorials = lazy(() => import('./components/Tutorials'))
 const ImageQuantizer = lazy(() => import('./components/ImageQuantizer/ImageQuantizer'))
-const AdminPanel = lazy(() => import('./components/AdminPanel'))
+// AdminPanel 同步引入:登录后进入后台无懒加载等待,避免画面闪动
+import AdminPanel from './components/AdminPanel'
 
 export default function App() {
   const { t } = useTranslation()
@@ -340,7 +342,7 @@ export default function App() {
         <Routes>
           <Route path="/" element={renderCanvasPage()} />
           <Route path="/gallery" element={
-            <Suspense fallback={<div style={{ padding: 40, textAlign: 'center', color: 'var(--text-muted)' }}>加载中...</div>}>
+            <Suspense fallback={<LoadingScreen />}>
               <Gallery
                 onLoadTemplate={handleLoadTemplate}
                 onSaveWork={handleSaveWork}
@@ -351,22 +353,20 @@ export default function App() {
             </Suspense>
           } />
           <Route path="/tutorials" element={
-            <Suspense fallback={<div style={{ padding: 40, textAlign: 'center', color: 'var(--text-muted)' }}>加载中...</div>}>
+            <Suspense fallback={<LoadingScreen />}>
               <Tutorials />
             </Suspense>
           } />
           <Route path="/admin" element={
-            <Suspense fallback={<div style={{ padding: 40, textAlign: 'center', color: 'var(--text-muted)' }}>加载中...</div>}>
-              <AdminPanel
-                user={user}
-                isAdmin={isAdmin}
-                authLoading={authLoading}
-                onLogin={openLogin}
-                onLogout={logout}
-                onResetPassword={resetPassword}
-                cloudStore={cloudStore}
-              />
-            </Suspense>
+            <AdminPanel
+              user={user}
+              isAdmin={isAdmin}
+              authLoading={authLoading}
+              onLogin={openLogin}
+              onLogout={logout}
+              onResetPassword={resetPassword}
+              cloudStore={cloudStore}
+            />
           } />
           <Route path="/privacy" element={<PrivacyPolicy onBack={() => navigate('/')} />} />
           <Route path="/terms" element={<TermsOfService onBack={() => navigate('/')} />} />
@@ -568,7 +568,7 @@ export default function App() {
           </>
         } />
         <Route path="/gallery" element={
-          <Suspense fallback={<div style={{ padding: 40, textAlign: 'center', color: 'var(--text-muted)' }}>加载中...</div>}>
+          <Suspense fallback={<LoadingScreen />}>
             <div className="mobile-page-area">
               <Gallery
                 onLoadTemplate={handleLoadTemplate}
@@ -581,14 +581,14 @@ export default function App() {
           </Suspense>
         } />
         <Route path="/tutorials" element={
-          <Suspense fallback={<div style={{ padding: 40, textAlign: 'center', color: 'var(--text-muted)' }}>加载中...</div>}>
+          <Suspense fallback={<LoadingScreen />}>
             <div className="mobile-page-area">
               <Tutorials />
             </div>
           </Suspense>
         } />
         <Route path="/admin" element={
-          <Suspense fallback={<div style={{ padding: 40, textAlign: 'center', color: 'var(--text-muted)' }}>加载中...</div>}>
+          <Suspense fallback={<LoadingScreen />}>
             <AdminPanel
               user={user}
               isAdmin={isAdmin}

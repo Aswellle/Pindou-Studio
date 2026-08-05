@@ -29,7 +29,9 @@
     "sendReset": "リセットリンクを送信",
     "resetSent": "リセットリンクを送信しました。メールを確認してください。",
     "verifyEmailTitle": "メールを認証してください",
-    "verifyEmailHint": "登録が完了しました!メールの認証リンクをクリックしてからログインしてください。"
+    "verifyEmailHint": "登録が完了しました!メールの認証リンクをクリックしてからログインしてください。",
+    "showPassword": "パスワードを表示",
+    "hidePassword": "パスワードを隠す"
   },
   "errors": {
     "invalidEmail": "有効なメールアドレスを入力してください",
@@ -377,6 +379,9 @@
       "migrateDone": "移行完了:{{n}} 件のテンプレートを書き込みました",
       "migrateFail": "移行に失敗:{{detail}}",
       "localCounts": "移行対象:内蔵 {{builtin}} 件 + ローカルカスタム {{custom}} 件"
-    }
+    },
+    "resetConfirmTitle": "リセットメールの送信確認",
+    "resetConfirmText": "{{email}} にパスワードリセットメールを送信します。送信しますか?",
+    "confirmSend": "送信する"
   }
 }

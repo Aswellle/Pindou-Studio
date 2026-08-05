@@ -29,7 +29,9 @@
     "sendReset": "재설정 링크 보내기",
     "resetSent": "재설정 링크를 보냈습니다. 메일함을 확인하세요.",
     "verifyEmailTitle": "이메일을 인증하세요",
-    "verifyEmailHint": "가입 완료! 메일의 인증 링크를 클릭한 후 로그인하세요."
+    "verifyEmailHint": "가입 완료! 메일의 인증 링크를 클릭한 후 로그인하세요.",
+    "showPassword": "비밀번호 표시",
+    "hidePassword": "비밀번호 숨기기"
   },
   "errors": {
     "invalidEmail": "유효한 이메일 주소를 입력하세요",
@@ -377,6 +379,9 @@
       "migrateDone": "마이그레이션 완료: 템플릿 {{n}}개 기록",
       "migrateFail": "마이그레이션 실패: {{detail}}",
       "localCounts": "마이그레이션 대상: 내장 {{builtin}}개 + 로컬 사용자 정의 {{custom}}개"
-    }
+    },
+    "resetConfirmTitle": "재설정 메일 보내기 확인",
+    "resetConfirmText": "{{email}}로 비밀번호 재설정 메일을 보냅니다. 보내시겠습니까?",
+    "confirmSend": "보내기"
   }
 }

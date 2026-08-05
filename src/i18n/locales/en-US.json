@@ -29,7 +29,9 @@
     "sendReset": "Send Reset Link",
     "resetSent": "Reset link sent. Check your inbox.",
     "verifyEmailTitle": "Verify Your Email",
-    "verifyEmailHint": "Registration successful! Check your email and click the verification link to sign in."
+    "verifyEmailHint": "Registration successful! Check your email and click the verification link to sign in.",
+    "showPassword": "Show password",
+    "hidePassword": "Hide password"
   },
   "errors": {
     "invalidEmail": "Please enter a valid email address",
@@ -377,6 +379,9 @@
       "migrateDone": "Migration complete: {{n}} templates written",
       "migrateFail": "Migration failed: {{detail}}",
       "localCounts": "To migrate: {{builtin}} built-in + {{custom}} local custom"
-    }
+    },
+    "resetConfirmTitle": "Confirm Password Reset",
+    "resetConfirmText": "A password reset email will be sent to {{email}}. Send it?",
+    "confirmSend": "Send"
   }
 }

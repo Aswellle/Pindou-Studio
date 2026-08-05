@@ -29,7 +29,9 @@
     "sendReset": "发送重置链接",
     "resetSent": "重置链接已发送,请查收邮件",
     "verifyEmailTitle": "请验证邮箱",
-    "verifyEmailHint": "注册成功!请前往邮箱点击验证链接后再登录"
+    "verifyEmailHint": "注册成功!请前往邮箱点击验证链接后再登录",
+    "showPassword": "显示密码",
+    "hidePassword": "隐藏密码"
   },
   "errors": {
     "invalidEmail": "请输入有效的邮箱地址",
@@ -377,6 +379,9 @@
       "migrateDone": "迁移完成,共写入 {{n}} 个模板",
       "migrateFail": "迁移失败:{{detail}}",
       "localCounts": "待迁移:内置 {{builtin}} 个 + 本机自定义 {{custom}} 个"
-    }
+    },
+    "resetConfirmTitle": "确认发送重置邮件",
+    "resetConfirmText": "将向 {{email}} 发送密码重置邮件。确认发送?",
+    "confirmSend": "确认发送"
   }
 }

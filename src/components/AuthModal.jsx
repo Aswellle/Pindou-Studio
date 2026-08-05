@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
+import { Eye, EyeOff } from 'lucide-react'
 
 // 将 Supabase 错误映射为本地化文案
 function useErrorMapper() {
@@ -23,6 +24,8 @@ export default function AuthModal({ mode, onClose, onLogin, onRegister, onResetP
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
+  const [showPassword, setShowPassword] = useState(false)
+  const [showConfirm, setShowConfirm] = useState(false)
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
   const [registered, setRegistered] = useState(false) // 注册成功待邮箱验证
@@ -111,28 +114,50 @@ export default function AuthModal({ mode, onClose, onLogin, onRegister, onResetP
             {view !== 'reset' && (
               <div className="form-group">
                 <label htmlFor="password">{t('auth.password')}</label>
-                <input
-                  id="password"
-                  type="password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  placeholder="••••••••"
-                  required
-                />
+                <div className="password-input-wrap">
+                  <input
+                    id="password"
+                    type={showPassword ? 'text' : 'password'}
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    placeholder="••••••••"
+                    required
+                  />
+                  <button
+                    type="button"
+                    className="password-toggle"
+                    onClick={() => setShowPassword(!showPassword)}
+                    aria-label={showPassword ? t('auth.hidePassword') : t('auth.showPassword')}
+                    tabIndex={-1}
+                  >
+                    {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                  </button>
+                </div>
               </div>
             )}
 
             {view === 'register' && (
               <div className="form-group">
                 <label htmlFor="confirmPassword">{t('auth.confirmPassword')}</label>
-                <input
-                  id="confirmPassword"
-                  type="password"
-                  value={confirmPassword}
-                  onChange={(e) => setConfirmPassword(e.target.value)}
-                  placeholder="••••••••"
-                  required
-                />
+                <div className="password-input-wrap">
+                  <input
+                    id="confirmPassword"
+                    type={showConfirm ? 'text' : 'password'}
+                    value={confirmPassword}
+                    onChange={(e) => setConfirmPassword(e.target.value)}
+                    placeholder="••••••••"
+                    required
+                  />
+                  <button
+                    type="button"
+                    className="password-toggle"
+                    onClick={() => setShowConfirm(!showConfirm)}
+                    aria-label={showConfirm ? t('auth.hidePassword') : t('auth.showPassword')}
+                    tabIndex={-1}
+                  >
+                    {showConfirm ? <EyeOff size={18} /> : <Eye size={18} />}
+                  </button>
+                </div>
                 {confirmPassword && confirmPassword !== password && (
                   <span className="error-message">{t('errors.passwordMismatch')}</span>
                 )}
@@ -208,6 +233,32 @@ export default function AuthModal({ mode, onClose, onLogin, onRegister, onResetP
             transition: all 0.2s;
           }
           .close-btn:hover {
+            color: var(--text-primary);
+            background: var(--bg-secondary);
+          }
+          .password-input-wrap {
+            position: relative;
+          }
+          .password-input-wrap input {
+            padding-right: 44px;
+          }
+          .password-toggle {
+            position: absolute;
+            right: 8px;
+            top: 50%;
+            transform: translateY(-50%);
+            border: none;
+            background: transparent;
+            color: var(--text-muted);
+            cursor: pointer;
+            padding: 6px;
+            border-radius: 6px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: color 0.15s, background 0.15s;
+          }
+          .password-toggle:hover {
             color: var(--text-primary);
             background: var(--bg-secondary);
           }

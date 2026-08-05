@@ -2,6 +2,7 @@ import { useState, useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
 import { CATEGORIES, DIFFICULTIES, TEMPLATES, normalizeCustomTemplate } from '../data/templates'
 import ThumbnailCanvas from './ThumbnailCanvas'
+import LoadingScreen from './LoadingScreen'
 
 // 门禁/提示卡片的共用样式
 function GateStyle() {
@@ -73,6 +74,7 @@ export default function AdminPanel({ user, isAdmin, authLoading, onLogin, onLogo
   const { t } = useTranslation()
   const [tab, setTab] = useState('templates')
   const [resetMsg, setResetMsg] = useState('')
+  const [confirmReset, setConfirmReset] = useState(false) // 修改密码确认对话框
 
   const cloudEnabled = !!cloudStore?.enabled
 
@@ -95,7 +97,7 @@ export default function AdminPanel({ user, isAdmin, authLoading, onLogin, onLogo
   if (authLoading) {
     return (
       <div className="admin-panel">
-        <div className="admin-empty">{t('admin.gate.checking')}</div>
+        <LoadingScreen text={t('admin.gate.checking')} />
       </div>
     )
   }
@@ -135,11 +137,28 @@ export default function AdminPanel({ user, isAdmin, authLoading, onLogin, onLogo
     )
   }
 
+  // 云端模板数据加载中:显示加载过渡,避免空列表/闪烁
+  if (cloudStore.loading) {
+    return (
+      <div className="admin-panel">
+        <LoadingScreen text={t('gallery.cloudLoading')} />
+      </div>
+    )
+  }
+
+  // 修改密码:先弹确认对话框,确认后才发送重置邮件
   const handleResetPassword = () => {
     if (!user?.email) return
+    setConfirmReset(true)
+  }
+
+  const handleConfirmReset = () => {
     onResetPassword(user.email)
-      .then(() => setResetMsg(t('admin.resetSent')))
-      .catch(() => setResetMsg(''))
+      .then(() => {
+        setConfirmReset(false)
+        setResetMsg(t('admin.resetSent'))
+      })
+      .catch(() => setConfirmReset(false))
   }
 
   return (
@@ -182,6 +201,23 @@ export default function AdminPanel({ user, isAdmin, authLoading, onLogin, onLogo
         {tab === 'import' && <JsonImporter store={cloudStore} />}
         {tab === 'categories' && <CategoryManager store={cloudStore} />}
       </div>
+
+      {/* 修改密码 → 确认对话框(确认后才发送重置邮件) */}
+      {confirmReset && (
+        <AdminModal title={t('admin.resetConfirmTitle')} onClose={() => setConfirmReset(false)}>
+          <p className="admin-modal-text">
+            {t('admin.resetConfirmText', { email: user.email })}
+          </p>
+          <div className="admin-actions">
+            <button className="admin-btn primary" onClick={handleConfirmReset}>
+              {t('admin.confirmSend')}
+            </button>
+            <button className="admin-btn secondary" onClick={() => setConfirmReset(false)}>
+              {t('admin.cancel')}
+            </button>
+          </div>
+        </AdminModal>
+      )}
 
       <style>{`
         .admin-panel {
