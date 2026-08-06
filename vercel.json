@@ -13,7 +13,11 @@
     }
   ],
   "rewrites": [
-    { "source": "/(admin|gallery|tutorials|privacy|terms)", "destination": "/index.html" },
+    { "source": "/gallery", "destination": "/gallery.html" },
+    { "source": "/tutorials", "destination": "/tutorials.html" },
+    { "source": "/admin", "destination": "/admin.html" },
+    { "source": "/privacy", "destination": "/privacy.html" },
+    { "source": "/terms", "destination": "/terms.html" },
     { "source": "/:path*", "destination": "/index.html" }
   ]
 }
