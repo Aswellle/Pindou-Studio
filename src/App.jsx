@@ -1,6 +1,7 @@
 import { useState, useEffect, lazy, Suspense, useRef } from 'react'
 import { Routes, Route, useNavigate, useLocation, Navigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
+import { LANGUAGES } from './i18n'
 import { Helmet } from 'react-helmet-async'
 import AuthModal from './components/AuthModal'
 import Header from './components/Header'
@@ -731,6 +732,69 @@ export default function App() {
     </div>
   )
 
+
+  // ── 每页动态 SEO(不改变功能与界面)───────────────────────
+  const SEO_CONFIG = {
+    canvas: {
+      title: '拼豆Studio - 在线拼豆图纸设计工具 | 图片转拼豆 · 支持Perler/Hama/Artkal',
+      desc: '免费的在线拼豆图纸设计工具。支持画笔、橡皮、填充、抓手工具自由绘制拼豆图案；上传图片一键智能转换为拼豆图纸(CIEDE2000精准配色)；支持Perler、Hama、Artkal三大品牌色卡；导出专业级PNG/SVG图纸，带色号标注与颜色清单。',
+    },
+    gallery: {
+      title: '拼豆图库与模板 - 拼豆Studio',
+      desc: '浏览并收藏拼豆图案模板，按分类与难度筛选，一键载入画布开始创作。支持收藏与作品管理，适合拼豆爱好者和手工达人。',
+    },
+    tutorials: {
+      title: '拼豆教程 - 从入门到进阶 · 拼豆Studio',
+      desc: '系统学习拼豆制作：入门指南、熨烫全解、防变形技巧、配色设计、进阶技巧与作品保护，配有图示与温度对照表，新手友好。',
+    },
+    admin: {
+      title: '后台管理 - 拼豆Studio',
+      desc: '拼豆Studio 站点后台管理。',
+      noindex: true,
+    },
+    privacy: {
+      title: '隐私政策 - 拼豆Studio',
+      desc: '了解拼豆Studio如何收集、使用和保护您的个人信息，以及账号验证、云端存储与第三方服务的详细说明。',
+    },
+    terms: {
+      title: '服务条款 - 拼豆Studio',
+      desc: '使用拼豆Studio在线拼豆图纸设计工具的服务条款：账户安全、用户内容、模板库与使用规范。',
+    },
+  }
+
+  const seo = SEO_CONFIG[currentPage] || SEO_CONFIG.canvas
+  const canonical = currentPage === 'canvas'
+    ? 'https://tangnotes.site/'
+    : `https://tangnotes.site/${currentPage}`
+  const hreflangHref = (code) => {
+    if (code === 'zh-CN') return canonical
+    const sep = canonical.includes('?') ? '&' : '?'
+    return `${canonical}${sep}lang=${code.toLowerCase()}`
+  }
+  const seoHelmet = (
+    <Helmet>
+      <title>{seo.title}</title>
+      <meta name="description" content={seo.desc} />
+      <meta name="robots" content={seo.noindex ? 'noindex, nofollow' : 'index, follow'} />
+      <link rel="canonical" href={canonical} />
+      {LANGUAGES.map(l => (
+        <link key={l.code} rel="alternate" hrefLang={l.code} href={hreflangHref(l.code)} />
+      ))}
+      <link rel="alternate" hrefLang="x-default" href="https://tangnotes.site/" />
+      <meta property="og:title" content={seo.title} />
+      <meta property="og:description" content={seo.desc} />
+      <meta property="og:url" content={canonical} />
+      <meta property="og:type" content="website" />
+      <meta property="og:image" content="https://tangnotes.site/og-image.svg" />
+      <meta name="twitter:card" content="summary_large_image" />
+    </Helmet>
+  )
+
   // 根据设备类型返回对应布局
-  return isMobile || isTablet ? renderMobileLayout() : renderDesktopLayout()
+  return (
+    <>
+      {seoHelmet}
+      {isMobile || isTablet ? renderMobileLayout() : renderDesktopLayout()}
+    </>
+  )
 }

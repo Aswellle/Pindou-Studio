@@ -66,11 +66,26 @@ function loadSavedLanguage() {
   return detectBrowserLanguage()
 }
 
+// URL 参数 ?lang= 优先(hreflang 语言页直达,SEO 标准行为;
+// 无参数时回退到已保存语言 → 浏览器语言)
+function urlLangParam() {
+  try {
+    const params = new URLSearchParams(window.location.search)
+    const lang = params.get('lang')
+    if (lang && LANGUAGES.some(l => l.code.toLowerCase() === lang.toLowerCase())) {
+      return LANGUAGES.find(l => l.code.toLowerCase() === lang.toLowerCase()).code
+    }
+  } catch (e) {
+    // ignore
+  }
+  return null
+}
+
 i18n
   .use(initReactI18next)
   .init({
     resources,
-    lng: loadSavedLanguage(),
+    lng: urlLangParam() || loadSavedLanguage(),
     fallbackLng: 'zh-CN',
     interpolation: {
       escapeValue: false

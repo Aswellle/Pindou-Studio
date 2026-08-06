@@ -5,17 +5,20 @@ User-agent: *
 Allow: /
 Disallow: /api/
 Disallow: /_vercel/
+Disallow: /admin
 
 # 主要爬虫优化
 User-agent: Baiduspider
 Allow: /
 Disallow: /api/
 Disallow: /_vercel/
+Disallow: /admin
 
 User-agent: Googlebot
 Allow: /
 Disallow: /api/
 Disallow: /_vercel/
+Disallow: /admin
 
 # 站点地图
 Sitemap: https://tangnotes.site/sitemap.xml
