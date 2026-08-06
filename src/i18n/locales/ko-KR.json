@@ -191,7 +191,13 @@
     "totalBeads": "총 비즈 수: {{n}}",
     "usedColors": "사용 색상 수: {{n}}",
     "groupCount": "{{title}} · {{n}}종",
-    "generatedBy": "Bead Studio에서 내보냄"
+    "generatedBy": "Bead Studio에서 내보냄",
+    "confirmTitle": "내보내기 확인",
+    "confirmText": "현재 비즈 패턴을 \"{{format}}\" 형식으로 내보내시겠습니까?",
+    "confirmBtn": "내보내기",
+    "emptyTitle": "캔버스가 비어 있습니다",
+    "emptyText": "아직 배치된 비즈가 없습니다. 먼저 패턴을 채운 후 내보내세요.",
+    "gotIt": "확인"
   },
   "quantizer": {
     "title": "이미지를 비드로",

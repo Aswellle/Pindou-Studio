@@ -191,7 +191,13 @@
     "totalBeads": "総ビーズ数：{{n}}",
     "usedColors": "使用色数：{{n}}",
     "groupCount": "{{title}} · {{n}}種",
-    "generatedBy": "Bead Studio からエクスポート"
+    "generatedBy": "Bead Studio からエクスポート",
+    "confirmTitle": "エクスポートの確認",
+    "confirmText": "現在のビーズパターンを「{{format}}」形式でエクスポートしますか?",
+    "confirmBtn": "エクスポート",
+    "emptyTitle": "キャンバスは空です",
+    "emptyText": "まだビーズが配置されていません。先にパターンを配置してからエクスポートしてください。",
+    "gotIt": "了解"
   },
   "quantizer": {
     "title": "画像をビードに",

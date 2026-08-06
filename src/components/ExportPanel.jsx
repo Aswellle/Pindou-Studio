@@ -196,6 +196,22 @@ export default function ExportPanel({ canvasData, gridSize, gridWidth, gridHeigh
     exportAsSVG(canvasData, gridSize, paletteId, effectiveName, palette, gridWidth, gridHeight, beadStyle)
   }
 
+  // ── 导出确认流程:空画布拦截 + 有内容时确认 ──────────────
+  const [confirmExport, setConfirmExport] = useState(null) // { type: 'empty' } | { type: 'confirm', label, handler }
+  const hasPaintedCells = useMemo(() =>
+    canvasData?.some(row => row.some(cell => cell)) || false,
+    [canvasData]
+  )
+
+  const requestExport = (label, handler) => {
+    if (!canvasData) return
+    if (!hasPaintedCells) {
+      setConfirmExport({ type: 'empty' })
+      return
+    }
+    setConfirmExport({ type: 'confirm', label, handler })
+  }
+
   const panel = (
     <div className="export-panel" ref={panelRef}>
       <button
@@ -232,7 +248,7 @@ export default function ExportPanel({ canvasData, gridSize, gridWidth, gridHeigh
               <span className="section-hint">{t('export.quickSectionHint')}</span>
             </div>
             <div className="export-buttons">
-              <button onClick={handleExportImage} className="btn btn-secondary">
+              <button onClick={() => requestExport(t('export.png'), handleExportImage)} className="btn btn-secondary">
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                   <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
                   <circle cx="8.5" cy="8.5" r="1.5"/>
@@ -240,7 +256,7 @@ export default function ExportPanel({ canvasData, gridSize, gridWidth, gridHeigh
                 </svg>
                 {t('export.png')}
               </button>
-              <button onClick={handleExportSVG} className="btn btn-secondary">
+              <button onClick={() => requestExport(t('export.svg'), handleExportSVG)} className="btn btn-secondary">
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                   <polygon points="12,2 2,7 12,12 22,7 12,2"/>
                   <polyline points="2,17 12,22 22,17"/>
@@ -248,7 +264,7 @@ export default function ExportPanel({ canvasData, gridSize, gridWidth, gridHeigh
                 </svg>
                 {t('export.svg')}
               </button>
-              <button onClick={handleExportText} className="btn btn-secondary">
+              <button onClick={() => requestExport(t('export.text'), handleExportText)} className="btn btn-secondary">
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                   <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
                   <polyline points="14,2 14,8 20,8"/>
@@ -284,7 +300,7 @@ export default function ExportPanel({ canvasData, gridSize, gridWidth, gridHeigh
               </span>
             </div>
             <div className="export-buttons">
-              <button onClick={handleExportPatternSheet} className="btn btn-primary btn-pattern" disabled={isExporting}>
+              <button onClick={() => requestExport(t('export.patternSheet'), handleExportPatternSheet)} className="btn btn-primary btn-pattern" disabled={isExporting}>
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                   <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
                   <line x1="3" y1="9" x2="21" y2="9"/>
@@ -304,7 +320,7 @@ export default function ExportPanel({ canvasData, gridSize, gridWidth, gridHeigh
                   {exportError}
                 </div>
               )}
-              <button onClick={handleExportPatternSheetSVG} className="btn btn-secondary">
+              <button onClick={() => requestExport(t('export.patternSheetSVG'), handleExportPatternSheetSVG)} className="btn btn-secondary">
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                   <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
                   <line x1="3" y1="9" x2="21" y2="9"/>
@@ -493,13 +509,105 @@ export default function ExportPanel({ canvasData, gridSize, gridWidth, gridHeigh
     </div>
   )
 
-  if (!isModal) return panel
+  // ── 导出确认 / 空画布提示 模态框(PC 与移动端共用) ─────────
+  const confirmDialog = confirmExport && (
+    <div className="modal-overlay export-confirm-overlay" onClick={() => setConfirmExport(null)}>
+      <div className="export-confirm-dialog" onClick={e => e.stopPropagation()}>
+        {confirmExport.type === 'empty' ? (
+          <>
+            <div className="export-confirm-icon empty">✕</div>
+            <h3>{t('export.emptyTitle')}</h3>
+            <p>{t('export.emptyText')}</p>
+            <button className="btn btn-primary" onClick={() => setConfirmExport(null)}>
+              {t('export.gotIt')}
+            </button>
+          </>
+        ) : (
+          <>
+            <div className="export-confirm-icon">⤓</div>
+            <h3>{t('export.confirmTitle')}</h3>
+            <p>{t('export.confirmText', { format: confirmExport.label })}</p>
+            <div className="export-confirm-actions">
+              <button
+                className="btn btn-primary"
+                onClick={() => {
+                  setConfirmExport(null)
+                  confirmExport.handler()
+                }}
+              >
+                {t('export.confirmBtn')}
+              </button>
+              <button className="btn btn-ghost" onClick={() => setConfirmExport(null)}>
+                {t('common.cancel')}
+              </button>
+            </div>
+          </>
+        )}
+        <style>{`
+          .export-confirm-overlay { z-index: 1200; }
+          .export-confirm-dialog {
+            background: var(--bg-primary);
+            border-radius: var(--radius-card);
+            padding: 28px 24px;
+            width: min(380px, 92vw);
+            text-align: center;
+            box-shadow: 0 20px 60px rgba(43, 36, 32, 0.2);
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            align-items: center;
+          }
+          .export-confirm-icon {
+            width: 56px;
+            height: 56px;
+            border-radius: 50%;
+            background: var(--accent-soft);
+            color: var(--accent);
+            font-size: 26px;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+          }
+          .export-confirm-icon.empty {
+            background: var(--warning-bg);
+            color: var(--warning);
+          }
+          .export-confirm-dialog h3 {
+            margin: 0;
+            font-size: var(--text-xl);
+          }
+          .export-confirm-dialog p {
+            margin: 0;
+            color: var(--text-secondary);
+            font-size: var(--text-md);
+            line-height: 1.6;
+            word-break: break-word;
+          }
+          .export-confirm-dialog .btn { margin-top: 4px; }
+          .export-confirm-actions {
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+          }
+        `}</style>
+      </div>
+    </div>
+  )
+
+  if (!isModal) return (
+    <>
+      {panel}
+      {confirmDialog}
+    </>
+  )
 
   return (
     <div className="modal-overlay" onClick={onClose}>
       <div className="export-modal-content" onClick={(e) => e.stopPropagation()}>
         {panel}
       </div>
+      {confirmDialog}
       <style>{`
         .export-modal-content {
           width: min(420px, 92vw);

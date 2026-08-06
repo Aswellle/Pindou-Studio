@@ -191,7 +191,13 @@
     "totalBeads": "总珠子数：{{n}}",
     "usedColors": "使用颜色：{{n}}",
     "groupCount": "{{title}} · {{n}}种",
-    "generatedBy": "导出自 拼豆Studio"
+    "generatedBy": "导出自 拼豆Studio",
+    "confirmTitle": "确认导出",
+    "confirmText": "将按「{{format}}」格式导出当前拼豆图纸,确认继续?",
+    "confirmBtn": "确认导出",
+    "emptyTitle": "画布还是空的",
+    "emptyText": "画布上还没有填涂的拼豆格子,请先在画布上填涂想要的图案,再进行图纸导出。",
+    "gotIt": "知道了"
   },
   "quantizer": {
     "title": "图片转拼豆",
