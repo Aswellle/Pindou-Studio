@@ -9,7 +9,7 @@
 [![Supabase](https://img.shields.io/badge/Supabase-BaaS-3ECF8E?logo=supabase&logoColor=white)](https://supabase.com)
 [![i18n](https://img.shields.io/badge/i18n-4%20Languages-4A9B8E)](https://www.i18next.com)
 
-**三个品牌色卡 · 四种语言 · 十八篇教程 · 云端账号体系 · 71+ 测试全绿**
+**三个品牌色卡 · 四种语言 · 十八篇教程 · 云端账号体系**
 
 拼豆Studio 是一款开箱即用的拼豆图纸在线设计工具:自由绘制、图片智能转图纸、专业图纸导出、云端模板库与账号体系一应俱全。无论是第一次拿起 Pegboard 的新手,还是追求精致作品的进阶玩家,都能在这里找到属于自己的创作节奏。
 
@@ -94,9 +94,6 @@ npm run test           # 测试(watch 模式)
 npm run test:run       # 测试(单次,CI 模式)
 npm run check-i18n     # 验证 4 个语言文件键名一致性
 ```
-
-> 云端功能(Supabase)需要配置环境变量,详见 [`docs/SUPABASE_SETUP.md`](docs/SUPABASE_SETUP.md)(该文档本地留存,未纳入版本控制)。
-
 ---
 
 ## 🏗️ 技术栈
@@ -163,16 +160,6 @@ npm run test:run
 | `gallery-favorites`(localStorage) | 收藏模板 ID |
 | `tutorial-progress`(localStorage) | 已读教程 ID |
 | `custom-templates` / `custom-categories`(localStorage) | 本地模式自定义模板(云端未配置时的回退) |
-| Supabase `profiles` | 云端:角色 / 昵称 / 头像 |
-| Supabase `templates` / `categories` | 云端模板库(公开读,管理员写) |
-
----
-
-## 🚢 部署
-
-1. **Supabase**:创建项目 → 执行 `supabase/migrations/*.sql` → 配置 SMTP 与中文邮件模板(详见 `docs/SUPABASE_SETUP.md`)
-2. **环境变量**:`VITE_SUPABASE_URL` / `VITE_SUPABASE_ANON_KEY`(Vercel + 本地 `.env.local`)
-3. **Vercel**:推送 `main` 自动部署(SPA 路由已配置 rewrite)
 
 ---
 
