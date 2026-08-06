@@ -130,9 +130,10 @@ function BlockRenderer({ blocks = [] }) {
 }
 
 export default function Tutorials() {
-  const { t } = useTranslation()
+  const { t, i18n } = useTranslation()
+  const TUTORIALS = getTutorials(i18n.language)
   const [expandedSections, setExpandedSections] = useState(['getting-started'])
-  const [selectedTutorial, setSelectedTutorial] = useState(TUTORIALS[0].children[0])
+  const [selectedTutorial, setSelectedTutorial] = useState(() => getTutorials(i18n.language)[0].children[0])
   const [readProgress, setReadProgress] = useState(() => {
     const saved = localStorage.getItem('tutorial-progress')
     return saved ? JSON.parse(saved) : []
@@ -272,7 +273,7 @@ export default function Tutorials() {
           <>
             <div className="content-header">
               <div className="breadcrumb">
-                <span>{TUTORIALS.find(s => s.children.some(c => c.id === selectedTutorial.id))?.title}</span>
+                <span>{TUTORIALS.find(s => s.children.some(c => c.id === activeTutorial.id))?.title}</span>
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                   <path d="M9 18l6-6-6-6"/>
                 </svg>
