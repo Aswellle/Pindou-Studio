@@ -193,11 +193,18 @@
     "groupCount": "{{title}} · {{n}}种",
     "generatedBy": "导出自 拼豆Studio",
     "confirmTitle": "确认导出",
-    "confirmText": "将按「{{format}}」格式导出当前拼豆图纸,确认继续?",
+    "confirmText": "将导出当前拼豆图纸,当前导出设置如下:",
     "confirmBtn": "确认导出",
     "emptyTitle": "画布还是空的",
     "emptyText": "画布上还没有填涂的拼豆格子,请先在画布上填涂想要的图案,再进行图纸导出。",
-    "gotIt": "知道了"
+    "gotIt": "知道了",
+    "formatLabel": "格式",
+    "descLabel": "说明",
+    "pngDesc": "快速预览用的位图图片(像素珠效果)",
+    "svgDesc": "矢量图,可无损缩放,适合编辑与打印",
+    "textDesc": "纯文本图纸(色号索引),便于手工核对",
+    "professionalDesc": "专业图纸:平色方块 + 品牌色号标注,适合制作参考",
+    "realisticDesc": "展示图纸:拟真立体珠子效果,适合分享展示"
   },
   "quantizer": {
     "title": "图片转拼豆",

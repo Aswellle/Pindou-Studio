@@ -79,6 +79,8 @@ export default function Header({ user, onLogin, onRegister, onLogout, onSave, cu
           </button>
         )}
         {!simplified && <LanguageSelector />}
+        {/* 移动端:非画布页在导航与用户区之间显示语言切换按钮(🌐) */}
+        {simplified && currentPage !== 'canvas' && <LanguageSelector compact />}
         {user ? (
           /* 已登录:圆形头像(邮箱首字符,橙色底白字)为入口,点击打开个人设置 */
           <button

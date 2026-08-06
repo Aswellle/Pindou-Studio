@@ -193,11 +193,18 @@
     "groupCount": "{{title}} · {{n}}種",
     "generatedBy": "Bead Studio からエクスポート",
     "confirmTitle": "エクスポートの確認",
-    "confirmText": "現在のビーズパターンを「{{format}}」形式でエクスポートしますか?",
+    "confirmText": "現在のビーズパターンを以下の設定でエクスポートします:",
     "confirmBtn": "エクスポート",
     "emptyTitle": "キャンバスは空です",
     "emptyText": "まだビーズが配置されていません。先にパターンを配置してからエクスポートしてください。",
-    "gotIt": "了解"
+    "gotIt": "了解",
+    "formatLabel": "形式",
+    "descLabel": "説明",
+    "pngDesc": "クイックプレビュー用のビットマップ画像(ピクセルビーズ風)",
+    "svgDesc": "ベクター画像。無劣化で拡大縮小可能。編集・印刷向き",
+    "textDesc": "プレーンテキストの図案(色番号インデックス)。手作業の確認向き",
+    "professionalDesc": "プロ用図案:平らな四角 + ブランド色番号付き。制作の参考に最適",
+    "realisticDesc": "展示用図案:リアルな立体ビーズ表現。共有・紹介に最適"
   },
   "quantizer": {
     "title": "画像をビードに",

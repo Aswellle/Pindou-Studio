@@ -193,11 +193,18 @@
     "groupCount": "{{title}} · {{n}}종",
     "generatedBy": "Bead Studio에서 내보냄",
     "confirmTitle": "내보내기 확인",
-    "confirmText": "현재 비즈 패턴을 \"{{format}}\" 형식으로 내보내시겠습니까?",
+    "confirmText": "현재 비즈 패턴을 다음 설정으로 내보냅니다:",
     "confirmBtn": "내보내기",
     "emptyTitle": "캔버스가 비어 있습니다",
     "emptyText": "아직 배치된 비즈가 없습니다. 먼저 패턴을 채운 후 내보내세요.",
-    "gotIt": "확인"
+    "gotIt": "확인",
+    "formatLabel": "형식",
+    "descLabel": "설명",
+    "pngDesc": "빠른 미리보기용 비트맵 이미지(픽셀 비즈 효과)",
+    "svgDesc": "벡터 이미지, 무손실 확대/축소, 편집·인쇄에 적합",
+    "textDesc": "일반 텍스트 도안(색상 인덱스), 수동 확인용",
+    "professionalDesc": "전문 도안: 평면 사각형 + 브랜드 색상 코드, 제작 참고용",
+    "realisticDesc": "전시 도안: 사실적인 입체 비즈 효과, 공유용"
   },
   "quantizer": {
     "title": "이미지를 비드로",

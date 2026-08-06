@@ -203,14 +203,19 @@ export default function ExportPanel({ canvasData, gridSize, gridWidth, gridHeigh
     [canvasData]
   )
 
-  const requestExport = (label, handler) => {
+  const requestExport = (label, desc, styleName, handler) => {
     if (!canvasData) return
     if (!hasPaintedCells) {
       setConfirmExport({ type: 'empty' })
       return
     }
-    setConfirmExport({ type: 'confirm', label, handler })
+    setConfirmExport({ type: 'confirm', label, desc, styleName, handler })
   }
+
+  // 专业图纸当前风格名称(用于确认框展示)
+  const currentStyleName = beadStyle === 'professional'
+    ? t('gallery.exportProfessional')
+    : t('gallery.exportRealistic')
 
   const panel = (
     <div className="export-panel" ref={panelRef}>
@@ -248,7 +253,7 @@ export default function ExportPanel({ canvasData, gridSize, gridWidth, gridHeigh
               <span className="section-hint">{t('export.quickSectionHint')}</span>
             </div>
             <div className="export-buttons">
-              <button onClick={() => requestExport(t('export.png'), handleExportImage)} className="btn btn-secondary">
+              <button onClick={() => requestExport(t('export.png'), t('export.pngDesc'), null, handleExportImage)} className="btn btn-secondary">
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                   <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
                   <circle cx="8.5" cy="8.5" r="1.5"/>
@@ -256,7 +261,7 @@ export default function ExportPanel({ canvasData, gridSize, gridWidth, gridHeigh
                 </svg>
                 {t('export.png')}
               </button>
-              <button onClick={() => requestExport(t('export.svg'), handleExportSVG)} className="btn btn-secondary">
+              <button onClick={() => requestExport(t('export.svg'), t('export.svgDesc'), null, handleExportSVG)} className="btn btn-secondary">
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                   <polygon points="12,2 2,7 12,12 22,7 12,2"/>
                   <polyline points="2,17 12,22 22,17"/>
@@ -264,7 +269,7 @@ export default function ExportPanel({ canvasData, gridSize, gridWidth, gridHeigh
                 </svg>
                 {t('export.svg')}
               </button>
-              <button onClick={() => requestExport(t('export.text'), handleExportText)} className="btn btn-secondary">
+              <button onClick={() => requestExport(t('export.text'), t('export.textDesc'), null, handleExportText)} className="btn btn-secondary">
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                   <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
                   <polyline points="14,2 14,8 20,8"/>
@@ -300,7 +305,7 @@ export default function ExportPanel({ canvasData, gridSize, gridWidth, gridHeigh
               </span>
             </div>
             <div className="export-buttons">
-              <button onClick={() => requestExport(t('export.patternSheet'), handleExportPatternSheet)} className="btn btn-primary btn-pattern" disabled={isExporting}>
+              <button onClick={() => requestExport(t('export.patternSheet'), beadStyle === 'professional' ? t('export.professionalDesc') : t('export.realisticDesc'), currentStyleName, handleExportPatternSheet)} className="btn btn-primary btn-pattern" disabled={isExporting}>
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                   <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
                   <line x1="3" y1="9" x2="21" y2="9"/>
@@ -320,7 +325,7 @@ export default function ExportPanel({ canvasData, gridSize, gridWidth, gridHeigh
                   {exportError}
                 </div>
               )}
-              <button onClick={() => requestExport(t('export.patternSheetSVG'), handleExportPatternSheetSVG)} className="btn btn-secondary">
+              <button onClick={() => requestExport(t('export.patternSheetSVG'), beadStyle === 'professional' ? t('export.professionalDesc') : t('export.realisticDesc'), currentStyleName, handleExportPatternSheetSVG)} className="btn btn-secondary">
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                   <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
                   <line x1="3" y1="9" x2="21" y2="9"/>
@@ -526,7 +531,23 @@ export default function ExportPanel({ canvasData, gridSize, gridWidth, gridHeigh
           <>
             <div className="export-confirm-icon">⤓</div>
             <h3>{t('export.confirmTitle')}</h3>
-            <p>{t('export.confirmText', { format: confirmExport.label })}</p>
+            <p>{t('export.confirmText')}</p>
+            <div className="export-settings-summary">
+              <div className="export-setting-row">
+                <span className="export-setting-key">{t('export.formatLabel')}</span>
+                <span className="export-setting-value">{confirmExport.label}</span>
+              </div>
+              <div className="export-setting-row">
+                <span className="export-setting-key">{t('export.descLabel')}</span>
+                <span className="export-setting-value">{confirmExport.desc}</span>
+              </div>
+              {confirmExport.styleName && (
+                <div className="export-setting-row">
+                  <span className="export-setting-key">{t('export.styleLabel')}</span>
+                  <span className="export-setting-value">{confirmExport.styleName}</span>
+                </div>
+              )}
+            </div>
             <div className="export-confirm-actions">
               <button
                 className="btn btn-primary"
@@ -589,6 +610,32 @@ export default function ExportPanel({ canvasData, gridSize, gridWidth, gridHeigh
             display: flex;
             gap: 10px;
             justify-content: center;
+          }
+          .export-settings-summary {
+            width: 100%;
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: 10px;
+            padding: 10px 14px;
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            text-align: left;
+          }
+          .export-setting-row {
+            display: flex;
+            gap: 10px;
+            font-size: var(--text-sm);
+            line-height: 1.5;
+          }
+          .export-setting-key {
+            color: var(--text-muted);
+            flex-shrink: 0;
+            min-width: 40px;
+          }
+          .export-setting-value {
+            color: var(--text-primary);
+            font-weight: 500;
           }
         `}</style>
       </div>
