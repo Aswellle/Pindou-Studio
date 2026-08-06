@@ -9,7 +9,7 @@
 [![Supabase](https://img.shields.io/badge/Supabase-BaaS-3ECF8E?logo=supabase&logoColor=white)](https://supabase.com)
 [![i18n](https://img.shields.io/badge/i18n-4%20Languages-4A9B8E)](https://www.i18next.com)
 
-**三个品牌色卡 · 四种语言 · 十八篇教程 · 一条 AI 模板协议 · 71+ 测试全绿**
+**三个品牌色卡 · 四种语言 · 十八篇教程 · 云端账号体系 · 71+ 测试全绿**
 
 拼豆Studio 是一款开箱即用的拼豆图纸在线设计工具:自由绘制、图片智能转图纸、专业图纸导出、云端模板库与账号体系一应俱全。无论是第一次拿起 Pegboard 的新手,还是追求精致作品的进阶玩家,都能在这里找到属于自己的创作节奏。
 
@@ -22,9 +22,7 @@
 | 🎨 | **236 种品牌色** —— Perler(80)/ Hama(56)/ Artkal(100),CIEDE2000 感知均匀配色 |
 | 🌐 | **4 种语言** —— 简体中文 / English / 日本語 / 한국어,自动检测浏览器语言,`?lang=` 直达 |
 | 📖 | **18 篇图文教程** × 4 语言 —— 从入门到防变形,连"翻车急救手册"都有 |
-| 🤖 | **1 条 AI 模板协议** —— 让 AI Agent 直接生成可上传的拼豆模板 JSON |
 | 🧪 | **71 个测试用例** —— CIEDE2000 含 CIE 官方 10 组参考值,颜色科学级严谨 |
-| ⚡ | **首屏优化** —— 字体 CSS 异步化(主 CSS 683KB → 25KB),移动端零字体开销 |
 
 ---
 
@@ -67,10 +65,6 @@
 - **18 篇图文教程** × 4 语言 — 入门指南、熨烫全解、防变形、配色设计、进阶技巧、作品保护
 - **i18n 全覆盖** — 浏览器语言自动检测,手动选择持久化,`?lang=en` URL 直达语言页
 
-### 🔍 SEO 与性能
-- 每页独立 title/description/canonical/hreflang 四语言;子路由**预渲染静态 HTML**(百度等不执行 JS 的爬虫也能收录)
-- 字体 CSS 异步化、vendor 分包、preconnect —— 主 CSS 683KB → 25KB
-
 ---
 
 ## 🚀 快速开始
@@ -94,7 +88,7 @@ npm run dev
 
 ```bash
 npm run dev            # 开发服务器(热更新)
-npm run build          # 生产构建(含预渲染 SEO HTML)
+npm run build          # 生产构建(含子页面静态 HTML)
 npm run preview        # 本地预览构建产物
 npm run test           # 测试(watch 模式)
 npm run test:run       # 测试(单次,CI 模式)
@@ -117,63 +111,6 @@ npm run check-i18n     # 验证 4 个语言文件键名一致性
 | 状态管理 | React `useState` / `useReducer`(无全局 store) |
 | 测试 | Vitest + @testing-library/react,71 用例 |
 | 部署 | Vercel(push 到 main 自动部署)+ Supabase |
-
----
-
-## 🧩 架构
-
-```
-┌─ 浏览器(Supabase 客户端) ────────────────────────────────┐
-│  React SPA + supabase-js                                 │
-│  · 作品数据:localStorage(不上传,隐私友好)                 │
-│  · 账号/头像/模板库:云端(Supabase)                        │
-└──────────────┬──────────────────────────┬────────────────┘
-               │ HTTPS(TLS)               │ 邮箱验证码邮件
-┌──────────────▼───────────┐   ┌──────────▼───────────────┐
-│ Supabase                 │   │ SMTP(163 等)              │
-│ · Auth: 邮箱验证码/会话    │   │ 自定义中文模板             │
-│ · DB: profiles/templates │   └──────────────────────────┘
-│   /categories + RLS      │
-│ · Storage: avatars 桶     │
-└──────────────────────────┘
-```
-
-### 🔒 安全模型(行级安全 RLS)
-
-| 表 / 桶 | 游客 | 普通用户 | 管理员 |
-|---------|------|---------|--------|
-| `templates` / `categories` | 只读 | 只读 | 读写 |
-| `profiles` | — | 读/改自己(role 不可篡改) | 读全部 |
-| `avatars` 桶 | 读 | 读写自己的 | 读写自己的 |
-| 用户仪表盘 RPC | 拒绝 | 拒绝(`not authorized`) | 可查 |
-
-密码经哈希存储(任何人无法读取明文);`service_role` 密钥永不进入前端;验证码即邮箱归属证明,无需打开外部链接。
-
----
-
-## 🤖 AI 模板协议(让 AI 帮你设计模板)
-
-后台「JSON 导入」接受统一协议,AI Agent 可直接生成:
-
-```json
-{
-  "name": "Duck",
-  "nameZh": "小鸭",
-  "category": "animal",
-  "difficulty": "easy",
-  "pattern": [
-    [null, null, "#FFD700", "#FFD700", null, null],
-    [null, "#FFD700", "#FFD700", "#FFD700", "#FFD700", null],
-    ["#FFD700", "#FFD700", "#FF8C00", "#FF8C00", "#FFD700", "#FFD700"],
-    [null, "#FFD700", "#000000", "#000000", "#FFD700", null],
-    [null, null, "#FF8C00", "#FF8C00", null, null]
-  ]
-}
-```
-
-- `colors` 字段可省略 —— 前端自动从 pattern 识别颜色,圆点固定位置展示
-- `size` 自动取 `max(rows, cols)`,hex 自动归一化
-- 管理员可在后台「模板管理」增删改查,全设备云端统一
 
 ---
 
@@ -212,7 +149,7 @@ npm run test:run
 | `colorUtils.test.js` | resolveToHex 边界、hexToRgb、rgbToHex、getTextColor |
 | `historyUtils.test.js` | pushHistory 上限截断、undo/redo 往返一致 |
 | `useCanvasPainter.test.js` | 双层 Canvas 绘制、attach 时重绘、overlay 增删 |
-| `templates.test.js` | 统一协议校验 12 例(颜色归一化/矩形/错误分支) |
+| `templates.test.js` | 模板 JSON 校验 12 例(颜色归一化/矩形/错误分支) |
 | `Canvas.test.jsx` | 组件级:网格渲染、点击填色、pinch 不误填色回归 |
 
 ---
@@ -235,7 +172,7 @@ npm run test:run
 
 1. **Supabase**:创建项目 → 执行 `supabase/migrations/*.sql` → 配置 SMTP 与中文邮件模板(详见 `docs/SUPABASE_SETUP.md`)
 2. **环境变量**:`VITE_SUPABASE_URL` / `VITE_SUPABASE_ANON_KEY`(Vercel + 本地 `.env.local`)
-3. **Vercel**:推送 `main` 自动部署(SPA 路由已配置 rewrite + 预渲染 SEO)
+3. **Vercel**:推送 `main` 自动部署(SPA 路由已配置 rewrite)
 
 ---
 
