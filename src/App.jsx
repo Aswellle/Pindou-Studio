@@ -372,7 +372,9 @@ export default function App() {
             />
           } />
           <Route path="/privacy" element={<PrivacyPolicy onBack={() => navigate('/')} />} />
+          <Route path="/privacy/:versionId" element={<PrivacyPolicy onBack={() => navigate('/')} />} />
           <Route path="/terms" element={<TermsOfService onBack={() => navigate('/')} />} />
+          <Route path="/terms/:versionId" element={<TermsOfService onBack={() => navigate('/')} />} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </main>
@@ -608,7 +610,9 @@ export default function App() {
           </Suspense>
         } />
         <Route path="/privacy" element={<PrivacyPolicy onBack={() => navigate('/')} />} />
+        <Route path="/privacy/:versionId" element={<PrivacyPolicy onBack={() => navigate('/')} />} />
         <Route path="/terms" element={<TermsOfService onBack={() => navigate('/')} />} />
+        <Route path="/terms/:versionId" element={<TermsOfService onBack={() => navigate('/')} />} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
 
