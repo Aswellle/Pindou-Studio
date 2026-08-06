@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
-import { TUTORIALS, getAllTutorials } from '../data/tutorials'
+import { getTutorials, getAllTutorials } from '../data/tutorials'
+import i18n from '../i18n'
 
 // Inline SVG 图示，不引入图片文件
 const SVG_DIAGRAMS = {
@@ -23,7 +24,7 @@ const SVG_DIAGRAMS = {
       <rect x="100" y="130" width="80" height="36" rx="8" fill="#607D8B"/>
       <rect x="140" y="130" width="45" height="36" rx="4" fill="#78909C"/>
       <rect x="100" y="133" width="80" height="5" rx="2.5" fill="#90A4AE"/>
-      <text x="140" y="174" textAnchor="middle" fontSize="11" fill="#9E9E9E">画圆弧熨烫，从中心向外</text>
+      <text x="140" y="174" textAnchor="middle" fontSize="11" fill="#9E9E9E">{i18n.t('tutorials.diagrams.ironingMotion')}</text>
     </svg>
   ),
   'pressing-stack': (
@@ -42,7 +43,7 @@ const SVG_DIAGRAMS = {
       <polygon points="136,38 144,38 140,45" fill="#E53935"/>
       <path d="M180 30 L180 38" stroke="#E53935" strokeWidth="3"/>
       <polygon points="176,38 184,38 180,45" fill="#E53935"/>
-      <text x="140" y="158" textAnchor="middle" fontSize="11" fill="#9E9E9E">书本压住，冷却 ≥30 分钟</text>
+      <text x="140" y="158" textAnchor="middle" fontSize="11" fill="#9E9E9E">{i18n.t('tutorials.diagrams.pressing')}</text>
     </svg>
   ),
 }
@@ -140,7 +141,7 @@ export default function Tutorials() {
   // 初始化选中第一个教程
   useEffect(() => {
     if (!selectedTutorial) {
-      setSelectedTutorial(TUTORIALS[0].children[0])
+      setSelectedTutorial(getTutorials(i18n.language)[0].children[0])
     }
   }, [])
 
@@ -169,7 +170,7 @@ export default function Tutorials() {
 
   // 标记全部已读
   const markAllRead = () => {
-    const allIds = getAllTutorials().map(t => t.id)
+    const allIds = getAllTutorials(i18n.language).map(t => t.id)
     setReadProgress(allIds)
   }
 
@@ -179,7 +180,7 @@ export default function Tutorials() {
   }
 
   // 计算进度百分比
-  const totalTutorials = getAllTutorials().length
+  const totalTutorials = getAllTutorials(i18n.language).length
   const progressPercent = Math.round((readProgress.length / totalTutorials) * 100)
 
   return (
@@ -260,6 +261,13 @@ export default function Tutorials() {
       </div>
 
       <div className="tutorials-content">
+        {/* 语言切换时 selectedTutorial 仍指向旧语言对象,按 id 解析当前语言版本 */}
+        {(() => {
+        const activeTutorial = TUTORIALS
+          .flatMap(sec => sec.children)
+          .find(c => c.id === selectedTutorial?.id) || selectedTutorial
+        return (
+        <>
         {selectedTutorial ? (
           <>
             <div className="content-header">
@@ -269,31 +277,31 @@ export default function Tutorials() {
                   <path d="M9 18l6-6-6-6"/>
                 </svg>
                 <span className="current">
-                  {t(`tutorials.articles.${selectedTutorial.id}`, selectedTutorial.title)}
+                  {t(`tutorials.articles.${selectedTutorial.id}`, activeTutorial.title)}
                 </span>
               </div>
               <h1 className="content-title">
-                  {t(`tutorials.articles.${selectedTutorial.id}`, selectedTutorial.title)}
+                  {t(`tutorials.articles.${selectedTutorial.id}`, activeTutorial.title)}
                 </h1>
             </div>
 
             <div className="content-body">
-              {selectedTutorial.blocks && selectedTutorial.blocks.length > 0 ? (
-                <BlockRenderer blocks={selectedTutorial.blocks} />
+              {activeTutorial.blocks && activeTutorial.blocks.length > 0 ? (
+                <BlockRenderer blocks={activeTutorial.blocks} />
               ) : (
                 <>
-                  {selectedTutorial.content && (
+                  {activeTutorial.content && (
                     <div className="tutorial-content">
-                      {selectedTutorial.content.split('\n\n').map((paragraph, index) => (
+                      {activeTutorial.content.split('\n\n').map((paragraph, index) => (
                         <p key={index} className="block-paragraph">{paragraph}</p>
                       ))}
                     </div>
                   )}
-                  {selectedTutorial.steps && selectedTutorial.steps.length > 0 && (
+                  {activeTutorial.steps && activeTutorial.steps.length > 0 && (
                     <div className="steps-section">
                       <h3 className="steps-title">{t('tutorials.steps')}</h3>
                       <ol className="steps-list">
-                        {selectedTutorial.steps.map((step, index) => (
+                        {activeTutorial.steps.map((step, index) => (
                           <li key={index} className="step-item">
                             <span className="step-number">{index + 1}</span>
                             <span className="step-text">{step}</span>
@@ -302,10 +310,10 @@ export default function Tutorials() {
                       </ol>
                     </div>
                   )}
-                  {selectedTutorial.tips && (
+                  {activeTutorial.tips && (
                     <div className="tips-box">
                       <div className="tips-header">{t('tutorials.tips')}</div>
-                      <p className="tips-content">{selectedTutorial.tips}</p>
+                      <p className="tips-content">{activeTutorial.tips}</p>
                     </div>
                   )}
                 </>
@@ -324,6 +332,9 @@ export default function Tutorials() {
             <p>{t('tutorials.noSelection')}</p>
           </div>
         )}
+        </>
+        )
+        })()}
       </div>
 
       <style>{`
@@ -728,8 +739,8 @@ export default function Tutorials() {
 
 // 导航按钮组件
 function NavigationButtons({ currentTutorial, onSelect }) {
-  const { t } = useTranslation()
-  const allTutorials = getAllTutorials()
+  const { t, i18n } = useTranslation()
+  const allTutorials = getAllTutorials(i18n.language)
   const currentIndex = allTutorials.findIndex(t => t.id === currentTutorial?.id)
 
   const prevTutorial = currentIndex > 0 ? allTutorials[currentIndex - 1] : null

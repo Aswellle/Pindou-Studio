@@ -5,8 +5,9 @@ import { getPalette } from '../data/palettes'
 import { exportAsPNG, exportAsSVG } from '../services/BeadPatternExporter'
 import { resolveToHex } from '../services/colorUtils'
 
-export default function ExportPanel({ canvasData, gridSize, gridWidth, gridHeight, designName = '拼豆图案', paletteId = 'perler', onClose }) {
+export default function ExportPanel({ canvasData, gridSize, gridWidth, gridHeight, designName, paletteId = 'perler', onClose }) {
   const { t } = useTranslation()
+  const effectiveName = designName || t('export.defaultName')
   // Passing onClose signals this instance is the mobile modal entry point —
   // it should open already expanded instead of requiring a second click.
   const isModal = !!onClose
@@ -175,7 +176,7 @@ export default function ExportPanel({ canvasData, gridSize, gridWidth, gridHeigh
     setExportProgress(0)
     setExportError(null)
     try {
-      await exportAsPNG(canvasData, gridSize, paletteId, designName, palette, {
+      await exportAsPNG(canvasData, gridSize, paletteId, effectiveName, palette, {
         gridWidth,
         gridHeight,
         beadStyle,
@@ -192,7 +193,7 @@ export default function ExportPanel({ canvasData, gridSize, gridWidth, gridHeigh
 
   const handleExportPatternSheetSVG = () => {
     if (!canvasData) return
-    exportAsSVG(canvasData, gridSize, paletteId, designName, palette, gridWidth, gridHeight, beadStyle)
+    exportAsSVG(canvasData, gridSize, paletteId, effectiveName, palette, gridWidth, gridHeight, beadStyle)
   }
 
   const panel = (

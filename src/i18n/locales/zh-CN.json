@@ -56,7 +56,8 @@
     "emailInUse": "该邮箱已注册",
     "tooManyAttempts": "尝试过于频繁,请稍后再试",
     "cloudNotConfigured": "云端未配置,无法使用账号功能",
-    "emailNotFound": "该邮箱尚未注册"
+    "emailNotFound": "该邮箱尚未注册",
+    "storageFull": "存储空间已满，请删除部分作品后再保存。"
   },
   "palette": {
     "title": "色卡",
@@ -175,7 +176,22 @@
     "styleLabel": "图纸风格",
     "professionalHint": "适合对照图纸贴珠，每格标注色号",
     "realisticHint": "适合预览、分享、相册封面",
-    "exportFailed": "导出失败，请检查画布内容后重试。"
+    "exportFailed": "导出失败，请检查画布内容后重试。",
+    "defaultName": "拼豆图案",
+    "legendTitle": "颜色清单",
+    "legendTotal": "共 {{n}} 色，{{m}} 粒",
+    "groupMajor": "主色（≥5%）",
+    "groupMinor": "辅色（1–5%）",
+    "groupAccent": "点缀色",
+    "groupTrace": "微量色 ⚠ 采购注意",
+    "centerBeadMark": "★ = 中心珠",
+    "gridSize": "{{cols}} × {{rows}} 格子",
+    "date": "日期：{{date}}",
+    "palette": "色卡：{{palette}}",
+    "totalBeads": "总珠子数：{{n}}",
+    "usedColors": "使用颜色：{{n}}",
+    "groupCount": "{{title}} · {{n}}种",
+    "generatedBy": "导出自 拼豆Studio"
   },
   "quantizer": {
     "title": "图片转拼豆",
@@ -285,6 +301,10 @@
       "multi-brand-mix": "多品牌混用",
       "cooling-shaping": "冷却定型流程",
       "display-storage": "展示与保存"
+    },
+    "diagrams": {
+      "ironingMotion": "画圆弧熨烫，从中心向外",
+      "pressing": "书本压住，冷却 ≥30 分钟"
     }
   },
   "stats": {
@@ -451,5 +471,16 @@
     "oldPasswordRequired": "请输入当前密码",
     "wrongPassword": "当前密码错误",
     "passwordUpdated": "密码已更新"
+  },
+  "legal": {
+    "back": "返回",
+    "history": "版本历史",
+    "published": "发布于",
+    "currentVersion": "当前生效版本",
+    "historicalVersion": "历史版本",
+    "latest": "最新版",
+    "viewing": "正在查看",
+    "currentSuffix": " · 当前生效版本",
+    "historySuffix": " · 历史版本"
   }
 }

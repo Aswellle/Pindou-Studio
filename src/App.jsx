@@ -76,7 +76,7 @@ export default function App() {
   const [showQuantizer, setShowQuantizer] = useState(false)
   const [showExport, setShowExport] = useState(false)
   const [currentPalette, setCurrentPalette] = useState('perler')
-  const [designName, setDesignName] = useState('拼豆图案')
+  const [designName, setDesignName] = useState(() => t('export.defaultName'))
   const [showSaveDialog, setShowSaveDialog] = useState(false)
   const [saveInputName, setSaveInputName] = useState('')
   const [saveToast, setSaveToast] = useState(false)

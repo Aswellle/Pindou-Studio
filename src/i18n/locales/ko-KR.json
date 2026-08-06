@@ -56,7 +56,8 @@
     "emailInUse": "이미 가입된 이메일입니다",
     "tooManyAttempts": "시도 횟수가 너무 많습니다. 잠시 후 다시 시도하세요.",
     "cloudNotConfigured": "클라우드 미설정으로 계정 기능을 사용할 수 없습니다",
-    "emailNotFound": "등록되지 않은 이메일입니다"
+    "emailNotFound": "등록되지 않은 이메일입니다",
+    "storageFull": "저장 공간이 가득 찼습니다. 일부 작품을 삭제한 후 저장하세요."
   },
   "palette": {
     "title": "색상 팔레트",
@@ -175,7 +176,22 @@
     "styleLabel": "도안 스타일",
     "professionalHint": "대조하며 비드를 붙이기에 적합, 각 칸에 색상 ID 표시",
     "realisticHint": "미리보기, 공유, 앨범 커버에 적합",
-    "exportFailed": "내보내기에 실패했습니다. 캔버스 내용을 확인한 후 다시 시도하세요."
+    "exportFailed": "내보내기에 실패했습니다. 캔버스 내용을 확인한 후 다시 시도하세요.",
+    "defaultName": "제목 없는 디자인",
+    "legendTitle": "색상 목록",
+    "legendTotal": "{{n}}색, {{m}}알",
+    "groupMajor": "주요색（≥5%）",
+    "groupMinor": "보조색（1–5%）",
+    "groupAccent": "포인트색",
+    "groupTrace": "미량 ⚠ 구매 주의",
+    "centerBeadMark": "★ = 중심 비즈",
+    "gridSize": "{{cols}} × {{rows}} 그리드",
+    "date": "날짜: {{date}}",
+    "palette": "팔레트: {{palette}}",
+    "totalBeads": "총 비즈 수: {{n}}",
+    "usedColors": "사용 색상 수: {{n}}",
+    "groupCount": "{{title}} · {{n}}종",
+    "generatedBy": "Bead Studio에서 내보냄"
   },
   "quantizer": {
     "title": "이미지를 비드로",
@@ -237,14 +253,14 @@
     "stepResult": "결과 미리보기",
     "dropActive": "놓아서 업로드",
     "presets": {
-      "29x29": "29 × 29 (표준)",
-      "57x57": "57 × 57 (크게)",
-      "114x114": "114 × 114 (매우 크게)",
-      "140x140": "140 × 140 (전문가)",
-      "57x29": "57 × 29 (가로형)",
-      "29x57": "29 × 57 (세로형)",
-      "aspect": "이미지 비율에 맞추기",
-      "custom": "사용자 정의 너비 × 높이"
+      "29x29": "29 × 29（표준）",
+      "57x57": "57 × 57（대형）",
+      "114x114": "114 × 114（초대형）",
+      "140x140": "140 × 140（프로）",
+      "57x29": "57 × 29（배너）",
+      "29x57": "29 × 57（세로）",
+      "aspect": "원본 비율（긴 변 지정）",
+      "custom": "사용자 지정 가로×세로"
     }
   },
   "tutorials": {
@@ -285,6 +301,10 @@
       "multi-brand-mix": "복수 브랜드 혼용",
       "cooling-shaping": "냉각 성형 과정",
       "display-storage": "전시와 보관"
+    },
+    "diagrams": {
+      "ironingMotion": "중심에서 바깥쪽으로 원을 그리며 다리미질",
+      "pressing": "책으로 누르고 30분 이상 냉각"
     }
   },
   "stats": {
@@ -451,5 +471,16 @@
     "oldPasswordRequired": "현재 비밀번호를 입력하세요",
     "wrongPassword": "현재 비밀번호가 올바르지 않습니다",
     "passwordUpdated": "비밀번호가 변경되었습니다"
+  },
+  "legal": {
+    "back": "뒤로",
+    "history": "버전 기록",
+    "published": "발행일",
+    "currentVersion": "현재 버전",
+    "historicalVersion": "이전 버전",
+    "latest": "최신판",
+    "viewing": "보는 중",
+    "currentSuffix": " · 현재 버전",
+    "historySuffix": " · 이전 버전"
   }
 }

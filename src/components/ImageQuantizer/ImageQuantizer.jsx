@@ -45,14 +45,14 @@ function drawBeadPreview(ctx, cx, cy, radius, hexColor) {
 }
 
 const GRID_PRESETS = [
-  { key: '29x29',   label: '29 × 29（标准）',          w: 29,  h: 29  },
-  { key: '57x57',   label: '57 × 57（大图）',          w: 57,  h: 57  },
-  { key: '114x114', label: '114 × 114（超大）',        w: 114, h: 114 },
-  { key: '140x140', label: '140 × 140（专业站）',      w: 140, h: 140 },
-  { key: '57x29',   label: '57 × 29（横幅）',          w: 57,  h: 29  },
-  { key: '29x57',   label: '29 × 57（竖幅）',          w: 29,  h: 57  },
-  { key: 'aspect',  label: '按原图比例（指定长边）',   w: null, h: null, aspect: true },
-  { key: 'custom',  label: '自定义宽×高',              w: null, h: null },
+  { key: '29x29',   w: 29,  h: 29  },
+  { key: '57x57',   w: 57,  h: 57  },
+  { key: '114x114', w: 114, h: 114 },
+  { key: '140x140', w: 140, h: 140 },
+  { key: '57x29',   w: 57,  h: 29  },
+  { key: '29x57',   w: 29,  h: 57  },
+  { key: 'aspect',  w: null, h: null, aspect: true },
+  { key: 'custom',  w: null, h: null },
 ]
 
 export default function ImageQuantizer({ onApply, onClose }) {

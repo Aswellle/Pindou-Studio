@@ -28,7 +28,7 @@ export function useSavedWorks() {
       localStorage.setItem(KEY, serialized)
     } catch (e) {
       if (e.name === 'QuotaExceededError') {
-        alert('存储空间已满，请删除部分作品后再保存。')
+        alert(i18n.t('errors.storageFull'))
         return false
       }
       throw e

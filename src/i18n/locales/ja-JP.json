@@ -56,7 +56,8 @@
     "emailInUse": "このメールアドレスは既に登録されています",
     "tooManyAttempts": "試行回数が多すぎます。しばらくしてから再試行してください。",
     "cloudNotConfigured": "クラウド未設定のためアカウント機能は利用できません",
-    "emailNotFound": "このメールアドレスは登録されていません"
+    "emailNotFound": "このメールアドレスは登録されていません",
+    "storageFull": "ストレージ容量がいっぱいです。一部の作品を削除してから保存してください。"
   },
   "palette": {
     "title": "カラーパレット",
@@ -175,7 +176,22 @@
     "styleLabel": "図案スタイル",
     "professionalHint": "見比べながらビーズを貼るのに最適、各マスに色番号を表示",
     "realisticHint": "プレビュー、共有、アルバム表紙に最適",
-    "exportFailed": "エクスポートに失敗しました。キャンバスの内容を確認して再試行してください。"
+    "exportFailed": "エクスポートに失敗しました。キャンバスの内容を確認して再試行してください。",
+    "defaultName": "無題のデザイン",
+    "legendTitle": "カラーリスト",
+    "legendTotal": "{{n}} 色、{{m}} 粒",
+    "groupMajor": "メイン（5%以上）",
+    "groupMinor": "サブ（1–5%）",
+    "groupAccent": "アクセント",
+    "groupTrace": "微量 ⚠ 購入注意",
+    "centerBeadMark": "★ = 中央ビーズ",
+    "gridSize": "{{cols}} × {{rows}} グリッド",
+    "date": "日付：{{date}}",
+    "palette": "パレット：{{palette}}",
+    "totalBeads": "総ビーズ数：{{n}}",
+    "usedColors": "使用色数：{{n}}",
+    "groupCount": "{{title}} · {{n}}種",
+    "generatedBy": "Bead Studio からエクスポート"
   },
   "quantizer": {
     "title": "画像をビードに",
@@ -241,10 +257,10 @@
       "57x57": "57 × 57（大）",
       "114x114": "114 × 114（特大）",
       "140x140": "140 × 140（プロ）",
-      "57x29": "57 × 29（横向き）",
-      "29x57": "29 × 57（縦向き）",
-      "aspect": "画像のアスペクト比に合わせる",
-      "custom": "カスタム幅×高さ"
+      "57x29": "57 × 29（バナー）",
+      "29x57": "29 × 57（縦長）",
+      "aspect": "元の比率（長辺指定）",
+      "custom": "カスタム 幅×高さ"
     }
   },
   "tutorials": {
@@ -285,6 +301,10 @@
       "multi-brand-mix": "複数ブランド混用",
       "cooling-shaping": "冷却成形手順",
       "display-storage": "展示と保存"
+    },
+    "diagrams": {
+      "ironingMotion": "中心から外へ円を描くようにアイロン",
+      "pressing": "本で押さえ、30分以上冷却"
     }
   },
   "stats": {
@@ -451,5 +471,16 @@
     "oldPasswordRequired": "現在のパスワードを入力してください",
     "wrongPassword": "現在のパスワードが正しくありません",
     "passwordUpdated": "パスワードを更新しました"
+  },
+  "legal": {
+    "back": "戻る",
+    "history": "バージョン履歴",
+    "published": "公開日",
+    "currentVersion": "現在の版",
+    "historicalVersion": "過去の版",
+    "latest": "最新版",
+    "viewing": "閲覧中",
+    "currentSuffix": " · 現在の版",
+    "historySuffix": " · 過去の版"
   }
 }

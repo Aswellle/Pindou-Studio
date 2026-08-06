@@ -8,6 +8,8 @@
  * 5. 图例说明
  */
 
+import i18n from '../i18n'
+
 // PNG 导出超采样倍率：画布按 EXPORT_SCALE 倍物理像素渲染，
 // 所有绘制代码仍用逻辑坐标（ctx.scale 统一放大），放大查看/打印时网格色块和文字才不糊。
 const EXPORT_SCALE = 3
@@ -180,7 +182,7 @@ function groupColorStats(colorStats, totalBeads) {
  */
 export async function generateBeadPatternSheet({
   canvasData, gridSize, gridWidth, gridHeight, paletteId,
-  designName = '未命名', palette, onProgress = null,
+  designName, palette, onProgress = null,
   beadStyle = 'realistic',
   showCodes = null
 }) {
@@ -227,25 +229,25 @@ export async function generateBeadPatternSheet({
   ctx.font = 'bold 24px "Fira Code", "Microsoft YaHei", sans-serif'
   ctx.textAlign = 'center'
   ctx.textBaseline = 'middle'
-  ctx.fillText(designName, sheetWidth / 2, HEADER_HEIGHT / 2 - 12)
+  ctx.fillText(designName || i18n.t('export.defaultName'), sheetWidth / 2, HEADER_HEIGHT / 2 - 12)
 
   // 副标题信息
   ctx.font = '14px "Fira Code", "Microsoft YaHei", sans-serif'
   ctx.fillStyle = '#aaaaaa'
-  ctx.fillText(`${cols} × ${rows} 格子`, sheetWidth / 2, HEADER_HEIGHT / 2 + 18)
+  ctx.fillText(i18n.t('export.gridSize', { cols, rows }), sheetWidth / 2, HEADER_HEIGHT / 2 + 18)
 
   // 左侧信息
   ctx.textAlign = 'left'
   ctx.font = '12px "Fira Code", "Microsoft YaHei", sans-serif'
   ctx.fillStyle = '#888888'
   const today = new Date().toLocaleDateString('zh-CN')
-  ctx.fillText(`日期：${today}`, PADDING, HEADER_HEIGHT / 2)
-  ctx.fillText(`色卡：${palette?.nameZh || paletteId}`, PADDING, HEADER_HEIGHT / 2 + 18)
+  ctx.fillText(i18n.t('export.date', { date: today }), PADDING, HEADER_HEIGHT / 2)
+  ctx.fillText(i18n.t('export.palette', { palette: palette?.nameZh || paletteId }), PADDING, HEADER_HEIGHT / 2 + 18)
 
   // 右侧信息
   ctx.textAlign = 'right'
-  ctx.fillText(`总珠子数：${canvasData.flat().filter(c => c).length}`, sheetWidth - PADDING, HEADER_HEIGHT / 2)
-  ctx.fillText(`使用颜色：${[...new Set(canvasData.flat().filter(c => c))].length}`, sheetWidth - PADDING, HEADER_HEIGHT / 2 + 18)
+  ctx.fillText(i18n.t('export.totalBeads', { n: canvasData.flat().filter(c => c).length }), sheetWidth - PADDING, HEADER_HEIGHT / 2)
+  ctx.fillText(i18n.t('export.usedColors', { n: [...new Set(canvasData.flat().filter(c => c))].length }), sheetWidth - PADDING, HEADER_HEIGHT / 2 + 18)
 
   // ========== 2. 计算颜色统计 ==========
   const colorStats = calculateColorStats(canvasData, rows, palette)
@@ -266,19 +268,19 @@ export async function generateBeadPatternSheet({
   ctx.font = 'bold 14px "Fira Code", "Microsoft YaHei", sans-serif'
   ctx.textAlign = 'left'
   ctx.textBaseline = 'middle'
-  ctx.fillText('颜色清单', colorPanelX + 12, colorPanelY + 18)
+  ctx.fillText(i18n.t('export.legendTitle'), colorPanelX + 12, colorPanelY + 18)
 
   // 总计摘要
   ctx.font = '11px "Fira Code", "Microsoft YaHei", sans-serif'
   ctx.fillStyle = '#666'
-  ctx.fillText(`共 ${colorStats.length} 色，${totalBeads} 粒`, colorPanelX + 12, colorPanelY + 36)
+  ctx.fillText(i18n.t('export.legendTotal', { n: colorStats.length, m: totalBeads }), colorPanelX + 12, colorPanelY + 36)
 
   // 分组绘制
   const groupConfig = [
-    { key: 'major',  title: '主色（≥5%）',       titleColor: '#2c5aa0', warn: false },
-    { key: 'minor',  title: '辅色（1–5%）',       titleColor: '#5a8a3a', warn: false },
-    { key: 'accent', title: '点缀色',             titleColor: '#8a6a3a', warn: false },
-    { key: 'trace',  title: '微量色 ⚠ 采购注意', titleColor: '#c33',   warn: true  },
+    { key: 'major',  title: i18n.t('export.groupMajor'),       titleColor: '#2c5aa0', warn: false },
+    { key: 'minor',  title: i18n.t('export.groupMinor'),       titleColor: '#5a8a3a', warn: false },
+    { key: 'accent', title: i18n.t('export.groupAccent'),             titleColor: '#8a6a3a', warn: false },
+    { key: 'trace',  title: i18n.t('export.groupTrace'), titleColor: '#c33',   warn: true  },
   ]
 
   let colorY = colorPanelY + 55
@@ -294,7 +296,7 @@ export async function generateBeadPatternSheet({
     ctx.font = 'bold 11px "Fira Code", "Microsoft YaHei", sans-serif'
     ctx.fillStyle = cfg.titleColor
     ctx.textAlign = 'left'
-    ctx.fillText(`${cfg.title} · ${items.length}种`, colorPanelX + 10, colorY)
+    ctx.fillText(i18n.t('export.groupCount', { title: cfg.title, n: items.length }), colorPanelX + 10, colorY)
     colorY += 16
 
     // 组内分隔线
@@ -483,7 +485,7 @@ export async function generateBeadPatternSheet({
   ctx.textBaseline = 'middle'
 
   // 中心珠标记说明
-  ctx.fillText('★ = 中心珠', PADDING, HEADER_HEIGHT + LEGEND_HEIGHT / 2)
+  ctx.fillText(i18n.t('export.centerBeadMark'), PADDING, HEADER_HEIGHT + LEGEND_HEIGHT / 2)
 
   // 绘制一个示例中心珠
   const legendX = 120
@@ -500,7 +502,7 @@ export async function generateBeadPatternSheet({
   // 色卡信息
   ctx.textAlign = 'right'
   ctx.fillStyle = '#888888'
-  ctx.fillText(`导出自 拼豆Studio`, sheetWidth - PADDING, legendY)
+  ctx.fillText(i18n.t('export.generatedBy'), sheetWidth - PADDING, legendY)
 
   // ========== 6. 绘制边框 ==========
   ctx.strokeStyle = '#cccccc'
@@ -632,10 +634,10 @@ export function exportAsSVG(canvasData, gridSize, paletteId, designName, palette
   svg += `  <text x="${panelX + 12}" y="${panelY + 36}" fill="#666" font-size="11">共 ${colorStats.length} 色，${svgTotalBeads} 粒</text>\n`
 
   const svgGroupConfig = [
-    { key: 'major',  title: '主色（≥5%）',       color: '#2c5aa0', warn: false },
-    { key: 'minor',  title: '辅色（1–5%）',       color: '#5a8a3a', warn: false },
-    { key: 'accent', title: '点缀色',             color: '#8a6a3a', warn: false },
-    { key: 'trace',  title: '微量色 ⚠ 采购注意', color: '#cc3333', warn: true  },
+    { key: 'major',  title: i18n.t('export.groupMajor'),       color: '#2c5aa0', warn: false },
+    { key: 'minor',  title: i18n.t('export.groupMinor'),       color: '#5a8a3a', warn: false },
+    { key: 'accent', title: i18n.t('export.groupAccent'),             color: '#8a6a3a', warn: false },
+    { key: 'trace',  title: i18n.t('export.groupTrace'), color: '#cc3333', warn: true  },
   ]
 
   let colorY = panelY + 55

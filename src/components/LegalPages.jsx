@@ -1,4 +1,5 @@
 import { Link, useParams } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 
 /* ═════════════════════════════════════════════════════════════
    法律文档版本化渲染
@@ -9,6 +10,7 @@ import { Link, useParams } from 'react-router-dom';
    ═════════════════════════════════════════════════════════════ */
 
 function LegalDocument({ versions, type, onBack }) {
+  const { t } = useTranslation();
   const { versionId } = useParams();
   const current = versions.find(v => v.id === versionId) || versions[0];
 
@@ -18,18 +20,18 @@ function LegalDocument({ versions, type, onBack }) {
         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
           <polyline points="15 18 9 12 15 6"/>
         </svg>
-        <span>返回</span>
+        <span>{t('legal.back')}</span>
       </button>
       <div className="legal-container">
         <h1>{current.title}</h1>
         <p className="legal-updated">
-          发布于 {current.date}
-          {current.id === versions[0].id ? ' · 当前生效版本' : ' · 历史版本'}
+          {t('legal.published')} {current.date}
+          {current.id === versions[0].id ? t('legal.currentSuffix') : t('legal.historySuffix')}
         </p>
 
         {/* 版本历史导航 */}
         <div className="legal-versions">
-          <h3>版本历史</h3>
+          <h3>{t('legal.history')}</h3>
           <div className="legal-versions-list">
             {versions.map(v => (
               <Link
@@ -38,12 +40,12 @@ function LegalDocument({ versions, type, onBack }) {
                 className={`legal-version-link${v.id === current.id ? ' current' : ''}`}
               >
                 <span className="legal-version-badge">v{v.version}</span>
-                <span className="legal-version-date">发布于 {v.date}</span>
+                <span className="legal-version-date">{t('legal.published')} {v.date}</span>
                 {v.id === versions[0].id && v.id !== current.id && (
-                  <span className="legal-version-tag">最新版</span>
+                  <span className="legal-version-tag">{t('legal.latest')}</span>
                 )}
                 {v.id === current.id && (
-                  <span className="legal-version-tag current">正在查看</span>
+                  <span className="legal-version-tag current">{t('legal.viewing')}</span>
                 )}
               </Link>
             ))}
