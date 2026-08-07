@@ -25,6 +25,14 @@ const SOURCES = [
 // 删除 woff 回退:`, url(./files/xxx.woff) format('woff')`
 const woffRe = /,\s*url\(\.\/files\/[^)]+\.woff\)\s*format\('woff'\)/g
 
+// 字体 url 重写:./files/X.woff2 → ../../node_modules/<pkg>/files/X.woff2
+// (可解析的真实路径,Vite 构建时才能把字体文件打包为带 hash 的 asset)
+function rewriteUrl(css, pkg) {
+  return css.replace(/\.\/files\/([^)]+\.woff2)/g, (m, file) => {
+    return '../../node_modules/' + pkg + '/files/' + file
+  })
+}
+
 fs.mkdirSync(outDir, { recursive: true })
 
 let totalBefore = 0
@@ -36,7 +44,7 @@ const parts = []
 for (const src of SOURCES) {
   const cssPath = path.join(root, 'node_modules', src.pkg, src.file)
   const css = fs.readFileSync(cssPath, 'utf-8')
-  const slim = css.replace(woffRe, '')
+  const slim = rewriteUrl(css.replace(woffRe, ''), src.pkg)
   parts.push(`/* ${src.out} */\n` + slim)
   totalBefore += css.length
   totalAfter += slim.length

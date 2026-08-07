@@ -17,27 +17,12 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const dist = path.join(__dirname, '..', 'dist')
 const SITE = 'https://tangnotes.site'
 
-// ── 1. 注入字体 preload 到 index.html ─────────────────────
-const assetsDir = path.join(dist, 'assets')
-// 字体 CSS 独立 chunk(入口名 fonts- 前缀),排除主样式表
-const fontsCss = fs.readdirSync(assetsDir).find(f => f.startsWith('fonts-') && f.endsWith('.css'))
+// 字体加载由 JS 动态 import 完成(main.jsx),字体文件随 CSS 打包。
+// 此处仅负责子路由预渲染 SEO HTML。
 
-let indexHtml = fs.readFileSync(path.join(dist, 'index.html'), 'utf-8')
+const indexHtml = fs.readFileSync(path.join(dist, 'index.html'), 'utf-8')
 
-if (fontsCss && !indexHtml.includes('fonts-all-')) {
-  const href = `/assets/${fontsCss}`
-  const fontLink =
-    '  <link rel="preload" href="' + href + '" as="style" media="(min-width: 1025px)"' +
-    ' onload="this.onload=null;this.rel=&#39;stylesheet&#39;">\n' +
-    '  <noscript><link rel="stylesheet" href="' + href + '" media="(min-width: 1025px)"></noscript>'
-  indexHtml = indexHtml.replace('</head>', fontLink + '\n  </head>')
-  fs.writeFileSync(path.join(dist, 'index.html'), indexHtml)
-  console.log('字体预加载注入:', fontsCss)
-} else {
-  console.log(fontsCss ? '字体预加载已注入,跳过' : '未找到 fonts-all CSS')
-}
-
-// ── 2. 子路由预渲染 SEO HTML ──────────────────────────────
+// ── 子路由预渲染 SEO HTML ─────────────────────────────────
 const PAGES = [
   { file: 'gallery.html', path: '/gallery', title: '拼豆图库与模板 - 拼豆Studio', desc: '浏览并收藏拼豆图案模板，按分类与难度筛选，一键载入画布开始创作。支持收藏与作品管理，适合拼豆爱好者和手工达人。' },
   { file: 'tutorials.html', path: '/tutorials', title: '拼豆教程 - 从入门到进阶 · 拼豆Studio', desc: '系统学习拼豆制作：入门指南、熨烫全解、防变形技巧、配色设计、进阶技巧与作品保护，配有图示与温度对照表，新手友好。' },

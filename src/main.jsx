@@ -8,9 +8,12 @@ import { SpeedInsights } from '@vercel/speed-insights/react'
 // - Noto Sans SC(思源黑体):桌面端正文,替代 Windows 微软雅黑的粗糙渲染
 // - LXGW WenKai(霞鹜文楷):桌面端标题/品牌/强调,手作艺术感
 // 仅桌面端(≥1025px)应用(index.css 中的媒体查询),移动端保持系统字体栈
-// 网络字体(桌面端专用):字体 CSS 由构建脚本注入 index.html 的
-// <link rel="preload" media="(min-width:1025px)"> 静态声明 ——
-// 浏览器原生处理,桌面端异步加载应用、移动端零下载
+// 网络字体(桌面端专用,index.css 中 ≥1025px 媒体查询才应用):
+// JS 动态加载字体 CSS(url 已重写为可解析路径,Vite 打包字体文件)——
+// 桌面端异步加载应用,移动端不执行不下载;加载失败不影响功能
+if (window.matchMedia('(min-width: 1025px)').matches) {
+  import('./styles/fonts-all.css').catch(e => console.warn('字体加载失败:', e))
+}
 import App from './App'
 import './index.css'
 
