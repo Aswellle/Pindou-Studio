@@ -15,6 +15,22 @@ const SITE = 'https://tangnotes.site'
 
 const indexHtml = fs.readFileSync(path.join(dist, 'index.html'), 'utf-8')
 
+// 预检:index.html 必须包含全部待替换标签,否则预渲染页面会静默缺失 SEO meta(构建失败优于收录退化)
+const REQUIRED_TAGS = [
+  [/<title>.*?<\/title>/s, '<title>'],
+  [/<meta name="description"[^>]*>/, 'meta description'],
+  [/<meta name="robots"[^>]*>/, 'meta robots'],
+  [/<link rel="canonical"[^>]*>/, 'link canonical'],
+  [/<meta property="og:url"[^>]*>/, 'meta og:url'],
+  [/<meta property="og:title"[^>]*>/, 'meta og:title'],
+  [/<meta property="og:description"[^>]*>/, 'meta og:description'],
+]
+for (const [re, label] of REQUIRED_TAGS) {
+  if (!re.test(indexHtml)) {
+    throw new Error(`预渲染中止:index.html 缺少 ${label} 标签,替换无法生效`)
+  }
+}
+
 // ── 子路由预渲染 SEO HTML ─────────────────────────────────
 const PAGES = [
   { file: 'gallery.html', path: '/gallery', title: '拼豆图库与模板 - 拼豆Studio', desc: '浏览并收藏拼豆图案模板，按分类与难度筛选，一键载入画布开始创作。支持收藏与作品管理，适合拼豆爱好者和手工达人。' },

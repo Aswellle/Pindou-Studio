@@ -14,7 +14,7 @@ jobs:
 
       - uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version-file: .nvmrc
           cache: npm
 
       - name: Install dependencies
@@ -28,3 +28,6 @@ jobs:
 
       - name: Build
         run: npm run build
+
+      - name: Verify generated fonts CSS in sync
+        run: git diff --exit-code -- src/styles/fonts-all.css || (echo "::error::src/styles/fonts-all.css 与生成器输出不一致,请重新运行 node scripts/generate-fonts-css.js 并提交"; exit 1)

@@ -26,7 +26,7 @@ export const ARTKAL_PALETTE = {
     { id: 'C10', name: 'Cinnamon',       nameZh: '肉桂色',   hex: '#985432', rgb: { r: 152, g: 84,  b: 50  }, category: 'brown'   },
     { id: 'C11', name: 'Rust',           nameZh: '锈红色',   hex: '#A23A22', rgb: { r: 162, g: 58,  b: 34  }, category: 'brown'   },
     { id: 'C12', name: 'Caramel',        nameZh: '焦糖色',   hex: '#A46432', rgb: { r: 164, g: 100, b: 50  }, category: 'brown'   },
-    { id: 'C13', name: 'Tan',            nameZh: '棕褐色',   hex: '#C29870', rgb: { r: 194, g: 154, b: 112 }, category: 'brown'   },
+    { id: 'C13', name: 'Tan',            nameZh: '棕褐色',   hex: '#C29870', rgb: { r: 194, g: 152, b: 112 }, category: 'brown'   },
     { id: 'C14', name: 'Sand',           nameZh: '沙色',     hex: '#DCC098', rgb: { r: 220, g: 192, b: 152 }, category: 'brown'   },
     { id: 'C15', name: 'Peach',          nameZh: '桃色',     hex: '#F2B088', rgb: { r: 242, g: 176, b: 136 }, category: 'skin'    },
     { id: 'C16', name: 'Flesh',          nameZh: '肤色',     hex: '#E4A272', rgb: { r: 228, g: 162, b: 114 }, category: 'skin'    },
