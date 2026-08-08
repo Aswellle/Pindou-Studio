@@ -67,6 +67,9 @@ export function useAuth() {
         refreshProfile(data.session.user.id)
       }
       setLoading(false)
+    }).catch(() => {
+      // token 刷新等网络失败时也不能卡死在 loading(否则整站白屏)
+      if (mounted) setLoading(false)
     })
 
     const { data: sub } = supabase.auth.onAuthStateChange((event, session) => {

@@ -869,7 +869,8 @@ function TemplateManager({ store }) {
             <button
               className="admin-btn danger"
               onClick={async () => {
-                await store.deleteTemplate(deleting.id)
+                const res = await store.deleteTemplate(deleting.id)
+                if (!res?.ok) { alert(res?.errors?.[0]?.detail || t('admin.deleteFailed')); return }
                 setDeleting(null)
               }}
             >
@@ -1236,7 +1237,8 @@ function CategoryManager({ store }) {
             <button
               className="admin-btn danger"
               onClick={async () => {
-                await store.deleteCategory(deleting.id)
+                const res = await store.deleteCategory(deleting.id)
+                if (!res?.ok) { alert(res?.errors?.[0]?.detail || t('admin.deleteFailed')); return }
                 setDeleting(null)
               }}
             >

@@ -96,9 +96,11 @@ export default function useCloudTemplates() {
   }, [])
 
   const deleteTemplate = useCallback(async (id) => {
-    if (!supabase) return
+    if (!supabase) return { ok: false, errors: [{ code: 'cloudNotConfigured' }] }
     const { error: err } = await supabase.from('templates').delete().eq('id', id)
-    if (!err) setTemplates(prev => prev.filter(t => t.id !== id))
+    if (err) return { ok: false, errors: [{ code: 'dbError', detail: err.message }] }
+    setTemplates(prev => prev.filter(t => t.id !== id))
+    return { ok: true }
   }, [])
 
   // ── 分类 CRUD ────────────────────────────────────────────
@@ -135,9 +137,11 @@ export default function useCloudTemplates() {
   }, [])
 
   const deleteCategory = useCallback(async (id) => {
-    if (!supabase) return
+    if (!supabase) return { ok: false, errors: [{ code: 'cloudNotConfigured' }] }
     const { error: err } = await supabase.from('categories').delete().eq('id', id)
-    if (!err) setCategories(prev => prev.filter(c => c.id !== id))
+    if (err) return { ok: false, errors: [{ code: 'dbError', detail: err.message }] }
+    setCategories(prev => prev.filter(c => c.id !== id))
+    return { ok: true }
   }, [])
 
   // ── 本地数据一次性迁移到云端(管理员操作) ───────────────────

@@ -377,6 +377,7 @@
     "cancel": "Cancel",
     "delete": "Delete",
     "deleteConfirm": "Delete this template?",
+    "deleteFailed": "Delete failed. Please try again later.",
     "colors": "Detected colors",
     "colorsHint": "auto-detected from the pattern",
     "importJson": "Template JSON",

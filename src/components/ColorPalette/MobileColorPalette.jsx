@@ -15,7 +15,11 @@ export default function MobileColorPalette({
   const [showPalette, setShowPalette] = useState(false)
 
   const palette = PALETTE_LIST.find(p => p.id === currentPalette) || PALETTE_LIST[0]
-  const recentColors = JSON.parse(localStorage.getItem('bead_studio_recent_colors') || '[]')
+  // 惰性初始化一次(此前每次渲染都 JSON.parse,脏数据还会导致整页崩溃)
+  const [recentColors, setRecentColors] = useState(() => {
+    try { return JSON.parse(localStorage.getItem('bead_studio_recent_colors') || '[]') }
+    catch { return [] }
+  })
 
   // 当前选中颜色在色卡里的具体名称（如"玉米黄"），找不到就只显示 HEX
   const selectedColorInfo = useMemo(
@@ -45,8 +49,11 @@ export default function MobileColorPalette({
     onColorSelect(color)
 
     // 保存最近使用的颜色
-    const recent = [color, ...recentColors.filter(c => c !== color)].slice(0, 8)
-    localStorage.setItem('bead_studio_recent_colors', JSON.stringify(recent))
+    setRecentColors(prev => {
+      const recent = [color, ...prev.filter(c => c !== color)].slice(0, 8)
+      localStorage.setItem('bead_studio_recent_colors', JSON.stringify(recent))
+      return recent
+    })
   }
 
   return (

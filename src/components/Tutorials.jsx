@@ -136,7 +136,8 @@ export default function Tutorials() {
   const [selectedTutorial, setSelectedTutorial] = useState(() => getTutorials(i18n.language)[0].children[0])
   const [readProgress, setReadProgress] = useState(() => {
     const saved = localStorage.getItem('tutorial-progress')
-    return saved ? JSON.parse(saved) : []
+    if (!saved) return []
+    try { return JSON.parse(saved) } catch { return [] } // 脏数据不白屏
   })
 
   // 初始化选中第一个教程

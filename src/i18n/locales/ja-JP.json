@@ -377,6 +377,7 @@
     "cancel": "キャンセル",
     "delete": "削除",
     "deleteConfirm": "このテンプレートを削除しますか?",
+    "deleteFailed": "削除に失敗しました。しばらくしてから再試行してください。",
     "colors": "検出された色",
     "colorsHint": "パターンから自動認識",
     "importJson": "テンプレート JSON",

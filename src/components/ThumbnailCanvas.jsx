@@ -17,6 +17,7 @@ export default function ThumbnailCanvas({ pattern, size }) {
     ctx.fillStyle = '#ffffff'
     ctx.fillRect(0, 0, size * CELL_SIZE, size * CELL_SIZE)
 
+    if (!Array.isArray(pattern) || !Array.isArray(pattern[0])) return // 损坏模板数据兜底,不拖垮页面
     const rows = pattern.length
     const cols = pattern[0]?.length || 0
     const offsetX = Math.floor((size - cols) / 2)

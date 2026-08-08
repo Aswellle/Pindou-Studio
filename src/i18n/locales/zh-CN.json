@@ -377,6 +377,7 @@
     "cancel": "取消",
     "delete": "删除",
     "deleteConfirm": "确定删除该模板?",
+    "deleteFailed": "删除失败，请稍后重试。",
     "colors": "识别到的颜色",
     "colorsHint": "由系统从图案自动识别",
     "importJson": "模板 JSON",

@@ -40,7 +40,8 @@ export default function Gallery({ onLoadTemplate, onSaveWork, onLoadWork, savedW
   const [selectedDifficulty, setSelectedDifficulty] = useState('all')
   const [favorites, setFavorites] = useState(() => {
     const saved = localStorage.getItem('gallery-favorites')
-    return saved ? JSON.parse(saved) : []
+    if (!saved) return []
+    try { return JSON.parse(saved) } catch { return [] } // 脏数据不白屏
   })
   const [showFavorites, setShowFavorites] = useState(false)
   const [showMyWorks, setShowMyWorks] = useState(false)
