@@ -687,6 +687,8 @@ self.onmessage = (event) => {
       const outW = gridWidth || gridSize;
       const outH = gridHeight || gridSize;
       const highQuality = inputHighQuality !== false; // 默认 true
+      // 钳制颜色数下界:maxColors≤0 会产生空调色板 → 全部格子 NaN 索引,主线程崩溃
+      const safeMaxColors = Math.max(1, Math.min(maxColors || 1, paletteColors.length));
 
       self.postMessage({ type: 'PROGRESS', progress: 5 });
 
@@ -742,9 +744,9 @@ self.onmessage = (event) => {
       // K-means++ 调色板选择
       let subset;
       if (hasHiRes) {
-        subset = kmeansSelectPalette({ data: hiResData, width: hiResW, height: hiResH }, maxColors, palette, paletteLabs, bgMask, highQuality);
+        subset = kmeansSelectPalette({ data: hiResData, width: hiResW, height: hiResH }, safeMaxColors, palette, paletteLabs, bgMask, highQuality);
       } else {
-        subset = kmeansSelectPalette({ data: hiResData, width: hiResW, height: hiResH }, maxColors, palette, paletteLabs, null, highQuality);
+        subset = kmeansSelectPalette({ data: hiResData, width: hiResW, height: hiResH }, safeMaxColors, palette, paletteLabs, null, highQuality);
       }
       const activePalette = subset.palette;
       const activeLabs = subset.labs;

@@ -7,6 +7,8 @@ export function useImageQuantizer() {
   const [result, setResult] = useState(null)
   const [error, setError] = useState(null)
   const workerRef = useRef(null)
+  const genRef = useRef(0)              // 量化代次:过期 worker 的消息一律丢弃
+  const pendingRejectRef = useRef(null) // 当前挂起 Promise 的 reject,cancel 时解开
 
   const quantize = useCallback(async (imageFile, options) => {
     const {
@@ -57,10 +59,15 @@ export function useImageQuantizer() {
       const imageData = ctx.getImageData(0, 0, scaledWidth, scaledHeight)
 
       // Phase 2: 使用 Transferable ArrayBuffer 传输（零拷贝）
-      const pixelBuffer = imageData.data.buffer.slice(0)
+      // getImageData 返回全新缓冲,直接 transfer 即可(无需 slice 复制)
+      const pixelBuffer = imageData.data.buffer
 
       const palette = getPalette(paletteId)
       const paletteColors = palette.colors
+
+      // 终止上一个 worker:连续快速量化时旧 COMPLETE 会晚到覆盖新结果,旧 worker 连同转移缓冲一起泄漏
+      if (workerRef.current) workerRef.current.terminate()
+      const gen = ++genRef.current
 
       workerRef.current = new Worker(
         new URL('../workers/imageQuantizer.worker.js', import.meta.url),
@@ -68,8 +75,10 @@ export function useImageQuantizer() {
       )
 
       return new Promise((resolve, reject) => {
+        pendingRejectRef.current = reject
         workerRef.current.onmessage = (e) => {
           const { type, progress: prog, payload, error: err } = e.data
+          if (gen !== genRef.current) return // 过期代次的消息直接丢弃
 
           if (type === 'PROGRESS') {
             setProgress(prog)
@@ -93,19 +102,26 @@ export function useImageQuantizer() {
             setResult(compatPayload)
             setIsProcessing(false)
             workerRef.current.terminate()
+            workerRef.current = null
+            pendingRejectRef.current = null
             resolve(compatPayload)
           } else if (type === 'ERROR') {
             setError(err)
             setIsProcessing(false)
             workerRef.current.terminate()
+            workerRef.current = null
+            pendingRejectRef.current = null
             reject(new Error(err))
           }
         }
 
         workerRef.current.onerror = (err) => {
+          if (gen !== genRef.current) return
           setError(err.message)
           setIsProcessing(false)
           workerRef.current.terminate()
+          workerRef.current = null
+          pendingRejectRef.current = null
           reject(err)
         }
 
@@ -142,10 +158,14 @@ export function useImageQuantizer() {
   }, [])
 
   const cancel = useCallback(() => {
+    genRef.current++ // 使当前代次消息全部过期
     if (workerRef.current) {
       workerRef.current.terminate()
       workerRef.current = null
     }
+    // 解开悬挂的 quantize Promise(此前 cancel 后 await 永久悬挂)
+    pendingRejectRef.current?.(new Error('CANCELLED'))
+    pendingRejectRef.current = null
     setIsProcessing(false)
     setProgress(0)
   }, [])
@@ -169,9 +189,10 @@ export function useImageQuantizer() {
 
 function loadImage(file) {
   return new Promise((resolve, reject) => {
+    const url = URL.createObjectURL(file)
     const img = new Image()
-    img.onload = () => resolve(img)
-    img.onerror = reject
-    img.src = URL.createObjectURL(file)
+    img.onload = () => { URL.revokeObjectURL(url); resolve(img) } // 解码完成后释放,不泄漏 URL 注册项
+    img.onerror = () => { URL.revokeObjectURL(url); reject(new Error('图片加载失败')) } // 包装错误,避免 err.message undefined
+    img.src = url
   })
 }

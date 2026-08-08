@@ -272,6 +272,7 @@ export default function ImageQuantizer({ onApply, onClose }) {
       setResultGridSize(Math.max(gridWidth, gridHeight))
       setHasUnsavedChanges(false)
     } catch (err) {
+      if (err?.message === 'CANCELLED') return // 用户主动取消,非错误
       console.error('Quantization failed:', err)
     }
   }, [previewUrl, gridWidth, gridHeight, maxColors, selectedPalette, dithering, brightness, contrast, removeBackground, qualityMode, quantize])
