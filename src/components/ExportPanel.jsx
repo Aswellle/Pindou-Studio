@@ -1,7 +1,7 @@
 import { useState, useMemo, useRef, useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
 import { getPalette } from '../data/palettes'
-import { exportAsPNG, exportAsSVG } from '../services/BeadPatternExporter'
+import { exportAsPNG, exportAsSVG, createScaledCanvas } from '../services/BeadPatternExporter'
 import { resolveToHex } from '../services/colorUtils'
 
 export default function ExportPanel({ canvasData, gridSize, gridWidth, gridHeight, designName, paletteId = 'perler', onClose }) {
@@ -58,18 +58,13 @@ export default function ExportPanel({ canvasData, gridSize, gridWidth, gridHeigh
     try {
       const CELL_SIZE = 20
       const BEAD_RADIUS = CELL_SIZE / 2 - 1
-      // 超采样倍率，与 BeadPatternExporter 的专业/展示导出保持一致的清晰度
-      const QUICK_EXPORT_SCALE = 3
 
       const canvasWidth = actualWidth * CELL_SIZE
       const canvasHeight = actualHeight * CELL_SIZE
-      // 超大网格动态降采样(同 BeadPatternExporter):固定 ×3 时 200×200 网格 12000² ≈ 576MB
-      const pixelArea = canvasWidth * canvasHeight
-      const scale = pixelArea > 6_000_000 ? 1 : pixelArea > 2_000_000 ? 2 : QUICK_EXPORT_SCALE
-      const canvas = document.createElement('canvas')
+      // 与 BeadPatternExporter 同套超采样逻辑:面积预算 + 分配失败自动降级(质量×性能平衡)
+      let canvas, scale
       try {
-        canvas.width = canvasWidth * scale
-        canvas.height = canvasHeight * scale
+        ;({ canvas, scale } = createScaledCanvas(canvasWidth, canvasHeight))
       } catch (e) {
         setExportError(t('export.canvasTooLarge'))
         return
@@ -106,10 +101,17 @@ export default function ExportPanel({ canvasData, gridSize, gridWidth, gridHeigh
         }
       }
 
+      // toBlob 替代 toDataURL:高 scale 大画布时避免 base64 内存峰值翻倍
+      const blob = await new Promise((resolve) => {
+        canvas.toBlob((b) => resolve(b), 'image/png')
+      })
+      if (!blob) throw new Error('PNG encoding failed')
+      const url = URL.createObjectURL(blob)
       const link = document.createElement('a')
       link.download = `bead-pattern-${actualWidth}x${actualHeight}.png`
-      link.href = canvas.toDataURL('image/png')
+      link.href = url
       link.click()
+      setTimeout(() => URL.revokeObjectURL(url), 1000)
     } finally {
       exportAbortRef.current = null
       setIsExporting(false)

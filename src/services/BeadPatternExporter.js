@@ -15,6 +15,49 @@ import { findClosestColorCIEDE2000 } from '../utils/colorDiff'
 // 所有绘制代码仍用逻辑坐标（ctx.scale 统一放大），放大查看/打印时网格色块和文字才不糊。
 const EXPORT_SCALE = 3
 
+/**
+ * 创建按面积预算超采样的 canvas(质量×性能平衡,分配失败自动降级)。
+ *
+ * 质量目标:专业模式每格 ≥56 物理像素(scale 2)、拟真模式每格 ≥84(scale 3),
+ *   放大到 200% 仍清晰锐利。此前 57 网格以上固定 scale=1(每格仅 28px,放大必糊)。
+ * 性能约束:物理像素面积预算 —— 桌面 ~1.8 亿(≈720MB RGBA,浏览器 canvas 上限的 2/3),
+ *   移动/平板 ~6000 万(≈240MB,避免 OOM)。scale = min(4, floor(√(预算/面积)))。
+ * 降级:canvas 分配失败(超设备上限)逐级 4→2→1,保证必能导出。
+ *
+ * @returns {{ canvas: HTMLCanvasElement, scale: number }} 分配成功时返回
+ * @throws 所有 scale 都失败时抛错
+ */
+export function createScaledCanvas(logicalW, logicalH) {
+  const isConstrained = typeof window !== 'undefined' && window.innerWidth < 1025
+  const MAX_PHYSICAL_PIXELS = isConstrained ? 60_000_000 : 180_000_000
+  const pixelArea = logicalW * logicalH
+  const budgetScale = Math.floor(Math.sqrt(MAX_PHYSICAL_PIXELS / pixelArea))
+  let scale = Math.max(1, Math.min(4, budgetScale))
+
+  const tryCreate = (w, h) => {
+    try {
+      const c = document.createElement('canvas')
+      c.width = w
+      c.height = h
+      // width/height setter 在超设备上限时会静默截断,回读校验分配是否真实成功
+      if (c.width !== w || c.height !== h) return null
+      const g = c.getContext('2d')
+      if (!g) return null
+      g.fillRect(0, 0, 1, 1) // 试探 backing store 真实可用
+      return c
+    } catch { return null }
+  }
+
+  let canvas = null
+  while (scale >= 1 && !canvas) {
+    canvas = tryCreate(logicalW * scale, logicalH * scale)
+    if (canvas) break
+    scale = scale >= 4 ? 2 : scale >= 2 ? 1 : 0
+  }
+  if (!canvas) throw new Error('canvas allocation failed')
+  return { canvas, scale }
+}
+
 // 拟真珠子渲染 — 与 ImageQuantizer 预览保持一致(导出增强:轮廓环让珠子边缘清晰锐利)
 function drawBead(ctx, cx, cy, radius, hexColor) {
   const r = parseInt(hexColor.slice(1, 3), 16)
@@ -207,13 +250,10 @@ export async function generateBeadPatternSheet({
 
   // 创建 canvas — 物理像素按 scale 倍分辨率分配，
   // ctx.scale 后所有绘制代码仍按逻辑尺寸（sheetWidth/sheetHeight）操作，无需改动下方坐标计算。
-  // 超大网格动态降采样:固定 ×3 时 170×170 网格物理像素面积 ≈ 910MB,标签页 OOM。
-  const pixelArea = sheetWidth * sheetHeight
-  const scale = pixelArea > 6_000_000 ? 1 : pixelArea > 2_000_000 ? 2 : EXPORT_SCALE
-  const canvas = document.createElement('canvas')
+  // 超采样 scale 由 createScaledCanvas 按面积预算 + 分配失败降级自动决定(质量×性能平衡)。
+  let canvas, scale
   try {
-    canvas.width = sheetWidth * scale
-    canvas.height = sheetHeight * scale
+    ;({ canvas, scale } = createScaledCanvas(sheetWidth, sheetHeight))
   } catch (e) {
     throw new Error(i18n.t('export.canvasTooLarge'))
   }
@@ -540,10 +580,18 @@ export async function exportAsPNG(canvasData, gridSize, paletteId, designName, p
     signal: options.signal
   })
 
+  // toBlob 替代 toDataURL:高 scale 大画布时 base64 会让内存峰值翻倍(1 亿像素 RGBA
+  // + base64 ≈ 900MB),Blob 直接引用 backing store 且支持 PNG 压缩级别,更省内存
+  const blob = await new Promise((resolve) => {
+    canvas.toBlob((b) => resolve(b), 'image/png')
+  })
+  if (!blob) throw new Error('PNG encoding failed')
+  const url = URL.createObjectURL(blob)
   const link = document.createElement('a')
   link.download = `${designName}-${cols}x${rows}-拼豆图纸.png`
-  link.href = canvas.toDataURL('image/png', 1.0)
+  link.href = url
   link.click()
+  setTimeout(() => URL.revokeObjectURL(url), 1000)
 }
 
 function escapeSVG(str) {
