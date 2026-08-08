@@ -714,7 +714,10 @@ self.onmessage = (event) => {
       }
       const hiResW = imageData.width;
       const hiResH = imageData.height;
-      const hasHiRes = (hiResW > outW || hiResH > outH);
+      // 图片两维都不大于网格时不能直接 1:1 映射(会越界读 undefined → NaN),
+      // 必须走边缘感知分支(内含放大)。canDirectMap 为 true 时走原逻辑。
+      const canDirectMap = hiResW >= outW && hiResH >= outH;
+      const hasHiRes = canDirectMap ? (hiResW > outW || hiResH > outH) : true;
 
       const paletteLabs = getPaletteLabs(palette);
 
@@ -757,7 +760,9 @@ self.onmessage = (event) => {
       } else {
         areaColors = new Array(outW * outH);
         edgeMap = new Float32Array(outW * outH);
+        const srcTotal = hiResW * hiResH;
         for (let i = 0; i < outW * outH; i += 1) {
+          if (i >= srcTotal) { areaColors[i] = null; continue; } // 防御:越界按透明处理
           const o = i * 4;
           const a = hiResData[o + 3];
           if (a < 5) { areaColors[i] = null; continue; }

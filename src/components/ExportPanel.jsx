@@ -1,6 +1,5 @@
 import { useState, useMemo, useRef, useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
-import { PERLER_COLORS } from './ColorPalette'
 import { getPalette } from '../data/palettes'
 import { exportAsPNG, exportAsSVG } from '../services/BeadPatternExporter'
 import { resolveToHex } from '../services/colorUtils'
@@ -92,6 +91,9 @@ export default function ExportPanel({ canvasData, gridSize, gridWidth, gridHeigh
   const handleExportText = () => {
     // 生成带颜色编号的文本图纸
     const today = new Date().toISOString().split('T')[0]
+    // 色号按当前调色板 hex→品牌 ID(P01/H01/C01)映射,支持全部品牌与自定义色
+    // (替代旧的 UI 硬编码 44 色表:量化/移动端/Hama/Artkal 颜色命中率基本为 0)
+    const codeByHex = new Map(palette.colors.map(c => [c.hex.toLowerCase(), c.id]))
 
     let text = `拼豆图纸\n`
     text += `${actualWidth} x ${actualHeight} 格子\n`
@@ -101,9 +103,8 @@ export default function ExportPanel({ canvasData, gridSize, gridWidth, gridHeigh
     // 颜色对照表（按使用频率排序）
     const sortedColors = Object.entries(colorCounts).sort((a, b) => b[1] - a[1])
     text += `【颜色对照表】\n`
-    sortedColors.forEach(([color, count], idx) => {
-      const idxInPalette = PERLER_COLORS.indexOf(color)
-      const code = idxInPalette >= 0 ? String(idxInPalette).padStart(2, '0') : '--'
+    sortedColors.forEach(([color, count]) => {
+      const code = codeByHex.get(color.toLowerCase()) || '--'
       text += `  [${code}] ${color} - ${count}颗\n`
     })
     text += '\n'
@@ -124,8 +125,7 @@ export default function ExportPanel({ canvasData, gridSize, gridWidth, gridHeigh
       for (let x = 0; x < actualWidth; x++) {
         const color = canvasData[y]?.[x]
         if (color) {
-          const idx = PERLER_COLORS.indexOf(color)
-          text += idx >= 0 ? String(idx).padStart(2, '0') : '??'
+          text += codeByHex.get(color.toLowerCase()) || '??'
         } else {
           text += '  '
         }

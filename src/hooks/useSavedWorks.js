@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import i18n from '../i18n'
 
 const KEY = 'saved-works'
 const WARN_BYTES = 4 * 1024 * 1024
@@ -7,7 +8,12 @@ function load() {
   const raw = localStorage.getItem(KEY)
   if (!raw) return []
   try { return JSON.parse(raw) }
-  catch { localStorage.removeItem(KEY); return [] }
+  catch {
+    // 先备份再删除:损坏可能只是多标签页并发写的暂时性截断,避免永久丢失
+    try { localStorage.setItem(KEY + '-corrupt', raw) } catch { /* 备份失败不阻塞 */ }
+    localStorage.removeItem(KEY)
+    return []
+  }
 }
 
 /**

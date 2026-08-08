@@ -1,33 +1,24 @@
+import { useState, useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
+import { getPalette } from '../data/palettes'
 
-// Perler Beads 经典颜色列表
-const PERLER_COLORS = [
-  // 红色系
-  '#E53935', '#C62828', '#FF5252', '#FF8A80',
-  // 橙色系
-  '#FF9800', '#F57C00', '#FFB74D', '#FFCC80',
-  // 黄色系
-  '#FDD835', '#FBC02D', '#FFEB3B', '#FFF176',
-  // 绿色系
-  '#32CD32', '#2E7D32', '#4CAF50', '#81C784',
-  // 青色系
-  '#00BCD4', '#00838F', '#26C6DA', '#80DEEA',
-  // 蓝色系
-  '#1976D2', '#0D47A1', '#2196F3', '#64B5F6',
-  // 紫色系
-  '#BA68C8', '#7B1FA2', '#9C27B0', '#CE93D8',
-  // 粉色系
-  '#F06292', '#EC407A', '#F48FB1', '#F8BBD9',
-  // 棕色系
-  '#795548', '#5D4037', '#8D6E63', '#A1887F',
-  // 灰色系
-  '#9E9E9E', '#757575', '#616161', '#424242',
-  // 黑白
-  '#FFFFFF', '#000000', '#F5F5F5', '#E0E0E0',
-]
+// canvasData 只允许合法 6 位 hex,输入处校验(非法 fillStyle 渲染黑格/污染画布数据)
+const HEX_RE = /^#[0-9a-fA-F]{6}$/
 
-export default function ColorPalette({ selectedColor, onColorSelect, collapsed, onToggleCollapse }) {
+export default function ColorPalette({ selectedColor, onColorSelect, collapsed, onToggleCollapse, currentPalette }) {
   const { t } = useTranslation()
+  // 与移动端同源:直接读官方品牌色卡(原硬编码 44 色与真实 Perler 色板 0 匹配)
+  const palette = getPalette(currentPalette)
+  const [hexInput, setHexInput] = useState(selectedColor)
+
+  useEffect(() => { setHexInput(selectedColor) }, [selectedColor])
+
+  // 失焦/回车时校验提交;非法输入回弹为当前色(输入过程中允许自由编辑)
+  const commitHex = () => {
+    if (HEX_RE.test(hexInput)) onColorSelect(hexInput)
+    else setHexInput(selectedColor)
+  }
+
   return (
     <div className={`palette-drawer ${collapsed ? 'collapsed' : ''}`}>
       <button
@@ -47,18 +38,18 @@ export default function ColorPalette({ selectedColor, onColorSelect, collapsed, 
       <div className="palette-inner">
         <div className="palette-header">
           <h3 className="palette-title">{t('palette.title2')}</h3>
-          <p className="palette-subtitle">Perler Beads Colors</p>
+          <p className="palette-subtitle">{palette.nameZh} · {palette.colorCount}</p>
         </div>
 
         <div className="palette-scroll">
           <div className="color-grid">
-            {PERLER_COLORS.map((color) => (
+            {palette.colors.map((c) => (
               <button
-                key={color}
-                className={`color-swatch ${selectedColor === color ? 'selected' : ''}`}
-                style={{ backgroundColor: color }}
-                onClick={() => onColorSelect(color)}
-                title={color}
+                key={c.id}
+                className={`color-swatch ${selectedColor === c.hex ? 'selected' : ''}${c.id === 'P01' ? ' white' : ''}`}
+                style={{ backgroundColor: c.hex }}
+                onClick={() => onColorSelect(c.hex)}
+                title={`${c.id} · ${c.nameZh}`}
               />
             ))}
           </div>
@@ -73,8 +64,10 @@ export default function ColorPalette({ selectedColor, onColorSelect, collapsed, 
             <span className="color-hex">{selectedColor}</span>
             <input
               type="text"
-              value={selectedColor}
-              onChange={(e) => onColorSelect(e.target.value)}
+              value={hexInput}
+              onChange={(e) => setHexInput(e.target.value)}
+              onBlur={commitHex}
+              onKeyDown={(e) => { if (e.key === 'Enter') commitHex() }}
               className="color-input"
             />
           </div>
@@ -179,7 +172,7 @@ export default function ColorPalette({ selectedColor, onColorSelect, collapsed, 
           border-color: var(--accent);
           box-shadow: 0 0 0 2px var(--bg-primary), 0 0 0 4px var(--accent);
         }
-        .color-swatch[style*="FFFFFF"] {
+        .color-swatch.white {
           border: 1px solid var(--border-color);
         }
         .current-color {
@@ -221,5 +214,3 @@ export default function ColorPalette({ selectedColor, onColorSelect, collapsed, 
     </div>
   )
 }
-
-export { PERLER_COLORS }
