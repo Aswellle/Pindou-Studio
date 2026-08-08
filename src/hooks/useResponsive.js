@@ -3,7 +3,7 @@ import { useState, useEffect, useCallback } from 'react'
 export const BREAKPOINTS = {
   mobile: 640,
   tablet: 1024,
-  desktop: 1280,
+  // 注意:桌面判定实际使用 tablet 阈值(≥1024),无独立 desktop 断点
 }
 
 // 首屏渲染前就要拿到正确的设备分类，否则 useEffect 触发前会先用桌面端
@@ -43,9 +43,15 @@ export function useResponsive() {
       setIsTouchDevice(touch)
     }
 
+    // rAF 节流:窗口拖动时 resize 高频触发,每帧最多重算一次
+    let rafId = 0
+    const onResize = () => {
+      cancelAnimationFrame(rafId)
+      rafId = requestAnimationFrame(checkDevice)
+    }
     checkDevice()
-    window.addEventListener('resize', checkDevice)
-    return () => window.removeEventListener('resize', checkDevice)
+    window.addEventListener('resize', onResize)
+    return () => { window.removeEventListener('resize', onResize); cancelAnimationFrame(rafId) }
   }, [])
 
   return {

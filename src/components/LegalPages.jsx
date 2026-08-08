@@ -16,7 +16,7 @@ function LegalDocument({ versions, type, onBack }) {
 
   return (
     <div className="legal-page">
-      <button className="legal-back-btn" onClick={onBack} aria-label="返回">
+      <button className="legal-back-btn" onClick={onBack} aria-label={t('legal.back')}>
         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
           <polyline points="15 18 9 12 15 6"/>
         </svg>

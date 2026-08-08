@@ -8,7 +8,8 @@
  */
 export function resolveToHex(colorVal, palette) {
   if (!colorVal) return null
-  if (typeof colorVal === 'string' && colorVal.startsWith('#')) return colorVal
+  // 只放行合法 6 位 hex('#' 开头的任意串如 '#xyz' 曾可进入 canvasData,非法 fillStyle 渲染黑块)
+  if (typeof colorVal === 'string' && /^#[0-9a-fA-F]{6}$/.test(colorVal)) return colorVal
   const found = palette?.colors?.find(c => c.id === colorVal)
   return found ? found.hex : null
 }
@@ -30,7 +31,8 @@ export function hexToRgb(hex) {
  */
 export function rgbToHex(r, g, b) {
   return '#' + [r, g, b].map(x => {
-    const hex = x.toString(16)
+    const clamped = Math.max(0, Math.min(255, Math.round(x))) // 越界分量钳制,防非法 hex
+    const hex = clamped.toString(16)
     return hex.length === 1 ? '0' + hex : hex
   }).join('')
 }

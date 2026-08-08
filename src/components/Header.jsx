@@ -213,7 +213,6 @@ export default function Header({ user, onLogin, onRegister, onLogout, onSave, cu
           align-items: center;
           gap: 6px;
         }
-        }
         .header.simplified .nav-link {
           padding: 8px;
           min-width: 40px;

@@ -92,6 +92,10 @@ export default function AuthModal({ mode, onClose, onLogin, onRegister, onSwitch
       setError(t('errors.passwordMismatch'))
       return
     }
+    if (password.length < 6) {
+      setError(t('errors.passwordTooShort')) // 发码前拦截,与重置路径一致
+      return
+    }
     setPendingEmail(email.trim())
     setPendingPassword(password)
     setVerifyMode('register')

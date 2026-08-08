@@ -99,6 +99,9 @@ export default function Gallery({ onLoadTemplate, onSaveWork, onLoadWork, savedW
         palette,
         { beadStyle, gridWidth: null, gridHeight: null }
       )
+    } catch (err) {
+      console.error('Template export failed:', err)
+      alert(t('export.exportFailed')) // 此前 try/finally 无 catch,canvas 分配失败成为未处理 rejection
     } finally {
       setExportingId(null)
     }

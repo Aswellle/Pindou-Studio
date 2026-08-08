@@ -175,7 +175,10 @@ export function useAuth() {
   }, [verifyPassword, setPassword])
 
   const logout = useCallback(async () => {
-    if (supabase) await supabase.auth.signOut()
+    if (supabase) {
+      const { error } = await supabase.auth.signOut()
+      if (error) console.warn('signOut failed:', error.message) // 服务端失败也清本地状态,留可观测信号
+    }
     setUser(null)
     setIsAdmin(false)
   }, [])

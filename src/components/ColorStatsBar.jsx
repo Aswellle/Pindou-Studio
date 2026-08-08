@@ -12,7 +12,7 @@ import { useTranslation } from 'react-i18next'
 import { getPalette } from '../data/palettes'
 import { resolveToHex } from '../services/colorUtils'
 
-export default function ColorStatsBar({ canvasData, gridSize, paletteId }) {
+export default function ColorStatsBar({ canvasData, paletteId }) {
   const { t } = useTranslation()
 
   const { total, colorCount, colorList } = useMemo(() => {

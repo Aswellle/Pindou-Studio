@@ -29,7 +29,7 @@ const ImageQuantizer = lazy(() => import('./components/ImageQuantizer/ImageQuant
 import AdminPanel from './components/AdminPanel'
 
 export default function App() {
-  const { t } = useTranslation()
+  const { t, i18n } = useTranslation()
   const navigate = useNavigate()
   const location = useLocation()
 
@@ -82,6 +82,8 @@ export default function App() {
   const [showExport, setShowExport] = useState(false)
   const [currentPalette, setCurrentPalette] = useState('perler')
   const [designName, setDesignName] = useState(() => t('export.defaultName'))
+  // 语言切换时同步默认导出名(designName 只作默认值,用户自定义名走 saveInputName)
+  useEffect(() => { setDesignName(t('export.defaultName')) }, [i18n.language, t])
   const [showSaveDialog, setShowSaveDialog] = useState(false)
   const [saveInputName, setSaveInputName] = useState('')
   const [saveToast, setSaveToast] = useState(false)
@@ -298,7 +300,6 @@ export default function App() {
         <div className="left-sidebar-bottom">
           <ColorStatsBar
             canvasData={canvasData}
-            gridSize={gridSize}
             paletteId={currentPalette}
           />
           {/* 桌面端侧边栏常驻实例:不传 onClose(有 onClose 会被判定为模态框实例并默认展开) */}

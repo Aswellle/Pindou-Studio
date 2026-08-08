@@ -44,8 +44,17 @@ export function useSavedWorks() {
   }
 
   const updateWorks = (updated) => {
+    // 先写存储成功再更新状态,配额异常时状态与存储不分离(与 saveWork 同一容错模式)
+    try {
+      localStorage.setItem(KEY, JSON.stringify(updated))
+    } catch (e) {
+      if (e.name === 'QuotaExceededError') {
+        alert(i18n.t('errors.storageFull'))
+        return
+      }
+      throw e
+    }
     setWorks(updated)
-    localStorage.setItem(KEY, JSON.stringify(updated))
   }
 
   return { works, saveWork, updateWorks }

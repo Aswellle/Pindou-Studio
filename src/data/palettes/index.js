@@ -90,9 +90,12 @@ function getPaletteLabs(palette) {
  */
 export function findClosestColor(targetHex, paletteId) {
   const palette = getPalette(paletteId)
-  const r = parseInt(targetHex.slice(1, 3), 16)
-  const g = parseInt(targetHex.slice(3, 5), 16)
-  const b = parseInt(targetHex.slice(5, 7), 16)
+  // 非法输入显式返回 null,不再静默返回 colors[0](NaN → 误导性的"最接近色")
+  const m = /^#([0-9a-fA-F]{2})([0-9a-fA-F]{2})([0-9a-fA-F]{2})$/.exec(targetHex || '')
+  if (!m) return null
+  const r = parseInt(m[1], 16)
+  const g = parseInt(m[2], 16)
+  const b = parseInt(m[3], 16)
   const targetLab = rgbToLab(r, g, b)
   const labs = getPaletteLabs(palette)
 

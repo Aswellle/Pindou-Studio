@@ -623,7 +623,7 @@ export function exportAsSVG(canvasData, gridSize, paletteId, designName, palette
       } else {
         // SVG 中使用径向渐变模拟塑料质感
         const gid = `g${y}_${x}`
-        svg += `  <defs><radialGradient id="${gid}" cx="35%" cy="35%" r="65%"><stop offset="0%" stop-color="${hexColor}" stop-opacity="1.4"/><stop offset="50%" stop-color="${hexColor}"/><stop offset="100%" stop-color="${hexColor}" stop-opacity="0.82"/></radialGradient></defs>\n`
+        svg += `  <defs><radialGradient id="${gid}" cx="35%" cy="35%" r="65%"><stop offset="0%" stop-color="${hexColor}" stop-opacity="1"/><stop offset="50%" stop-color="${hexColor}"/><stop offset="100%" stop-color="${hexColor}" stop-opacity="0.82"/></radialGradient></defs>\n`
         svg += `  <circle cx="${cx}" cy="${cy}" r="${BEAD_RADIUS}" fill="url(#${gid})"/>\n`
         svg += `  <circle cx="${cx - BEAD_RADIUS * 0.28}" cy="${cy - BEAD_RADIUS * 0.28}" r="${BEAD_RADIUS * 0.28}" fill="rgba(255,255,255,0.38)"/>\n`
       }
@@ -637,8 +637,8 @@ export function exportAsSVG(canvasData, gridSize, paletteId, designName, palette
   const panelY = HEADER_HEIGHT + LEGEND_HEIGHT + PADDING
 
   svg += `\n  <rect x="${panelX}" y="${panelY}" width="${SVG_PANEL_WIDTH}" height="${svgH - panelY - PADDING}" fill="#f8f8f8"/>\n`
-  svg += `  <text x="${panelX + 12}" y="${panelY + 18}" fill="#222" font-size="14" font-weight="bold">颜色清单</text>\n`
-  svg += `  <text x="${panelX + 12}" y="${panelY + 36}" fill="#666" font-size="11">共 ${colorStats.length} 色，${svgTotalBeads} 粒</text>\n`
+  svg += `  <text x="${panelX + 12}" y="${panelY + 18}" fill="#222" font-size="14" font-weight="bold">${i18n.t('export.colorListTitle')}</text>\n`
+  svg += `  <text x="${panelX + 12}" y="${panelY + 36}" fill="#666" font-size="11">${i18n.t('export.totalInfo', { count: colorStats.length, beads: svgTotalBeads })}</text>\n`
 
   const svgGroupConfig = [
     { key: 'major',  title: i18n.t('export.groupMajor'),       color: '#2c5aa0', warn: false },
@@ -654,14 +654,14 @@ export function exportAsSVG(canvasData, gridSize, paletteId, designName, palette
     const items = svgGroups[cfg.key]
     if (items.length === 0) continue
 
-    svg += `  <text x="${panelX + 10}" y="${colorY}" fill="${cfg.color}" font-size="11" font-weight="bold">${cfg.title} · ${items.length}种</text>\n`
+    svg += `  <text x="${panelX + 10}" y="${colorY}" fill="${cfg.color}" font-size="11" font-weight="bold">${cfg.title} · ${items.length}${i18n.t('export.kindUnit')}</text>\n`
     svg += `  <line x1="${panelX + 8}" y1="${colorY + 4}" x2="${panelX + SVG_PANEL_WIDTH - 8}" y2="${colorY + 4}" stroke="${cfg.color}" stroke-width="0.8" stroke-opacity="0.3"/>\n`
     colorY += 16
 
     for (const item of items) {
       const label = item.id !== item.name ? `${item.id} ${item.name}` : item.name
       const truncated = label.length > 16 ? label.slice(0, 15) + '…' : label
-      const countText = cfg.warn ? `${item.count}颗 ⚠` : `${item.count}颗`
+      const countText = cfg.warn ? `${item.count}${i18n.t('export.beadsUnit')} ⚠` : `${item.count}${i18n.t('export.beadsUnit')}`
       const textColor = cfg.warn ? '#cc3333' : '#333333'
       const countColor = cfg.warn ? '#cc3333' : '#555555'
       if (useProMode) {
