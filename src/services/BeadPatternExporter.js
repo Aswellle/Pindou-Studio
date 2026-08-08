@@ -20,16 +20,18 @@ const EXPORT_SCALE = 3
  *
  * 质量目标:专业模式每格 ≥56 物理像素(scale 2)、拟真模式每格 ≥84(scale 3),
  *   放大到 200% 仍清晰锐利。此前 57 网格以上固定 scale=1(每格仅 28px,放大必糊)。
- * 性能约束:物理像素面积预算 —— 桌面 ~1.8 亿(≈720MB RGBA,浏览器 canvas 上限的 2/3),
- *   移动/平板 ~6000 万(≈240MB,避免 OOM)。scale = min(4, floor(√(预算/面积)))。
- * 降级:canvas 分配失败(超设备上限)逐级 4→2→1,保证必能导出。
+ * 性能约束:物理像素面积预算 —— 桌面 ~2.3 亿(≈920MB RGBA,浏览器 canvas 面积上限
+ *   2.68 亿的近 86%,保证 170 网格可达 scale 3/每格 84px),移动/平板 ~6000 万
+ *   (≈240MB,避免 OOM)。scale = min(4, floor(√(预算/面积))),分配失败逐级降级。
+ * 注意:单张 PNG 是位图,物理上限即浏览器 canvas 面积上限;要任意放大无损请用
+ *   SVG(矢量)。
  *
  * @returns {{ canvas: HTMLCanvasElement, scale: number }} 分配成功时返回
  * @throws 所有 scale 都失败时抛错
  */
 export function createScaledCanvas(logicalW, logicalH) {
   const isConstrained = typeof window !== 'undefined' && window.innerWidth < 1025
-  const MAX_PHYSICAL_PIXELS = isConstrained ? 60_000_000 : 180_000_000
+  const MAX_PHYSICAL_PIXELS = isConstrained ? 60_000_000 : 230_000_000
   const pixelArea = logicalW * logicalH
   const budgetScale = Math.floor(Math.sqrt(MAX_PHYSICAL_PIXELS / pixelArea))
   let scale = Math.max(1, Math.min(4, budgetScale))
@@ -462,12 +464,9 @@ export async function generateBeadPatternSheet({
         const cy = cellY + CELL_SIZE / 2
 
         if (useProMode) {
-          // +0.5 / -1 留 1px 给网格线;深色细边框让格子边界清晰(浅色方块上也可见)
+          // +0.5 / -1 留 1px 给网格线(网格线在珠子上层补画,不透明色,放大后硬边锐利)
           ctx.fillStyle = hexColor
           ctx.fillRect(cellX + 0.5, cellY + 0.5, CELL_SIZE - 1, CELL_SIZE - 1)
-          ctx.strokeStyle = 'rgba(0,0,0,0.18)'
-          ctx.lineWidth = 0.5
-          ctx.strokeRect(cellX + 0.5, cellY + 0.5, CELL_SIZE - 1, CELL_SIZE - 1)
           if (drawCodes && codeLabel && CELL_SIZE >= 14) {
             // 色号自适应字号:4 字符色号(C100 等)缩至 8px,防溢出相邻格
             const fontSize = codeLabel.length >= 4 ? 8 : codeFontSize
@@ -493,8 +492,9 @@ export async function generateBeadPatternSheet({
 
   // 专业模式：珠子方块绘制完后，在上层补画网格线
   // 细线作分隔，每 10 格加粗一条（专业图纸惯例，便于手工对照坐标）
+  // 网格线用不透明色:放大后格子边界是硬边锐利线(此前半透明 0.5px 线放大后柔和模糊)
   if (useProMode) {
-    ctx.strokeStyle = 'rgba(255,255,255,0.5)'
+    ctx.strokeStyle = '#d0d0d0'
     ctx.lineWidth = 1
     for (let i = 0; i <= cols; i++) {
       ctx.beginPath()
@@ -508,7 +508,7 @@ export async function generateBeadPatternSheet({
       ctx.lineTo(gridStartX + gridPixelW, gridStartY + i * CELL_SIZE + 0.5)
       ctx.stroke()
     }
-    ctx.strokeStyle = 'rgba(0,0,0,0.25)'
+    ctx.strokeStyle = '#666666'
     ctx.lineWidth = 1.5
     for (let i = 0; i <= cols; i += 10) {
       ctx.beginPath()
@@ -667,9 +667,9 @@ export function exportAsSVG(canvasData, gridSize, paletteId, designName, palette
 
       if (useProMode) {
         const textColor = textColorForBg(hexColor)
-        // 深色细边框(浅色方块上也可见)+ 色号自适应字号(4 字符 C100 防溢出)
+        // 色号自适应字号(4 字符 C100 防溢出);边界由网格线负责(SVG 矢量,放大无损)
         const fontSize = codeLabel.length >= 4 ? 8 : codeFontSize
-        svg += `  <rect x="${cellX + 0.5}" y="${cellY + 0.5}" width="${CELL_SIZE - 1}" height="${CELL_SIZE - 1}" fill="${hexColor}" stroke="rgba(0,0,0,0.18)" stroke-width="0.5"/>\n`
+        svg += `  <rect x="${cellX + 0.5}" y="${cellY + 0.5}" width="${CELL_SIZE - 1}" height="${CELL_SIZE - 1}" fill="${hexColor}"/>\n`
         if (codeLabel) {
           svg += `  <text x="${cx}" y="${cy}" fill="${textColor}" font-family="Helvetica Neue, Arial, sans-serif" font-size="${fontSize}" font-weight="bold" text-anchor="middle" dominant-baseline="central">${codeLabel}</text>\n`
         }
