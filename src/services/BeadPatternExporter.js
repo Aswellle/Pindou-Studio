@@ -415,7 +415,6 @@ export async function generateBeadPatternSheet({
   // 'realistic'    : 径向渐变 + 高光 + 中心孔（展示用）
   // 'professional' : 方形填色 + 色号标注（工艺施工用）
   const codeFontSize = Math.max(9, Math.floor(CELL_SIZE * 0.38))
-  const codeFont = `bold ${codeFontSize}px "Helvetica Neue", "Arial", sans-serif`
   const total = rows * cols
   const BATCH_SIZE = 2000
   let processed = 0
@@ -434,12 +433,17 @@ export async function generateBeadPatternSheet({
         const cy = cellY + CELL_SIZE / 2
 
         if (useProMode) {
-          // +0.5 / -1 留 1px 给网格线
+          // +0.5 / -1 留 1px 给网格线;深色细边框让格子边界清晰(浅色方块上也可见)
           ctx.fillStyle = hexColor
           ctx.fillRect(cellX + 0.5, cellY + 0.5, CELL_SIZE - 1, CELL_SIZE - 1)
+          ctx.strokeStyle = 'rgba(0,0,0,0.18)'
+          ctx.lineWidth = 0.5
+          ctx.strokeRect(cellX + 0.5, cellY + 0.5, CELL_SIZE - 1, CELL_SIZE - 1)
           if (drawCodes && codeLabel && CELL_SIZE >= 14) {
+            // 色号自适应字号:4 字符色号(C100 等)缩至 8px,防溢出相邻格
+            const fontSize = codeLabel.length >= 4 ? 8 : codeFontSize
             ctx.fillStyle = textColorForBg(hexColor)
-            ctx.font = codeFont
+            ctx.font = `bold ${fontSize}px "Helvetica Neue", "Arial", sans-serif`
             ctx.textAlign = 'center'
             ctx.textBaseline = 'middle'
             ctx.fillText(codeLabel, cx, cy + 1)
@@ -626,9 +630,11 @@ export function exportAsSVG(canvasData, gridSize, paletteId, designName, palette
 
       if (useProMode) {
         const textColor = textColorForBg(hexColor)
-        svg += `  <rect x="${cellX + 0.5}" y="${cellY + 0.5}" width="${CELL_SIZE - 1}" height="${CELL_SIZE - 1}" fill="${hexColor}" stroke="rgba(255,255,255,0.5)" stroke-width="1"/>\n`
+        // 深色细边框(浅色方块上也可见)+ 色号自适应字号(4 字符 C100 防溢出)
+        const fontSize = codeLabel.length >= 4 ? 8 : codeFontSize
+        svg += `  <rect x="${cellX + 0.5}" y="${cellY + 0.5}" width="${CELL_SIZE - 1}" height="${CELL_SIZE - 1}" fill="${hexColor}" stroke="rgba(0,0,0,0.18)" stroke-width="0.5"/>\n`
         if (codeLabel) {
-          svg += `  <text x="${cx}" y="${cy}" fill="${textColor}" font-family="Helvetica Neue, Arial, sans-serif" font-size="${codeFontSize}" font-weight="bold" text-anchor="middle" dominant-baseline="central">${codeLabel}</text>\n`
+          svg += `  <text x="${cx}" y="${cy}" fill="${textColor}" font-family="Helvetica Neue, Arial, sans-serif" font-size="${fontSize}" font-weight="bold" text-anchor="middle" dominant-baseline="central">${codeLabel}</text>\n`
         }
       } else {
         // SVG 中使用径向渐变模拟塑料质感
