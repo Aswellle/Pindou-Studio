@@ -28,16 +28,19 @@ export default function MobileColorPalette({
   )
   const selectedColorName = selectedColorInfo?.nameZh || selectedColorInfo?.name || ''
 
-  // 色系分组,按使用度(组内颜色数)由高到低排列(COCO/MARD 均适用)
+  // 色系分组:优先按 groupOrder(商家销量调研的畅销度),否则按组内颜色数降序
   const groups = useMemo(() => {
     if (!palette.groupNames) return null
-    return Object.entries(palette.groupNames)
-      .map(([gid, gname]) => ({
-        id: gid,
-        name: gname,
-        colors: palette.colors.filter(c => c.category === gid),
-      }))
-      .sort((a, b) => b.colors.length - a.colors.length)
+    const entries = Object.entries(palette.groupNames).map(([gid, gname]) => ({
+      id: gid,
+      name: gname,
+      colors: palette.colors.filter(c => c.category === gid),
+    }))
+    if (palette.groupOrder) {
+      const order = new Map(palette.groupOrder.map((id, i) => [id, i]))
+      return entries.sort((a, b) => (order.get(a.id) ?? 999) - (order.get(b.id) ?? 999))
+    }
+    return entries.sort((a, b) => b.colors.length - a.colors.length)
   }, [palette])
 
   // 珠子/颜色数统计 — 与桌面端 ColorStatsBar 同一算法，移动端用紧凑徽章展示
@@ -80,9 +83,9 @@ export default function MobileColorPalette({
           style={{ backgroundColor: selectedColor }}
         />
         <span className="color-label">
-          {/* 颜色名称 + 所属品牌/色号,方便分辨是哪个色卡的珠子 */}
+          {/* 颜色名称 + 所属品牌(去重:色号已在色卡网格中显示,这里只标品牌) */}
           <span className="color-name">{selectedColorName || selectedColor}</span>
-          <span className="color-brand">{palette.nameZh} · {selectedColorInfo?.id}</span>
+          <span className="color-brand">{palette.nameZh}</span>
         </span>
         {totalBeads > 0 && (
           <span className="mobile-stats-badge">

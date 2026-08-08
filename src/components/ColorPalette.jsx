@@ -10,16 +10,19 @@ export default function ColorPalette({ selectedColor, onColorSelect, collapsed, 
   const currentColorInfo = palette.colors.find(c => c.hex === selectedColor)
   const currentColorName = currentColorInfo?.nameZh || currentColorInfo?.name || selectedColor
 
-  // 色系分组,按使用度(组内颜色数)由高到低排列(COCO/MARD 均适用)
+  // 色系分组:优先按 groupOrder(商家销量调研的畅销度),否则按组内颜色数降序
   const groups = useMemo(() => {
     if (!palette.groupNames) return null
-    return Object.entries(palette.groupNames)
-      .map(([gid, gname]) => ({
-        id: gid,
-        name: gname,
-        colors: palette.colors.filter(c => c.category === gid),
-      }))
-      .sort((a, b) => b.colors.length - a.colors.length)
+    const entries = Object.entries(palette.groupNames).map(([gid, gname]) => ({
+      id: gid,
+      name: gname,
+      colors: palette.colors.filter(c => c.category === gid),
+    }))
+    if (palette.groupOrder) {
+      const order = new Map(palette.groupOrder.map((id, i) => [id, i]))
+      return entries.sort((a, b) => (order.get(a.id) ?? 999) - (order.get(b.id) ?? 999))
+    }
+    return entries.sort((a, b) => b.colors.length - a.colors.length)
   }, [palette])
 
   // 近白色珠加边框,避免浅背景上不可见

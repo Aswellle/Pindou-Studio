@@ -246,6 +246,10 @@ export const MARD_PALETTE = {
     H: '黑白灰调',
     M: '莫兰迪调',
   },
+  // 色系展示顺序(畅销度,基于公开商家销量调研,2026-08):
+  // H 黑白灰(白 H2/黑 H7/透明 H1 为补货最多基础色,好评94%)→ E 粉红(肤色 E11/E16 人物必备)
+  // → 正色主色 B 绿/C 蓝青/A 黄橙/F 红(新手攻略建议囤 2000-5000 颗)→ G 橙棕/D 紫蓝 → M 莫兰迪(装饰低频)
+  groupOrder: ['H', 'E', 'B', 'C', 'A', 'F', 'G', 'D', 'M'],
   colors: MARD_PALETTEColors,
 }
 
@@ -573,5 +577,8 @@ export const MARD291_PALETTE = {
     Y: '明亮荧光调',
     ZG: '莫兰迪扩展调',
   },
+  // 色系展示顺序:标准 9 系按畅销度(同 MARD 221),扩展 6 系按色数降序排末尾
+  // (扩展色 P/Q/R/T/Y/ZG 为补充色,使用频率低于标准色)
+  groupOrder: ['H', 'E', 'B', 'C', 'A', 'F', 'G', 'D', 'M', 'R', 'P', 'ZG', 'Y', 'Q', 'T'],
   colors: MARD291_PALETTEColors,
 }
