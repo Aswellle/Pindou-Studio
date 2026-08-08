@@ -12,17 +12,32 @@ import i18n from '../i18n'
 import { findClosestColorCIEDE2000 } from '../utils/colorDiff'
 
 /**
- * 创建 3 倍超采样 canvas(用户确定方案,与专业站一致)。
+ * 设备类型判断(而非窗口宽度)。浏览器页面缩放/半屏窗口会让 innerWidth 变小,
+ * 桌面场景会被误判为移动端导致 scale 崩到 1;UA 判断与窗口宽度解耦。
+ */
+function isMobileDevice() {
+  if (typeof navigator === 'undefined') return false
+  if (typeof navigator.userAgentData !== 'undefined' && navigator.userAgentData.mobile) return true
+  return /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent || '')
+}
+
+/**
+ * 创建超采样 canvas(桌面固定 3 倍,移动端受内存限制自动降级)。
  *
- * 3 倍超采样:每格 84 物理像素(28 逻辑 × 3),放大 200-300% 仍清晰锐利。
- * 170×170 网格 scale 3 = 2.27 亿像素,在浏览器 canvas 面积上限(2.68 亿)内;
- * 200×200 网格 scale 3 = 3.1 亿超限,自动降级 3→2→1,保证必能导出。
- * 分配失败(低端设备内存不足)同样逐级降级。
+ * 桌面:固定 3 倍超采样(用户确定方案,与专业站一致),每格 84 物理像素,
+ *   放大 200-300% 仍清晰锐利;170×170 scale 3 = 2.27 亿像素在浏览器 canvas
+ *   面积上限(2.68 亿)内,200×200 scale 3 = 3.1 亿超限自动降 2。
+ * 移动端:iOS/安卓 WebContent 内存限制 ~1GB,固定 3 倍超大网格(170 网格
+ *   scale 3 = 908MB)会在 canvas 分配或 toBlob 编码时 OOM → '导出失败'。
+ *   移动端物理像素面积预算 8000 万(≈320MB,toBlob 编码峰值可控),超预算降级。
+ * 分配失败(低端设备)同样逐级降级,保证必能导出。
  *
  * @returns {{ canvas: HTMLCanvasElement, scale: number }} 分配成功时返回
  * @throws 所有 scale 都失败时抛错
  */
 export function createScaledCanvas(logicalW, logicalH) {
+  // 移动端面积预算:8000 万物理像素(170 网格 scale 1 = 2500 万、140 网格 scale 2 = 6300 万)
+  const MAX_AREA = isMobileDevice() ? 80_000_000 : 268_000_000
   let scale = 3
 
   const tryCreate = (w, h) => {
@@ -41,7 +56,13 @@ export function createScaledCanvas(logicalW, logicalH) {
 
   let canvas = null
   while (scale >= 1 && !canvas) {
-    canvas = tryCreate(logicalW * scale, logicalH * scale)
+    const w = logicalW * scale
+    const h = logicalH * scale
+    if (w * h > MAX_AREA) {
+      scale = scale >= 3 ? 2 : scale >= 2 ? 1 : 0
+      continue
+    }
+    canvas = tryCreate(w, h)
     if (canvas) break
     scale = scale >= 3 ? 2 : scale >= 2 ? 1 : 0
   }
