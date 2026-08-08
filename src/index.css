@@ -96,6 +96,14 @@ input, button, textarea, select {
   font-family: inherit;
 }
 
+/* 移动/平板恢复合适正文比例:typography token 的 --text-base(13px)在手机/平板
+   屏幕上偏小(此前 body 继承浏览器默认 16px),桌面端(≥1025px)保持 token 设计 */
+@media (max-width: 1024px) {
+  body {
+    font-size: 14px;
+  }
+}
+
 /* iOS Safari 会在聚焦 font-size < 16px 的文本输入控件时自动放大页面，
    松开后不会自动缩回 100%，需要用户手动双指缩放复位。这里统一兜底：
    移动/平板宽度下所有文本类输入控件强制 ≥16px，覆盖各组件内部更小的字号设置。

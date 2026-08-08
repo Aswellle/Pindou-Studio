@@ -411,6 +411,8 @@
 .result-preview canvas {
   border-radius: 4px;
   image-rendering: pixelated;
+  max-width: 100%;   /* 大网格(140/170+)预览画布固定 CSS 宽度会溢出手机视口,等比收缩 */
+  height: auto;
 }
 
 .result-preview-zoom-btn {

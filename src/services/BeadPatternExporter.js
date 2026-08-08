@@ -9,6 +9,7 @@
  */
 
 import i18n from '../i18n'
+import { findClosestColorCIEDE2000 } from '../utils/colorDiff'
 
 // PNG 导出超采样倍率：画布按 EXPORT_SCALE 倍物理像素渲染，
 // 所有绘制代码仍用逻辑坐标（ctx.scale 统一放大），放大查看/打印时网格色块和文字才不糊。
@@ -98,23 +99,11 @@ function findClosestPaletteColor(hex, palette) {
   const r = parseInt(hex.slice(1, 3), 16)
   const g = parseInt(hex.slice(3, 5), 16)
   const b = parseInt(hex.slice(5, 7), 16)
+  if ([r, g, b].some(v => isNaN(v))) return null
 
-  let closest = null
-  let minDistance = Infinity
-
-  for (const color of palette.colors) {
-    const dr = color.rgb.r - r
-    const dg = color.rgb.g - g
-    const db = color.rgb.b - b
-    const distance = Math.sqrt(dr * dr + dg * dg + db * db)
-
-    if (distance < minDistance) {
-      minDistance = distance
-      closest = color
-    }
-  }
-
-  return closest
+  // CIEDE2000 感知均匀匹配(此前用 RGB 欧氏距离,蓝色系等视觉差异大的色域
+  // 会匹配到错误珠子 —— 与量化管线的匹配标准保持一致)
+  return findClosestColorCIEDE2000({ r, g, b }, palette.colors)
 }
 
 /**
