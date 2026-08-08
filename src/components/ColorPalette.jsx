@@ -9,6 +9,24 @@ export default function ColorPalette({ selectedColor, onColorSelect, collapsed, 
   const currentColorInfo = palette.colors.find(c => c.hex === selectedColor)
   const currentColorName = currentColorInfo?.nameZh || currentColorInfo?.name || selectedColor
 
+  // 近白色珠加边框,避免浅背景上不可见
+  const isLight = (hex) => {
+    const r = parseInt(hex.slice(1, 3), 16)
+    const g = parseInt(hex.slice(3, 5), 16)
+    const b = parseInt(hex.slice(5, 7), 16)
+    return r > 230 && g > 230 && b > 230
+  }
+
+  const renderSwatch = (c) => (
+    <button
+      key={c.id}
+      className={`color-swatch ${selectedColor === c.hex ? 'selected' : ''}${isLight(c.hex) ? ' white' : ''}`}
+      style={{ backgroundColor: c.hex }}
+      onClick={() => onColorSelect(c.hex)}
+      title={`${c.id} · ${c.nameZh}`}
+    />
+  )
+
   return (
     <div className={`palette-drawer ${collapsed ? 'collapsed' : ''}`}>
       <button
@@ -43,17 +61,21 @@ export default function ColorPalette({ selectedColor, onColorSelect, collapsed, 
         </div>
 
         <div className="palette-scroll">
-          <div className="color-grid">
-            {palette.colors.map((c) => (
-              <button
-                key={c.id}
-                className={`color-swatch ${selectedColor === c.hex ? 'selected' : ''}${c.id === 'P01' ? ' white' : ''}`}
-                style={{ backgroundColor: c.hex }}
-                onClick={() => onColorSelect(c.hex)}
-                title={`${c.id} · ${c.nameZh}`}
-              />
-            ))}
-          </div>
+          {palette.groupNames ? (
+            /* 按色系分组展示(如 MARD:黄橙色调/绿色调/...),便于快速定位 */
+            Object.entries(palette.groupNames).map(([gid, gname]) => (
+              <div key={gid} className="palette-group">
+                <div className="palette-group-title">{gname}</div>
+                <div className="color-grid">
+                  {palette.colors.filter(c => c.category === gid).map(renderSwatch)}
+                </div>
+              </div>
+            ))
+          ) : (
+            <div className="color-grid">
+              {palette.colors.map(renderSwatch)}
+            </div>
+          )}
         </div>
 
         <div className="current-color">
@@ -158,6 +180,16 @@ export default function ColorPalette({ selectedColor, onColorSelect, collapsed, 
           overflow-x: hidden;
           padding: 0 16px;
           min-height: 0;
+        }
+        .palette-group {
+          margin-bottom: 6px;
+        }
+        .palette-group-title {
+          font-size: var(--text-xs);
+          font-weight: var(--font-weight-semibold);
+          color: var(--text-secondary);
+          padding: 8px 0 4px;
+          border-top: 1px solid var(--border-color);
         }
         .color-grid {
           display: grid;

@@ -234,6 +234,18 @@ export const MARD_PALETTE = {
   beadSizeLabel: '中颗粒 (5mm)',
   colorCount: 221,
   website: 'https://github.com/HansBug/pindou-color-data',
+  // 标准系列色系分组(category 字母 → 色系名),UI 按此分组展示
+  groupNames: {
+    A: '黄橙色调',
+    B: '绿色调',
+    C: '蓝青色调',
+    D: '紫蓝色调',
+    E: '粉红色调',
+    F: '红色调',
+    G: '橙棕色调',
+    H: '黑白灰调',
+    M: '莫兰迪调',
+  },
   colors: MARD_PALETTEColors,
 }
 
@@ -543,5 +555,23 @@ export const MARD291_PALETTE = {
   beadSizeLabel: '中颗粒 (5mm)',
   colorCount: 291,
   website: 'https://github.com/HansBug/pindou-color-data',
+  // 标准系列(221) + 扩展系列(仅 291)全部色系分组
+  groupNames: {
+    A: '黄橙色调',
+    B: '绿色调',
+    C: '蓝青色调',
+    D: '紫蓝色调',
+    E: '粉红色调',
+    F: '红色调',
+    G: '橙棕色调',
+    H: '黑白灰调',
+    M: '莫兰迪调',
+    P: '柔和过渡调',
+    Q: '亮色点缀调',
+    R: '高饱和补充调',
+    T: '近白透明调',
+    Y: '明亮荧光调',
+    ZG: '莫兰迪扩展调',
+  },
   colors: MARD291_PALETTEColors,
 }

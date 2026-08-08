@@ -129,6 +129,20 @@
   margin-bottom: 8px;
 }
 
+/* 色系分组(如 MARD:黄橙色调/绿色调/...) */
+.palette-group {
+  margin-bottom: 6px;
+}
+
+.palette-group-title {
+  font-size: var(--text-xs);
+  font-weight: var(--font-weight-semibold);
+  color: var(--text-secondary);
+  padding: 8px 0 6px;
+  border-top: 1px solid var(--border-color);
+  display: block;
+}
+
 .color-row {
   display: flex;
   gap: 8px;

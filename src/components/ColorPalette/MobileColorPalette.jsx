@@ -112,21 +112,44 @@ export default function MobileColorPalette({
             </div>
           )}
 
-          {/* 色卡网格：色块下方直接印出色号+名称，不再只靠长按才出现的 title 提示 */}
-          <div className="color-grid">
-            {palette.colors.map((color) => (
-              <button
-                key={color.id}
-                className={`color-swatch-item ${selectedColor === color.hex ? 'selected' : ''}`}
-                onClick={() => handleColorSelect(color.hex)}
-              >
-                <span className="color-swatch" style={{ backgroundColor: color.hex }} />
-                <span className="color-swatch-label">
-                  {color.id} {color.nameZh || color.name}
-                </span>
-              </button>
-            ))}
-          </div>
+          {/* 色卡网格：色块下方直接印出色号+名称，不再只靠长按才出现的 title 提示。
+              有 groupNames 的品牌(MARD 等)按色系分组展示,便于快速定位 */}
+          {palette.groupNames ? (
+            Object.entries(palette.groupNames).map(([gid, gname]) => (
+              <div key={gid} className="palette-group">
+                <div className="palette-group-title">{gname}</div>
+                <div className="color-grid">
+                  {palette.colors.filter(c => c.category === gid).map((color) => (
+                    <button
+                      key={color.id}
+                      className={`color-swatch-item ${selectedColor === color.hex ? 'selected' : ''}`}
+                      onClick={() => handleColorSelect(color.hex)}
+                    >
+                      <span className="color-swatch" style={{ backgroundColor: color.hex }} />
+                      <span className="color-swatch-label">
+                        {color.id} {color.nameZh || color.name}
+                      </span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            ))
+          ) : (
+            <div className="color-grid">
+              {palette.colors.map((color) => (
+                <button
+                  key={color.id}
+                  className={`color-swatch-item ${selectedColor === color.hex ? 'selected' : ''}`}
+                  onClick={() => handleColorSelect(color.hex)}
+                >
+                  <span className="color-swatch" style={{ backgroundColor: color.hex }} />
+                  <span className="color-swatch-label">
+                    {color.id} {color.nameZh || color.name}
+                  </span>
+                </button>
+              ))}
+            </div>
+          )}
         </div>
       )}
     </div>
