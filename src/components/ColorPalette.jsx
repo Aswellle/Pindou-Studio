@@ -1,3 +1,4 @@
+import { useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
 import { getPalette, PALETTE_LIST } from '../data/palettes'
 
@@ -8,6 +9,18 @@ export default function ColorPalette({ selectedColor, onColorSelect, collapsed, 
   // 当前选中颜色的名称(色卡中匹配,匹配不到显示原值)
   const currentColorInfo = palette.colors.find(c => c.hex === selectedColor)
   const currentColorName = currentColorInfo?.nameZh || currentColorInfo?.name || selectedColor
+
+  // 色系分组,按使用度(组内颜色数)由高到低排列(COCO/MARD 均适用)
+  const groups = useMemo(() => {
+    if (!palette.groupNames) return null
+    return Object.entries(palette.groupNames)
+      .map(([gid, gname]) => ({
+        id: gid,
+        name: gname,
+        colors: palette.colors.filter(c => c.category === gid),
+      }))
+      .sort((a, b) => b.colors.length - a.colors.length)
+  }, [palette])
 
   // 近白色珠加边框,避免浅背景上不可见
   const isLight = (hex) => {
@@ -61,13 +74,13 @@ export default function ColorPalette({ selectedColor, onColorSelect, collapsed, 
         </div>
 
         <div className="palette-scroll">
-          {palette.groupNames ? (
-            /* 按色系分组展示(如 MARD:黄橙色调/绿色调/...),便于快速定位 */
-            Object.entries(palette.groupNames).map(([gid, gname]) => (
-              <div key={gid} className="palette-group">
-                <div className="palette-group-title">{gname}</div>
+          {groups ? (
+            /* 按色系分组展示(如 MARD:黄橙色调/绿色调/...),组序按使用度(色数)降序 */
+            groups.map((g) => (
+              <div key={g.id} className="palette-group">
+                <div className="palette-group-title">{g.name} · {g.colors.length}</div>
                 <div className="color-grid">
-                  {palette.colors.filter(c => c.category === gid).map(renderSwatch)}
+                  {g.colors.map(renderSwatch)}
                 </div>
               </div>
             ))

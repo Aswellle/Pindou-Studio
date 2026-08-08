@@ -28,6 +28,18 @@ export default function MobileColorPalette({
   )
   const selectedColorName = selectedColorInfo?.nameZh || selectedColorInfo?.name || ''
 
+  // 色系分组,按使用度(组内颜色数)由高到低排列(COCO/MARD 均适用)
+  const groups = useMemo(() => {
+    if (!palette.groupNames) return null
+    return Object.entries(palette.groupNames)
+      .map(([gid, gname]) => ({
+        id: gid,
+        name: gname,
+        colors: palette.colors.filter(c => c.category === gid),
+      }))
+      .sort((a, b) => b.colors.length - a.colors.length)
+  }, [palette])
+
   // 珠子/颜色数统计 — 与桌面端 ColorStatsBar 同一算法，移动端用紧凑徽章展示
   const { totalBeads, colorCount } = useMemo(() => {
     if (!canvasData) return { totalBeads: 0, colorCount: 0 }
@@ -68,8 +80,9 @@ export default function MobileColorPalette({
           style={{ backgroundColor: selectedColor }}
         />
         <span className="color-label">
-          {/* 只显示颜色名称(不显示 hex,与 PC 端一致) */}
+          {/* 颜色名称 + 所属品牌/色号,方便分辨是哪个色卡的珠子 */}
           <span className="color-name">{selectedColorName || selectedColor}</span>
+          <span className="color-brand">{palette.nameZh} · {selectedColorInfo?.id}</span>
         </span>
         {totalBeads > 0 && (
           <span className="mobile-stats-badge">
@@ -114,12 +127,12 @@ export default function MobileColorPalette({
 
           {/* 色卡网格：色块下方直接印出色号+名称，不再只靠长按才出现的 title 提示。
               有 groupNames 的品牌(MARD 等)按色系分组展示,便于快速定位 */}
-          {palette.groupNames ? (
-            Object.entries(palette.groupNames).map(([gid, gname]) => (
-              <div key={gid} className="palette-group">
-                <div className="palette-group-title">{gname}</div>
+          {groups ? (
+            groups.map((g) => (
+              <div key={g.id} className="palette-group">
+                <div className="palette-group-title">{g.name} · {g.colors.length}</div>
                 <div className="color-grid">
-                  {palette.colors.filter(c => c.category === gid).map((color) => (
+                  {g.colors.map((color) => (
                     <button
                       key={color.id}
                       className={`color-swatch-item ${selectedColor === color.hex ? 'selected' : ''}`}

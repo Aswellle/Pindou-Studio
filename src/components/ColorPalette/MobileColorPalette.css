@@ -57,6 +57,16 @@
   max-width: 120px;
 }
 
+/* 所属品牌与色号(如 "MARD 拼豆 · A1"),帮助分辨哪个色卡的珠子 */
+.color-brand {
+  font-size: var(--text-xs);
+  color: var(--text-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 140px;
+}
+
 .mobile-stats-badge {
   flex: 1;
   font-size: var(--text-xs);
