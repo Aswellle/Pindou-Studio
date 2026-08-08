@@ -68,8 +68,8 @@ export default function MobileColorPalette({
           style={{ backgroundColor: selectedColor }}
         />
         <span className="color-label">
-          {selectedColorName && <span className="color-name">{selectedColorName}</span>}
-          <span className="color-hex">{selectedColor}</span>
+          {/* 只显示颜色名称(不显示 hex,与 PC 端一致) */}
+          <span className="color-name">{selectedColorName || selectedColor}</span>
         </span>
         {totalBeads > 0 && (
           <span className="mobile-stats-badge">

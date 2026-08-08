@@ -1,23 +1,13 @@
-import { useState, useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
-import { getPalette } from '../data/palettes'
+import { getPalette, PALETTE_LIST } from '../data/palettes'
 
-// canvasData 只允许合法 6 位 hex,输入处校验(非法 fillStyle 渲染黑格/污染画布数据)
-const HEX_RE = /^#[0-9a-fA-F]{6}$/
-
-export default function ColorPalette({ selectedColor, onColorSelect, collapsed, onToggleCollapse, currentPalette }) {
+export default function ColorPalette({ selectedColor, onColorSelect, collapsed, onToggleCollapse, currentPalette, onPaletteChange }) {
   const { t } = useTranslation()
-  // 与移动端同源:直接读官方品牌色卡(原硬编码 44 色与真实 Perler 色板 0 匹配)
+  // 与移动端同源:直接读官方品牌色卡
   const palette = getPalette(currentPalette)
-  const [hexInput, setHexInput] = useState(selectedColor)
-
-  useEffect(() => { setHexInput(selectedColor) }, [selectedColor])
-
-  // 失焦/回车时校验提交;非法输入回弹为当前色(输入过程中允许自由编辑)
-  const commitHex = () => {
-    if (HEX_RE.test(hexInput)) onColorSelect(hexInput)
-    else setHexInput(selectedColor)
-  }
+  // 当前选中颜色的名称(色卡中匹配,匹配不到显示原值)
+  const currentColorInfo = palette.colors.find(c => c.hex === selectedColor)
+  const currentColorName = currentColorInfo?.nameZh || currentColorInfo?.name || selectedColor
 
   return (
     <div className={`palette-drawer ${collapsed ? 'collapsed' : ''}`}>
@@ -38,7 +28,18 @@ export default function ColorPalette({ selectedColor, onColorSelect, collapsed, 
       <div className="palette-inner">
         <div className="palette-header">
           <h3 className="palette-title">{t('palette.title2')}</h3>
-          <p className="palette-subtitle">{palette.nameZh} · {palette.colorCount}</p>
+          {/* 品牌色卡选择(按 PALETTE_LIST 顺序:COCO → MARD → MARD 291 → Perler → Hama → Artkal) */}
+          <select
+            className="palette-brand-select"
+            value={currentPalette}
+            onChange={(e) => onPaletteChange?.(e.target.value)}
+            aria-label={t('palette.brandSelect')}
+          >
+            {PALETTE_LIST.map(brand => (
+              <option key={brand.id} value={brand.id}>{brand.nameZh}</option>
+            ))}
+          </select>
+          <p className="palette-subtitle">{palette.nameZh} · {palette.colorCount} 色</p>
         </div>
 
         <div className="palette-scroll">
@@ -61,15 +62,9 @@ export default function ColorPalette({ selectedColor, onColorSelect, collapsed, 
             style={{ backgroundColor: selectedColor }}
           />
           <div className="color-info">
-            <span className="color-hex">{selectedColor}</span>
-            <input
-              type="text"
-              value={hexInput}
-              onChange={(e) => setHexInput(e.target.value)}
-              onBlur={commitHex}
-              onKeyDown={(e) => { if (e.key === 'Enter') commitHex() }}
-              className="color-input"
-            />
+            {/* 显示颜色名称(不显示 hex,去掉 hex 输入框) */}
+            <span className="color-name">{currentColorName}</span>
+            <span className="color-id">{currentColorInfo?.id || ''}</span>
           </div>
         </div>
       </div>
@@ -137,8 +132,21 @@ export default function ColorPalette({ selectedColor, onColorSelect, collapsed, 
           margin-bottom: 4px;
         }
         .collapsed .palette-title,
-        .collapsed .palette-subtitle {
+        .collapsed .palette-subtitle,
+        .collapsed .palette-brand-select {
           display: none;
+        }
+        .palette-brand-select {
+          width: 100%;
+          margin: 6px 0 4px;
+          padding: 5px 8px;
+          border: 1px solid var(--border-color);
+          border-radius: 6px;
+          background: var(--bg-secondary);
+          color: var(--text-primary);
+          font-size: var(--text-sm);
+          font-family: inherit;
+          cursor: pointer;
         }
         .palette-subtitle {
           font-size: var(--text-xs);
@@ -195,20 +203,20 @@ export default function ColorPalette({ selectedColor, onColorSelect, collapsed, 
           flex: 1;
           min-width: 0;
         }
-        .color-hex {
-          font-family: var(--font-mono);
-          font-size: var(--text-sm);
+        .color-name {
+          font-size: var(--text-md);
           font-weight: var(--font-weight-semibold);
           display: block;
-          margin-bottom: 4px;
+          margin-bottom: 2px;
+          white-space: nowrap;
+          overflow: hidden;
+          text-overflow: ellipsis;
         }
-        .color-input {
-          width: 100%;
-          padding: 6px 8px;
-          border: 1px solid var(--border-color);
-          border-radius: 4px;
+        .color-id {
           font-family: var(--font-mono);
           font-size: var(--text-xs);
+          color: var(--text-secondary);
+          display: block;
         }
       `}</style>
     </div>

@@ -62,10 +62,14 @@
   "palette": {
     "title": "Color Palette",
     "brand": {
+      "coco": "COCO (China)",
+      "mard": "MARD (China)",
+      "mard291": "MARD 291 (China)",
       "perler": "Perler (USA)",
       "hama": "Hama (Denmark)",
       "artkal": "Artkal (China/Netherlands)"
     },
+    "brandSelect": "Select brand palette",
     "search": "Search colors...",
     "recent": "Recently used",
     "colors": "colors",

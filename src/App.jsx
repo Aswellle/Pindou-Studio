@@ -323,6 +323,7 @@ export default function App() {
           selectedColor={selectedColor}
           onColorSelect={setSelectedColor}
           currentPalette={currentPalette}
+          onPaletteChange={setCurrentPalette}
           collapsed={rightSidebarCollapsed}
           onToggleCollapse={() => setRightSidebarCollapsed(!rightSidebarCollapsed)}
         />

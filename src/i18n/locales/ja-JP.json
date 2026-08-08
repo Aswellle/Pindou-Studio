@@ -62,10 +62,14 @@
   "palette": {
     "title": "カラーパレット",
     "brand": {
+      "coco": "COCO (中国)",
+      "mard": "MARD (中国)",
+      "mard291": "MARD 291 (中国)",
       "perler": "Perler (アメリカ)",
       "hama": "Hama (デンマーク)",
       "artkal": "Artkal (中国/オランダ)"
     },
+    "brandSelect": "ブランドパレットを選択",
     "search": "カラーを検索...",
     "recent": "最近使用",
     "colors": "色",
