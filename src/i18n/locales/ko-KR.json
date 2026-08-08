@@ -178,6 +178,7 @@
     "realisticHint": "미리보기, 공유, 앨범 커버에 적합",
     "exportFailed": "내보내기에 실패했습니다. 캔버스 내용을 확인한 후 다시 시도하세요.",
     "canvasTooLarge": "캔버스가 너무 커서 도면을 생성할 수 없습니다. 그리드를 줄이고 다시 시도하세요.",
+    "resolution": "내보내기 해상도",
     "colorListTitle": "색상 목록",
     "totalInfo": "총 {{count}}색, {{beads}}개",
     "kindUnit": "종",

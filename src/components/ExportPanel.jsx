@@ -14,6 +14,7 @@ export default function ExportPanel({ canvasData, gridSize, gridWidth, gridHeigh
   const [exportProgress, setExportProgress] = useState(0)
   const [isExporting, setIsExporting] = useState(false)
   const [exportError, setExportError] = useState(null)
+  const [exportInfo, setExportInfo] = useState('') // 导出后显示实际分辨率(验证超采样生效)
   const [beadStyle, setBeadStyle] = useState('professional')
   const palette = getPalette(paletteId)
   const panelRef = useRef(null)
@@ -101,6 +102,7 @@ export default function ExportPanel({ canvasData, gridSize, gridWidth, gridHeigh
         }
       }
 
+      setExportInfo(`${canvas.width}×${canvas.height}`)
       // toBlob 替代 toDataURL:高 scale 大画布时避免 base64 内存峰值翻倍
       const blob = await new Promise((resolve) => {
         canvas.toBlob((b) => resolve(b), 'image/png')
@@ -208,12 +210,14 @@ export default function ExportPanel({ canvasData, gridSize, gridWidth, gridHeigh
     try {
       const abortCtrl = new AbortController()
       exportAbortRef.current = abortCtrl
+      setExportInfo('')
       await exportAsPNG(canvasData, gridSize, paletteId, effectiveName, palette, {
         gridWidth,
         gridHeight,
         beadStyle,
         signal: abortCtrl.signal,
-        onProgress: (_phase, pct) => setExportProgress(Math.round(pct * 100))
+        onProgress: (_phase, pct) => setExportProgress(Math.round(pct * 100)),
+        onResolution: (w, h) => setExportInfo(`${w}×${h}`)
       })
     } catch (err) {
       if (err?.name === 'AbortError') return // 组件卸载取消,非错误
@@ -358,6 +362,11 @@ export default function ExportPanel({ canvasData, gridSize, gridWidth, gridHeigh
               {exportError && (
                 <div style={{ fontSize: 11, color: 'var(--error)', padding: '4px 2px', lineHeight: 1.4 }}>
                   {exportError}
+                </div>
+              )}
+              {exportInfo && (
+                <div style={{ fontSize: 11, color: 'var(--secondary-accent)', padding: '4px 2px', lineHeight: 1.4 }}>
+                  ✓ {t('export.resolution')}: {exportInfo}
                 </div>
               )}
               <button onClick={() => requestExport(t('export.patternSheetSVG'), beadStyle === 'professional' ? t('export.professionalDesc') : t('export.realisticDesc'), currentStyleName, handleExportPatternSheetSVG)} className="btn btn-secondary">

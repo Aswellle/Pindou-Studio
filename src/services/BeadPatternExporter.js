@@ -16,6 +16,17 @@ import { findClosestColorCIEDE2000 } from '../utils/colorDiff'
 const EXPORT_SCALE = 3
 
 /**
+ * 设备类型判断(而非窗口宽度)。
+ * 不能用 window.innerWidth:浏览器页面缩放(zoom)/半屏窗口会让 innerWidth 变小,
+ * 桌面场景会被误判为移动端,scale 从 3 崩到 1,导出模糊 —— 用户实际遇到的正是此 bug。
+ */
+function isMobileDevice() {
+  if (typeof navigator === 'undefined') return false
+  if (typeof navigator.userAgentData !== 'undefined' && navigator.userAgentData.mobile) return true
+  return /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent || '')
+}
+
+/**
  * 创建按面积预算超采样的 canvas(质量×性能平衡,分配失败自动降级)。
  *
  * 质量目标:专业模式每格 ≥56 物理像素(scale 2)、拟真模式每格 ≥84(scale 3),
@@ -30,8 +41,7 @@ const EXPORT_SCALE = 3
  * @throws 所有 scale 都失败时抛错
  */
 export function createScaledCanvas(logicalW, logicalH) {
-  const isConstrained = typeof window !== 'undefined' && window.innerWidth < 1025
-  const MAX_PHYSICAL_PIXELS = isConstrained ? 60_000_000 : 230_000_000
+  const MAX_PHYSICAL_PIXELS = isMobileDevice() ? 60_000_000 : 230_000_000
   const pixelArea = logicalW * logicalH
   const budgetScale = Math.floor(Math.sqrt(MAX_PHYSICAL_PIXELS / pixelArea))
   let scale = Math.max(1, Math.min(4, budgetScale))
@@ -579,6 +589,8 @@ export async function exportAsPNG(canvasData, gridSize, paletteId, designName, p
     beadStyle: options.beadStyle,
     signal: options.signal
   })
+  // 回传实际导出分辨率(UI 显示,让用户确认超采样 scale 生效)
+  if (options.onResolution) options.onResolution(canvas.width, canvas.height)
 
   // toBlob 替代 toDataURL:高 scale 大画布时 base64 会让内存峰值翻倍(1 亿像素 RGBA
   // + base64 ≈ 900MB),Blob 直接引用 backing store 且支持 PNG 压缩级别,更省内存

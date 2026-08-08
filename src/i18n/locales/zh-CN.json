@@ -178,6 +178,7 @@
     "realisticHint": "适合预览、分享、相册封面",
     "exportFailed": "导出失败，请检查画布内容后重试。",
     "canvasTooLarge": "画布尺寸过大，无法生成图纸，请缩小网格后重试。",
+    "resolution": "导出分辨率",
     "colorListTitle": "颜色清单",
     "totalInfo": "共 {{count}} 色，{{beads}} 粒",
     "kindUnit": "种",
