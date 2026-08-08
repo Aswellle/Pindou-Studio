@@ -1,8 +1,15 @@
 import { PERLER_PALETTE } from './perler'
 import { HAMA_PALETTE } from './hama'
 import { ARTKAL_PALETTE } from './artkal'
+import { MARD_PALETTE, MARD291_PALETTE } from './mard'
+import { COCO_PALETTE } from './coco'
 
+// 选择列表顺序:COCO → MARD(221 默认)→ MARD 291(完整)→ Perler → Hama → Artkal
+// (MARD 221 为国内图纸生态默认标准,MARD 291 为完整选项;COCO 为性价比主流)
 export const PALETTES = {
+  coco: COCO_PALETTE,
+  mard: MARD_PALETTE,
+  mard291: MARD291_PALETTE,
   perler: PERLER_PALETTE,
   hama: HAMA_PALETTE,
   artkal: ARTKAL_PALETTE,
