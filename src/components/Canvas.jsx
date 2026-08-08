@@ -63,6 +63,7 @@ const Canvas = forwardRef(function Canvas({
   // "单指点按"而填色。真实业务里只有"单指起、单指落"的手势才允许填色。
   const wasPinchingRef = useRef(false)
   const strokeAccumRef = useRef(null) // accumulated canvas state during a drag stroke
+  const lastTouchRef = useRef(0) // 最近一次触控时间戳,用于区分触屏双击与鼠标双击
 
   const cols = gridWidth || gridSize
   const rows = gridHeight || gridSize
@@ -229,10 +230,22 @@ const Canvas = forwardRef(function Canvas({
   const commitStroke = useCallback(() => {
     painter.clearOverlay()
     if (strokeAccumRef.current) {
-      onCanvasChange(strokeAccumRef.current)
+      const acc = strokeAccumRef.current
       strokeAccumRef.current = null
+      // 空操作(笔画前后无实际变化,如重复点击同色格)不 PUSH,防重复快照占满 undo 栈
+      const noChange = acc.length === committedData.length
+        && acc.every((row, y) => row.length === committedData[y].length
+          && row.every((cell, x) => cell === committedData[y][x]))
+      if (noChange) return
+      onCanvasChange(acc)
     }
-  }, [onCanvasChange, painter])
+  }, [onCanvasChange, painter, committedData])
+
+  // 丢弃进行中的笔画(undo/redo 竞态防护:避免 commitStroke 重推笔画前快照回滚 undo)
+  const cancelStroke = useCallback(() => {
+    strokeAccumRef.current = null
+    painter.clearOverlay()
+  }, [painter])
 
   // ─────────────────────────────────────────────────────────────────
   // 适应屏幕
@@ -275,7 +288,8 @@ const Canvas = forwardRef(function Canvas({
   useImperativeHandle(ref, () => ({
     resetTransform,
     fitToScreen,
-  }), [resetTransform, fitToScreen])
+    cancelStroke,
+  }), [resetTransform, fitToScreen, cancelStroke])
 
   // ─────────────────────────────────────────────────────────────────
   // PC: 鼠标滚轮缩放（以光标为中心）
@@ -490,6 +504,7 @@ const Canvas = forwardRef(function Canvas({
 
   const handleTouchStart = useCallback((e) => {
     e.preventDefault()
+    lastTouchRef.current = Date.now()
     stopMomentum()
 
     const rect = containerRef.current?.getBoundingClientRect()
@@ -679,8 +694,9 @@ const Canvas = forwardRef(function Canvas({
     setHoverCell(null)
   }, [stopMomentum])
 
-  // 双击重置
+  // 双击重置(仅鼠标语义):触屏快速连点(移动端连续填珠)会由浏览器合成 dblclick,不触发重置
   const handleDoubleClick = useCallback(() => {
+    if (Date.now() - lastTouchRef.current < 600) return
     resetTransform()
   }, [resetTransform])
 

@@ -70,6 +70,10 @@ export default function App() {
   const [gridWidth, setGridWidth] = useState(null)
   const [gridHeight, setGridHeight] = useState(null)
   const { canvasData, canUndo, canRedo, setCanvas, resetCanvas, undo, redo } = useHistory()
+
+  // 撤销/重做前先丢弃活动笔画,避免笔画进行中 undo 后 mouseUp 时 commitStroke 重推快照回滚
+  const handleUndo = useCallback(() => { canvasRef.current?.cancelStroke?.(); undo() }, [undo])
+  const handleRedo = useCallback(() => { canvasRef.current?.cancelStroke?.(); redo() }, [redo])
   const { works: savedWorks, saveWork, updateWorks: handleSaveWork } = useSavedWorks()
 
   const [leftSidebarCollapsed, setLeftSidebarCollapsed] = useState(false)
@@ -101,14 +105,17 @@ export default function App() {
   // Keyboard shortcuts: Ctrl+Z undo, Ctrl+Y / Ctrl+Shift+Z redo
   useEffect(() => {
     const handler = (e) => {
+      // 输入控件聚焦时交还原生文本撤销/重做,不拦截
+      const t = e.target
+      if (t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA' || t.isContentEditable)) return
       const ctrl = e.ctrlKey || e.metaKey
       if (!ctrl) return
-      if (e.key === 'z' && !e.shiftKey) { e.preventDefault(); undo() }
-      else if (e.key === 'y' || (e.key === 'z' && e.shiftKey)) { e.preventDefault(); redo() }
+      if (e.key === 'z' && !e.shiftKey) { e.preventDefault(); handleUndo() }
+      else if (e.key === 'y' || (e.key === 'z' && e.shiftKey)) { e.preventDefault(); handleRedo() }
     }
     window.addEventListener('keydown', handler)
     return () => window.removeEventListener('keydown', handler)
-  }, [undo, redo])
+  }, [handleUndo, handleRedo])
 
   // Lock body scroll while any modal is open; reset iOS Safari viewport offset on close
   const anyModalOpen = showAuth || showQuantizer || showSaveDialog || showExport
@@ -280,8 +287,8 @@ export default function App() {
             onGridDimensionsChange={handleGridDimensionsChange}
             collapsed={leftSidebarCollapsed}
             onToggleCollapse={() => setLeftSidebarCollapsed(!leftSidebarCollapsed)}
-            onUndo={undo}
-            onRedo={redo}
+            onUndo={handleUndo}
+            onRedo={handleRedo}
             onClear={handleClearCanvas}
             canUndo={canUndo}
             canRedo={canRedo}
