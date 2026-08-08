@@ -11,40 +11,19 @@
 import i18n from '../i18n'
 import { findClosestColorCIEDE2000 } from '../utils/colorDiff'
 
-// PNG 导出超采样倍率：画布按 EXPORT_SCALE 倍物理像素渲染，
-// 所有绘制代码仍用逻辑坐标（ctx.scale 统一放大），放大查看/打印时网格色块和文字才不糊。
-const EXPORT_SCALE = 3
-
 /**
- * 设备类型判断(而非窗口宽度)。
- * 不能用 window.innerWidth:浏览器页面缩放(zoom)/半屏窗口会让 innerWidth 变小,
- * 桌面场景会被误判为移动端,scale 从 3 崩到 1,导出模糊 —— 用户实际遇到的正是此 bug。
- */
-function isMobileDevice() {
-  if (typeof navigator === 'undefined') return false
-  if (typeof navigator.userAgentData !== 'undefined' && navigator.userAgentData.mobile) return true
-  return /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent || '')
-}
-
-/**
- * 创建按面积预算超采样的 canvas(质量×性能平衡,分配失败自动降级)。
+ * 创建 3 倍超采样 canvas(用户确定方案,与专业站一致)。
  *
- * 质量目标:专业模式每格 ≥56 物理像素(scale 2)、拟真模式每格 ≥84(scale 3),
- *   放大到 200% 仍清晰锐利。此前 57 网格以上固定 scale=1(每格仅 28px,放大必糊)。
- * 性能约束:物理像素面积预算 —— 桌面 ~2.3 亿(≈920MB RGBA,浏览器 canvas 面积上限
- *   2.68 亿的近 86%,保证 170 网格可达 scale 3/每格 84px),移动/平板 ~6000 万
- *   (≈240MB,避免 OOM)。scale = min(4, floor(√(预算/面积))),分配失败逐级降级。
- * 注意:单张 PNG 是位图,物理上限即浏览器 canvas 面积上限;要任意放大无损请用
- *   SVG(矢量)。
+ * 3 倍超采样:每格 84 物理像素(28 逻辑 × 3),放大 200-300% 仍清晰锐利。
+ * 170×170 网格 scale 3 = 2.27 亿像素,在浏览器 canvas 面积上限(2.68 亿)内;
+ * 200×200 网格 scale 3 = 3.1 亿超限,自动降级 3→2→1,保证必能导出。
+ * 分配失败(低端设备内存不足)同样逐级降级。
  *
  * @returns {{ canvas: HTMLCanvasElement, scale: number }} 分配成功时返回
  * @throws 所有 scale 都失败时抛错
  */
 export function createScaledCanvas(logicalW, logicalH) {
-  const MAX_PHYSICAL_PIXELS = isMobileDevice() ? 60_000_000 : 230_000_000
-  const pixelArea = logicalW * logicalH
-  const budgetScale = Math.floor(Math.sqrt(MAX_PHYSICAL_PIXELS / pixelArea))
-  let scale = Math.max(1, Math.min(4, budgetScale))
+  let scale = 3
 
   const tryCreate = (w, h) => {
     try {
@@ -64,7 +43,7 @@ export function createScaledCanvas(logicalW, logicalH) {
   while (scale >= 1 && !canvas) {
     canvas = tryCreate(logicalW * scale, logicalH * scale)
     if (canvas) break
-    scale = scale >= 4 ? 2 : scale >= 2 ? 1 : 0
+    scale = scale >= 3 ? 2 : scale >= 2 ? 1 : 0
   }
   if (!canvas) throw new Error('canvas allocation failed')
   return { canvas, scale }
