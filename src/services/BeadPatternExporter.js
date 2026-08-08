@@ -184,7 +184,8 @@ export async function generateBeadPatternSheet({
   canvasData, gridSize, gridWidth, gridHeight, paletteId,
   designName, palette, onProgress = null,
   beadStyle = 'realistic',
-  showCodes = null
+  showCodes = null,
+  signal = null           // AbortSignal:组件卸载/用户取消时中止分帧导出
 }) {
   // 支持矩形网格（Phase 3）
   const cols = gridWidth || gridSize || (canvasData[0]?.length ?? gridSize)
@@ -442,6 +443,7 @@ export async function generateBeadPatternSheet({
       }
       processed++
       if (processed % BATCH_SIZE === 0) {
+        if (signal?.aborted) throw new DOMException('导出已取消', 'AbortError')
         if (onProgress) onProgress('beads', processed / total)
         await new Promise(r => requestAnimationFrame(r))
       }
@@ -534,7 +536,8 @@ export async function exportAsPNG(canvasData, gridSize, paletteId, designName, p
     gridHeight: options.gridHeight,
     paletteId, designName, palette,
     onProgress: options.onProgress,
-    beadStyle: options.beadStyle
+    beadStyle: options.beadStyle,
+    signal: options.signal
   })
 
   const link = document.createElement('a')

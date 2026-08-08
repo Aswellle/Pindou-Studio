@@ -29,6 +29,13 @@ export default function ExportPanel({ canvasData, gridSize, gridWidth, gridHeigh
     return () => cancelAnimationFrame(raf)
   }, [showExport, isModal])
 
+  // 导出任务取消:组件卸载时中止进行中的分帧导出
+  // (此前 rAF 分帧无取消机制,模态关闭后导出继续后台跑完整个网格)
+  const exportAbortRef = useRef(null)
+  useEffect(() => {
+    return () => exportAbortRef.current?.abort()
+  }, [])
+
   // Actual dimensions (support rectangular grids)
   const actualWidth = gridWidth || gridSize
   const actualHeight = gridHeight || gridSize
@@ -45,47 +52,68 @@ export default function ExportPanel({ canvasData, gridSize, gridWidth, gridHeigh
     return { colorCounts: counts, totalBeads: Object.values(counts).reduce((a, b) => a + b, 0) }
   }, [canvasData, actualWidth, actualHeight])
 
-  const handleExportImage = () => {
-    if (!canvasData) return
+  const handleExportImage = async () => {
+    if (!canvasData || isExporting) return
+    setIsExporting(true)
+    try {
+      const CELL_SIZE = 20
+      const BEAD_RADIUS = CELL_SIZE / 2 - 1
+      // 超采样倍率，与 BeadPatternExporter 的专业/展示导出保持一致的清晰度
+      const QUICK_EXPORT_SCALE = 3
 
-    const CELL_SIZE = 20
-    const BEAD_RADIUS = CELL_SIZE / 2 - 1
-    // 超采样倍率，与 BeadPatternExporter 的专业/展示导出保持一致的清晰度
-    const QUICK_EXPORT_SCALE = 3
+      const canvasWidth = actualWidth * CELL_SIZE
+      const canvasHeight = actualHeight * CELL_SIZE
+      // 超大网格动态降采样(同 BeadPatternExporter):固定 ×3 时 200×200 网格 12000² ≈ 576MB
+      const pixelArea = canvasWidth * canvasHeight
+      const scale = pixelArea > 6_000_000 ? 1 : pixelArea > 2_000_000 ? 2 : QUICK_EXPORT_SCALE
+      const canvas = document.createElement('canvas')
+      try {
+        canvas.width = canvasWidth * scale
+        canvas.height = canvasHeight * scale
+      } catch (e) {
+        setExportError(t('export.canvasTooLarge'))
+        return
+      }
+      const ctx = canvas.getContext('2d')
+      ctx.scale(scale, scale)
 
-    const canvasWidth = actualWidth * CELL_SIZE
-    const canvasHeight = actualHeight * CELL_SIZE
-    const canvas = document.createElement('canvas')
-    canvas.width = canvasWidth * QUICK_EXPORT_SCALE
-    canvas.height = canvasHeight * QUICK_EXPORT_SCALE
-    const ctx = canvas.getContext('2d')
-    ctx.scale(QUICK_EXPORT_SCALE, QUICK_EXPORT_SCALE)
+      ctx.fillStyle = '#ffffff'
+      ctx.fillRect(0, 0, canvasWidth, canvasHeight)
 
-    ctx.fillStyle = '#ffffff'
-    ctx.fillRect(0, 0, canvasWidth, canvasHeight)
+      const abortCtrl = new AbortController()
+      exportAbortRef.current = abortCtrl
 
-    for (let y = 0; y < actualHeight; y++) {
-      for (let x = 0; x < actualWidth; x++) {
-        const color = canvasData[y]?.[x]
-        const hex = resolveToHex(color, palette)
-        if (hex) {
-          ctx.fillStyle = hex
-          ctx.beginPath()
-          ctx.arc(
-            x * CELL_SIZE + CELL_SIZE / 2,
-            y * CELL_SIZE + CELL_SIZE / 2,
-            BEAD_RADIUS,
-            0, Math.PI * 2
-          )
-          ctx.fill()
+      // 分帧渲染:每 2000 格让出主线程(此前 4 万次 arc+fill 同步阻塞 UI 数秒)
+      const BATCH = 2000
+      let drawn = 0
+      for (let y = 0; y < actualHeight; y++) {
+        for (let x = 0; x < actualWidth; x++) {
+          if (abortCtrl.signal.aborted) return
+          const color = canvasData[y]?.[x]
+          const hex = resolveToHex(color, palette)
+          if (hex) {
+            ctx.fillStyle = hex
+            ctx.beginPath()
+            ctx.arc(
+              x * CELL_SIZE + CELL_SIZE / 2,
+              y * CELL_SIZE + CELL_SIZE / 2,
+              BEAD_RADIUS,
+              0, Math.PI * 2
+            )
+            ctx.fill()
+          }
+          if (++drawn % BATCH === 0) await new Promise(r => requestAnimationFrame(r))
         }
       }
-    }
 
-    const link = document.createElement('a')
-    link.download = `bead-pattern-${actualWidth}x${actualHeight}.png`
-    link.href = canvas.toDataURL('image/png')
-    link.click()
+      const link = document.createElement('a')
+      link.download = `bead-pattern-${actualWidth}x${actualHeight}.png`
+      link.href = canvas.toDataURL('image/png')
+      link.click()
+    } finally {
+      exportAbortRef.current = null
+      setIsExporting(false)
+    }
   }
 
   const handleExportText = () => {
@@ -176,16 +204,21 @@ export default function ExportPanel({ canvasData, gridSize, gridWidth, gridHeigh
     setExportProgress(0)
     setExportError(null)
     try {
+      const abortCtrl = new AbortController()
+      exportAbortRef.current = abortCtrl
       await exportAsPNG(canvasData, gridSize, paletteId, effectiveName, palette, {
         gridWidth,
         gridHeight,
         beadStyle,
+        signal: abortCtrl.signal,
         onProgress: (_phase, pct) => setExportProgress(Math.round(pct * 100))
       })
     } catch (err) {
+      if (err?.name === 'AbortError') return // 组件卸载取消,非错误
       console.error('Export failed:', err)
       setExportError(t('export.exportFailed'))
     } finally {
+      exportAbortRef.current = null
       setIsExporting(false)
       setExportProgress(0)
     }
@@ -253,7 +286,7 @@ export default function ExportPanel({ canvasData, gridSize, gridWidth, gridHeigh
               <span className="section-hint">{t('export.quickSectionHint')}</span>
             </div>
             <div className="export-buttons">
-              <button onClick={() => requestExport(t('export.png'), t('export.pngDesc'), null, handleExportImage)} className="btn btn-secondary">
+              <button onClick={() => requestExport(t('export.png'), t('export.pngDesc'), null, handleExportImage)} className="btn btn-secondary" disabled={isExporting}>
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                   <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
                   <circle cx="8.5" cy="8.5" r="1.5"/>
