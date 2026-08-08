@@ -177,6 +177,7 @@
     "professionalHint": "見比べながらビーズを貼るのに最適、各マスに色番号を表示",
     "realisticHint": "プレビュー、共有、アルバム表紙に最適",
     "exportFailed": "エクスポートに失敗しました。キャンバスの内容を確認して再試行してください。",
+    "canvasTooLarge": "キャンバスが大きすぎて図面を生成できません。グリッドを小さくして再試行してください。",
     "defaultName": "無題のデザイン",
     "legendTitle": "カラーリスト",
     "legendTotal": "{{n}} 色、{{m}} 粒",

@@ -3,6 +3,9 @@ import react from '@vitejs/plugin-react'
 
 export default defineConfig({
   plugins: [react()],
+  // 兼容 VITE_ 前缀(local .env.local)与无前缀/其他前缀(Vercel 环境变量)两种命名
+  // (自定义后需显式包含 VITE_,否则默认前缀失效)
+  envPrefix: ['VITE_', 'SUPABASE_', 'NEXT_PUBLIC_'],
   build: {
     rollupOptions: {
       input: 'index.html',

@@ -208,13 +208,20 @@ export async function generateBeadPatternSheet({
   const sheetWidth = gridPixelW + ROW_LABEL_WIDTH + PADDING * 2 + COLOR_PANEL_WIDTH
   const sheetHeight = gridPixelH + HEADER_HEIGHT + LEGEND_HEIGHT + COL_LABEL_HEIGHT + PADDING * 2
 
-  // 创建 canvas — 物理像素按 EXPORT_SCALE 倍分辨率分配，
-  // ctx.scale 后所有绘制代码仍按逻辑尺寸（sheetWidth/sheetHeight）操作，无需改动下方坐标计算
+  // 创建 canvas — 物理像素按 scale 倍分辨率分配，
+  // ctx.scale 后所有绘制代码仍按逻辑尺寸（sheetWidth/sheetHeight）操作，无需改动下方坐标计算。
+  // 超大网格动态降采样:固定 ×3 时 170×170 网格物理像素面积 ≈ 910MB,标签页 OOM。
+  const pixelArea = sheetWidth * sheetHeight
+  const scale = pixelArea > 6_000_000 ? 1 : pixelArea > 2_000_000 ? 2 : EXPORT_SCALE
   const canvas = document.createElement('canvas')
-  canvas.width = sheetWidth * EXPORT_SCALE
-  canvas.height = sheetHeight * EXPORT_SCALE
+  try {
+    canvas.width = sheetWidth * scale
+    canvas.height = sheetHeight * scale
+  } catch (e) {
+    throw new Error(i18n.t('export.canvasTooLarge'))
+  }
   const ctx = canvas.getContext('2d')
-  ctx.scale(EXPORT_SCALE, EXPORT_SCALE)
+  ctx.scale(scale, scale)
 
   // 白色背景
   ctx.fillStyle = '#ffffff'

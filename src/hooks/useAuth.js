@@ -75,10 +75,12 @@ export function useAuth() {
         setIsAdmin(false)
         return
       }
-      if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
+      if (event === 'SIGNED_IN') {
         setUser(buildUser(session.user))
         refreshProfile(session.user.id)
       }
+      // TOKEN_REFRESHED(约每小时):仅静默续期会话,不覆盖昵称/头像
+      // (buildUser 会重置为空,导致每小时闪烁 + 多余 profiles 查询)
     })
 
     return () => {
