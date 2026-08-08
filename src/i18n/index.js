@@ -104,6 +104,12 @@ i18n.on('languageChanged', (lng) => {
   } catch (e) {
     // ignore
   }
+  // 移除 URL 中的 ?lang= 残留(用户切换语言后,刷新不再被残留参数拉回参数语言)
+  if (typeof window !== 'undefined' && window.location.search.includes('lang=')) {
+    const url = new URL(window.location.href)
+    url.searchParams.delete('lang')
+    window.history.replaceState({}, '', url)
+  }
 })
 
 export default i18n

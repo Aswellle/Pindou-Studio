@@ -10,6 +10,31 @@
       ],
       "destination": "https://tangnotes.site/:path*",
       "permanent": true
+    },
+    {
+      "source": "/gallery.html",
+      "destination": "/gallery",
+      "permanent": true
+    },
+    {
+      "source": "/tutorials.html",
+      "destination": "/tutorials",
+      "permanent": true
+    },
+    {
+      "source": "/admin.html",
+      "destination": "/admin",
+      "permanent": true
+    },
+    {
+      "source": "/privacy.html",
+      "destination": "/privacy",
+      "permanent": true
+    },
+    {
+      "source": "/terms.html",
+      "destination": "/terms",
+      "permanent": true
     }
   ],
   "rewrites": [

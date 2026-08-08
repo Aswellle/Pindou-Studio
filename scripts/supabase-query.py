@@ -37,6 +37,8 @@ def main():
         with open(args.file, encoding='utf-8') as f:
             sql = f.read()
     elif args.sql:
+        # 内联 SQL 会出现在进程命令行(ps / shell history),敏感查询请改用 --file
+        print('WARNING: 内联 SQL 会出现在进程命令行与 shell history,敏感查询建议改用 --file', file=sys.stderr)
         sql = args.sql
     if not sql.strip():
         print('ERROR: no SQL provided', file=sys.stderr)
@@ -55,7 +57,12 @@ def main():
             data = resp.read().decode('utf-8')
             print(f'HTTP {resp.status}')
             if data.strip():
-                print(data)
+                # 查询响应可能含敏感表数据,超长输出截断,避免全文进终端/CI 日志
+                if len(data) > 4000:
+                    print(data[:4000])
+                    print(f'...(输出已截断,共 {len(data)} 字符;如需全文请重定向到文件)')
+                else:
+                    print(data)
             else:
                 print('(empty response — OK)')
     except urllib.error.HTTPError as e:

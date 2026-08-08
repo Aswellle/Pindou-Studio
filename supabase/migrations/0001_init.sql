@@ -113,6 +113,8 @@ create policy "profiles_admin_read"
   using (public.is_admin());
 
 -- ── 管理员账号开通(注册并验证邮箱后执行,email 换成你的管理员邮箱) ──
--- update public.profiles
--- set role = 'admin'
--- where id = (select id from auth.users where email = 'admin@example.com' limit 1);
+-- 注意:trigger 只为新注册用户建 profiles 行,历史注册用户没有行时 UPDATE 命中 0 行且无提示,
+-- 必须用 upsert 形式:
+-- insert into public.profiles (id, role, updated_at)
+--   select id, 'admin', now() from auth.users where email = 'admin@example.com' limit 1
+--   on conflict (id) do update set role = 'admin';

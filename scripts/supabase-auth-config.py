@@ -60,20 +60,18 @@ def main():
     if args.get or args.verify:
         status, cfg = request('GET', url, token)
         print(f'HTTP {status}')
+        # 一律按白名单输出(此前 --get 全量 dump 含 SMTP 密码等敏感字段会进终端/CI 日志)
+        for k in ['site_url', 'mailer_autoconfirm', 'mailer_secure_email_change_enabled',
+                  'smtp_host', 'smtp_port', 'smtp_user', 'smtp_sender_name', 'smtp_admin_email']:
+            if k in cfg:
+                print(f'{k} = {cfg[k]}')
         if args.verify:
-            # 仅打印关键字段
-            for k in ['site_url', 'mailer_autoconfirm', 'mailer_secure_email_change_enabled',
-                      'smtp_host', 'smtp_port', 'smtp_user', 'smtp_sender_name', 'smtp_admin_email']:
-                if k in cfg:
-                    print(f'{k} = {cfg[k]}')
             templates = cfg.get('mailer_templates') or {}
             for name, tpl in templates.items():
                 print(f'\n--- {name} ---')
                 print(f'subject: {tpl.get("subject")}')
                 print(f'content_type: {tpl.get("content_type")}')
                 print(f'content: {tpl.get("content", "")[:200]}...')
-        else:
-            print(json.dumps(cfg, ensure_ascii=False, indent=2))
         return
 
     if args.set_templates:

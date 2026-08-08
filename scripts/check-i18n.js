@@ -31,12 +31,29 @@ function extractKeys(obj, prefix = '') {
   return keys
 }
 
+// 提取每个 leaf 值中的插值变量 {{name}},用于跨语言一致性校验
+function extractInterpolations(obj, prefix = '') {
+  const vars = []
+  for (const [k, v] of Object.entries(obj)) {
+    const fullKey = prefix ? `${prefix}.${k}` : k
+    if (v && typeof v === 'object' && !Array.isArray(v)) {
+      vars.push(...extractInterpolations(v, fullKey))
+    } else if (typeof v === 'string') {
+      const found = [...v.matchAll(/\{\{(\w+)\}\}/g)].map(m => m[1]).sort().join(',')
+      if (found) vars.push([fullKey, found])
+    }
+  }
+  return vars
+}
+
 let hasError = false
 
 const keysByLocale = {}
+const dataByLocale = {}
 for (const [locale, filePath] of Object.entries(LOCALE_FILES)) {
   try {
     const data = JSON.parse(readFileSync(filePath, 'utf8'))
+    dataByLocale[locale] = data
     keysByLocale[locale] = new Set(extractKeys(data))
   } catch (e) {
     console.error(`[${locale}] 无法读取文件: ${e.message}`)
@@ -46,6 +63,7 @@ for (const [locale, filePath] of Object.entries(LOCALE_FILES)) {
 
 if (!hasError) {
   const reference = keysByLocale['zh-CN']
+  const refVars = new Map(extractInterpolations(dataByLocale['zh-CN']))
 
   for (const [locale, keys] of Object.entries(keysByLocale)) {
     if (locale === 'zh-CN') continue
@@ -63,11 +81,23 @@ if (!hasError) {
       extra.forEach(k => console.error(`  + ${k}`))
       hasError = true
     }
+
+    // 插值变量一致性:同一键在 zh-CN 与各语言中的 {{var}} 集合必须一致,
+    // 否则运行时渲染出字面量占位符
+    const locVars = new Map(extractInterpolations(dataByLocale[locale]))
+    const varDiff = [...refVars].filter(([k, v]) => locVars.get(k) !== v)
+    if (varDiff.length > 0) {
+      console.error(`\n[${locale}] ${varDiff.length} 个键的插值变量与 zh-CN 不一致:`)
+      varDiff.forEach(([k, zhVars]) => {
+        console.error(`  - ${k}:zh-CN [${zhVars}] vs ${locale} [${locVars.get(k) || ''}]`)
+      })
+      hasError = true
+    }
   }
 }
 
 if (!hasError) {
-  console.log('✅ 所有 i18n 键同步一致')
+  console.log('✅ 所有 i18n 键同步一致,插值变量一致')
 }
 
 process.exit(hasError ? 1 : 0)
