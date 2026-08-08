@@ -96,11 +96,19 @@ input, button, textarea, select {
   font-family: inherit;
 }
 
-/* 移动/平板恢复合适正文比例:typography token 的 --text-base(13px)在手机/平板
-   屏幕上偏小(此前 body 继承浏览器默认 16px),桌面端(≥1025px)保持 token 设计 */
+/* 移动/平板(≤1024px)整体上调字号 token 一档:typography token 基准
+   (--text-base 13px)在手机/平板屏幕偏小(引入 token 前组件字号为 14-16px;
+   组件样式 328 处直接引用 var(--text-*),只调 body 无效),桌面端保持原 token */
 @media (max-width: 1024px) {
-  body {
-    font-size: 14px;
+  :root {
+    --text-xs: 12px;
+    --text-sm: 13px;
+    --text-base: 14px;
+    --text-md: 15px;
+    --text-lg: 17px;
+    --text-xl: 19px;
+    --text-2xl: 21px;
+    --text-3xl: 30px;
   }
 }
 
