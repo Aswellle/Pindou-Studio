@@ -15,6 +15,13 @@ export default defineConfig({
         },
       },
     },
+    // 字体 woff2 一律外链,不做 base64 内联:
+    // 默认 assetsInlineLimit(4096B)会把 ≤4KB 的 noto-sans-sc 子集内联进 CSS,
+    // 绕过 unicode-range 按需加载与浏览器 HTTP 缓存。其余资源保持默认行为。
+    assetsInlineLimit: (filePath, content) => {
+      if (filePath.endsWith('.woff2')) return false
+      return Buffer.byteLength(content) <= 4096
+    },
   },
   server: {
     port: 5280,

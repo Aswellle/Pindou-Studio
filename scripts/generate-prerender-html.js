@@ -1,13 +1,9 @@
 /**
- * 构建后处理:
- * 1. 向 dist/index.html 注入网络字体预加载声明(桌面端按需加载)
- * 2. 为每个子路由生成预渲染静态 SEO HTML
+ * 构建后处理:为每个子路由生成预渲染静态 SEO HTML
  *
- * 字体加载策略(浏览器原生,不依赖 JS 逻辑):
- *   <link rel="preload" media="(min-width:1025px)" onload=转stylesheet>
- *   - 桌面端(≥1025px):preload 下载字体 CSS → onload 转 stylesheet 应用,
- *     异步不阻塞首屏渲染,字体就绪后自动切换(font-display:swap 一致)
- *   - 移动端:media 不匹配 → 浏览器不下载,零字体开销
+ * 字体加载由 main.jsx 的 JS 动态 import 完成(桌面端 ≥1025px 按需加载,
+ * 移动端不执行不下载;失败仅降级到系统字体),字体文件随 CSS 由 Vite 打包。
+ * 此处仅负责子路由预渲染 SEO HTML。
  */
 import fs from 'fs'
 import path from 'path'
@@ -16,9 +12,6 @@ import { fileURLToPath } from 'url'
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const dist = path.join(__dirname, '..', 'dist')
 const SITE = 'https://tangnotes.site'
-
-// 字体加载由 JS 动态 import 完成(main.jsx),字体文件随 CSS 打包。
-// 此处仅负责子路由预渲染 SEO HTML。
 
 const indexHtml = fs.readFileSync(path.join(dist, 'index.html'), 'utf-8')
 
