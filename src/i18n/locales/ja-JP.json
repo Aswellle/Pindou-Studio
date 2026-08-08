@@ -213,6 +213,8 @@
   },
   "quantizer": {
     "title": "画像をビードに",
+    "zoomPreview": "拡大表示",
+    "zoomHint": "タップで閉じる",
     "dragDrop": "画像をここにドロップ",
     "or": "または",
     "browse": "ファイルを参照",

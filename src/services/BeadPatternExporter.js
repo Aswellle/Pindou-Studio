@@ -14,7 +14,7 @@ import i18n from '../i18n'
 // 所有绘制代码仍用逻辑坐标（ctx.scale 统一放大），放大查看/打印时网格色块和文字才不糊。
 const EXPORT_SCALE = 3
 
-// 拟真珠子渲染 — 与 ImageQuantizer 预览保持一致
+// 拟真珠子渲染 — 与 ImageQuantizer 预览保持一致(导出增强:轮廓环让珠子边缘清晰锐利)
 function drawBead(ctx, cx, cy, radius, hexColor) {
   const r = parseInt(hexColor.slice(1, 3), 16)
   const g = parseInt(hexColor.slice(3, 5), 16)
@@ -36,6 +36,13 @@ function drawBead(ctx, cx, cy, radius, hexColor) {
   ctx.arc(cx, cy, radius, 0, Math.PI * 2)
   ctx.fillStyle = grad
   ctx.fill()
+
+  // 轮廓环:边缘加深 1px,珠子与珠子/背景的边界清晰(放大/打印观感更锐利)
+  ctx.beginPath()
+  ctx.arc(cx, cy, radius - 0.4, 0, Math.PI * 2)
+  ctx.lineWidth = Math.max(0.8, radius * 0.09)
+  ctx.strokeStyle = `rgba(${darken(r, 0.38)},${darken(g, 0.38)},${darken(b, 0.38)},0.5)`
+  ctx.stroke()
 
   // 月牙形高光
   ctx.beginPath()

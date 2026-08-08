@@ -213,6 +213,8 @@
   },
   "quantizer": {
     "title": "Image to Beads",
+    "zoomPreview": "Zoom in",
+    "zoomHint": "Tap anywhere to close",
     "dragDrop": "Drop image here",
     "or": "or",
     "browse": "Browse Files",

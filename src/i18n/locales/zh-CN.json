@@ -213,6 +213,8 @@
   },
   "quantizer": {
     "title": "图片转拼豆",
+    "zoomPreview": "放大查看",
+    "zoomHint": "点击任意处关闭",
     "dragDrop": "拖拽图片到这里",
     "or": "或",
     "browse": "浏览文件",

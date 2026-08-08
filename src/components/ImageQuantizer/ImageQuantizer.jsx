@@ -1,4 +1,4 @@
-import { useState, useCallback, useRef, useEffect } from 'react'
+import { useState, useCallback, useRef, useEffect, useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useImageQuantizer } from '../../hooks/useImageQuantizer'
 import { getPalette, PALETTE_LIST } from '../../data/palettes'
@@ -44,6 +44,44 @@ function drawBeadPreview(ctx, cx, cy, radius, hexColor) {
   }
 }
 
+/**
+ * 放大查看画布 — 大尺寸纯色方块渲染 + pixelated 保持锐利。
+ * 默认预览是拟真圆珠(渐变),放大看会有渐变过渡带的"模糊"观感;
+ * 放大模式用每格一个纯色块(无渐变),放大后每颗珠子颜色清晰锐利。
+ */
+function ZoomPreviewCanvas({ result, resolveHex }) {
+  const ref = useRef(null)
+  useEffect(() => {
+    const canvas = ref.current
+    if (!canvas || !result) return
+    const w0 = result.width
+    const h0 = result.height
+    const cell = Math.min(16, Math.floor(1600 / Math.max(w0, h0))) // 每格 ≤16px,长边 ≤1600px
+    const w = w0 * cell
+    const h = h0 * cell
+    canvas.width = w
+    canvas.height = h
+    const ctx = canvas.getContext('2d')
+    ctx.fillStyle = '#e8e8e8'
+    ctx.fillRect(0, 0, w, h)
+    for (let y = 0; y < h0; y++) {
+      for (let x = 0; x < w0; x++) {
+        const hex = resolveHex(result.canvasData[y]?.[x])
+        if (hex) {
+          ctx.fillStyle = hex
+          ctx.fillRect(x * cell, y * cell, cell, cell)
+        }
+      }
+    }
+  }, [result, resolveHex])
+  return (
+    <canvas
+      ref={ref}
+      style={{ imageRendering: 'pixelated', maxWidth: '95vw', maxHeight: '85vh' }}
+    />
+  )
+}
+
 const GRID_PRESETS = [
   { key: '29x29',   w: 29,  h: 29  },
   { key: '57x57',   w: 57,  h: 57  },
@@ -58,6 +96,31 @@ const GRID_PRESETS = [
 export default function ImageQuantizer({ onApply, onClose }) {
   const { t } = useTranslation()
   const { isProcessing, progress, result, error, quantize, reset } = useImageQuantizer()
+  const [zoomPreview, setZoomPreview] = useState(false)
+
+  // 品牌 ID → hex 查找表(预览与放大查看共用)
+  const resultColorMap = useMemo(() => {
+    const m = {}
+    if (result?.quantizedColors) {
+      for (const c of result.quantizedColors) m[c.id] = c.hex || c.id
+    }
+    return m
+  }, [result])
+
+  // 只放行合法 hex(品牌 ID 与 '#xyz' 都会污染 canvas fillStyle → 渲染黑块)
+  const resolveHex = useCallback((v) => {
+    if (!v) return null
+    if (typeof v === 'string' && v.startsWith('#')) {
+      const test = parseInt(v.slice(1), 16)
+      return isNaN(test) ? null : v
+    }
+    const resolved = resultColorMap[v]
+    if (resolved && typeof resolved === 'string' && resolved.startsWith('#')) {
+      const test = parseInt(resolved.slice(1), 16)
+      return isNaN(test) ? null : resolved
+    }
+    return null
+  }, [resultColorMap])
 
   const [selectedPalette, setSelectedPalette] = useState('perler')
   const [gridPreset, setGridPreset] = useState('29x29')
@@ -629,8 +692,8 @@ export default function ImageQuantizer({ onApply, onClose }) {
                       const displayHeight = result.height || displayWidth
                       const maxDim = Math.max(displayWidth, displayHeight)
 
-                      // CSS 像素尺寸：长边最大 400px
-                      const cssCell = Math.max(Math.min(400 / maxDim, 10), 3)
+                      // CSS 像素尺寸：长边最大 480px(默认预览格子更大,放大观感更清晰)
+                      const cssCell = Math.max(Math.min(480 / maxDim, 10), 4)
                       const cssW = Math.max(displayWidth * cssCell, 200)
                       const cssH = Math.max(displayHeight * cssCell, 200)
 
@@ -643,29 +706,6 @@ export default function ImageQuantizer({ onApply, onClose }) {
                       ctx.scale(dpr, dpr)
 
                       const cellSize = cssCell
-
-                      // 构建 id→hex 查找表（支持品牌 ID 和 hex 两种格式）
-                      const colorMap = {}
-                      if (result.quantizedColors) {
-                        for (const c of result.quantizedColors) {
-                          colorMap[c.id] = c.hex || c.id
-                        }
-                      }
-
-                      const resolveHex = (v) => {
-                        if (!v) return null
-                        if (typeof v === 'string' && v.startsWith('#')) {
-                          // Validate it's a real hex before returning
-                          const test = parseInt(v.slice(1), 16)
-                          return isNaN(test) ? null : v
-                        }
-                        const resolved = colorMap[v]
-                        if (resolved && typeof resolved === 'string' && resolved.startsWith('#')) {
-                          const test = parseInt(resolved.slice(1), 16)
-                          return isNaN(test) ? null : resolved
-                        }
-                        return null  // Don't pass brand IDs to canvas
-                      }
 
                       ctx.fillStyle = '#e8e8e8'
                       ctx.fillRect(0, 0, cssW, cssH)
@@ -685,6 +725,20 @@ export default function ImageQuantizer({ onApply, onClose }) {
                     }
                   }}
                 />
+                {/* 放大查看:大尺寸纯色方块 + pixelated,放大后每颗珠子清晰锐利 */}
+                <button
+                  className="result-preview-zoom-btn"
+                  onClick={() => setZoomPreview(true)}
+                  title={t('quantizer.zoomPreview')}
+                  aria-label={t('quantizer.zoomPreview')}
+                >
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <circle cx="11" cy="11" r="7"/>
+                    <line x1="21" y1="21" x2="16.5" y2="16.5"/>
+                    <line x1="11" y1="8" x2="11" y2="14"/>
+                    <line x1="8" y1="11" x2="14" y2="11"/>
+                  </svg>
+                </button>
               </div>
               <div className="color-summary">
                 <span>{t('quantizer.colorsUsed', '使用颜色')}: {Object.keys(result.colorStats).length}</span>
@@ -775,6 +829,15 @@ export default function ImageQuantizer({ onApply, onClose }) {
                 </button>
               </div>
             </div>
+          </div>
+        )}
+
+        {/* 放大查看 overlay:大尺寸纯色方块,点击任意处关闭 */}
+        {zoomPreview && result && (
+          <div className="quantizer-zoom" onClick={() => setZoomPreview(false)}>
+            <button className="quantizer-zoom-close" onClick={() => setZoomPreview(false)} aria-label={t('common.close')}>×</button>
+            <ZoomPreviewCanvas result={result} resolveHex={resolveHex} />
+            <p className="quantizer-zoom-hint">{t('quantizer.zoomHint')}</p>
           </div>
         )}
       </div>

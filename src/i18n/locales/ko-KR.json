@@ -213,6 +213,8 @@
   },
   "quantizer": {
     "title": "이미지를 비드로",
+    "zoomPreview": "확대 보기",
+    "zoomHint": "아무 곳이나 눌러 닫기",
     "dragDrop": "이미지를 여기에 드롭",
     "or": "또는",
     "browse": "파일 찾아보기",
