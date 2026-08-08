@@ -50,6 +50,9 @@ export default function ProfileMenu({ user, onClose, onLogout, onUpdateProfile, 
   const handleFile = (e) => {
     const file = e.target.files?.[0]
     if (!file) return
+    // 类型与大小校验(此前仅靠 accept 过滤,20MB 手机照片全量读入内存可卡死移动端)
+    if (!file.type.startsWith('image/')) { setMessage(t('profile.avatarInvalid')); return }
+    if (file.size > 5 * 1024 * 1024) { setMessage(t('profile.avatarTooLarge')); return }
     const reader = new FileReader()
     reader.onload = () => setAvatarSrc(reader.result)
     reader.readAsDataURL(file)
@@ -60,24 +63,27 @@ export default function ProfileMenu({ user, onClose, onLogout, onUpdateProfile, 
   const confirmAvatar = async (blob) => {
     setBusy(true)
     setMessage('')
+    let uploadedPath = null
     try {
       const path = `${user.id}/${Date.now()}.webp`
       const { error: upErr } = await supabase.storage
         .from('avatars')
         .upload(path, blob, { contentType: 'image/webp' })
       if (upErr) throw upErr
+      uploadedPath = path
 
-      // 清理旧头像
+      const url = `${SUPABASE_URL}/storage/v1/object/public/avatars/${path}`
+      // 先更新 profile 成功,再清理旧头像(此前先删旧图,更新失败时旧头像已丢且无孤儿清理)
+      await onUpdateProfile({ avatarUrl: url })
       if (user?.avatarUrl?.includes('/avatars/')) {
         const oldPath = user.avatarUrl.split('/avatars/')[1]
         await supabase.storage.from('avatars').remove([oldPath]).catch(() => {})
       }
-
-      const url = `${SUPABASE_URL}/storage/v1/object/public/avatars/${path}`
-      await onUpdateProfile({ avatarUrl: url })
       setAvatarSrc(null)
       setMessage(t('profile.avatarUpdated'))
     } catch (e) {
+      // 清理已上传的新文件,避免存储孤儿累积
+      if (uploadedPath) supabase.storage.from('avatars').remove([uploadedPath]).catch(() => {})
       setMessage(t('profile.avatarFailed'))
     } finally {
       setBusy(false)

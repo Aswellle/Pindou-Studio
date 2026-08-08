@@ -64,9 +64,10 @@ describe('useCanvasPainter grid painting', () => {
     const blank = Array(3).fill(null).map(() => Array(3).fill(null))
     act(() => { result.current.repaintBase(blank, 3, 3) })
 
-    // Grid lines: attach (2) + data effect (8) = 10 stroke segments.
-    expect(mock.calls.stroke).toBe(10)
-    // Each line is a distinct moveTo + lineTo pair.
+    // 网格线合并为纵/横两条路径后:attach(2 次 stroke)+ data effect(2 次)= 4
+    // (每次 repaint 一次 stroke 画全部纵线、一次画全部横线)
+    expect(mock.calls.stroke).toBe(4)
+    // Each line is a distinct moveTo + lineTo pair(合并路径不改变线段数量)。
     expect(mock.calls.moveTo).toHaveLength(10)
     expect(mock.calls.lineTo).toHaveLength(10)
     // Background fill (full canvas) was drawn.
@@ -81,8 +82,8 @@ describe('useCanvasPainter grid painting', () => {
 
     act(() => { result.current.repaintBase(null, 3, 3) })
 
-    // attach (2) + data effect (8) = 10 — grid draws even with null data.
-    expect(mock.calls.stroke).toBe(10)
+    // attach(2)+ data effect(2)= 4 — grid draws even with null data.
+    expect(mock.calls.stroke).toBe(4)
   })
 
   test('base ref callback repaints on attach so the grid is visible from frame one', () => {
@@ -96,9 +97,10 @@ describe('useCanvasPainter grid painting', () => {
 
     // Now the base node attaches — the callback must paint using the state that
     // was recorded above, so the grid appears without waiting for another effect.
+    // 合并路径后一次 repaint = 2 次 stroke(纵线 + 横线)。
     const base = makeNode()
     act(() => { result.current.baseRefCallback(base) })
-    expect(mock.calls.stroke).toBe(8)
+    expect(mock.calls.stroke).toBe(2)
   })
 
   test('paints and clears overlay cells without touching the base grid', () => {

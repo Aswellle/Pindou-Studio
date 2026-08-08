@@ -37,6 +37,10 @@ export function useCanvasPainter({ canvasWidth, canvasHeight, cellSize }) {
     ctx.fillRect(0, 0, canvasWidth, canvasHeight)
 
     if (committedData) {
+      // 脏数据防御:行数与声明不一致时告警而非静默画空(可选链会吞掉维度不匹配)
+      if (committedData.length !== rows) {
+        console.warn(`useCanvasPainter: committedData 行数 ${committedData.length} 与声明 rows=${rows} 不一致`)
+      }
       for (let y = 0; y < rows; y++) {
         for (let x = 0; x < cols; x++) {
           const hex = committedData[y]?.[x]
@@ -48,20 +52,21 @@ export function useCanvasPainter({ canvasWidth, canvasHeight, cellSize }) {
       }
     }
 
+    // 纵线/横线各合并为一条路径(200×200 网格 stroke 调用 402 次 → 2 次)
     ctx.strokeStyle = '#d4d4d4'
     ctx.lineWidth = 0.5
+    ctx.beginPath()
     for (let i = 0; i <= cols; i++) {
-      ctx.beginPath()
       ctx.moveTo(i * cellSize, 0)
       ctx.lineTo(i * cellSize, canvasHeight)
-      ctx.stroke()
     }
+    ctx.stroke()
+    ctx.beginPath()
     for (let i = 0; i <= rows; i++) {
-      ctx.beginPath()
       ctx.moveTo(0, i * cellSize)
       ctx.lineTo(canvasWidth, i * cellSize)
-      ctx.stroke()
     }
+    ctx.stroke()
   }, [canvasWidth, canvasHeight, cellSize])
 
   // Base-layer callback ref: store the node AND repaint immediately on attach so

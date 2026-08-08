@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect, useCallback, forwardRef, useImperativeHandle } from 'react'
+import { useTranslation } from 'react-i18next'
 
 /**
  * 头像圆形裁剪器 — 自实现,不依赖第三方库。
@@ -14,8 +15,10 @@ const MIN_SCALE_FACTOR = 1
 const MAX_SCALE_FACTOR = 5
 
 const AvatarCropper = forwardRef(function AvatarCropper({ imageSrc, onConfirm, onCancel, busy }, ref) {
+  const { t } = useTranslation()
   const canvasRef = useRef(null)
   const imgRef = useRef(null)
+  const [loadError, setLoadError] = useState(false)
   // 状态:scale(相对 cover 基线的倍率), offset(容器坐标系中图片左上角)
   const [state, setState] = useState({ scale: 1, ox: 0, oy: 0, base: 1 })
   const stateRef = useRef(state)
@@ -65,8 +68,10 @@ const AvatarCropper = forwardRef(function AvatarCropper({ imageSrc, onConfirm, o
   // 加载图片并初始化 cover 布局
   useEffect(() => {
     if (!imageSrc) return
+    setLoadError(false)
     const img = new Image()
     img.onload = () => {
+      setLoadError(false)
       imgRef.current = img
       const base = Math.max(SIZE / img.naturalWidth, SIZE / img.naturalHeight)
       setState({
@@ -76,8 +81,27 @@ const AvatarCropper = forwardRef(function AvatarCropper({ imageSrc, onConfirm, o
         oy: (SIZE - img.naturalHeight * base) / 2,
       })
     }
+    img.onerror = () => setLoadError(true) // 解码失败不再静默(此前确认按钮点了没反应)
     img.src = imageSrc
   }, [imageSrc])
+
+  // React 17+ 将 onWheel 注册为根节点 passive 监听,preventDefault 无效;
+  // 改为原生绑定 passive:false,滚轮缩放不再连带滚动页面
+  useEffect(() => {
+    const canvas = canvasRef.current
+    if (!canvas) return
+    const handler = (e) => {
+      e.preventDefault()
+      const factor = e.deltaY > 0 ? 0.92 : 1.08
+      setState(prev => {
+        const next = clamp(prev.scale * factor)
+        return zoomAround(prev, next)
+      })
+    }
+    canvas.addEventListener('wheel', handler, { passive: false })
+    return () => canvas.removeEventListener('wheel', handler)
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- clamp/zoomAround 为纯函数,首帧闭包即可
+  }, [])
 
   useEffect(() => {
     render()
@@ -104,16 +128,6 @@ const AvatarCropper = forwardRef(function AvatarCropper({ imageSrc, onConfirm, o
     }))
   }
   const onPointerUp = () => { dragRef.current = null }
-
-  // ── 滚轮缩放(PC,以容器中心为锚点) ────────────────────────
-  const onWheel = (e) => {
-    e.preventDefault()
-    const factor = e.deltaY > 0 ? 0.92 : 1.08
-    setState(prev => {
-      const next = clamp(prev.scale * factor)
-      return zoomAround(prev, next)
-    })
-  }
 
   const clamp = (s) => Math.min(MAX_SCALE_FACTOR, Math.max(MIN_SCALE_FACTOR, s))
 
@@ -214,13 +228,27 @@ const AvatarCropper = forwardRef(function AvatarCropper({ imageSrc, onConfirm, o
         onPointerMove={onPointerMove}
         onPointerUp={onPointerUp}
         onPointerCancel={onPointerUp}
-        onWheel={onWheel}
         onTouchStart={onTouchStart}
         onTouchMove={onTouchMove}
         onTouchEnd={onTouchEnd}
         onTouchCancel={onTouchEnd}
       />
+      {loadError && (
+        <div className="avatar-cropper-error">{t('profile.avatarLoadFailed')}</div>
+      )}
       <style>{`
+        .avatar-cropper-error {
+          position: absolute;
+          inset: 0;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          padding: 16px;
+          text-align: center;
+          color: var(--warning);
+          font-size: var(--text-sm);
+          background: var(--bg-primary);
+        }
         .avatar-cropper {
           position: relative;
           width: 100%;

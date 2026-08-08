@@ -81,10 +81,9 @@ describe('Canvas grid rendering + click-to-fill wiring', () => {
   test('mounts and paints the grid on the base canvas layer (base ref attached)', () => {
     renderCanvas()
 
-    // repaintBase draws 4 vertical + 4 horizontal grid lines for a 3×3 grid
-    // (the attach-time repaint with the initial empty state adds 2 more).
-    // The regression left this at 0 because baseRef never attached.
-    expect(mock.calls.stroke).toBeGreaterThanOrEqual(8)
+    // 网格线合并为纵/横两条路径:attach + 数据 effect 各 2 次 stroke,共 ≥4
+    // (线条数量不变,moveTo/lineTo 仍为每条线一对;回归曾因 baseRef 未 attach 为 0)
+    expect(mock.calls.stroke).toBeGreaterThanOrEqual(4)
     // The white background fill covers the whole base canvas.
     expect(mock.calls.fillRect[0]).toEqual({ x: 0, y: 0, w: 48, h: 48 })
     // Line coordinates must be real multiples of the cell size (0/16/32/48),

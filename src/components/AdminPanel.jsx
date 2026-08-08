@@ -1029,6 +1029,8 @@ function JsonImporter({ store }) {
     }
     setErrors([])
     const items = Array.isArray(parsed) ? parsed : [parsed]
+    if (items.length === 0) { setErrors([{ code: 'importEmpty', detail: t('admin.importEmpty') }]); return }
+    if (items.length > 50) { setErrors([{ code: 'importTooMany', detail: t('admin.importTooMany') }]); return }
     let ok = 0
     const failed = []
     for (let index = 0; index < items.length; index++) {

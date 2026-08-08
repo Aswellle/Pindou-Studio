@@ -22,7 +22,8 @@ export default function UserManager() {
 
   const loadStats = useCallback(async () => {
     const { data, error: err } = await supabase.rpc('admin_user_stats')
-    if (!err && data) setStats(data[0] || null)
+    if (err) { setError(err.message || String(err)); return } // 此前吞错,统计卡静默显示 '—'
+    setStats(data[0] || null)
   }, [])
 
   const loadUsers = useCallback(async () => {
@@ -46,8 +47,10 @@ export default function UserManager() {
     loadStats()
   }, [loadStats])
 
+  // 搜索防抖:输入过程中不每击键一次 RPC
   useEffect(() => {
-    loadUsers()
+    const timer = setTimeout(loadUsers, 300)
+    return () => clearTimeout(timer)
   }, [loadUsers])
 
   const statCards = stats ? [
