@@ -1120,8 +1120,8 @@ function CategoryManager({ store }) {
     const res = editingId === null
       ? await store.addCategory({ id: id.trim(), label: label.trim() })
       : await store.updateCategory(editingId, { id: id.trim(), label: label.trim() })
-    if (!res.ok) {
-      setErrors(res.errors)
+    if (!res?.ok) {
+      setErrors(res?.errors || [])
       return
     }
     setErrors([])

@@ -115,25 +115,23 @@ export default function useCloudTemplates() {
   }, [])
 
   const updateCategory = useCallback(async (oldId, { id, label }) => {
-    if (!supabase) return
+    if (!supabase) return { ok: false, errors: [{ code: 'cloudNotConfigured' }] }
     const { error: err } = await supabase.from('categories').update({ id, label }).eq('id', oldId)
-    if (err) return
+    if (err) return { ok: false, errors: [{ code: 'dbError', detail: err.message }] }
     setCategories(prev => prev
       .filter(c => c.id !== oldId)
       .concat([{ id, label }])
       .sort((a, b) => a.id.localeCompare(b.id)))
-    // 模板中的分类引用随 id 改名同步
+    // 模板中的分类引用随 id 改名同步(非事务,第二步失败时返回错误让 UI 提示)
     if (id !== oldId) {
-      const { data, error: tplErr } = await supabase
+      const { error: tplErr } = await supabase
         .from('templates')
         .update({ category: id })
         .eq('category', oldId)
-        .select('*')
-      if (!tplErr && data) {
-        const updatedIds = new Set(data.map(r => r.id))
-        setTemplates(prev => prev.map(t => (updatedIds.has(t.id) ? rowToTemplate(data.find(r => r.id === t.id)) : t)))
-      }
+      if (tplErr) return { ok: false, errors: [{ code: 'dbError', detail: tplErr.message }] }
+      setTemplates(prev => prev.map(t => (t.category === oldId ? { ...t, category: id } : t)))
     }
+    return { ok: true }
   }, [])
 
   const deleteCategory = useCallback(async (id) => {

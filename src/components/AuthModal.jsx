@@ -54,15 +54,17 @@ export default function AuthModal({ mode, onClose, onLogin, onRegister, onSwitch
     if (v === 'login' || v === 'register') onSwitchMode(v)
   }
 
-  // 发送验证码
+  // 发送验证码 — 返回是否成功,调用方按返回值决定流程(不再依赖过期闭包里的 error state)
   const sendCode = async (targetEmail, shouldCreateUser) => {
     setError('')
     setLoading(true)
     try {
       await onSendOtp(targetEmail, shouldCreateUser)
       setCooldown(RESEND_COOLDOWN)
+      return true
     } catch (err) {
       setError(mapError(err))
+      return false
     } finally {
       setLoading(false)
     }
@@ -93,8 +95,8 @@ export default function AuthModal({ mode, onClose, onLogin, onRegister, onSwitch
     setPendingEmail(email.trim())
     setPendingPassword(password)
     setVerifyMode('register')
-    await sendCode(email.trim(), true)
-    if (!error) setView('verify')
+    const ok = await sendCode(email.trim(), true)
+    if (ok) setView('verify')
   }
 
   // ── 忘记密码:验证码验证 → 设置新密码 ──────────────────────
@@ -102,8 +104,8 @@ export default function AuthModal({ mode, onClose, onLogin, onRegister, onSwitch
     e.preventDefault()
     setPendingEmail(email.trim())
     setVerifyMode('reset')
-    await sendCode(email.trim(), false)
-    if (!error) setView('verify')
+    const ok = await sendCode(email.trim(), false)
+    if (ok) setView('verify')
   }
 
   // ── 验证码提交 ──────────────────────────────────────────
