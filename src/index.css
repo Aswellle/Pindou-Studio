@@ -222,6 +222,25 @@ input:focus, textarea:focus, button:focus {
   justify-content: flex-end;
   margin-top: 4px;
 }
+/* 匿名用户保存作品时的注册软引导(紧贴保存按钮下方,不打断保存流程) */
+.save-local-hint {
+  border-top: 1px dashed var(--border-color);
+  padding-top: 12px;
+  margin-top: 4px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.save-local-hint p {
+  margin: 0;
+  font-size: var(--text-xs);
+  color: var(--text-muted);
+  line-height: 1.5;
+}
+.save-local-hint .link-btn {
+  align-self: flex-start;
+  font-size: var(--text-xs);
+}
 
 /* Form Styles */
 .form-group {

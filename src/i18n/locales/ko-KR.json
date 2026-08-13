@@ -45,7 +45,10 @@
     "setPasswordTitle": "새 비밀번호 설정",
     "setPasswordHint": "인증 완료. 새 로그인 비밀번호를 설정하세요.",
     "newPassword": "새 비밀번호",
-    "setPasswordBtn": "설정하기"
+    "setPasswordBtn": "설정하기",
+    "consentNotice": "계속하면 개인정보 처리방침 및 서비스 약관에 동의한 것으로 간주됩니다.",
+    "registerAccount": "계정 등록",
+    "saveLocalHint": "작품은 이 브라우저에 저장됩니다. 등록하면 작품에 계정이 생기고, 이는 클라우드 저장 및 여러 기기 동기화의 기반이 됩니다."
   },
   "errors": {
     "invalidEmail": "유효한 이메일 주소를 입력하세요",
@@ -163,7 +166,11 @@
     "exportRealistic": "전시 모드 (사실적인 비드)",
     "cloudLoading": "클라우드 템플릿 라이브러리 로드 중...",
     "cloudEmpty": "클라우드 템플릿 라이브러리가 비어 있습니다",
-    "cloudEmptyHint": "관리자가 로그인하여 '템플릿 관리' 탭에서 로컬 데이터 마이그레이션을 실행하세요."
+    "cloudEmptyHint": "관리자가 로그인하여 '템플릿 관리' 탭에서 로컬 데이터 마이그레이션을 실행하세요.",
+    "localWorksTitle": "작품이 이 기기에 저장되어 있습니다",
+    "localWorksBody": "현재 {{n}}개의 작품이 이 브라우저에 저장되어 있습니다. 캐시를 지우거나 기기를 바꾸면 사라질 수 있습니다. 등록하면 작품에 계정이 생기며, 클라우드 저장 및 여러 기기 동기화의 기반이 됩니다.",
+    "localWorksRegister": "계정 등록",
+    "localWorksDismiss": "다시 표시 안 함"
   },
   "export": {
     "title": "패턴 내보내기",
@@ -512,6 +519,8 @@
     "latest": "최신판",
     "viewing": "보는 중",
     "currentSuffix": " · 현재 버전",
-    "historySuffix": " · 이전 버전"
+    "historySuffix": " · 이전 버전",
+    "privacyPolicy": "개인정보 처리방침",
+    "termsOfService": "서비스 약관"
   }
 }

@@ -360,6 +360,8 @@ export default function App() {
                 onLoadWork={handleLoadWork}
                 savedWorks={savedWorks}
                 cloudStore={cloudStore}
+                user={user}
+                onRegister={openRegister}
               />
             </Suspense>
           } />
@@ -443,6 +445,19 @@ export default function App() {
                 {t('gallery.saveConfirm')}
               </button>
             </div>
+            {/* 匿名用户保存作品时的软注册引导:不打断保存,仅提示 + 可选跳转 */}
+            {!user && (
+              <div className="save-local-hint">
+                <p>{t('auth.saveLocalHint')}</p>
+                <button
+                  type="button"
+                  className="link-btn"
+                  onClick={() => { setShowSaveDialog(false); openRegister() }}
+                >
+                  {t('auth.registerAccount')} →
+                </button>
+              </div>
+            )}
           </div>
         </div>
       )}
@@ -593,6 +608,8 @@ export default function App() {
                 onLoadWork={handleLoadWork}
                 savedWorks={savedWorks}
                 cloudStore={cloudStore}
+                user={user}
+                onRegister={openRegister}
               />
             </div>
           </Suspense>
@@ -680,6 +697,19 @@ export default function App() {
                 {t('gallery.saveConfirm')}
               </button>
             </div>
+            {/* 匿名用户保存作品时的软注册引导:不打断保存,仅提示 + 可选跳转 */}
+            {!user && (
+              <div className="save-local-hint">
+                <p>{t('auth.saveLocalHint')}</p>
+                <button
+                  type="button"
+                  className="link-btn"
+                  onClick={() => { setShowSaveDialog(false); openRegister() }}
+                >
+                  {t('auth.registerAccount')} →
+                </button>
+              </div>
+            )}
           </div>
         </div>
       )}

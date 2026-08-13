@@ -45,7 +45,10 @@
     "setPasswordTitle": "设置新密码",
     "setPasswordHint": "验证通过,请设置新的登录密码",
     "newPassword": "新密码",
-    "setPasswordBtn": "确认设置"
+    "setPasswordBtn": "确认设置",
+    "consentNotice": "继续即表示你同意《隐私政策》与《服务条款》",
+    "registerAccount": "注册账号",
+    "saveLocalHint": "作品将保存在本浏览器。注册账号,为作品建立账号归属——账号是作品云端保存与跨设备同步的基础。"
   },
   "errors": {
     "invalidEmail": "请输入有效的邮箱地址",
@@ -163,7 +166,11 @@
     "exportRealistic": "展示模式（拟真珠子）",
     "cloudLoading": "正在加载云端模板库...",
     "cloudEmpty": "云端模板库为空",
-    "cloudEmptyHint": "请管理员登录后台,在「模板管理」页完成本地数据迁移"
+    "cloudEmptyHint": "请管理员登录后台,在「模板管理」页完成本地数据迁移",
+    "localWorksTitle": "作品本机保存提醒",
+    "localWorksBody": "你的 {{n}} 个作品保存在当前浏览器中,清除缓存或更换设备会丢失。注册账号,让作品拥有账号归属——为云端保存与跨设备同步打下基础。",
+    "localWorksRegister": "注册账号",
+    "localWorksDismiss": "不再提示"
   },
   "export": {
     "title": "导出图纸",
@@ -512,6 +519,8 @@
     "latest": "最新版",
     "viewing": "正在查看",
     "currentSuffix": " · 当前生效版本",
-    "historySuffix": " · 历史版本"
+    "historySuffix": " · 历史版本",
+    "privacyPolicy": "隐私政策",
+    "termsOfService": "服务条款"
   }
 }

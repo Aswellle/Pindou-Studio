@@ -16,7 +16,7 @@ const resolveToHex = (colorVal, palette) => {
   return found ? found.hex : colorVal
 }
 
-export default function Gallery({ onLoadTemplate, onSaveWork, onLoadWork, savedWorks = [], cloudStore }) {
+export default function Gallery({ onLoadTemplate, onSaveWork, onLoadWork, savedWorks = [], cloudStore, user, onRegister }) {
   const { t } = useTranslation()
   // 云端启用时,模板库完全来自云端(RLS 公开只读);未启用时回退本地模式
   // (内置模板 + localStorage 自定义模板,自定义在前)
@@ -47,6 +47,14 @@ export default function Gallery({ onLoadTemplate, onSaveWork, onLoadWork, savedW
   const [showMyWorks, setShowMyWorks] = useState(false)
   const [exportMenuId, setExportMenuId] = useState(null)
   const [exportingId, setExportingId] = useState(null)
+  // 「我的作品」注册软引导:可关闭,关闭后本机记住不再打扰
+  const [localWorksHintDismissed, setLocalWorksHintDismissed] = useState(
+    () => localStorage.getItem('auth-hint-local-works-dismissed') === '1'
+  )
+  const dismissLocalWorksHint = () => {
+    localStorage.setItem('auth-hint-local-works-dismissed', '1')
+    setLocalWorksHintDismissed(true)
+  }
 
   useEffect(() => {
     localStorage.setItem('gallery-favorites', JSON.stringify(favorites))
@@ -183,6 +191,35 @@ export default function Gallery({ onLoadTemplate, onSaveWork, onLoadWork, savedW
         {showMyWorks ? (
           <div className="works-section">
             <h2 className="section-title">{t('gallery.myWorksSectionTitle')}</h2>
+            {/* 匿名用户且有本地作品时的注册软引导:强调本机保存的丢失风险,可关闭 */}
+            {!user && savedWorks.length > 0 && !localWorksHintDismissed && (
+              <div className="local-works-banner" role="note">
+                <svg className="banner-icon" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <rect x="3" y="11" width="18" height="11" rx="2"/>
+                  <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+                </svg>
+                <div className="banner-text">
+                  <p className="banner-title">{t('gallery.localWorksTitle')}</p>
+                  <p className="banner-body">{t('gallery.localWorksBody', { n: savedWorks.length })}</p>
+                </div>
+                {onRegister && (
+                  <button className="btn btn-primary banner-register" onClick={onRegister}>
+                    {t('gallery.localWorksRegister')}
+                  </button>
+                )}
+                <button
+                  className="banner-dismiss"
+                  onClick={dismissLocalWorksHint}
+                  aria-label={t('gallery.localWorksDismiss')}
+                  title={t('gallery.localWorksDismiss')}
+                >
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <line x1="18" y1="6" x2="6" y2="18"/>
+                    <line x1="6" y1="6" x2="18" y2="18"/>
+                  </svg>
+                </button>
+              </div>
+            )}
             {savedWorks.length === 0 ? (
               <div className="empty-state">
                 <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
@@ -674,6 +711,68 @@ export default function Gallery({ onLoadTemplate, onSaveWork, onLoadWork, savedW
         .section-title {
           font-size: var(--text-2xl);
           margin-bottom: 20px;
+        }
+        /* 「我的作品」注册软引导横幅 */
+        .local-works-banner {
+          display: flex;
+          align-items: center;
+          gap: 12px;
+          padding: 14px 16px;
+          margin-bottom: 20px;
+          background: var(--bg-secondary);
+          border: 1px solid var(--border-color);
+          border-left: 3px solid var(--accent);
+          border-radius: 8px;
+        }
+        .local-works-banner .banner-icon {
+          flex-shrink: 0;
+          color: var(--accent);
+        }
+        .local-works-banner .banner-text {
+          flex: 1;
+          min-width: 0;
+        }
+        .local-works-banner .banner-title {
+          margin: 0 0 2px;
+          font-size: var(--text-md);
+          font-weight: var(--font-weight-semibold);
+          color: var(--text-primary);
+        }
+        .local-works-banner .banner-body {
+          margin: 0;
+          font-size: var(--text-sm);
+          color: var(--text-secondary);
+          line-height: 1.5;
+        }
+        .local-works-banner .banner-register {
+          flex-shrink: 0;
+          white-space: nowrap;
+        }
+        .local-works-banner .banner-dismiss {
+          flex-shrink: 0;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          width: 28px;
+          height: 28px;
+          border: none;
+          border-radius: 6px;
+          background: transparent;
+          color: var(--text-muted);
+          cursor: pointer;
+          transition: all 0.15s;
+        }
+        .local-works-banner .banner-dismiss:hover {
+          color: var(--text-primary);
+          background: var(--bg-tertiary);
+        }
+        @media (max-width: 640px) {
+          .local-works-banner {
+            flex-wrap: wrap;
+          }
+          .local-works-banner .banner-register {
+            margin-left: 34px;
+          }
         }
         .works-grid {
           display: grid;

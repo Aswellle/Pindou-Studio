@@ -45,7 +45,10 @@
     "setPasswordTitle": "新しいパスワードを設定",
     "setPasswordHint": "認証に成功しました。新しいパスワードを設定してください",
     "newPassword": "新しいパスワード",
-    "setPasswordBtn": "設定する"
+    "setPasswordBtn": "設定する",
+    "consentNotice": "続行すると、プライバシーポリシーと利用規約に同意したものとみなされます。",
+    "registerAccount": "アカウント登録",
+    "saveLocalHint": "作品はこのブラウザに保存されます。登録すると作品にアカウントの居場所ができ、クラウド保存・複数端末同期の基盤となります。"
   },
   "errors": {
     "invalidEmail": "有効なメールアドレスを入力してください",
@@ -163,7 +166,11 @@
     "exportRealistic": "展示モード（リアルなビーズ）",
     "cloudLoading": "クラウドテンプレートライブラリを読み込み中...",
     "cloudEmpty": "クラウドテンプレートライブラリは空です",
-    "cloudEmptyHint": "管理者がログインし、「テンプレート管理」タブでローカルデータの移行を実行してください。"
+    "cloudEmptyHint": "管理者がログインし、「テンプレート管理」タブでローカルデータの移行を実行してください。",
+    "localWorksTitle": "作品はこの端末に保存されています",
+    "localWorksBody": "{{n}} 件の作品がこのブラウザに保存されています。キャッシュ削除や端末の変更で失われる可能性があります。登録すると作品にアカウントの居場所ができ、クラウド保存・複数端末同期の基盤となります。",
+    "localWorksRegister": "アカウント登録",
+    "localWorksDismiss": "今後表示しない"
   },
   "export": {
     "title": "エクスポート",
@@ -512,6 +519,8 @@
     "latest": "最新版",
     "viewing": "閲覧中",
     "currentSuffix": " · 現在の版",
-    "historySuffix": " · 過去の版"
+    "historySuffix": " · 過去の版",
+    "privacyPolicy": "プライバシーポリシー",
+    "termsOfService": "利用規約"
   }
 }

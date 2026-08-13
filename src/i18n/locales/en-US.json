@@ -45,7 +45,10 @@
     "setPasswordTitle": "Set New Password",
     "setPasswordHint": "Verified. Set a new password to sign in.",
     "newPassword": "New password",
-    "setPasswordBtn": "Set Password"
+    "setPasswordBtn": "Set Password",
+    "consentNotice": "By continuing, you agree to the Privacy Policy and Terms of Service.",
+    "registerAccount": "Register an account",
+    "saveLocalHint": "Works are saved in this browser. Register to give them a home under your account — the foundation for cloud saving and cross-device sync."
   },
   "errors": {
     "invalidEmail": "Please enter a valid email address",
@@ -163,7 +166,11 @@
     "exportRealistic": "Display (Realistic Beads)",
     "cloudLoading": "Loading cloud template library...",
     "cloudEmpty": "Cloud template library is empty",
-    "cloudEmptyHint": "An admin should sign in and run the local migration on the Templates tab."
+    "cloudEmptyHint": "An admin should sign in and run the local migration on the Templates tab.",
+    "localWorksTitle": "Works are saved on this device",
+    "localWorksBody": "Your {{n}} works are stored in this browser and can be lost when you clear the cache or switch devices. Register to give them an account home — the foundation for cloud saving and cross-device sync.",
+    "localWorksRegister": "Register",
+    "localWorksDismiss": "Don't show again"
   },
   "export": {
     "title": "Export Pattern",
@@ -512,6 +519,8 @@
     "latest": "Latest",
     "viewing": "Viewing",
     "currentSuffix": " · Current version",
-    "historySuffix": " · Historical version"
+    "historySuffix": " · Historical version",
+    "privacyPolicy": "Privacy Policy",
+    "termsOfService": "Terms of Service"
   }
 }

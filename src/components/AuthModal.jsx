@@ -422,10 +422,14 @@ export default function AuthModal({ mode, onClose, onLogin, onRegister, onSwitch
           )}
         </div>
 
+        {/* 账号体系必要:登录/注册页展示用户同意须知(链接见下方隐私政策/服务条款) */}
+        {(view === 'login' || view === 'register') && (
+          <div className="auth-consent">{t('auth.consentNotice')}</div>
+        )}
         <div className="auth-legal">
-          <button className="legal-link-btn" onClick={() => onNavigatePage('privacy')}>隐私政策</button>
+          <button className="legal-link-btn" onClick={() => onNavigatePage('privacy')}>{t('legal.privacyPolicy')}</button>
           <span className="legal-divider">·</span>
-          <button className="legal-link-btn" onClick={() => onNavigatePage('terms')}>服务条款</button>
+          <button className="legal-link-btn" onClick={() => onNavigatePage('terms')}>{t('legal.termsOfService')}</button>
         </div>
 
         <style>{`
@@ -516,9 +520,16 @@ export default function AuthModal({ mode, onClose, onLogin, onRegister, onSwitch
             font-size: var(--text-md);
             color: var(--text-secondary);
           }
-          .auth-legal {
+          .auth-consent {
             text-align: center;
             margin-top: 16px;
+            font-size: var(--text-xs);
+            line-height: 1.5;
+            color: var(--text-muted);
+          }
+          .auth-legal {
+            text-align: center;
+            margin-top: 8px;
             font-size: var(--text-sm);
             color: var(--text-muted);
           }
