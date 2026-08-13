@@ -1,3 +1,4 @@
+import { useState, useEffect, useRef, useCallback } from 'react'
 import { useTranslation } from 'react-i18next'
 import './MobileToolbar.css'
 
@@ -31,14 +32,14 @@ const TOOL_ICONS = {
 }
 
 const UndoIcon = () => (
-  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
     <path d="M9 14L4 9l5-5" />
     <path d="M4 9h10.5a5.5 5.5 0 0 1 0 11H11" />
   </svg>
 )
 
 const RedoIcon = () => (
-  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
     <path d="M15 14l5-5-5-5" />
     <path d="M20 9H9.5a5.5 5.5 0 0 0 0 11H13" />
   </svg>
@@ -60,10 +61,17 @@ const GridSizeIcon = () => (
   </svg>
 )
 
-const CameraIcon = () => (
-  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-    <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z" />
-    <circle cx="12" cy="13" r="4" />
+// 魔法魔杖 + 星光(lucide wand-2):表征「图片 → 拼豆」的魔力转化,替代难以辨认的相机
+const WandIcon = () => (
+  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="m21.64 3.64-1.28-1.28a1.21 1.21 0 0 0-1.72 0L2.36 18.64a1.21 1.21 0 0 0 0 1.72l1.28 1.28a1.2 1.2 0 0 0 1.72 0L21.64 5.36a1.2 1.2 0 0 0 0-1.72"/>
+    <path d="m14 7 3 3"/>
+    <path d="M5 6v4"/>
+    <path d="M19 14v4"/>
+    <path d="M10 2v2"/>
+    <path d="M7 8H3"/>
+    <path d="M21 16h-4"/>
+    <path d="M11 3H9"/>
   </svg>
 )
 
@@ -74,6 +82,20 @@ const ExportIcon = () => (
     <line x1="12" y1="15" x2="12" y2="3" />
   </svg>
 )
+
+// ── 引导 toast 的用户行为记录(localStorage)──────────────────────
+// 用途:判断「该用户需要图片转拼豆」或「该用户没发现该功能」。
+const BEHAVIOR_KEY = 'bead-studio-behavior'
+const GUIDE_DURATION = 5000       // toast 停留时长(ms)
+const ENGAGED_TRIGGER_MS = 10000  // 首次访问在画布活跃多久判定「需要该功能」
+const RETURNING_SESSION = 2       // 回访次数 ≥ 2 且从未点开过 → 「没发现该功能」
+
+function getBehavior() {
+  try { return JSON.parse(localStorage.getItem(BEHAVIOR_KEY)) || {} } catch { return {} }
+}
+function saveBehavior(b) {
+  localStorage.setItem(BEHAVIOR_KEY, JSON.stringify(b))
+}
 
 export default function MobileToolbar({
   tool,
@@ -92,6 +114,61 @@ export default function MobileToolbar({
   onQuantize,
 }) {
   const { t } = useTranslation()
+  const [guideVisible, setGuideVisible] = useState(false)
+  const guideTimerRef = useRef(null)
+
+  const hideGuide = useCallback(() => {
+    setGuideVisible(false)
+    if (guideTimerRef.current) clearTimeout(guideTimerRef.current)
+  }, [])
+
+  const showGuide = useCallback(() => {
+    setGuideVisible(true)
+    saveBehavior({ ...getBehavior(), guideShown: true }) // 只引导一次,不反复打扰
+    guideTimerRef.current = setTimeout(hideGuide, GUIDE_DURATION)
+  }, [hideGuide])
+
+  // 行为记录 + 引导触发分析:
+  // · 没发现该功能:回访 ≥ 2 次却从未点开过图片转拼豆 → 停留片刻后引导
+  // · 需要该功能:首次访问就在画布持续活跃(正在创作的人最可能需要转图)
+  useEffect(() => {
+    const b = getBehavior()
+    const sessions = (b.sessions || 0) + 1
+    saveBehavior({ ...b, sessions })
+    if (b.guideShown || b.quantizerVisited) return
+    if (sessions >= RETURNING_SESSION) {
+      const t0 = setTimeout(showGuide, 700)
+      return () => clearTimeout(t0)
+    }
+    const start = Date.now()
+    const interval = setInterval(() => {
+      if (Date.now() - start >= ENGAGED_TRIGGER_MS) {
+        clearInterval(interval)
+        showGuide()
+      }
+    }, 1000)
+    return () => clearInterval(interval)
+  }, [showGuide])
+
+  // toast 存续期间,用户进行任何其他操作 → 立刻消失(不打断、不残留)
+  useEffect(() => {
+    if (!guideVisible) return
+    const dismiss = () => hideGuide()
+    document.addEventListener('pointerdown', dismiss)
+    document.addEventListener('touchstart', dismiss)
+    document.addEventListener('wheel', dismiss, { passive: true })
+    return () => {
+      document.removeEventListener('pointerdown', dismiss)
+      document.removeEventListener('touchstart', dismiss)
+      document.removeEventListener('wheel', dismiss)
+    }
+  }, [guideVisible, hideGuide])
+
+  const handleQuantize = () => {
+    saveBehavior({ ...getBehavior(), quantizerVisited: true })
+    hideGuide()
+    onQuantize()
+  }
 
   const tools = [
     { id: 'pencil', label: t('canvas.tool.pencil') },
@@ -151,23 +228,24 @@ export default function MobileToolbar({
       </div>
 
       <div className="toolbar-row toolbar-actions">
+        {/* 撤销/重做:边框 + 功能名文字,便于一眼分辨 */}
         <button
-          className="action-btn"
+          className="action-btn text-btn"
           onClick={onUndo}
           disabled={!canUndo}
           title={t('tools.undoAction')}
-          aria-label={t('tools.undo')}
         >
           <UndoIcon />
+          <span className="text-btn-label">{t('tools.undo')}</span>
         </button>
         <button
-          className="action-btn"
+          className="action-btn text-btn"
           onClick={onRedo}
           disabled={!canRedo}
           title={t('tools.redoAction')}
-          aria-label={t('tools.redo')}
         >
           <RedoIcon />
+          <span className="text-btn-label">{t('tools.redo')}</span>
         </button>
         <button
           className="action-btn"
@@ -212,9 +290,29 @@ export default function MobileToolbar({
           </select>
         </label>
 
-        <button className="action-btn" onClick={onQuantize} aria-label={t('tools.imageToBead')}>
-          <CameraIcon />
-        </button>
+        {/* 图片转拼豆:魔法按钮 + 首次发现引导气泡 */}
+        <div className="quantize-wrap">
+          <button
+            className="action-btn magical"
+            onClick={handleQuantize}
+            aria-label={t('tools.imageToBead')}
+            title={t('tools.imageToBead')}
+          >
+            <WandIcon />
+            <span className="magic-sparkle" aria-hidden="true">✦</span>
+          </button>
+          {guideVisible && (
+            <div className="quantize-guide" role="tooltip" onClick={handleQuantize}>
+              <span className="guide-text">{t('tools.quantizeGuide')}</span>
+              <span className="guide-arrow" aria-hidden="true">
+                <i className="tri tri-1" />
+                <i className="tri tri-2" />
+                <i className="tri tri-3" />
+              </span>
+            </div>
+          )}
+        </div>
+
         <button className="action-btn primary" onClick={onExport} aria-label={t('export.title')}>
           <ExportIcon />
         </button>

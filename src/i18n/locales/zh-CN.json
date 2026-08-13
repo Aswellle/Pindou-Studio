@@ -129,7 +129,8 @@
     },
     "customSizePrompt": "请输入画布尺寸（如：87x58 或 87）：",
     "widthRange": "宽度必须在 9-200 之间",
-    "heightRange": "高度必须在 9-200 之间"
+    "heightRange": "高度必须在 9-200 之间",
+    "quantizeGuide": "图片转拼豆：上传照片，一键生成拼豆图纸 ✨"
   },
   "gallery": {
     "title": "图库",

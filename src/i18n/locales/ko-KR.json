@@ -129,7 +129,8 @@
     },
     "customSizePrompt": "캔버스 크기를 입력하세요 (예: 87x58 또는 87):",
     "widthRange": "너비는 9에서 200 사이여야 합니다",
-    "heightRange": "높이는 9에서 200 사이여야 합니다"
+    "heightRange": "높이는 9에서 200 사이여야 합니다",
+    "quantizeGuide": "이미지를 비드로：사진을 업로드하면 비즈 도안으로 변환 ✨"
   },
   "gallery": {
     "title": "갤러리",

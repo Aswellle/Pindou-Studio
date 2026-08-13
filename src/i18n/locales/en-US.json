@@ -129,7 +129,8 @@
     },
     "customSizePrompt": "Enter canvas size (e.g. 87x58 or 87):",
     "widthRange": "Width must be between 9 and 200",
-    "heightRange": "Height must be between 9 and 200"
+    "heightRange": "Height must be between 9 and 200",
+    "quantizeGuide": "Image to Beads: upload a photo, instantly get a bead pattern ✨"
   },
   "gallery": {
     "title": "Gallery",
