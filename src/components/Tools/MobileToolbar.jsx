@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback } from 'react'
+import { useState, useEffect, useRef, useCallback, useLayoutEffect } from 'react'
 import { useTranslation } from 'react-i18next'
 import './MobileToolbar.css'
 
@@ -115,7 +115,11 @@ export default function MobileToolbar({
 }) {
   const { t } = useTranslation()
   const [guideVisible, setGuideVisible] = useState(false)
+  // 引导气泡定位(JS 测量):fixed 定位 + 左缘/top/箭头偏移,防止窄屏溢出右侧视口
+  const [guideStyle, setGuideStyle] = useState(null)
   const guideTimerRef = useRef(null)
+  const quantizeBtnRef = useRef(null)
+  const guideRef = useRef(null)
 
   const hideGuide = useCallback(() => {
     setGuideVisible(false)
@@ -127,6 +131,21 @@ export default function MobileToolbar({
     saveBehavior({ ...getBehavior(), guideShown: true }) // 只引导一次,不反复打扰
     guideTimerRef.current = setTimeout(hideGuide, GUIDE_DURATION)
   }, [hideGuide])
+
+  // 气泡显示后按按钮实际位置定位:气泡中心对准按钮中心,左/上缘 clamp 在视口内,
+  // 箭头偏移随气泡移动同步(保证箭头始终指向按钮)
+  useLayoutEffect(() => {
+    if (!guideVisible) return
+    const btn = quantizeBtnRef.current
+    const bubble = guideRef.current
+    if (!btn || !bubble) return
+    const r = btn.getBoundingClientRect()
+    const bw = bubble.offsetWidth
+    const bh = bubble.offsetHeight
+    const left = Math.max(12, Math.min(r.left + r.width / 2 - bw / 2, window.innerWidth - bw - 12))
+    const top = Math.max(8, r.top - bh - 12)
+    setGuideStyle({ left, top, arrowLeft: r.left + r.width / 2 - left })
+  }, [guideVisible])
 
   // 行为记录 + 引导触发分析:
   // · 没发现该功能:回访 ≥ 2 次却从未点开过图片转拼豆 → 停留片刻后引导
@@ -293,6 +312,7 @@ export default function MobileToolbar({
         {/* 图片转拼豆:魔法按钮 + 首次发现引导气泡 */}
         <div className="quantize-wrap">
           <button
+            ref={quantizeBtnRef}
             className="action-btn magical"
             onClick={handleQuantize}
             aria-label={t('tools.imageToBead')}
@@ -302,9 +322,19 @@ export default function MobileToolbar({
             <span className="magic-sparkle" aria-hidden="true">✦</span>
           </button>
           {guideVisible && (
-            <div className="quantize-guide" role="tooltip" onClick={handleQuantize}>
+            <div
+              className="quantize-guide"
+              role="tooltip"
+              onClick={handleQuantize}
+              ref={guideRef}
+              style={guideStyle || undefined}
+            >
               <span className="guide-text">{t('tools.quantizeGuide')}</span>
-              <span className="guide-arrow" aria-hidden="true">
+              <span
+                className="guide-arrow"
+                style={guideStyle ? { left: guideStyle.arrowLeft } : undefined}
+                aria-hidden="true"
+              >
                 <i className="tri tri-1" />
                 <i className="tri tri-2" />
                 <i className="tri tri-3" />
