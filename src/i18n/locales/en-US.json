@@ -48,7 +48,9 @@
     "setPasswordBtn": "Set Password",
     "consentNotice": "By continuing, you agree to the Privacy Policy and Terms of Service.",
     "registerAccount": "Register an account",
-    "saveLocalHint": "Works are saved in this browser. Register to give them a home under your account — the foundation for cloud saving and cross-device sync."
+    "saveLocalHint": "Works are saved in this browser. After registering, works are saved to the cloud automatically and available across devices.",
+    "saveCloudHint": "This work will be saved to your cloud account and available on any device.",
+    "syncToast": "Synced {{n}} works to the cloud — available on any device"
   },
   "errors": {
     "invalidEmail": "Please enter a valid email address",
@@ -60,7 +62,9 @@
     "tooManyAttempts": "Too many attempts. Try again later.",
     "cloudNotConfigured": "Cloud not configured, accounts are unavailable",
     "emailNotFound": "This email is not registered",
-    "storageFull": "Storage is full. Delete some works before saving."
+    "storageFull": "Storage is full. Delete some works before saving.",
+    "saveFailed": "Save failed. Please try again.",
+    "deleteFailed": "Delete failed. Please try again."
   },
   "palette": {
     "title": "Color Palette",
@@ -168,9 +172,13 @@
     "cloudEmpty": "Cloud template library is empty",
     "cloudEmptyHint": "An admin should sign in and run the local migration on the Templates tab.",
     "localWorksTitle": "Works are saved on this device",
-    "localWorksBody": "Your {{n}} works are stored in this browser and can be lost when you clear the cache or switch devices. Register to give them an account home — the foundation for cloud saving and cross-device sync.",
+    "localWorksBody": "Your {{n}} works are stored in this browser and can be lost when you clear the cache or switch devices. Register to sync them to the cloud in one click — available on any device.",
     "localWorksRegister": "Register",
-    "localWorksDismiss": "Don't show again"
+    "localWorksDismiss": "Don't show again",
+    "worksLoading": "Loading works...",
+    "cloudWorksEmptyTitle": "Your works are saved in the cloud",
+    "cloudWorksEmptyBody": "Sign in to view and manage them anytime.",
+    "savedToastCloud": "Saved to cloud works"
   },
   "export": {
     "title": "Export Pattern",

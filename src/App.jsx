@@ -74,7 +74,7 @@ export default function App() {
   // 撤销/重做前先丢弃活动笔画,避免笔画进行中 undo 后 mouseUp 时 commitStroke 重推快照回滚
   const handleUndo = useCallback(() => { canvasRef.current?.cancelStroke?.(); undo() }, [undo])
   const handleRedo = useCallback(() => { canvasRef.current?.cancelStroke?.(); redo() }, [redo])
-  const { works: savedWorks, saveWork, updateWorks: handleSaveWork } = useSavedWorks()
+  const { works: savedWorks, worksLoading, syncCount, cloudMirrorCount, saveWork, deleteWork, ackSync } = useSavedWorks(user)
 
   const [leftSidebarCollapsed, setLeftSidebarCollapsed] = useState(false)
   const [rightSidebarCollapsed, setRightSidebarCollapsed] = useState(false)
@@ -88,6 +88,15 @@ export default function App() {
   const [saveInputName, setSaveInputName] = useState('')
   const [saveToast, setSaveToast] = useState(false)
   const [fitToast, setFitToast] = useState(false)
+  const [syncToast, setSyncToast] = useState(false)
+
+  // 登录迁移完成后展示「已同步 N 幅作品到云端」toast
+  useEffect(() => {
+    if (syncCount == null) return
+    setSyncToast(true)
+    const timer = setTimeout(() => { setSyncToast(false); ackSync() }, 4000)
+    return () => clearTimeout(timer)
+  }, [syncCount, ackSync])
 
   // 从 URL 路径推导当前页面(用于 Header 高亮与条件渲染)
   const currentPage = location.pathname.startsWith('/gallery') ? 'gallery'
@@ -149,8 +158,8 @@ export default function App() {
     setShowSaveDialog(true)
   }
 
-  const handleConfirmSave = () => {
-    const ok = saveWork({
+  const handleConfirmSave = async () => {
+    const ok = await saveWork({
       id: Date.now(),
       name: saveInputName.trim() || designName,
       canvasData,
@@ -356,11 +365,14 @@ export default function App() {
             <Suspense fallback={<LoadingScreen />}>
               <Gallery
                 onLoadTemplate={handleLoadTemplate}
-                onSaveWork={handleSaveWork}
+                onDeleteWork={deleteWork}
                 onLoadWork={handleLoadWork}
                 savedWorks={savedWorks}
+                worksLoading={worksLoading}
+                cloudMirrorCount={cloudMirrorCount}
                 cloudStore={cloudStore}
                 user={user}
+                onLogin={openLogin}
                 onRegister={openRegister}
               />
             </Suspense>
@@ -445,8 +457,8 @@ export default function App() {
                 {t('gallery.saveConfirm')}
               </button>
             </div>
-            {/* 匿名用户保存作品时的软注册引导:不打断保存,仅提示 + 可选跳转 */}
-            {!user && (
+            {/* 保存落点提示:匿名 → 本机保存 + 注册软引导;登录 → 云端保存 */}
+            {!user ? (
               <div className="save-local-hint">
                 <p>{t('auth.saveLocalHint')}</p>
                 <button
@@ -457,12 +469,19 @@ export default function App() {
                   {t('auth.registerAccount')} →
                 </button>
               </div>
+            ) : (
+              <div className="save-local-hint">
+                <p>{t('auth.saveCloudHint')}</p>
+              </div>
             )}
           </div>
         </div>
       )}
       {saveToast && (
-        <div className="save-toast">{t('gallery.savedToast')}</div>
+        <div className="save-toast">{user ? t('gallery.savedToastCloud') : t('gallery.savedToast')}</div>
+      )}
+      {syncToast && (
+        <div className="sync-toast">{t('auth.syncToast', { n: syncCount })}</div>
       )}
       {fitToast && (
         <div className="fit-toast">{t('canvas.autoFitToast')}</div>
@@ -505,6 +524,20 @@ export default function App() {
           left: 50%;
           transform: translateX(-50%);
           background: var(--text-primary);
+          color: white;
+          padding: 12px 24px;
+          border-radius: 20px;
+          font-size: var(--text-base);
+          z-index: 1100;
+          box-shadow: var(--shadow-card);
+          animation: toastIn 0.3s ease;
+        }
+        .sync-toast {
+          position: fixed;
+          top: 72px;
+          left: 50%;
+          transform: translateX(-50%);
+          background: var(--accent);
           color: white;
           padding: 12px 24px;
           border-radius: 20px;
@@ -604,11 +637,14 @@ export default function App() {
             <div className="mobile-page-area">
               <Gallery
                 onLoadTemplate={handleLoadTemplate}
-                onSaveWork={handleSaveWork}
+                onDeleteWork={deleteWork}
                 onLoadWork={handleLoadWork}
                 savedWorks={savedWorks}
+                worksLoading={worksLoading}
+                cloudMirrorCount={cloudMirrorCount}
                 cloudStore={cloudStore}
                 user={user}
+                onLogin={openLogin}
                 onRegister={openRegister}
               />
             </div>
@@ -697,8 +733,8 @@ export default function App() {
                 {t('gallery.saveConfirm')}
               </button>
             </div>
-            {/* 匿名用户保存作品时的软注册引导:不打断保存,仅提示 + 可选跳转 */}
-            {!user && (
+            {/* 保存落点提示:匿名 → 本机保存 + 注册软引导;登录 → 云端保存 */}
+            {!user ? (
               <div className="save-local-hint">
                 <p>{t('auth.saveLocalHint')}</p>
                 <button
@@ -709,12 +745,19 @@ export default function App() {
                   {t('auth.registerAccount')} →
                 </button>
               </div>
+            ) : (
+              <div className="save-local-hint">
+                <p>{t('auth.saveCloudHint')}</p>
+              </div>
             )}
           </div>
         </div>
       )}
       {saveToast && (
-        <div className="save-toast">{t('gallery.savedToast')}</div>
+        <div className="save-toast">{user ? t('gallery.savedToastCloud') : t('gallery.savedToast')}</div>
+      )}
+      {syncToast && (
+        <div className="sync-toast">{t('auth.syncToast', { n: syncCount })}</div>
       )}
       {fitToast && (
         <div className="fit-toast">{t('canvas.autoFitToast')}</div>
@@ -739,6 +782,20 @@ export default function App() {
           left: 50%;
           transform: translateX(-50%);
           background: var(--text-primary);
+          color: white;
+          padding: 12px 24px;
+          border-radius: 20px;
+          font-size: var(--text-base);
+          z-index: 1100;
+          box-shadow: var(--shadow-card);
+          animation: toastIn 0.3s ease;
+        }
+        .sync-toast {
+          position: fixed;
+          top: 72px;
+          left: 50%;
+          transform: translateX(-50%);
+          background: var(--accent);
           color: white;
           padding: 12px 24px;
           border-radius: 20px;

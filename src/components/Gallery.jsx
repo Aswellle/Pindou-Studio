@@ -16,7 +16,7 @@ const resolveToHex = (colorVal, palette) => {
   return found ? found.hex : colorVal
 }
 
-export default function Gallery({ onLoadTemplate, onSaveWork, onLoadWork, savedWorks = [], cloudStore, user, onRegister }) {
+export default function Gallery({ onLoadTemplate, onDeleteWork, onLoadWork, savedWorks = [], worksLoading, cloudMirrorCount = 0, cloudStore, user, onLogin, onRegister }) {
   const { t } = useTranslation()
   // 云端启用时,模板库完全来自云端(RLS 公开只读);未启用时回退本地模式
   // (内置模板 + localStorage 自定义模板,自定义在前)
@@ -220,16 +220,36 @@ export default function Gallery({ onLoadTemplate, onSaveWork, onLoadWork, savedW
                 </button>
               </div>
             )}
-            {savedWorks.length === 0 ? (
+            {worksLoading ? (
               <div className="empty-state">
-                <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
-                  <rect x="3" y="3" width="18" height="18" rx="2"/>
-                  <path d="M3 9h18"/>
-                  <path d="M9 21V9"/>
-                </svg>
-                <p>{t('gallery.noWorks')}</p>
-                <span>{t('gallery.noWorksHint')}</span>
+                <p>{t('gallery.worksLoading')}</p>
               </div>
+            ) : savedWorks.length === 0 ? (
+              !user && cloudMirrorCount > 0 ? (
+                /* 登出但云端有作品:提示登录查看(避免"作品消失了"的误解) */
+                <div className="empty-state">
+                  <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+                    <path d="M17.5 19H9a7 7 0 1 1 6.71-9h1.79a4.5 4.5 0 1 1 0 9Z"/>
+                  </svg>
+                  <p>{t('gallery.cloudWorksEmptyTitle')}</p>
+                  <span>{t('gallery.cloudWorksEmptyBody')}</span>
+                  {onLogin && (
+                    <button className="btn btn-primary empty-login-btn" onClick={onLogin}>
+                      {t('auth.login')}
+                    </button>
+                  )}
+                </div>
+              ) : (
+                <div className="empty-state">
+                  <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+                    <rect x="3" y="3" width="18" height="18" rx="2"/>
+                    <path d="M3 9h18"/>
+                    <path d="M9 21V9"/>
+                  </svg>
+                  <p>{t('gallery.noWorks')}</p>
+                  <span>{t('gallery.noWorksHint')}</span>
+                </div>
+              )
             ) : (
               <div className="works-grid">
                 {savedWorks.map((work, index) => {
@@ -276,10 +296,7 @@ export default function Gallery({ onLoadTemplate, onSaveWork, onLoadWork, savedW
                         </button>
                         <button
                           className="work-btn delete"
-                          onClick={() => {
-                            const newWorks = savedWorks.filter((_, i) => i !== index)
-                            onSaveWork(newWorks)
-                          }}
+                          onClick={() => onDeleteWork(work)}
                         >
                           {t('gallery.delete')}
                         </button>
@@ -707,6 +724,9 @@ export default function Gallery({ onLoadTemplate, onSaveWork, onLoadWork, savedW
         }
         .empty-state span {
           font-size: var(--text-base);
+        }
+        .empty-login-btn {
+          margin-top: 16px;
         }
         .section-title {
           font-size: var(--text-2xl);

@@ -48,7 +48,9 @@
     "setPasswordBtn": "确认设置",
     "consentNotice": "继续即表示你同意《隐私政策》与《服务条款》",
     "registerAccount": "注册账号",
-    "saveLocalHint": "作品将保存在本浏览器。注册账号,为作品建立账号归属——账号是作品云端保存与跨设备同步的基础。"
+    "saveLocalHint": "作品将保存在本浏览器。注册账号后,作品自动保存到云端,可跨设备使用。",
+    "saveCloudHint": "作品将保存到你的云端账号,可在其他设备随时查看。",
+    "syncToast": "已同步 {{n}} 幅作品到云端,可在其他设备查看"
   },
   "errors": {
     "invalidEmail": "请输入有效的邮箱地址",
@@ -60,7 +62,9 @@
     "tooManyAttempts": "尝试过于频繁,请稍后再试",
     "cloudNotConfigured": "云端未配置,无法使用账号功能",
     "emailNotFound": "该邮箱尚未注册",
-    "storageFull": "存储空间已满，请删除部分作品后再保存。"
+    "storageFull": "存储空间已满，请删除部分作品后再保存。",
+    "saveFailed": "保存失败,请重试",
+    "deleteFailed": "删除失败,请重试"
   },
   "palette": {
     "title": "色卡",
@@ -168,9 +172,13 @@
     "cloudEmpty": "云端模板库为空",
     "cloudEmptyHint": "请管理员登录后台,在「模板管理」页完成本地数据迁移",
     "localWorksTitle": "作品本机保存提醒",
-    "localWorksBody": "你的 {{n}} 个作品保存在当前浏览器中,清除缓存或更换设备会丢失。注册账号,让作品拥有账号归属——为云端保存与跨设备同步打下基础。",
+    "localWorksBody": "你的 {{n}} 个作品保存在当前浏览器中,清除缓存或更换设备会丢失。注册账号,一键把作品同步到云端,跨设备可用。",
     "localWorksRegister": "注册账号",
-    "localWorksDismiss": "不再提示"
+    "localWorksDismiss": "不再提示",
+    "worksLoading": "正在加载作品...",
+    "cloudWorksEmptyTitle": "你的作品已保存在云端",
+    "cloudWorksEmptyBody": "登录后即可随时查看与管理这些作品",
+    "savedToastCloud": "已保存到云端作品"
   },
   "export": {
     "title": "导出图纸",

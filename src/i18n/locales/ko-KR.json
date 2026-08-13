@@ -48,7 +48,9 @@
     "setPasswordBtn": "설정하기",
     "consentNotice": "계속하면 개인정보 처리방침 및 서비스 약관에 동의한 것으로 간주됩니다.",
     "registerAccount": "계정 등록",
-    "saveLocalHint": "작품은 이 브라우저에 저장됩니다. 등록하면 작품에 계정이 생기고, 이는 클라우드 저장 및 여러 기기 동기화의 기반이 됩니다."
+    "saveLocalHint": "작품은 이 브라우저에 저장됩니다. 등록하면 작품이 자동으로 클라우드에 저장되어 여러 기기에서 사용할 수 있습니다.",
+    "saveCloudHint": "작품이 클라우드 계정에 저장되며 어느 기기에서든 확인할 수 있습니다.",
+    "syncToast": "작품 {{n}}개를 클라우드에 동기화했습니다 — 어느 기기에서든 확인 가능"
   },
   "errors": {
     "invalidEmail": "유효한 이메일 주소를 입력하세요",
@@ -60,7 +62,9 @@
     "tooManyAttempts": "시도 횟수가 너무 많습니다. 잠시 후 다시 시도하세요.",
     "cloudNotConfigured": "클라우드 미설정으로 계정 기능을 사용할 수 없습니다",
     "emailNotFound": "등록되지 않은 이메일입니다",
-    "storageFull": "저장 공간이 가득 찼습니다. 일부 작품을 삭제한 후 저장하세요."
+    "storageFull": "저장 공간이 가득 찼습니다. 일부 작품을 삭제한 후 저장하세요.",
+    "saveFailed": "저장에 실패했습니다. 다시 시도해 주세요.",
+    "deleteFailed": "삭제에 실패했습니다. 다시 시도해 주세요."
   },
   "palette": {
     "title": "색상 팔레트",
@@ -168,9 +172,13 @@
     "cloudEmpty": "클라우드 템플릿 라이브러리가 비어 있습니다",
     "cloudEmptyHint": "관리자가 로그인하여 '템플릿 관리' 탭에서 로컬 데이터 마이그레이션을 실행하세요.",
     "localWorksTitle": "작품이 이 기기에 저장되어 있습니다",
-    "localWorksBody": "현재 {{n}}개의 작품이 이 브라우저에 저장되어 있습니다. 캐시를 지우거나 기기를 바꾸면 사라질 수 있습니다. 등록하면 작품에 계정이 생기며, 클라우드 저장 및 여러 기기 동기화의 기반이 됩니다.",
+    "localWorksBody": "현재 {{n}}개의 작품이 이 브라우저에 저장되어 있습니다. 캐시를 지우거나 기기를 바꾸면 사라질 수 있습니다. 등록하면 작품을 클라우드에 한 번에 동기화하여 어느 기기에서든 사용할 수 있습니다.",
     "localWorksRegister": "계정 등록",
-    "localWorksDismiss": "다시 표시 안 함"
+    "localWorksDismiss": "다시 표시 안 함",
+    "worksLoading": "작품 불러오는 중...",
+    "cloudWorksEmptyTitle": "작품이 클라우드에 저장되어 있습니다",
+    "cloudWorksEmptyBody": "로그인하면 언제든지 작품을 보고 관리할 수 있습니다.",
+    "savedToastCloud": "클라우드에 저장되었습니다"
   },
   "export": {
     "title": "패턴 내보내기",
