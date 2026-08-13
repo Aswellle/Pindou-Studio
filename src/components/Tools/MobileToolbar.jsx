@@ -309,43 +309,42 @@ export default function MobileToolbar({
           </select>
         </label>
 
-        {/* 图片转拼豆:魔法按钮 + 首次发现引导气泡 */}
-        <div className="quantize-wrap">
-          <button
-            ref={quantizeBtnRef}
-            className="action-btn magical"
-            onClick={handleQuantize}
-            aria-label={t('tools.imageToBead')}
-            title={t('tools.imageToBead')}
-          >
-            <WandIcon />
-            <span className="magic-sparkle" aria-hidden="true">✦</span>
-          </button>
-          {guideVisible && (
-            <div
-              className="quantize-guide"
-              role="tooltip"
-              onClick={handleQuantize}
-              ref={guideRef}
-              style={guideStyle || undefined}
-            >
-              <span className="guide-text">{t('tools.quantizeGuide')}</span>
-              <span
-                className="guide-arrow"
-                style={guideStyle ? { left: guideStyle.arrowLeft } : undefined}
-                aria-hidden="true"
-              >
-                <i className="tri tri-1" />
-                <i className="tri tri-2" />
-                <i className="tri tri-3" />
-              </span>
-            </div>
-          )}
-        </div>
+        {/* 图片转拼豆:魔法按钮(与导出按钮同构同尺寸,仅填充不同) + 首次发现引导气泡 */}
+        <button
+          ref={quantizeBtnRef}
+          className="action-btn magical"
+          onClick={handleQuantize}
+          aria-label={t('tools.imageToBead')}
+          title={t('tools.imageToBead')}
+        >
+          <WandIcon />
+          <span className="magic-sparkle" aria-hidden="true">✦</span>
+        </button>
 
         <button className="action-btn primary" onClick={onExport} aria-label={t('export.title')}>
           <ExportIcon />
         </button>
+
+        {guideVisible && (
+          <div
+            className="quantize-guide"
+            role="tooltip"
+            onClick={handleQuantize}
+            ref={guideRef}
+            style={guideStyle || undefined}
+          >
+            <span className="guide-text">{t('tools.quantizeGuide')}</span>
+            <span
+              className="guide-arrow"
+              style={guideStyle ? { left: guideStyle.arrowLeft } : undefined}
+              aria-hidden="true"
+            >
+              <i className="tri tri-1" />
+              <i className="tri tri-2" />
+              <i className="tri tri-3" />
+            </span>
+          </div>
+        )}
       </div>
     </div>
   )
