@@ -57,6 +57,9 @@ docs/seo/
 # Debug scripts
 prep-zoom.js
 
+# Generated verification output (scripts/gen-templates.mjs, scripts/verify-export.mjs)
+verify-output/
+
 # Documentation (kept separate from source)
 CLAUDE.md
 开发日志/
