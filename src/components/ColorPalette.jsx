@@ -258,8 +258,9 @@ export default function ColorPalette({ selectedColor, onColorSelect, collapsed, 
           min-width: 0;
         }
         .color-brand {
-          font-size: var(--text-xs);
-          color: var(--text-muted);
+          font-size: var(--text-sm);
+          font-weight: 600;
+          color: var(--text-secondary);
           display: block;
           margin-bottom: 2px;
           white-space: nowrap;
