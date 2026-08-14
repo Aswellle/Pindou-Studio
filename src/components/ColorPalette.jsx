@@ -11,6 +11,9 @@ export default function ColorPalette({ selectedColor, onColorSelect, collapsed, 
   // 当前选中颜色的名称(色卡中匹配,匹配不到显示原值)
   const currentColorInfo = palette.colors.find(c => c.hex === selectedColor)
   const currentColorName = currentColorInfo ? colorName(currentColorInfo) : selectedColor
+  // 次显行色号:仅当色号 ≠ 主显名时显示(COCO/MARD 的代号已作主显名,避免重复)
+  const currentCode = currentColorInfo?.id || ''
+  const showCode = Boolean(currentCode) && currentCode !== currentColorName
 
   // 色系分组:优先按 groupOrder(商家销量调研的畅销度),否则按组内颜色数降序
   const groups = useMemo(() => {
@@ -104,7 +107,7 @@ export default function ColorPalette({ selectedColor, onColorSelect, collapsed, 
           <div className="color-info">
             {/* 主要:品牌名 + 颜色名称/代号(有名字的品牌显示名称,无名字的 COCO/MARD 显示代号,便于快速辨认);次要:该色卡的 hex 表示 */}
             <span className="color-name">{t(`palette.brand.${palette.id}`)}{currentColorName ? ` · ${currentColorName}` : ''}</span>
-            <span className="color-id">{selectedColor || ''}</span>
+            <span className="color-id">{showCode ? `${currentCode} · ` : ''}{selectedColor || ''}</span>
           </div>
         </div>
       </div>
