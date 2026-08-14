@@ -6,9 +6,11 @@ export default function ColorPalette({ selectedColor, onColorSelect, collapsed, 
   const { t } = useTranslation()
   // 与移动端同源:直接读官方品牌色卡
   const palette = getPalette(currentPalette)
+  // 颜色名走 i18n 键(palette.colorNames.<品牌>.<色号>),缺键回退到数据自带的 nameZh/name
+  const colorName = (c) => c && t(`palette.colorNames.${palette.id}.${c.id}`, c.nameZh || c.name)
   // 当前选中颜色的名称(色卡中匹配,匹配不到显示原值)
   const currentColorInfo = palette.colors.find(c => c.hex === selectedColor)
-  const currentColorName = currentColorInfo?.nameZh || currentColorInfo?.name || selectedColor
+  const currentColorName = currentColorInfo ? colorName(currentColorInfo) : selectedColor
 
   // 色系分组:优先按 groupOrder(商家销量调研的畅销度),否则按组内颜色数降序
   const groups = useMemo(() => {
@@ -39,7 +41,7 @@ export default function ColorPalette({ selectedColor, onColorSelect, collapsed, 
       className={`color-swatch ${selectedColor === c.hex ? 'selected' : ''}${isLight(c.hex) ? ' white' : ''}`}
       style={{ backgroundColor: c.hex }}
       onClick={() => onColorSelect(c.hex)}
-      title={`${c.id} · ${c.nameZh}`}
+      title={`${c.id} · ${colorName(c)}`}
     />
   )
 
@@ -70,10 +72,10 @@ export default function ColorPalette({ selectedColor, onColorSelect, collapsed, 
             aria-label={t('palette.brandSelect')}
           >
             {PALETTE_LIST.map(brand => (
-              <option key={brand.id} value={brand.id}>{brand.nameZh}</option>
+              <option key={brand.id} value={brand.id}>{t(`palette.brand.${brand.id}`)}</option>
             ))}
           </select>
-          <p className="palette-subtitle">{palette.nameZh} · {palette.colorCount} 色</p>
+          <p className="palette-subtitle">{t(`palette.brand.${palette.id}`)} · {palette.colorCount} {t('palette.colors')}</p>
         </div>
 
         <div className="palette-scroll">
@@ -81,7 +83,7 @@ export default function ColorPalette({ selectedColor, onColorSelect, collapsed, 
             /* 按色系分组展示(如 MARD:黄橙色调/绿色调/...),组序按使用度(色数)降序 */
             groups.map((g) => (
               <div key={g.id} className="palette-group">
-                <div className="palette-group-title">{g.name} · {g.colors.length}</div>
+                <div className="palette-group-title">{t(`palette.groupNames.${palette.id}.${g.id}`, g.name)} · {g.colors.length}</div>
                 <div className="color-grid">
                   {g.colors.map(renderSwatch)}
                 </div>

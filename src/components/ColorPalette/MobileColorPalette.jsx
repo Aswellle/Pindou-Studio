@@ -26,7 +26,9 @@ export default function MobileColorPalette({
     () => palette.colors.find(c => c.hex?.toLowerCase() === selectedColor?.toLowerCase()),
     [palette, selectedColor]
   )
-  const selectedColorName = selectedColorInfo?.nameZh || selectedColorInfo?.name || ''
+  // 颜色名走 i18n 键(palette.colorNames.<品牌>.<色号>),缺键回退到数据自带的 nameZh/name
+  const colorName = (color) => color && t(`palette.colorNames.${palette.id}.${color.id}`, color.nameZh || color.name)
+  const selectedColorName = selectedColorInfo ? colorName(selectedColorInfo) : ''
 
   // 色系分组:优先按 groupOrder(商家销量调研的畅销度),否则按组内颜色数降序
   const groups = useMemo(() => {
@@ -85,7 +87,7 @@ export default function MobileColorPalette({
         <span className="color-label">
           {/* 颜色名称 + 所属品牌(去重:色号已在色卡网格中显示,这里只标品牌) */}
           <span className="color-name">{selectedColorName || selectedColor}</span>
-          <span className="color-brand">{palette.nameZh}</span>
+          <span className="color-brand">{t(`palette.brand.${palette.id}`)}</span>
         </span>
         {totalBeads > 0 && (
           <span className="mobile-stats-badge">
@@ -106,7 +108,7 @@ export default function MobileColorPalette({
                 className={`brand-tab ${currentPalette === brand.id ? 'active' : ''}`}
                 onClick={() => onPaletteChange(brand.id)}
               >
-                {brand.name}
+                {t(`palette.brand.${brand.id}`)}
               </button>
             ))}
           </div>
@@ -133,7 +135,7 @@ export default function MobileColorPalette({
           {groups ? (
             groups.map((g) => (
               <div key={g.id} className="palette-group">
-                <div className="palette-group-title">{g.name} · {g.colors.length}</div>
+                <div className="palette-group-title">{t(`palette.groupNames.${palette.id}.${g.id}`, g.name)} · {g.colors.length}</div>
                 <div className="color-grid">
                   {g.colors.map((color) => (
                     <button
@@ -143,7 +145,7 @@ export default function MobileColorPalette({
                     >
                       <span className="color-swatch" style={{ backgroundColor: color.hex }} />
                       <span className="color-swatch-label">
-                        {color.id} {color.nameZh || color.name}
+                        {color.id} {colorName(color)}
                       </span>
                     </button>
                   ))}
@@ -160,7 +162,7 @@ export default function MobileColorPalette({
                 >
                   <span className="color-swatch" style={{ backgroundColor: color.hex }} />
                   <span className="color-swatch-label">
-                    {color.id} {color.nameZh || color.name}
+                    {color.id} {colorName(color)}
                   </span>
                 </button>
               ))}

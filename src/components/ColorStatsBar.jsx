@@ -13,11 +13,13 @@ import { getPalette } from '../data/palettes'
 import { resolveToHex } from '../services/colorUtils'
 
 export default function ColorStatsBar({ canvasData, paletteId }) {
-  const { t } = useTranslation()
+  const { t, i18n } = useTranslation()
 
   const { total, colorCount, colorList } = useMemo(() => {
     if (!canvasData) return { total: 0, colorCount: 0, colorList: [] }
     const palette = getPalette(paletteId || 'perler')
+    // 颜色名走 i18n 键(palette.colorNames.<品牌>.<色号>),缺键回退到数据自带的 nameZh/name
+    const colorName = (c) => c && t(`palette.colorNames.${palette.id}.${c.id}`, c.nameZh || c.name)
     const counts = {}
     let total = 0
     const rows = canvasData.length
@@ -35,10 +37,10 @@ export default function ColorStatsBar({ canvasData, paletteId }) {
       .sort((a, b) => b[1] - a[1])
       .map(([hex, count]) => {
         const pc = palette.colors.find(c => c.hex?.toLowerCase() === hex.toLowerCase())
-        return { hex, count, label: pc ? `${pc.id} ${pc.nameZh || pc.name}` : hex }
+        return { hex, count, label: pc ? `${pc.id} ${colorName(pc)}` : hex }
       })
     return { total, colorCount: colorList.length, colorList }
-  }, [canvasData, paletteId])
+  }, [canvasData, paletteId, i18n.language])
 
   if (!canvasData) {
     return (

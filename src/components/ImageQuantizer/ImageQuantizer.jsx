@@ -464,12 +464,12 @@ export default function ImageQuantizer({ onApply, onClose }) {
               >
                 {PALETTE_LIST.map(p => (
                   <option key={p.id} value={p.id}>
-                    {p.name} ({p.colorCount} {t('quantizer.colors', '色')})
+                    {t(`palette.brand.${p.id}`)} ({p.colorCount} {t('quantizer.colors', '色')})
                   </option>
                 ))}
               </select>
               <span className="setting-hint">
-                {palette.origin} · {palette.beadSizeLabel}
+                {t(`palette.origin.${palette.id}`)} · {t(`palette.beadSize.${palette.id}`)} ({palette.beadSize}mm)
               </span>
             </div>
 
