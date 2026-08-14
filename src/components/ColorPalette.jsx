@@ -102,9 +102,9 @@ export default function ColorPalette({ selectedColor, onColorSelect, collapsed, 
             style={{ backgroundColor: selectedColor }}
           />
           <div className="color-info">
-            {/* 显示颜色名称(不显示 hex,去掉 hex 输入框) */}
-            <span className="color-name">{currentColorName}</span>
-            <span className="color-id">{currentColorInfo?.id || ''}</span>
+            {/* 主要:品牌名 + 颜色名称/代号(有名字的品牌显示名称,无名字的 COCO/MARD 显示代号,便于快速辨认);次要:该色卡的 hex 表示 */}
+            <span className="color-name">{t(`palette.brand.${palette.id}`)}{currentColorName ? ` · ${currentColorName}` : ''}</span>
+            <span className="color-id">{selectedColor || ''}</span>
           </div>
         </div>
       </div>
