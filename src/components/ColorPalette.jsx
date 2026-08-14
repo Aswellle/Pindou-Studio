@@ -10,7 +10,7 @@ export default function ColorPalette({ selectedColor, onColorSelect, collapsed, 
   const colorName = (c) => c && t(`palette.colorNames.${palette.id}.${c.id}`, c.nameZh || c.name)
   // 当前选中颜色的名称(色卡中匹配,匹配不到显示原值)
   const currentColorInfo = palette.colors.find(c => c.hex === selectedColor)
-  const currentColorName = currentColorInfo ? colorName(currentColorInfo) : selectedColor
+  const currentColorName = currentColorInfo ? colorName(currentColorInfo) : (selectedColor || '')
   // 次显行色号:仅当色号 ≠ 主显名时显示(COCO/MARD 的代号已作主显名,避免重复)
   const currentCode = currentColorInfo?.id || ''
   const showCode = Boolean(currentCode) && currentCode !== currentColorName
@@ -105,9 +105,10 @@ export default function ColorPalette({ selectedColor, onColorSelect, collapsed, 
             style={{ backgroundColor: selectedColor }}
           />
           <div className="color-info">
-            {/* 主要:品牌名 + 颜色名称/代号(有名字的品牌显示名称,无名字的 COCO/MARD 显示代号,便于快速辨认);次要:该色卡的 hex 表示 */}
-            <span className="color-name">{t(`palette.brand.${palette.id}`)}{currentColorName ? ` · ${currentColorName}` : ''}</span>
-            <span className="color-id">{showCode ? `${currentCode} · ` : ''}{selectedColor || ''}</span>
+            {/* 品牌(小字) + 颜色名/代号(主) + 色号·hex(次) 分行完整显示,窄栏内不省略号截断 */}
+            <span className="color-brand">{t(`palette.brand.${palette.id}`)}</span>
+            <span className="color-name">{currentColorName}</span>
+            <span className="color-id">{currentColorInfo ? `${showCode ? `${currentCode} · ` : ''}${selectedColor || ''}` : ''}</span>
           </div>
         </div>
       </div>
@@ -256,20 +257,30 @@ export default function ColorPalette({ selectedColor, onColorSelect, collapsed, 
           flex: 1;
           min-width: 0;
         }
-        .color-name {
-          font-size: var(--text-md);
-          font-weight: var(--font-weight-semibold);
+        .color-brand {
+          font-size: var(--text-xs);
+          color: var(--text-muted);
           display: block;
           margin-bottom: 2px;
           white-space: nowrap;
           overflow: hidden;
           text-overflow: ellipsis;
         }
+        .color-name {
+          font-size: var(--text-md);
+          font-weight: var(--font-weight-semibold);
+          display: block;
+          margin-bottom: 2px;
+          line-height: 1.3;
+          white-space: normal;
+          overflow-wrap: break-word;
+        }
         .color-id {
           font-family: var(--font-mono);
           font-size: var(--text-xs);
           color: var(--text-secondary);
           display: block;
+          white-space: nowrap;
         }
       `}</style>
     </div>
