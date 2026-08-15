@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react'
+import { useState, useEffect, useMemo, useRef, useLayoutEffect } from 'react'
 import { createPortal } from 'react-dom'
 import { useTranslation } from 'react-i18next'
 import { TEMPLATES, CATEGORIES, DIFFICULTIES, extractPatternColors, convertTemplateToBrand } from '../data/templates'
@@ -31,6 +31,12 @@ export default function Gallery({ onLoadTemplate, onDeleteWork, onLoadWork, save
     () => [...new Set([...CATEGORIES, ...customCategories.map(c => c.id)])],
     [customCategories]
   )
+  // 每个分类下的模板总数(含"全部");与收藏/作品计数一致
+  const categoryCounts = useMemo(() => {
+    const counts = {}
+    for (const tpl of allTemplates) counts[tpl.category] = (counts[tpl.category] || 0) + 1
+    return counts
+  }, [allTemplates])
   const getCategoryLabel = (cat) => {
     const custom = customCategories.find(c => c.id === cat)
     return custom ? custom.label : t(`gallery.categories.${cat}`, cat)
@@ -58,6 +64,40 @@ export default function Gallery({ onLoadTemplate, onDeleteWork, onLoadWork, save
     if (override && override !== template.paletteId) return convertTemplateToBrand(template.pattern, override)
     return template.pattern
   }
+
+  // 品牌/导出菜单:记录触发按钮位置 + 菜单元素,用 useLayoutEffect 贴近按钮定位(避免居中)
+  const brandTriggerRect = useRef(null)
+  const brandMenuRef = useRef(null)
+  const exportTriggerRect = useRef(null)
+  const exportMenuRef = useRef(null)
+  useLayoutEffect(() => {
+    if (!brandMenuId || !brandMenuRef.current || !brandTriggerRect.current) return
+    const menu = brandMenuRef.current
+    const r = brandTriggerRect.current
+    const mw = menu.offsetWidth
+    const mh = menu.offsetHeight
+    let left = r.left
+    let top = r.bottom + 6
+    if (left + mw > window.innerWidth - 8) left = Math.max(8, window.innerWidth - mw - 8)
+    if (top + mh > window.innerHeight - 8) top = Math.max(8, r.top - mh - 6)
+    menu.style.left = `${left}px`
+    menu.style.top = `${top}px`
+  }, [brandMenuId])
+  useLayoutEffect(() => {
+    if (!exportMenuId || !exportMenuRef.current || !exportTriggerRect.current) return
+    const menu = exportMenuRef.current
+    const r = exportTriggerRect.current
+    const mw = menu.offsetWidth
+    const mh = menu.offsetHeight
+    // 右对齐导出按钮(按钮在卡片右下角),优先在按钮上方展开
+    let left = r.right - mw
+    let top = r.top - mh - 6
+    if (left < 8) left = 8
+    if (top < 8) top = r.bottom + 6
+    if (top + mh > window.innerHeight - 8) top = Math.max(8, window.innerHeight - mh - 8)
+    menu.style.left = `${left}px`
+    menu.style.top = `${top}px`
+  }, [exportMenuId])
   // 「我的作品」注册软引导:可关闭,关闭后本机记住不再打扰
   const [localWorksHintDismissed, setLocalWorksHintDismissed] = useState(
     () => localStorage.getItem('auth-hint-local-works-dismissed') === '1'
@@ -188,6 +228,7 @@ export default function Gallery({ onLoadTemplate, onDeleteWork, onLoadWork, save
               onClick={() => setSelectedCategory(cat)}
             >
               {getCategoryLabel(cat)}
+              <span className="category-count">{cat === 'all' ? allTemplates.length : (categoryCounts[cat] || 0)}</span>
             </button>
           ))}
         </div>
@@ -371,6 +412,8 @@ export default function Gallery({ onLoadTemplate, onDeleteWork, onLoadWork, save
                     className="export-btn"
                     onClick={e => {
                       e.stopPropagation()
+                      exportTriggerRect.current = e.currentTarget.getBoundingClientRect()
+                      setBrandMenuId(null)
                       setExportMenuId(exportMenuId === template.id ? null : template.id)
                     }}
                     disabled={exportingId === template.id}
@@ -399,12 +442,35 @@ export default function Gallery({ onLoadTemplate, onDeleteWork, onLoadWork, save
                       className="export-menu-overlay"
                       onClick={e => { e.stopPropagation(); setExportMenuId(null) }}
                     >
-                      <div className="export-menu" role="menu" onClick={e => e.stopPropagation()}>
-                        <button role="menuitem" onClick={e => handleExportTemplate(template, 'professional', e)}>
-                          {t('gallery.exportProfessional')}
+                      <div className="export-menu" ref={exportMenuRef} role="menu" onClick={e => e.stopPropagation()}>
+                        <div className="export-menu-header">
+                          <span className="export-menu-title">{t('gallery.exportTitle')}</span>
+                          <span className="export-menu-name">
+                            {template.name ? (template.nameZh || template.name) : t(`templates.names.${template.nameKey}`, template.nameKey)}
+                          </span>
+                        </div>
+                        <div className="export-menu-hint">{t('gallery.exportHint')}</div>
+                        <button role="menuitem" className="export-format-item" onClick={e => handleExportTemplate(template, 'professional', e)}>
+                          <span className="export-format-icon" aria-hidden="true">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                              <path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/>
+                            </svg>
+                          </span>
+                          <span className="export-format-text">
+                            <span className="export-format-name">{t('gallery.exportProfessional')}</span>
+                            <span className="export-format-desc">{t('gallery.exportProfessionalDesc')}</span>
+                          </span>
                         </button>
-                        <button role="menuitem" onClick={e => handleExportTemplate(template, 'realistic', e)}>
-                          {t('gallery.exportRealistic')}
+                        <button role="menuitem" className="export-format-item" onClick={e => handleExportTemplate(template, 'realistic', e)}>
+                          <span className="export-format-icon" aria-hidden="true">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                              <path d="M12 2c1.5 3 4 4 4 7a4 4 0 0 1-8 0c0-3 2.5-4 4-7z"/><path d="M12 15v4"/><path d="M8 22h8"/>
+                            </svg>
+                          </span>
+                          <span className="export-format-text">
+                            <span className="export-format-name">{t('gallery.exportRealistic')}</span>
+                            <span className="export-format-desc">{t('gallery.exportRealisticDesc')}</span>
+                          </span>
                         </button>
                       </div>
                     </div>,
@@ -420,7 +486,7 @@ export default function Gallery({ onLoadTemplate, onDeleteWork, onLoadWork, save
                     {/* 拼豆品牌徽章:显示模板所属色卡品牌;点击可切换并转换为指定品牌 */}
                     <button
                       className={`template-brand${brandOverride[template.id] ? ' overridden' : ''}`}
-                      onClick={(e) => { e.stopPropagation(); setBrandMenuId(brandMenuId === template.id ? null : template.id) }}
+                      onClick={(e) => { e.stopPropagation(); brandTriggerRect.current = e.currentTarget.getBoundingClientRect(); setExportMenuId(null); setBrandMenuId(brandMenuId === template.id ? null : template.id) }}
                       title={t('gallery.brandConvert')}
                       aria-label={t('gallery.brandConvert')}
                       aria-expanded={brandMenuId === template.id}
@@ -428,10 +494,16 @@ export default function Gallery({ onLoadTemplate, onDeleteWork, onLoadWork, save
                     >
                       {t(`palette.brand.${templateBrandId(template)}`)}
                       {brandOverride[template.id] && (
-                        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
-                          <path d="M4 4v5h5"/><path d="M20 20v-5h-5"/><path d="M20 15a8 8 0 0 0-14.6-4L4 9"/><path d="M4 9a8 8 0 0 0 14.6 4L20 9"/>
+                        /* 调色板图标:表示该模板已转换到指定品牌的色卡 */
+                        <svg className="brand-convert-icon" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                          <path d="M12 22a10 10 0 1 1 10-10c0 1.66-1.34 3-3 3h-2.3a2.4 2.4 0 0 0-1.8 3.94c.3.37.35.87.07 1.3-.38.7-.9 1.76-.97 1.76z"/>
+                          <circle cx="7.5" cy="11.5" r="1"/><circle cx="11.5" cy="7.5" r="1"/><circle cx="16" cy="9.5" r="1"/>
                         </svg>
                       )}
+                      {/* 向下箭头:标示该徽章是可展开的下拉按钮 */}
+                      <svg className="brand-chevron" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                        <path d="M6 9l6 6 6-6"/>
+                      </svg>
                     </button>
                     <span
                       className="template-difficulty"
@@ -448,7 +520,7 @@ export default function Gallery({ onLoadTemplate, onDeleteWork, onLoadWork, save
                     className="brand-menu-overlay"
                     onClick={(e) => { e.stopPropagation(); setBrandMenuId(null) }}
                   >
-                    <div className="brand-menu" role="menu" onClick={e => e.stopPropagation()}>
+                    <div className="brand-menu" ref={brandMenuRef} role="menu" onClick={e => e.stopPropagation()}>
                       <button
                         role="menuitem"
                         className={!brandOverride[template.id] ? 'active' : ''}
@@ -611,6 +683,16 @@ export default function Gallery({ onLoadTemplate, onDeleteWork, onLoadWork, save
           border-color: var(--accent);
           color: white;
         }
+        /* 分类数量徽标:与收藏/作品计数一致 */
+        .category-count {
+          margin-left: 6px;
+          font-size: var(--text-xs);
+          color: var(--text-muted);
+          opacity: 0.9;
+        }
+        .category-btn.active .category-count {
+          color: rgba(255, 255, 255, 0.85);
+        }
         .difficulty-btn.active {
           background: var(--diff-color);
           border-color: var(--diff-color);
@@ -630,6 +712,22 @@ export default function Gallery({ onLoadTemplate, onDeleteWork, onLoadWork, save
           .templates-grid {
             grid-template-columns: repeat(2, 1fr);
             gap: 12px;
+          }
+          /* 窄卡片下尺寸/品牌/难度徽章允许换行,避免横向溢出 */
+          .template-meta {
+            flex-wrap: wrap;
+            row-gap: 4px;
+          }
+          .template-brand {
+            max-width: 96px;
+          }
+          /* 分类/难度筛选间距收紧 */
+          .category-bar {
+            gap: 14px;
+            padding: 12px;
+          }
+          .category-group, .difficulty-group {
+            gap: 6px;
           }
         }
         .template-card {
@@ -700,40 +798,88 @@ export default function Gallery({ onLoadTemplate, onDeleteWork, onLoadWork, save
           opacity: 0.6;
           cursor: default;
         }
-        /* 导出对话框由 .export-menu-overlay(fixed 全屏遮罩 + flex 居中)承载,
-           portal 渲染到 document.body,不被卡片容器裁剪 */
+        /* 导出菜单:portal 到 body,useLayoutEffect 按导出按钮位置贴近定位;
+           遮罩仅拦截点击(透明),菜单为固定定位下拉框 */
         .export-menu-overlay {
           position: fixed;
           inset: 0;
-          background: rgba(0, 0, 0, 0.4);
+          background: transparent;
           z-index: 1000;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          padding: 16px;
-          box-sizing: border-box;
         }
         .export-menu {
+          position: fixed;
+          left: 0;
+          top: 0;
+          width: 260px;
           background: var(--bg-primary);
           border: 1px solid var(--border-color);
           border-radius: 8px;
           box-shadow: 0 4px 16px rgba(43,36,32,0.2);
           overflow: hidden;
-          width: min(320px, 100%);
         }
-        .export-menu button {
-          display: block;
+        .export-menu-header {
+          padding: 12px 14px 4px;
+          display: flex;
+          flex-direction: column;
+          gap: 2px;
+        }
+        .export-menu-title {
+          font-size: var(--text-sm);
+          font-weight: var(--font-weight-semibold);
+          color: var(--text-primary);
+        }
+        .export-menu-name {
+          font-size: var(--text-xs);
+          color: var(--text-muted);
+          white-space: nowrap;
+          overflow: hidden;
+          text-overflow: ellipsis;
+        }
+        .export-menu-hint {
+          padding: 4px 14px 10px;
+          font-size: var(--text-xs);
+          color: var(--text-muted);
+          border-bottom: 1px solid var(--border-color);
+        }
+        .export-format-item {
+          display: flex;
+          align-items: center;
+          gap: 10px;
           width: 100%;
-          padding: 10px 16px;
+          padding: 10px 14px;
           text-align: left;
-          font-size: var(--text-base);
           border: none;
           background: transparent;
           cursor: pointer;
           color: var(--text-primary);
         }
-        .export-menu button:hover {
+        .export-format-item:hover {
           background: var(--bg-secondary);
+        }
+        .export-format-icon {
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          width: 28px;
+          height: 28px;
+          border-radius: 6px;
+          background: var(--bg-secondary);
+          color: var(--accent);
+          flex-shrink: 0;
+        }
+        .export-format-text {
+          display: flex;
+          flex-direction: column;
+          gap: 1px;
+          min-width: 0;
+        }
+        .export-format-name {
+          font-size: var(--text-sm);
+          font-weight: 600;
+        }
+        .export-format-desc {
+          font-size: var(--text-xs);
+          color: var(--text-muted);
         }
         @keyframes spin {
           from { transform: rotate(0deg); }
@@ -795,6 +941,18 @@ export default function Gallery({ onLoadTemplate, onDeleteWork, onLoadWork, save
           color: var(--accent);
           background: var(--accent-soft);
         }
+        /* 徽章上的向下箭头:标示可展开的下拉按钮;展开时翻转向上 */
+        .brand-chevron {
+          flex-shrink: 0;
+          opacity: 0.55;
+          transition: transform 0.15s;
+        }
+        .template-brand[aria-expanded="true"] .brand-chevron {
+          transform: rotate(180deg);
+        }
+        .brand-convert-icon {
+          flex-shrink: 0;
+        }
         .brand-menu-overlay {
           position: fixed;
           inset: 0;
@@ -803,9 +961,8 @@ export default function Gallery({ onLoadTemplate, onDeleteWork, onLoadWork, save
         }
         .brand-menu {
           position: fixed;
-          left: 50%;
-          top: 50%;
-          transform: translate(-50%, -50%);
+          left: 0;
+          top: 0;
           min-width: 180px;
           background: var(--bg-primary);
           border: 1px solid var(--border-color);
