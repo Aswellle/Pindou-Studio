@@ -1,8 +1,8 @@
-import { PERLER_PALETTE } from './perler'
-import { HAMA_PALETTE } from './hama'
-import { ARTKAL_PALETTE } from './artkal'
-import { MARD_PALETTE, MARD291_PALETTE } from './mard'
-import { COCO_PALETTE } from './coco'
+import { PERLER_PALETTE } from './perler.js'
+import { HAMA_PALETTE } from './hama.js'
+import { ARTKAL_PALETTE } from './artkal.js'
+import { MARD_PALETTE, MARD291_PALETTE } from './mard.js'
+import { COCO_PALETTE } from './coco.js'
 
 // 选择列表顺序:COCO → MARD(221 默认)→ MARD 291(完整)→ Perler → Hama → Artkal
 // (MARD 221 为国内图纸生态默认标准,MARD 291 为完整选项;COCO 为性价比主流)

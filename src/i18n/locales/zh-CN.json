@@ -451,6 +451,8 @@
     "myWorks": "我的作品",
     "category": "分类：",
     "difficulty": "难度：",
+    "brandConvert": "点击选择拼豆品牌(载入时转换为该品牌色卡)",
+    "brandDefault": "跟随模板(默认)",
     "categories": {
       "all": "全部",
       "animal": "动物",

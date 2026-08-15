@@ -451,6 +451,8 @@
     "myWorks": "내 작품",
     "category": "카테고리:",
     "difficulty": "난이도:",
+    "brandConvert": "비즈 브랜드 선택(불러올 때 변환)",
+    "brandDefault": "템플릿 따르기(기본)",
     "categories": {
       "all": "전체",
       "animal": "동물",

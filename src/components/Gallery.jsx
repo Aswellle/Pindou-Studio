@@ -1,8 +1,8 @@
 import { useState, useEffect, useMemo } from 'react'
 import { createPortal } from 'react-dom'
 import { useTranslation } from 'react-i18next'
-import { TEMPLATES, CATEGORIES, DIFFICULTIES, extractPatternColors } from '../data/templates'
-import { getPalette } from '../data/palettes'
+import { TEMPLATES, CATEGORIES, DIFFICULTIES, extractPatternColors, convertTemplateToBrand } from '../data/templates'
+import { getPalette, PALETTE_LIST } from '../data/palettes'
 import { exportAsPNG } from '../services/BeadPatternExporter'
 import useCustomTemplates from '../hooks/useCustomTemplates'
 import ThumbnailCanvas from './ThumbnailCanvas'
@@ -47,6 +47,17 @@ export default function Gallery({ onLoadTemplate, onDeleteWork, onLoadWork, save
   const [showMyWorks, setShowMyWorks] = useState(false)
   const [exportMenuId, setExportMenuId] = useState(null)
   const [exportingId, setExportingId] = useState(null)
+  // 品牌徽章:当前展开品牌菜单的模板 id + 每模板用户选定的转换品牌(不改云端模板本身)
+  const [brandMenuId, setBrandMenuId] = useState(null)
+  const [brandOverride, setBrandOverride] = useState({})
+  // 模板生效品牌:优先用户覆盖,否则模板自带 paletteId(缺省 perler)
+  const templateBrandId = (template) => brandOverride[template.id] || template.paletteId || 'perler'
+  // 用户指定了不同于模板原始品牌的转换 → 载入/导出前把 pattern 颜色重映射到该品牌
+  const templateConvertedPattern = (template) => {
+    const override = brandOverride[template.id]
+    if (override && override !== template.paletteId) return convertTemplateToBrand(template.pattern, override)
+    return template.pattern
+  }
   // 「我的作品」注册软引导:可关闭,关闭后本机记住不再打扰
   const [localWorksHintDismissed, setLocalWorksHintDismissed] = useState(
     () => localStorage.getItem('auth-hint-local-works-dismissed') === '1'
@@ -98,11 +109,12 @@ export default function Gallery({ onLoadTemplate, onDeleteWork, onLoadWork, save
     setExportMenuId(null)
     setExportingId(template.id)
     try {
-      const palette = getPalette('perler')
+      const brand = templateBrandId(template)
+      const palette = getPalette(brand)
       await exportAsPNG(
-        template.pattern,
+        templateConvertedPattern(template),
         template.size,
-        'perler',
+        brand,
         t(`templates.names.${template.nameKey}`, template.nameKey),
         palette,
         { beadStyle, gridWidth: null, gridHeight: null }
@@ -113,6 +125,13 @@ export default function Gallery({ onLoadTemplate, onDeleteWork, onLoadWork, save
     } finally {
       setExportingId(null)
     }
+  }
+
+  // 载入模板:有品牌(模板自带或用户覆盖)时转换 pattern 并通知 App 同步切换色卡;
+  // 无品牌(内置通用模板)则原样载入,不打扰用户当前色卡
+  const handleTemplateLoad = (template) => {
+    const brand = brandOverride[template.id] || template.paletteId
+    onLoadTemplate(templateConvertedPattern(template), template.size, brand ? { palette: brand } : undefined)
   }
 
   return (
@@ -336,7 +355,7 @@ export default function Gallery({ onLoadTemplate, onDeleteWork, onLoadWork, save
               <div
                 key={template.id}
                 className="template-card"
-                onClick={() => onLoadTemplate(template.pattern, template.size)}
+                onClick={() => handleTemplateLoad(template)}
               >
                 <div className="template-thumbnail">
                   <ThumbnailCanvas pattern={template.pattern} size={template.size} />
@@ -398,6 +417,22 @@ export default function Gallery({ onLoadTemplate, onDeleteWork, onLoadWork, save
                   </h3>
                   <div className="template-meta">
                     <span className="template-size">{template.size} x {template.size}</span>
+                    {/* 拼豆品牌徽章:显示模板所属色卡品牌;点击可切换并转换为指定品牌 */}
+                    <button
+                      className={`template-brand${brandOverride[template.id] ? ' overridden' : ''}`}
+                      onClick={(e) => { e.stopPropagation(); setBrandMenuId(brandMenuId === template.id ? null : template.id) }}
+                      title={t('gallery.brandConvert')}
+                      aria-label={t('gallery.brandConvert')}
+                      aria-expanded={brandMenuId === template.id}
+                      aria-haspopup="menu"
+                    >
+                      {t(`palette.brand.${templateBrandId(template)}`)}
+                      {brandOverride[template.id] && (
+                        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                          <path d="M4 4v5h5"/><path d="M20 20v-5h-5"/><path d="M20 15a8 8 0 0 0-14.6-4L4 9"/><path d="M4 9a8 8 0 0 0 14.6 4L20 9"/>
+                        </svg>
+                      )}
+                    </button>
                     <span
                       className="template-difficulty"
                       style={{ '--diff-color': getDifficultyColor(template.difficulty) }}
@@ -407,6 +442,47 @@ export default function Gallery({ onLoadTemplate, onDeleteWork, onLoadWork, save
                   </div>
                   <span className="template-category">{getCategoryLabel(template.category)}</span>
                 </div>
+                {/* 品牌切换菜单(portal 到 body,避免卡片 overflow:hidden 裁剪) */}
+                {brandMenuId === template.id && createPortal(
+                  <div
+                    className="brand-menu-overlay"
+                    onClick={(e) => { e.stopPropagation(); setBrandMenuId(null) }}
+                  >
+                    <div className="brand-menu" role="menu" onClick={e => e.stopPropagation()}>
+                      <button
+                        role="menuitem"
+                        className={!brandOverride[template.id] ? 'active' : ''}
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          setBrandOverride(prev => { const n = { ...prev }; delete n[template.id]; return n })
+                          setBrandMenuId(null)
+                        }}
+                      >
+                        {t('gallery.brandDefault')}
+                      </button>
+                      {PALETTE_LIST.map(brand => (
+                        <button
+                          key={brand.id}
+                          role="menuitem"
+                          className={templateBrandId(template) === brand.id && brandOverride[template.id] ? 'active' : ''}
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            if (brand.id === template.paletteId) {
+                              // 选中模板原始品牌 → 等价于跟随模板,清空覆盖
+                              setBrandOverride(prev => { const n = { ...prev }; delete n[template.id]; return n })
+                            } else {
+                              setBrandOverride(prev => ({ ...prev, [template.id]: brand.id }))
+                            }
+                            setBrandMenuId(null)
+                          }}
+                        >
+                          {t(`palette.brand.${brand.id}`)}
+                        </button>
+                      ))}
+                    </div>
+                  </div>,
+                  document.body
+                )}
                 {/* 珠子颜色圆点由系统从 pattern 自动识别(统一协议可省略 colors 字段) */}
                 <div className="template-colors">
                   {extractPatternColors(template.pattern).map((color, i) => (
@@ -690,6 +766,74 @@ export default function Gallery({ onLoadTemplate, onDeleteWork, onLoadWork, save
           border-radius: 10px;
           background: var(--diff-color);
           color: white;
+        }
+        /* 拼豆品牌徽章:边框胶囊,点击弹出品牌切换菜单(overridden=已选转换品牌) */
+        .template-brand {
+          font-size: var(--text-xs);
+          padding: 2px 8px;
+          border-radius: 10px;
+          border: 1px solid var(--border-color);
+          background: var(--bg-secondary);
+          color: var(--text-secondary);
+          cursor: pointer;
+          display: inline-flex;
+          align-items: center;
+          gap: 4px;
+          line-height: 1.4;
+          transition: all 0.15s;
+          max-width: 110px;
+          white-space: nowrap;
+          overflow: hidden;
+          text-overflow: ellipsis;
+        }
+        .template-brand:hover {
+          border-color: var(--accent);
+          color: var(--accent);
+        }
+        .template-brand.overridden {
+          border-color: var(--accent);
+          color: var(--accent);
+          background: var(--accent-soft);
+        }
+        .brand-menu-overlay {
+          position: fixed;
+          inset: 0;
+          background: transparent;
+          z-index: 1001;
+        }
+        .brand-menu {
+          position: fixed;
+          left: 50%;
+          top: 50%;
+          transform: translate(-50%, -50%);
+          min-width: 180px;
+          background: var(--bg-primary);
+          border: 1px solid var(--border-color);
+          border-radius: 10px;
+          box-shadow: var(--shadow-card);
+          padding: 6px;
+          display: flex;
+          flex-direction: column;
+          gap: 2px;
+        }
+        .brand-menu button {
+          text-align: left;
+          padding: 8px 12px;
+          border-radius: 6px;
+          border: none;
+          background: transparent;
+          color: var(--text-primary);
+          font-size: var(--text-sm);
+          cursor: pointer;
+          white-space: nowrap;
+        }
+        .brand-menu button:hover {
+          background: var(--bg-secondary);
+        }
+        .brand-menu button.active {
+          background: var(--accent-soft);
+          color: var(--accent);
+          font-weight: 600;
         }
         .template-category {
           font-size: var(--text-xs);

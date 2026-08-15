@@ -451,6 +451,8 @@
     "myWorks": "マイ作品",
     "category": "カテゴリ：",
     "difficulty": "難易度：",
+    "brandConvert": "ビーズブランドを選択(読み込み時に変換)",
+    "brandDefault": "テンプレートに従う(デフォルト)",
     "categories": {
       "all": "すべて",
       "animal": "動物",

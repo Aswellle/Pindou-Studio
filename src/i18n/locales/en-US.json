@@ -451,6 +451,8 @@
     "myWorks": "My Works",
     "category": "Category:",
     "difficulty": "Difficulty:",
+    "brandConvert": "Choose a bead brand (converts on load)",
+    "brandDefault": "Follow template (default)",
     "categories": {
       "all": "All",
       "animal": "Animals",

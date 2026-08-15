@@ -1,3 +1,5 @@
+import { findClosestColor } from './palettes/index.js'
+
 // 预设模板数据
 export const TEMPLATES = [
   {
@@ -395,6 +397,23 @@ export function extractPatternColors(pattern) {
   return seen
 }
 
+// 把模板 pattern 的颜色重映射到指定品牌色卡(CIEDE2000 就近吸附)。
+// 只转换每种唯一颜色(≤几十种),按色缓存;不改变模板本身(载入时对副本转换)。
+// 注意:转到较小色卡(如 Perler 80/Hama 56)时部分颜色会就近近似。
+export function convertTemplateToBrand(pattern, targetPaletteId) {
+  const cache = new Map()
+  return pattern.map(row =>
+    row.map((cell) => {
+      if (!cell) return null
+      if (cache.has(cell)) return cache.get(cell)
+      const match = findClosestColor(cell, targetPaletteId)
+      const hex = match ? match.hex : cell
+      cache.set(cell, hex)
+      return hex
+    })
+  )
+}
+
 // 校验 + 规范化自定义模板输入,返回 { ok, template?, errors?: [{ code, detail? }] }
 export function normalizeCustomTemplate(input) {
   const errors = []
@@ -407,6 +426,8 @@ export function normalizeCustomTemplate(input) {
   if (!category) errors.push({ code: 'categoryRequired' })
   const difficulty = DIFFICULTY_IDS.includes(input.difficulty) ? input.difficulty : 'easy'
   const nameZh = typeof input.nameZh === 'string' ? input.nameZh.trim() : ''
+  // 所属拼豆品牌(色卡):模板颜色据此渲染/导出;缺省 perler
+  const paletteId = typeof input.paletteId === 'string' && input.paletteId ? input.paletteId : 'perler'
 
   const pattern = input.pattern
   if (!Array.isArray(pattern) || pattern.length === 0) {
@@ -454,6 +475,7 @@ export function normalizeCustomTemplate(input) {
       nameZh,
       category,
       difficulty,
+      paletteId,
       size,
       colors: extractPatternColors(normalized),
       pattern: normalized,

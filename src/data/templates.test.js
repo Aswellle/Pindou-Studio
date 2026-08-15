@@ -1,5 +1,5 @@
 import { describe, test, expect } from 'vitest'
-import { extractPatternColors, normalizeCustomTemplate } from './templates'
+import { extractPatternColors, normalizeCustomTemplate, convertTemplateToBrand } from './templates'
 
 describe('extractPatternColors', () => {
   test('extracts unique colors in order of first appearance', () => {
@@ -122,5 +122,33 @@ describe('normalizeCustomTemplate — unified protocol', () => {
     const pattern = Array(rows).fill(null).map(() => Array(cols).fill('#FF0000'))
     const res = normalizeCustomTemplate({ name: 'Rect', category: 'food', pattern })
     expect(res.template.size).toBe(10)
+  })
+
+  test('carries paletteId through (defaults to perler when absent)', () => {
+    const withBrand = normalizeCustomTemplate({ name: 'B', category: 'icon', paletteId: 'mard', pattern: [['#FF0000']] })
+    expect(withBrand.template.paletteId).toBe('mard')
+    const noBrand = normalizeCustomTemplate({ name: 'N', category: 'icon', pattern: [['#FF0000']] })
+    expect(noBrand.template.paletteId).toBe('perler')
+  })
+})
+
+describe('convertTemplateToBrand', () => {
+  test('remaps every color to the target brand palette via nearest match', () => {
+    const pattern = [
+      ['#FF0000', null],
+      ['#FF0000', '#00FF00'],
+    ]
+    const converted = convertTemplateToBrand(pattern, 'perler')
+    // 红/绿都应在 Perler 色卡内找到最近的官方色号 hex
+    expect(converted[0][0]).toMatch(/^#[0-9A-F]{6}$/)
+    expect(converted[0][1]).toBeNull()
+    expect(converted[1][0]).toBe(converted[0][0]) // 同色共享缓存,转换一致
+    expect(converted[1][1]).toMatch(/^#[0-9A-F]{6}$/)
+  })
+
+  test('keeps colors already in the target brand unchanged', () => {
+    const pattern = [['#F2F2F2']] // Perler P01 White
+    const converted = convertTemplateToBrand(pattern, 'perler')
+    expect(converted[0][0]).toBe('#F2F2F2')
   })
 })

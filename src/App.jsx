@@ -205,10 +205,12 @@ export default function App() {
     resetCanvas(Array(height).fill(null).map(() => Array(width).fill(null)))
   }
 
-  const handleLoadTemplate = (pattern, size) => {
+  const handleLoadTemplate = (pattern, size, options = {}) => {
     setGridSize(size)
     setGridWidth(null)
     setGridHeight(null)
+    // 载入模板时同步切换到其所属(或用户指定转换的)拼豆品牌色卡
+    if (options.palette) setCurrentPalette(options.palette)
     resetCanvas(pattern)
     navigate('/')
   }
