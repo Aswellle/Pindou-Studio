@@ -56,6 +56,8 @@ export default function Gallery({ onLoadTemplate, onDeleteWork, onLoadWork, save
   // 品牌徽章:当前展开品牌菜单的模板 id + 每模板用户选定的转换品牌(不改云端模板本身)
   const [brandMenuId, setBrandMenuId] = useState(null)
   const [brandOverride, setBrandOverride] = useState({})
+  // 待确认填充到画布的模板(卡片点击不再直接填充,弹窗让用户确认,避免误触)
+  const [pendingLoad, setPendingLoad] = useState(null)
   // 模板生效品牌:优先用户覆盖,否则模板自带 paletteId(缺省 perler)
   const templateBrandId = (template) => brandOverride[template.id] || template.paletteId || 'perler'
   // 用户指定了不同于模板原始品牌的转换 → 载入/导出前把 pattern 颜色重映射到该品牌
@@ -221,29 +223,33 @@ export default function Gallery({ onLoadTemplate, onDeleteWork, onLoadWork, save
       <div className="category-bar">
         <div className="category-group">
           <span className="category-label">{t('gallery.category')}</span>
-          {categoryOptions.map(cat => (
-            <button
-              key={cat}
-              className={`category-btn ${selectedCategory === cat ? 'active' : ''}`}
-              onClick={() => setSelectedCategory(cat)}
-            >
-              {getCategoryLabel(cat)}
-              <span className="category-count">{cat === 'all' ? allTemplates.length : (categoryCounts[cat] || 0)}</span>
-            </button>
-          ))}
+          <div className="filter-buttons">
+            {categoryOptions.map(cat => (
+              <button
+                key={cat}
+                className={`category-btn ${selectedCategory === cat ? 'active' : ''}`}
+                onClick={() => setSelectedCategory(cat)}
+              >
+                {getCategoryLabel(cat)}
+                <span className="category-count">{cat === 'all' ? allTemplates.length : (categoryCounts[cat] || 0)}</span>
+              </button>
+            ))}
+          </div>
         </div>
         <div className="difficulty-group">
           <span className="category-label">{t('gallery.difficulty')}</span>
-          {DIFFICULTIES.map(diff => (
-            <button
-              key={diff}
-              className={`difficulty-btn ${selectedDifficulty === diff ? 'active' : ''}`}
-              onClick={() => setSelectedDifficulty(diff)}
-              style={{ '--diff-color': getDifficultyColor(diff) }}
-            >
-              {t(`gallery.difficulties.${diff}`)}
-            </button>
-          ))}
+          <div className="filter-buttons">
+            {DIFFICULTIES.map(diff => (
+              <button
+                key={diff}
+                className={`difficulty-btn ${selectedDifficulty === diff ? 'active' : ''}`}
+                onClick={() => setSelectedDifficulty(diff)}
+                style={{ '--diff-color': getDifficultyColor(diff) }}
+              >
+                {t(`gallery.difficulties.${diff}`)}
+              </button>
+            ))}
+          </div>
         </div>
       </div>
 
@@ -396,7 +402,7 @@ export default function Gallery({ onLoadTemplate, onDeleteWork, onLoadWork, save
               <div
                 key={template.id}
                 className="template-card"
-                onClick={() => handleTemplateLoad(template)}
+                onClick={() => setPendingLoad(template)}
               >
                 <div className="template-thumbnail">
                   <ThumbnailCanvas pattern={template.pattern} size={template.size} />
@@ -572,6 +578,36 @@ export default function Gallery({ onLoadTemplate, onDeleteWork, onLoadWork, save
         )}
       </div>
 
+      {/* 填充模板到画布:点击卡片后弹出确认,避免误触直接填充+跳转 */}
+      {pendingLoad && createPortal(
+        <div className="load-confirm-overlay" onClick={() => setPendingLoad(null)}>
+          <div className="load-confirm-modal" onClick={e => e.stopPropagation()}>
+            <h3 className="load-confirm-title">{t('gallery.loadConfirmTitle')}</h3>
+            <div className="load-confirm-preview">
+              <ThumbnailCanvas pattern={pendingLoad.pattern} size={pendingLoad.size} />
+            </div>
+            <p className="load-confirm-body">
+              {t('gallery.loadConfirmBody', {
+                name: pendingLoad.name ? (pendingLoad.nameZh || pendingLoad.name) : t(`templates.names.${pendingLoad.nameKey}`, pendingLoad.nameKey),
+                size: pendingLoad.size,
+              })}
+            </p>
+            <div className="load-confirm-actions">
+              <button className="load-confirm-cancel" onClick={() => setPendingLoad(null)}>
+                {t('common.cancel')}
+              </button>
+              <button
+                className="load-confirm-ok"
+                onClick={() => { const tpl = pendingLoad; setPendingLoad(null); handleTemplateLoad(tpl) }}
+              >
+                {t('gallery.loadToCanvas')}
+              </button>
+            </div>
+          </div>
+        </div>,
+        document.body
+      )}
+
       <style>{`
         .gallery-page {
           max-width: 1200px;
@@ -657,14 +693,23 @@ export default function Gallery({ onLoadTemplate, onDeleteWork, onLoadWork, save
         }
         .category-group, .difficulty-group {
           display: flex;
-          align-items: center;
-          gap: 8px;
-          flex-wrap: wrap;
+          align-items: flex-start;
+          gap: 10px;
         }
         .category-label {
+          flex-shrink: 0;
+          padding-top: 6px; /* 与按钮首行文字对齐 */
           font-size: var(--text-sm);
           color: var(--text-secondary);
           font-weight: var(--font-weight-semibold);
+        }
+        /* 按钮独立 flex-wrap 容器:换行后各行与首行按钮对齐(不以容器左缘起) */
+        .filter-buttons {
+          display: flex;
+          flex-wrap: wrap;
+          gap: 8px;
+          flex: 1;
+          min-width: 0;
         }
         .category-btn, .difficulty-btn {
           padding: 6px 12px;
@@ -727,6 +772,9 @@ export default function Gallery({ onLoadTemplate, onDeleteWork, onLoadWork, save
             padding: 12px;
           }
           .category-group, .difficulty-group {
+            gap: 6px;
+          }
+          .filter-buttons {
             gap: 6px;
           }
         }
@@ -829,8 +877,9 @@ export default function Gallery({ onLoadTemplate, onDeleteWork, onLoadWork, save
           color: var(--text-primary);
         }
         .export-menu-name {
-          font-size: var(--text-xs);
-          color: var(--text-muted);
+          font-size: var(--text-sm);
+          font-weight: 600;
+          color: var(--text-primary);
           white-space: nowrap;
           overflow: hidden;
           text-overflow: ellipsis;
@@ -991,6 +1040,80 @@ export default function Gallery({ onLoadTemplate, onDeleteWork, onLoadWork, save
           background: var(--accent-soft);
           color: var(--accent);
           font-weight: 600;
+        }
+        /* 填充模板确认对话框:居中模态,防误触 */
+        .load-confirm-overlay {
+          position: fixed;
+          inset: 0;
+          background: rgba(0, 0, 0, 0.4);
+          z-index: 1100;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          padding: 16px;
+          box-sizing: border-box;
+        }
+        .load-confirm-modal {
+          background: var(--bg-primary);
+          border-radius: 12px;
+          padding: 20px;
+          max-width: 300px;
+          width: 100%;
+          box-shadow: var(--shadow-card);
+          text-align: center;
+        }
+        .load-confirm-title {
+          font-size: var(--text-lg);
+          font-weight: var(--font-weight-semibold);
+          margin: 0 0 12px;
+          color: var(--text-primary);
+        }
+        .load-confirm-preview {
+          background: var(--bg-secondary);
+          border-radius: 8px;
+          padding: 12px;
+          display: flex;
+          justify-content: center;
+          align-items: center;
+          margin-bottom: 12px;
+          min-height: 120px;
+        }
+        .load-confirm-preview canvas {
+          image-rendering: pixelated;
+          max-width: 100%;
+        }
+        .load-confirm-body {
+          font-size: var(--text-md);
+          color: var(--text-secondary);
+          margin: 0 0 16px;
+          line-height: 1.5;
+        }
+        .load-confirm-actions {
+          display: flex;
+          gap: 10px;
+          justify-content: center;
+        }
+        .load-confirm-actions button {
+          padding: 8px 20px;
+          border-radius: 8px;
+          border: none;
+          cursor: pointer;
+          font-size: var(--text-sm);
+          transition: all 0.15s;
+        }
+        .load-confirm-cancel {
+          background: var(--bg-secondary);
+          color: var(--text-secondary);
+        }
+        .load-confirm-cancel:hover {
+          background: var(--bg-tertiary);
+        }
+        .load-confirm-ok {
+          background: var(--accent);
+          color: white;
+        }
+        .load-confirm-ok:hover {
+          background: var(--accent-hover);
         }
         .template-category {
           font-size: var(--text-xs);
