@@ -379,6 +379,7 @@ export const DIFFICULTIES = ['all', 'easy', 'medium', 'hard']
 //   "nameZh": "皮卡丘",      // 可选:中文名称
 //   "category": "animal",   // 必填:分类 id(内置: animal/food/icon/holiday,或自定义分类 id)
 //   "difficulty": "easy",   // 可选: easy | medium | hard,默认 easy
+//   "paletteId": "mard",    // 可选:所属拼豆品牌色卡(coco/mard/mard291/perler/hama/artkal),默认 perler
 //   "pattern": [[null, "#FFD700", "#FFD700", null], ...]  // 必填:二维数组,元素为 #RRGGBB 或 null
 // }
 // colors 字段可省略 —— 前端展示的珠子圆点由系统从 pattern 自动识别。
