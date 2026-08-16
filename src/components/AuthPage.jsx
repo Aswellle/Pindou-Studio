@@ -64,8 +64,15 @@ export default function AuthPage({
   const [secKeyTip, setSecKeyTip] = useState(false)
   const [showPwd, setShowPwd] = useState(false)
   const [showNew, setShowNew] = useState(false)
-  const secKeyRef = useRef(null)
   const secKeyHelpRef = useRef(null)
+
+  // 记住我偏好写入设置(useAuth 会话恢复时据此决定是否保留会话)
+  const saveRemember = (remember) => {
+    try {
+      const cur = JSON.parse(localStorage.getItem('bead_studio_settings') || '{}')
+      localStorage.setItem('bead_studio_settings', JSON.stringify({ ...cur, rememberMe: remember }))
+    } catch { /* 忽略 */ }
+  }
   // 安全密钥提示:再次点击问号 或 点击其他任意处 才消失
   useEffect(() => {
     if (!secKeyTip) return
@@ -98,6 +105,7 @@ export default function AuthPage({
     setError('')
     setLoading(true)
     try {
+      saveRemember(remember)
       if (isEmailInput(account)) {
         await onLogin(account, password)
       } else {

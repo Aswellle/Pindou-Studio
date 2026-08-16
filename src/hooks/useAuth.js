@@ -63,8 +63,17 @@ export function useAuth() {
     supabase.auth.getSession().then(({ data }) => {
       if (!mounted) return
       if (data.session?.user) {
-        setUser(buildUser(data.session.user))
-        refreshProfile(data.session.user.id)
+        // 记住我关闭 → 不恢复持久化会话(会话仅本次浏览有效,刷新即登出)
+        let rememberMe = true
+        try {
+          rememberMe = (JSON.parse(localStorage.getItem('bead_studio_settings') || '{}').rememberMe) !== false
+        } catch { /* 默认记住 */ }
+        if (rememberMe) {
+          setUser(buildUser(data.session.user))
+          refreshProfile(data.session.user.id)
+        } else {
+          supabase.auth.signOut().catch(() => {})
+        }
       }
       setLoading(false)
     }).catch(() => {
