@@ -4,7 +4,7 @@
  * - 自定义账号以 `用户名@custom.local` 合成邮箱映射到 Supabase Auth
  * - 忘记密码按账号注册方式切换(邮箱 OTP / 自定义用户名+安全密钥)
  */
-import { useState, useRef } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useNavigate } from 'react-router-dom'
 
@@ -65,6 +65,16 @@ export default function AuthPage({
   const [showPwd, setShowPwd] = useState(false)
   const [showNew, setShowNew] = useState(false)
   const secKeyRef = useRef(null)
+  const secKeyHelpRef = useRef(null)
+  // 安全密钥提示:再次点击问号 或 点击其他任意处 才消失
+  useEffect(() => {
+    if (!secKeyTip) return
+    const close = (e) => {
+      if (secKeyHelpRef.current && !secKeyHelpRef.current.contains(e.target)) setSecKeyTip(false)
+    }
+    document.addEventListener('click', close)
+    return () => document.removeEventListener('click', close)
+  }, [secKeyTip])
 
   const errMsg = (code) => {
     const map = {
@@ -251,7 +261,7 @@ export default function AuthPage({
                 {/* 安全密钥 + 问号提示 */}
                 <label className="auth-label">
                   {t('auth.securityKey')}
-                  <button type="button" className="auth-seckey-help" aria-label={t('auth.securityKeyHelp')} aria-expanded={secKeyTip} onClick={(e) => { e.preventDefault(); setSecKeyTip(!secKeyTip) }}>?</button>
+                  <button ref={secKeyHelpRef} type="button" className="auth-seckey-help" aria-label={t('auth.securityKeyHelp')} aria-expanded={secKeyTip} onClick={(e) => { e.preventDefault(); setSecKeyTip(!secKeyTip) }}>?</button>
                 </label>
                 <input className="auth-input" type={showPwd ? 'text' : 'password'} value={securityKey} onChange={e => setSecurityKey(e.target.value)} placeholder={t('auth.securityKeyPlaceholder')} autoComplete="off" />
                 {secKeyTip && <div className="auth-tooltip" role="tooltip">{t('auth.securityKeyTip')}</div>}
