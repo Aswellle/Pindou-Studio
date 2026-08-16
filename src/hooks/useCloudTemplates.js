@@ -21,6 +21,7 @@ const rowToTemplate = (row) => ({
   colors: Array.isArray(row.colors) ? row.colors : [],
   pattern: row.pattern,
   source: row.source,
+  paletteId: row.palette_id || 'perler',
   downloadCount: row.download_count ?? 0,
 })
 
@@ -33,6 +34,7 @@ const templateToRow = (t) => ({
   colors: t.colors,
   pattern: t.pattern,
   source: t.source || 'custom',
+  palette_id: t.paletteId || 'perler',
 })
 
 export default function useCloudTemplates() {
