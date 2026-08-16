@@ -456,6 +456,7 @@
     "loadConfirmTitle": "Fill Template to Canvas",
     "loadConfirmBody": "Fill \"{{name}}\" ({{size}}×{{size}}) to the canvas?",
     "loadToCanvas": "Fill to Canvas",
+    "downloadCount": "Downloads",
     "categories": {
       "all": "All",
       "animal": "Animals",

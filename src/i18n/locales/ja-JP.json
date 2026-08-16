@@ -456,6 +456,7 @@
     "loadConfirmTitle": "テンプレートをキャンバスへ",
     "loadConfirmBody": "「{{name}}」({{size}}×{{size}})をキャンバスに配置しますか?",
     "loadToCanvas": "キャンバスへ配置",
+    "downloadCount": "ダウンロード数",
     "categories": {
       "all": "すべて",
       "animal": "動物",

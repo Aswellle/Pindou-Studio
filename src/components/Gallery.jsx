@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next'
 import { TEMPLATES, CATEGORIES, DIFFICULTIES, extractPatternColors, convertTemplateToBrand } from '../data/templates'
 import { getPalette, PALETTE_LIST } from '../data/palettes'
 import { exportAsPNG } from '../services/BeadPatternExporter'
+import { supabase } from '../services/supabase'
 import useCustomTemplates from '../hooks/useCustomTemplates'
 import ThumbnailCanvas from './ThumbnailCanvas'
 
@@ -58,6 +59,23 @@ export default function Gallery({ onLoadTemplate, onDeleteWork, onLoadWork, save
   const [brandOverride, setBrandOverride] = useState({})
   // 待确认填充到画布的模板(卡片点击不再直接填充,弹窗让用户确认,避免误触)
   const [pendingLoad, setPendingLoad] = useState(null)
+  // 下载量:云端读模板 download_count;本地模式(无 Supabase)用 localStorage 计数
+  const DOWNLOAD_KEY = 'template-downloads'
+  const [localDownloads, setLocalDownloads] = useState(() => {
+    try { return JSON.parse(localStorage.getItem(DOWNLOAD_KEY) || '{}') } catch { return {} }
+  })
+  const getDownloadCount = (template) => cloudEnabled ? (template.downloadCount || 0) : (localDownloads[template.id] || 0)
+  const bumpDownload = async (template) => {
+    if (cloudEnabled) {
+      try { await supabase.rpc('increment_template_download', { p_id: template.id }) } catch (e) { console.warn('download count failed:', e) }
+      return
+    }
+    setLocalDownloads(prev => {
+      const next = { ...prev, [template.id]: (prev[template.id] || 0) + 1 }
+      try { localStorage.setItem(DOWNLOAD_KEY, JSON.stringify(next)) } catch { /* 配额超限忽略 */ }
+      return next
+    })
+  }
   // 模板生效品牌:优先用户覆盖,否则模板自带 paletteId(缺省 perler)
   const templateBrandId = (template) => brandOverride[template.id] || template.paletteId || 'perler'
   // 用户指定了不同于模板原始品牌的转换 → 载入/导出前把 pattern 颜色重映射到该品牌
@@ -161,6 +179,8 @@ export default function Gallery({ onLoadTemplate, onDeleteWork, onLoadWork, save
         palette,
         { beadStyle, gridWidth: null, gridHeight: null }
       )
+      // 导出成功(任一格式)即计数 +1:云端 RPC,本地 localStorage
+      await bumpDownload(template)
     } catch (err) {
       console.error('Template export failed:', err)
       alert(t('export.exportFailed')) // 此前 try/finally 无 catch,canvas 分配失败成为未处理 rejection
@@ -414,32 +434,35 @@ export default function Gallery({ onLoadTemplate, onDeleteWork, onLoadWork, save
                       <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
                     </svg>
                   </button>
-                  <button
-                    className="export-btn"
-                    onClick={e => {
-                      e.stopPropagation()
-                      exportTriggerRect.current = e.currentTarget.getBoundingClientRect()
-                      setBrandMenuId(null)
-                      setExportMenuId(exportMenuId === template.id ? null : template.id)
-                    }}
-                    disabled={exportingId === template.id}
-                    title={t('export.title')}
-                    aria-expanded={exportMenuId === template.id}
-                    aria-haspopup="menu"
-                    aria-label={t('export.title')}
-                  >
-                    {exportingId === template.id ? (
-                      <svg className="spinning" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                        <path d="M21 12a9 9 0 1 1-6.219-8.56"/>
-                      </svg>
-                    ) : (
-                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
-                        <polyline points="7 10 12 15 17 10"/>
-                        <line x1="12" y1="15" x2="12" y2="3"/>
-                      </svg>
-                    )}
-                  </button>
+                  <div className="export-btn-wrap">
+                    <button
+                      className="export-btn"
+                      onClick={e => {
+                        e.stopPropagation()
+                        exportTriggerRect.current = e.currentTarget.getBoundingClientRect()
+                        setBrandMenuId(null)
+                        setExportMenuId(exportMenuId === template.id ? null : template.id)
+                      }}
+                      disabled={exportingId === template.id}
+                      title={t('export.title')}
+                      aria-expanded={exportMenuId === template.id}
+                      aria-haspopup="menu"
+                      aria-label={t('export.title')}
+                    >
+                      {exportingId === template.id ? (
+                        <svg className="spinning" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                          <path d="M21 12a9 9 0 1 1-6.219-8.56"/>
+                        </svg>
+                      ) : (
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                          <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                          <polyline points="7 10 12 15 17 10"/>
+                          <line x1="12" y1="15" x2="12" y2="3"/>
+                        </svg>
+                      )}
+                    </button>
+                    <span className="download-count" title={t('gallery.downloadCount')}>{getDownloadCount(template)}</span>
+                  </div>
 
                   {exportMenuId === template.id && createPortal(
                     // portal 到 document.body:彻底脱离模板卡片的 overflow:hidden 与
@@ -822,10 +845,16 @@ export default function Gallery({ onLoadTemplate, onDeleteWork, onLoadWork, save
         .favorite-btn:hover {
           transform: scale(1.1);
         }
-        .export-btn {
+        .export-btn-wrap {
           position: absolute;
           bottom: 8px;
           right: 8px;
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          gap: 2px;
+        }
+        .export-btn {
           width: 32px;
           height: 32px;
           border-radius: 50%;
@@ -845,6 +874,16 @@ export default function Gallery({ onLoadTemplate, onDeleteWork, onLoadWork, save
         .export-btn:disabled {
           opacity: 0.6;
           cursor: default;
+        }
+        /* 模板下载量:导出按钮下方小徽标,便于看出哪个模板更受欢迎 */
+        .download-count {
+          font-size: 10px;
+          line-height: 1.3;
+          color: var(--text-muted);
+          background: var(--bg-primary);
+          border-radius: 8px;
+          padding: 0 5px;
+          box-shadow: 0 1px 3px rgba(43,36,32,0.1);
         }
         /* 导出菜单:portal 到 body,useLayoutEffect 按导出按钮位置贴近定位;
            遮罩仅拦截点击(透明),菜单为固定定位下拉框 */

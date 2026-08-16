@@ -21,6 +21,7 @@ const rowToTemplate = (row) => ({
   colors: Array.isArray(row.colors) ? row.colors : [],
   pattern: row.pattern,
   source: row.source,
+  downloadCount: row.download_count ?? 0,
 })
 
 const templateToRow = (t) => ({

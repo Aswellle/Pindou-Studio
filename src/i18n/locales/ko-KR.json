@@ -456,6 +456,7 @@
     "loadConfirmTitle": "템플릿을 캔버스에 채우기",
     "loadConfirmBody": "\"{{name}}\"({{size}}×{{size}})을 캔버스에 채울까요?",
     "loadToCanvas": "캔버스에 채우기",
+    "downloadCount": "다운로드 수",
     "categories": {
       "all": "전체",
       "animal": "동물",

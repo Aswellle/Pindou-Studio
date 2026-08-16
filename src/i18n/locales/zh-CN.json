@@ -456,6 +456,7 @@
     "loadConfirmTitle": "填充模板到画布",
     "loadConfirmBody": "是否将「{{name}}」({{size}}×{{size}})填充到画布?",
     "loadToCanvas": "填充到画布",
+    "downloadCount": "下载次数",
     "categories": {
       "all": "全部",
       "animal": "动物",
