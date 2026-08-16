@@ -4,9 +4,9 @@
  * - 自定义账号以 `用户名@custom.local` 合成邮箱映射到 Supabase Auth
  * - 忘记密码按账号注册方式切换(邮箱 OTP / 自定义用户名+安全密钥)
  */
-import { useState, useRef, useEffect } from 'react'
-import { useTranslation } from 'react-i18next'
-import { useNavigate } from 'react-router-dom'
+import { useState } from 'react'
+import { useTranslation, Trans } from 'react-i18next'
+import { useNavigate, Link } from 'react-router-dom'
 
 const USERNAME_RE = /^[a-zA-Z0-9_]{3,20}$/
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
@@ -61,10 +61,8 @@ export default function AuthPage({
 
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
-  const [secKeyTip, setSecKeyTip] = useState(false)
   const [showPwd, setShowPwd] = useState(false)
   const [showNew, setShowNew] = useState(false)
-  const secKeyHelpRef = useRef(null)
 
   // 记住我偏好写入设置(useAuth 会话恢复时据此决定是否保留会话)
   const saveRemember = (remember) => {
@@ -73,15 +71,6 @@ export default function AuthPage({
       localStorage.setItem('bead_studio_settings', JSON.stringify({ ...cur, rememberMe: remember }))
     } catch { /* 忽略 */ }
   }
-  // 安全密钥提示:再次点击问号 或 点击其他任意处 才消失
-  useEffect(() => {
-    if (!secKeyTip) return
-    const close = (e) => {
-      if (secKeyHelpRef.current && !secKeyHelpRef.current.contains(e.target)) setSecKeyTip(false)
-    }
-    document.addEventListener('click', close)
-    return () => document.removeEventListener('click', close)
-  }, [secKeyTip])
 
   const errMsg = (code) => {
     const map = {
@@ -226,8 +215,8 @@ export default function AuthPage({
 
   return (
     <div className="auth-page">
-      <button className="auth-back" onClick={goBack} aria-label={t('common.back')}>← {t('common.back')}</button>
       <div className="auth-card">
+        <button className="auth-back" onClick={goBack}>← {t('common.back')}</button>
         {/* 顶部登录/注册切换 */}
         {mode === 'login' || mode === 'register' ? (
           <div className="auth-mode-switch">
@@ -256,7 +245,9 @@ export default function AuthPage({
               <button type="button" className="auth-link" onClick={() => { setForgotMethod(isEmailInput(account) ? 'email' : 'username'); setMode('forgot') }}>{t('auth.forgotPassword')}</button>
             </div>
             <button type="submit" className="auth-btn-primary" disabled={loading}>{loading ? t('auth.loading') : t('auth.loginBtn')}</button>
-            <p className="auth-agree">{t('auth.agreeNote', { privacy: '隐私政策', terms: '服务条款' })}</p>
+            <p className="auth-agree">
+              <Trans i18nKey="auth.agreeNote" components={{ privacy: <Link to="/privacy" className="auth-policy-link" />, terms: <Link to="/terms" className="auth-policy-link" /> }} />
+            </p>
           </form>
         )}
 
@@ -282,13 +273,9 @@ export default function AuthPage({
               <>
                 <label className="auth-label">{t('auth.username')}</label>
                 <input className="auth-input" value={username} onChange={e => setUsername(e.target.value)} placeholder={t('auth.usernamePlaceholder')} autoComplete="username" required />
-                {/* 安全密钥 + 问号提示 */}
-                <label className="auth-label">
-                  {t('auth.securityKey')}
-                  <button ref={secKeyHelpRef} type="button" className="auth-seckey-help" aria-label={t('auth.securityKeyHelp')} aria-expanded={secKeyTip} onClick={(e) => { e.preventDefault(); setSecKeyTip(!secKeyTip) }}>?</button>
-                </label>
+                {/* 安全密钥(占位提示已足够,无需问号按钮) */}
+                <label className="auth-label">{t('auth.securityKey')}</label>
                 <input className="auth-input" type={showPwd ? 'text' : 'password'} value={securityKey} onChange={e => setSecurityKey(e.target.value)} placeholder={t('auth.securityKeyPlaceholder')} autoComplete="off" />
-                {secKeyTip && <div className="auth-tooltip" role="tooltip">{t('auth.securityKeyTip')}</div>}
               </>
             )}
 
@@ -302,7 +289,9 @@ export default function AuthPage({
 
             <label className="auth-remember">
               <input type="checkbox" checked={agreed} onChange={e => setAgreed(e.target.checked)} />
-              <span>{t('auth.agreeText')}</span>
+              <span>
+                <Trans i18nKey="auth.agreeText" components={{ privacy: <Link to="/privacy" className="auth-policy-link" />, terms: <Link to="/terms" className="auth-policy-link" /> }} />
+              </span>
             </label>
 
             <button type="submit" className="auth-btn-primary" disabled={loading}>{loading ? t('auth.loading') : t('auth.registerBtn')}</button>
@@ -361,23 +350,27 @@ export default function AuthPage({
       </div>
 
       <style>{`
+        /* 页面高度=主内容区,内部滚动,避免被 .app/.main-content 的 overflow:hidden 裁剪 */
         .auth-page {
-          min-height: 100vh;
+          height: 100%;
+          overflow-y: auto;
           display: flex;
           align-items: flex-start;
           justify-content: center;
-          padding: 48px 16px 64px;
+          padding: 32px 16px 64px;
           background: var(--bg-primary);
+          box-sizing: border-box;
         }
         .auth-back {
-          position: fixed;
-          top: 16px;
-          left: 16px;
+          display: block;
+          align-self: flex-start;
           background: transparent;
           border: none;
           color: var(--text-secondary);
           font-size: var(--text-sm);
           cursor: pointer;
+          padding: 0;
+          margin-bottom: 10px;
         }
         .auth-back:hover { color: var(--accent); }
         .auth-card {
@@ -482,30 +475,20 @@ export default function AuthPage({
           font-size: var(--text-sm);
           margin-bottom: 12px;
         }
-        .auth-seckey-help {
-          width: 18px;
-          height: 18px;
-          border-radius: 50%;
-          border: 1px solid var(--accent);
+        /* 隐私政策/服务条款可点击链接 */
+        .auth-policy-link {
           color: var(--accent);
-          background: transparent;
-          font-size: 12px;
-          line-height: 1;
+          text-decoration: underline;
           cursor: pointer;
-          display: inline-flex;
-          align-items: center;
-          justify-content: center;
         }
-        .auth-tooltip {
-          margin-top: 4px;
-          padding: 8px 10px;
-          background: var(--bg-primary);
-          border: 1px solid var(--border-color);
-          border-radius: 8px;
-          font-size: var(--text-xs);
-          color: var(--text-secondary);
+        .auth-policy-link:hover {
+          color: var(--accent-hover);
         }
         .auth-verify-hint { font-size: var(--text-sm); color: var(--text-secondary); margin-bottom: 8px; }
+        @media (max-width: 640px) {
+          .auth-page { padding: 16px 12px 48px; }
+          .auth-card { padding: 18px 16px; }
+        }
       `}</style>
     </div>
   )
