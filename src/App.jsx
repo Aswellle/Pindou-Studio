@@ -3,7 +3,7 @@ import { Routes, Route, useNavigate, useLocation, Navigate } from 'react-router-
 import { useTranslation } from 'react-i18next'
 import { LANGUAGES } from './i18n'
 import { Helmet } from 'react-helmet-async'
-import AuthModal from './components/AuthModal'
+import AuthPage from './components/AuthPage'
 import Header from './components/Header'
 import Canvas from './components/Canvas'
 import LoadingScreen from './components/LoadingScreen'
@@ -57,13 +57,11 @@ export default function App() {
   }, [])
 
   const { user, isAdmin, loading: authLoading, login, register, resetPassword, logout, updateProfile,
-    sendOtp, verifyOtp, setPassword, changePassword } = useAuth()
+    sendOtp, verifyOtp, setPassword, changePassword, registerUsername, loginByUsername, forgotPasswordCustom, usernameExists } = useAuth()
   const cloudStore = useCloudTemplates()
   const { isMobile, isTablet } = useResponsive()
   const canvasRef = useRef(null)
   const [mobileScale, setMobileScale] = useState(1)
-  const [showAuth, setShowAuth] = useState(false)
-  const [authMode, setAuthMode] = useState('login')
   const [selectedColor, setSelectedColor] = useState('#E53935')
   const [tool, setTool] = useState('pencil')
   const [gridSize, setGridSize] = useState(29)
@@ -129,7 +127,7 @@ export default function App() {
   }, [handleUndo, handleRedo])
 
   // Lock body scroll while any modal is open; reset iOS Safari viewport offset on close
-  const anyModalOpen = showAuth || showQuantizer || showSaveDialog || showExport
+  const anyModalOpen = showQuantizer || showSaveDialog || showExport
   useEffect(() => {
     if (anyModalOpen) {
       document.body.style.overflow = 'hidden'
@@ -175,15 +173,9 @@ export default function App() {
     setTimeout(() => setSaveToast(false), 1500)
   }
 
-  const openLogin = () => {
-    setAuthMode('login')
-    setShowAuth(true)
-  }
+  const openLogin = () => navigate('/login', { state: { mode: 'login' } })
 
-  const openRegister = () => {
-    setAuthMode('register')
-    setShowAuth(true)
-  }
+  const openRegister = () => navigate('/login', { state: { mode: 'register' } })
 
   const handleGridSizeChange = (newSize) => {
     setGridSize(newSize)
@@ -286,6 +278,23 @@ export default function App() {
   }
 
   // 桌面端画布页
+  const renderAuthPage = () => (
+    <AuthPage
+      initialMode={location.state?.mode === 'register' ? 'register' : 'login'}
+      onLogin={login}
+      onRegister={register}
+      loginByUsername={loginByUsername}
+      registerUsername={registerUsername}
+      forgotPasswordCustom={forgotPasswordCustom}
+      resetPassword={resetPassword}
+      onSendOtp={sendOtp}
+      onVerifyOtp={verifyOtp}
+      onSetPassword={setPassword}
+      usernameExists={usernameExists}
+      onUpdateProfile={updateProfile}
+    />
+  )
+
   const renderCanvasPage = () => (
     <div className="workspace">
       <aside className={`sidebar left-sidebar${leftSidebarCollapsed ? ' collapsed' : ''}`}>
@@ -363,6 +372,7 @@ export default function App() {
       <main className="main-content" style={currentPage === 'admin' ? { marginTop: 0 } : undefined}>
         <Routes>
           <Route path="/" element={renderCanvasPage()} />
+          <Route path="/login" element={renderAuthPage()} />
           <Route path="/gallery" element={
             <Suspense fallback={<LoadingScreen />}>
               <Gallery
@@ -412,20 +422,6 @@ export default function App() {
           designName={designName}
           paletteId={currentPalette}
           onClose={() => setShowExport(false)}
-        />
-      )}
-
-      {showAuth && (
-        <AuthModal
-          mode={authMode}
-          onClose={() => setShowAuth(false)}
-          onLogin={login}
-          onRegister={register}
-          onSendOtp={sendOtp}
-          onVerifyOtp={verifyOtp}
-          onSetPassword={setPassword}
-          onSwitchMode={(mode) => setAuthMode(mode)}
-          onNavigatePage={(page) => { setShowAuth(false); handlePageChange(page); }}
         />
       )}
 
@@ -590,6 +586,7 @@ export default function App() {
       )}
 
       <Routes>
+        <Route path="/login" element={renderAuthPage()} />
         <Route path="/" element={
           <>
             <MobileCanvasInfoBar
@@ -688,20 +685,6 @@ export default function App() {
           designName={designName}
           paletteId={currentPalette}
           onClose={() => setShowExport(false)}
-        />
-      )}
-
-      {showAuth && (
-        <AuthModal
-          mode={authMode}
-          onClose={() => setShowAuth(false)}
-          onLogin={login}
-          onRegister={register}
-          onSendOtp={sendOtp}
-          onVerifyOtp={verifyOtp}
-          onSetPassword={setPassword}
-          onSwitchMode={(mode) => setAuthMode(mode)}
-          onNavigatePage={(page) => { setShowAuth(false); handlePageChange(page); }}
         />
       )}
 

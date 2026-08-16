@@ -174,6 +174,65 @@ export function useAuth() {
     await setPassword(newPassword)
   }, [verifyPassword, setPassword])
 
+  // ── 自定义账号(用户名 + 安全密钥,合成邮箱映射) ──────────────
+  // 用户名规则:3-20 位字母/数字/下划线
+  const USERNAME_RE = /^[a-zA-Z0-9_]{3,20}$/
+  const CUSTOM_EMAIL_DOMAIN = 'custom.local'
+
+  const usernameExists = useCallback(async (username) => {
+    if (!supabase) return false
+    const { data, error } = await supabase.rpc('username_exists', { p_username: (username || '').toLowerCase() })
+    if (error) return false
+    return !!data
+  }, [])
+
+  // 自定义账号注册:用户名 → 合成邮箱映射到 Supabase Auth,并设置安全密钥哈希
+  const registerUsername = useCallback(async ({ username, nickname, password, securityKey }) => {
+    if (!supabase) throw new Error('CLOUD_NOT_CONFIGURED')
+    const uname = (username || '').toLowerCase()
+    if (!USERNAME_RE.test(uname)) throw new Error('INVALID_USERNAME')
+    if (await usernameExists(uname)) throw new Error('USERNAME_TAKEN')
+    const authEmail = `${uname}@${CUSTOM_EMAIL_DOMAIN}`
+    const { data, error } = await supabase.auth.signUp({
+      email: authEmail,
+      password,
+      options: {
+        data: { username: uname, nickname: nickname || uname },
+        emailRedirectTo: window.location.origin,
+      },
+    })
+    if (error) throw error
+    // autoconfirm 下 signUp 即建会话:登记昵称 + 安全密钥哈希
+    if (data?.session) {
+      const uid = data.session.user.id
+      await supabase.from('profiles').update({ nickname: nickname || uname }).eq('id', uid).catch(() => {})
+      if (securityKey) {
+        await supabase.rpc('set_security_key', { p_security_key: securityKey }).catch(() => {})
+      }
+    }
+    return data
+  }, [usernameExists])
+
+  // 自定义账号登录:用户名 → 合成邮箱 → 密码登录
+  const loginByUsername = useCallback(async (username, password) => {
+    if (!supabase) throw new Error('CLOUD_NOT_CONFIGURED')
+    const { data, error: resolveError } = await supabase.rpc('resolve_auth_email', { p_username: (username || '').toLowerCase() })
+    if (resolveError || !data) throw new Error('USERNAME_NOT_FOUND')
+    const { error } = await supabase.auth.signInWithPassword({ email: data, password })
+    if (error) throw error
+  }, [])
+
+  // 自定义账号找回密码:用户名 + 安全密钥校验后重置密码
+  const forgotPasswordCustom = useCallback(async (username, securityKey, newPassword) => {
+    if (!supabase) throw new Error('CLOUD_NOT_CONFIGURED')
+    const { error } = await supabase.rpc('reset_password_custom', {
+      p_username: (username || '').toLowerCase(),
+      p_security_key: securityKey,
+      p_new_password: newPassword,
+    })
+    if (error) throw error
+  }, [])
+
   const logout = useCallback(async () => {
     if (supabase) {
       const { error } = await supabase.auth.signOut()
@@ -198,5 +257,10 @@ export function useAuth() {
     setPassword,
     verifyPassword,
     changePassword,
+    // 自定义账号(用户名 + 安全密钥)
+    registerUsername,
+    loginByUsername,
+    forgotPasswordCustom,
+    usernameExists,
   }
 }
