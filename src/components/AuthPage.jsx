@@ -165,9 +165,9 @@ export default function AuthPage({
         if (pendingNickname) { try { await onUpdateProfile({ nickname: pendingNickname }) } catch {} }
         go('/')
       } else {
-        // 找回密码:验证码通过后设置新密码
-        await onSetPassword(newPassword)
-        go('/')
+        // 找回密码(邮箱):验证码通过后进入设置新密码视图
+        setError('')
+        setMode('setNewPwd')
       }
     } catch (err) {
       setError(errMsg(err?.message || ''))
@@ -204,6 +204,22 @@ export default function AuthPage({
     }
   }
 
+  // 邮箱找回密码:验证码通过后设置新密码
+  const handleSetNewPwd = async (e) => {
+    e.preventDefault()
+    setError('')
+    if (newPassword !== newPassword2) return setError(errMsg('PASSWORD_MISMATCH'))
+    if (newPassword.length < 6) return setError(errMsg('PASSWORD_TOO_SHORT'))
+    setLoading(true)
+    try {
+      await onSetPassword(newPassword)
+      setMode('login')
+      setError('')
+    } catch (err) {
+      setError(errMsg(err?.message || ''))
+    } finally { setLoading(false) }
+  }
+
   const goBack = () => go('/')
 
   const switchMode = (m) => { setMode(m); setError('') }
@@ -218,7 +234,7 @@ export default function AuthPage({
             <button className={mode === 'login' ? 'active' : ''} onClick={() => switchMode('login')}>{t('auth.login')}</button>
             <button className={mode === 'register' ? 'active' : ''} onClick={() => switchMode('register')}>{t('auth.register')}</button>
           </div>
-        ) : <h2 className="auth-title">{t('auth.forgotTitle')}</h2>}
+        ) : mode === 'forgot' ? <h2 className="auth-title">{t('auth.forgotTitle')}</h2> : null}
 
         {error && <div className="auth-error" role="alert">{error}</div>}
 
@@ -328,6 +344,18 @@ export default function AuthPage({
             <label className="auth-label">{t('auth.otpCode')}</label>
             <input className="auth-input" value={verifyCode} onChange={e => setVerifyCode(e.target.value)} placeholder="123456" maxLength="6" inputMode="numeric" required />
             <button type="submit" className="auth-btn-primary" disabled={loading}>{loading ? t('auth.loading') : t('auth.verifyBtn')}</button>
+          </form>
+        )}
+
+        {/* ── 邮箱找回密码:设置新密码 ── */}
+        {mode === 'setNewPwd' && (
+          <form onSubmit={handleSetNewPwd} className="auth-form">
+            <h2 className="auth-title">{t('auth.setPasswordTitle')}</h2>
+            <label className="auth-label">{t('auth.newPassword')}</label>
+            <input className="auth-input" type={showNew ? 'text' : 'password'} value={newPassword} onChange={e => setNewPassword(e.target.value)} autoComplete="new-password" required />
+            <label className="auth-label">{t('auth.confirmPassword')}</label>
+            <input className="auth-input" type={showNew ? 'text' : 'password'} value={newPassword2} onChange={e => setNewPassword2(e.target.value)} autoComplete="new-password" required />
+            <button type="submit" className="auth-btn-primary" disabled={loading}>{loading ? t('auth.loading') : t('auth.setPasswordBtn')}</button>
           </form>
         )}
       </div>
