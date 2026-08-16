@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { NavLink } from 'react-router-dom'
-import { PenTool, LayoutGrid, BookOpen, LogIn } from 'lucide-react'
+import { PenTool, LayoutGrid, BookOpen } from 'lucide-react'
 import LanguageSelector from './Header/LanguageSelector'
 import Avatar from './Avatar'
 import ProfileMenu from './ProfileMenu'
@@ -95,8 +95,9 @@ export default function Header({ user, onLogin, onRegister, onLogout, onSave, cu
         ) : (
           <div className="auth-buttons">
             {simplified ? (
-              <button onClick={onLogin} className="btn btn-ghost icon-only-btn" aria-label={t('auth.login')} title={t('auth.login')}>
-                <LogIn size={18} />
+              /* 移动端游客:圆框"登录"文字按钮(带 i18n) */
+              <button onClick={onLogin} className="mobile-login-btn" aria-label={t('auth.login')} title={t('auth.login')}>
+                {t('auth.login')}
               </button>
             ) : (
               <>
@@ -238,6 +239,28 @@ export default function Header({ user, onLogin, onRegister, onLogout, onSave, cu
         .auth-buttons {
           display: flex;
           gap: 8px;
+        }
+        /* 移动端游客登录:圆框"登录"文字按钮 */
+        .mobile-login-btn {
+          height: 36px;
+          min-width: 60px;
+          padding: 0 16px;
+          border-radius: 18px;
+          border: 1.5px solid var(--text-secondary);
+          background: transparent;
+          color: var(--text-secondary);
+          font-size: var(--text-sm);
+          font-weight: 600;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          cursor: pointer;
+          transition: all 0.15s;
+          white-space: nowrap;
+        }
+        .mobile-login-btn:hover {
+          border-color: var(--accent);
+          color: var(--accent);
         }
         .user-menu {
           display: flex;
