@@ -6,6 +6,9 @@
 -- 幂等,可重复执行
 -- ============================================================
 
+-- bcrypt 哈希(crypt/gen_salt)依赖 pgcrypto 扩展
+create extension if not exists pgcrypto;
+
 -- ── profiles 增加安全密钥哈希列 ─────────────────────────────
 alter table public.profiles
   add column if not exists security_key_hash text;
@@ -16,7 +19,7 @@ create or replace function public.resolve_auth_email(p_username text)
 returns text
 language sql
 security definer
-set search_path = public
+set search_path = public, extensions
 as $$
   select email
   from auth.users
@@ -31,7 +34,7 @@ create or replace function public.username_exists(p_username text)
 returns boolean
 language sql
 security definer
-set search_path = public
+set search_path = public, extensions
 as $$
   select exists(
     select 1 from auth.users
@@ -46,7 +49,7 @@ create or replace function public.set_security_key(p_security_key text)
 returns void
 language sql
 security definer
-set search_path = public
+set search_path = public, extensions
 as $$
   update public.profiles
   set security_key_hash = crypt(p_security_key, gen_salt('bf'))
@@ -63,7 +66,7 @@ create or replace function public.reset_password_custom(
 ) returns void
 language plpgsql
 security definer
-set search_path = public
+set search_path = public, extensions
 as $$
 declare
   v_user_id uuid;
