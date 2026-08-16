@@ -16,6 +16,20 @@ function LegalDocument({ versions, type, onBack }) {
 
   return (
     <div className="legal-page">
+      {/* 站点 LOGO(独立页标识,点击回首页) */}
+      <Link to="/" className="legal-logo" aria-label={t('app.title')}>
+        <svg width="32" height="32" viewBox="0 0 32 32" fill="none" aria-hidden="true">
+          <rect width="8" height="8" x="0" y="0" fill="#E53935"/><rect width="8" height="8" x="8" y="0" fill="#FDD835"/>
+          <rect width="8" height="8" x="16" y="0" fill="#32CD32"/><rect width="8" height="8" x="24" y="0" fill="#1976D2"/>
+          <rect width="8" height="8" x="0" y="8" fill="#F06292"/><rect width="8" height="8" x="8" y="8" fill="#BA68C8"/>
+          <rect width="8" height="8" x="16" y="8" fill="#00BCD4"/><rect width="8" height="8" x="24" y="8" fill="#FF9800"/>
+          <rect width="8" height="8" x="0" y="16" fill="#FFFFFF" stroke="#E0E0E0"/><rect width="8" height="8" x="8" y="16" fill="#9E9E9E"/>
+          <rect width="8" height="8" x="16" y="16" fill="#000000"/><rect width="8" height="8" x="24" y="16" fill="#795548"/>
+          <rect width="8" height="8" x="0" y="24" fill="#8D6E63"/><rect width="8" height="8" x="8" y="24" fill="#A1887F"/>
+          <rect width="8" height="8" x="16" y="24" fill="#BDBDBD"/><rect width="8" height="8" x="24" y="24" fill="#6D4C41"/>
+        </svg>
+        <span className="legal-logo-text">{t('app.title')}</span>
+      </Link>
       <button className="legal-back-btn" onClick={onBack} aria-label={t('legal.back')}>
         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
           <polyline points="15 18 9 12 15 6"/>
@@ -80,6 +94,19 @@ function LegalDocument({ versions, type, onBack }) {
         }
         .legal-page::-webkit-scrollbar-thumb:hover {
           background: var(--text-muted);
+        }
+        .legal-logo {
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          gap: 10px;
+          margin-bottom: 24px;
+          color: var(--text-primary);
+          text-decoration: none;
+        }
+        .legal-logo-text {
+          font-size: var(--text-xl);
+          font-weight: var(--font-weight-semibold);
         }
         .legal-back-btn {
           display: inline-flex;

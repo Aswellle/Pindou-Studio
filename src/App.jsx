@@ -102,7 +102,10 @@ export default function App() {
     : location.pathname.startsWith('/admin') ? 'admin'
     : location.pathname.startsWith('/privacy') ? 'privacy'
     : location.pathname.startsWith('/terms') ? 'terms'
+    : location.pathname.startsWith('/login') ? 'login'
     : 'canvas'
+  // 独立页(登录/注册/隐私/条款):隐藏站点导航栏与操作按钮,只保留 LOGO + 返回,避免元素冲突
+  const isStandalonePage = currentPage === 'login' || currentPage === 'privacy' || currentPage === 'terms'
 
   // Initialize blank canvas on first render and when grid size changes with no data
   useEffect(() => {
@@ -354,8 +357,8 @@ export default function App() {
   // 桌面端布局
   const renderDesktopLayout = () => (
     <div className="app desktop-layout">
-      {/* 后台管理页隐藏顶部导航栏,专注管理界面 */}
-      {currentPage !== 'admin' && (
+      {/* 后台管理页与独立页(登录/隐私/条款)隐藏顶部导航栏 */}
+      {currentPage !== 'admin' && !isStandalonePage && (
         <Header
           user={user}
           onLogin={openLogin}
@@ -369,7 +372,7 @@ export default function App() {
         />
       )}
 
-      <main className="main-content" style={currentPage === 'admin' ? { marginTop: 0 } : undefined}>
+      <main className="main-content" style={(currentPage === 'admin' || isStandalonePage) ? { marginTop: 0 } : undefined}>
         <Routes>
           <Route path="/" element={renderCanvasPage()} />
           <Route path="/login" element={renderAuthPage()} />
@@ -569,8 +572,8 @@ export default function App() {
   // 移动端布局
   const renderMobileLayout = () => (
     <div className="app mobile-layout">
-      {/* 后台管理页隐藏顶部导航栏,专注管理界面 */}
-      {currentPage !== 'admin' && (
+      {/* 后台管理页与独立页(登录/隐私/条款)隐藏顶部导航栏 */}
+      {currentPage !== 'admin' && !isStandalonePage && (
         <Header
           user={user}
           onLogin={openLogin}

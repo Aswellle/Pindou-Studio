@@ -215,6 +215,20 @@ export default function AuthPage({
 
   return (
     <div className="auth-page">
+      {/* 站点 LOGO(独立页标识,点击回首页) */}
+      <Link to="/" className="auth-logo" aria-label={t('app.title')}>
+        <svg width="32" height="32" viewBox="0 0 32 32" fill="none" aria-hidden="true">
+          <rect width="8" height="8" x="0" y="0" fill="#E53935"/><rect width="8" height="8" x="8" y="0" fill="#FDD835"/>
+          <rect width="8" height="8" x="16" y="0" fill="#32CD32"/><rect width="8" height="8" x="24" y="0" fill="#1976D2"/>
+          <rect width="8" height="8" x="0" y="8" fill="#F06292"/><rect width="8" height="8" x="8" y="8" fill="#BA68C8"/>
+          <rect width="8" height="8" x="16" y="8" fill="#00BCD4"/><rect width="8" height="8" x="24" y="8" fill="#FF9800"/>
+          <rect width="8" height="8" x="0" y="16" fill="#FFFFFF" stroke="#E0E0E0"/><rect width="8" height="8" x="8" y="16" fill="#9E9E9E"/>
+          <rect width="8" height="8" x="16" y="16" fill="#000000"/><rect width="8" height="8" x="24" y="16" fill="#795548"/>
+          <rect width="8" height="8" x="0" y="24" fill="#8D6E63"/><rect width="8" height="8" x="8" y="24" fill="#A1887F"/>
+          <rect width="8" height="8" x="16" y="24" fill="#BDBDBD"/><rect width="8" height="8" x="24" y="24" fill="#6D4C41"/>
+        </svg>
+        <span className="auth-logo-text">{t('app.title')}</span>
+      </Link>
       <div className="auth-card">
         <button className="auth-back" onClick={goBack}>← {t('common.back')}</button>
         {/* 顶部登录/注册切换 */}
@@ -361,6 +375,19 @@ export default function AuthPage({
           background: var(--bg-primary);
           box-sizing: border-box;
         }
+        .auth-logo {
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          gap: 10px;
+          margin: 0 auto 18px;
+          color: var(--text-primary);
+          text-decoration: none;
+        }
+        .auth-logo-text {
+          font-size: var(--text-xl);
+          font-weight: var(--font-weight-semibold);
+        }
         .auth-back {
           display: block;
           align-self: flex-start;
@@ -379,8 +406,9 @@ export default function AuthPage({
           background: var(--bg-secondary);
           border: 1px solid var(--border-color);
           border-radius: 16px;
-          padding: 24px;
+          padding: 20px;
           box-shadow: var(--shadow-card);
+          box-sizing: border-box;
         }
         .auth-title { text-align: center; margin: 0 0 16px; font-size: var(--text-lg); }
         .auth-mode-switch {
@@ -424,11 +452,11 @@ export default function AuthPage({
           color: var(--accent);
           background: var(--accent-soft);
         }
-        .auth-form { display: flex; flex-direction: column; gap: 6px; }
-        .auth-label { font-size: var(--text-sm); color: var(--text-secondary); font-weight: 600; margin-top: 8px; display: flex; align-items: center; gap: 6px; }
+        .auth-form { display: flex; flex-direction: column; gap: 4px; }
+        .auth-label { font-size: var(--text-sm); color: var(--text-secondary); font-weight: 600; margin-top: 6px; display: flex; align-items: center; gap: 6px; }
         .auth-input {
           width: 100%;
-          padding: 10px 12px;
+          padding: 9px 12px;
           border: 1px solid var(--border-color);
           border-radius: 8px;
           background: var(--bg-primary);
