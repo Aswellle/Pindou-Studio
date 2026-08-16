@@ -59,22 +59,28 @@ export default function Gallery({ onLoadTemplate, onDeleteWork, onLoadWork, save
   const [brandOverride, setBrandOverride] = useState({})
   // 待确认填充到画布的模板(卡片点击不再直接填充,弹窗让用户确认,避免误触)
   const [pendingLoad, setPendingLoad] = useState(null)
-  // 下载量:云端读模板 download_count;本地模式(无 Supabase)用 localStorage 计数
+  // 下载量:本地计数(localStorage 持久)叠加云端模板 download_count;
+  // 导出成功立即更新显示,云端再走 RPC 跨用户累计,本地计数作为兜底
   const DOWNLOAD_KEY = 'template-downloads'
   const [localDownloads, setLocalDownloads] = useState(() => {
     try { return JSON.parse(localStorage.getItem(DOWNLOAD_KEY) || '{}') } catch { return {} }
   })
-  const getDownloadCount = (template) => cloudEnabled ? (template.downloadCount || 0) : (localDownloads[template.id] || 0)
+  const getDownloadCount = (template) => {
+    const local = localDownloads[template.id] || 0
+    if (!cloudEnabled) return local
+    // 云端:DB 全局计数与本地计数取大(DB 增长后会覆盖本浏览器累计)
+    return Math.max(template.downloadCount || 0, local)
+  }
   const bumpDownload = async (template) => {
-    if (cloudEnabled) {
-      try { await supabase.rpc('increment_template_download', { p_id: template.id }) } catch (e) { console.warn('download count failed:', e) }
-      return
-    }
+    // 先立即更新本地显示并持久化(localStorage),保证导出后马上 +1、刷新也在
     setLocalDownloads(prev => {
       const next = { ...prev, [template.id]: (prev[template.id] || 0) + 1 }
       try { localStorage.setItem(DOWNLOAD_KEY, JSON.stringify(next)) } catch { /* 配额超限忽略 */ }
       return next
     })
+    if (cloudEnabled) {
+      try { await supabase.rpc('increment_template_download', { p_id: template.id }) } catch (e) { console.warn('download count failed:', e) }
+    }
   }
   // 模板生效品牌:优先用户覆盖,否则模板自带 paletteId(缺省 perler)
   const templateBrandId = (template) => brandOverride[template.id] || template.paletteId || 'perler'

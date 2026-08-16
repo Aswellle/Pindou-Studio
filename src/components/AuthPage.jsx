@@ -369,11 +369,15 @@ export default function AuthPage({
           height: 100%;
           overflow-y: auto;
           display: flex;
-          align-items: flex-start;
-          justify-content: center;
+          flex-direction: column;
+          align-items: center;
+          justify-content: flex-start;
           padding: 32px 16px 64px;
           background: var(--bg-primary);
           box-sizing: border-box;
+        }
+        .auth-logo {
+          flex-shrink: 0;
         }
         .auth-logo {
           display: flex;
