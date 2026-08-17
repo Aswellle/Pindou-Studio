@@ -69,7 +69,7 @@ export function useAuth() {
           rememberMe = (JSON.parse(localStorage.getItem('bead_studio_settings') || '{}').rememberMe) !== false
         } catch { /* 默认记住 */ }
         if (rememberMe) {
-          setUser(buildUser(data.session.user))
+          mergeBuildUser(data.session.user)
           refreshProfile(data.session.user.id)
         } else {
           supabase.auth.signOut().catch(() => {})
@@ -88,7 +88,7 @@ export function useAuth() {
         return
       }
       if (event === 'SIGNED_IN') {
-        setUser(buildUser(session.user))
+        mergeBuildUser(session.user)
         refreshProfile(session.user.id)
       }
       // TOKEN_REFRESHED(约每小时):仅静默续期会话,不覆盖昵称/头像
@@ -111,6 +111,17 @@ export function useAuth() {
       nickname: '',
       avatarUrl: '',
     }
+  }
+
+  // 同一用户会话重建(切回标签页触发 token 刷新等)时保留已加载的昵称/头像,
+  // 避免头像闪回默认、昵称闪回初始值再恢复的跳动
+  const mergeBuildUser = (sessionUser) => {
+    return setUser(prev => {
+      if (prev && prev.id === sessionUser.id && (prev.nickname || prev.avatarUrl)) {
+        return { ...buildUser(sessionUser), nickname: prev.nickname, avatarUrl: prev.avatarUrl }
+      }
+      return buildUser(sessionUser)
+    })
   }
 
   const login = useCallback(async (email, password) => {

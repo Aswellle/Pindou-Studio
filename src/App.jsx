@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next'
 import { LANGUAGES } from './i18n'
 import { Helmet } from 'react-helmet-async'
 import AuthPage from './components/AuthPage'
+import AdminLoginPage from './components/AdminLoginPage'
 import Header from './components/Header'
 import Canvas from './components/Canvas'
 import LoadingScreen from './components/LoadingScreen'
@@ -99,13 +100,14 @@ export default function App() {
   // 从 URL 路径推导当前页面(用于 Header 高亮与条件渲染)
   const currentPage = location.pathname.startsWith('/gallery') ? 'gallery'
     : location.pathname.startsWith('/tutorials') ? 'tutorials'
+    : location.pathname.startsWith('/admin/login') ? 'adminLogin'
     : location.pathname.startsWith('/admin') ? 'admin'
     : location.pathname.startsWith('/privacy') ? 'privacy'
     : location.pathname.startsWith('/terms') ? 'terms'
     : location.pathname.startsWith('/login') ? 'login'
     : 'canvas'
-  // 独立页(登录/注册/隐私/条款):隐藏站点导航栏与操作按钮,只保留 LOGO + 返回,避免元素冲突
-  const isStandalonePage = currentPage === 'login' || currentPage === 'privacy' || currentPage === 'terms'
+  // 独立页(登录/注册/管理员登录/隐私/条款):隐藏站点导航栏与操作按钮,只保留 LOGO + 返回,避免元素冲突
+  const isStandalonePage = currentPage === 'login' || currentPage === 'adminLogin' || currentPage === 'privacy' || currentPage === 'terms'
 
   // Initialize blank canvas on first render and when grid size changes with no data
   useEffect(() => {
@@ -281,6 +283,10 @@ export default function App() {
   }
 
   // 桌面端画布页
+  const renderAdminLoginPage = () => (
+    <AdminLoginPage onLogin={login} />
+  )
+
   const renderAuthPage = () => (
     <AuthPage
       initialMode={location.state?.mode === 'register' ? 'register' : 'login'}
@@ -397,12 +403,13 @@ export default function App() {
               <Tutorials />
             </Suspense>
           } />
+          <Route path="/admin/login" element={renderAdminLoginPage()} />
           <Route path="/admin" element={
             <AdminPanel
               user={user}
               isAdmin={isAdmin}
               authLoading={authLoading}
-              onLogin={openLogin}
+              onLogin={() => navigate('/admin/login')}
               onLogout={logout}
               onChangePassword={changePassword}
               cloudStore={cloudStore}
@@ -659,13 +666,14 @@ export default function App() {
             </div>
           </Suspense>
         } />
+        <Route path="/admin/login" element={renderAdminLoginPage()} />
         <Route path="/admin" element={
           <Suspense fallback={<LoadingScreen />}>
             <AdminPanel
               user={user}
               isAdmin={isAdmin}
               authLoading={authLoading}
-              onLogin={openLogin}
+              onLogin={() => navigate('/admin/login')}
               onLogout={logout}
               onChangePassword={changePassword}
               cloudStore={cloudStore}

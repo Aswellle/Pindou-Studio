@@ -794,10 +794,11 @@
       "setupHint": "请按照 docs/SUPABASE_SETUP.md 完成 Supabase 配置(VITE_SUPABASE_URL / VITE_SUPABASE_ANON_KEY)后重新部署,即可使用账号体系与云端模板库",
       "loginTitle": "管理员登录",
       "loginHint": "请使用管理员账号登录以访问模板库后台(首次使用:注册 → 邮箱验证 → 授予 admin 权限)",
-      "loginBtn": "登录 / 注册",
+      "loginBtn": "登录",
       "noPermission": "当前账号无管理员权限",
       "noPermissionHint": "只有被标记为 admin 的账号才能访问后台,请与站点管理员联系",
-      "checking": "正在检查登录状态..."
+      "checking": "正在检查登录状态...",
+      "notAdmin": "该账号无后台管理权限"
     },
     "signOut": "退出登录",
     "resetPassword": "修改密码",

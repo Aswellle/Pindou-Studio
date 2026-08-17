@@ -794,10 +794,11 @@
       "setupHint": "Follow docs/SUPABASE_SETUP.md to configure Supabase (VITE_SUPABASE_URL / VITE_SUPABASE_ANON_KEY) and redeploy to enable accounts and the cloud template library.",
       "loginTitle": "Admin Login",
       "loginHint": "Sign in with the admin account to manage the template library (first-time: register, verify email, then grant admin role).",
-      "loginBtn": "Login / Sign Up",
+      "loginBtn": "Log in",
       "noPermission": "No Admin Permission",
       "noPermissionHint": "Only accounts marked as admin can access the backend. Contact the site administrator.",
-      "checking": "Checking session..."
+      "checking": "Checking session...",
+      "notAdmin": "This account has no admin permission"
     },
     "signOut": "Sign Out",
     "resetPassword": "Change Password",

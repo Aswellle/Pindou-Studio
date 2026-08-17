@@ -794,10 +794,11 @@
       "setupHint": "docs/SUPABASE_SETUP.md에 따라 Supabase를 설정(VITE_SUPABASE_URL / VITE_SUPABASE_ANON_KEY)하고 다시 배포하면 계정과 클라우드 템플릿 라이브러리를 사용할 수 있습니다.",
       "loginTitle": "관리자 로그인",
       "loginHint": "관리자 계정으로 로그인하여 템플릿 라이브러리를 관리하세요(첫 사용: 가입 → 이메일 인증 → admin 권한 부여)",
-      "loginBtn": "로그인 / 가입",
+      "loginBtn": "로그인",
       "noPermission": "관리자 권한이 없습니다",
       "noPermissionHint": "admin으로 표시된 계정만 백엔드에 접근할 수 있습니다. 사이트 관리자에게 문의하세요.",
-      "checking": "세션 확인 중..."
+      "checking": "세션 확인 중...",
+      "notAdmin": "이 계정에는 관리자 권한이 없습니다"
     },
     "signOut": "로그아웃",
     "resetPassword": "비밀번호 변경",

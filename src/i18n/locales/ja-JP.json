@@ -794,10 +794,11 @@
       "setupHint": "docs/SUPABASE_SETUP.md に従って Supabase を設定(VITE_SUPABASE_URL / VITE_SUPABASE_ANON_KEY)し、再デプロイするとアカウントとクラウドテンプレートが利用できます。",
       "loginTitle": "管理者ログイン",
       "loginHint": "管理者アカウントでログインしてテンプレートライブラリを管理してください(初回:登録 → メール認証 → admin 権限付与)",
-      "loginBtn": "ログイン / 登録",
+      "loginBtn": "ログイン",
       "noPermission": "管理者権限がありません",
       "noPermissionHint": "admin とマークされたアカウントのみバックエンドにアクセスできます。サイト管理者に連絡してください。",
-      "checking": "セッションを確認中..."
+      "checking": "セッションを確認中...",
+      "notAdmin": "このアカウントに管理者権限はありません"
     },
     "signOut": "ログアウト",
     "resetPassword": "パスワード変更",
