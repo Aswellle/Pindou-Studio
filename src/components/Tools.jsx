@@ -254,7 +254,10 @@ export default function Tools({
         }
         .tool-btn {
           flex: 1;
-          padding: 10px;
+          /* min-width:0 允许按钮收缩到内容宽度以下,配合较窄的水平内边距,
+             保证 4 个按钮 + 间隙始终容纳在工具栏内,不溢出侧栏边框 */
+          min-width: 0;
+          padding: 10px 6px;
           border-radius: 6px;
           border: 2px solid transparent;
           background: var(--bg-secondary);
@@ -263,6 +266,9 @@ export default function Tools({
           align-items: center;
           justify-content: center;
           transition: all 0.15s;
+        }
+        .tool-btn svg {
+          flex-shrink: 0;
         }
         .tool-btn:hover {
           background: var(--bg-tertiary);

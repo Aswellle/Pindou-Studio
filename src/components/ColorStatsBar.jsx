@@ -52,21 +52,26 @@ export default function ColorStatsBar({ canvasData, paletteId }) {
 
   return (
     <div className="color-stats-bar">
-      {/* Summary row */}
+      {/* Summary row — 纵向堆叠的统计块:数值在上、图标+标签在下,
+          任意数量级与任意语言标签都不会溢出/裁切 */}
       <div className="stats-summary">
         <div className="stats-chip">
-          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-            <circle cx="12" cy="12" r="10"/>
-          </svg>
-          <span className="stats-chip-value">{total}</span>
-          <span className="stats-chip-label">{t('stats.beads')}</span>
+          <span className="stats-chip-value">{total.toLocaleString()}</span>
+          <span className="stats-chip-meta">
+            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <circle cx="12" cy="12" r="10"/>
+            </svg>
+            <span className="stats-chip-label">{t('stats.beads')}</span>
+          </span>
         </div>
         <div className="stats-chip">
-          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-            <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/>
-          </svg>
-          <span className="stats-chip-value">{colorCount}</span>
-          <span className="stats-chip-label">{t('stats.colors')}</span>
+          <span className="stats-chip-value">{colorCount.toLocaleString()}</span>
+          <span className="stats-chip-meta">
+            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/>
+            </svg>
+            <span className="stats-chip-label">{t('stats.colors')}</span>
+          </span>
         </div>
       </div>
 
@@ -107,26 +112,45 @@ export default function ColorStatsBar({ canvasData, paletteId }) {
         }
         .stats-chip {
           flex: 1;
+          /* min-width:0 让 chip 可收缩到内容以下,大数值(如上万颗)不再撑破
+             chip 宽度导致标签被裁切("44 种颜...") */
+          min-width: 0;
           display: flex;
-          align-items: center;
-          gap: 4px;
+          flex-direction: column;
+          align-items: flex-start;
+          gap: 2px;
           background: var(--bg-secondary);
           border-radius: 8px;
-          padding: 6px 10px;
-        }
-        .stats-chip svg {
-          color: var(--text-muted);
-          flex-shrink: 0;
+          padding: 7px 10px;
         }
         .stats-chip-value {
           font-size: var(--text-lg);
           font-weight: var(--font-weight-bold);
           color: var(--text-primary);
-          line-height: 1;
+          line-height: 1.1;
+          font-variant-numeric: tabular-nums;
+          /* 数值优先完整显示,极端超长时截断而非撑破容器 */
+          max-width: 100%;
+          overflow: hidden;
+          text-overflow: ellipsis;
+          white-space: nowrap;
+        }
+        .stats-chip-meta {
+          display: flex;
+          align-items: center;
+          gap: 4px;
+          max-width: 100%;
+          min-width: 0;
+        }
+        .stats-chip-meta svg {
+          color: var(--text-muted);
+          flex-shrink: 0;
         }
         .stats-chip-label {
           font-size: var(--text-xs);
           color: var(--text-muted);
+          overflow: hidden;
+          text-overflow: ellipsis;
           white-space: nowrap;
         }
         .stats-swatches {
