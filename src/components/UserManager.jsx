@@ -53,6 +53,20 @@ export default function UserManager() {
     return () => clearTimeout(timer)
   }, [loadUsers])
 
+  // 最近登录:近 1 分钟视为"在线中"(绿点标记),否则展示本地化日期时间
+  const renderLastSignIn = (ts) => {
+    if (!ts) return '—'
+    const date = new Date(ts)
+    if (Number.isNaN(date.getTime())) return '—'
+    if (Date.now() - date.getTime() < 60_000) {
+      return <span className="users-online">{t('admin.users.online')}</span>
+    }
+    return date.toLocaleString(undefined, {
+      year: 'numeric', month: '2-digit', day: '2-digit',
+      hour: '2-digit', minute: '2-digit',
+    })
+  }
+
   const statCards = stats ? [
     { label: t('admin.users.total'), value: stats.total, tone: 'accent' },
     { label: t('admin.users.verified'), value: stats.verified, tone: 'ok' },
@@ -102,6 +116,7 @@ export default function UserManager() {
                   <th>{t('admin.users.role')}</th>
                   <th>{t('admin.users.status')}</th>
                   <th>{t('admin.users.registeredAt')}</th>
+                  <th>{t('admin.users.lastSignIn')}</th>
                 </tr>
               </thead>
               <tbody>
@@ -122,6 +137,7 @@ export default function UserManager() {
                     <td className="users-date">
                       {new Date(u.created_at).toLocaleDateString(undefined, { year: 'numeric', month: '2-digit', day: '2-digit' })}
                     </td>
+                    <td className="users-date">{renderLastSignIn(u.last_sign_in_at)}</td>
                   </tr>
                 ))}
               </tbody>
@@ -194,6 +210,22 @@ export default function UserManager() {
         .users-table tbody tr:hover { background: var(--bg-secondary); }
         .users-email { font-family: ui-monospace, monospace; font-size: 12px; }
         .users-date { color: var(--text-muted); white-space: nowrap; font-variant-numeric: tabular-nums; }
+        .users-online {
+          display: inline-flex;
+          align-items: center;
+          gap: 5px;
+          color: var(--success);
+          font-weight: 600;
+        }
+        .users-online::before {
+          content: '';
+          width: 8px;
+          height: 8px;
+          border-radius: 50%;
+          background: currentColor;
+          box-shadow: 0 0 0 3px rgba(76, 175, 80, 0.18);
+          flex-shrink: 0;
+        }
         .users-role-badge {
           display: inline-block;
           padding: 2px 10px;

@@ -40,7 +40,6 @@
     "resend": "코드 다시 보내기",
     "resendIn": "다시 보내기({{n}}초)",
     "sendCode": "인증 코드 보내기",
-    "changeEmail": "다른 이메일",
     "codeInvalid": "인증 코드 형식이 올바르지 않습니다(6자리 숫자)",
     "setPasswordTitle": "새 비밀번호 설정",
     "setPasswordHint": "인증 완료. 새 로그인 비밀번호를 설정하세요.",
@@ -79,9 +78,8 @@
     "nicknameRequired": "닉네임을 설정해 주세요~",
     "forgotEmailHint": "가입 이메일을 입력하면 인증 코드가 담긴 이메일을 보내드립니다",
     "codeSent": "인증 코드를 보냈습니다. 이메일을 확인하세요~",
-    "forgotCodeHint": "{{email}}로 6자리 인증 코드를 보냈습니다(비밀번호 재설정용)",
-    "checkSpam": "못 받으셨나요? 스팸 폴더를 확인하거나 아래에서 다시 보내세요.",
-    "confirmResetBtn": "비밀번호 재설정 확인"
+    "checkSpam": "못 받으셨나요? 스팸 폴더를 확인하거나 위 버튼으로 다시 보내세요.",
+    "confirmResetBtn": "인증하고 비밀번호 재설정"
   },
   "errors": {
     "invalidEmail": "유효한 이메일 주소를 입력하세요",
@@ -770,6 +768,9 @@
     "colorsHint": "패턴에서 자동 감지",
     "importJson": "템플릿 JSON",
     "importJsonHint": "통합 프로토콜의 템플릿 JSON(단일 또는 배열)을 붙여넣으세요",
+    "importFromFile": "파일에서 가져오기",
+    "clear": "지우기",
+    "fileReadError": "파일을 읽지 못했습니다. 다시 시도하세요",
     "importBtn": "가져오기",
     "importSuccess": "템플릿 {{n}}개를 가져왔습니다",
     "importFailed": "{{n}}개 실패:",
@@ -837,6 +838,8 @@
       "role": "역할",
       "status": "인증 상태",
       "registeredAt": "가입일",
+      "lastSignIn": "최근 로그인",
+      "online": "접속 중",
       "verifiedYes": "인증됨",
       "verifiedNo": "미인증",
       "roleAdmin": "관리자",

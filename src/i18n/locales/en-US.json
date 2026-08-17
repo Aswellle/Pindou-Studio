@@ -40,7 +40,6 @@
     "resend": "Resend code",
     "resendIn": "Resend ({{n}}s)",
     "sendCode": "Send Code",
-    "changeEmail": "Use a different email",
     "codeInvalid": "Invalid code format (6 digits)",
     "setPasswordTitle": "Set New Password",
     "setPasswordHint": "Verified. Set a new password to sign in.",
@@ -79,9 +78,8 @@
     "nicknameRequired": "Please set a nickname so others can remember you! ~",
     "forgotEmailHint": "Enter your registered email and we'll send a code to verify your identity",
     "codeSent": "Verification code email sent — check your inbox! ~",
-    "forgotCodeHint": "A 6-digit code was sent to {{email}} to reset your password",
-    "checkSpam": "Didn't receive it? Check your spam folder, or resend below.",
-    "confirmResetBtn": "Confirm Reset Password"
+    "checkSpam": "Didn't receive it? Check your spam folder, or resend using the button above.",
+    "confirmResetBtn": "Verify & Reset Password"
   },
   "errors": {
     "invalidEmail": "Please enter a valid email address",
@@ -770,6 +768,9 @@
     "colorsHint": "auto-detected from the pattern",
     "importJson": "Template JSON",
     "importJsonHint": "Paste one template or an array of templates following the unified protocol",
+    "importFromFile": "Import from file",
+    "clear": "Clear",
+    "fileReadError": "Failed to read file, please try again",
     "importBtn": "Import",
     "importSuccess": "Imported {{n}} templates successfully",
     "importFailed": "{{n}} failed:",
@@ -837,6 +838,8 @@
       "role": "Role",
       "status": "Verification",
       "registeredAt": "Joined",
+      "lastSignIn": "Last sign-in",
+      "online": "Online now",
       "verifiedYes": "Verified",
       "verifiedNo": "Unverified",
       "roleAdmin": "Admin",

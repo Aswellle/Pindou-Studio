@@ -50,6 +50,9 @@ export default function ToastProvider({ children }) {
           max-width: calc(100vw - 32px);
         }
         .toast-item {
+          /* 拼豆类型色默认值放在 item 层:success/error 在父级覆盖后可继承到珠子;
+             若直接声明在 .toast-bead 上,自身声明会遮蔽父级继承,类型色不生效 */
+          --bead-color: var(--accent);
           display: flex;
           align-items: flex-start;
           gap: 12px;
@@ -71,7 +74,6 @@ export default function ToastProvider({ children }) {
         }
         /* 拼豆标记:高光立体小珠(顶部高光 + 中孔 + 底部暗边),类型色随类型变化 */
         .toast-bead {
-          --bead-color: var(--accent);
           width: 20px;
           height: 20px;
           border-radius: 50%;

@@ -68,8 +68,9 @@ export default function AuthPage({
   const [pendingEmail, setPendingEmail] = useState('')
   const [pendingNickname, setPendingNickname] = useState('')
   const [pendingPassword, setPendingPassword] = useState('')
-  const [verifyFor, setVerifyFor] = useState('register')
+  // 倒计时按流程隔离('register' | 'forgot'):注册发码后去找回密码不应被无关倒计时禁用
   const [cooldown, setCooldown] = useState(0)
+  const [cooldownFor, setCooldownFor] = useState(null)
 
   const [loading, setLoading] = useState(false)
   const [showPwd, setShowPwd] = useState(false)  // 登录密码
@@ -135,9 +136,9 @@ export default function AuthPage({
       if (method === 'email') {
         if (!EMAIL_RE.test(regEmail)) return toastError('', t('errors.invalidEmail'))
         setPendingEmail(regEmail); setPendingNickname(nickname); setPendingPassword(regPassword)
-        setVerifyFor('register')
         await onSendOtp(regEmail, true)
         setCooldown(RESEND_COOLDOWN)
+        setCooldownFor('register')
         setMode('verify')
       } else {
         await registerUsername({ username, nickname, password: regPassword, securityKey })
@@ -148,31 +149,28 @@ export default function AuthPage({
     } finally { setLoading(false) }
   }
 
-  // 验证码提交(邮箱注册 / 邮箱找回密码)
+  // 验证码提交(邮箱注册专属:找回密码已改为内联流程,走 handleForgotVerify)
   const handleVerify = async (e) => {
     e.preventDefault()
     setLoading(true)
     try {
       await onVerifyOtp(pendingEmail, verifyCode)
-      if (verifyFor === 'register') {
-        await onSetPassword(pendingPassword)
-        if (pendingNickname) { try { await onUpdateProfile({ nickname: pendingNickname }) } catch {} }
-        go('/')
-      } else {
-        setMode('setNewPwd')
-      }
+      await onSetPassword(pendingPassword)
+      if (pendingNickname) { try { await onUpdateProfile({ nickname: pendingNickname }) } catch {} }
+      go('/')
     } catch (err) {
       toastError(err?.message || '')
     } finally { setLoading(false) }
   }
 
-  // 重发验证码(60s 冷却)
+  // 重发验证码(60s 冷却,邮箱注册专属)
   const resendCode = async () => {
-    if (cooldown > 0 || loading) return
+    if ((cooldown > 0 && cooldownFor === 'register') || loading) return
     setLoading(true)
     try {
-      await onSendOtp(pendingEmail, verifyFor === 'register')
+      await onSendOtp(pendingEmail, true)
       setCooldown(RESEND_COOLDOWN)
+      setCooldownFor('register')
       toast(t('auth.codeSent'), 'success')
     } catch (err) {
       toastError(err?.message || '')
@@ -181,13 +179,14 @@ export default function AuthPage({
 
   // ── 忘记密码(邮箱):点击输入框右侧"发送验证码",该位置切换为倒计时,下方展开验证码输入 ──
   const handleSendForgotCode = async () => {
-    if (cooldown > 0 || loading) return
+    if ((cooldown > 0 && cooldownFor === 'forgot') || loading) return
     if (!EMAIL_RE.test(forgotAccount)) return toastError('', t('errors.invalidEmail'))
     setPendingEmail(forgotAccount)
     setLoading(true)
     try {
       await onSendOtp(forgotAccount, false)
       setCooldown(RESEND_COOLDOWN)
+      setCooldownFor('forgot')
       setForgotCodeSent(true)
       toast(t('auth.codeSent'), 'success')
     } catch (err) { toastError(err?.message || '') }
@@ -368,13 +367,13 @@ export default function AuthPage({
                     autoComplete="email"
                     required
                   />
-                  <button type="button" className="code-send-btn" onClick={handleSendForgotCode} disabled={cooldown > 0 || loading}>
-                    {cooldown > 0 ? t('auth.resendIn', { n: cooldown }) : t('auth.sendCode')}
+                  <button type="button" className="code-send-btn" onClick={handleSendForgotCode} disabled={(cooldown > 0 && cooldownFor === 'forgot') || loading}>
+                    {cooldown > 0 && cooldownFor === 'forgot' ? t('auth.resendIn', { n: cooldown }) : t('auth.sendCode')}
                   </button>
                 </div>
                 {/* 验证码输入 + 确认重置密码按钮始终显示(不折叠),未发送验证码前确认按钮禁用 */}
                 <label className="auth-label">{t('auth.otpCode')}</label>
-                <input className="auth-input" value={verifyCode} onChange={e => setVerifyCode(e.target.value)} placeholder="123456" maxLength="6" inputMode="numeric" required />
+                <input className="auth-input" value={verifyCode} onChange={e => setVerifyCode(e.target.value)} placeholder="123456" maxLength="6" inputMode="numeric" autoComplete="one-time-code" required />
                 <p className="auth-verify-sub">{t('auth.checkSpam')}</p>
                 <button type="submit" className="auth-btn-primary" disabled={loading || !forgotCodeSent}>{loading ? t('auth.loading') : t('auth.confirmResetBtn')}</button>
               </>
@@ -405,10 +404,10 @@ export default function AuthPage({
           <div className="auth-form">
             <p className="auth-verify-hint">{t('auth.otpHint', { email: pendingEmail })}</p>
             <label className="auth-label">{t('auth.otpCode')}</label>
-            <input className="auth-input" value={verifyCode} onChange={e => setVerifyCode(e.target.value)} placeholder="123456" maxLength="6" inputMode="numeric" required />
+            <input className="auth-input" value={verifyCode} onChange={e => setVerifyCode(e.target.value)} placeholder="123456" maxLength="6" inputMode="numeric" autoComplete="one-time-code" required />
             <div className="auth-resend-row">
-              <button type="button" className="auth-resend-btn" onClick={resendCode} disabled={cooldown > 0 || loading}>
-                {cooldown > 0 ? t('auth.resendIn', { n: cooldown }) : t('auth.resend')}
+              <button type="button" className="auth-resend-btn" onClick={resendCode} disabled={(cooldown > 0 && cooldownFor === 'register') || loading}>
+                {cooldown > 0 && cooldownFor === 'register' ? t('auth.resendIn', { n: cooldown }) : t('auth.resend')}
               </button>
             </div>
             <button type="button" className="auth-btn-primary" disabled={loading} onClick={handleVerify}>{loading ? t('auth.loading') : t('auth.verifyBtn')}</button>

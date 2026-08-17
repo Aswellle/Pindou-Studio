@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect, useCallback } from 'react'
+import { useState, useMemo, useEffect, useCallback, useRef } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useToast } from './Toast'
 import { CATEGORIES, DIFFICULTIES, TEMPLATES, normalizeCustomTemplate } from '../data/templates'
@@ -1015,10 +1015,33 @@ function TemplateForm({ store, editing, initial, onDone }) {
 // ─────────────────────────────────────────────────────────────
 function JsonImporter({ store }) {
   const { t } = useTranslation()
+  const toast = useToast()
   const [json, setJson] = useState('')
   const [errors, setErrors] = useState([])
   const [result, setResult] = useState(null)
   const [copied, setCopied] = useState(false)
+  const fileInputRef = useRef(null)
+
+  // 从本机 .json 文件读取内容填入文本区(不自动导入,便于用户先核对再点导入)
+  const handleFile = (e) => {
+    const file = e.target.files?.[0]
+    e.target.value = '' // 允许连续选择同一文件
+    if (!file) return
+    const reader = new FileReader()
+    reader.onload = () => {
+      setJson(String(reader.result || ''))
+      setErrors([])
+      setResult(null)
+    }
+    reader.onerror = () => toast(t('admin.fileReadError'), 'error')
+    reader.readAsText(file)
+  }
+
+  const handleClear = () => {
+    setJson('')
+    setErrors([])
+    setResult(null)
+  }
 
   const handleImport = async () => {
     setResult(null)
@@ -1065,7 +1088,24 @@ function JsonImporter({ store }) {
       </div>
 
       <div className="admin-card">
-        <h3>{t('admin.importJson')}</h3>
+        <div className="admin-card-head">
+          <h3>{t('admin.importJson')}</h3>
+          <div className="admin-actions" style={{ marginTop: 0 }}>
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="application/json,.json"
+              style={{ display: 'none' }}
+              onChange={handleFile}
+            />
+            <button className="admin-btn secondary small" onClick={() => fileInputRef.current?.click()}>
+              {t('admin.importFromFile')}
+            </button>
+            <button className="admin-btn secondary small" onClick={handleClear} disabled={!json}>
+              {t('admin.clear')}
+            </button>
+          </div>
+        </div>
         <div className="admin-field">
           <textarea
             className="admin-textarea"
