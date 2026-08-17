@@ -38,9 +38,9 @@
     "codeHint": "6 位数字验证码,请在邮件中查看",
     "verifyBtn": "验证并继续",
     "resend": "重新发送验证码",
-    "resendIn": "{{n}} 秒后可重新发送",
+    "resendIn": "重新发送({{n}}s)",
     "sendCode": "发送验证码",
-    "changeEmail": "更换邮箱",
+    "changeEmail": "换个邮箱",
     "codeInvalid": "验证码格式不正确(应为 6 位数字)",
     "setPasswordTitle": "设置新密码",
     "setPasswordHint": "验证通过,请设置新的登录密码",
@@ -78,7 +78,9 @@
     "resetDone": "密码已重置好啦,用新密码登录,继续你的拼豆创作吧~",
     "nicknameRequired": "给账号起个昵称呀,方便别人在拼豆社区记住你~",
     "forgotEmailHint": "输入注册邮箱后,我们将发送一封含验证码的邮件,用于验证身份",
-    "codeSent": "验证码邮件已送出,去邮箱查收吧~"
+    "codeSent": "验证码邮件已送出,去邮箱查收吧~",
+    "forgotCodeHint": "已向 {{email}} 发送一封含 6 位验证码的邮件,用于重置密码",
+    "checkSpam": "几分钟内未收到?请检查垃圾邮件文件夹,或点击下方重新发送。"
   },
   "errors": {
     "invalidEmail": "请输入有效的邮箱地址",

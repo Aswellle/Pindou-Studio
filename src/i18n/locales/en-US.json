@@ -38,9 +38,9 @@
     "codeHint": "6-digit code, check your email",
     "verifyBtn": "Verify & Continue",
     "resend": "Resend code",
-    "resendIn": "Resend in {{n}}s",
+    "resendIn": "Resend ({{n}}s)",
     "sendCode": "Send Code",
-    "changeEmail": "Change email",
+    "changeEmail": "Use a different email",
     "codeInvalid": "Invalid code format (6 digits)",
     "setPasswordTitle": "Set New Password",
     "setPasswordHint": "Verified. Set a new password to sign in.",
@@ -78,7 +78,9 @@
     "resetDone": "Password reset — log in with your new password and keep creating! ~",
     "nicknameRequired": "Please set a nickname so others can remember you! ~",
     "forgotEmailHint": "Enter your registered email and we'll send a code to verify your identity",
-    "codeSent": "Verification code email sent — check your inbox! ~"
+    "codeSent": "Verification code email sent — check your inbox! ~",
+    "forgotCodeHint": "A 6-digit code was sent to {{email}} to reset your password",
+    "checkSpam": "Didn't receive it? Check your spam folder, or resend below."
   },
   "errors": {
     "invalidEmail": "Please enter a valid email address",

@@ -368,13 +368,24 @@ export default function AuthPage({
         {/* ── 邮箱验证码 ── */}
         {mode === 'verify' && (
           <div className="auth-form">
-            <p className="auth-verify-hint">{verifyFor === 'register' ? t('auth.otpHint', { email: pendingEmail }) : t('auth.otpHint', { email: pendingEmail })}</p>
+            {verifyFor === 'register' ? (
+              <p className="auth-verify-hint">{t('auth.otpHint', { email: pendingEmail })}</p>
+            ) : (
+              <>
+                {/* 找回密码专属:查收邮件说明 + 后续操作 */}
+                <p className="auth-verify-hint">{t('auth.forgotCodeHint', { email: pendingEmail })}</p>
+                <p className="auth-verify-sub">{t('auth.checkSpam')}</p>
+              </>
+            )}
             <label className="auth-label">{t('auth.otpCode')}</label>
             <input className="auth-input" value={verifyCode} onChange={e => setVerifyCode(e.target.value)} placeholder="123456" maxLength="6" inputMode="numeric" required />
             <div className="auth-resend-row">
-              <button type="button" className="auth-link" onClick={resendCode} disabled={cooldown > 0 || loading}>
+              <button type="button" className="auth-resend-btn" onClick={resendCode} disabled={cooldown > 0 || loading}>
                 {cooldown > 0 ? t('auth.resendIn', { n: cooldown }) : t('auth.resend')}
               </button>
+              {verifyFor === 'forgot' && (
+                <button type="button" className="auth-link" onClick={() => setMode('forgot')}>{t('auth.changeEmail')}</button>
+              )}
             </div>
             <button type="button" className="auth-btn-primary" disabled={loading} onClick={handleVerify}>{loading ? t('auth.loading') : t('auth.verifyBtn')}</button>
           </div>
@@ -527,8 +538,30 @@ export default function AuthPage({
         .auth-agree { font-size: var(--text-xs); color: var(--text-muted); text-align: center; margin-top: 12px; }
         .auth-policy-link { color: var(--accent); text-decoration: underline; cursor: pointer; }
         .auth-policy-link:hover { color: var(--accent-hover); }
-        .auth-verify-hint { font-size: var(--text-sm); color: var(--text-secondary); margin: 8px 0 4px; }
-        .auth-resend-row { display: flex; justify-content: flex-end; margin-top: 6px; }
+        .auth-verify-hint { font-size: var(--text-sm); color: var(--text-secondary); margin: 8px 0 2px; }
+        .auth-verify-sub { font-size: var(--text-xs); color: var(--text-muted); margin: 0 0 6px; line-height: 1.5; }
+        .auth-resend-row {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          gap: 10px;
+          margin-top: 8px;
+        }
+        /* 重发验证码按钮:倒计时期间禁用并动态显示剩余秒数 */
+        .auth-resend-btn {
+          border: 1px solid var(--border-color);
+          background: var(--bg-primary);
+          color: var(--accent);
+          border-radius: 8px;
+          padding: 7px 14px;
+          font-size: var(--text-sm);
+          font-weight: 500;
+          cursor: pointer;
+          transition: all 0.15s;
+          white-space: nowrap;
+        }
+        .auth-resend-btn:hover:not(:disabled) { border-color: var(--accent); background: var(--accent-soft); }
+        .auth-resend-btn:disabled { opacity: 0.55; cursor: default; color: var(--text-muted); }
         @media (max-width: 640px) {
           .auth-page { padding: 16px 12px 48px; }
           .auth-card { padding: 18px 16px; }
