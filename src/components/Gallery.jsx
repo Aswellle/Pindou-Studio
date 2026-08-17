@@ -81,7 +81,13 @@ export default function Gallery({ onLoadTemplate, onDeleteWork, onLoadWork, save
       return next
     })
     if (cloudEnabled) {
-      try { await supabase.rpc('increment_template_download', { p_id: template.id }) } catch (e) { console.warn('download count failed:', e) }
+      // 显式检查 RPC 返回的 { error }:supabase-js 失败时不抛错,只返回 error 对象
+      try {
+        const { error } = await supabase.rpc('increment_template_download', { p_id: template.id })
+        if (error) console.warn('[download-count] RPC 失败:', error.message, '模板', template.name, template.id)
+      } catch (e) {
+        console.warn('[download-count] RPC 异常:', e)
+      }
     }
   }
   // 模板生效品牌:优先用户覆盖,否则模板自带 paletteId(缺省 perler)
