@@ -62,6 +62,7 @@ export default function AuthPage({
   const [forgotKey, setForgotKey] = useState('')
   const [newPassword, setNewPassword] = useState('')
   const [newPassword2, setNewPassword2] = useState('')
+  const [forgotCodeSent, setForgotCodeSent] = useState(false) // 邮箱方式:是否已发送验证码(展开下方输入)
   // 邮箱 OTP 验证 + 重发倒计时
   const [verifyCode, setVerifyCode] = useState('')
   const [pendingEmail, setPendingEmail] = useState('')
@@ -178,31 +179,46 @@ export default function AuthPage({
     } finally { setLoading(false) }
   }
 
-  // ── 忘记密码 ──
-  const handleForgot = async (e) => {
+  // ── 忘记密码(邮箱):点击输入框右侧"发送验证码",该位置切换为倒计时,下方展开验证码输入 ──
+  const handleSendForgotCode = async () => {
+    if (cooldown > 0 || loading) return
+    if (!EMAIL_RE.test(forgotAccount)) return toastError('', t('errors.invalidEmail'))
+    setPendingEmail(forgotAccount)
+    setLoading(true)
+    try {
+      await onSendOtp(forgotAccount, false)
+      setCooldown(RESEND_COOLDOWN)
+      setForgotCodeSent(true)
+      toast(t('auth.codeSent'), 'success')
+    } catch (err) { toastError(err?.message || '') }
+    finally { setLoading(false) }
+  }
+
+  // 忘记密码(邮箱):校验验证码 → 进入设置新密码
+  const handleForgotVerify = async (e) => {
     e.preventDefault()
-    if (forgotMethod === 'email') {
-      if (!EMAIL_RE.test(forgotAccount)) return toastError('', t('errors.invalidEmail'))
-      setPendingEmail(forgotAccount); setVerifyFor('forgot'); setLoading(true)
-      try {
-        await onSendOtp(forgotAccount, false)
-        setCooldown(RESEND_COOLDOWN)
-        setMode('verify')
-      } catch (err) { toastError(err?.message || '') }
-      finally { setLoading(false) }
-    } else {
-      if (newPassword !== newPassword2) return toastError('PASSWORD_MISMATCH')
-      if (!checkPwd(newPassword)) return
-      setLoading(true)
-      try {
-        await forgotPasswordCustom(forgotAccount, forgotKey, newPassword)
-        toast(t('auth.resetDone'), 'success')
-        setMode('login')
-      } catch (err) {
-        const msg = err?.message || ''
-        toastError(/invalid security key/i.test(msg) ? 'INVALID_SECURITY_KEY' : msg)
-      } finally { setLoading(false) }
-    }
+    setLoading(true)
+    try {
+      await onVerifyOtp(pendingEmail, verifyCode)
+      setMode('setNewPwd')
+    } catch (err) { toastError(err?.message || '') }
+    finally { setLoading(false) }
+  }
+
+  // ── 忘记密码(自定义账号):用户名 + 安全密钥校验 → 重置密码 ──
+  const handleForgotCustom = async (e) => {
+    e.preventDefault()
+    if (newPassword !== newPassword2) return toastError('PASSWORD_MISMATCH')
+    if (!checkPwd(newPassword)) return
+    setLoading(true)
+    try {
+      await forgotPasswordCustom(forgotAccount, forgotKey, newPassword)
+      toast(t('auth.resetDone'), 'success')
+      setMode('login')
+    } catch (err) {
+      const msg = err?.message || ''
+      toastError(/invalid security key/i.test(msg) ? 'INVALID_SECURITY_KEY' : msg)
+    } finally { setLoading(false) }
   }
 
   // 邮箱找回密码:设置新密码
@@ -332,16 +348,38 @@ export default function AuthPage({
 
         {/* ── 忘记密码 ── */}
         {mode === 'forgot' && (
-          <form onSubmit={handleForgot} className="auth-form">
+          <form onSubmit={forgotMethod === 'email' ? handleForgotVerify : handleForgotCustom} className="auth-form">
             <div className="auth-method-switch">
-              <button type="button" className={forgotMethod === 'email' ? 'active' : ''} onClick={() => setForgotMethod('email')}>{t('auth.methodEmail')}</button>
-              <button type="button" className={forgotMethod === 'username' ? 'active' : ''} onClick={() => setForgotMethod('username')}>{t('auth.methodUsername')}</button>
+              <button type="button" className={forgotMethod === 'email' ? 'active' : ''} onClick={() => { setForgotMethod('email'); setForgotCodeSent(false) }}>{t('auth.methodEmail')}</button>
+              <button type="button" className={forgotMethod === 'username' ? 'active' : ''} onClick={() => { setForgotMethod('username'); setForgotCodeSent(false) }}>{t('auth.methodUsername')}</button>
             </div>
             {forgotMethod === 'email' ? (
               <>
                 <p className="auth-verify-hint">{t('auth.forgotEmailHint')}</p>
                 <label className="auth-label">{t('auth.email')}</label>
-                <input className="auth-input" type="email" value={forgotAccount} onChange={e => setForgotAccount(e.target.value)} placeholder="you@example.com" required />
+                {/* 邮箱输入 + 右侧内联"发送验证码"强调色文字按钮(发送后切换为动态倒计时) */}
+                <div className="code-send-wrap">
+                  <input
+                    className="auth-input"
+                    type="email"
+                    value={forgotAccount}
+                    onChange={e => { setForgotAccount(e.target.value); setForgotCodeSent(false) }}
+                    placeholder="you@example.com"
+                    autoComplete="email"
+                    required
+                  />
+                  <button type="button" className="code-send-btn" onClick={handleSendForgotCode} disabled={cooldown > 0 || loading}>
+                    {cooldown > 0 ? t('auth.resendIn', { n: cooldown }) : t('auth.sendCode')}
+                  </button>
+                </div>
+                {forgotCodeSent && (
+                  <>
+                    <label className="auth-label">{t('auth.otpCode')}</label>
+                    <input className="auth-input" value={verifyCode} onChange={e => setVerifyCode(e.target.value)} placeholder="123456" maxLength="6" inputMode="numeric" required />
+                    <p className="auth-verify-sub">{t('auth.checkSpam')}</p>
+                    <button type="submit" className="auth-btn-primary" disabled={loading}>{loading ? t('auth.loading') : t('auth.verifyBtn')}</button>
+                  </>
+                )}
               </>
             ) : (
               <>
@@ -359,33 +397,22 @@ export default function AuthPage({
                   <input className="auth-input" type={showNew ? 'text' : 'password'} value={newPassword2} onChange={e => setNewPassword2(e.target.value)} autoComplete="new-password" required />
                   <button type="button" className="password-toggle" onClick={() => setShowNew(!showNew)} aria-label={t('auth.togglePassword')}>{showNew ? '🙈' : '👁'}</button>
                 </div>
+                <button type="submit" className="auth-btn-primary" disabled={loading}>{loading ? t('auth.loading') : t('auth.resetBtn')}</button>
               </>
             )}
-            <button type="submit" className="auth-btn-primary" disabled={loading}>{loading ? t('auth.loading') : t('auth.resetBtn')}</button>
           </form>
         )}
 
-        {/* ── 邮箱验证码 ── */}
+        {/* ── 邮箱注册验证码 ── */}
         {mode === 'verify' && (
           <div className="auth-form">
-            {verifyFor === 'register' ? (
-              <p className="auth-verify-hint">{t('auth.otpHint', { email: pendingEmail })}</p>
-            ) : (
-              <>
-                {/* 找回密码专属:查收邮件说明 + 后续操作 */}
-                <p className="auth-verify-hint">{t('auth.forgotCodeHint', { email: pendingEmail })}</p>
-                <p className="auth-verify-sub">{t('auth.checkSpam')}</p>
-              </>
-            )}
+            <p className="auth-verify-hint">{t('auth.otpHint', { email: pendingEmail })}</p>
             <label className="auth-label">{t('auth.otpCode')}</label>
             <input className="auth-input" value={verifyCode} onChange={e => setVerifyCode(e.target.value)} placeholder="123456" maxLength="6" inputMode="numeric" required />
             <div className="auth-resend-row">
               <button type="button" className="auth-resend-btn" onClick={resendCode} disabled={cooldown > 0 || loading}>
                 {cooldown > 0 ? t('auth.resendIn', { n: cooldown }) : t('auth.resend')}
               </button>
-              {verifyFor === 'forgot' && (
-                <button type="button" className="auth-link" onClick={() => setMode('forgot')}>{t('auth.changeEmail')}</button>
-              )}
             </div>
             <button type="button" className="auth-btn-primary" disabled={loading} onClick={handleVerify}>{loading ? t('auth.loading') : t('auth.verifyBtn')}</button>
           </div>
@@ -562,6 +589,30 @@ export default function AuthPage({
         }
         .auth-resend-btn:hover:not(:disabled) { border-color: var(--accent); background: var(--accent-soft); }
         .auth-resend-btn:disabled { opacity: 0.55; cursor: default; color: var(--text-muted); }
+        /* 邮箱输入框内联"发送验证码"按钮:右侧内嵌,发送后切换为动态倒计时 */
+        .code-send-wrap {
+          position: relative;
+        }
+        .code-send-wrap .auth-input {
+          padding-right: 118px;
+        }
+        .code-send-btn {
+          position: absolute;
+          right: 6px;
+          top: 50%;
+          transform: translateY(-50%);
+          background: none;
+          border: none;
+          color: var(--accent);
+          font-size: var(--text-sm);
+          font-weight: 600;
+          cursor: pointer;
+          white-space: nowrap;
+          padding: 4px 8px;
+          transition: color 0.15s;
+        }
+        .code-send-btn:hover:not(:disabled) { color: var(--accent-hover); }
+        .code-send-btn:disabled { color: var(--text-muted); cursor: default; }
         @media (max-width: 640px) {
           .auth-page { padding: 16px 12px 48px; }
           .auth-card { padding: 18px 16px; }
