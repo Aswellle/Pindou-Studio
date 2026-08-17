@@ -5,6 +5,7 @@ import { TEMPLATES, CATEGORIES, DIFFICULTIES, extractPatternColors, convertTempl
 import { getPalette, PALETTE_LIST } from '../data/palettes'
 import { exportAsPNG } from '../services/BeadPatternExporter'
 import { supabase } from '../services/supabase'
+import { useToast } from './Toast'
 import useCustomTemplates from '../hooks/useCustomTemplates'
 import ThumbnailCanvas from './ThumbnailCanvas'
 
@@ -19,6 +20,7 @@ const resolveToHex = (colorVal, palette) => {
 
 export default function Gallery({ onLoadTemplate, onDeleteWork, onLoadWork, savedWorks = [], worksLoading, cloudMirrorCount = 0, cloudStore, user, onLogin, onRegister }) {
   const { t } = useTranslation()
+  const toast = useToast()
   // 云端启用时,模板库完全来自云端(RLS 公开只读);未启用时回退本地模式
   // (内置模板 + localStorage 自定义模板,自定义在前)
   const localStore = useCustomTemplates()
@@ -189,7 +191,7 @@ export default function Gallery({ onLoadTemplate, onDeleteWork, onLoadWork, save
       await bumpDownload(template)
     } catch (err) {
       console.error('Template export failed:', err)
-      alert(t('export.exportFailed')) // 此前 try/finally 无 catch,canvas 分配失败成为未处理 rejection
+      toast(t('export.exportFailed'), 'error') // 此前 try/finally 无 catch,canvas 分配失败成为未处理 rejection
     } finally {
       setExportingId(null)
     }

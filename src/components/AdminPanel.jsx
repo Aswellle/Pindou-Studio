@@ -1,5 +1,6 @@
 import { useState, useMemo, useEffect, useCallback } from 'react'
 import { useTranslation } from 'react-i18next'
+import { useToast } from './Toast'
 import { CATEGORIES, DIFFICULTIES, TEMPLATES, normalizeCustomTemplate } from '../data/templates'
 import ThumbnailCanvas from './ThumbnailCanvas'
 import LoadingScreen from './LoadingScreen'
@@ -72,6 +73,7 @@ const EXAMPLE_JSON = JSON.stringify({
 // · admin → 管理内容(云端模板库 CRUD,RLS 服务端强制 admin 权限)
 // ─────────────────────────────────────────────────────────────
 export default function AdminPanel({ user, isAdmin, authLoading, onLogin, onLogout, onChangePassword, cloudStore }) {
+  const toast = useToast()
   const { t } = useTranslation()
   const [tab, setTab] = useState('templates')
 
@@ -870,7 +872,7 @@ function TemplateManager({ store }) {
               className="admin-btn danger"
               onClick={async () => {
                 const res = await store.deleteTemplate(deleting.id)
-                if (!res?.ok) { alert(res?.errors?.[0]?.detail || t('admin.deleteFailed')); return }
+                if (!res?.ok) { toast(res?.errors?.[0]?.detail || t('admin.deleteFailed'), 'error'); return }
                 setDeleting(null)
               }}
             >
@@ -1240,7 +1242,7 @@ function CategoryManager({ store }) {
               className="admin-btn danger"
               onClick={async () => {
                 const res = await store.deleteCategory(deleting.id)
-                if (!res?.ok) { alert(res?.errors?.[0]?.detail || t('admin.deleteFailed')); return }
+                if (!res?.ok) { toast(res?.errors?.[0]?.detail || t('admin.deleteFailed'), 'error'); return }
                 setDeleting(null)
               }}
             >

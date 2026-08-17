@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 import i18n from '../i18n'
 import { supabase } from '../services/supabase'
+import { useToast } from '../components/Toast'
 
 const KEY = 'saved-works'
 // 云端作品计数镜像:登录时更新,登出后「我的作品」空态可提示"作品在云端,登录查看"
@@ -57,6 +58,7 @@ const dedupKey = (w) => `${w.savedAt}|${w.name}`
  * - cloudMirrorCount:最近一次登录态下的云端作品数(登出后空态提示用)。
  */
 export function useSavedWorks(user) {
+  const toast = useToast()
   const [works, setWorks] = useState(() => loadLocal())
   const [worksLoading, setWorksLoading] = useState(false)
   const [syncCount, setSyncCount] = useState(null)
@@ -149,7 +151,7 @@ export function useSavedWorks(user) {
         return true
       } catch (e) {
         console.error('云端保存失败:', e)
-        alert(i18n.t('errors.saveFailed'))
+        toast(i18n.t('errors.saveFailed'), 'error')
         return false
       }
     }
@@ -163,7 +165,7 @@ export function useSavedWorks(user) {
       localStorage.setItem(KEY, serialized)
     } catch (e) {
       if (e.name === 'QuotaExceededError') {
-        alert(i18n.t('errors.storageFull'))
+        toast(i18n.t('errors.storageFull'), 'error')
         return false
       }
       throw e
@@ -181,7 +183,7 @@ export function useSavedWorks(user) {
         setWorks((prev) => prev.filter((w) => w.id !== work.id))
       } catch (e) {
         console.error('云端删除失败:', e)
-        alert(i18n.t('errors.deleteFailed'))
+        toast(i18n.t('errors.deleteFailed'), 'error')
       }
       return
     }
@@ -190,7 +192,7 @@ export function useSavedWorks(user) {
       localStorage.setItem(KEY, JSON.stringify(updated))
     } catch (e) {
       if (e.name === 'QuotaExceededError') {
-        alert(i18n.t('errors.storageFull'))
+        toast(i18n.t('errors.storageFull'), 'error')
         return
       }
       throw e

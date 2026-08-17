@@ -1,4 +1,5 @@
 import { useTranslation } from 'react-i18next'
+import { useToast } from './Toast'
 import { Pencil, Eraser, PaintBucket, Hand, Undo2, Redo2, Trash2, ChevronLeft, ChevronRight } from 'lucide-react'
 
 export default function Tools({
@@ -19,6 +20,7 @@ export default function Tools({
   onOpenQuantizer
 }) {
   const { t } = useTranslation()
+  const toast = useToast()
 
   const currentWidth = gridWidth || gridSize
   const currentHeight = gridHeight || gridSize
@@ -31,12 +33,12 @@ export default function Tools({
       if (!input) return
       const parts = input.toLowerCase().split('x').map(s => parseInt(s.trim(), 10))
       if (isNaN(parts[0]) || parts[0] < 9 || parts[0] > 200) {
-        alert(t('tools.widthRange'))
+        toast(t('tools.widthRange'), 'error')
         return
       }
       if (parts.length === 2) {
         if (isNaN(parts[1]) || parts[1] < 9 || parts[1] > 200) {
-          alert(t('tools.heightRange'))
+          toast(t('tools.heightRange'), 'error')
           return
         }
         onGridDimensionsChange(parts[0], parts[1])

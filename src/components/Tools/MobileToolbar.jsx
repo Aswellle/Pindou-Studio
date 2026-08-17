@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef, useCallback, useLayoutEffect } from 'react'
 import { useTranslation } from 'react-i18next'
+import { useToast } from '../Toast'
 import './MobileToolbar.css'
 
 const TOOL_ICONS = {
@@ -114,6 +115,7 @@ export default function MobileToolbar({
   onQuantize,
 }) {
   const { t } = useTranslation()
+  const toast = useToast()
   const [guideVisible, setGuideVisible] = useState(false)
   // 引导气泡定位(JS 测量):fixed 定位 + 左缘/top/箭头偏移,防止窄屏溢出右侧视口
   const [guideStyle, setGuideStyle] = useState(null)
@@ -207,12 +209,12 @@ export default function MobileToolbar({
       if (!input) return
       const parts = input.toLowerCase().split('x').map(s => parseInt(s.trim(), 10))
       if (isNaN(parts[0]) || parts[0] < 9 || parts[0] > 200) {
-        alert(t('tools.widthRange'))
+        toast(t('tools.widthRange'), 'error')
         return
       }
       if (parts.length === 2) {
         if (isNaN(parts[1]) || parts[1] < 9 || parts[1] > 200) {
-          alert(t('tools.heightRange'))
+          toast(t('tools.heightRange'), 'error')
           return
         }
         onGridDimensionsChange(parts[0], parts[1])
