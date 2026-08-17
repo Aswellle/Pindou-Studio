@@ -75,7 +75,10 @@
     "otpHint": "验证码已发送至 {{email}}",
     "otpCode": "验证码",
     "resetBtn": "重置密码",
-    "resetDone": "密码已重置,请用新密码登录"
+    "resetDone": "密码已重置,请用新密码登录",
+    "nicknameRequired": "请填写昵称",
+    "forgotEmailHint": "输入注册邮箱后,我们将发送一封含验证码的邮件,用于验证身份",
+    "codeSent": "验证码已发送"
   },
   "errors": {
     "invalidEmail": "请输入有效的邮箱地址",
@@ -94,7 +97,10 @@
     "usernameTaken": "该用户名已被占用",
     "usernameNotFound": "该用户名不存在",
     "invalidSecurityKey": "安全密钥不正确",
-    "generic": "操作失败,请重试"
+    "generic": "操作失败,请重试",
+    "passwordRepeat": "密码不能全部为相同字符",
+    "passwordSequence": "密码不能为连续数字或字母序列",
+    "passwordMix": "密码需同时包含字母和数字"
   },
   "palette": {
     "title": "色卡",
@@ -868,7 +874,11 @@
     "confirmNewPassword": "确认新密码",
     "oldPasswordRequired": "请输入当前密码",
     "wrongPassword": "当前密码错误",
-    "passwordUpdated": "密码已更新"
+    "passwordUpdated": "密码已更新",
+    "confirmLogoutTitle": "退出登录",
+    "confirmLogoutBody": "确定要退出当前账号吗?退出后需重新登录。",
+    "confirmChangePwTitle": "确认修改密码",
+    "confirmChangePwBody": "确定要修改登录密码吗?"
   },
   "legal": {
     "back": "返回",

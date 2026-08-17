@@ -75,7 +75,10 @@
     "otpHint": "A code was sent to {{email}}",
     "otpCode": "Code",
     "resetBtn": "Reset password",
-    "resetDone": "Password reset, please log in with your new password"
+    "resetDone": "Password reset, please log in with your new password",
+    "nicknameRequired": "Please enter a nickname",
+    "forgotEmailHint": "Enter your registered email and we'll send a code to verify your identity",
+    "codeSent": "Code sent"
   },
   "errors": {
     "invalidEmail": "Please enter a valid email address",
@@ -94,7 +97,10 @@
     "usernameTaken": "Username already taken",
     "usernameNotFound": "Username not found",
     "invalidSecurityKey": "Invalid security key",
-    "generic": "Operation failed, please retry"
+    "generic": "Operation failed, please retry",
+    "passwordRepeat": "Password can't be all the same character",
+    "passwordSequence": "Password can't be a sequential series",
+    "passwordMix": "Password must contain both letters and numbers"
   },
   "palette": {
     "title": "Color Palette",
@@ -868,7 +874,11 @@
     "confirmNewPassword": "Confirm new password",
     "oldPasswordRequired": "Enter your current password",
     "wrongPassword": "Current password is incorrect",
-    "passwordUpdated": "Password updated"
+    "passwordUpdated": "Password updated",
+    "confirmLogoutTitle": "Log Out",
+    "confirmLogoutBody": "Are you sure you want to log out? You will need to sign in again.",
+    "confirmChangePwTitle": "Change Password",
+    "confirmChangePwBody": "Are you sure you want to change your password?"
   },
   "legal": {
     "back": "Back",

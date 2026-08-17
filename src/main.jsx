@@ -47,13 +47,16 @@ if (mql) {
   })
 }
 import App from './App'
+import ToastProvider from './components/Toast'
 import './index.css'
 
 ReactDOM.createRoot(document.getElementById('root')).render(
   <React.StrictMode>
     <BrowserRouter>
       <HelmetProvider>
-        <App />
+        <ToastProvider>
+          <App />
+        </ToastProvider>
         <Analytics />
         <SpeedInsights />
       </HelmetProvider>

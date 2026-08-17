@@ -75,7 +75,10 @@
     "otpHint": "{{email}} にコードを送信しました",
     "otpCode": "確認コード",
     "resetBtn": "パスワードを再設定",
-    "resetDone": "パスワードを再設定しました。新しいパスワードでログインしてください"
+    "resetDone": "パスワードを再設定しました。新しいパスワードでログインしてください",
+    "nicknameRequired": "ニックネームを入力してください",
+    "forgotEmailHint": "登録メールを入力すると、認証コード入りのメールを送信します",
+    "codeSent": "コードを送信しました"
   },
   "errors": {
     "invalidEmail": "有効なメールアドレスを入力してください",
@@ -94,7 +97,10 @@
     "usernameTaken": "このユーザー名は使用済みです",
     "usernameNotFound": "ユーザー名が見つかりません",
     "invalidSecurityKey": "セキュリティキーが不正です",
-    "generic": "操作に失敗しました"
+    "generic": "操作に失敗しました",
+    "passwordRepeat": "パスワードを同じ文字のみにすることはできません",
+    "passwordSequence": "パスワードは連続した数字や文字列は使えません",
+    "passwordMix": "パスワードは英字と数字の両方を含む必要があります"
   },
   "palette": {
     "title": "カラーパレット",
@@ -868,7 +874,11 @@
     "confirmNewPassword": "新しいパスワードの確認",
     "oldPasswordRequired": "現在のパスワードを入力してください",
     "wrongPassword": "現在のパスワードが正しくありません",
-    "passwordUpdated": "パスワードを更新しました"
+    "passwordUpdated": "パスワードを更新しました",
+    "confirmLogoutTitle": "ログアウト",
+    "confirmLogoutBody": "ログアウトしますか?再度ログインが必要です。",
+    "confirmChangePwTitle": "パスワード変更",
+    "confirmChangePwBody": "パスワードを変更しますか?"
   },
   "legal": {
     "back": "戻る",

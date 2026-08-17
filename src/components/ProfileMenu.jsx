@@ -26,6 +26,18 @@ export default function ProfileMenu({ user, onClose, onLogout, onUpdateProfile, 
   const [pwError, setPwError] = useState('')
   const [pwBusy, setPwBusy] = useState(false)
   const [pwSaved, setPwSaved] = useState(false)
+  // 确认对话框:退出登录 / 修改密码
+  const [confirmLogout, setConfirmLogout] = useState(false)
+  const [confirmChangePw, setConfirmChangePw] = useState(false)
+
+  // 新密码强度校验(与注册页一致)
+  const isWeakPassword = (p) => {
+    if (p.length < 8) return 'errors.passwordTooShort'
+    if (/^(.)\1+$/.test(p)) return 'errors.passwordRepeat'
+    if (/(?:012|123|234|345|456|567|678|789|890|abc|bcd|cde|def|efg|fgh|ghi|hij|ijk|jkl|klm|lmn|mno|nop|opq|pqr|qrs|rst|stu|tuv|uvw|vwx|wxy|xyz)/i.test(p)) return 'errors.passwordSequence'
+    if (!/[A-Za-z]/.test(p) || !/\d/.test(p)) return 'errors.passwordMix'
+    return null
+  }
 
   const saveNickname = async () => {
     const trimmed = nickname.trim()
@@ -90,13 +102,20 @@ export default function ProfileMenu({ user, onClose, onLogout, onUpdateProfile, 
     }
   }
 
-  // 修改密码:旧密码验证 + 新密码
-  const handleChangePassword = async () => {
+  // 修改密码:校验旧密码、新密码强度与两次一致 → 弹确认对话框
+  const handleChangePassword = () => {
     if (!oldPw) { setPwError(t('profile.oldPasswordRequired')); return }
-    if (newPw.length < 6) { setPwError(t('errors.passwordTooShort')); return }
+    const weak = isWeakPassword(newPw)
+    if (weak) { setPwError(t(weak)); return }
     if (newPw !== newPw2) { setPwError(t('errors.passwordMismatch')); return }
-    setPwBusy(true)
     setPwError('')
+    setConfirmChangePw(true)
+  }
+
+  // 确认后真正执行修改密码
+  const doChangePassword = async () => {
+    setConfirmChangePw(false)
+    setPwBusy(true)
     try {
       await onChangePassword(user.email, oldPw, newPw)
       setPwSaved(true)
@@ -190,7 +209,7 @@ export default function ProfileMenu({ user, onClose, onLogout, onUpdateProfile, 
           <button className="btn btn-ghost" onClick={() => { setShowChangePw(!showChangePw); setPwError('') }}>
             {t('profile.changePassword')}
           </button>
-          <button className="btn btn-danger" onClick={onLogout}>
+          <button className="btn btn-danger" onClick={() => setConfirmLogout(true)}>
             {t('auth.logout')}
           </button>
         </div>
@@ -247,8 +266,33 @@ export default function ProfileMenu({ user, onClose, onLogout, onUpdateProfile, 
           </div>
         )}
 
+        {/* 退出登录 / 修改密码 确认对话框(防误触) */}
+        {(confirmLogout || confirmChangePw) && (
+          <div className="profile-confirm-overlay" onClick={() => { setConfirmLogout(false); setConfirmChangePw(false) }}>
+            <div className="modal-content profile-modal confirm-box" onClick={e => e.stopPropagation()}>
+              <h3>{confirmLogout ? t('profile.confirmLogoutTitle') : t('profile.confirmChangePwTitle')}</h3>
+              <p>{confirmLogout ? t('profile.confirmLogoutBody') : t('profile.confirmChangePwBody')}</p>
+              <div className="confirm-actions">
+                <button className="btn btn-ghost" onClick={() => { setConfirmLogout(false); setConfirmChangePw(false) }}>{t('common.cancel')}</button>
+                <button className="btn btn-danger" onClick={confirmLogout ? () => { setConfirmLogout(false); onLogout() } : doChangePassword}>{t('common.confirm')}</button>
+              </div>
+            </div>
+          </div>
+        )}
+
         <style>{`
           .profile-overlay { z-index: 1100; }
+          .profile-confirm-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.4);
+            z-index: 1200;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 16px;
+            box-sizing: border-box;
+          }
           .profile-modal {
             max-width: 440px;
             padding: 28px 24px 20px;
