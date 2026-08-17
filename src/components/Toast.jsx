@@ -14,7 +14,7 @@ export const useToast = () => useContext(ToastContext)
 export default function ToastProvider({ children }) {
   const [toasts, setToasts] = useState([])
   const idRef = useRef(0)
-  const toast = useCallback((message, type = 'info', duration = 2800) => {
+  const toast = useCallback((message, type = 'info', duration = 4200) => {
     const id = ++idRef.current
     setToasts(prev => [...prev, { id, message, type }])
     // 先标记 exiting 播放淡出动画,再真正移除
@@ -52,56 +52,68 @@ export default function ToastProvider({ children }) {
         .toast-item {
           display: flex;
           align-items: flex-start;
-          gap: 10px;
+          gap: 12px;
           background: linear-gradient(135deg, var(--bg-secondary), var(--bg-primary));
           border: 1px solid var(--border-color);
-          border-left: 3px solid var(--accent);
-          border-radius: 12px;
-          box-shadow: 0 6px 20px rgba(43, 36, 32, 0.16);
-          padding: 12px 18px;
+          border-left: 4px solid var(--accent);
+          border-radius: 14px;
+          box-shadow: 0 8px 24px rgba(43, 36, 32, 0.18);
+          padding: 14px 20px;
           color: var(--text-primary);
-          font-size: var(--text-sm);
+          font-size: var(--text-md);
           line-height: 1.55;
-          max-width: min(460px, calc(100vw - 32px));
-          animation: toast-in 0.28s cubic-bezier(0.21, 1.02, 0.73, 1);
+          max-width: min(480px, calc(100vw - 32px));
+          animation: toast-in 0.35s cubic-bezier(0.22, 1, 0.36, 1);
           word-break: break-word;
         }
         .toast-item.exiting {
-          animation: toast-out 0.26s ease forwards;
+          animation: toast-out 0.3s ease forwards;
         }
-        /* 拼豆圆点:带中孔的珠子,呼应拼豆设计主题 */
+        /* 拼豆标记:高光立体小珠(顶部高光 + 中孔 + 底部暗边),类型色随类型变化 */
         .toast-bead {
-          width: 12px;
-          height: 12px;
+          --bead-color: var(--accent);
+          width: 20px;
+          height: 20px;
           border-radius: 50%;
           flex-shrink: 0;
-          margin-top: 3px;
-          background: var(--accent);
-          box-shadow: inset 0 -2px 3px rgba(0, 0, 0, 0.18), inset 0 2px 2px rgba(255, 255, 255, 0.45);
+          margin-top: 1px;
+          background: radial-gradient(circle at 32% 30%, #ffffff 0%, var(--bead-color) 50%, rgba(0, 0, 0, 0.22) 100%);
+          box-shadow: 0 2px 5px rgba(43, 36, 32, 0.28);
           position: relative;
         }
+        /* 顶部高光 */
+        .toast-bead::before {
+          content: '';
+          position: absolute;
+          left: 4px;
+          top: 3px;
+          width: 7px;
+          height: 5px;
+          border-radius: 50%;
+          background: rgba(255, 255, 255, 0.8);
+          transform: rotate(-25deg);
+        }
+        /* 中孔 */
         .toast-bead::after {
           content: '';
           position: absolute;
           left: 50%;
           top: 50%;
-          width: 3.5px;
-          height: 3.5px;
+          width: 5px;
+          height: 5px;
           transform: translate(-50%, -50%);
           border-radius: 50%;
-          background: rgba(0, 0, 0, 0.3);
+          background: rgba(0, 0, 0, 0.35);
         }
-        .toast-success { border-left-color: var(--secondary-accent); }
-        .toast-success .toast-bead { background: var(--secondary-accent); }
-        .toast-error { border-left-color: #e74c3c; }
-        .toast-error .toast-bead { background: #e74c3c; }
+        .toast-success { --bead-color: var(--secondary-accent); border-left-color: var(--secondary-accent); }
+        .toast-error { --bead-color: #e74c3c; border-left-color: #e74c3c; }
         @keyframes toast-in {
-          from { opacity: 0; transform: translateY(-12px) scale(0.97); }
+          from { opacity: 0; transform: translateY(-14px) scale(0.96); }
           to { opacity: 1; transform: translateY(0) scale(1); }
         }
         @keyframes toast-out {
           from { opacity: 1; transform: translateY(0) scale(1); }
-          to { opacity: 0; transform: translateY(-10px) scale(0.97); }
+          to { opacity: 0; transform: translateY(-10px) scale(0.96); }
         }
       `}</style>
     </ToastContext.Provider>

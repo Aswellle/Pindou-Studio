@@ -372,14 +372,11 @@ export default function AuthPage({
                     {cooldown > 0 ? t('auth.resendIn', { n: cooldown }) : t('auth.sendCode')}
                   </button>
                 </div>
-                {forgotCodeSent && (
-                  <>
-                    <label className="auth-label">{t('auth.otpCode')}</label>
-                    <input className="auth-input" value={verifyCode} onChange={e => setVerifyCode(e.target.value)} placeholder="123456" maxLength="6" inputMode="numeric" required />
-                    <p className="auth-verify-sub">{t('auth.checkSpam')}</p>
-                    <button type="submit" className="auth-btn-primary" disabled={loading}>{loading ? t('auth.loading') : t('auth.verifyBtn')}</button>
-                  </>
-                )}
+                {/* 验证码输入 + 确认重置密码按钮始终显示(不折叠),未发送验证码前确认按钮禁用 */}
+                <label className="auth-label">{t('auth.otpCode')}</label>
+                <input className="auth-input" value={verifyCode} onChange={e => setVerifyCode(e.target.value)} placeholder="123456" maxLength="6" inputMode="numeric" required />
+                <p className="auth-verify-sub">{t('auth.checkSpam')}</p>
+                <button type="submit" className="auth-btn-primary" disabled={loading || !forgotCodeSent}>{loading ? t('auth.loading') : t('auth.confirmResetBtn')}</button>
               </>
             ) : (
               <>

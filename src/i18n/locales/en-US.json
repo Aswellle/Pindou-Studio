@@ -80,7 +80,8 @@
     "forgotEmailHint": "Enter your registered email and we'll send a code to verify your identity",
     "codeSent": "Verification code email sent — check your inbox! ~",
     "forgotCodeHint": "A 6-digit code was sent to {{email}} to reset your password",
-    "checkSpam": "Didn't receive it? Check your spam folder, or resend below."
+    "checkSpam": "Didn't receive it? Check your spam folder, or resend below.",
+    "confirmResetBtn": "Confirm Reset Password"
   },
   "errors": {
     "invalidEmail": "Please enter a valid email address",
