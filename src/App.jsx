@@ -34,6 +34,13 @@ export default function App() {
   const navigate = useNavigate()
   const location = useLocation()
 
+  // 法律页「返回」:优先回退到进入该页前的浏览页(保留上下文,PC/移动端一致);
+  // 无可回退历史(如直接深链进入)时兜底回到首页,避免卡死在空白。
+  const handleLegalBack = () => {
+    if (window.history.length > 1) navigate(-1)
+    else navigate('/')
+  }
+
   // iOS Safari 视口测量
   useEffect(() => {
     const setVh = () => {
@@ -415,10 +422,10 @@ export default function App() {
               cloudStore={cloudStore}
             />
           } />
-          <Route path="/privacy" element={<PrivacyPolicy onBack={() => navigate('/')} />} />
-          <Route path="/privacy/:versionId" element={<PrivacyPolicy onBack={() => navigate('/')} />} />
-          <Route path="/terms" element={<TermsOfService onBack={() => navigate('/')} />} />
-          <Route path="/terms/:versionId" element={<TermsOfService onBack={() => navigate('/')} />} />
+          <Route path="/privacy" element={<PrivacyPolicy onBack={handleLegalBack} />} />
+          <Route path="/privacy/:versionId" element={<PrivacyPolicy onBack={handleLegalBack} />} />
+          <Route path="/terms" element={<TermsOfService onBack={handleLegalBack} />} />
+          <Route path="/terms/:versionId" element={<TermsOfService onBack={handleLegalBack} />} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </main>
@@ -680,10 +687,10 @@ export default function App() {
             />
           </Suspense>
         } />
-        <Route path="/privacy" element={<PrivacyPolicy onBack={() => navigate('/')} />} />
-        <Route path="/privacy/:versionId" element={<PrivacyPolicy onBack={() => navigate('/')} />} />
-        <Route path="/terms" element={<TermsOfService onBack={() => navigate('/')} />} />
-        <Route path="/terms/:versionId" element={<TermsOfService onBack={() => navigate('/')} />} />
+        <Route path="/privacy" element={<PrivacyPolicy onBack={handleLegalBack} />} />
+        <Route path="/privacy/:versionId" element={<PrivacyPolicy onBack={handleLegalBack} />} />
+        <Route path="/terms" element={<TermsOfService onBack={handleLegalBack} />} />
+        <Route path="/terms/:versionId" element={<TermsOfService onBack={handleLegalBack} />} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
 
