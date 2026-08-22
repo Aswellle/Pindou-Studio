@@ -26,6 +26,7 @@
 | 🌐 | **4 种语言** — 自动检测浏览器语言,`?lang=` 直达,UI/教程/导出件全量覆盖 |
 | 📖 | **18 篇图文教程** — 从入门到进阶,连"翻车急救手册"都有 |
 | 📱 | **移动端优先** — 双指捏合缩放、单指惯性平移,手机平板一样顺手 |
+| 🐶 | **拼豆爱宠「豆豆」** — PC 端柯基陪伴宠物,在页面底部蜷睡→抖擞→走走停停,鼠标悬浮/点击会开口回应,还会带颜文字的"汪汪"叫 |
 
 ---
 
@@ -115,7 +116,7 @@ npm run check-i18n     # 验证 4 个语言文件键名一致性
 | 国际化 | react-i18next,4 语言全量覆盖(UI + 教程 + 导出件) |
 | 颜色科学 | CIEDE2000(Lab 空间)+ K-means++(Web Worker) |
 | 状态管理 | React `useState` / `useReducer`(无全局 store) |
-| 测试 | Vitest + @testing-library/react,75 用例 |
+| 测试 | Vitest + @testing-library/react,80 用例 |
 | 部署 | Vercel(push 到 main 自动部署)+ Supabase |
 
 ---
@@ -147,7 +148,7 @@ handleQuantizerApply:品牌 ID('P18')→ resolveToHex() → hex('#F0B08A') → c
 npm run test:run
 ```
 
-当前 **75 个用例 / 7 个文件**,覆盖:
+当前 **80 个用例 / 8 个文件**,覆盖:
 
 | 文件 | 覆盖 |
 |------|------|
@@ -158,6 +159,7 @@ npm run test:run
 | `templates.test.js` | 模板 JSON 校验 12 例(颜色归一化/矩形/错误分支) |
 | `Canvas.test.jsx` | 组件级:网格渲染、点击填色、pinch 不误填色回归 |
 | `App.test.jsx` | App 冒烟测试:完整组件树渲染(MemoryRouter + HelmetProvider,canvas/matchMedia mock)——捕捉"漏 import → ReferenceError"的生产白屏 |
+| `petSprite.test.js` | 拼豆爱宠精灵:各姿态网格尺寸/颜色合法性、walk 帧错位 |
 
 ---
 
