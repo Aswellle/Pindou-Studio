@@ -551,11 +551,11 @@ export default function AdminPanel({ user, isAdmin, authLoading, onLogin, onLogo
         .admin-template-row {
           display: flex;
           align-items: center;
-          gap: 12px;
+          gap: 18px;
           background: var(--bg-primary);
           border: 1px solid var(--border-color);
           border-radius: var(--radius-card);
-          padding: 10px 12px;
+          padding: 14px 16px;
           transition: border-color 0.15s, box-shadow 0.15s;
         }
         .admin-template-row:hover {
@@ -564,13 +564,13 @@ export default function AdminPanel({ user, isAdmin, authLoading, onLogin, onLogo
         }
         .admin-template-row .thumb {
           flex-shrink: 0;
-          width: 64px;
-          height: 64px;
+          width: 112px;
+          height: 112px;
           box-sizing: border-box;
           overflow: hidden;
           background: #fff;
-          border-radius: 6px;
-          padding: 4px;
+          border-radius: 10px;
+          padding: 6px;
           border: 1px solid var(--border-color);
         }
         .admin-template-row .thumb canvas {
@@ -768,6 +768,8 @@ export default function AdminPanel({ user, isAdmin, authLoading, onLogin, onLogo
         @media (max-width: 640px) {
           .admin-grid-2 { grid-template-columns: 1fr; }
           .admin-template-row { flex-wrap: wrap; }
+          /* 移动端缩略图略缩小,让 预览图 + 文字挤在一行不至于过挤 */
+          .admin-template-row .thumb { width: 88px; height: 88px; }
           .admin-header-actions { width: 100%; }
           .admin-account { width: 100%; justify-content: flex-start; }
         }

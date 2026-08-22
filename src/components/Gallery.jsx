@@ -842,9 +842,9 @@ export default function Gallery({ onLoadTemplate, onDeleteWork, onLoadWork, save
         .template-thumbnail {
           position: relative;
           background: var(--bg-primary);
-          /* 缩略图内边距收紧到 8px:让预览图充分占据卡片横向可用空间,
-             57×57 等高密度图案不再显得过小;仍留少量呼吸感对应圆角,不溢出 */
-          padding: 8px;
+          /* 顶部/左右内边距 8px 让预览图占据卡宽;底部预留 60px 作为下载徽章区,
+             徽章落在画布之下(不再遮挡图案),与右上收藏心形同右缘、竖直线对称 */
+          padding: 8px 8px 60px;
           display: flex;
           justify-content: center;
           align-items: center;
