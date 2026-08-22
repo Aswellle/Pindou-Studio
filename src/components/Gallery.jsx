@@ -842,7 +842,9 @@ export default function Gallery({ onLoadTemplate, onDeleteWork, onLoadWork, save
         .template-thumbnail {
           position: relative;
           background: var(--bg-primary);
-          padding: 16px;
+          /* 缩略图内边距收紧到 8px:让预览图充分占据卡片横向可用空间,
+             57×57 等高密度图案不再显得过小;仍留少量呼吸感对应圆角,不溢出 */
+          padding: 8px;
           display: flex;
           justify-content: center;
           align-items: center;
