@@ -33,7 +33,7 @@ describe('petSprite · 拼豆爱宠「豆豆」精灵', () => {
   })
 
   it('柯基配色应有橙色身体与深棕描边', () => {
-    expect(C.body).toBe('#F0A93E')
+    expect(C.body).toBe('#ED9B3F')
     expect(C.outline).toMatch(/^#[0-9a-fA-F]{6}$/)
   })
 

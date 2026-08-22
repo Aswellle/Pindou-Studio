@@ -31,6 +31,7 @@ export default function PixelPet() {
   useEffect(() => { corpusRef.current = getPetCorpus(i18n.language) }, [i18n.language])
 
   const canvasRef = useRef(null)
+  const innerRef = useRef(null)        // 行走位移容器(ref 直写,避免每帧 re-render)
   const [bubble, setBubble] = useState(null)     // { text, type, id }
 
   // 动画状态(存 ref,避免每帧 re-render)
@@ -42,7 +43,7 @@ export default function PixelPet() {
     walkTimer: 0, idleTimer: 0, selfCd: 0,
     sleepStart: performance.now(),
     maxX: 0, clicks: 0, clickReset: 0,
-    reduced: false, seed: Math.floor(Math.random() * 1e6),
+    reduced: false, lastFacing: -1, seed: Math.floor(Math.random() * 1e6),
   })
 
   // 气泡展示 + 计时关闭
@@ -103,6 +104,14 @@ export default function PixelPet() {
     S.current.sleepStart = performance.now()
 
     let raf
+    // 用 ref 直写 DOM transform(行走位移 + 朝向镜像),避免每帧 re-render
+    const applyTransform = () => {
+      if (innerRef.current) innerRef.current.style.transform = `translateX(${s.x}px)`
+      if (s.facing !== s.lastFacing) {
+        s.lastFacing = s.facing
+        if (canvasRef.current) canvasRef.current.style.transform = `scaleX(${s.facing === 1 ? -1 : 1})`
+      }
+    }
     const tick = (now) => {
       const dt = Math.min(0.05, (now - S.current.last) / 1000)
       S.current.last = now
@@ -114,6 +123,7 @@ export default function PixelPet() {
         if (s.selfCd <= 0) { showBubble(PICK(corpusRef.current.selfSpeech), 'self'); s.selfCd = rand(SELF_CD_MIN, SELF_CD_MAX) }
         s.pose = 'idle'
         render(poseGrid('idle', s.frame))
+        applyTransform()
         raf = requestAnimationFrame(tick)
         return
       }
@@ -168,8 +178,10 @@ export default function PixelPet() {
         default:
           render(poseGrid('idle', s.frame))
       }
+      applyTransform()
       raf = requestAnimationFrame(tick)
     }
+    applyTransform()
     raf = requestAnimationFrame(tick)
 
     const onResize = () => { s.maxX = Math.max(0, window.innerWidth - PET_W - 24) }
@@ -221,24 +233,27 @@ export default function PixelPet() {
 
   return (
     <div className="pet-dock" aria-hidden={false}>
-      <div className="pet-dock-inner" style={{ transform: `translateX(${S.current.x}px)` }}>
+      <div className="pet-dock-inner" ref={innerRef} style={{ transform: `translateX(${S.current.x}px)` }}>
         {bubble && (
           <div key={bubble.id} className={`${bubbleClassName} pet-bubble-visible`}>
             {bubble.text}
             <span className="pet-bubble-tail" />
           </div>
         )}
+        <div className="pet-canvas-wrap">
         <canvas
           ref={canvasRef}
           width={PET_W}
           height={PET_H}
           className="pet-canvas"
+          style={{ transform: `scaleX(${S.current.facing === 1 ? -1 : 1})` }}
           onMouseEnter={handleEnter}
           onMouseLeave={() => {}}
           onClick={onClick}
           role="button"
           aria-label="拼豆爱宠豆豆"
         />
+        </div>
       </div>
       <style>{petCss}</style>
     </div>
@@ -262,15 +277,19 @@ const petCss = `
     pointer-events: none;
     /* 行走位移由组件 translateX 控制 */
   }
-  .pet-canvas {
+  .pet-canvas-wrap {
     pointer-events: auto;
     cursor: pointer;
-    image-rendering: pixelated;
-    display: block;
-    filter: drop-shadow(0 2px 4px rgba(43,36,32,0.18));
-    transition: transform 0.12s;
+    transition: transform 0.14s;
   }
-  .pet-canvas:hover { transform: translateY(-2px); }
+  .pet-canvas-wrap:hover { transform: translateY(-2px); }
+  .pet-canvas {
+    pointer-events: auto;
+    display: block;
+    image-rendering: pixelated;
+    filter: drop-shadow(0 2px 4px rgba(43,36,32,0.18));
+    transition: transform 0.12s; /* 朝向镜像翻转平滑 */
+  }
   /* 像素风气泡 */
   .pet-bubble {
     position: absolute;
@@ -307,6 +326,6 @@ const petCss = `
   .pet-bubble-bark { background: #fff2ec; border-color: #e08a2b; color: #7a3b1a; }
   .pet-bubble-annoyed { background: #fdeeee; border-color: #cf8a7a; color: #7a3a33; }
   @media (prefers-reduced-motion: reduce) {
-    .pet-canvas:hover { transform: none; }
+    .pet-canvas-wrap:hover { transform: none; }
   }
 `
