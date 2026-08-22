@@ -1,8 +1,6 @@
 import { useState, useEffect, useCallback } from 'react'
 import { supabase } from '../services/supabase'
-import { normalizeCustomTemplate, TEMPLATES } from '../data/templates'
-import zhCN from '../i18n/locales/zh-CN.json'
-import enUS from '../i18n/locales/en-US.json'
+import { normalizeCustomTemplate } from '../data/templates'
 
 /**
  * 云端模板库(Supabase templates / categories 表)。
@@ -147,77 +145,6 @@ export default function useCloudTemplates() {
     return { ok: true }
   }, [])
 
-  // ── 本地数据一次性迁移到云端(管理员操作) ───────────────────
-  // 将内置模板(源码)与 localStorage 自定义模板 + 自定义分类 upsert 进云端,
-  // (source, name) 唯一约束保证幂等,重复执行不产生重复。
-  const migrateLocalToCloud = useCallback(async () => {
-    if (!supabase) return { ok: false, message: 'cloudNotConfigured' }
-    let inserted = 0
-    try {
-      // 内置模板:name 取英文名(en-US),nameZh 取中文名(zh-CN)
-      for (const tpl of TEMPLATES) {
-        const name = enUS.templates?.names?.[tpl.nameKey] || tpl.nameKey
-        const nameZh = zhCN.templates?.names?.[tpl.nameKey] || tpl.nameKey
-        const { error } = await supabase.from('templates').upsert(
-          templateToRow({
-            name,
-            nameZh,
-            category: tpl.category,
-            difficulty: tpl.difficulty,
-            size: tpl.size,
-            colors: tpl.colors,
-            pattern: tpl.pattern,
-            source: 'builtin',
-          }),
-          { onConflict: 'source,name' }
-        )
-        if (error) throw error
-        inserted++
-      }
-
-      // 本机自定义模板(localStorage)
-      let custom = []
-      try {
-        custom = JSON.parse(localStorage.getItem('custom-templates') || '[]')
-      } catch { custom = [] }
-      for (const tpl of custom) {
-        const { error } = await supabase.from('templates').upsert(
-          templateToRow({
-            name: tpl.name,
-            nameZh: tpl.nameZh,
-            category: tpl.category,
-            difficulty: tpl.difficulty,
-            size: tpl.size,
-            colors: tpl.colors || [],
-            pattern: tpl.pattern,
-            source: 'custom',
-          }),
-          { onConflict: 'source,name' }
-        )
-        if (error) throw error
-        inserted++
-      }
-
-      // 自定义分类
-      let localCategories = []
-      try {
-        localCategories = JSON.parse(localStorage.getItem('custom-categories') || '[]')
-      } catch { localCategories = [] }
-      for (const cat of localCategories) {
-        const { error } = await supabase.from('categories').upsert(
-          { id: cat.id, label: cat.label },
-          { onConflict: 'id' }
-        )
-        if (error) throw error
-      }
-
-      await loadAll()
-      return { ok: true, count: inserted }
-    } catch (e) {
-      return { ok: false, message: e.message || String(e) }
-    }
-  }, [loadAll])
-
   return {
     enabled,
     loading,
@@ -231,6 +158,5 @@ export default function useCloudTemplates() {
     addCategory,
     updateCategory,
     deleteCategory,
-    migrateLocalToCloud,
   }
 }

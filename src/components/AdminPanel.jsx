@@ -1,7 +1,7 @@
 import { useState, useMemo, useEffect, useCallback, useRef } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useToast } from './Toast'
-import { CATEGORIES, DIFFICULTIES, TEMPLATES, normalizeCustomTemplate } from '../data/templates'
+import { CATEGORIES, DIFFICULTIES, normalizeCustomTemplate } from '../data/templates'
 import ThumbnailCanvas from './ThumbnailCanvas'
 import LoadingScreen from './LoadingScreen'
 import UserManager from './UserManager'
@@ -102,6 +102,17 @@ export default function AdminPanel({ user, isAdmin, authLoading, onLogin, onLogo
   const [pwError, setPwError] = useState('')
   const [pwBusy, setPwBusy] = useState(false)
   const [pwSaved, setPwSaved] = useState(false)
+  // 退出登录确认(防误触)
+  const [confirmSignOut, setConfirmSignOut] = useState(false)
+  const renderSignOutConfirm = () => confirmSignOut && (
+    <AdminModal title={t('admin.confirmSignOutTitle')} onClose={() => setConfirmSignOut(false)}>
+      <p className="admin-modal-text">{t('admin.confirmSignOutHint')}</p>
+      <div className="admin-actions">
+        <button className="admin-btn secondary" onClick={() => setConfirmSignOut(false)}>{t('admin.cancel')}</button>
+        <button className="admin-btn danger" onClick={() => { setConfirmSignOut(false); onLogout() }}>{t('admin.signOut')}</button>
+      </div>
+    </AdminModal>
+  )
 
   const cloudEnabled = !!cloudStore?.enabled
 
@@ -157,18 +168,10 @@ export default function AdminPanel({ user, isAdmin, authLoading, onLogin, onLogo
           </svg>
           <h1 className="admin-title">{t('admin.gate.noPermission')}</h1>
           <p className="admin-subtitle">{t('admin.gate.noPermissionHint')}</p>
-          <button className="admin-btn secondary" onClick={onLogout}>{t('admin.signOut')}</button>
+          <button className="admin-btn secondary" onClick={() => setConfirmSignOut(true)}>{t('admin.signOut')}</button>
+          {renderSignOutConfirm()}
         </div>
         <GateStyle />
-      </div>
-    )
-  }
-
-  // 云端模板数据加载中:显示加载过渡,避免空列表/闪烁
-  if (cloudStore.loading) {
-    return (
-      <div className="admin-panel">
-        <LoadingScreen text={t('gallery.cloudLoading')} />
       </div>
     )
   }
@@ -211,7 +214,7 @@ export default function AdminPanel({ user, isAdmin, authLoading, onLogin, onLogo
           <button className="admin-btn secondary" onClick={() => { setShowChangePw(true); setPwError('') }}>
             {t('profile.changePassword')}
           </button>
-          <button className="admin-btn secondary" onClick={onLogout}>
+          <button className="admin-btn secondary" onClick={() => setConfirmSignOut(true)}>
             {t('admin.signOut')}
           </button>
         </div>
@@ -233,10 +236,18 @@ export default function AdminPanel({ user, isAdmin, authLoading, onLogin, onLogo
       </div>
 
       <div className="admin-tab-content" key={tab}>
-        {tab === 'templates' && <TemplateManager store={cloudStore} />}
-        {tab === 'import' && <JsonImporter store={cloudStore} />}
-        {tab === 'categories' && <CategoryManager store={cloudStore} />}
-        {tab === 'users' && <UserManager />}
+        {/* 用户管理不依赖云端模板库:切到该标签时不应被模板加载态阻塞 */}
+        {tab === 'users' ? (
+          <UserManager />
+        ) : cloudStore.loading ? (
+          <LoadingScreen text={t('gallery.cloudLoading')} />
+        ) : (
+          <>
+            {tab === 'templates' && <TemplateManager store={cloudStore} />}
+            {tab === 'import' && <JsonImporter store={cloudStore} />}
+            {tab === 'categories' && <CategoryManager store={cloudStore} />}
+          </>
+        )}
       </div>
 
       {/* 修改密码 → 模态框(旧密码验证 + 新密码) */}
@@ -284,6 +295,8 @@ export default function AdminPanel({ user, isAdmin, authLoading, onLogin, onLogo
           </div>
         </AdminModal>
       )}
+
+      {renderSignOutConfirm()}
 
       <style>{`
         .admin-panel {
@@ -732,49 +745,75 @@ export default function AdminPanel({ user, isAdmin, authLoading, onLogin, onLogo
 // ─────────────────────────────────────────────────────────────
 // 模板管理(列表 + 新增/编辑表单)
 // ─────────────────────────────────────────────────────────────
-// 本地数据一次性迁移到云端(内置模板 + 本机自定义模板/分类)
-function MigrationCard({ store }) {
+// 模板库统计概览(替代已不再需要的「本地数据迁移到云端」卡片)
+function TemplateStats({ store }) {
   const { t } = useTranslation()
-  const [running, setRunning] = useState(false)
-  const [result, setResult] = useState(null)
-  const localCustomCount = useMemo(() => {
-    try {
-      return JSON.parse(localStorage.getItem('custom-templates') || '[]').length
-    } catch {
-      return 0
+  const stats = useMemo(() => {
+    const tpls = store.templates
+    return {
+      total: tpls.length,
+      builtin: tpls.filter(x => x.source === 'builtin').length,
+      custom: tpls.filter(x => x.source !== 'builtin').length,
+      categories: store.categories.length,
+      downloads: tpls.reduce((sum, x) => sum + (x.downloadCount || 0), 0),
     }
-  }, [])
+  }, [store.templates, store.categories])
 
-  const run = async () => {
-    setRunning(true)
-    setResult(null)
-    const res = await store.migrateLocalToCloud()
-    setRunning(false)
-    setResult(res)
-  }
+  const cards = [
+    { label: t('admin.stats.totalTemplates'), value: stats.total, tone: 'accent' },
+    { label: t('admin.stats.builtin'), value: stats.builtin, tone: 'ok' },
+    { label: t('admin.stats.custom'), value: stats.custom, tone: 'warn' },
+    { label: t('admin.stats.totalCategories'), value: stats.categories, tone: 'accent' },
+    { label: t('admin.stats.totalDownloads'), value: stats.downloads.toLocaleString(), tone: 'ok' },
+  ]
 
   return (
     <div className="admin-card">
-      <h3>{t('admin.cloud.migrateTitle')}</h3>
-      <p className="admin-field-hint">{t('admin.cloud.migrateHint')}</p>
-      <p className="admin-field-hint">
-        {t('admin.cloud.localCounts', { builtin: TEMPLATES.length, custom: localCustomCount })}
-      </p>
-      <div className="admin-actions">
-        <button className="admin-btn primary" disabled={running} onClick={run}>
-          {running ? t('auth.processing') : t('admin.cloud.migrateBtn')}
-        </button>
+      <div className="admin-card-head">
+        <h3>{t('admin.stats.title')}</h3>
       </div>
-      {result?.ok && (
-        <div className="admin-result ok" style={{ marginTop: 8 }}>
-          {t('admin.cloud.migrateDone', { n: result.count })}
-        </div>
-      )}
-      {result && !result.ok && (
-        <div className="admin-result warn" style={{ marginTop: 8 }}>
-          {t('admin.cloud.migrateFail', { detail: result.message })}
-        </div>
-      )}
+      <div className="tpl-stats">
+        {cards.map(c => (
+          <div key={c.label} className={`tpl-stat-card ${c.tone}`}>
+            <span className="tpl-stat-value">{c.value ?? '—'}</span>
+            <span className="tpl-stat-label">{c.label}</span>
+          </div>
+        ))}
+      </div>
+      <style>{`
+        .tpl-stats {
+          display: grid;
+          grid-template-columns: repeat(5, 1fr);
+          gap: 10px;
+        }
+        .tpl-stat-card {
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          gap: 4px;
+          padding: 14px 8px;
+          border-radius: 12px;
+          background: var(--bg-secondary);
+          border: 1px solid var(--border-color);
+        }
+        .tpl-stat-card.accent { border-color: var(--accent); background: var(--accent-soft); }
+        .tpl-stat-card.ok { border-color: var(--secondary-accent); background: rgba(74, 155, 142, 0.08); }
+        .tpl-stat-card.warn { border-color: var(--warning); background: var(--warning-bg); }
+        .tpl-stat-value {
+          font-size: var(--text-2xl);
+          font-weight: 700;
+          color: var(--text-primary);
+          font-variant-numeric: tabular-nums;
+        }
+        .tpl-stat-label {
+          font-size: 11px;
+          color: var(--text-secondary);
+          text-align: center;
+        }
+        @media (max-width: 640px) {
+          .tpl-stats { grid-template-columns: repeat(2, 1fr); }
+        }
+      `}</style>
     </div>
   )
 }
@@ -796,7 +835,7 @@ function TemplateManager({ store }) {
 
   return (
     <div>
-      <MigrationCard store={store} />
+      <TemplateStats store={store} />
       <div className="admin-card">
         <input
           className="admin-input admin-search"

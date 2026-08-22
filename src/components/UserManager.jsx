@@ -115,6 +115,7 @@ export default function UserManager() {
                   <th>{t('admin.users.nickname')}</th>
                   <th>{t('admin.users.role')}</th>
                   <th>{t('admin.users.status')}</th>
+                  <th>{t('admin.users.registerMethod')}</th>
                   <th>{t('admin.users.registeredAt')}</th>
                   <th>{t('admin.users.lastSignIn')}</th>
                 </tr>
@@ -132,6 +133,11 @@ export default function UserManager() {
                     <td>
                       <span className={`users-status ${u.email_confirmed ? 'ok' : 'warn'}`}>
                         {u.email_confirmed ? t('admin.users.verifiedYes') : t('admin.users.verifiedNo')}
+                      </span>
+                    </td>
+                    <td>
+                      <span className={`users-reg-method ${u.is_custom ? 'custom' : 'email'}`}>
+                        {u.is_custom ? t('admin.users.regCustom') : t('admin.users.regEmail')}
                       </span>
                     </td>
                     <td className="users-date">
@@ -235,6 +241,18 @@ export default function UserManager() {
         }
         .users-role-badge.admin { background: var(--accent); color: white; }
         .users-role-badge.user { background: var(--bg-tertiary); color: var(--text-secondary); }
+        .users-reg-method {
+          display: inline-flex;
+          align-items: center;
+          gap: 4px;
+          font-size: 12px;
+          font-weight: 600;
+          padding: 2px 10px;
+          border-radius: 999px;
+          white-space: nowrap;
+        }
+        .users-reg-method.email { background: rgba(74, 155, 142, 0.12); color: var(--secondary-accent); }
+        .users-reg-method.custom { background: var(--accent-soft); color: var(--accent); }
         .users-status {
           display: inline-flex;
           align-items: center;
