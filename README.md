@@ -5,11 +5,11 @@
 [![CI](https://github.com/Aswellle/Pindou-Studio/actions/workflows/ci.yml/badge.svg)](https://github.com/Aswellle/Pindou-Studio/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![React](https://img.shields.io/badge/React-18-61DAFB?logo=react)](https://react.dev)
-[![Vite](https://img.shields.io/badge/Vite-5-646CFF?logo=vite)](https://vitejs.dev)
+[![Vite](https://img.shields.io/badge/Vite-6-646CFF?logo=vite)](https://vitejs.dev)
 [![Supabase](https://img.shields.io/badge/Supabase-BaaS-3ECF8E?logo=supabase&logoColor=white)](https://supabase.com)
 [![i18n](https://img.shields.io/badge/i18n-4%20Languages-4A9B8E)](https://www.i18next.com)
 
-**三个品牌色卡 · 四种语言 · 十八篇教程 · 云端账号体系**
+**六个品牌色卡 · 千余种配色 · 四种语言 · 十八篇教程 · 云端账号体系**
 
 拼豆Studio 是一款开箱即用的拼豆图纸在线设计工具:自由绘制、图片智能转图纸、专业图纸导出、云端模板库与账号体系一应俱全。无论是第一次拿起 Pegboard 的新手,还是追求精致作品的进阶玩家,都能在这里找到属于自己的创作节奏。
 
@@ -21,8 +21,8 @@
 |---|---|
 | 🖼️ | **图片一键转图纸** — 上传照片秒变拼豆图纸,K-means++ 取色 + CIEDE2000 精准匹配 |
 | 📄 | **专业图纸导出** — 品牌色号标注 + 颜色清单分组,直接对照贴珠 |
-| 🎨 | **236 种品牌色** — Perler / Hama / Artkal 三大品牌色卡随心切换 |
-| ☁️ | **云端账号体系** — 邮箱验证码验证、头像裁剪上传,账号资料跨设备同步 |
+| 🎨 | **六大品牌色卡(千余种颜色)** — Perler / Hama / Artkal / COCO / MARD 等随心切换,支持品牌间颜色重映射 |
+| ☁️ | **云端账号体系** — 邮箱验证码 / 自定义账号(用户名+安全密钥)两种注册,头像裁剪上传、作品跨设备同步 |
 | 🌐 | **4 种语言** — 自动检测浏览器语言,`?lang=` 直达,UI/教程/导出件全量覆盖 |
 | 📖 | **18 篇图文教程** — 从入门到进阶,连"翻车急救手册"都有 |
 | 📱 | **移动端优先** — 双指捏合缩放、单指惯性平移,手机平板一样顺手 |
@@ -45,12 +45,17 @@
 - **ICM 精炼** — 小图额外迭代优化颜色映射
 - **零拷贝传输** — Web Worker + Transferable ArrayBuffer,不阻塞主线程
 
-### 🎨 三大品牌色卡
+### 🎨 六大品牌色卡
 | 品牌 | 色号范围 | 颜色数 | 特点 |
 |------|---------|--------|------|
+| COCO | A–Z 色系编号 | 291 | 2.6mm 迷你珠,A–Z 分组 |
+| MARD | 9 大官方色系 | 221 | 5mm,标准系列 |
+| MARD 291 | 标准 221 + 扩展 | 291 | 5mm,系列更全 |
 | Perler | P01 – P80 | 80 | 颜色最全,入门首选 |
 | Hama | H01 – H56 | 56 | 北欧柔和风格 |
 | Artkal | C01 – C100 | 100 | 金属色 / 荧光色丰富 |
+
+模板颜色可在各品牌色卡间按 CIEDE2000 近邻重映射;图库/导出按所选品牌配色。
 
 ### 📄 图纸导出(带确认流程)
 - **快速三件套** — PNG 位图 / SVG 矢量 / 文本色号索引
@@ -59,12 +64,13 @@
 - **成品级信息** — 行列坐标、颜色清单(主色/辅色/点缀色/微量色四档分组)、总珠数统计,3 倍超采样高清渲染
 
 ### ☁️ 账号体系(真实云端)
-- **邮箱验证码验证** — 注册/登录/找回密码全程验证码,国内网络无需打开外部链接
+- **两种注册方式** — 邮箱验证码(注册/登录/找回全程验证码,国内网络无需外链);自定义账号(用户名 + 密码 + 可选安全密钥找回)
+- **作品跨设备同步** — 登录后作品同步至云端(Supabase),未登录时存本地浏览器;登录时自动把本地作品一并迁入云端
 - **个人资料** — 头像上传 + 圆形裁剪(自研裁剪器,拖动/滚轮/双指缩放)、昵称、旧密码验证改密
-- **管理员后台** — 模板库 CRUD(模态框操作)、JSON 导入、用户仪表盘(注册统计 + 搜索分页,只读合规)
+- **管理员后台** — 模板库 CRUD + JSON 导入 + 统计概览、用户仪表盘(注册统计/搜索分页/注册方式/最近登录,只读合规)
 
 ### 📚 图库 · 教程 · 国际化
-- **云端模板库** — 内置 8 模板 + 管理员上传模板全设备统一,公开只读、管理员写入(RLS)
+- **云端模板库** — 内置模板(种子)+ 管理员上传模板全设备统一,公开只读、管理员写入(RLS);模板卡片显示尺寸/难度/品牌色卡/下载量
 - **18 篇图文教程** × 4 语言 — 入门指南、熨烫全解、防变形、配色设计、进阶技巧、作品保护
 - **i18n 全覆盖** — 浏览器语言自动检测,手动选择持久化,`?lang=en` URL 直达语言页
 
@@ -105,7 +111,7 @@ npm run check-i18n     # 验证 4 个语言文件键名一致性
 |----|------|
 | 框架 | React 18 + Vite 6 + React Router 7(路径路由) |
 | 样式 | Tailwind CSS v4 + 手作暖调设计令牌(CSS 变量) |
-| 云端 | Supabase(PostgreSQL + Auth + Storage + 邮件 OTP) |
+| 云端 | Supabase(PostgreSQL + Auth + Storage + 邮件 OTP / 自定义账号) |
 | 国际化 | react-i18next,4 语言全量覆盖(UI + 教程 + 导出件) |
 | 颜色科学 | CIEDE2000(Lab 空间)+ K-means++(Web Worker) |
 | 状态管理 | React `useState` / `useReducer`(无全局 store) |
@@ -157,13 +163,22 @@ npm run test:run
 
 ## 🗂 数据存储
 
-| 键 / 表 | 内容 |
-|---------|------|
-| `saved-works`(localStorage) | 作品数组(画布数据/尺寸/调色板/时间),约 5MB 上限,4MB 预警 |
-| `bead_studio_settings`(localStorage) | `{ language }` 语言偏好 |
-| `gallery-favorites`(localStorage) | 收藏模板 ID |
-| `tutorial-progress`(localStorage) | 已读教程 ID |
-| `custom-templates` / `custom-categories`(localStorage) | 本地模式自定义模板(云端未配置时的回退) |
+**本地(localStorage)**:
+| 键 | 内容 |
+|-----|------|
+| `saved-works` | 未登录时本地作品数组(画布数据/尺寸/调色板/时间),约 5MB 上限、4MB 预警;登录后作品迁往云端并清空该键 |
+| `bead_studio_settings` | `{ language }` 语言偏好 |
+| `gallery-favorites` | 收藏模板 ID |
+| `tutorial-progress` | 已读教程 ID |
+| `custom-templates` / `custom-categories` | 本地模式自定义模板/分类(云端未配置时的回退) |
+
+**云端(Supabase,需配置 `VITE_SUPABASE_URL` + `VITE_SUPABASE_ANON_KEY`)**:
+| 表 | 内容 |
+|----|------|
+| `works` | 登录用户的云端作品(`user_id`/`saved_at`/`name` 唯一),RLS 本人可读写 |
+| `templates` / `categories` | 云端模板库与分类,匿名公开只读、管理员写入(RLS),`templates` 含 `source`/`palette_id`/`download_count` |
+| `profiles` | 昵称、头像、`role`(admin)、自定义账号 `security_key_hash`;`avatars` 存储桶存头像 |
+| `download_count`(RPC) | 匿名可调用的模板下载量递增函数 |
 
 ---
 
