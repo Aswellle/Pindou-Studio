@@ -1023,10 +1023,12 @@ function JsonImporter({ store }) {
   const fileInputRef = useRef(null)
 
   // 从本机 .json 文件读取内容填入文本区(不自动导入,便于用户先核对再点导入)
+  const MAX_IMPORT_BYTES = 1024 * 1024 // 1MB 上限,防超大 JSON 同步解析冻结主线程
   const handleFile = (e) => {
     const file = e.target.files?.[0]
     e.target.value = '' // 允许连续选择同一文件
     if (!file) return
+    if (file.size > MAX_IMPORT_BYTES) return toast(t('admin.fileTooLarge'), 'error')
     const reader = new FileReader()
     reader.onload = () => {
       setJson(String(reader.result || ''))

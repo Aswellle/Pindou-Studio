@@ -68,21 +68,27 @@ export default function AuthPage({
   const [pendingEmail, setPendingEmail] = useState('')
   const [pendingNickname, setPendingNickname] = useState('')
   const [pendingPassword, setPendingPassword] = useState('')
-  // 倒计时按流程隔离('register' | 'forgot'):注册发码后去找回密码不应被无关倒计时禁用
-  const [cooldown, setCooldown] = useState(0)
-  const [cooldownFor, setCooldownFor] = useState(null)
+  // 倒计时按流程独立计数(注册/找回各一个):任一流程发码不重置另一流程的等待
+  const [regCooldown, setRegCooldown] = useState(0)
+  const [forgotCooldown, setForgotCooldown] = useState(0)
 
   const [loading, setLoading] = useState(false)
   const [showPwd, setShowPwd] = useState(false)  // 登录密码
   const [showReg, setShowReg] = useState(false)  // 注册密码/确认
   const [showNew, setShowNew] = useState(false)  // 新密码/确认
 
-  // 重发倒计时
+  // 重发倒计时(注册/找回独立递减)
   useEffect(() => {
-    if (cooldown <= 0) return
-    const timer = setTimeout(() => setCooldown(c => c - 1), 1000)
+    if (regCooldown <= 0) return
+    const timer = setTimeout(() => setRegCooldown(c => c - 1), 1000)
     return () => clearTimeout(timer)
-  }, [cooldown])
+  }, [regCooldown])
+
+  useEffect(() => {
+    if (forgotCooldown <= 0) return
+    const timer = setTimeout(() => setForgotCooldown(c => c - 1), 1000)
+    return () => clearTimeout(timer)
+  }, [forgotCooldown])
 
   const errMsg = (code) => {
     const map = {
@@ -137,8 +143,7 @@ export default function AuthPage({
         if (!EMAIL_RE.test(regEmail)) return toastError('', t('errors.invalidEmail'))
         setPendingEmail(regEmail); setPendingNickname(nickname); setPendingPassword(regPassword)
         await onSendOtp(regEmail, true)
-        setCooldown(RESEND_COOLDOWN)
-        setCooldownFor('register')
+        setRegCooldown(RESEND_COOLDOWN)
         setMode('verify')
       } else {
         await registerUsername({ username, nickname, password: regPassword, securityKey })
@@ -165,12 +170,11 @@ export default function AuthPage({
 
   // 重发验证码(60s 冷却,邮箱注册专属)
   const resendCode = async () => {
-    if ((cooldown > 0 && cooldownFor === 'register') || loading) return
+    if (regCooldown > 0 || loading) return
     setLoading(true)
     try {
       await onSendOtp(pendingEmail, true)
-      setCooldown(RESEND_COOLDOWN)
-      setCooldownFor('register')
+      setRegCooldown(RESEND_COOLDOWN)
       toast(t('auth.codeSent'), 'success')
     } catch (err) {
       toastError(err?.message || '')
@@ -179,14 +183,13 @@ export default function AuthPage({
 
   // ── 忘记密码(邮箱):点击输入框右侧"发送验证码",该位置切换为倒计时,下方展开验证码输入 ──
   const handleSendForgotCode = async () => {
-    if ((cooldown > 0 && cooldownFor === 'forgot') || loading) return
+    if (forgotCooldown > 0 || loading) return
     if (!EMAIL_RE.test(forgotAccount)) return toastError('', t('errors.invalidEmail'))
     setPendingEmail(forgotAccount)
     setLoading(true)
     try {
       await onSendOtp(forgotAccount, false)
-      setCooldown(RESEND_COOLDOWN)
-      setCooldownFor('forgot')
+      setForgotCooldown(RESEND_COOLDOWN)
       setForgotCodeSent(true)
       toast(t('auth.codeSent'), 'success')
     } catch (err) { toastError(err?.message || '') }
@@ -367,8 +370,8 @@ export default function AuthPage({
                     autoComplete="email"
                     required
                   />
-                  <button type="button" className="code-send-btn" onClick={handleSendForgotCode} disabled={(cooldown > 0 && cooldownFor === 'forgot') || loading}>
-                    {cooldown > 0 && cooldownFor === 'forgot' ? t('auth.resendIn', { n: cooldown }) : t('auth.sendCode')}
+                  <button type="button" className="code-send-btn" onClick={handleSendForgotCode} disabled={forgotCooldown > 0 || loading}>
+                    {forgotCooldown > 0 ? t('auth.resendIn', { n: forgotCooldown }) : t('auth.sendCode')}
                   </button>
                 </div>
                 {/* 验证码输入 + 确认重置密码按钮始终显示(不折叠),未发送验证码前确认按钮禁用 */}
@@ -406,8 +409,8 @@ export default function AuthPage({
             <label className="auth-label">{t('auth.otpCode')}</label>
             <input className="auth-input" value={verifyCode} onChange={e => setVerifyCode(e.target.value)} placeholder="123456" maxLength="6" inputMode="numeric" autoComplete="one-time-code" required />
             <div className="auth-resend-row">
-              <button type="button" className="auth-resend-btn" onClick={resendCode} disabled={(cooldown > 0 && cooldownFor === 'register') || loading}>
-                {cooldown > 0 && cooldownFor === 'register' ? t('auth.resendIn', { n: cooldown }) : t('auth.resend')}
+              <button type="button" className="auth-resend-btn" onClick={resendCode} disabled={regCooldown > 0 || loading}>
+                {regCooldown > 0 ? t('auth.resendIn', { n: regCooldown }) : t('auth.resend')}
               </button>
             </div>
             <button type="button" className="auth-btn-primary" disabled={loading} onClick={handleVerify}>{loading ? t('auth.loading') : t('auth.verifyBtn')}</button>

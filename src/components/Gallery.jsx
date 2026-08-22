@@ -193,8 +193,8 @@ export default function Gallery({ onLoadTemplate, onDeleteWork, onLoadWork, save
         palette,
         { beadStyle, gridWidth: null, gridHeight: null }
       )
-      // 导出成功(任一格式)即计数 +1:云端 RPC,本地 localStorage
-      await bumpDownload(template)
+      // 导出成功(任一格式)即计数 +1:本地同步 +1,云端 RPC 后台异步(不阻塞导出状态复位)
+      bumpDownload(template)
     } catch (err) {
       console.error('Template export failed:', err)
       toast(t('export.exportFailed'), 'error') // 此前 try/finally 无 catch,canvas 分配失败成为未处理 rejection
