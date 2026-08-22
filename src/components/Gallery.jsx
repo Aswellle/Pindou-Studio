@@ -11,6 +11,23 @@ import ThumbnailCanvas from './ThumbnailCanvas'
 
 const CELL_SIZE = 8
 
+// 卡片颜色圆点数量上限:颜色过多的模板(如 57×57 高色数作品)只展示前 N 个,
+// 其余以「+N」计数兜底 —— 避免单行色点溢出卡片边界,也保证所有卡片行高统一。
+const MAX_VISIBLE_DOTS = 7
+function ColorDots({ pattern }) {
+  const colors = extractPatternColors(pattern)
+  const visible = colors.slice(0, MAX_VISIBLE_DOTS)
+  const extra = colors.length - visible.length
+  return (
+    <>
+      {visible.map((color, i) => (
+        <span key={i} className="color-dot" style={{ backgroundColor: color }} title={color} />
+      ))}
+      {extra > 0 && <span className="color-dot-more" title={`+${extra}`}>+{extra}</span>}
+    </>
+  )
+}
+
 const resolveToHex = (colorVal, palette) => {
   if (!colorVal) return null
   if (typeof colorVal === 'string' && colorVal.startsWith('#')) return colorVal
@@ -600,14 +617,7 @@ export default function Gallery({ onLoadTemplate, onDeleteWork, onLoadWork, save
                 )}
                 {/* 珠子颜色圆点由系统从 pattern 自动识别(统一协议可省略 colors 字段) */}
                 <div className="template-colors">
-                  {extractPatternColors(template.pattern).map((color, i) => (
-                    <span
-                      key={i}
-                      className="color-dot"
-                      style={{ backgroundColor: color }}
-                      title={color}
-                    />
-                  ))}
+                  <ColorDots pattern={template.pattern} />
                 </div>
               </div>
             ))}
@@ -840,6 +850,11 @@ export default function Gallery({ onLoadTemplate, onDeleteWork, onLoadWork, save
         }
         .template-thumbnail canvas {
           image-rendering: pixelated;
+          /* 预览随卡片宽度缩放、恒方形(图案均为 size×size):
+             57×57 的 456px 画布不再溢出/撑高卡片,所有卡片缩略图尺寸统一 */
+          max-width: 100%;
+          height: auto;
+          display: block;
         }
         .favorite-btn {
           position: absolute;
@@ -1182,6 +1197,18 @@ export default function Gallery({ onLoadTemplate, onDeleteWork, onLoadWork, save
           height: 12px;
           border-radius: 50%;
           border: 1px solid var(--border-color);
+        }
+        .color-dot-more {
+          height: 12px;
+          padding: 0 6px;
+          border-radius: 999px;
+          font-size: 10px;
+          line-height: 12px;
+          color: var(--text-secondary);
+          background: var(--bg-tertiary);
+          border: 1px solid var(--border-color);
+          white-space: nowrap;
+          flex-shrink: 0;
         }
         .empty-state {
           display: flex;

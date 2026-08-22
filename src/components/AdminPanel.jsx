@@ -564,10 +564,19 @@ export default function AdminPanel({ user, isAdmin, authLoading, onLogin, onLogo
         }
         .admin-template-row .thumb {
           flex-shrink: 0;
+          width: 64px;
+          height: 64px;
+          box-sizing: border-box;
+          overflow: hidden;
           background: #fff;
           border-radius: 6px;
           padding: 4px;
           border: 1px solid var(--border-color);
+        }
+        .admin-template-row .thumb canvas {
+          width: 100%;
+          height: 100%;
+          display: block;
         }
         .admin-template-meta {
           flex: 1;
@@ -598,6 +607,31 @@ export default function AdminPanel({ user, isAdmin, authLoading, onLogin, onLogo
           border-radius: 50%;
           border: 1px solid rgba(0,0,0,0.15);
           flex-shrink: 0;
+        }
+        .admin-color-dot-more {
+          height: 12px;
+          padding: 0 6px;
+          border-radius: 999px;
+          font-size: 10px;
+          line-height: 12px;
+          color: var(--text-secondary);
+          background: var(--bg-tertiary);
+          border: 1px solid var(--border-color);
+          white-space: nowrap;
+        }
+        .admin-preview-thumb {
+          background: #fff;
+          border-radius: 6px;
+          padding: 4px;
+          border: 1px solid var(--border-color);
+          max-width: 88px;
+          overflow: hidden;
+          flex-shrink: 0;
+        }
+        .admin-preview-thumb canvas {
+          max-width: 100%;
+          height: auto;
+          display: block;
         }
         .admin-empty {
           text-align: center;
@@ -866,9 +900,12 @@ function TemplateManager({ store }) {
                   {t(`gallery.difficulties.${tpl.difficulty}`)}
                 </div>
                 <div className="admin-color-dots">
-                  {tpl.colors.map((c, i) => (
+                  {tpl.colors.slice(0, 8).map((c, i) => (
                     <span key={i} className="admin-color-dot" style={{ backgroundColor: c }} title={c} />
                   ))}
+                  {tpl.colors.length > 8 && (
+                    <span className="admin-color-dot-more" title={`+${tpl.colors.length - 8}`}>+{tpl.colors.length - 8}</span>
+                  )}
                 </div>
               </div>
               <div className="admin-actions">
@@ -1021,7 +1058,7 @@ function TemplateForm({ store, editing, initial, onDone }) {
         <div className="admin-field">
           <label>{t('admin.colors')}<span className="admin-field-hint"> — {t('admin.colorsHint')}</span></label>
           <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
-            <div style={{ background: '#fff', borderRadius: 6, padding: 4, border: '1px solid var(--border-color)' }}>
+            <div className="admin-preview-thumb">
               <ThumbnailCanvas pattern={preview.pattern} size={preview.size} />
             </div>
             <div className="admin-color-dots">
