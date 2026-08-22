@@ -1,223 +1,114 @@
 import { useEffect, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
+import { bichito } from 'bichito'
 import { getPetCorpus, PICK } from '../data/pet'
-import { poseGrid, PET_W, PET_H, C, CELL, GAP, GRID_W, GRID_H } from '../data/petSprite'
 
 /*
- * 拼豆爱宠「豆豆」— 柯基,站点内陪伴宠物(仅 PC/桌面端渲染)。
- * - 以「豆子」逐格绘制(canvas,每格一颗珠、6px + 1px 间隙 → 拼豆网格感)
- * - 在浏览器视口底部的边界线上行走,初始在最右侧蜷睡 → 醒 → 抖擞 → 左行走走停停
- * - 交互:鼠标悬浮 / 点击(走动时几率汪汪叫 + 动画)、点击太多次 → 无奈回应
- * - 像素风消息气泡,语料按语言分文件(pet.{zh,en,ja,ko}.js)
- * - respects prefers-reduced-motion(不行走,仅停留发声)
- * 精灵绘制见 ../data/petSprite.js
+ * 拼豆爱宠 — 基于开源桌面像素宠物引擎 `bichito`(npm, MIT, canvas, 零依赖)。
+ * - 采用其引擎 + 内置法国斗牛犬(`loki`,黄褐+深面具):idle 呼吸/眨眼、walk 四向、
+ *   peek、jump、heart —— 稳定、有开发者背书、许可友好。
+ * - 定制:把宠物「钉」在浏览器视口底部边界线上(每帧强制 top=下缘,只让水平 left 滑动),
+ *   不遮挡画布;叠加中文可爱文本气泡(语料 pet.{zh,en,ja,ko}.js)。
+ * - 交互直接挂在 bichito 画布上(走到哪都能点);频繁点击 → 无奈回应。
+ * - 挂载 bichito()、卸载 destroy();桌面端渲染;respects prefers-reduced-motion。
  */
 
-// 行为时间线(毫秒)
-const SLEEP_MS = 3600
-const WAKE_MS = 1500
-const WALK_STRIDE_MS = 430   // 走一段
-const WALK_PAUSE_MS = 720    // 停一会(走走停停)
+const PET_SIZE = 128
 const SELF_CD_MIN = 9000
 const SELF_CD_MAX = 16000
 const BUBBLE_MS = 3800
-const BARK_CHANCE = 0.55
 const ANNOY_THRESHOLD = 4
 
-/* ── 组件 ──────────────────────────────────────────────── */
 export default function PixelPet() {
   const { i18n } = useTranslation()
   const corpusRef = useRef(getPetCorpus(i18n.language))
   useEffect(() => { corpusRef.current = getPetCorpus(i18n.language) }, [i18n.language])
 
-  const canvasRef = useRef(null)
-  const innerRef = useRef(null)        // 行走位移容器(ref 直写,避免每帧 re-render)
-  const [bubble, setBubble] = useState(null)     // { text, type, id }
-
-  // 动画状态(存 ref,避免每帧 re-render)
+  const holderRef = useRef(null)
+  const bubbleRef = useRef(null)
+  const handlerRef = useRef(() => {})
+  const [bubble, setBubble] = useState(null)
   const S = useRef({
-    x: 0, facing: -1, pose: 'sleep', frame: 0,
-    phase: 'sleep',           // sleep | wake | idle | walk
-    last: 0,                // 上次 rAF 时间
-    elapsed: 0,             // 距睡觉开始
-    walkTimer: 0, idleTimer: 0, selfCd: 0,
-    sleepStart: performance.now(),
-    maxX: 0, clicks: 0, clickReset: 0,
-    reduced: false, lastFacing: -1, seed: Math.floor(Math.random() * 1e6),
+    clicks: 0, clickReset: 0, selfCd: 0,
+    bubbleActive: false, seed: Math.random() * 1e6,
   })
 
-  // 气泡展示 + 计时关闭
   const showBubble = (text, type) => {
-    setBubble({ text, type, id: S.current.seed + (++S.current.frame) })
+    setBubble({ text, type, id: Math.round(S.current.seed + Math.random() * 1e6) })
+    S.current.bubbleActive = true
     clearTimeout(S.current._bt)
-    S.current._bt = setTimeout(() => setBubble(null), BUBBLE_MS)
+    S.current._bt = setTimeout(() => { setBubble(null); S.current.bubbleActive = false }, BUBBLE_MS)
   }
 
-  const render = (g) => {
-    const canvas = canvasRef.current
-    if (!canvas) return
-    const ctx = canvas.getContext('2d')
-    if (!ctx) return // jsdom / 无 canvas 上下文时兜底,避免测试或异常环境崩溃
-    ctx.clearRect(0, 0, PET_W, PET_H)
-    // 落地阴影(软椭圆)
-    ctx.fillStyle = 'rgba(43,36,32,0.14)'
-    ctx.beginPath()
-    ctx.ellipse(PET_W / 2, PET_H - 2, PET_W * 0.36, 4, 0, 0, Math.PI * 2)
-    ctx.fill()
-    // 逐格画珠
-    for (let y = 0; y < GRID_H; y++) {
-      for (let x = 0; x < GRID_W; x++) {
-        const c = g[y][x]
-        if (!c) continue
-        ctx.fillStyle = c
-        ctx.fillRect(x * CELL, y * CELL, CELL - GAP, CELL - GAP)
-        // 顶角轻微高光,增加"豆子"立体感
-        ctx.fillStyle = 'rgba(255,255,255,0.18)'
-        ctx.fillRect(x * CELL + 1, y * CELL + 1, CELL - GAP - 2, 2)
-      }
-    }
-    // 吠叫:嘴前短声波线
-    if (S.current.pose === 'bark') {
-      ctx.strokeStyle = C.outline
-      ctx.lineWidth = 2
-      const t = S.current.frame % 2
-      for (let i = 0; i < 2; i++) {
-        ctx.beginPath()
-        ctx.moveTo(PET_W * 0.62 + i * 7, PET_H * 0.42 + (t ? 1 : 0))
-        ctx.lineTo(PET_W * 0.62 + i * 7 + 8, PET_H * 0.40 + (t ? -3 : 0))
-        ctx.stroke()
-      }
-    }
-  }
-
-  /* ── 主循环:状态机 + 行走 ─────────────────────────── */
   useEffect(() => {
-    const canvas = canvasRef.current
-    if (!canvas) return
-    const s = S.current
-
-    s.maxX = Math.max(0, window.innerWidth - PET_W - 24)
-    s.x = s.maxX                         // 初始在最右侧
-    S.current.facing = -1
-    S.current.reduced = window.matchMedia?.('(prefers-reduced-motion: reduce)')?.matches ?? false
-    S.current.last = performance.now()
-    S.current.sleepStart = performance.now()
-
-    let raf
-    // 用 ref 直写 DOM transform(行走位移 + 朝向镜像),避免每帧 re-render
-    const applyTransform = () => {
-      if (innerRef.current) innerRef.current.style.transform = `translateX(${s.x}px)`
-      if (s.facing !== s.lastFacing) {
-        s.lastFacing = s.facing
-        if (canvasRef.current) canvasRef.current.style.transform = `scaleX(${s.facing === 1 ? -1 : 1})`
-      }
+    const holder = holderRef.current
+    if (!holder) return
+    const reduced = window.matchMedia?.('(prefers-reduced-motion: reduce)')?.matches ?? false
+    // jsdom / 无 canvas 2D 上下文时 bichito 可能抛错,兜底不让整棵应用崩溃(冒烟测试安全)
+    let destroy = () => {}
+    try {
+      destroy = bichito({ pet: 'loki', size: PET_SIZE, container: holder })
+    } catch (e) {
+      destroy = () => {}
     }
-    const tick = (now) => {
-      const dt = Math.min(0.05, (now - S.current.last) / 1000)
-      S.current.last = now
-      const s = S.current
 
-      if (s.reduced) {
-        // 减弱动画:仅停留发声,不走动
-        s.selfCd -= dt * 1000
-        if (s.selfCd <= 0) { showBubble(PICK(corpusRef.current.selfSpeech), 'self'); s.selfCd = rand(SELF_CD_MIN, SELF_CD_MAX) }
-        s.pose = 'idle'
-        render(poseGrid('idle', s.frame))
-        applyTransform()
-        raf = requestAnimationFrame(tick)
-        return
+    // 点击直接挂在 bichito 画布上(它随行走移动,走到哪都能点)
+    const c = holder.querySelector('canvas')
+    const onClick = (e) => handlerRef.current(e)
+    if (c) c.addEventListener('click', onClick)
+
+    if (reduced) return () => { c?.removeEventListener('click', onClick); destroy() }
+
+    // 钉在底部边界:每帧强制 top=下缘,bubble 跟随其水平位置
+    let raf = 0
+    const pin = () => {
+      const cv = holder.querySelector('canvas')
+      if (cv) {
+        const h = cv.offsetHeight || PET_SIZE
+        cv.style.top = `${window.innerHeight - h - 6}px`
+        const left = parseFloat(cv.style.left) || 0
+        const bb = bubbleRef.current
+        if (bb) {
+          bb.style.left = `${left + cv.offsetWidth / 2 - bb.offsetWidth / 2}px`
+          bb.style.top = `${window.innerHeight - h - 6 - bb.offsetHeight - 10}px`
+        }
       }
-
-      switch (s.phase) {
-        case 'sleep': {
-          s.elapsed = now - s.sleepStart
-          const breath = Math.floor(now / 900) % 2 === 0
-          render(poseGrid('sleep', 0, breath))
-          s.frame++
-          if (s.elapsed >= SLEEP_MS) { s.phase = 'wake'; s.walkTimer = 0 }
-          break
-        }
-        case 'wake': {
-          render(poseGrid('shake', s.frame))
-          s.frame++
-          if (s.frame * 1000 / 60 >= WAKE_MS) { s.phase = 'idle'; s.selfCd = rand(2400, 4200) }
-          break
-        }
-        case 'idle': {
-          // 停留:自发放话 + 等待一段时间后开始逛
-          s.selfCd -= dt * 1000
-          if (s.selfCd <= 0) {
-            showBubble(PICK(corpusRef.current.selfSpeech), 'self')
-            s.selfCd = rand(SELF_CD_MIN, SELF_CD_MAX)
-          }
-          if (S.current.reduced) { render(poseGrid('idle', s.frame)); break }
-          s.idleTimer += dt * 1000
-          if (s.idleTimer >= 2600) { s.phase = 'walk'; s.walkTimer = 0; s.idleTimer = 0 }
-          render(poseGrid('idle', s.frame))
-          s.frame++
-          break
-        }
-        case 'walk': {
-          s.walkTimer += dt * 1000
-          const moving = s.walkTimer % (WALK_STRIDE_MS + WALK_PAUSE_MS) < WALK_STRIDE_MS
-          if (moving) {
-            const speed = 55 // css px/s(走得慢)
-            s.x += s.facing * speed * dt
-            render(poseGrid(s.pose === 'bark' ? 'bark' : 'walk', s.frame))
-            s.frame++
-          } else {
-            // 停,站定(汪汪时仍张嘴)
-            render(poseGrid(s.pose === 'bark' ? 'bark' : 'idle', s.frame))
-            s.frame++
-          }
-          // 边缘折返
-          if (s.x <= 0) { s.x = 0; s.facing = 1 }
-          else if (s.x >= s.maxX) { s.x = s.maxX; s.facing = -1 }
-          break
-        }
-        default:
-          render(poseGrid('idle', s.frame))
-      }
-      applyTransform()
-      raf = requestAnimationFrame(tick)
+      raf = requestAnimationFrame(pin)
     }
-    applyTransform()
-    raf = requestAnimationFrame(tick)
-
-    const onResize = () => { s.maxX = Math.max(0, window.innerWidth - PET_W - 24) }
-    window.addEventListener('resize', onResize)
-    return () => {
-      cancelAnimationFrame(raf)
-      window.removeEventListener('resize', onResize)
-      clearTimeout(S.current._bt)
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    raf = requestAnimationFrame(pin)
+    return () => { cancelAnimationFrame(raf); c?.removeEventListener('click', onClick); destroy() }
   }, [])
 
-  /* ── 交互 ──────────────────────────────────────────── */
-  const onHover = () => {
-    if (bubble) return
-    showBubble(PICK(corpusRef.current.hover), 'hover')
-  }
-  const onClick = () => {
+  // 停留时自发放话(用 ref 判断是否已有气泡,避免过期闭合)
+  useEffect(() => {
+    const iv = setInterval(() => {
+      if (S.current.bubbleActive) return
+      S.current.selfCd -= 1500
+      if (S.current.selfCd <= 0) {
+        showBubble(PICK(corpusRef.current.selfSpeech), 'self')
+        S.current.selfCd = SELF_CD_MIN + Math.floor(Math.random() * (SELF_CD_MAX - SELF_CD_MIN))
+      }
+    }, 1500)
+    return () => clearInterval(iv)
+  }, [])
+
+  // 点击:频繁 → 无奈;否则可爱回应
+  const handleClick = (e) => {
+    e?.stopPropagation?.()
     const s = S.current
     s.clicks++
     s.clickReset = performance.now()
-    const moving = s.phase === 'walk' || s.phase === 'wake'
-    // 频繁点击 → 无奈回应
     if (s.clicks >= ANNOY_THRESHOLD) {
       s.clicks = 0
       showBubble(PICK(corpusRef.current.annoyed), 'annoyed')
       return
     }
-    if (moving && Math.random() < BARK_CHANCE) {
-      s.pose = 'bark'
-      showBubble(PICK(corpusRef.current.bark), 'bark')
-      setTimeout(() => { if (s.pose === 'bark') s.pose = s.phase === 'walk' ? 'walk' : 'idle' }, 1100)
-      return
-    }
-    showBubble(PICK(corpusRef.current.clickIdle), 'click')
+    // 走动时点击有几率「汪汪」吠叫;否则可爱回应
+    const text = Math.random() < 0.25 ? PICK(corpusRef.current.bark) : PICK(corpusRef.current.clickIdle)
+    showBubble(text, Math.random() < 0.25 ? 'bark' : 'click')
   }
+  handlerRef.current = handleClick
+
   // 点击间隔过大,重置计数
   useEffect(() => {
     const iv = setInterval(() => {
@@ -226,78 +117,31 @@ export default function PixelPet() {
     return () => clearInterval(iv)
   }, [])
 
-  // 悬浮给出"注意到你"的微反应(头略抬)通过 pose 提示
-  const handleEnter = () => { if (bubble == null) onHover() }
-
   const bubbleClassName = bubble ? `pet-bubble pet-bubble-${bubble.type}` : 'pet-bubble'
 
   return (
     <div className="pet-dock" aria-hidden={false}>
-      <div className="pet-dock-inner" ref={innerRef} style={{ transform: `translateX(${S.current.x}px)` }}>
-        {bubble && (
-          <div key={bubble.id} className={`${bubbleClassName} pet-bubble-visible`}>
-            {bubble.text}
-            <span className="pet-bubble-tail" />
-          </div>
-        )}
-        <div className="pet-canvas-wrap">
-        <canvas
-          ref={canvasRef}
-          width={PET_W}
-          height={PET_H}
-          className="pet-canvas"
-          style={{ transform: `scaleX(${S.current.facing === 1 ? -1 : 1})` }}
-          onMouseEnter={handleEnter}
-          onMouseLeave={() => {}}
-          onClick={onClick}
-          role="button"
-          aria-label="拼豆爱宠豆豆"
-        />
+      <div ref={holderRef} className="pet-holder" />
+      {bubble && (
+        <div ref={bubbleRef} key={bubble.id} className={`${bubbleClassName} pet-bubble-visible`}>
+          {bubble.text}
+          <span className="pet-bubble-tail" />
         </div>
-      </div>
+      )}
       <style>{petCss}</style>
     </div>
   )
 }
 
-function rand(min, max) { return min + Math.floor(Math.random() * (max - min)) }
-
 const petCss = `
-  .pet-dock {
-    position: fixed;
-    left: 0;
-    bottom: 4px;
-    z-index: 1600;
-    pointer-events: none;
-    width: 100%;
-  }
-  .pet-dock-inner {
-    position: relative;
-    width: ${PET_W}px;
-    pointer-events: none;
-    /* 行走位移由组件 translateX 控制 */
-  }
-  .pet-canvas-wrap {
-    pointer-events: auto;
-    cursor: pointer;
-    transition: transform 0.14s;
-  }
-  .pet-canvas-wrap:hover { transform: translateY(-2px); }
-  .pet-canvas {
-    pointer-events: auto;
-    display: block;
-    image-rendering: pixelated;
-    filter: drop-shadow(0 2px 4px rgba(43,36,32,0.18));
-    transition: transform 0.12s; /* 朝向镜像翻转平滑 */
-  }
-  /* 像素风气泡 */
+  .pet-dock { position: fixed; inset: 0; pointer-events: none; z-index: 1600; }
+  .pet-holder { pointer-events: none; }
+  .pet-holder canvas { pointer-events: auto; cursor: pointer; }
   .pet-bubble {
-    position: absolute;
-    left: 50%;
-    bottom: ${PET_H + 10}px;
-    transform: translateX(-50%) scale(0.9);
+    position: fixed;
+    left: 0; top: 0;
+    transform: translateY(4px);
     opacity: 0;
-    transform-origin: bottom center;
     background: #fffdf8;
     border: 2px solid var(--accent);
     box-shadow: 0 0 0 1px #fff inset, 2px 2px 0 1px rgba(43,36,32,0.22);
@@ -312,7 +156,7 @@ const petCss = `
     transition: opacity 0.2s, transform 0.2s;
     font-weight: 500;
   }
-  .pet-bubble-visible { opacity: 1; transform: translateX(-50%) scale(1); }
+  .pet-bubble-visible { opacity: 1; transform: translateY(0); }
   .pet-bubble-tail {
     position: absolute;
     bottom: -8px;
@@ -326,6 +170,6 @@ const petCss = `
   .pet-bubble-bark { background: #fff2ec; border-color: #e08a2b; color: #7a3b1a; }
   .pet-bubble-annoyed { background: #fdeeee; border-color: #cf8a7a; color: #7a3a33; }
   @media (prefers-reduced-motion: reduce) {
-    .pet-canvas-wrap:hover { transform: none; }
+    .pet-holder canvas { display: none; }
   }
 `

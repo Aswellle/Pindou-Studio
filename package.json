@@ -20,6 +20,7 @@
     "@supabase/supabase-js": "^2.112.0",
     "@vercel/analytics": "^2.0.1",
     "@vercel/speed-insights": "^2.0.0",
+    "bichito": "^0.1.0",
     "dexie": "^4.4.2",
     "i18next": "^26.0.5",
     "lucide-react": "^1.28.0",
