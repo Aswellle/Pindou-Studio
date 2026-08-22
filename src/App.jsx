@@ -21,7 +21,6 @@ import useCloudTemplates from './hooks/useCloudTemplates'
 import MobileColorPalette from './components/ColorPalette/MobileColorPalette'
 import { getPalette, PALETTES } from './data/palettes'
 import { PrivacyPolicy, TermsOfService } from './components/LegalPages'
-import PixelPet from './components/PixelPet'
 import MobileCanvasInfoBar from './components/MobileCanvasInfoBar'
 
 const Gallery = lazy(() => import('./components/Gallery'))
@@ -893,8 +892,6 @@ export default function App() {
     <>
       {seoHelmet}
       {isMobile || isTablet ? renderMobileLayout() : renderDesktopLayout()}
-      {/* 拼豆爱宠「豆豆」:仅桌面端,漂浮于视口底部边界线上 */}
-      {!(isMobile || isTablet) && <PixelPet />}
     </>
   )
 }
