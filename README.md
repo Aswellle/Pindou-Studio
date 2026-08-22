@@ -103,13 +103,13 @@ npm run check-i18n     # 验证 4 个语言文件键名一致性
 
 | 层 | 技术 |
 |----|------|
-| 框架 | React 18 + Vite 5 + React Router 7(路径路由) |
+| 框架 | React 18 + Vite 6 + React Router 7(路径路由) |
 | 样式 | Tailwind CSS v4 + 手作暖调设计令牌(CSS 变量) |
 | 云端 | Supabase(PostgreSQL + Auth + Storage + 邮件 OTP) |
 | 国际化 | react-i18next,4 语言全量覆盖(UI + 教程 + 导出件) |
 | 颜色科学 | CIEDE2000(Lab 空间)+ K-means++(Web Worker) |
 | 状态管理 | React `useState` / `useReducer`(无全局 store) |
-| 测试 | Vitest + @testing-library/react,71 用例 |
+| 测试 | Vitest + @testing-library/react,75 用例 |
 | 部署 | Vercel(push 到 main 自动部署)+ Supabase |
 
 ---
@@ -141,7 +141,7 @@ handleQuantizerApply:品牌 ID('P18')→ resolveToHex() → hex('#F0B08A') → c
 npm run test:run
 ```
 
-当前 **71 个用例 / 6 个文件**,覆盖:
+当前 **75 个用例 / 7 个文件**,覆盖:
 
 | 文件 | 覆盖 |
 |------|------|
@@ -151,6 +151,7 @@ npm run test:run
 | `useCanvasPainter.test.js` | 双层 Canvas 绘制、attach 时重绘、overlay 增删 |
 | `templates.test.js` | 模板 JSON 校验 12 例(颜色归一化/矩形/错误分支) |
 | `Canvas.test.jsx` | 组件级:网格渲染、点击填色、pinch 不误填色回归 |
+| `App.test.jsx` | App 冒烟测试:完整组件树渲染(MemoryRouter + HelmetProvider,canvas/matchMedia mock)——捕捉"漏 import → ReferenceError"的生产白屏 |
 
 ---
 
