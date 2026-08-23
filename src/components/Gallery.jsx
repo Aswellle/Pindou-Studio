@@ -629,26 +629,28 @@ export default function Gallery({ onLoadTemplate, onDeleteWork, onLoadWork, save
       {pendingLoad && createPortal(
         <div className="load-confirm-overlay" onClick={() => setPendingLoad(null)}>
           <div className="load-confirm-modal" onClick={e => e.stopPropagation()}>
-            <h3 className="load-confirm-title">{t('gallery.loadConfirmTitle')}</h3>
             <div className="load-confirm-preview">
               <ThumbnailCanvas pattern={pendingLoad.pattern} size={pendingLoad.size} />
             </div>
-            <p className="load-confirm-body">
-              {t('gallery.loadConfirmBody', {
-                name: pendingLoad.name ? (pendingLoad.nameZh || pendingLoad.name) : t(`templates.names.${pendingLoad.nameKey}`, pendingLoad.nameKey),
-                size: pendingLoad.size,
-              })}
-            </p>
-            <div className="load-confirm-actions">
-              <button className="load-confirm-cancel" onClick={() => setPendingLoad(null)}>
-                {t('common.cancel')}
-              </button>
-              <button
-                className="load-confirm-ok"
-                onClick={() => { const tpl = pendingLoad; setPendingLoad(null); handleTemplateLoad(tpl) }}
-              >
-                {t('gallery.loadToCanvas')}
-              </button>
+            <div className="load-confirm-info">
+              <h3 className="load-confirm-title">{t('gallery.loadConfirmTitle')}</h3>
+              <p className="load-confirm-body">
+                {t('gallery.loadConfirmBody', {
+                  name: pendingLoad.name ? (pendingLoad.nameZh || pendingLoad.name) : t(`templates.names.${pendingLoad.nameKey}`, pendingLoad.nameKey),
+                  size: pendingLoad.size,
+                })}
+              </p>
+              <div className="load-confirm-actions">
+                <button className="load-confirm-cancel" onClick={() => setPendingLoad(null)}>
+                  {t('common.cancel')}
+                </button>
+                <button
+                  className="load-confirm-ok"
+                  onClick={() => { const tpl = pendingLoad; setPendingLoad(null); handleTemplateLoad(tpl) }}
+                >
+                  {t('gallery.loadToCanvas')}
+                </button>
+              </div>
             </div>
           </div>
         </div>,
@@ -1118,7 +1120,7 @@ export default function Gallery({ onLoadTemplate, onDeleteWork, onLoadWork, save
           color: var(--accent);
           font-weight: 600;
         }
-        /* 填充模板确认对话框:居中模态,防误触 */
+        /* 填充模板确认对话框:桌面式两栏(左侧方形大预览 | 右侧信息+操作),防误触 */
         .load-confirm-overlay {
           position: fixed;
           inset: 0;
@@ -1131,47 +1133,57 @@ export default function Gallery({ onLoadTemplate, onDeleteWork, onLoadWork, save
           box-sizing: border-box;
         }
         .load-confirm-modal {
+          display: flex;
           background: var(--bg-primary);
-          border-radius: 12px;
-          padding: 20px;
-          max-width: 300px;
+          border-radius: 14px;
+          overflow: hidden;
+          max-width: 560px; /* PC 阅读合适的宽度,告别 300px 的"手机感" */
           width: 100%;
           box-shadow: var(--shadow-card);
-          text-align: center;
-        }
-        .load-confirm-title {
-          font-size: var(--text-lg);
-          font-weight: var(--font-weight-semibold);
-          margin: 0 0 12px;
-          color: var(--text-primary);
         }
         .load-confirm-preview {
+          flex: 0 0 44%;
           background: var(--bg-secondary);
-          border-radius: 8px;
-          padding: 12px;
           display: flex;
-          justify-content: center;
           align-items: center;
-          margin-bottom: 12px;
-          min-height: 120px;
+          justify-content: center;
+          padding: 20px;
+          aspect-ratio: 1 / 1; /* 方形预览区,各尺寸模板等大展示 */
         }
         .load-confirm-preview canvas {
           image-rendering: pixelated;
-          max-width: 100%;
+          width: 100%;   /* 双向铺满方形预览,29×29 也放大,与 57×57 视觉一致 */
+          height: 100%;
+          display: block;
+        }
+        .load-confirm-info {
+          flex: 1;
+          min-width: 0;
+          padding: 24px;
+          display: flex;
+          flex-direction: column;
+          justify-content: center;
+          text-align: left;
+        }
+        .load-confirm-title {
+          font-size: var(--text-xl);
+          font-weight: var(--font-weight-semibold);
+          margin: 0 0 10px;
+          color: var(--text-primary);
         }
         .load-confirm-body {
           font-size: var(--text-md);
           color: var(--text-secondary);
-          margin: 0 0 16px;
+          margin: 0 0 20px;
           line-height: 1.5;
         }
         .load-confirm-actions {
           display: flex;
           gap: 10px;
-          justify-content: center;
+          justify-content: flex-start;
         }
         .load-confirm-actions button {
-          padding: 8px 20px;
+          padding: 9px 22px;
           border-radius: 8px;
           border: none;
           cursor: pointer;
@@ -1191,6 +1203,27 @@ export default function Gallery({ onLoadTemplate, onDeleteWork, onLoadWork, save
         }
         .load-confirm-ok:hover {
           background: var(--accent-hover);
+        }
+        @media (max-width: 640px) {
+          .load-confirm-modal {
+            flex-direction: column;
+            max-width: 320px;
+          }
+          .load-confirm-preview {
+            flex: none;
+            width: 100%;
+            aspect-ratio: auto;
+            min-height: 130px;
+            padding: 12px;
+          }
+          .load-confirm-info {
+            text-align: center;
+            justify-content: flex-start;
+            padding: 16px;
+          }
+          .load-confirm-actions {
+            justify-content: center;
+          }
         }
         .template-category {
           font-size: var(--text-xs);
