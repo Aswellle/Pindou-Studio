@@ -65,11 +65,15 @@ export default function Tools({
   return (
     <div className={`tools-drawer ${collapsed ? 'collapsed' : ''}`}>
       <button
-        className="drawer-toggle left-toggle"
+        className={`drawer-toggle left-toggle${collapsed ? ' is-collapsed' : ''}`}
         onClick={onToggleCollapse}
         title={collapsed ? t('tools.expand') : t('tools.collapse')}
+        aria-expanded={!collapsed}
+        aria-controls="tools-drawer"
+        aria-label={collapsed ? t('tools.expand') : t('tools.collapse')}
       >
         {collapsed ? <ChevronRight size={16} /> : <ChevronLeft size={16} />}
+        <span className="drawer-toggle-label">{collapsed ? t('tools.expand') : t('tools.collapse')}</span>
       </button>
 
       <div className="tools-content">
@@ -199,32 +203,46 @@ export default function Tools({
         .tools-content {
           transition: opacity 0.2s ease, visibility 0.2s ease;
         }
-        .drawer-toggle {
+        /* 作用域限定在 .tools-drawer,避免与 ColorPalette 的同名 .drawer-toggle 全局样式串扰
+           (此前 ColorPalette 的 left:-12px 泄漏到左栏,把按钮挤到屏幕外) */
+        .tools-drawer .drawer-toggle {
           position: absolute;
-          top: 50%;
-          right: -12px;
-          transform: translateY(-50%);
-          width: 24px;
-          height: 48px;
-          border-radius: 0 8px 8px 0;
+          top: 10px;
+          right: 10px;
+          z-index: 12;
+          height: 30px;
+          padding: 0 10px;
+          border-radius: 999px;
           background: var(--bg-primary);
           border: 1px solid var(--border-color);
-          border-left: none;
+          box-shadow: 0 1px 4px rgba(43,36,32,0.14);
           display: flex;
           align-items: center;
-          justify-content: center;
+          gap: 5px;
           cursor: pointer;
-          z-index: 10;
-          transition: all 0.2s ease;
+          font-family: inherit;
+          font-size: 12px;
+          font-weight: 600;
           color: var(--text-secondary);
+          white-space: nowrap;
+          transition: all 0.2s ease;
         }
-        .drawer-toggle:hover {
-          background: var(--bg-secondary);
-          color: var(--text-primary);
+        .tools-drawer .drawer-toggle .drawer-toggle-label { line-height: 1; }
+        .tools-drawer .drawer-toggle:hover {
+          background: var(--accent-soft);
+          border-color: var(--accent);
+          color: var(--accent);
+          transform: scale(1.04);
         }
-        .drawer-toggle.left-toggle {
-          right: -12px;
+        /* 收起(窄条)时:按钮居中置顶,只留箭头,文字标签隐藏 */
+        .tools-drawer.collapsed .drawer-toggle {
+          top: 10px;
+          right: 50%;
+          transform: translateX(50%);
+          padding: 0 9px;
         }
+        .tools-drawer.collapsed .drawer-toggle:hover { transform: translateX(50%) scale(1.04); }
+        .tools-drawer.collapsed .drawer-toggle-label { display: none; }
         .tools-title {
           font-size: var(--text-md);
           font-weight: var(--font-weight-semibold);

@@ -51,9 +51,12 @@ export default function ColorPalette({ selectedColor, onColorSelect, collapsed, 
   return (
     <div className={`palette-drawer ${collapsed ? 'collapsed' : ''}`}>
       <button
-        className="drawer-toggle right-toggle"
+        className={`drawer-toggle right-toggle${collapsed ? ' is-collapsed' : ''}`}
         onClick={onToggleCollapse}
         title={collapsed ? t('palette.expand') : t('palette.collapse')}
+        aria-expanded={!collapsed}
+        aria-controls="palette-drawer"
+        aria-label={collapsed ? t('palette.expand') : t('palette.collapse')}
       >
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
           {collapsed ? (
@@ -62,6 +65,7 @@ export default function ColorPalette({ selectedColor, onColorSelect, collapsed, 
             <path d="M9 18l6-6-6-6"/>
           )}
         </svg>
+        <span className="drawer-toggle-label">{collapsed ? t('palette.expand') : t('palette.collapse')}</span>
       </button>
 
       <div className="palette-inner">
@@ -144,32 +148,44 @@ export default function ColorPalette({ selectedColor, onColorSelect, collapsed, 
           flex-shrink: 0;
           padding: 16px 16px 12px;
         }
-        .drawer-toggle {
+        /* 作用域限定在 .palette-drawer,避免与 Tools 的同名 .drawer-toggle 串扰 */
+        .palette-drawer .drawer-toggle {
           position: absolute;
-          top: 50%;
-          left: -12px;
-          transform: translateY(-50%);
-          width: 24px;
-          height: 48px;
-          border-radius: 8px 0 0 8px;
+          top: 10px;
+          right: 10px;
+          z-index: 12;
+          height: 30px;
+          padding: 0 10px;
+          border-radius: 999px;
           background: var(--bg-primary);
           border: 1px solid var(--border-color);
-          border-right: none;
+          box-shadow: 0 1px 4px rgba(43,36,32,0.14);
           display: flex;
           align-items: center;
-          justify-content: center;
+          gap: 5px;
           cursor: pointer;
-          z-index: 10;
-          transition: all 0.2s ease;
+          font-family: inherit;
+          font-size: 12px;
+          font-weight: 600;
           color: var(--text-secondary);
+          white-space: nowrap;
+          transition: all 0.2s ease;
         }
-        .drawer-toggle:hover {
-          background: var(--bg-secondary);
-          color: var(--text-primary);
+        .palette-drawer .drawer-toggle .drawer-toggle-label { line-height: 1; }
+        .palette-drawer .drawer-toggle:hover {
+          background: var(--accent-soft);
+          border-color: var(--accent);
+          color: var(--accent);
+          transform: scale(1.04);
         }
-        .drawer-toggle.right-toggle {
-          left: -12px;
+        .palette-drawer.collapsed .drawer-toggle {
+          top: 10px;
+          right: 50%;
+          transform: translateX(50%);
+          padding: 0 9px;
         }
+        .palette-drawer.collapsed .drawer-toggle:hover { transform: translateX(50%) scale(1.04); }
+        .palette-drawer.collapsed .drawer-toggle-label { display: none; }
         .palette-title {
           font-size: var(--text-md);
           font-weight: var(--font-weight-semibold);
