@@ -794,8 +794,13 @@ export default function Gallery({ onLoadTemplate, onDeleteWork, onLoadWork, save
         }
         .templates-grid {
           display: grid;
-          grid-template-columns: repeat(3, 1fr);
+          grid-template-columns: repeat(4, 1fr);
           gap: 20px;
+        }
+        @media (max-width: 1024px) {
+          .templates-grid {
+            grid-template-columns: repeat(3, 1fr);
+          }
         }
         @media (max-width: 640px) {
           .gallery-page {
@@ -852,9 +857,10 @@ export default function Gallery({ onLoadTemplate, onDeleteWork, onLoadWork, save
         }
         .template-thumbnail canvas {
           image-rendering: pixelated;
-          /* 预览随卡片宽度缩放、恒方形(图案均为 size×size):
-             57×57 的 456px 画布不再溢出/撑高卡片,所有卡片缩略图尺寸统一 */
-          max-width: 100%;
+          /* 预览双向铺满:width:100% 让 29×29 的 232px 也放大到卡宽 ——
+             此前 max-width 只缩不放,小图(29×29)预览明显小于大图(57×57),
+             这是批次不一致的根因;height:auto 保持方形,配合 pixelated 放大不糊 */
+          width: 100%;
           height: auto;
           display: block;
         }
@@ -1014,6 +1020,7 @@ export default function Gallery({ onLoadTemplate, onDeleteWork, onLoadWork, save
           font-size: var(--text-lg);
           font-weight: var(--font-weight-semibold);
           margin-bottom: 4px;
+          min-height: 1.35em; /* 预留单行高度,名称长短不一也能让卡片信息区等高 */
         }
         .template-meta {
           display: flex;
