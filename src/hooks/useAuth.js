@@ -124,15 +124,15 @@ export function useAuth() {
     })
   }
 
-  // 登录门禁:查询账号是否被删除/封禁,用于登录失败时给出明确提示
+  // 登录门禁:查询账号是否被删除/冻结(含剩余冻结天数),用于登录失败时给出明确提示
   const accountStatus = useCallback(async (email, username) => {
-    if (!supabase) return 'none'
+    if (!supabase) return { status: 'none', frozenDays: null }
     try {
       const { data, error } = await supabase.rpc('user_account_status', { p_email: email || null, p_username: username || null })
-      if (error) return 'none'
-      return data || 'none'
+      if (error) return { status: 'none', frozenDays: null }
+      return { status: data?.status || 'none', frozenDays: data?.frozen_days ?? null }
     } catch {
-      return 'none'
+      return { status: 'none', frozenDays: null }
     }
   }, [])
 
@@ -140,10 +140,10 @@ export function useAuth() {
     if (!supabase) throw new Error('CLOUD_NOT_CONFIGURED')
     const { error } = await supabase.auth.signInWithPassword({ email, password })
     if (error) {
-      // 被删除 / 封禁的账号:给出明确提示
+      // 被删除 / 冻结的账号:给出明确提示(含冻结期限)
       const st = await accountStatus(email, null)
-      if (st === 'banned') throw new Error('ACCOUNT_BANNED')
-      if (st === 'deleted') throw new Error('ACCOUNT_DELETED')
+      if (st.status === 'banned') throw new Error(`ACCOUNT_FROZEN:${st.frozenDays ?? 7}`)
+      if (st.status === 'deleted') throw new Error('ACCOUNT_DELETED')
       throw error
     }
     // 登录状态由 onAuthStateChange 统一更新
@@ -258,17 +258,17 @@ export function useAuth() {
     if (!supabase) throw new Error('CLOUD_NOT_CONFIGURED')
     const { data, error: resolveError } = await supabase.rpc('resolve_auth_email', { p_username: (username || '').toLowerCase() })
     if (resolveError || !data) {
-      // 已删除 / 封禁的自定义账号:给出明确提示
+      // 已删除 / 冻结的自定义账号:给出明确提示
       const st = await accountStatus(null, username)
-      if (st === 'deleted') throw new Error('ACCOUNT_DELETED')
-      if (st === 'banned') throw new Error('ACCOUNT_BANNED')
+      if (st.status === 'deleted') throw new Error('ACCOUNT_DELETED')
+      if (st.status === 'banned') throw new Error(`ACCOUNT_FROZEN:${st.frozenDays ?? 7}`)
       throw new Error('USERNAME_NOT_FOUND')
     }
     const { error } = await supabase.auth.signInWithPassword({ email: data, password })
     if (error) {
       const st = await accountStatus(data, null)
-      if (st === 'banned') throw new Error('ACCOUNT_BANNED')
-      if (st === 'deleted') throw new Error('ACCOUNT_DELETED')
+      if (st.status === 'banned') throw new Error(`ACCOUNT_FROZEN:${st.frozenDays ?? 7}`)
+      if (st.status === 'deleted') throw new Error('ACCOUNT_DELETED')
       throw error
     }
   }, [accountStatus])

@@ -91,6 +91,11 @@ export default function AuthPage({
   }, [forgotCooldown])
 
   const errMsg = (code) => {
+    // 冻结账号:给出冻结期限(如 ACCOUNT_FROZEN:7)
+    if (code && code.startsWith('ACCOUNT_FROZEN:')) {
+      const days = Number(code.split(':')[1]) || 7
+      return t('errors.accountFrozen', { days })
+    }
     const map = {
       PASSWORD_MISMATCH: 'errors.passwordMismatch',
       PASSWORD_TOO_SHORT: 'errors.passwordTooShort',
@@ -101,7 +106,6 @@ export default function AuthPage({
       USERNAME_TAKEN: 'errors.usernameTaken',
       USERNAME_NOT_FOUND: 'errors.usernameNotFound',
       INVALID_SECURITY_KEY: 'errors.invalidSecurityKey',
-      ACCOUNT_BANNED: 'errors.accountBanned',
       ACCOUNT_DELETED: 'errors.accountDeleted',
       INVALID_CREDENTIALS: 'errors.invalidCredentials',
     }

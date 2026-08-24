@@ -34,8 +34,8 @@ export default function UserManager() {
     setStats(data[0] || null)
   }, [])
 
-  const loadUsers = useCallback(async () => {
-    setLoading(true)
+  const loadUsers = useCallback(async (silent = false) => {
+    if (!silent) setLoading(true)
     setError('')
     const { data, error: err } = await supabase.rpc('admin_list_users', {
       search: search.trim(),
@@ -48,7 +48,7 @@ export default function UserManager() {
     } else {
       setUsers(data || [])
     }
-    setLoading(false)
+    if (!silent) setLoading(false)
   }, [search, page])
 
   // 执行 删除 / 锁定 / 解锁(需确认后)
@@ -83,6 +83,18 @@ export default function UserManager() {
     const timer = setTimeout(loadUsers, 300)
     return () => clearTimeout(timer)
   }, [loadUsers])
+
+  // 实时刷新:新用户注册(profiles 插入)或后台删除/锁定/解锁后,自动刷新统计与列表,
+  // 无需手动刷新页面或切换 tab。静默刷新(不闪 loading)。
+  useEffect(() => {
+    let t
+    const reload = () => { clearTimeout(t); t = setTimeout(() => { loadStats(); loadUsers(true) }, 400) }
+    const ch = supabase
+      .channel('users-realtime')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'profiles' }, reload)
+      .subscribe()
+    return () => { clearTimeout(t); supabase.removeChannel(ch) }
+  }, [loadStats, loadUsers])
 
   // 最近登录:近 1 分钟视为"在线中"(绿点标记),否则展示本地化日期时间
   const renderLastSignIn = (ts) => {

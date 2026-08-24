@@ -66,6 +66,37 @@ export default function useCloudTemplates() {
     if (enabled) loadAll()
   }, [enabled, loadAll])
 
+  // 静默刷新:重拉模板/分类,不切换 loading(供实时订阅/后台操作后刷新)
+  const refresh = useCallback(async () => {
+    if (!supabase) return
+    try {
+      const [tplRes, catRes] = await Promise.all([
+        supabase.from('templates').select('*').order('source').order('created_at'),
+        supabase.from('categories').select('*').order('id'),
+      ])
+      if (tplRes.error) throw tplRes.error
+      if (catRes.error) throw catRes.error
+      setTemplates(tplRes.data.map(rowToTemplate))
+      setCategories(catRes.data)
+      setError('')
+    } catch (e) {
+      setError(e.message || String(e))
+    }
+  }, [])
+
+  // 实时订阅:模板/分类被增删改(管理员操作或他人)时自动刷新,无需手动刷新/切 tab
+  useEffect(() => {
+    if (!enabled || !supabase) return
+    let t
+    const trigger = () => { clearTimeout(t); t = setTimeout(() => refresh(), 400) }
+    const ch = supabase
+      .channel('tpl-realtime')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'templates' }, trigger)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'categories' }, trigger)
+      .subscribe()
+    return () => { clearTimeout(t); supabase.removeChannel(ch) }
+  }, [enabled, refresh])
+
   // ── 模板 CRUD(写操作由 RLS 限制为 admin) ──────────────────
   const addTemplate = useCallback(async (input) => {
     if (!supabase) return { ok: false, errors: [{ code: 'cloudNotConfigured' }] }
@@ -152,6 +183,7 @@ export default function useCloudTemplates() {
     categories,
     error,
     loadAll,
+    refresh,
     addTemplate,
     updateTemplate,
     deleteTemplate,
