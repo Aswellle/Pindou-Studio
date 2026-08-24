@@ -13,10 +13,10 @@ const resources = {
 }
 
 export const LANGUAGES = [
-  { code: 'zh-CN', name: '简体中文', nativeName: '简体中文' },
-  { code: 'en-US', name: 'English', nativeName: 'English' },
-  { code: 'ja-JP', name: 'Japanese', nativeName: '日本語' },
-  { code: 'ko-KR', name: 'Korean', nativeName: '한국어' },
+  { code: 'zh-CN', name: '简体中文', nativeName: '简体中文', flag: '🇨🇳' },
+  { code: 'en-US', name: 'English', nativeName: 'English', flag: '🇺🇸' },
+  { code: 'ja-JP', name: 'Japanese', nativeName: '日本語', flag: '🇯🇵' },
+  { code: 'ko-KR', name: 'Korean', nativeName: '한국어', flag: '🇰🇷' },
 ]
 
 export function getLanguageByCode(code) {
