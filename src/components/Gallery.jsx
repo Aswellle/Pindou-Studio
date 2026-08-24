@@ -1147,7 +1147,7 @@ export default function Gallery({ onLoadTemplate, onDeleteWork, onLoadWork, save
           display: flex;
           align-items: center;
           justify-content: center;
-          padding: 26px;
+          padding: 0;   /* 去内边距:预览图铺满预览区,沉浸感;圆角由模态框 overflow:hidden 裁切 */
           aspect-ratio: 1 / 1; /* 方形预览区,各尺寸模板等大且更大展示 */
         }
         .load-confirm-preview canvas {
