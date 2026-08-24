@@ -235,25 +235,25 @@
    底部工具栏变大后相应抬高色卡,展开色卡更高以利用大屏纵向空间 */
 @media (min-width: 640px) and (max-width: 1023px) {
   .mobile-color-palette {
-    bottom: calc(140px + env(safe-area-inset-bottom, 0px));
-    padding: 16px 20px;
+    bottom: calc(124px + env(safe-area-inset-bottom, 0px));
+    padding: 14px 18px;
   }
   .current-color-btn {
-    min-height: 52px;
+    min-height: 48px;
     border-radius: 10px;
-    padding: 10px 16px;
+    padding: 8px 14px;
   }
   .color-preview {
-    width: 40px;
-    height: 40px;
+    width: 36px;
+    height: 36px;
     border-radius: 8px;
   }
   .palette-expanded {
-    max-height: 320px;
+    max-height: 300px;
   }
   .color-swatch-item .color-swatch {
-    width: 44px;
-    height: 44px;
+    width: 40px;
+    height: 40px;
   }
   .color-swatch-label {
     font-size: 12px;

@@ -1,3 +1,40 @@
+/* ── PC(≥1024px):原生 select 文字下拉 ─────────────────────── */
+.language-selector {
+  position: relative;
+}
+
+.language-select {
+  appearance: none;
+  background: transparent;
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  padding: 8px 32px 8px 12px;
+  font-size: var(--text-base);
+  font-family: inherit;
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: all 0.2s;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%23666' stroke-width='2'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 8px center;
+}
+
+.language-select:hover {
+  border-color: var(--accent);
+  color: var(--text-primary);
+}
+
+.language-select:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+
+.language-select option {
+  background: var(--bg-primary);
+  color: var(--text-primary);
+}
+
+/* ── 平板(640–1023px):国旗按钮 + 弹出菜单 ─────────────────── */
 .lang-select {
   position: relative;
   display: inline-flex;
@@ -27,6 +64,33 @@
   background: var(--accent-soft);
 }
 
+/* ── 手机(<640px):地球图标按钮(compact)────────────────────── */
+.lang-compact {
+  position: relative;
+  display: inline-flex;
+}
+
+.lang-globe-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  border: 1px solid var(--border-color);
+  background: var(--bg-secondary);
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.lang-globe-btn:hover {
+  color: var(--accent);
+  border-color: var(--accent);
+  background: var(--accent-soft);
+}
+
+/* ── 弹出菜单(平板国旗 & 手机地球共用)──────────────────────── */
 .lang-menu {
   position: absolute;
   right: 0;
@@ -82,4 +146,11 @@
 
 .lang-menu-item.active .lang-native {
   color: var(--accent);
+}
+
+/* 手机菜单:语言英文名右对齐(平板国旗菜单无此元素,不受影响) */
+.lang-name {
+  margin-left: auto;
+  font-size: 11px;
+  color: var(--text-muted);
 }

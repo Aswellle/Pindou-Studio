@@ -603,7 +603,7 @@ input:focus, textarea:focus, button:focus {
 @media (min-width: 640px) and (max-width: 1023px) {
   .mobile-canvas-area {
     padding: 12px;
-    padding-bottom: calc(8px + 196px);
+    padding-bottom: calc(8px + 172px);
   }
 }
 

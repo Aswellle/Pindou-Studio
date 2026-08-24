@@ -803,24 +803,12 @@ const Canvas = forwardRef(function Canvas({
         }
         .canvas-info:hover { opacity: 1; }
         .canvas-info .info-divider { opacity: 0.5; }
-        /* 手机(<640px)：隐藏画布悬浮胶囊，由顶部 MobileCanvasInfoBar 横幅替代 */
+        /* 手机(<640px)：隐藏画布悬浮胶囊，由顶部 MobileCanvasInfoBar 横幅替代。
+           平板(≥640px)沿用与 PC 相同的悬浮胶囊样式(半透明 0.65、hover 变清晰),
+           不做额外放大，保持与移动端/PC 一致的观感 */
         @media (max-width: 639px) {
           .canvas-info {
             display: none !important;
-          }
-        }
-        /* 平板(640–1023px)：悬浮胶囊作为主要控件常驻——触屏无 hover 态，
-           取消半透明、放大按钮，避免与手机横幅重复 */
-        @media (min-width: 640px) and (max-width: 1023px) {
-          .canvas-info {
-            opacity: 1;
-            padding: 8px 16px;
-            font-size: var(--text-base);
-          }
-          .canvas-info .reset-btn,
-          .canvas-info .fit-btn {
-            padding: 6px 14px;
-            font-size: var(--text-sm);
           }
         }
         .reset-btn {
