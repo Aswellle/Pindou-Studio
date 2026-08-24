@@ -237,3 +237,50 @@
   border-top-color: var(--secondary-accent);
   bottom: -4px;
 }
+
+/* ── 平板(640–1023px)底部工具栏适配 ──────────────────────────
+   大屏幕触屏不再沿用手机的紧凑小圆钮(尖锐突兀),改为更大的触控目标、
+   更柔和的圆角与更宽松的间距,观感与桌面端统一、舒适 */
+@media (min-width: 640px) and (max-width: 1023px) {
+  .mobile-toolbar {
+    padding: 10px 20px;
+    padding-bottom: calc(10px + env(safe-area-inset-bottom, 0px));
+    gap: 8px;
+  }
+  .toolbar-tools .tool-btn {
+    min-height: 52px;
+    border-radius: 12px;
+    padding: 8px 12px;
+  }
+  .toolbar-tools .tool-btn .tool-icon svg {
+    width: 22px;
+    height: 22px;
+  }
+  .toolbar-tools .tool-btn .tool-label {
+    font-size: var(--text-sm);
+  }
+  .toolbar-actions {
+    gap: 10px;
+  }
+  .toolbar-actions .action-btn {
+    min-width: 48px;
+    height: 48px;
+    border-radius: 14px;
+  }
+  .action-btn.text-btn {
+    height: 48px;
+    padding: 0 16px;
+    border-radius: 22px;
+    gap: 6px;
+    font-size: var(--text-base);
+  }
+  .action-btn.text-btn svg {
+    width: 18px;
+    height: 18px;
+  }
+  .magic-sparkle {
+    top: 4px;
+    right: 6px;
+    font-size: 12px;
+  }
+}

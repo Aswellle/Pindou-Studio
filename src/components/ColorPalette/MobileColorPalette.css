@@ -230,3 +230,32 @@
   color: var(--accent-hover);
   font-weight: var(--font-weight-semibold);
 }
+
+/* ── 平板(640–1023px)色卡适配 ──────────────────────────────
+   底部工具栏变大后相应抬高色卡,展开色卡更高以利用大屏纵向空间 */
+@media (min-width: 640px) and (max-width: 1023px) {
+  .mobile-color-palette {
+    bottom: calc(140px + env(safe-area-inset-bottom, 0px));
+    padding: 16px 20px;
+  }
+  .current-color-btn {
+    min-height: 52px;
+    border-radius: 10px;
+    padding: 10px 16px;
+  }
+  .color-preview {
+    width: 40px;
+    height: 40px;
+    border-radius: 8px;
+  }
+  .palette-expanded {
+    max-height: 320px;
+  }
+  .color-swatch-item .color-swatch {
+    width: 44px;
+    height: 44px;
+  }
+  .color-swatch-label {
+    font-size: 12px;
+  }
+}

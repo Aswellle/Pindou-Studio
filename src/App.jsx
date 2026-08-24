@@ -604,7 +604,7 @@ export default function App() {
           onPageChange={handlePageChange}
           onUpdateProfile={updateProfile}
           onChangePassword={changePassword}
-          simplified
+          simplified={isMobile}
         />
       )}
 
@@ -612,14 +612,18 @@ export default function App() {
         <Route path="/login" element={renderAuthPage()} />
         <Route path="/" element={
           <>
-            <MobileCanvasInfoBar
-              gridSize={gridSize}
-              gridWidth={gridWidth}
-              gridHeight={gridHeight}
-              scale={mobileScale}
-              onReset={() => canvasRef.current?.resetTransform()}
-              onFit={() => canvasRef.current?.fitToScreen()}
-            />
+            {/* 平板(≥640px)用画布内悬浮胶囊展示尺寸/缩放/重置/适应,
+                不再渲染手机版顶部横幅,避免与 Canvas 的 .canvas-info 重复 */}
+            {isMobile && (
+              <MobileCanvasInfoBar
+                gridSize={gridSize}
+                gridWidth={gridWidth}
+                gridHeight={gridHeight}
+                scale={mobileScale}
+                onReset={() => canvasRef.current?.resetTransform()}
+                onFit={() => canvasRef.current?.fitToScreen()}
+              />
+            )}
             <div className="mobile-canvas-area">
               <Canvas
                 {...canvasProps}

@@ -599,6 +599,14 @@ input:focus, textarea:focus, button:focus {
   padding-bottom: calc(8px + 64px);
 }
 
+/* 平板(640–1023px)：底部工具栏更大、色卡条更高，为画布预留更大底部空间 */
+@media (min-width: 640px) and (max-width: 1023px) {
+  .mobile-canvas-area {
+    padding: 12px;
+    padding-bottom: calc(8px + 196px);
+  }
+}
+
 /* 图库 / 教程页面在移动端的容器：占满 header 和底部工具栏之间的空间，自行滚动 */
 .mobile-page-area {
   flex: 1;

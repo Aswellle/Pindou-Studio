@@ -289,6 +289,23 @@ export default function Header({ user, onLogin, onRegister, onLogout, onSave, cu
           align-items: center;
           justify-content: center;
         }
+        /* 平板(640–1023px)使用完整头栏(LOGO + 站点名 + 文字导航),
+           适当收紧间距避免在 768px 宽度下拥挤 */
+        @media (min-width: 640px) and (max-width: 1023px) {
+          .header {
+            padding: 12px 16px;
+          }
+          .header-left,
+          .header-right {
+            gap: 10px;
+          }
+          .nav {
+            gap: 4px;
+          }
+          .nav-link {
+            padding: 8px 12px;
+          }
+        }
       `}</style>
     </header>
   )
