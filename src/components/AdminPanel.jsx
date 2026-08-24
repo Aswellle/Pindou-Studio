@@ -300,9 +300,11 @@ export default function AdminPanel({ user, isAdmin, authLoading, onLogin, onLogo
 
       <style>{`
         .admin-panel {
-          max-width: 860px;
-          margin: 0 auto;
-          padding: 20px 16px 48px;
+          /* 占满整个浏览器视口宽度:去掉窄居中列,表格/卡片完整展示,
+             内部纵向滚动条随之贴近浏览器右侧边界 */
+          max-width: none;
+          margin: 0;
+          padding: 20px 32px 48px;
           font-size: var(--text-base);
           /* 后台全屏布局:在 flex 容器内占满并自持滚动(桌面 main-content 与
              移动端 mobile-layout 均无顶部导航时);scrollbar-gutter 常驻滚动条
@@ -564,12 +566,12 @@ export default function AdminPanel({ user, isAdmin, authLoading, onLogin, onLogo
         }
         .admin-template-row .thumb {
           flex-shrink: 0;
-          width: 112px;
-          height: 112px;
+          width: 132px;
+          height: 132px;
           box-sizing: border-box;
           overflow: hidden;
           background: #fff;
-          border-radius: 10px;
+          border-radius: 12px;
           padding: 6px;
           border: 1px solid var(--border-color);
         }
@@ -769,7 +771,7 @@ export default function AdminPanel({ user, isAdmin, authLoading, onLogin, onLogo
           .admin-grid-2 { grid-template-columns: 1fr; }
           .admin-template-row { flex-wrap: wrap; }
           /* 移动端缩略图略缩小,让 预览图 + 文字挤在一行不至于过挤 */
-          .admin-template-row .thumb { width: 88px; height: 88px; }
+          .admin-template-row .thumb { width: 100px; height: 100px; }
           .admin-header-actions { width: 100%; }
           .admin-account { width: 100%; justify-content: flex-start; }
         }
