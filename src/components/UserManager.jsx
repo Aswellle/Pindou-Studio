@@ -2,23 +2,31 @@ import { useState, useEffect, useCallback } from 'react'
 import { useTranslation } from 'react-i18next'
 import { supabase } from '../services/supabase'
 import LoadingScreen from './LoadingScreen'
+import { useToast } from './Toast'
+import { useAuth } from '../hooks/useAuth'
 
 /**
- * 用户管理面板(管理员只读仪表盘)
- * 合规:仅展示注册元数据(邮箱/昵称/角色/验证状态/注册时间),
+ * 用户管理面板(管理员仪表盘)
+ * 合规:仅展示注册元数据(邮箱/昵称/角色/验证状态/注册时间/注册方式/最近登录/封禁状态),
  * 不包含密码等敏感字段,不收集行为数据;数据经云端 RPC
  * (security definer + is_admin 校验)获取,普通用户调用被拒。
+ * 新增:删除 / 锁定(封禁)/ 解锁违规用户(一致确认框;admin 账号豁免)。
  */
 const PAGE_SIZE = 20
 
 export default function UserManager() {
   const { t } = useTranslation()
+  const toast = useToast()
+  const { adminDeleteUser, adminLockUser, adminUnlockUser } = useAuth()
   const [stats, setStats] = useState(null)
   const [users, setUsers] = useState([])
   const [search, setSearch] = useState('')
   const [page, setPage] = useState(0)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
+  // 待确认的账号操作:{ type:'delete' | 'lock' | 'unlock', user }
+  const [confirm, setConfirm] = useState(null)
+  const [busy, setBusy] = useState(false)
 
   const loadStats = useCallback(async () => {
     const { data, error: err } = await supabase.rpc('admin_user_stats')
@@ -42,6 +50,29 @@ export default function UserManager() {
     }
     setLoading(false)
   }, [search, page])
+
+  // 执行 删除 / 锁定 / 解锁(需确认后)
+  const doAction = async () => {
+    if (!confirm || busy) return
+    setBusy(true)
+    try {
+      if (confirm.type === 'delete') await adminDeleteUser(confirm.user.id)
+      else if (confirm.type === 'lock') await adminLockUser(confirm.user.id)
+      else await adminUnlockUser(confirm.user.id)
+      toast(
+        confirm.type === 'delete' ? t('admin.users.deleted')
+          : confirm.type === 'lock' ? t('admin.users.locked')
+          : t('admin.users.unlocked'),
+        'success'
+      )
+      setConfirm(null)
+      loadUsers()
+    } catch (e) {
+      toast(e?.message || t('admin.users.opFailed'), 'error')
+    } finally {
+      setBusy(false)
+    }
+  }
 
   useEffect(() => {
     loadStats()
@@ -118,6 +149,7 @@ export default function UserManager() {
                   <th>{t('admin.users.registerMethod')}</th>
                   <th>{t('admin.users.registeredAt')}</th>
                   <th>{t('admin.users.lastSignIn')}</th>
+                  <th>{t('admin.users.actions')}</th>
                 </tr>
               </thead>
               <tbody>
@@ -134,6 +166,11 @@ export default function UserManager() {
                       <span className={`users-status ${u.email_confirmed ? 'ok' : 'warn'}`}>
                         {u.email_confirmed ? t('admin.users.verifiedYes') : t('admin.users.verifiedNo')}
                       </span>
+                      {u.banned && (
+                        <span className="users-status warn users-banned" title={t('admin.users.bannedTitle')}>
+                          {t('admin.users.bannedBadge')}
+                        </span>
+                      )}
                     </td>
                     <td>
                       <span className={`users-reg-method ${u.is_custom ? 'custom' : 'email'}`}>
@@ -144,6 +181,21 @@ export default function UserManager() {
                       {new Date(u.created_at).toLocaleDateString(undefined, { year: 'numeric', month: '2-digit', day: '2-digit' })}
                     </td>
                     <td className="users-date">{renderLastSignIn(u.last_sign_in_at)}</td>
+                    <td>
+                      {/* admin 拥有最高权限,不提供 删除/锁定 */}
+                      {u.role !== 'admin' ? (
+                        <div className="users-actions">
+                          <button className="admin-btn secondary small" disabled={busy} onClick={() => setConfirm({ type: u.banned ? 'unlock' : 'lock', user: u })}>
+                            {u.banned ? t('admin.users.unlock') : t('admin.users.lock')}
+                          </button>
+                          <button className="admin-btn danger small" disabled={busy} onClick={() => setConfirm({ type: 'delete', user: u })}>
+                            {t('admin.users.delete')}
+                          </button>
+                        </div>
+                      ) : (
+                        <span className="users-admin-note">—</span>
+                      )}
+                    </td>
                   </tr>
                 ))}
               </tbody>
@@ -161,6 +213,32 @@ export default function UserManager() {
           </button>
         </div>
       </div>
+
+      {/* 删除 / 锁定 / 解锁 确认对话框 */}
+      {confirm && (
+        <div className="users-confirm-overlay" onClick={() => !busy && setConfirm(null)}>
+          <div className="users-confirm" onClick={e => e.stopPropagation()}>
+            <h3 className="users-confirm-title">
+              {confirm.type === 'delete' ? t('admin.users.confirmDeleteTitle')
+                : confirm.type === 'lock' ? t('admin.users.confirmLockTitle')
+                : t('admin.users.confirmUnlockTitle')}
+            </h3>
+            <p className="users-confirm-body">
+              {confirm.type === 'delete'
+                ? t('admin.users.confirmDeleteBody', { name: confirm.user.nickname || confirm.user.email })
+                : confirm.type === 'lock'
+                  ? t('admin.users.confirmLockBody', { name: confirm.user.nickname || confirm.user.email })
+                  : t('admin.users.confirmUnlockBody', { name: confirm.user.nickname || confirm.user.email })}
+            </p>
+            <div className="users-confirm-actions">
+              <button className="admin-btn secondary" disabled={busy} onClick={() => setConfirm(null)}>{t('admin.cancel')}</button>
+              <button className="admin-btn danger" disabled={busy} onClick={doAction}>
+                {busy ? t('auth.processing') : t('admin.users.confirmBtn')}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       <style>{`
         .users-stats {
@@ -261,6 +339,46 @@ export default function UserManager() {
         }
         .users-status.ok { color: var(--success); }
         .users-status.warn { color: var(--warning); }
+        .users-banned { margin-left: 6px; }
+        .users-actions { display: flex; gap: 6px; }
+        .users-admin-note { color: var(--text-muted); }
+        .users-confirm-overlay {
+          position: fixed;
+          inset: 0;
+          background: rgba(0, 0, 0, 0.45);
+          z-index: 1200;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          padding: 16px;
+          box-sizing: border-box;
+        }
+        .users-confirm {
+          background: var(--bg-primary);
+          border-radius: 14px;
+          padding: 22px 24px;
+          max-width: 440px;
+          width: 100%;
+          box-shadow: 0 16px 48px rgba(43,36,32,0.22);
+        }
+        .users-confirm-title {
+          font-size: var(--text-lg);
+          font-weight: var(--font-weight-semibold);
+          color: var(--text-primary);
+          margin: 0 0 10px;
+        }
+        .users-confirm-body {
+          font-size: var(--text-md);
+          color: var(--text-secondary);
+          line-height: 1.6;
+          margin: 0 0 20px;
+          word-break: break-word;
+        }
+        .users-confirm-actions {
+          display: flex;
+          gap: 10px;
+          justify-content: flex-end;
+        }
         .users-status::before {
           content: '';
           width: 8px;

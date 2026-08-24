@@ -124,12 +124,30 @@ export function useAuth() {
     })
   }
 
+  // 登录门禁:查询账号是否被删除/封禁,用于登录失败时给出明确提示
+  const accountStatus = useCallback(async (email, username) => {
+    if (!supabase) return 'none'
+    try {
+      const { data, error } = await supabase.rpc('user_account_status', { p_email: email || null, p_username: username || null })
+      if (error) return 'none'
+      return data || 'none'
+    } catch {
+      return 'none'
+    }
+  }, [])
+
   const login = useCallback(async (email, password) => {
     if (!supabase) throw new Error('CLOUD_NOT_CONFIGURED')
     const { error } = await supabase.auth.signInWithPassword({ email, password })
-    if (error) throw error
+    if (error) {
+      // 被删除 / 封禁的账号:给出明确提示
+      const st = await accountStatus(email, null)
+      if (st === 'banned') throw new Error('ACCOUNT_BANNED')
+      if (st === 'deleted') throw new Error('ACCOUNT_DELETED')
+      throw error
+    }
     // 登录状态由 onAuthStateChange 统一更新
-  }, [])
+  }, [accountStatus])
 
   const register = useCallback(async (email, password, confirmPassword) => {
     if (!supabase) throw new Error('CLOUD_NOT_CONFIGURED')
@@ -222,12 +240,14 @@ export function useAuth() {
       },
     })
     if (error) throw error
-    // autoconfirm 下 signUp 即建会话:登记昵称 + 安全密钥哈希
+    // autoconfirm 下 signUp 即建会话:登记昵称 + 安全密钥哈希。
+    // 注意:PostgrestFilterBuilder 是 thenable 但无 .catch —— 此前用 .catch(()=>{})
+    // 会抛 "catch is not a function",致注册成功却报"操作失败"。改为 try/catch。
     if (data?.session) {
       const uid = data.session.user.id
-      await supabase.from('profiles').update({ nickname: nickname || uname }).eq('id', uid).catch(() => {})
+      try { await supabase.from('profiles').update({ nickname: nickname || uname }).eq('id', uid) } catch (e) { /* 非关键,忽略 */ }
       if (securityKey) {
-        await supabase.rpc('set_security_key', { p_security_key: securityKey }).catch(() => {})
+        try { await supabase.rpc('set_security_key', { p_security_key: securityKey }) } catch (e) { /* 非关键,忽略 */ }
       }
     }
     return data
@@ -237,10 +257,21 @@ export function useAuth() {
   const loginByUsername = useCallback(async (username, password) => {
     if (!supabase) throw new Error('CLOUD_NOT_CONFIGURED')
     const { data, error: resolveError } = await supabase.rpc('resolve_auth_email', { p_username: (username || '').toLowerCase() })
-    if (resolveError || !data) throw new Error('USERNAME_NOT_FOUND')
+    if (resolveError || !data) {
+      // 已删除 / 封禁的自定义账号:给出明确提示
+      const st = await accountStatus(null, username)
+      if (st === 'deleted') throw new Error('ACCOUNT_DELETED')
+      if (st === 'banned') throw new Error('ACCOUNT_BANNED')
+      throw new Error('USERNAME_NOT_FOUND')
+    }
     const { error } = await supabase.auth.signInWithPassword({ email: data, password })
-    if (error) throw error
-  }, [])
+    if (error) {
+      const st = await accountStatus(data, null)
+      if (st === 'banned') throw new Error('ACCOUNT_BANNED')
+      if (st === 'deleted') throw new Error('ACCOUNT_DELETED')
+      throw error
+    }
+  }, [accountStatus])
 
   // 自定义账号找回密码:用户名 + 安全密钥校验后重置密码
   const forgotPasswordCustom = useCallback(async (username, securityKey, newPassword) => {
@@ -260,6 +291,26 @@ export function useAuth() {
     }
     setUser(null)
     setIsAdmin(false)
+  }, [])
+
+  // ── 后台用户管理:删除 / 锁定 / 解锁(仅管理员;服务端 security definer + is_admin 校验,
+  //    并拒绝操作 admin 账号) ─────────────────────────────────
+  const adminDeleteUser = useCallback(async (userId) => {
+    if (!supabase) throw new Error('CLOUD_NOT_CONFIGURED')
+    const { error } = await supabase.rpc('admin_delete_user', { p_user_id: userId })
+    if (error) throw new Error(error.message || 'ADMIN_OP_FAILED')
+  }, [])
+
+  const adminLockUser = useCallback(async (userId) => {
+    if (!supabase) throw new Error('CLOUD_NOT_CONFIGURED')
+    const { error } = await supabase.rpc('admin_lock_user', { p_user_id: userId })
+    if (error) throw new Error(error.message || 'ADMIN_OP_FAILED')
+  }, [])
+
+  const adminUnlockUser = useCallback(async (userId) => {
+    if (!supabase) throw new Error('CLOUD_NOT_CONFIGURED')
+    const { error } = await supabase.rpc('admin_unlock_user', { p_user_id: userId })
+    if (error) throw new Error(error.message || 'ADMIN_OP_FAILED')
   }, [])
 
   return {
@@ -282,5 +333,9 @@ export function useAuth() {
     loginByUsername,
     forgotPasswordCustom,
     usernameExists,
+    // 后台用户管理(删除 / 锁定 / 解锁,仅管理员,服务端拒绝操作 admin)
+    adminDeleteUser,
+    adminLockUser,
+    adminUnlockUser,
   }
 }

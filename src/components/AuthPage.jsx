@@ -101,6 +101,8 @@ export default function AuthPage({
       USERNAME_TAKEN: 'errors.usernameTaken',
       USERNAME_NOT_FOUND: 'errors.usernameNotFound',
       INVALID_SECURITY_KEY: 'errors.invalidSecurityKey',
+      ACCOUNT_BANNED: 'errors.accountBanned',
+      ACCOUNT_DELETED: 'errors.accountDeleted',
       INVALID_CREDENTIALS: 'errors.invalidCredentials',
     }
     const key = map[code]
