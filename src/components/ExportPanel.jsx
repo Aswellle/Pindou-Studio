@@ -25,7 +25,18 @@ export default function ExportPanel({ canvasData, gridSize, gridWidth, gridHeigh
   useEffect(() => {
     if (!showExport || isModal || !panelRef.current) return
     const raf = requestAnimationFrame(() => {
-      panelRef.current?.scrollIntoView({ behavior: 'smooth', block: 'end' })
+      const panel = panelRef.current
+      // 只滚动 .left-sidebar 本身:scrollIntoView 会级联滚动「所有」可滚动祖先,
+      // 包括 overflow:hidden 的 .main-content/.app 等。平板横屏可视视口被浏览器
+      // UI 压缩时这些祖先存在溢出,级联会把右栏(画布 + 色卡)一起抬高无法还原。
+      const scroller = panel.closest('.left-sidebar')
+      if (!scroller) return
+      const panelRect = panel.getBoundingClientRect()
+      const scrollerRect = scroller.getBoundingClientRect()
+      const targetTop = panelRect.bottom - scrollerRect.top - scroller.clientHeight
+      if (targetTop > scroller.scrollTop) {
+        scroller.scrollTo({ top: targetTop, behavior: 'smooth' })
+      }
     })
     return () => cancelAnimationFrame(raf)
   }, [showExport, isModal])

@@ -509,7 +509,13 @@ export default function App() {
           overflow-y: auto;
           overflow-x: hidden;
           flex-shrink: 0;
-          height: calc(100vh - 60px);
+          /* 高度跟随 workspace(其高度基于 --vh),不要用字面 100vh:
+             平板横屏时浏览器 UI 压缩可视视口(--vh < 1vh),字面 vh 会让
+             侧边栏高于 workspace,使其上方 overflow:hidden 的祖先(.main-content
+             /.app 等)产生可滚动溢出,展开导出面板的 scrollIntoView 会级联
+             滚动这些祖先,把右栏(画布 + 色卡)一起抬高且无法还原。 */
+          height: 100%;
+          min-height: 0;
         }
         .left-sidebar.collapsed {
           width: 56px;
