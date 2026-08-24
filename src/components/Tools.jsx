@@ -206,42 +206,45 @@ export default function Tools({
         /* 作用域限定在 .tools-drawer,避免与 ColorPalette 的同名 .drawer-toggle 全局样式串扰
            (此前 ColorPalette 的 left:-12px 泄漏到左栏,把按钮挤到屏幕外) */
         .tools-drawer .drawer-toggle {
+          /* 辅助角色:小巧低调的胶囊,不与工具栏/色卡等主角抢视觉 */
           position: absolute;
-          top: 10px;
-          right: 10px;
+          top: 8px;
+          right: 8px;
           z-index: 12;
-          height: 30px;
-          padding: 0 10px;
+          height: 23px;
+          padding: 0 8px;
           border-radius: 999px;
-          background: var(--bg-primary);
+          background: var(--bg-secondary);
           border: 1px solid var(--border-color);
-          box-shadow: 0 1px 4px rgba(43,36,32,0.14);
           display: flex;
           align-items: center;
-          gap: 5px;
+          gap: 4px;
           cursor: pointer;
           font-family: inherit;
-          font-size: 12px;
-          font-weight: 600;
-          color: var(--text-secondary);
+          font-size: 11px;
+          font-weight: 500;
+          color: var(--text-muted);
           white-space: nowrap;
-          transition: all 0.2s ease;
+          opacity: 0.85;
+          transition: all 0.18s ease;
         }
         .tools-drawer .drawer-toggle .drawer-toggle-label { line-height: 1; }
         .tools-drawer .drawer-toggle:hover {
           background: var(--accent-soft);
           border-color: var(--accent);
           color: var(--accent);
-          transform: scale(1.04);
+          opacity: 1;
         }
-        /* 收起(窄条)时:按钮居中置顶,只留箭头,文字标签隐藏 */
+        /* 收起(窄条)时:小巧圆形图标按钮,居中置顶 */
         .tools-drawer.collapsed .drawer-toggle {
-          top: 10px;
+          top: 8px;
           right: 50%;
           transform: translateX(50%);
-          padding: 0 9px;
+          width: 24px;
+          padding: 0;
+          justify-content: center;
         }
-        .tools-drawer.collapsed .drawer-toggle:hover { transform: translateX(50%) scale(1.04); }
+        .tools-drawer.collapsed .drawer-toggle:hover { transform: translateX(50%) scale(1.06); }
         .tools-drawer.collapsed .drawer-toggle-label { display: none; }
         .tools-title {
           font-size: var(--text-md);

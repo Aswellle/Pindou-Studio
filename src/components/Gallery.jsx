@@ -1135,20 +1135,20 @@ export default function Gallery({ onLoadTemplate, onDeleteWork, onLoadWork, save
         .load-confirm-modal {
           display: flex;
           background: var(--bg-primary);
-          border-radius: 14px;
+          border-radius: 16px;
           overflow: hidden;
-          max-width: 560px; /* PC 阅读合适的宽度,告别 300px 的"手机感" */
+          max-width: 720px; /* PC 焦点内容:更大的浏览尺寸,预览与文案都舒展 */
           width: 100%;
-          box-shadow: var(--shadow-card);
+          box-shadow: 0 16px 48px rgba(43,36,32,0.22);
         }
         .load-confirm-preview {
-          flex: 0 0 44%;
+          flex: 0 0 47%;
           background: var(--bg-secondary);
           display: flex;
           align-items: center;
           justify-content: center;
-          padding: 20px;
-          aspect-ratio: 1 / 1; /* 方形预览区,各尺寸模板等大展示 */
+          padding: 26px;
+          aspect-ratio: 1 / 1; /* 方形预览区,各尺寸模板等大且更大展示 */
         }
         .load-confirm-preview canvas {
           image-rendering: pixelated;
@@ -1159,23 +1159,23 @@ export default function Gallery({ onLoadTemplate, onDeleteWork, onLoadWork, save
         .load-confirm-info {
           flex: 1;
           min-width: 0;
-          padding: 24px;
+          padding: 32px;
           display: flex;
           flex-direction: column;
           justify-content: center;
           text-align: left;
         }
         .load-confirm-title {
-          font-size: var(--text-xl);
+          font-size: var(--text-2xl);
           font-weight: var(--font-weight-semibold);
-          margin: 0 0 10px;
+          margin: 0 0 12px;
           color: var(--text-primary);
         }
         .load-confirm-body {
-          font-size: var(--text-md);
+          font-size: var(--text-base);
           color: var(--text-secondary);
-          margin: 0 0 20px;
-          line-height: 1.5;
+          margin: 0 0 24px;
+          line-height: 1.6;
         }
         .load-confirm-actions {
           display: flex;
@@ -1183,11 +1183,12 @@ export default function Gallery({ onLoadTemplate, onDeleteWork, onLoadWork, save
           justify-content: flex-start;
         }
         .load-confirm-actions button {
-          padding: 9px 22px;
+          padding: 11px 26px;
           border-radius: 8px;
           border: none;
           cursor: pointer;
           font-size: var(--text-sm);
+          font-weight: 600;
           transition: all 0.15s;
         }
         .load-confirm-cancel {
