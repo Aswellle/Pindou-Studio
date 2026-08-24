@@ -713,7 +713,7 @@ const Canvas = forwardRef(function Canvas({
     <div className="canvas-wrapper">
 <div className="canvas-info">
         <span>{cols} × {rows}</span>
-        <span>|</span>
+        <span className="info-divider">|</span>
         <span>{Math.round(transform.scale * 100)}%</span>
         <button className="reset-btn" onClick={resetTransform} title={t('canvas.resetTitle')}>
           {t('canvas.reset')}
@@ -779,18 +779,30 @@ const Canvas = forwardRef(function Canvas({
           min-height: 0;
         }
         .canvas-info {
+          /* 悬浮于画布左上角的半透明紧凑 HUD:画布延伸到顶,不再预留整条工具条;
+             控件浮在空白角、平时微淡(0.65)不抢画布,hover 变清晰。
+             保留 尺寸读数 + 缩放比 + 重置/适应 按钮 */
+          position: absolute;
+          top: 12px;
+          left: 12px;
+          z-index: 20;
           display: flex;
-          gap: 12px;
-          font-size: var(--text-base);
-          color: var(--text-secondary);
-          justify-content: center;
+          gap: 8px;
           align-items: center;
-          background: var(--bg-primary);
-          padding: 8px 16px;
-          border-radius: 20px;
+          font-size: var(--text-sm);
+          color: var(--text-secondary);
+          background: rgba(255, 253, 248, 0.82);
+          backdrop-filter: blur(6px);
+          -webkit-backdrop-filter: blur(6px);
+          padding: 6px 12px;
+          border-radius: 999px;
           border: 1px solid var(--border-color);
-          flex-shrink: 0;
+          box-shadow: 0 2px 10px rgba(43, 36, 32, 0.12);
+          opacity: 0.65;
+          transition: opacity 0.2s;
         }
+        .canvas-info:hover { opacity: 1; }
+        .canvas-info .info-divider { opacity: 0.5; }
         /* 移动端：隐藏画布上方旧控件，由 MobileCanvasInfoBar 替代 */
         @media (max-width: 640px) {
           .canvas-info {
@@ -801,9 +813,9 @@ const Canvas = forwardRef(function Canvas({
           background: var(--secondary-accent);
           color: white;
           border: none;
-          padding: 4px 12px;
-          border-radius: 12px;
-          font-size: var(--text-sm);
+          padding: 3px 10px;
+          border-radius: 10px;
+          font-size: var(--text-xs);
           cursor: pointer;
           transition: all 0.2s;
         }
@@ -815,9 +827,9 @@ const Canvas = forwardRef(function Canvas({
           background: var(--accent);
           color: white;
           border: none;
-          padding: 4px 12px;
-          border-radius: 12px;
-          font-size: var(--text-sm);
+          padding: 3px 10px;
+          border-radius: 10px;
+          font-size: var(--text-xs);
           cursor: pointer;
           transition: all 0.2s;
         }
