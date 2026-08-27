@@ -428,6 +428,24 @@ export default function Gallery({ onLoadTemplate, onDeleteWork, onLoadWork, save
           <div className="empty-state">
             <p>{t('gallery.cloudLoading')}</p>
           </div>
+        ) : cloudEnabled && cloudStore?.error && allTemplates.length === 0 ? (
+          // 云端拉取失败(网络抖动 / 登录后瞬时 RLS 或 Supabase 抖动):显示可重试的错误
+          // 提示,而不是误表现成「云端模板库为空 → 请联系管理员迁移」。
+          <div className="empty-state">
+            <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+              <circle cx="12" cy="12" r="10"/>
+              <path d="M12 8v8"/>
+              <path d="M12 16.5v.01"/>
+            </svg>
+            <p>{t('gallery.cloudLoadError')}</p>
+            <span>{t('gallery.cloudLoadErrorHint')}</span>
+            <button
+              className="retry-btn"
+              onClick={() => cloudStore.loadAll()}
+            >
+              {t('gallery.retry')}
+            </button>
+          </div>
         ) : cloudEnabled && allTemplates.length === 0 ? (
           <div className="empty-state">
             <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
@@ -1272,6 +1290,19 @@ export default function Gallery({ onLoadTemplate, onDeleteWork, onLoadWork, save
         .empty-state span {
           font-size: var(--text-base);
         }
+        .retry-btn {
+          margin-top: 18px;
+          padding: 8px 20px;
+          border: 1px solid var(--accent);
+          border-radius: 8px;
+          background: var(--accent-soft);
+          color: var(--accent);
+          font-size: var(--text-sm);
+          font-weight: 600;
+          cursor: pointer;
+          transition: all 0.15s;
+        }
+        .retry-btn:hover { background: var(--accent); color: white; }
         .empty-login-btn {
           margin-top: 16px;
         }

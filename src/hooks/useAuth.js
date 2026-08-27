@@ -175,11 +175,16 @@ export function useAuth() {
   //    验证码在站点内输入,全程无需打开外部链接 ────────────────
   // 发送 6 位验证码(shouldCreateUser=false 时仅对已存在邮箱发码,用于
   // 重置密码/登录;注册流程传 true 自动创建占位用户)
-  const sendOtp = useCallback(async (email, shouldCreateUser = true) => {
+  // meta:注册流程带上昵称 → 写入 raw_user_meta_data,供 record_registration 触发器
+  //   入库注册通知;非注册场景不传(shouldCreateUser=false 时不建用户,data 被忽略)。
+  const sendOtp = useCallback(async (email, shouldCreateUser = true, meta) => {
     if (!supabase) throw new Error('CLOUD_NOT_CONFIGURED')
     const { error } = await supabase.auth.signInWithOtp({
       email,
-      options: { shouldCreateUser },
+      options: {
+        shouldCreateUser,
+        data: meta || undefined,
+      },
     })
     if (error) throw error
   }, [])

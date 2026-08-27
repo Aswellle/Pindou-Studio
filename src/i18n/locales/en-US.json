@@ -531,6 +531,9 @@
     "cloudLoading": "Loading cloud template library...",
     "cloudEmpty": "Cloud template library is empty",
     "cloudEmptyHint": "An admin should sign in and run the local migration on the Templates tab.",
+    "cloudLoadError": "Failed to load cloud templates",
+    "cloudLoadErrorHint": "This may be a network hiccup, or the connection is establishing right after login. Try again below.",
+    "retry": "Reload",
     "localWorksTitle": "Works are saved on this device",
     "localWorksBody": "Your {{n}} works are stored in this browser and can be lost when you clear the cache or switch devices. Register to sync them to the cloud in one click — available on any device.",
     "localWorksRegister": "Register",
@@ -874,6 +877,12 @@
       "pagePrev": "Prev",
       "pageNext": "Next",
       "pageInfo": "Page {{page}}"
+    },
+    "registrations": {
+      "title": "Recent Registrations",
+      "hint": "Every new signup (email or custom account) is recorded automatically so you can keep an eye on registrations",
+      "empty": "No registrations yet",
+      "noNickname": "No nickname"
     }
   },
   "profile": {

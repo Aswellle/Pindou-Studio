@@ -148,7 +148,7 @@ export default function AuthPage({
       if (method === 'email') {
         if (!EMAIL_RE.test(regEmail)) return toastError('', t('errors.invalidEmail'))
         setPendingEmail(regEmail); setPendingNickname(nickname); setPendingPassword(regPassword)
-        await onSendOtp(regEmail, true)
+        await onSendOtp(regEmail, true, { nickname })
         setRegCooldown(RESEND_COOLDOWN)
         setMode('verify')
       } else {
@@ -179,7 +179,7 @@ export default function AuthPage({
     if (regCooldown > 0 || loading) return
     setLoading(true)
     try {
-      await onSendOtp(pendingEmail, true)
+      await onSendOtp(pendingEmail, true, { nickname: pendingNickname })
       setRegCooldown(RESEND_COOLDOWN)
       toast(t('auth.codeSent'), 'success')
     } catch (err) {

@@ -24,6 +24,8 @@ export default function UserManager() {
   const [page, setPage] = useState(0)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
+  // 最近注册记录(入库:registration_notifications 表,经 RPC admin_list_registrations 读取)
+  const [registrations, setRegistrations] = useState([])
   // 待确认的账号操作:{ type:'delete' | 'lock' | 'unlock', user }
   const [confirm, setConfirm] = useState(null)
   const [busy, setBusy] = useState(false)
@@ -51,6 +53,13 @@ export default function UserManager() {
     if (!silent) setLoading(false)
   }, [search, page])
 
+  // 最近注册:读取 registration_notifications 表(仅管理员,security definer RPC)
+  const loadRegistrations = useCallback(async () => {
+    if (!supabase) return
+    const { data, error: err } = await supabase.rpc('admin_list_registrations', { p_limit: 10 })
+    if (!err) setRegistrations(data || [])
+  }, [])
+
   // 执行 删除 / 锁定 / 解锁(需确认后)
   const doAction = async () => {
     if (!confirm || busy) return
@@ -76,7 +85,8 @@ export default function UserManager() {
 
   useEffect(() => {
     loadStats()
-  }, [loadStats])
+    loadRegistrations()
+  }, [loadStats, loadRegistrations])
 
   // 搜索防抖:输入过程中不每击键一次 RPC
   useEffect(() => {
@@ -88,13 +98,13 @@ export default function UserManager() {
   // 无需手动刷新页面或切换 tab。静默刷新(不闪 loading)。
   useEffect(() => {
     let t
-    const reload = () => { clearTimeout(t); t = setTimeout(() => { loadStats(); loadUsers(true) }, 400) }
+    const reload = () => { clearTimeout(t); t = setTimeout(() => { loadStats(); loadUsers(true); loadRegistrations() }, 400) }
     const ch = supabase
       .channel('users-realtime')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'profiles' }, reload)
       .subscribe()
     return () => { clearTimeout(t); supabase.removeChannel(ch) }
-  }, [loadStats, loadUsers])
+  }, [loadStats, loadUsers, loadRegistrations])
 
   // 最近登录:近 1 分钟视为"在线中"(绿点标记),否则展示本地化日期时间
   const renderLastSignIn = (ts) => {
@@ -224,6 +234,34 @@ export default function UserManager() {
             {t('admin.users.pageNext')}
           </button>
         </div>
+      </div>
+
+      {/* 最近注册记录(入库:registration_notifications 事件流,仅管理员可读) */}
+      <div className="admin-card">
+        <div className="admin-card-head">
+          <h3>{t('admin.registrations.title')}</h3>
+        </div>
+        <p className="admin-field-hint">{t('admin.registrations.hint')}</p>
+        {registrations.length === 0 ? (
+          <div className="admin-empty">{t('admin.registrations.empty')}</div>
+        ) : (
+          <div className="reg-list">
+            {registrations.map(r => (
+              <div key={r.id} className="reg-item">
+                <span className="reg-email">{r.email}</span>
+                <span className="reg-nick">{r.nickname || t('admin.registrations.noNickname')}</span>
+                <span className={`users-reg-method ${r.method === 'username' ? 'custom' : 'email'}`}>
+                  {r.method === 'username' ? t('admin.users.regCustom') : t('admin.users.regEmail')}
+                </span>
+                <span className="reg-time">
+                  {new Date(r.created_at).toLocaleString(undefined, {
+                    month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit',
+                  })}
+                </span>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
 
       {/* 删除 / 锁定 / 解锁 确认对话框 */}
@@ -410,6 +448,50 @@ export default function UserManager() {
           font-size: var(--text-sm);
           color: var(--text-secondary);
           font-variant-numeric: tabular-nums;
+        }
+        .reg-list {
+          display: flex;
+          flex-direction: column;
+          gap: 6px;
+          margin-top: 6px;
+        }
+        .reg-item {
+          display: flex;
+          align-items: center;
+          gap: 12px;
+          padding: 8px 12px;
+          border-radius: 8px;
+          background: var(--bg-secondary);
+          border: 1px solid var(--border-color);
+          font-size: var(--text-sm);
+        }
+        .reg-email {
+          font-family: ui-monospace, monospace;
+          font-size: 12px;
+          color: var(--text-primary);
+          overflow: hidden;
+          text-overflow: ellipsis;
+          white-space: nowrap;
+          flex: 1;
+          min-width: 0;
+        }
+        .reg-nick {
+          color: var(--text-secondary);
+          max-width: 140px;
+          overflow: hidden;
+          text-overflow: ellipsis;
+          white-space: nowrap;
+        }
+        .reg-time {
+          color: var(--text-muted);
+          white-space: nowrap;
+          font-variant-numeric: tabular-nums;
+          font-size: 12px;
+          flex-shrink: 0;
+        }
+        @media (max-width: 640px) {
+          .reg-item { flex-wrap: wrap; gap: 6px 10px; }
+          .reg-nick { max-width: none; }
         }
         @media (max-width: 640px) {
           .users-stats { grid-template-columns: repeat(2, 1fr); }

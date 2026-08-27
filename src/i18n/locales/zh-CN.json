@@ -531,6 +531,9 @@
     "cloudLoading": "正在加载云端模板库...",
     "cloudEmpty": "云端模板库为空",
     "cloudEmptyHint": "请管理员登录后台,在「模板管理」页完成本地数据迁移",
+    "cloudLoadError": "云端模板加载失败",
+    "cloudLoadErrorHint": "可能是网络波动或登录后连接尚未就绪,请点击下方按钮重试",
+    "retry": "重新加载",
     "localWorksTitle": "作品本机保存提醒",
     "localWorksBody": "你的 {{n}} 个作品保存在当前浏览器中,清除缓存或更换设备会丢失。注册账号,一键把作品同步到云端,跨设备可用。",
     "localWorksRegister": "注册账号",
@@ -874,6 +877,12 @@
       "pagePrev": "上一页",
       "pageNext": "下一页",
       "pageInfo": "第 {{page}} 页"
+    },
+    "registrations": {
+      "title": "最近注册",
+      "hint": "每次有新用户注册(邮箱或自定义账号)都会自动入库一条记录,便于及时掌握注册情况",
+      "empty": "暂无注册记录",
+      "noNickname": "未填写昵称"
     }
   },
   "profile": {
