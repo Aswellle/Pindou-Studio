@@ -100,9 +100,15 @@ export default function ContactUsModal({ onClose, user }) {
         widgetIdRef.current = window.turnstile.render(turnstileRef.current, {
           sitekey: TURNSTILE_SITE_KEY,
           theme: 'light',
-          // 用户手动点击方框验证,不自动静默验证(type: checkbox = 显式勾选式)
-          type: 'checkbox',
-          callback: (tk) => { setToken(tk); setCapStatus('verified') },
+          // 关键:execution:'execute' 阻止「打开弹层即自动验证」;渲染出待勾选方框后,
+          // 用户点击方框(turnstile-box onClick)才调用 turnstile.execute() 触发挑战。
+          execution: 'execute',
+          appearance: 'always',
+          callback: (tk) => {
+            setToken(tk)
+            setCapStatus('verified')
+            toast(t('contact.captchaOk'), 'success')
+          },
           'expired-callback': () => { setToken(null); setCapStatus('expired') },
           'error-callback': () => { setToken(null); setCapStatus('error') },
         })
@@ -138,6 +144,17 @@ export default function ContactUsModal({ onClose, user }) {
     setCapStatus('idle')
     try { if (widgetIdRef.current != null && window.turnstile) window.turnstile.reset(widgetIdRef.current) } catch (e) { /* 忽略 */ }
   }, [])
+
+  // 用户点击方框才发起挑战(execution:'execute' 下不会自动执行)
+  const triggerVerify = useCallback(() => {
+    if (widgetIdRef.current == null || !window.turnstile) return
+    if (capStatus === 'verified') return
+    try {
+      if (capStatus === 'error' || capStatus === 'expired') window.turnstile.reset(widgetIdRef.current)
+      window.turnstile.execute(widgetIdRef.current)
+      setCapStatus('solving')
+    } catch (e) { /* 忽略 */ }
+  }, [capStatus])
 
   const handleSend = async () => {
     if (sending) return
@@ -197,25 +214,30 @@ export default function ContactUsModal({ onClose, user }) {
           </button>
         </div>
 
-        {/* 聊天区:官方欢迎消息 + 历史线程(用户消息/管理员回复) */}
-        <div className="contact-chat" ref={chatRef}>
-          <div className="contact-msg official">
-            <div className="contact-avatar">{LOGO_SVG}</div>
-            <div className="contact-bubble">{t('contact.intro')}</div>
+        {/* 聊天区:官方欢迎消息 + 历史线程(用户消息/管理员回复)。
+            区域为固定高度 + 底部渐隐:首条消息必然被截断,用户需滚动才能看完整,
+            直观传递「这是可滚动的 IM 对话窗」 */}
+        <div className="contact-chat-wrap">
+          <div className="contact-chat" ref={chatRef}>
+            <div className="contact-msg official">
+              <div className="contact-avatar">{LOGO_SVG}</div>
+              <div className="contact-bubble">{t('contact.intro')}</div>
+            </div>
+            {threadLoading ? null : thread.map(m => (
+              m.author === 'admin' ? (
+                <div className="contact-msg official" key={m.id}>
+                  <div className="contact-avatar">{LOGO_SVG}</div>
+                  <div className="contact-bubble admin-reply">{m.message}</div>
+                </div>
+              ) : (
+                <div className="contact-msg user" key={m.id}>
+                  <div className="contact-bubble user">{m.message}</div>
+                  <div className="contact-avatar">{selfAvatar}</div>
+                </div>
+              )
+            ))}
           </div>
-          {threadLoading ? null : thread.map(m => (
-            m.author === 'admin' ? (
-              <div className="contact-msg official" key={m.id}>
-                <div className="contact-avatar">{LOGO_SVG}</div>
-                <div className="contact-bubble admin-reply">{m.message}</div>
-              </div>
-            ) : (
-              <div className="contact-msg user" key={m.id}>
-                <div className="contact-bubble user">{m.message}</div>
-                <div className="contact-avatar">{selfAvatar}</div>
-              </div>
-            )
-          ))}
+          <div className="contact-chat-fade" aria-hidden="true" />
         </div>
 
         <p className="contact-visitor-hint">{t('contact.visitorHint')}</p>
@@ -231,7 +253,18 @@ export default function ContactUsModal({ onClose, user }) {
 
         <div className="contact-captcha">
           {captchaRequired ? (
-            <div ref={turnstileRef} className="turnstile-box" />
+            <>
+              <div
+                ref={turnstileRef}
+                className="turnstile-box"
+                role="button"
+                tabIndex={0}
+                aria-label={t('contact.captchaLabel')}
+                onClick={triggerVerify}
+                onKeyDown={e => { if (e.key === 'Enter') triggerVerify() }}
+              />
+              <span className="turnstile-box-hint">{t('contact.captchaLabel')}</span>
+            </>
           ) : (
             <span className="contact-captcha-off">{t('contact.captchaOff')}</span>
           )}
@@ -315,14 +348,26 @@ export default function ContactUsModal({ onClose, user }) {
         }
         .contact-close:active { transform: translateY(1px); box-shadow: 0 1px 0 var(--contact-ink); }
         .contact-close:hover { color: var(--accent); border-color: var(--accent); box-shadow: 0 2px 0 var(--accent); }
+        .contact-chat-wrap { position: relative; }
         .contact-chat {
-          max-height: 240px;
+          /* 固定高度:第一段官方消息必然超出 → 必须滚动才能看完整(IM 对话窗手感) */
+          height: 165px;
           overflow-y: auto;
           padding: 14px 16px 10px;
           display: flex;
           flex-direction: column;
-          gap: 10px;
+          gap: 12px;
           background: var(--bg-primary);
+          scroll-behavior: smooth;
+        }
+        .contact-chat-fade {
+          position: absolute;
+          left: 0;
+          right: 0;
+          bottom: 0;
+          height: 22px;
+          background: linear-gradient(to bottom, rgba(253, 251, 247, 0), rgba(253, 251, 247, 0.95));
+          pointer-events: none;
         }
         .contact-msg {
           display: flex;
@@ -403,7 +448,14 @@ export default function ContactUsModal({ onClose, user }) {
           align-items: center;
           justify-content: center;
         }
-        .turnstile-box { min-height: 65px; }
+        .turnstile-box { min-height: 65px; cursor: pointer; }
+        .turnstile-box-hint {
+          display: block;
+          margin-top: 4px;
+          text-align: center;
+          font-size: var(--text-xs);
+          color: var(--text-muted);
+        }
         .contact-captcha-off {
           font-size: var(--text-xs);
           color: var(--text-muted);
