@@ -147,14 +147,17 @@ export default function ContactUsModal({ onClose, user }) {
 
   // 用户点击方框才发起挑战(execution:'execute' 下不会自动执行)
   const triggerVerify = useCallback(() => {
-    if (widgetIdRef.current == null || !window.turnstile) return
     if (capStatus === 'verified') return
+    if (widgetIdRef.current == null || !window.turnstile) {
+      toast(t('contact.captchaFailed'), 'error')
+      return
+    }
     try {
       if (capStatus === 'error' || capStatus === 'expired') window.turnstile.reset(widgetIdRef.current)
       window.turnstile.execute(widgetIdRef.current)
       setCapStatus('solving')
     } catch (e) { /* 忽略 */ }
-  }, [capStatus])
+  }, [capStatus, toast, t])
 
   const handleSend = async () => {
     if (sending) return
@@ -253,18 +256,24 @@ export default function ContactUsModal({ onClose, user }) {
 
         <div className="contact-captcha">
           {captchaRequired ? (
-            <>
-              <div
-                ref={turnstileRef}
-                className="turnstile-box"
-                role="button"
-                tabIndex={0}
-                aria-label={t('contact.captchaLabel')}
-                onClick={triggerVerify}
-                onKeyDown={e => { if (e.key === 'Enter') triggerVerify() }}
-              />
-              <span className="turnstile-box-hint">{t('contact.captchaLabel')}</span>
-            </>
+            /* execution:'execute' 打开不自动验证;空置期显示与参考截图一致的
+               「方框 + 进行人机身份验证」占位,点击才执行其实挑战 */
+            <div className="turnstile-wrap">
+              <div ref={turnstileRef} className="turnstile-host" />
+              {(capStatus === 'idle' || capStatus === 'expired' || capStatus === 'error') && (
+                <div
+                  className="turnstile-placeholder"
+                  role="button"
+                  tabIndex={0}
+                  aria-label={t('contact.captchaLabel')}
+                  onClick={triggerVerify}
+                  onKeyDown={e => { if (e.key === 'Enter') triggerVerify() }}
+                >
+                  <span className="turnstile-checkbox" aria-hidden="true" />
+                  <span className="turnstile-label">{t('contact.captchaLabel')}</span>
+                </div>
+              )}
+            </div>
           ) : (
             <span className="contact-captcha-off">{t('contact.captchaOff')}</span>
           )}
@@ -443,18 +452,42 @@ export default function ContactUsModal({ onClose, user }) {
         .contact-email::placeholder { color: var(--text-muted); }
         .contact-captcha {
           margin: 0 16px 12px;
-          min-height: 68px;
           display: flex;
-          align-items: center;
           justify-content: center;
         }
-        .turnstile-box { min-height: 65px; cursor: pointer; }
-        .turnstile-box-hint {
-          display: block;
-          margin-top: 4px;
-          text-align: center;
-          font-size: var(--text-xs);
-          color: var(--text-muted);
+        .turnstile-wrap {
+          position: relative;
+          width: 100%;
+          max-width: 300px;
+          height: 65px;
+        }
+        .turnstile-host { position: absolute; inset: 0; }
+        /* 空置期的占位框(与参考截图一致的「方框 + 标准文案」,点击触发验证) */
+        .turnstile-placeholder {
+          position: absolute;
+          inset: 0;
+          display: flex;
+          align-items: center;
+          gap: 10px;
+          padding: 0 14px;
+          background: var(--bg-primary);
+          border: 2px solid var(--contact-ink);
+          border-radius: 10px;
+          cursor: pointer;
+          box-sizing: border-box;
+        }
+        .turnstile-placeholder:hover { border-color: var(--accent); }
+        .turnstile-checkbox {
+          width: 22px;
+          height: 22px;
+          border: 2px solid var(--contact-ink);
+          border-radius: 4px;
+          background: #fff;
+          flex-shrink: 0;
+        }
+        .turnstile-label {
+          font-size: var(--text-sm);
+          color: var(--text-primary);
         }
         .contact-captcha-off {
           font-size: var(--text-xs);
