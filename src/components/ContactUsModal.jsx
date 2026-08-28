@@ -100,10 +100,7 @@ export default function ContactUsModal({ onClose, user }) {
         widgetIdRef.current = window.turnstile.render(turnstileRef.current, {
           sitekey: TURNSTILE_SITE_KEY,
           theme: 'light',
-          // 关键:execution:'execute' 阻止「打开弹层即自动验证」;渲染出待勾选方框后,
-          // 用户点击方框(turnstile-box onClick)才调用 turnstile.execute() 触发挑战。
-          execution: 'execute',
-          appearance: 'always',
+          // 完整渲染 Cloudflare 组件本体(Managed 模式;低风险自动通过属平台行为)
           callback: (tk) => {
             setToken(tk)
             setCapStatus('verified')
@@ -144,20 +141,6 @@ export default function ContactUsModal({ onClose, user }) {
     setCapStatus('idle')
     try { if (widgetIdRef.current != null && window.turnstile) window.turnstile.reset(widgetIdRef.current) } catch (e) { /* 忽略 */ }
   }, [])
-
-  // 用户点击方框才发起挑战(execution:'execute' 下不会自动执行)
-  const triggerVerify = useCallback(() => {
-    if (capStatus === 'verified') return
-    if (widgetIdRef.current == null || !window.turnstile) {
-      toast(t('contact.captchaFailed'), 'error')
-      return
-    }
-    try {
-      if (capStatus === 'error' || capStatus === 'expired') window.turnstile.reset(widgetIdRef.current)
-      window.turnstile.execute(widgetIdRef.current)
-      setCapStatus('solving')
-    } catch (e) { /* 忽略 */ }
-  }, [capStatus, toast, t])
 
   const handleSend = async () => {
     if (sending) return
@@ -256,28 +239,16 @@ export default function ContactUsModal({ onClose, user }) {
 
         <div className="contact-captcha">
           {captchaRequired ? (
-            /* execution:'execute' 打开不自动验证;空置期显示与参考截图一致的
-               「方框 + 进行人机身份验证」占位,点击才执行其实挑战 */
-            <div className="turnstile-wrap">
-              <div ref={turnstileRef} className="turnstile-host" />
-              {(capStatus === 'idle' || capStatus === 'expired' || capStatus === 'error') && (
-                <div
-                  className="turnstile-placeholder"
-                  role="button"
-                  tabIndex={0}
-                  aria-label={t('contact.captchaLabel')}
-                  onClick={triggerVerify}
-                  onKeyDown={e => { if (e.key === 'Enter') triggerVerify() }}
-                >
-                  <span className="turnstile-checkbox" aria-hidden="true" />
-                  <span className="turnstile-label">{t('contact.captchaLabel')}</span>
-                </div>
-              )}
-            </div>
+            /* Cloudflare Turnstile 组件本体完整渲染(Managed 模式属平台行为,
+               低风险自动通过;不再额外套框/加文案) */
+            <div ref={turnstileRef} className="turnstile-host" />
           ) : (
             <span className="contact-captcha-off">{t('contact.captchaOff')}</span>
           )}
         </div>
+
+        {/* 验证区与输入区之间的浅色分隔线,拉开层次 */}
+        <div className="contact-separator" aria-hidden="true" />
 
         <div className="contact-input-row">
           <input
@@ -314,7 +285,8 @@ export default function ContactUsModal({ onClose, user }) {
           display: flex;
           align-items: center;
           justify-content: center;
-          padding: 12px;
+          /* 顶部多留空间,模态框整体偏下,减少与页面底部的距离 */
+          padding: 12vh 12px 12px;
           box-sizing: border-box;
         }
         .contact-modal {
@@ -440,54 +412,33 @@ export default function ContactUsModal({ onClose, user }) {
           width: calc(100% - 32px);
           margin: 0 16px 12px;
           padding: 10px 12px;
-          border: 2px solid var(--contact-ink);
+          /* 次级输入:细浅描边,弱于消息输入框,形成层次 */
+          border: 1.5px solid var(--border-color);
           border-radius: 10px;
           background: var(--bg-primary);
           color: var(--text-primary);
           font-size: var(--text-sm);
           box-sizing: border-box;
           outline: none;
+          transition: border-color 0.15s;
         }
         .contact-email:focus { border-color: var(--accent); }
         .contact-email::placeholder { color: var(--text-muted); }
         .contact-captcha {
-          margin: 0 16px 12px;
+          margin: 0 16px;
           display: flex;
           justify-content: center;
         }
-        .turnstile-wrap {
-          position: relative;
-          width: 100%;
-          max-width: 300px;
+        /* Cloudflare 组件本体(300×65),不额外套框 */
+        .turnstile-host {
+          width: 300px;
+          max-width: 100%;
           height: 65px;
         }
-        .turnstile-host { position: absolute; inset: 0; }
-        /* 空置期的占位框(与参考截图一致的「方框 + 标准文案」,点击触发验证) */
-        .turnstile-placeholder {
-          position: absolute;
-          inset: 0;
-          display: flex;
-          align-items: center;
-          gap: 10px;
-          padding: 0 14px;
-          background: var(--bg-primary);
-          border: 2px solid var(--contact-ink);
-          border-radius: 10px;
-          cursor: pointer;
-          box-sizing: border-box;
-        }
-        .turnstile-placeholder:hover { border-color: var(--accent); }
-        .turnstile-checkbox {
-          width: 22px;
-          height: 22px;
-          border: 2px solid var(--contact-ink);
-          border-radius: 4px;
-          background: #fff;
-          flex-shrink: 0;
-        }
-        .turnstile-label {
-          font-size: var(--text-sm);
-          color: var(--text-primary);
+        .contact-separator {
+          height: 1px;
+          background: var(--border-color);
+          margin: 14px 16px 14px;
         }
         .contact-captcha-off {
           font-size: var(--text-xs);
