@@ -541,7 +541,24 @@
     "worksLoading": "正在加载作品...",
     "cloudWorksEmptyTitle": "你的作品已保存在云端",
     "cloudWorksEmptyBody": "登录后即可随时查看与管理这些作品",
-    "savedToastCloud": "已保存到云端作品"
+    "savedToastCloud": "已保存到云端作品",
+    "backHome": "返回首页",
+    "contactUs": "联系我们"
+  },
+  "contact": {
+    "title": "联系我们",
+    "intro": "您好!这是一个刚刚起步的小网站 😊 使用过程中如果有任何不方便之处,或者觉得「要是这样就好了」的地方,都欢迎随时告诉我们。更好的建议永远欢迎,我们也一直在倾听,努力做得更好。运营者会亲自阅读并回复您!",
+    "visitorHint": "您正在以访客身份咨询。回复会显示在此窗口中;留下邮箱后也可通过邮件收到回复。",
+    "emailPlaceholder": "邮箱(选填 — 用于接收回复)",
+    "messagePlaceholder": "输入消息...",
+    "send": "发送",
+    "emptyMsg": "消息为空,不能发送",
+    "captchaFirst": "请先完成人机身份验证",
+    "captchaOff": "当前环境未配置人机验证,本地开发模式自动跳过",
+    "sent": "消息已发送",
+    "emailMissingWarn": "未填写邮箱:消息已发送并被管理员看到,但你将无法收到邮件回复(仅在此窗口显示回复)",
+    "sendFailed": "发送失败,请稍后再试",
+    "captchaFailed": "人机验证未通过,请重试"
   },
   "export": {
     "title": "导出图纸",
@@ -751,7 +768,8 @@
       "templates": "模板管理",
       "import": "JSON 导入",
       "categories": "分类管理",
-      "users": "用户管理"
+      "users": "用户管理",
+      "contactMessage": "联系消息"
     },
     "templatesEmpty": "暂无自定义模板,点击「添加新模板」或到「JSON 导入」上传",
     "addTemplate": "添加新模板",
@@ -883,6 +901,12 @@
       "hint": "每次有新用户注册(邮箱或自定义账号)都会自动入库一条记录,便于及时掌握注册情况",
       "empty": "暂无注册记录",
       "noNickname": "未填写昵称"
+    },
+    "contact": {
+      "title": "联系消息",
+      "hint": "来自图库「联系我们」弹层的用户留言(邮箱为选填,未填不影响看到留言)",
+      "empty": "暂无留言",
+      "noEmail": "未填写邮箱"
     }
   },
   "profile": {

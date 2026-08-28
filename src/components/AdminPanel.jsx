@@ -5,6 +5,7 @@ import { CATEGORIES, DIFFICULTIES, normalizeCustomTemplate } from '../data/templ
 import ThumbnailCanvas from './ThumbnailCanvas'
 import LoadingScreen from './LoadingScreen'
 import UserManager from './UserManager'
+import ContactMessages from './ContactMessages'
 
 // 门禁/提示卡片的共用样式
 function GateStyle() {
@@ -233,12 +234,17 @@ export default function AdminPanel({ user, isAdmin, authLoading, onLogin, onLogo
         <button role="tab" aria-selected={tab === 'users'} className={`admin-tab ${tab === 'users' ? 'active' : ''}`} onClick={() => setTab('users')}>
           {t('admin.tab.users')}
         </button>
+        <button role="tab" aria-selected={tab === 'contact'} className={`admin-tab ${tab === 'contact' ? 'active' : ''}`} onClick={() => setTab('contact')}>
+          {t('admin.tab.contactMessage')}
+        </button>
       </div>
 
       <div className="admin-tab-content" key={tab}>
-        {/* 用户管理不依赖云端模板库:切到该标签时不应被模板加载态阻塞 */}
+        {/* 用户管理/联系消息不依赖云端模板库:切到这些标签时不应被模板加载态阻塞 */}
         {tab === 'users' ? (
           <UserManager />
+        ) : tab === 'contact' ? (
+          <ContactMessages />
         ) : cloudStore.loading ? (
           <LoadingScreen text={t('gallery.cloudLoading')} />
         ) : (

@@ -541,7 +541,24 @@
     "worksLoading": "Loading works...",
     "cloudWorksEmptyTitle": "Your works are saved in the cloud",
     "cloudWorksEmptyBody": "Sign in to view and manage them anytime.",
-    "savedToastCloud": "Saved to cloud works"
+    "savedToastCloud": "Saved to cloud works",
+    "backHome": "Back to home",
+    "contactUs": "Contact us"
+  },
+  "contact": {
+    "title": "Contact Us",
+    "intro": "Hi! We're just a small site that's getting started 😊 If you run into anything awkward while using it, or think \"it would be nicer if…\", feel free to tell us anytime. Suggestions are always welcome — we're all ears and always trying to do better. The owner personally reads and replies to every message!",
+    "visitorHint": "You're chatting as a visitor. Replies show up in this window; if you leave an email, you can also get replies by email.",
+    "emailPlaceholder": "Email (optional — to receive replies)",
+    "messagePlaceholder": "Type a message...",
+    "send": "Send",
+    "emptyMsg": "Message is empty, nothing to send",
+    "captchaFirst": "Please complete the human verification first",
+    "captchaOff": "Human verification isn't configured in this environment; skipped in local dev",
+    "sent": "Message sent",
+    "emailMissingWarn": "No email provided: the message was sent and will be seen by the admin, but you won't receive a reply by email (replies only appear in this window)",
+    "sendFailed": "Send failed, please try again later",
+    "captchaFailed": "Human verification failed, please try again"
   },
   "export": {
     "title": "Export Pattern",
@@ -751,7 +768,8 @@
       "templates": "Templates",
       "import": "JSON Import",
       "categories": "Categories",
-      "users": "Users"
+      "users": "Users",
+      "contactMessage": "Contact Messages"
     },
     "templatesEmpty": "No custom templates yet. Add one or import via JSON.",
     "addTemplate": "Add Template",
@@ -883,6 +901,12 @@
       "hint": "Every new signup (email or custom account) is recorded automatically so you can keep an eye on registrations",
       "empty": "No registrations yet",
       "noNickname": "No nickname"
+    },
+    "contact": {
+      "title": "Contact Messages",
+      "hint": "Messages submitted from the Contact Us dialog in the Gallery (email is optional)",
+      "empty": "No messages yet",
+      "noEmail": "No email provided"
     }
   },
   "profile": {

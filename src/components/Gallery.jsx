@@ -1,5 +1,7 @@
 import { useState, useEffect, useMemo, useRef, useLayoutEffect } from 'react'
 import { createPortal } from 'react-dom'
+import { useNavigate } from 'react-router-dom'
+import { Home, MessageCircle } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { TEMPLATES, CATEGORIES, DIFFICULTIES, extractPatternColors, convertTemplateToBrand } from '../data/templates'
 import { getPalette, PALETTE_LIST } from '../data/palettes'
@@ -8,6 +10,7 @@ import { supabase } from '../services/supabase'
 import { useToast } from './Toast'
 import useCustomTemplates from '../hooks/useCustomTemplates'
 import ThumbnailCanvas from './ThumbnailCanvas'
+import ContactUsModal from './ContactUsModal'
 
 const CELL_SIZE = 8
 
@@ -38,6 +41,10 @@ const resolveToHex = (colorVal, palette) => {
 export default function Gallery({ onLoadTemplate, onDeleteWork, onLoadWork, savedWorks = [], worksLoading, cloudMirrorCount = 0, cloudStore, user, onLogin, onRegister }) {
   const { t } = useTranslation()
   const toast = useToast()
+  const navigate = useNavigate()
+  // 右侧悬浮按钮(返回首页 / 联系我们):目前仅在「图库」页面出现;
+  // 悬于屏幕最右沿、垂直居中,方便移动端右手拇指触及
+  const [showContact, setShowContact] = useState(false)
   // 云端启用时,模板库完全来自云端(RLS 公开只读);未启用时回退本地模式
   // (内置模板 + localStorage 自定义模板,自定义在前)
   const localStore = useCustomTemplates()
@@ -229,6 +236,27 @@ export default function Gallery({ onLoadTemplate, onDeleteWork, onLoadWork, save
 
   return (
     <div className="gallery-page">
+      {/* 右侧悬浮按钮:返回首页 + 联系我们(仅图库页出现) */}
+      <div className="gallery-floating">
+        <button
+          className="gallery-float-btn home"
+          onClick={() => navigate('/')}
+          aria-label={t('gallery.backHome')}
+          title={t('gallery.backHome')}
+        >
+          <Home size={22} />
+        </button>
+        <button
+          className="gallery-float-btn contact"
+          onClick={() => setShowContact(true)}
+          aria-label={t('gallery.contactUs')}
+          title={t('gallery.contactUs')}
+        >
+          <MessageCircle size={22} />
+        </button>
+      </div>
+      {showContact && <ContactUsModal onClose={() => setShowContact(false)} />}
+
       <div className="gallery-header">
         <h1 className="gallery-title">{t('gallery.title')}</h1>
         <p className="gallery-subtitle">{t('gallery.subtitle')}</p>
@@ -1303,6 +1331,36 @@ export default function Gallery({ onLoadTemplate, onDeleteWork, onLoadWork, save
           transition: all 0.15s;
         }
         .retry-btn:hover { background: var(--accent); color: white; }
+        /* 右侧悬浮按钮:居中偏右,硬投影圆角方块(参照参考站,配色协调到本站主题色) */
+        .gallery-floating {
+          position: fixed;
+          right: 12px;
+          top: 46%;
+          transform: translateY(-50%);
+          display: flex;
+          flex-direction: column;
+          gap: 12px;
+          z-index: 300;
+        }
+        .gallery-float-btn {
+          width: 54px;
+          height: 54px;
+          border-radius: 16px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          color: #fff;
+          cursor: pointer;
+          border: 2px solid var(--float-ink, #3a2f26);
+          box-shadow: 0 4px 0 rgba(43, 36, 32, 0.28);
+          transition: transform 0.12s, box-shadow 0.12s;
+        }
+        .gallery-float-btn:active {
+          transform: translateY(3px);
+          box-shadow: 0 1px 0 rgba(43, 36, 32, 0.28);
+        }
+        .gallery-float-btn.home { background: var(--accent); border-color: #b65a38; }
+        .gallery-float-btn.contact { background: var(--secondary-accent); border-color: #38766c; }
         .empty-login-btn {
           margin-top: 16px;
         }
