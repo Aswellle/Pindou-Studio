@@ -100,6 +100,8 @@ export default function ContactUsModal({ onClose, user }) {
         widgetIdRef.current = window.turnstile.render(turnstileRef.current, {
           sitekey: TURNSTILE_SITE_KEY,
           theme: 'light',
+          // 用户手动点击方框验证,不自动静默验证(type: checkbox = 显式勾选式)
+          type: 'checkbox',
           callback: (tk) => { setToken(tk); setCapStatus('verified') },
           'expired-callback': () => { setToken(null); setCapStatus('expired') },
           'error-callback': () => { setToken(null); setCapStatus('error') },
@@ -353,7 +355,8 @@ export default function ContactUsModal({ onClose, user }) {
           border: 1px solid var(--border-color);
         }
         .contact-bubble {
-          max-width: 78%;
+          /* 所有消息气泡统一窄宽度(官方/回复/用户一致):自然加长区域,引导滚动 */
+          max-width: 64%;
           padding: 10px 12px;
           border: 2px solid var(--contact-ink);
           border-radius: 12px;

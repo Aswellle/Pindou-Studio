@@ -244,7 +244,7 @@ export default function Gallery({ onLoadTemplate, onDeleteWork, onLoadWork, save
           aria-label={t('gallery.backHome')}
           title={t('gallery.backHome')}
         >
-          <Home size={22} />
+          <Home size={20} />
         </button>
         <button
           className="gallery-float-btn contact"
@@ -252,7 +252,7 @@ export default function Gallery({ onLoadTemplate, onDeleteWork, onLoadWork, save
           aria-label={t('gallery.contactUs')}
           title={t('gallery.contactUs')}
         >
-          <MessageCircle size={22} />
+          <MessageCircle size={20} />
         </button>
       </div>
       {showContact && <ContactUsModal user={user} onClose={() => setShowContact(false)} />}
@@ -1332,31 +1332,31 @@ export default function Gallery({ onLoadTemplate, onDeleteWork, onLoadWork, save
         }
         .retry-btn:hover { background: var(--accent); color: white; }
         /* 右侧悬浮按钮:右下角贴近右手拇指区,与底部地址栏/操作区域保持合适距离;
-           (参照参考站,硬投影圆角方块,配色协调到本站主题色) */
+           尺寸收敛(46px 圆角方块),不喧宾夺主(参照参考站观感) */
         .gallery-floating {
           position: fixed;
           right: 12px;
           bottom: clamp(96px, 14vh, 140px);
           display: flex;
           flex-direction: column;
-          gap: 12px;
+          gap: 10px;
           z-index: 300;
         }
         .gallery-float-btn {
-          width: 54px;
-          height: 54px;
-          border-radius: 16px;
+          width: 46px;
+          height: 46px;
+          border-radius: 14px;
           display: flex;
           align-items: center;
           justify-content: center;
           color: #fff;
           cursor: pointer;
           border: 2px solid var(--float-ink, #3a2f26);
-          box-shadow: 0 4px 0 rgba(43, 36, 32, 0.28);
+          box-shadow: 0 3px 0 rgba(43, 36, 32, 0.28);
           transition: transform 0.12s, box-shadow 0.12s;
         }
         .gallery-float-btn:active {
-          transform: translateY(3px);
+          transform: translateY(2px);
           box-shadow: 0 1px 0 rgba(43, 36, 32, 0.28);
         }
         .gallery-float-btn.home { background: var(--accent); border-color: #b65a38; }
