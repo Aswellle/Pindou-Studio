@@ -1,15 +1,34 @@
 // deno-lint-ignore-file no-explicit-any
-import { createClient } from 'npm:@supabase/supabase-js@2'
 
 // 「联系我们」留言(线程式 IM):校验 Cloudflare Turnstile 人机验证 → 以
 // participant_id(登录用户 id 或访客 localStorage UUID)写入 contact_messages。
 // 管理员回复走 RPC admin_reply_contact(author='admin'),访客经 RPC
 // get_contact_thread 拉取自己的线程,因此重新打开弹层可见历史与回复。
 //
-// Secrets(在 Supabase 控制台 Functions → contact-us → Secrets,或 `supabase secrets set`):
+// Secrets:
 //   TURNSTILE_SECRET_KEY  必填。Cloudflare Turnstile 的 Secret key(与站点前端
 //                         VITE_TURNSTILE_SITE_KEY 配对;未设置时跳过验证——仅供本地开发)。
-// SUPABASE_URL / SUPABASE_SERVICE_ROLE_KEY 由 Supabase Edge Function 自动注入,无需手动设置。
+// SUPABASE_URL 由 Supabase Edge Function 自动注入。
+// 写入密钥不再用 SUPABASE_SERVICE_ROLE_KEY(supabase-js 会把新格式 sb_secret_…
+// 放到 Authorization Bearer,平台按 JWT 解析导致 "Invalid JWT" 401,即此前
+// 前端「发送失败」根因),改用：1) 新 API Key 时代自动注入的 SUPABASE_SECRET_KEYS
+// (JSON,键名 'default' = 服务端 Secret key);2) 直接 fetch PostgREST,密钥只放
+// `apikey` 头(新密钥的官方用法)。
+
+// 解析服务端 Secret key(新密钥格式优先,兜底旧 auto-injected 变量)
+function getSecretKey(): string {
+  const keysRaw = Deno.env.get('SUPABASE_SECRET_KEYS') || ''
+  if (keysRaw) {
+    try {
+      const keys = JSON.parse(keysRaw)
+      const k = keys?.['default']
+      if (k) return String(k)
+    } catch (e) {
+      console.warn('[contact-us] 解析 SUPABASE_SECRET_KEYS 失败:', e)
+    }
+  }
+  return Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || ''
+}
 
 const verifyTurnstile = async (token: string, remoteIp?: string): Promise<boolean> => {
   const secret = Deno.env.get('TURNSTILE_SECRET_KEY')
@@ -77,19 +96,29 @@ Deno.serve(async (req) => {
   if (!captchaOk) return json({ ok: false, reason: 'captcha_failed' }, 400)
 
   const sbUrl = Deno.env.get('SUPABASE_URL')
-  const sbKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')
+  const sbKey = getSecretKey()
   if (!sbUrl || !sbKey) {
     return json({ ok: false, reason: 'not_configured' }, 500)
   }
-  const sb = createClient(sbUrl, sbKey, { auth: { persistSession: false } })
-  const { error } = await sb.from('contact_messages').insert({
-    participant_id: participantId,
-    email,
-    message,
-    author: 'user',
+  // 直接 POST PostgREST:新格式 Secret key 仅放 `apikey` 头,
+  // 不放 Authorization Bearer(会被平台当作 JWT 解析 → Invalid JWT 401)
+  const ins = await fetch(`${sbUrl}/rest/v1/contact_messages`, {
+    method: 'POST',
+    headers: {
+      'apikey': sbKey,
+      'Content-Type': 'application/json',
+      'Prefer': 'return=minimal',
+    },
+    body: JSON.stringify({
+      participant_id: participantId,
+      email,
+      message,
+      author: 'user',
+    }),
   })
-  if (error) {
-    console.error('[contact-us] 入库失败:', error.message)
+  if (!ins.ok) {
+    const body = await ins.text()
+    console.error('[contact-us] 入库失败:', ins.status, body.slice(0, 400))
     return json({ ok: false, reason: 'db_error' }, 500)
   }
   return json({ ok: true }, 200)
