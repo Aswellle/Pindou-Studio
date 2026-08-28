@@ -91,8 +91,9 @@ export default function ContactMessages() {
                 </div>
                 <p className="contact-msg-text">{m.message}</p>
 
-                {/* 每条留言都可回复:挂到同一线程,访客重开弹层即见 */}
-                {replyState[m.id]?.open ? (
+                {/* 每条留言都可回复:挂到同一线程,访客重开弹层即见。
+                    迁移 0014 前的历史留言无 participant_id,无法挂线程,不显示回复入口 */}
+                {m.participant_id && (replyState[m.id]?.open ? (
                   <div className="contact-reply-box">
                     <textarea
                       className="admin-input contact-reply-input"
@@ -115,7 +116,7 @@ export default function ContactMessages() {
                   <button className="admin-btn secondary small contact-reply-toggle" onClick={() => setReply(m.id, { open: true })}>
                     {t('admin.contact.replyBtn')}
                   </button>
-                )}
+                ))}
               </div>
             ))}
           </div>
