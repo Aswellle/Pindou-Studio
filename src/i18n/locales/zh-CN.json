@@ -904,9 +904,15 @@
     },
     "contact": {
       "title": "联系消息",
-      "hint": "来自图库「联系我们」弹层的用户留言(邮箱为选填,未填不影响看到留言)",
+      "hint": "来自图库「联系我们」弹层的用户留言(邮箱为选填,未填不影响看到留言);回复后访客重开弹层即可看到",
       "empty": "暂无留言",
-      "noEmail": "未填写邮箱"
+      "noEmail": "未填写邮箱",
+      "replyBtn": "回复",
+      "replyPlaceholder": "输入回复内容...",
+      "replySent": "回复已发送",
+      "replyEmpty": "回复内容不能为空",
+      "authorUser": "用户",
+      "authorAdmin": "官方回复"
     }
   },
   "profile": {

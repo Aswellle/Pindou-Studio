@@ -1,6 +1,6 @@
-import { useState, useEffect, useRef, useCallback } from 'react'
+import { useState, useEffect, useRef, useCallback, useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
-import { X, Send } from 'lucide-react'
+import { X, Send, User } from 'lucide-react'
 import { supabase } from '../services/supabase'
 import { useToast } from './Toast'
 
@@ -22,30 +22,74 @@ const LOGO_SVG = (
 )
 
 /**
- * 「联系我们」弹层:仿 IM 聊天界面。
- * - 顶部聊天区:默认一条官方欢迎消息(头像=站点 LOGO),用户消息右侧气泡
- * - 聊天区下方:访客身份提示(回复显示在此窗口,留邮箱可收到邮件回复)
- * - 选填邮箱输入框 + Cloudflare Turnstile 人机验证 + 消息输入与发送
- * - 发送条件:人机验证通过 且 消息非空;消息为空提示「消息为空」;未验证提示先完成验证
- * - 消息经 Edge Function contact-us(service 端再次校验 Turnstile)入库 contact_messages
+ * 「联系我们」线程式 IM 弹层。
+ * - 官方欢迎消息(头像=站点 LOGO)+ 用户消息(头像=登录账号头像/访客默认头像)
+ *   + 管理员回复(头像=LOGO,由后台「联系消息」回复后在此显示)
+ * - 线程身份:登录用户用 user.id;访客用 localStorage 持久 UUID(重开弹层/刷新后仍能找回线程)
+ * - 每 5s 轮询 get_contact_thread,管理员回复到达后自动出现在聊天区
+ * - 选填邮箱 + Cloudflare Turnstile 人机验证 + 消息输入/发送
+ * - iOS Safari 键盘弹起:overlay 高度跟随 visual viewport(--visible-vh),避免底部输入区被吞
  */
 
 const turnstileState = { scriptLoading: false }
 
-export default function ContactUsModal({ onClose }) {
+// 线程内新用户生成一个持久的匿名身份(UUID)
+const getAnonParticipant = () => {
+  try {
+    let id = localStorage.getItem('contact-participant-id')
+    if (!id) {
+      id = crypto.randomUUID?.() || `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`
+      localStorage.setItem('contact-participant-id', id)
+    }
+    return id
+  } catch {
+    return `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`
+  }
+}
+
+const threadToMsg = (row) => ({ id: row.id, author: row.author, message: row.message })
+
+export default function ContactUsModal({ onClose, user }) {
   const { t } = useTranslation()
   const toast = useToast()
-  const [userMessages, setUserMessages] = useState([])
+  // 线程身份:登录用户用其 id;否则用持久化访客 id
+  const participantId = useMemo(() => (user?.id ? user.id : getAnonParticipant()), [user?.id])
+  const [thread, setThread] = useState([])
+  const [threadLoading, setThreadLoading] = useState(true)
   const [email, setEmail] = useState('')
   const [text, setText] = useState('')
   const [token, setToken] = useState(null)
-  // idle | verified | expired | error;captchaRequired=false(本地未配置 key)时跳过验证
   const [capStatus, setCapStatus] = useState('idle')
   const [sending, setSending] = useState(false)
   const turnstileRef = useRef(null)
   const widgetIdRef = useRef(null)
   const chatRef = useRef(null)
   const captchaRequired = !!TURNSTILE_SITE_KEY
+
+  // iOS Safari 键盘弹起时锁定背景滚动,避免 visual viewport 偏移把浮层推走
+  useEffect(() => {
+    const prev = document.body.style.overflow
+    document.body.style.overflow = 'hidden'
+    return () => { document.body.style.overflow = prev }
+  }, [])
+
+  // 拉取线程 + 每 5s 轮询(管理员回复即时可见;不依赖 Realtime/RLS 配置,稳)
+  const loadThread = useCallback(async () => {
+    if (!supabase) return
+    try {
+      const { data, error } = await supabase.rpc('get_contact_thread', {
+        p_participant_id: participantId,
+        p_limit: 60,
+      })
+      if (!error) setThread((data || []).map(threadToMsg))
+    } catch (e) { /* 静默:线程加载失败不阻塞输入发送 */ }
+  }, [participantId])
+
+  useEffect(() => {
+    loadThread().finally(() => setThreadLoading(false))
+    const timer = setInterval(loadThread, 5000)
+    return () => clearInterval(timer)
+  }, [loadThread])
 
   // 挂载时加载 Turnstile 脚本并渲染 widget
   useEffect(() => {
@@ -85,7 +129,7 @@ export default function ContactUsModal({ onClose }) {
   useEffect(() => {
     const el = chatRef.current
     if (el) el.scrollTop = el.scrollHeight
-  }, [userMessages])
+  }, [thread, text])
 
   const resetCaptcha = useCallback(() => {
     setToken(null)
@@ -96,7 +140,6 @@ export default function ContactUsModal({ onClose }) {
   const handleSend = async () => {
     if (sending) return
     const msg = text.trim()
-    // 消息为空:即使已完成人机验证也提示不能发送
     if (!msg) {
       toast(t('contact.emptyMsg'), 'error')
       return
@@ -112,15 +155,19 @@ export default function ContactUsModal({ onClose }) {
     setSending(true)
     try {
       const { error } = await supabase.functions.invoke('contact-us', {
-        body: { message: msg, email: email.trim() || null, token },
+        body: {
+          participant_id: participantId,
+          message: msg,
+          email: email.trim() || null,
+          token,
+        },
       })
       if (error) throw error
-      setUserMessages(prev => [...prev, msg])
       setText('')
       toast(t('contact.sent'), 'success')
       resetCaptcha()
+      loadThread()
       if (!email.trim()) {
-        // 选填邮箱为空:提示收不到邮件回复(消息仍会被管理员看到)
         toast(t('contact.emailMissingWarn'), 'info', 6500)
       }
     } catch (e) {
@@ -130,6 +177,13 @@ export default function ContactUsModal({ onClose }) {
       setSending(false)
     }
   }
+
+  // 登录用户的账号头像;其余用默认头像(lucide User)
+  const selfAvatar = user?.avatarUrl ? (
+    <img className="contact-avatar-img" src={user.avatarUrl} alt="" />
+  ) : (
+    <span className="contact-avatar-default"><User size={14} /></span>
+  )
 
   return (
     <div className="contact-overlay" onClick={onClose}>
@@ -141,16 +195,24 @@ export default function ContactUsModal({ onClose }) {
           </button>
         </div>
 
-        {/* 聊天区:官方初始消息 + 用户已发送消息 */}
+        {/* 聊天区:官方欢迎消息 + 历史线程(用户消息/管理员回复) */}
         <div className="contact-chat" ref={chatRef}>
           <div className="contact-msg official">
             <div className="contact-avatar">{LOGO_SVG}</div>
             <div className="contact-bubble">{t('contact.intro')}</div>
           </div>
-          {userMessages.map((m, i) => (
-            <div className="contact-msg user" key={i}>
-              <div className="contact-bubble user">{m}</div>
-            </div>
+          {threadLoading ? null : thread.map(m => (
+            m.author === 'admin' ? (
+              <div className="contact-msg official" key={m.id}>
+                <div className="contact-avatar">{LOGO_SVG}</div>
+                <div className="contact-bubble admin-reply">{m.message}</div>
+              </div>
+            ) : (
+              <div className="contact-msg user" key={m.id}>
+                <div className="contact-bubble user">{m.message}</div>
+                <div className="contact-avatar">{selfAvatar}</div>
+              </div>
+            )
           ))}
         </div>
 
@@ -195,9 +257,14 @@ export default function ContactUsModal({ onClose }) {
       </div>
 
       <style>{`
+        /* iOS Safari 键盘弹起时 --visible-vh=可视高度(App.jsx 全局监听 visualViewport 更新),
+           使浮层只覆盖键盘之上的可见区域,输入框不被键盘吞掉 */
         .contact-overlay {
           position: fixed;
-          inset: 0;
+          top: 0;
+          left: 0;
+          right: 0;
+          height: var(--visible-vh, 100vh);
           background: rgba(43, 36, 32, 0.5);
           z-index: 1200;
           display: flex;
@@ -209,7 +276,7 @@ export default function ContactUsModal({ onClose }) {
         .contact-modal {
           width: 100%;
           max-width: 420px;
-          max-height: calc(100vh - 24px);
+          max-height: calc(100% - 24px);
           overflow-y: auto;
           background: var(--bg-primary);
           border: 2px solid var(--contact-ink);
@@ -247,7 +314,7 @@ export default function ContactUsModal({ onClose }) {
         .contact-close:active { transform: translateY(1px); box-shadow: 0 1px 0 var(--contact-ink); }
         .contact-close:hover { color: var(--accent); border-color: var(--accent); box-shadow: 0 2px 0 var(--accent); }
         .contact-chat {
-          max-height: 260px;
+          max-height: 240px;
           overflow-y: auto;
           padding: 14px 16px 10px;
           display: flex;
@@ -261,7 +328,30 @@ export default function ContactUsModal({ onClose }) {
           gap: 8px;
         }
         .contact-msg.user { justify-content: flex-end; }
-        .contact-avatar { flex-shrink: 0; border-radius: 8px; overflow: hidden; }
+        .contact-avatar {
+          flex-shrink: 0;
+          border-radius: 8px;
+          overflow: hidden;
+          width: 26px;
+          height: 26px;
+        }
+        .contact-avatar-img {
+          width: 100%;
+          height: 100%;
+          object-fit: cover;
+          border-radius: 8px;
+        }
+        .contact-avatar-default {
+          width: 100%;
+          height: 100%;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          border-radius: 8px;
+          background: var(--bg-tertiary);
+          color: var(--text-secondary);
+          border: 1px solid var(--border-color);
+        }
         .contact-bubble {
           max-width: 78%;
           padding: 10px 12px;
@@ -277,6 +367,10 @@ export default function ContactUsModal({ onClose }) {
         .contact-bubble.user {
           background: var(--accent-soft);
           border-color: var(--accent);
+        }
+        .contact-bubble.admin-reply {
+          border-color: var(--secondary-accent);
+          background: rgba(74, 155, 142, 0.08);
         }
         .contact-visitor-hint {
           margin: 0 16px 10px;

@@ -904,9 +904,15 @@
     },
     "contact": {
       "title": "Contact Messages",
-      "hint": "Messages submitted from the Contact Us dialog in the Gallery (email is optional)",
+      "hint": "Messages submitted from the Contact Us dialog in the Gallery (email is optional); replies become visible when the visitor reopens the dialog",
       "empty": "No messages yet",
-      "noEmail": "No email provided"
+      "noEmail": "No email provided",
+      "replyBtn": "Reply",
+      "replyPlaceholder": "Type your reply...",
+      "replySent": "Reply sent",
+      "replyEmpty": "Reply cannot be empty",
+      "authorUser": "User",
+      "authorAdmin": "Official reply"
     }
   },
   "profile": {

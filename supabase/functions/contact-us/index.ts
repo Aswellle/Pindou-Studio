@@ -1,8 +1,10 @@
 // deno-lint-ignore-file no-explicit-any
 import { createClient } from 'npm:@supabase/supabase-js@2'
 
-// 「联系我们」留言:校验 Cloudflare Turnstile 人机验证 → 写入 public.contact_messages。
-// 前端在用户完成人机验证 + 输入消息后调用(fire-and-forget)。
+// 「联系我们」留言(线程式 IM):校验 Cloudflare Turnstile 人机验证 → 以
+// participant_id(登录用户 id 或访客 localStorage UUID)写入 contact_messages。
+// 管理员回复走 RPC admin_reply_contact(author='admin'),访客经 RPC
+// get_contact_thread 拉取自己的线程,因此重新打开弹层可见历史与回复。
 //
 // Secrets(在 Supabase 控制台 Functions → contact-us → Secrets,或 `supabase secrets set`):
 //   TURNSTILE_SECRET_KEY  必填。Cloudflare Turnstile 的 Secret key(与站点前端
@@ -40,6 +42,8 @@ const json = (obj: any, status: number) =>
     headers: { 'content-type': 'application/json' },
   })
 
+const PARTICIPANT_RE = /^[A-Za-z0-9_-]{4,64}$/
+
 Deno.serve(async (req) => {
   if (req.method !== 'POST') {
     return new Response('method not allowed', { status: 405 })
@@ -54,8 +58,12 @@ Deno.serve(async (req) => {
 
   const message = String(body?.message || '').trim()
   const emailRaw = String(body?.email || '').trim()
+  const participantId = String(body?.participant_id || '').trim()
   if (!message) return json({ ok: false, reason: 'empty_message' }, 400)
   if (message.length > 2000) return json({ ok: false, reason: 'message_too_long' }, 400)
+  if (!PARTICIPANT_RE.test(participantId)) {
+    return json({ ok: false, reason: 'invalid_participant' }, 400)
+  }
   const email = emailRaw === '' ? null : emailRaw
   if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
     return json({ ok: false, reason: 'invalid_email' }, 400)
@@ -74,7 +82,12 @@ Deno.serve(async (req) => {
     return json({ ok: false, reason: 'not_configured' }, 500)
   }
   const sb = createClient(sbUrl, sbKey, { auth: { persistSession: false } })
-  const { error } = await sb.from('contact_messages').insert({ email, message })
+  const { error } = await sb.from('contact_messages').insert({
+    participant_id: participantId,
+    email,
+    message,
+    author: 'user',
+  })
   if (error) {
     console.error('[contact-us] 入库失败:', error.message)
     return json({ ok: false, reason: 'db_error' }, 500)

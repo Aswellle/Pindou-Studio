@@ -255,7 +255,7 @@ export default function Gallery({ onLoadTemplate, onDeleteWork, onLoadWork, save
           <MessageCircle size={22} />
         </button>
       </div>
-      {showContact && <ContactUsModal onClose={() => setShowContact(false)} />}
+      {showContact && <ContactUsModal user={user} onClose={() => setShowContact(false)} />}
 
       <div className="gallery-header">
         <h1 className="gallery-title">{t('gallery.title')}</h1>
@@ -1331,12 +1331,12 @@ export default function Gallery({ onLoadTemplate, onDeleteWork, onLoadWork, save
           transition: all 0.15s;
         }
         .retry-btn:hover { background: var(--accent); color: white; }
-        /* 右侧悬浮按钮:居中偏右,硬投影圆角方块(参照参考站,配色协调到本站主题色) */
+        /* 右侧悬浮按钮:右下角贴近右手拇指区,与底部地址栏/操作区域保持合适距离;
+           (参照参考站,硬投影圆角方块,配色协调到本站主题色) */
         .gallery-floating {
           position: fixed;
           right: 12px;
-          top: 46%;
-          transform: translateY(-50%);
+          bottom: clamp(96px, 14vh, 140px);
           display: flex;
           flex-direction: column;
           gap: 12px;

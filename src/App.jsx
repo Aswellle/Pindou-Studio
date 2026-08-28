@@ -116,6 +116,28 @@ export default function App() {
   // 独立页(登录/注册/管理员登录/隐私/条款):隐藏站点导航栏与操作按钮,只保留 LOGO + 返回,避免元素冲突
   const isStandalonePage = currentPage === 'login' || currentPage === 'adminLogin' || currentPage === 'privacy' || currentPage === 'terms'
 
+  // iOS Safari 键盘弹起时布局视口不变、visual viewport 缩小 →
+  // 把可视高度写入 CSS 变量 --visible-vh,各固定浮层(.modal-overlay / .image-quantizer-overlay
+  // / .contact-overlay)的 height 改用该变量,输入框不被键盘吞掉。
+  useEffect(() => {
+    const vv = window.visualViewport
+    if (!vv) return undefined
+    const update = () => {
+      document.documentElement.style.setProperty('--visible-vh', `${vv.height}px`)
+    }
+    update()
+    vv.addEventListener('resize', update)
+    return () => vv.removeEventListener('resize', update)
+  }, [])
+
+  // 保存作品弹层打开时锁定背景滚动(防 iOS 键盘 pop 起时 body 被顶开)
+  useEffect(() => {
+    if (!showSaveDialog) return undefined
+    const prev = document.body.style.overflow
+    document.body.style.overflow = 'hidden'
+    return () => { document.body.style.overflow = prev }
+  }, [showSaveDialog])
+
   // Initialize blank canvas on first render and when grid size changes with no data
   useEffect(() => {
     if (!canvasData) {

@@ -343,6 +343,7 @@ export default function Tutorials() {
         .tutorials-page {
           display: flex;
           height: calc(100vh - 80px);
+          height: calc(100dvh - 80px); /* iOS Safari 动态视口,防底部操作栏遮挡 */
           max-width: 1400px;
           margin: 0 auto;
         }

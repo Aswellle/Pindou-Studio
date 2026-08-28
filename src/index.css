@@ -137,6 +137,8 @@ input:focus, textarea:focus, button:focus {
 .modal-overlay {
   position: fixed;
   inset: 0;
+  /* iOS Safari 键盘弹起时改为可视高度(--visible-vh 由 App.jsx 监听 visualViewport 更新) */
+  height: var(--visible-vh, 100vh);
   background: rgba(0, 0, 0, 0.5);
   display: flex;
   align-items: center;

@@ -98,6 +98,13 @@ export default function ImageQuantizer({ onApply, onClose }) {
   const { isProcessing, progress, result, error, quantize, reset } = useImageQuantizer()
   const [zoomPreview, setZoomPreview] = useState(false)
 
+  // iOS Safari 键盘弹起时锁定背景滚动,避免 visual viewport 偏移把浮层推走
+  useEffect(() => {
+    const prev = document.body.style.overflow
+    document.body.style.overflow = 'hidden'
+    return () => { document.body.style.overflow = prev }
+  }, [])
+
   // 品牌 ID → hex 查找表(预览与放大查看共用)
   const resultColorMap = useMemo(() => {
     const m = {}
