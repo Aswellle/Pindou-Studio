@@ -55,17 +55,29 @@ const verifyTurnstile = async (token: string, remoteIp?: string): Promise<boolea
   }
 }
 
+// CORS:浏览器跨域调用(站点域 tangnotes.site → 函数域 *.supabase.co)前会先发
+// OPTIONS 预检;之前没处理预检 + 没有响应头,浏览器直接拦掉真实 POST,JS 层看到
+// 网络错误 —— 此前用 curl 验证时不会触发(curl 不执行 CORS),因此一直被漏掉。
+const corsHeaders = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  'Access-Control-Allow-Methods': 'POST, OPTIONS',
+}
+
 const json = (obj: any, status: number) =>
   new Response(JSON.stringify(obj), {
     status,
-    headers: { 'content-type': 'application/json' },
+    headers: { ...corsHeaders, 'content-type': 'application/json' },
   })
 
 const PARTICIPANT_RE = /^[A-Za-z0-9_-]{4,64}$/
 
 Deno.serve(async (req) => {
+  if (req.method === 'OPTIONS') {
+    return new Response('ok', { headers: corsHeaders })
+  }
   if (req.method !== 'POST') {
-    return new Response('method not allowed', { status: 405 })
+    return new Response('method not allowed', { status: 405, headers: corsHeaders })
   }
 
   let body: any
