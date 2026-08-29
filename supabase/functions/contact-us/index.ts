@@ -100,38 +100,47 @@ Deno.serve(async (req) => {
     return json({ ok: false, reason: 'invalid_email' }, 400)
   }
 
-  const remoteIp =
-    req.headers.get('cf-connecting-ip') ||
-    req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ||
-    undefined
-  const captchaOk = await verifyTurnstile(String(body?.token || ''), remoteIp)
-  if (!captchaOk) return json({ ok: false, reason: 'captcha_failed' }, 400)
+  // Turnstile token 一次性:仅当本次带了 token 才校验(消费它);不带 token 时
+  // 交由 RPC 判断该 participant 是否在信任窗口内曾验证通过(会话级信任)。
+  const rawToken = String(body?.token || '')
+  let verifiedNow = false
+  if (rawToken) {
+    const remoteIp =
+      req.headers.get('cf-connecting-ip') ||
+      req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ||
+      undefined
+    verifiedNow = await verifyTurnstile(rawToken, remoteIp)
+    if (!verifiedNow) return json({ ok: false, reason: 'captcha_failed' }, 400)
+  }
 
   const sbUrl = Deno.env.get('SUPABASE_URL')
   const sbKey = getSecretKey()
   if (!sbUrl || !sbKey) {
     return json({ ok: false, reason: 'not_configured' }, 500)
   }
-  // 直接 POST PostgREST:新格式 Secret key 仅放 `apikey` 头,
-  // 不放 Authorization Bearer(会被平台当作 JWT 解析 → Invalid JWT 401)
-  const ins = await fetch(`${sbUrl}/rest/v1/contact_messages`, {
+  // 原子提交:会话级人机验证门禁 + 限流 + 入库(SECURITY DEFINER,仅 service_role)。
+  // 新格式 Secret key 仅放 `apikey` 头(放 Authorization Bearer 会被当 JWT 解析 → 401)。
+  const rpc = await fetch(`${sbUrl}/rest/v1/rpc/submit_contact_message`, {
     method: 'POST',
     headers: {
       'apikey': sbKey,
       'Content-Type': 'application/json',
-      'Prefer': 'return=minimal',
     },
     body: JSON.stringify({
-      participant_id: participantId,
-      email,
-      message,
-      author: 'user',
+      p_participant_id: participantId,
+      p_email: email,
+      p_message: message,
+      p_verified_now: verifiedNow,
     }),
   })
-  if (!ins.ok) {
-    const body = await ins.text()
-    console.error('[contact-us] 入库失败:', ins.status, body.slice(0, 400))
+  if (!rpc.ok) {
+    const errBody = await rpc.text()
+    console.error('[contact-us] 提交失败:', rpc.status, errBody.slice(0, 400))
     return json({ ok: false, reason: 'db_error' }, 500)
   }
+  // RPC 返回 'ok' | 'captcha_required' | 'rate_limited'(PostgREST 标量返回带引号)
+  const result = (await rpc.text()).replace(/"/g, '').trim()
+  if (result === 'captcha_required') return json({ ok: false, reason: 'captcha_required' }, 400)
+  if (result === 'rate_limited') return json({ ok: false, reason: 'rate_limited' }, 429)
   return json({ ok: true }, 200)
 })

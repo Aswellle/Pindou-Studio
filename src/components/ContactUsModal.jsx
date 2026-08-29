@@ -59,7 +59,8 @@ export default function ContactUsModal({ onClose, user }) {
   const [email, setEmail] = useState('')
   const [text, setText] = useState('')
   const [token, setToken] = useState(null)
-  const [capStatus, setCapStatus] = useState('idle')
+  // 本次弹层会话是否已通过一次人机验证(通过后不再要求重复验证,服务端会话级信任)
+  const [everVerified, setEverVerified] = useState(false)
   const [sending, setSending] = useState(false)
   const turnstileRef = useRef(null)
   const widgetIdRef = useRef(null)
@@ -100,18 +101,24 @@ export default function ContactUsModal({ onClose, user }) {
         widgetIdRef.current = window.turnstile.render(turnstileRef.current, {
           sitekey: TURNSTILE_SITE_KEY,
           theme: 'light',
-          // 完整渲染 Cloudflare 组件本体(Managed 模式;低风险自动通过属平台行为)
+          // 完整渲染 Cloudflare 组件本体(Managed 模式;低风险自动通过属平台行为)。
+          // refresh-expired/retry = never:验证通过后不再静默自动刷新/重试,
+          // 组件保持成功态,不打扰真实用户(会话级信任由服务端兜底)。
+          'refresh-expired': 'never',
+          'retry': 'never',
           callback: (tk) => {
             setToken(tk)
-            setCapStatus('verified')
-            toast(t('contact.captchaOk'), 'success')
+            // 首次通过才提示,避免重复 toast
+            setEverVerified(prev => {
+              if (!prev) toast(t('contact.captchaOk'), 'success')
+              return true
+            })
           },
-          'expired-callback': () => { setToken(null); setCapStatus('expired') },
-          'error-callback': () => { setToken(null); setCapStatus('error') },
+          'expired-callback': () => { setToken(null) },
+          'error-callback': () => { setToken(null) },
         })
       } catch (e) {
         console.warn('[contact-us] Turnstile 渲染失败:', e)
-        setCapStatus('error')
       }
     }
     if (window.turnstile) {
@@ -122,7 +129,7 @@ export default function ContactUsModal({ onClose, user }) {
       s.src = 'https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit'
       s.async = true
       s.onload = render
-      s.onerror = () => { setCapStatus('error'); turnstileState.scriptLoading = false }
+      s.onerror = () => { turnstileState.scriptLoading = false }
       document.head.appendChild(s)
     }
     return () => {
@@ -136,12 +143,6 @@ export default function ContactUsModal({ onClose, user }) {
     if (el) el.scrollTop = el.scrollHeight
   }, [thread, text])
 
-  const resetCaptcha = useCallback(() => {
-    setToken(null)
-    setCapStatus('idle')
-    try { if (widgetIdRef.current != null && window.turnstile) window.turnstile.reset(widgetIdRef.current) } catch (e) { /* 忽略 */ }
-  }, [])
-
   const handleSend = async () => {
     if (sending) return
     const msg = text.trim()
@@ -149,7 +150,8 @@ export default function ContactUsModal({ onClose, user }) {
       toast(t('contact.emptyMsg'), 'error')
       return
     }
-    if (captchaRequired && !token) {
+    // 会话内从未验证过 → 要求先完成人机验证;验证过一次后免验证(服务端会话级信任)
+    if (captchaRequired && !everVerified && !token) {
       toast(t('contact.captchaFirst'), 'error')
       return
     }
@@ -159,18 +161,32 @@ export default function ContactUsModal({ onClose, user }) {
     }
     setSending(true)
     try {
-      const { error } = await supabase.functions.invoke('contact-us', {
+      const { data, error } = await supabase.functions.invoke('contact-us', {
         body: {
           participant_id: participantId,
           message: msg,
           email: email.trim() || null,
-          token,
+          token, // 可能为 null(已验证会话的后续消息);服务端凭信任窗口放行
         },
       })
       if (error) throw error
+      // 函数以 200 返回 {ok:true};非 ok 分支通过 data.reason 区分
+      if (data && data.ok === false) {
+        if (data.reason === 'rate_limited') { toast(t('contact.rateLimited'), 'error'); return }
+        if (data.reason === 'captcha_required' || data.reason === 'captcha_failed') {
+          toast(t('contact.captchaFirst'), 'error')
+          // 需要重新验证:重置组件以获取新 token
+          setEverVerified(false); setToken(null)
+          try { if (widgetIdRef.current != null && window.turnstile) window.turnstile.reset(widgetIdRef.current) } catch (e) { /* 忽略 */ }
+          return
+        }
+        toast(t('contact.sendFailed'), 'error'); return
+      }
       setText('')
       toast(t('contact.sent'), 'success')
-      resetCaptcha()
+      // 关键:发送成功后不再 reset 人机验证组件(token 一次性,已消费;
+      // 会话级信任已由服务端记录),组件保持成功态,不再打扰用户重复验证。
+      setToken(null)
       loadThread()
       if (!email.trim()) {
         toast(t('contact.emailMissingWarn'), 'info', 6500)
