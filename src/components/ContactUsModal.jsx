@@ -340,6 +340,9 @@ export default function ContactUsModal({ onClose, user }) {
           /* 顶部少量留白,模态框略偏下;改用小数值避免 PC/矮视口下溢出 */
           padding: 4vh 12px 12px;
           box-sizing: border-box;
+          /* 阻止触摸滚动穿透:在模态框上滑动不会带动下层图库滚动(仅聊天区放行) */
+          overscroll-behavior: contain;
+          touch-action: none;
         }
         .contact-modal {
           width: 100%;
@@ -400,6 +403,8 @@ export default function ContactUsModal({ onClose, user }) {
           gap: 12px;
           background: var(--bg-primary);
           scroll-behavior: smooth;
+          /* 仅聊天区放行纵向触摸滚动(overlay 为 touch-action:none 阻止穿透) */
+          touch-action: pan-y;
         }
         .contact-chat-fade {
           position: absolute;

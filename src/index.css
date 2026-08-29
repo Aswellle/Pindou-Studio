@@ -147,6 +147,8 @@ input:focus, textarea:focus, button:focus {
   backdrop-filter: blur(4px);
   padding: 16px;
   box-sizing: border-box;
+  /* 阻止滚动穿透:模态框上滑动不带动下层页面 */
+  overscroll-behavior: contain;
 }
 
 .modal-content {

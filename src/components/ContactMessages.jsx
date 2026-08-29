@@ -19,17 +19,18 @@ const LOGO_SVG = (
   </svg>
 )
 
-// ── 游客确定性昵称:同一游客(participant_id)每次显示相同昵称 ──────
-const ANON_ADJ = ['快乐', '元气', '手作', '机智', '暖暖', '闪光', '悠闲', '像素']
-const ANON_NOUN = ['拼豆师', '小豆丁', '豆豆侠', '像素手', '手作者', '豆工', '拼客', '豆芽']
+// ── 游客昵称兜底(服务端 ensure_contact_nickname 分配失败时用;真正唯一性由服务端保证) ──
+const ANON_ADJ = ['快乐', '元气', '机智', '暖暖', '闪光', '悠闲', '手作', '像素', '缤纷', '灵动', '俏皮', '温柔', '酷炫', '软萌', '清爽', '神秘', '好奇', '勇敢', '梦幻', '热情']
+const ANON_NOUN = ['拼豆师', '小豆丁', '豆豆侠', '像素手', '手作者', '豆工', '拼客', '豆芽', '小匠人', '手绘师', '豆豆星', '拼织客', '色块君', '图纸师', '珠珠侠', '小贝珠', '胶珠手', '点点匠', '豆花糖', '方块客']
 const hashStr = (s) => {
   let h = 0
   for (const c of s) h = (h * 31 + c.charCodeAt(0)) >>> 0
   return h
 }
-const anonNickname = (pid) => {
+const anonFallback = (pid) => {
   const h = hashStr(pid || '')
-  return `${ANON_ADJ[h % ANON_ADJ.length]}的${ANON_NOUN[(h >>> 4) % ANON_NOUN.length]}`
+  const num = (h % 9000 + 1000).toString()
+  return `${ANON_ADJ[h % ANON_ADJ.length]}的${ANON_NOUN[(h >>> 5) % ANON_NOUN.length]}${num}`
 }
 
 const PAGE_SIZE = 8 // 每次加载的对话卡片数
@@ -78,7 +79,7 @@ export default function ContactMessages() {
       .map(c => ({ ...c, messages: c.messages.sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt)) }))
       .sort((a, b) => new Date(b.lastAt) - new Date(a.lastAt))
 
-    // 批量查 profiles:命中的为注册用户(昵称/头像),未命中的为游客(确定性昵称+默认头像)
+    // 批量查 profiles:命中的为注册用户(站内昵称/真实头像),未命中的为游客
     let profileById = {}
     try {
       const ids = convs.map(c => c.participantId)
@@ -86,7 +87,24 @@ export default function ContactMessages() {
       for (const p of (pdata || [])) profileById[p.id] = p
     } catch (e) { /* 忽略:游客按默认处理 */ }
 
-    setConversations(convs.map(c => ({ ...c, profile: profileById[c.participantId] || null })))
+    // 游客昵称:调用服务端唯一分配 RPC(持久化 + 全局唯一检查,确保每个参与者独一无二)
+    const nicknameById = {}
+    await Promise.all(
+      convs
+        .filter(c => !profileById[c.participantId])
+        .map(async (c) => {
+          try {
+            const { data } = await supabase.rpc('ensure_contact_nickname', { p_participant_id: c.participantId })
+            if (data) nicknameById[c.participantId] = data
+          } catch (e) { /* RPC 失败:渲染时用 anonFallback 兜底 */ }
+        })
+    )
+
+    setConversations(convs.map(c => ({
+      ...c,
+      profile: profileById[c.participantId] || null,
+      nickname: nicknameById[c.participantId] || null,
+    })))
     setLoading(false)
   }, [])
 
@@ -143,7 +161,10 @@ export default function ContactMessages() {
             <div className="cm-grid">
               {visible.map(c => {
                 const isUser = !!c.profile
-                const name = isUser ? (c.profile.nickname || c.profile.id?.slice(0, 8)) : anonNickname(c.participantId)
+                // 游客昵称:服务端唯一分配(持久化);注册用户:站内昵称
+                const name = isUser
+                  ? (c.profile.nickname || c.profile.id?.slice(0, 8))
+                  : (c.nickname || anonFallback(c.participantId))
                 const avatar = isUser && c.profile.avatar_url ? c.profile.avatar_url : null
                 return (
                   <div key={c.participantId} className="cm-card">

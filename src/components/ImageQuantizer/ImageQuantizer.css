@@ -9,6 +9,8 @@
   justify-content: center;
   z-index: 1000;
   backdrop-filter: blur(4px);
+  /* 阻止滚动穿透:模态框上滑动不带动下层页面 */
+  overscroll-behavior: contain;
 }
 
 .image-quantizer-modal {
