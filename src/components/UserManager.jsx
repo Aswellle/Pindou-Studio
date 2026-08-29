@@ -433,7 +433,10 @@ export default function UserManager() {
         .users-admin-note { color: var(--text-muted); }
         .users-confirm-overlay {
           position: fixed;
-          inset: 0;
+          top: 0;
+          left: 0;
+          right: 0;
+          height: var(--visible-vh, 100vh); /* iOS 键盘弹起收缩兜底 */
           background: rgba(0, 0, 0, 0.45);
           z-index: 1200;
           display: flex;

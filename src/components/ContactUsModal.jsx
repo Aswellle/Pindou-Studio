@@ -265,7 +265,10 @@ export default function ContactUsModal({ onClose, user }) {
           <div className="contact-chat-fade" aria-hidden="true" />
         </div>
 
-        <p className="contact-visitor-hint">{t('contact.visitorHint')}</p>
+        {/* 身份提示:按登录态区分 —— 仅未登录(游客)显示访客文案,登录用户显示站内用户文案 */}
+        <p className="contact-visitor-hint">
+          {user ? t('contact.userHint') : t('contact.visitorHint')}
+        </p>
 
         <input
           className="contact-email"

@@ -549,6 +549,7 @@
     "title": "Contact Us",
     "intro": "Hi! We're just a small site that's getting started 😊 If you run into anything awkward while using it, or think \"it would be nicer if…\", feel free to tell us anytime. Suggestions are always welcome — we're all ears and always trying to do better. The owner personally reads and replies to every message!",
     "visitorHint": "You're chatting as a visitor. Replies show up in this window; if you leave an email, you can also get replies by email.",
+    "userHint": "You're chatting as a signed-in user. Replies show up in this window; if you leave an email, you can also get replies by email.",
     "emailPlaceholder": "Email (optional — to receive replies)",
     "messagePlaceholder": "Type a message...",
     "send": "Send",

@@ -696,7 +696,12 @@ export default function AdminPanel({ user, isAdmin, authLoading, onLogin, onLogo
         /* ── 模态框 ───────────────────────────────────────── */
         .admin-modal-overlay {
           position: fixed;
-          inset: 0;
+          top: 0;
+          left: 0;
+          right: 0;
+          /* iOS 键盘弹起时收缩到可视高度(interactive-widget + --visible-vh 兜底),
+             修改密码等含输入框的模态框不被键盘盖住 */
+          height: var(--visible-vh, 100vh);
           background: rgba(0, 0, 0, 0.45);
           backdrop-filter: blur(4px);
           display: flex;
