@@ -145,6 +145,41 @@ export default function UserManager() {
         </div>
       </div>
 
+      {/* 最近注册记录(入库:registration_notifications 事件流,仅管理员可读)。
+          置于用户表格上方,最新动态一目了然 */}
+      <div className="admin-card">
+        <div className="admin-card-head">
+          <h3>{t('admin.registrations.title')}</h3>
+        </div>
+        {registrations.length === 0 ? (
+          <div className="admin-empty">{t('admin.registrations.empty')}</div>
+        ) : (
+          <div className="reg-grid">
+            {registrations.map(r => (
+              <div key={r.id} className="reg-tile">
+                <div className="reg-tile-avatar">
+                  {(r.nickname || r.email || '?').charAt(0).toUpperCase()}
+                </div>
+                <div className="reg-tile-main">
+                  <div className="reg-tile-name">{r.nickname || t('admin.registrations.noNickname')}</div>
+                  <div className="reg-tile-email">{r.email}</div>
+                  <div className="reg-tile-meta">
+                    <span className={`users-reg-method ${r.method === 'username' ? 'custom' : 'email'}`}>
+                      {r.method === 'username' ? t('admin.users.regCustom') : t('admin.users.regEmail')}
+                    </span>
+                    <span className="reg-tile-time">
+                      {new Date(r.created_at).toLocaleString(undefined, {
+                        month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit',
+                      })}
+                    </span>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
       <div className="admin-card">
         <input
           className="admin-input admin-search"
@@ -234,34 +269,6 @@ export default function UserManager() {
             {t('admin.users.pageNext')}
           </button>
         </div>
-      </div>
-
-      {/* 最近注册记录(入库:registration_notifications 事件流,仅管理员可读) */}
-      <div className="admin-card">
-        <div className="admin-card-head">
-          <h3>{t('admin.registrations.title')}</h3>
-        </div>
-        <p className="admin-field-hint">{t('admin.registrations.hint')}</p>
-        {registrations.length === 0 ? (
-          <div className="admin-empty">{t('admin.registrations.empty')}</div>
-        ) : (
-          <div className="reg-list">
-            {registrations.map(r => (
-              <div key={r.id} className="reg-item">
-                <span className="reg-email">{r.email}</span>
-                <span className="reg-nick">{r.nickname || t('admin.registrations.noNickname')}</span>
-                <span className={`users-reg-method ${r.method === 'username' ? 'custom' : 'email'}`}>
-                  {r.method === 'username' ? t('admin.users.regCustom') : t('admin.users.regEmail')}
-                </span>
-                <span className="reg-time">
-                  {new Date(r.created_at).toLocaleString(undefined, {
-                    month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit',
-                  })}
-                </span>
-              </div>
-            ))}
-          </div>
-        )}
       </div>
 
       {/* 删除 / 锁定 / 解锁 确认对话框 */}
@@ -449,49 +456,69 @@ export default function UserManager() {
           color: var(--text-secondary);
           font-variant-numeric: tabular-nums;
         }
-        .reg-list {
-          display: flex;
-          flex-direction: column;
-          gap: 6px;
-          margin-top: 6px;
+        .reg-grid {
+          display: grid;
+          grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+          gap: 10px;
+          margin-top: 4px;
         }
-        .reg-item {
+        .reg-tile {
           display: flex;
           align-items: center;
           gap: 12px;
-          padding: 8px 12px;
-          border-radius: 8px;
+          padding: 10px 12px;
+          border-radius: 12px;
           background: var(--bg-secondary);
           border: 1px solid var(--border-color);
-          font-size: var(--text-sm);
+          transition: border-color 0.15s, transform 0.1s;
         }
-        .reg-email {
-          font-family: ui-monospace, monospace;
-          font-size: 12px;
+        .reg-tile:hover { border-color: var(--accent); transform: translateY(-1px); }
+        .reg-tile-avatar {
+          width: 38px;
+          height: 38px;
+          border-radius: 10px;
+          flex-shrink: 0;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          background: linear-gradient(135deg, var(--accent-soft), var(--accent));
+          color: #fff;
+          font-size: 16px;
+          font-weight: 700;
+          box-shadow: 0 2px 6px rgba(43, 36, 32, 0.15);
+        }
+        .reg-tile-main {
+          min-width: 0;
+          flex: 1;
+        }
+        .reg-tile-name {
+          font-size: var(--text-sm);
+          font-weight: 600;
           color: var(--text-primary);
           overflow: hidden;
           text-overflow: ellipsis;
           white-space: nowrap;
-          flex: 1;
-          min-width: 0;
         }
-        .reg-nick {
+        .reg-tile-email {
+          font-family: ui-monospace, monospace;
+          font-size: 12px;
           color: var(--text-secondary);
-          max-width: 140px;
           overflow: hidden;
           text-overflow: ellipsis;
           white-space: nowrap;
+          margin-top: 1px;
         }
-        .reg-time {
+        .reg-tile-meta {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          margin-top: 5px;
+        }
+        .reg-tile-time {
           color: var(--text-muted);
           white-space: nowrap;
           font-variant-numeric: tabular-nums;
-          font-size: 12px;
-          flex-shrink: 0;
-        }
-        @media (max-width: 640px) {
-          .reg-item { flex-wrap: wrap; gap: 6px 10px; }
-          .reg-nick { max-width: none; }
+          font-size: 11px;
         }
         @media (max-width: 640px) {
           .users-stats { grid-template-columns: repeat(2, 1fr); }

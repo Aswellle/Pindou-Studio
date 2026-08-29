@@ -1,8 +1,23 @@
 import { useState, useEffect, useCallback } from 'react'
 import { useTranslation } from 'react-i18next'
+import { User } from 'lucide-react'
 import { supabase } from '../services/supabase'
 import LoadingScreen from './LoadingScreen'
 import { useToast } from './Toast'
+
+// 官方回复头像 = 站点 LOGO(4×4 拼豆色板,与前端弹层一致)
+const LOGO_SVG = (
+  <svg width="20" height="20" viewBox="0 0 32 32" fill="none">
+    <rect width="8" height="8" x="0" y="0" fill="#E53935"/><rect width="8" height="8" x="8" y="0" fill="#FDD835"/>
+    <rect width="8" height="8" x="16" y="0" fill="#32CD32"/><rect width="8" height="8" x="24" y="0" fill="#1976D2"/>
+    <rect width="8" height="8" x="0" y="8" fill="#F06292"/><rect width="8" height="8" x="8" y="8" fill="#BA68C8"/>
+    <rect width="8" height="8" x="16" y="8" fill="#00BCD4"/><rect width="8" height="8" x="24" y="8" fill="#FF9800"/>
+    <rect width="8" height="8" x="0" y="16" fill="#FFFFFF" stroke="#E0E0E0"/><rect width="8" height="8" x="8" y="16" fill="#9E9E9E"/>
+    <rect width="8" height="8" x="16" y="16" fill="#000000"/><rect width="8" height="8" x="24" y="16" fill="#795548"/>
+    <rect width="8" height="8" x="0" y="24" fill="#8D6E63"/><rect width="8" height="8" x="8" y="24" fill="#A1887F"/>
+    <rect width="8" height="8" x="16" y="24" fill="#BDBDBD"/><rect width="8" height="8" x="24" y="24" fill="#6D4C41"/>
+  </svg>
+)
 
 /**
  * 联系消息面板(管理员):来自图库「联系我们」的线程式留言。
@@ -79,44 +94,50 @@ export default function ContactMessages() {
         ) : messages.length === 0 ? (
           <div className="admin-empty">{t('admin.contact.empty')}</div>
         ) : (
-          <div className="contact-msg-list">
+          <div className="cm-list">
             {messages.map(m => (
-              <div key={m.id} className={`contact-msg-row ${m.author === 'admin' ? 'admin' : ''}`}>
-                <div className="contact-msg-meta">
-                  <span className={`contact-msg-author ${m.author === 'admin' ? 'admin' : ''}`}>
-                    {m.author === 'admin' ? t('admin.contact.authorAdmin') : t('admin.contact.authorUser')}
-                  </span>
-                  <span className="contact-msg-email">{m.email || t('admin.contact.noEmail')}</span>
-                  <span className="contact-msg-date">{renderDate(m.created_at)}</span>
+              <div key={m.id} className={`cm-item ${m.author === 'admin' ? 'admin' : ''}`}>
+                {/* 头像:官方回复=站点 LOGO,用户=默认人形 */}
+                <div className={`cm-avatar ${m.author === 'admin' ? 'admin' : ''}`}>
+                  {m.author === 'admin' ? LOGO_SVG : <User size={14} />}
                 </div>
-                <p className="contact-msg-text">{m.message}</p>
-
-                {/* 每条留言都可回复:挂到同一线程,访客重开弹层即见。
-                    迁移 0014 前的历史留言无 participant_id,无法挂线程,不显示回复入口 */}
-                {m.participant_id && (replyState[m.id]?.open ? (
-                  <div className="contact-reply-box">
-                    <textarea
-                      className="admin-input contact-reply-input"
-                      value={replyState[m.id].text}
-                      onChange={e => setReply(m.id, { text: e.target.value })}
-                      placeholder={t('admin.contact.replyPlaceholder')}
-                      rows={2}
-                      maxLength={2000}
-                    />
-                    <div className="contact-reply-actions">
-                      <button className="admin-btn secondary small" disabled={replyState[m.id]?.busy} onClick={() => setReply(m.id, { open: false, text: '' })}>
-                        {t('common.cancel')}
-                      </button>
-                      <button className="admin-btn primary small" disabled={replyState[m.id]?.busy} onClick={() => sendReply(m)}>
-                        {replyState[m.id]?.busy ? t('auth.processing') : t('admin.contact.replyBtn')}
-                      </button>
-                    </div>
+                <div className="cm-body">
+                  <div className="cm-head">
+                    <span className={`cm-author ${m.author === 'admin' ? 'admin' : ''}`}>
+                      {m.author === 'admin' ? t('admin.contact.authorAdmin') : t('admin.contact.authorUser')}
+                    </span>
+                    <span className="cm-email">{m.email || t('admin.contact.noEmail')}</span>
+                    <span className="cm-time">{renderDate(m.created_at)}</span>
                   </div>
-                ) : (
-                  <button className="admin-btn secondary small contact-reply-toggle" onClick={() => setReply(m.id, { open: true })}>
-                    {t('admin.contact.replyBtn')}
-                  </button>
-                ))}
+                  <div className={`cm-bubble ${m.author === 'admin' ? 'admin' : ''}`}>{m.message}</div>
+
+                  {/* 每条留言都可回复:挂到同一线程,访客重开弹层即见。
+                      迁移 0014 前的历史留言无 participant_id,无法挂线程,不显示回复入口 */}
+                  {m.participant_id && (replyState[m.id]?.open ? (
+                    <div className="cm-reply-box">
+                      <textarea
+                        className="admin-input cm-reply-input"
+                        value={replyState[m.id].text}
+                        onChange={e => setReply(m.id, { text: e.target.value })}
+                        placeholder={t('admin.contact.replyPlaceholder')}
+                        rows={2}
+                        maxLength={2000}
+                      />
+                      <div className="cm-reply-actions">
+                        <button className="admin-btn secondary small" disabled={replyState[m.id]?.busy} onClick={() => setReply(m.id, { open: false, text: '' })}>
+                          {t('common.cancel')}
+                        </button>
+                        <button className="admin-btn primary small" disabled={replyState[m.id]?.busy} onClick={() => sendReply(m)}>
+                          {replyState[m.id]?.busy ? t('auth.processing') : t('admin.contact.replyBtn')}
+                        </button>
+                      </div>
+                    </div>
+                  ) : (
+                    <button className="admin-btn secondary small cm-reply-toggle" onClick={() => setReply(m.id, { open: true })}>
+                      {t('admin.contact.replyBtn')}
+                    </button>
+                  ))}
+                </div>
               </div>
             ))}
           </div>
@@ -124,27 +145,45 @@ export default function ContactMessages() {
       </div>
 
       <style>{`
-        .contact-msg-list {
+        .cm-list {
           display: flex;
           flex-direction: column;
-          gap: 10px;
+          gap: 12px;
           margin-top: 6px;
         }
-        .contact-msg-row {
-          padding: 10px 14px;
+        .cm-item {
+          display: flex;
+          gap: 12px;
+          padding: 12px 14px;
           background: var(--bg-secondary);
           border: 1px solid var(--border-color);
-          border-radius: 10px;
+          border-radius: 14px;
+          transition: border-color 0.15s, box-shadow 0.15s;
         }
-        .contact-msg-row.admin { border-left: 3px solid var(--secondary-accent); }
-        .contact-msg-meta {
+        .cm-item:hover { border-color: var(--accent); box-shadow: 0 2px 8px rgba(43, 36, 32, 0.08); }
+        .cm-item.admin { border-left: 3px solid var(--secondary-accent); }
+        .cm-avatar {
+          width: 34px;
+          height: 34px;
+          border-radius: 10px;
+          flex-shrink: 0;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          background: var(--accent-soft);
+          color: var(--accent);
+          overflow: hidden;
+        }
+        .cm-avatar.admin { background: rgba(74, 155, 142, 0.14); color: var(--secondary-accent); }
+        .cm-body { flex: 1; min-width: 0; }
+        .cm-head {
           display: flex;
           align-items: center;
           gap: 10px;
           margin-bottom: 6px;
           flex-wrap: wrap;
         }
-        .contact-msg-author {
+        .cm-author {
           display: inline-flex;
           align-items: center;
           gap: 4px;
@@ -156,8 +195,8 @@ export default function ContactMessages() {
           color: var(--accent);
           white-space: nowrap;
         }
-        .contact-msg-author.admin { background: rgba(74, 155, 142, 0.12); color: var(--secondary-accent); }
-        .contact-msg-email {
+        .cm-author.admin { background: rgba(74, 155, 142, 0.12); color: var(--secondary-accent); }
+        .cm-email {
           font-family: ui-monospace, monospace;
           font-size: 12px;
           color: var(--text-secondary);
@@ -166,7 +205,7 @@ export default function ContactMessages() {
           white-space: nowrap;
           max-width: 260px;
         }
-        .contact-msg-date {
+        .cm-time {
           font-size: 12px;
           color: var(--text-muted);
           white-space: nowrap;
@@ -174,18 +213,23 @@ export default function ContactMessages() {
           flex-shrink: 0;
           margin-left: auto;
         }
-        .contact-msg-text {
-          margin: 0 0 8px;
+        .cm-bubble {
+          padding: 9px 12px;
+          border-radius: 12px;
+          background: #fff;
+          border: 1.5px solid var(--border-color);
           font-size: var(--text-sm);
           color: var(--text-primary);
           line-height: 1.6;
           word-break: break-word;
           white-space: pre-wrap;
         }
-        .contact-reply-toggle { margin-top: 2px; }
-        .contact-reply-box { margin-top: 8px; }
-        .contact-reply-input { width: 100%; resize: vertical; box-sizing: border-box; }
-        .contact-reply-actions {
+        .cm-bubble.user { background: var(--accent-soft); border-color: rgba(232, 115, 74, 0.35); }
+        .cm-bubble.admin { background: rgba(74, 155, 142, 0.08); border-color: rgba(74, 155, 142, 0.4); }
+        .cm-reply-toggle { margin-top: 8px; }
+        .cm-reply-box { margin-top: 8px; }
+        .cm-reply-input { width: 100%; resize: vertical; box-sizing: border-box; }
+        .cm-reply-actions {
           display: flex;
           gap: 8px;
           justify-content: flex-end;

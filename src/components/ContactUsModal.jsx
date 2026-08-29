@@ -111,6 +111,8 @@ export default function ContactUsModal({ onClose, user }) {
           'retry': 'never',
           callback: (tk) => {
             setToken(tk)
+            // 验证通过即组件已完全渲染:强制结束加载过渡,避免动画残留遮挡
+            setCaptchaLoading(false)
             // 首次通过才提示,避免重复 toast
             setEverVerified(prev => {
               if (!prev) toast(t('contact.captchaOk'), 'success')
@@ -120,15 +122,15 @@ export default function ContactUsModal({ onClose, user }) {
           'expired-callback': () => { setToken(null) },
           'error-callback': () => { setToken(null) },
         })
-        // render 后轮询 iframe 注入:组件真正渲染完成 → 结束加载态
+        // render 后轮询 iframe 注入:组件真正渲染完成 → 结束加载态(正常场景提前隐藏)
         const iv = setInterval(() => {
           if (turnstileRef.current?.querySelector('iframe')) {
             clearInterval(iv)
             setCaptchaLoading(false)
           }
         }, 120)
-        // 兜底:最长 6s 后隐藏加载态,避免极端情况永久卡住
-        setTimeout(() => clearInterval(iv), 6000)
+        // 兜底:最长 6s 后无论是否检测到 iframe 都强制结束加载态,绝不残留
+        setTimeout(() => { clearInterval(iv); setCaptchaLoading(false) }, 6000)
       } catch (e) {
         console.warn('[contact-us] Turnstile 渲染失败:', e)
         setCaptchaLoading(false)
