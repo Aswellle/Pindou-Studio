@@ -92,6 +92,9 @@ export default function ContactUsModal({ onClose, user }) {
     return () => clearInterval(timer)
   }, [loadThread])
 
+  // Turnstile 组件渲染进度:脚本加载 + iframe 注入前显示加载过渡,避免空白
+  const [captchaLoading, setCaptchaLoading] = useState(true)
+
   // 挂载时加载 Turnstile 脚本并渲染 widget
   useEffect(() => {
     if (!captchaRequired || !turnstileRef.current) return undefined
@@ -117,8 +120,18 @@ export default function ContactUsModal({ onClose, user }) {
           'expired-callback': () => { setToken(null) },
           'error-callback': () => { setToken(null) },
         })
+        // render 后轮询 iframe 注入:组件真正渲染完成 → 结束加载态
+        const iv = setInterval(() => {
+          if (turnstileRef.current?.querySelector('iframe')) {
+            clearInterval(iv)
+            setCaptchaLoading(false)
+          }
+        }, 120)
+        // 兜底:最长 6s 后隐藏加载态,避免极端情况永久卡住
+        setTimeout(() => clearInterval(iv), 6000)
       } catch (e) {
         console.warn('[contact-us] Turnstile 渲染失败:', e)
+        setCaptchaLoading(false)
       }
     }
     if (window.turnstile) {
@@ -129,7 +142,7 @@ export default function ContactUsModal({ onClose, user }) {
       s.src = 'https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit'
       s.async = true
       s.onload = render
-      s.onerror = () => { turnstileState.scriptLoading = false }
+      s.onerror = () => { turnstileState.scriptLoading = false; setCaptchaLoading(false) }
       document.head.appendChild(s)
     }
     return () => {
@@ -255,9 +268,17 @@ export default function ContactUsModal({ onClose, user }) {
 
         <div className="contact-captcha">
           {captchaRequired ? (
-            /* Cloudflare Turnstile 组件本体完整渲染(Managed 模式属平台行为,
-               低风险自动通过;不再额外套框/加文案) */
-            <div ref={turnstileRef} className="turnstile-host" />
+            <div className="turnstile-wrap">
+              {/* Cloudflare Turnstile 组件本体(Managed 模式属平台行为) */}
+              <div ref={turnstileRef} className="turnstile-host" />
+              {/* 加载过渡:组件脚本/iframe 就绪前显示渐进加载态,避免空白 */}
+              {captchaLoading && (
+                <div className="turnstile-loading" aria-hidden="true">
+                  <span className="turnstile-spinner" />
+                  <span className="turnstile-loading-text">{t('contact.captchaLoading')}</span>
+                </div>
+              )}
+            </div>
           ) : (
             <span className="contact-captcha-off">{t('contact.captchaOff')}</span>
           )}
@@ -301,15 +322,17 @@ export default function ContactUsModal({ onClose, user }) {
           display: flex;
           align-items: center;
           justify-content: center;
-          /* 顶部多留空间,模态框整体偏下,减少与页面底部的距离 */
-          padding: 12vh 12px 12px;
+          /* 顶部少量留白,模态框略偏下;改用小数值避免 PC/矮视口下溢出 */
+          padding: 4vh 12px 12px;
           box-sizing: border-box;
         }
         .contact-modal {
           width: 100%;
           max-width: 420px;
-          max-height: calc(100% - 24px);
-          overflow-y: auto;
+          max-height: 100%;
+          display: flex;
+          flex-direction: column;
+          overflow: hidden;
           background: var(--bg-primary);
           border: 2px solid var(--contact-ink);
           border-radius: 18px;
@@ -345,10 +368,16 @@ export default function ContactUsModal({ onClose, user }) {
         }
         .contact-close:active { transform: translateY(1px); box-shadow: 0 1px 0 var(--contact-ink); }
         .contact-close:hover { color: var(--accent); border-color: var(--accent); box-shadow: 0 2px 0 var(--accent); }
-        .contact-chat-wrap { position: relative; }
+        .contact-chat-wrap {
+          position: relative;
+          /* 聊天区在空间充足时 165px;视口受限时被 flex 压缩 → 模态框整体不溢出 */
+          flex: 1 1 auto;
+          min-height: 60px;
+        }
         .contact-chat {
-          /* 固定高度:第一段官方消息必然超出 → 必须滚动才能看完整(IM 对话窗手感) */
-          height: 165px;
+          /* 高度跟随 wrap(收缩时内部滚动),最多 165px 保持 IM 手感 */
+          height: 100%;
+          max-height: 165px;
           overflow-y: auto;
           padding: 14px 16px 10px;
           display: flex;
@@ -445,11 +474,48 @@ export default function ContactUsModal({ onClose, user }) {
           display: flex;
           justify-content: center;
         }
-        /* Cloudflare 组件本体(300×65),不额外套框 */
-        .turnstile-host {
+        .turnstile-wrap {
+          position: relative;
           width: 300px;
           max-width: 100%;
           height: 65px;
+        }
+        /* Cloudflare 组件本体(300×65) */
+        .turnstile-host {
+          width: 100%;
+          height: 65px;
+        }
+        /* 加载过渡:组件就绪前覆盖的渐进加载态(淡入 + 旋转 + 呼吸),就绪后淡出 */
+        .turnstile-loading {
+          position: absolute;
+          inset: 0;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          gap: 10px;
+          background: var(--bg-primary);
+          border: 1.5px dashed var(--border-color);
+          border-radius: 10px;
+          animation: turnstile-loading-in 0.3s ease;
+        }
+        .turnstile-spinner {
+          width: 18px;
+          height: 18px;
+          border: 2.5px solid var(--border-color);
+          border-top-color: var(--accent);
+          border-radius: 50%;
+          animation: turnstile-spin 0.8s linear infinite;
+        }
+        .turnstile-loading-text {
+          font-size: var(--text-xs);
+          color: var(--text-muted);
+          animation: turnstile-breathe 1.4s ease-in-out infinite;
+        }
+        @keyframes turnstile-spin { to { transform: rotate(360deg); } }
+        @keyframes turnstile-loading-in { from { opacity: 0; } to { opacity: 1; } }
+        @keyframes turnstile-breathe {
+          0%, 100% { opacity: 0.45; }
+          50% { opacity: 1; }
         }
         .contact-separator {
           height: 1px;
