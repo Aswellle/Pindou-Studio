@@ -158,6 +158,14 @@ export default function ContactUsModal({ onClose, user }) {
     if (el) el.scrollTop = el.scrollHeight
   }, [thread, text])
 
+  // iOS 键盘弹起兜底:聚焦输入框时把输入区滚入可视区,
+  // 配合 interactive-widget=resizes-content 彻底避免输入框被键盘盖住/白板。
+  const focusInput = (e) => {
+    try {
+      e.target.scrollIntoView?.({ block: 'center', behavior: 'smooth' })
+    } catch (err) { /* 忽略 */ }
+  }
+
   const handleSend = async () => {
     if (sending) return
     const msg = text.trim()
@@ -264,6 +272,7 @@ export default function ContactUsModal({ onClose, user }) {
           type="email"
           value={email}
           onChange={e => setEmail(e.target.value)}
+          onFocus={focusInput}
           placeholder={t('contact.emailPlaceholder')}
           maxLength={120}
         />
@@ -294,6 +303,7 @@ export default function ContactUsModal({ onClose, user }) {
             className="contact-msg-input"
             value={text}
             onChange={e => setText(e.target.value)}
+            onFocus={focusInput}
             placeholder={t('contact.messagePlaceholder')}
             maxLength={500}
             onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSend() } }}

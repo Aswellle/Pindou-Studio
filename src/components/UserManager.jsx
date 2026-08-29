@@ -26,14 +26,19 @@ export default function UserManager() {
   const [error, setError] = useState('')
   // 最近注册记录(入库:registration_notifications 表,经 RPC admin_list_registrations 读取)
   const [registrations, setRegistrations] = useState([])
+  // 数据看板 / 最近注册 加载中标志:未就绪时用固定高度骨架占位,避免「先空→数据到→布局跳动」
+  const [statsLoading, setStatsLoading] = useState(true)
+  const [regLoading, setRegLoading] = useState(true)
   // 待确认的账号操作:{ type:'delete' | 'lock' | 'unlock', user }
   const [confirm, setConfirm] = useState(null)
   const [busy, setBusy] = useState(false)
 
   const loadStats = useCallback(async () => {
+    setStatsLoading(true)
     const { data, error: err } = await supabase.rpc('admin_user_stats')
-    if (err) { setError(err.message || String(err)); return } // 此前吞错,统计卡静默显示 '—'
+    if (err) { setError(err.message || String(err)); setStatsLoading(false); return } // 此前吞错,统计卡静默显示 '—'
     setStats(data[0] || null)
+    setStatsLoading(false)
   }, [])
 
   const loadUsers = useCallback(async (silent = false) => {
@@ -55,9 +60,11 @@ export default function UserManager() {
 
   // 最近注册:读取 registration_notifications 表(仅管理员,security definer RPC)
   const loadRegistrations = useCallback(async () => {
-    if (!supabase) return
+    setRegLoading(true)
+    if (!supabase) { setRegLoading(false); return }
     const { data, error: err } = await supabase.rpc('admin_list_registrations', { p_limit: 10 })
     if (!err) setRegistrations(data || [])
+    setRegLoading(false)
   }, [])
 
   // 执行 删除 / 锁定 / 解锁(需确认后)
@@ -135,14 +142,26 @@ export default function UserManager() {
           <h3>{t('admin.users.title')}</h3>
         </div>
         <p className="admin-field-hint">{t('admin.users.privacyNote')}</p>
-        <div className="users-stats">
-          {statCards.map(c => (
-            <div key={c.label} className={`users-stat-card ${c.tone}`}>
-              <span className="users-stat-value">{c.value ?? '—'}</span>
-              <span className="users-stat-label">{c.label}</span>
-            </div>
-          ))}
-        </div>
+        {statsLoading ? (
+          /* 数据看板加载骨架:固定高度占位,避免「先空→数据到→布局跳动」 */
+          <div className="users-stats">
+            {[0, 1, 2, 3, 4].map(i => (
+              <div key={i} className="users-stat-card skeleton">
+                <span className="sk-line sk-num" />
+                <span className="sk-line sk-label" />
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div className="users-stats">
+            {statCards.map(c => (
+              <div key={c.label} className={`users-stat-card ${c.tone}`}>
+                <span className="users-stat-value">{c.value ?? '—'}</span>
+                <span className="users-stat-label">{c.label}</span>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
 
       {/* 最近注册记录(入库:registration_notifications 事件流,仅管理员可读)。
@@ -151,7 +170,20 @@ export default function UserManager() {
         <div className="admin-card-head">
           <h3>{t('admin.registrations.title')}</h3>
         </div>
-        {registrations.length === 0 ? (
+        {regLoading ? (
+          <div className="reg-grid">
+            {[0, 1, 2, 3].map(i => (
+              <div key={i} className="reg-tile skeleton">
+                <div className="sk-avatar" />
+                <div className="reg-tile-main">
+                  <span className="sk-line sk-name" />
+                  <span className="sk-line sk-sub" />
+                  <span className="sk-line sk-sub" />
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : registrations.length === 0 ? (
           <div className="admin-empty">{t('admin.registrations.empty')}</div>
         ) : (
           <div className="reg-grid">
@@ -520,6 +552,41 @@ export default function UserManager() {
           font-variant-numeric: tabular-nums;
           font-size: 11px;
         }
+        /* 骨架屏:数据加载时固定高度的 shimmer 占位,保持布局稳定不跳动 */
+        .skeleton { position: relative; overflow: hidden; }
+        .skeleton::after {
+          content: '';
+          position: absolute;
+          inset: 0;
+          background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.6), transparent);
+          transform: translateX(-100%);
+          animation: skeleton-shimmer 1.2s infinite;
+        }
+        @keyframes skeleton-shimmer {
+          100% { transform: translateX(100%); }
+        }
+        .users-stat-card.skeleton .sk-line {
+          display: block;
+          border-radius: 6px;
+          background: var(--border-color);
+        }
+        .sk-line.sk-num { width: 40%; height: 22px; margin-bottom: 6px; }
+        .sk-line.sk-label { width: 60%; height: 12px; }
+        .reg-tile.skeleton .sk-avatar {
+          width: 38px;
+          height: 38px;
+          border-radius: 10px;
+          background: var(--border-color);
+          flex-shrink: 0;
+        }
+        .reg-tile.skeleton .sk-line {
+          display: block;
+          border-radius: 6px;
+          background: var(--border-color);
+          margin-bottom: 5px;
+        }
+        .sk-line.sk-name { width: 55%; height: 14px; }
+        .sk-line.sk-sub { width: 85%; height: 11px; }
         @media (max-width: 640px) {
           .users-stats { grid-template-columns: repeat(2, 1fr); }
         }

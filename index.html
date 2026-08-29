@@ -5,7 +5,10 @@
   <link rel="preconnect" href="https://gccrwnepwtpcsiqowzro.supabase.co" crossorigin />
   <link rel="dns-prefetch" href="https://gccrwnepwtpcsiqowzro.supabase.co" />
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <!-- interactive-widget=resizes-content:iOS 16.4+ 键盘弹出时布局视口自动收缩到键盘上方,
+       所有 fixed/100vh/dvh 浮层(联系我们弹层等)自动正确,不再被键盘盖住/白板。
+       旧系统由 --visible-vh(JS 监听 visualViewport)兜底。 -->
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, interactive-widget=resizes-content" />
 
   <!-- ── 基础 SEO ────────────────────────────────────────────── -->
   <title>拼豆Studio - 在线拼豆图纸设计工具 | 图片转拼豆 · 支持Perler/Hama/Artkal</title>

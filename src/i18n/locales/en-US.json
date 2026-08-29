@@ -915,7 +915,9 @@
       "replySent": "Reply sent",
       "replyEmpty": "Reply cannot be empty",
       "authorUser": "User",
-      "authorAdmin": "Official reply"
+      "authorAdmin": "Official reply",
+      "guestBadge": "Guest",
+      "loadMore": "Load more conversations"
     }
   },
   "profile": {

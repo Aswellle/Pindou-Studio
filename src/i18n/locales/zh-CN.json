@@ -915,7 +915,9 @@
       "replySent": "回复已发送",
       "replyEmpty": "回复内容不能为空",
       "authorUser": "用户",
-      "authorAdmin": "官方回复"
+      "authorAdmin": "官方回复",
+      "guestBadge": "游客",
+      "loadMore": "加载更多对话"
     }
   },
   "profile": {

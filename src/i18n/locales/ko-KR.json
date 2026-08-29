@@ -915,7 +915,9 @@
       "replySent": "답변이 전송되었습니다",
       "replyEmpty": "답변 내용을 입력해 주세요",
       "authorUser": "사용자",
-      "authorAdmin": "공식 답변"
+      "authorAdmin": "공식 답변",
+      "guestBadge": "게스트",
+      "loadMore": "대화 더 불러오기"
     }
   },
   "profile": {

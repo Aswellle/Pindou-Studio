@@ -915,7 +915,9 @@
       "replySent": "返信を送信しました",
       "replyEmpty": "返信内容を入力してください",
       "authorUser": "ユーザー",
-      "authorAdmin": "公式返信"
+      "authorAdmin": "公式返信",
+      "guestBadge": "ゲスト",
+      "loadMore": "さらに会話を読み込む"
     }
   },
   "profile": {
