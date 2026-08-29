@@ -1259,9 +1259,12 @@ export default function Gallery({ onLoadTemplate, onDeleteWork, onLoadWork, save
           .load-confirm-preview {
             flex: none;
             width: 100%;
-            aspect-ratio: auto;
-            min-height: 130px;
-            padding: 12px;
+            aspect-ratio: 1 / 1; /* 移动端同样方形预览区:预览图铺满,无白边 */
+            min-height: 0;
+            padding: 0;         /* 去内边距,预览图刚好铺满预览区 */
+            display: flex;
+            align-items: stretch;
+            justify-content: stretch;
           }
           .load-confirm-info {
             text-align: center;

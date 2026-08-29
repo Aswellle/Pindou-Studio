@@ -557,7 +557,7 @@
     "captchaFirst": "请先完成人机身份验证",
     "captchaOff": "当前环境未配置人机验证,本地开发模式自动跳过",
     "captchaOk": "人机验证通过,可以发送消息了",
-    "captchaLoading": "正在加载验证组件...",
+    "captchaLoading": "正在准备安全验证...",
     "rateLimited": "发送太频繁啦,请稍后再试~",
     "sent": "消息已发送",
     "emailMissingWarn": "未填写邮箱:消息已发送并被管理员看到,但你将无法收到邮件回复(仅在此窗口显示回复)",
