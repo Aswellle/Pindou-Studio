@@ -328,32 +328,28 @@ export default function ContactUsModal({ onClose, user }) {
            使浮层只覆盖键盘之上的可见区域,输入框不被键盘吞掉 */
         .contact-overlay {
           position: fixed;
-          top: 0; /* 全屏 modal 固定 top:0;不用视觉视口偏移(键盘弹时 offsetTop 变负会顶偏露白) */
+          top: 0;
           left: 0;
           right: 0;
           height: var(--visible-vh, 100vh);
           background: rgba(43, 36, 32, 0.5);
           z-index: 1200;
           display: flex;
-          align-items: center;
+          /* 参考图机制:顶对齐(键盘弹起或超高时顶部完整不被挤出)+ overlay 滚动 */
+          align-items: flex-start;
           justify-content: center;
-          /* 顶部少量留白,模态框略偏下;改用小数值避免 PC/矮视口下溢出 */
           padding: 4vh 12px 12px;
           box-sizing: border-box;
-          /* 超高兜底滚动(键盘唤起时 modal 顶部也可滚到),同时防穿透。
-             不设 touch-action:none —— 那会禁掉 modal 内部触摸滚动,导致内容滚不动 */
           overflow-y: auto;
+          -webkit-overflow-scrolling: touch; /* iOS 平滑原生滚动 */
           overscroll-behavior: contain;
         }
         .contact-modal {
           width: 100%;
           max-width: 420px;
-          max-height: 100%;
+          margin: 24px 0; /* 顶对齐 + 上下边距:正常居中偏上,超高可随 overlay 滚到底 */
           display: flex;
           flex-direction: column;
-          /* 键盘唤起 overlay 收缩 → modal 高度受限;超高部分内部滚动,
-             配合全局 focusin scrollIntoView,输入框不被 overflow:hidden 吞掉(白板根因) */
-          overflow-y: auto;
           background: var(--bg-primary);
           border: 2px solid var(--contact-ink);
           border-radius: 18px;
@@ -391,13 +387,11 @@ export default function ContactUsModal({ onClose, user }) {
         .contact-close:hover { color: var(--accent); border-color: var(--accent); box-shadow: 0 2px 0 var(--accent); }
         .contact-chat-wrap {
           position: relative;
-          /* 聊天区在空间充足时 165px;视口受限时被 flex 压缩 → 模态框整体不溢出 */
-          flex: 1 1 auto;
-          min-height: 60px;
+          flex: 0 0 auto; /* 不撑开 modal(modal 超高由 overlay 滚动),聊天区固定高度内滚 */
         }
         .contact-chat {
-          /* 高度跟随 wrap(收缩时内部滚动),最多 165px 保持 IM 手感 */
-          height: 100%;
+          /* 固定 max-height 165px 保持 IM 手感,超高内部滚动 */
+          height: auto;
           max-height: 165px;
           overflow-y: auto;
           padding: 14px 16px 10px;
@@ -406,8 +400,6 @@ export default function ContactUsModal({ onClose, user }) {
           gap: 12px;
           background: var(--bg-primary);
           scroll-behavior: smooth;
-          /* 仅聊天区放行纵向触摸滚动(overlay 为 touch-action:none 阻止穿透) */
-          touch-action: pan-y;
         }
         .contact-chat-fade {
           position: absolute;

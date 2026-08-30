@@ -1,14 +1,17 @@
 .image-quantizer-overlay {
   position: fixed;
-  top: 0; /* 全屏 modal 固定 top:0;不用视觉视口偏移(键盘弹时 offsetTop 变负会顶偏露白) */
+  top: 0;
   left: 0;
   right: 0;
   /* iOS Safari 键盘弹起时改为可视高度(--visible-vh 由 useKeyboardSafe 监听 visualViewport 更新) */
   height: var(--visible-vh, 100vh);
   background: rgba(0, 0, 0, 0.5);
   display: flex;
-  align-items: center;
+  /* 顶对齐 + overlay 滚动:超高不裁顶、可滚到底,键盘弹起随高度收缩 */
+  align-items: flex-start;
   justify-content: center;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
   z-index: 1000;
   backdrop-filter: blur(4px);
   /* 阻止滚动穿透:模态框上滑动不带动下层页面 */
@@ -25,6 +28,7 @@
   flex-direction: column;
   overflow: hidden;
   box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+  margin: 24px auto; /* 顶对齐 + 上下边距:超高不裁顶、可滚到底 */
 }
 
 .quantizer-header {

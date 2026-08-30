@@ -143,11 +143,12 @@ input:focus, textarea:focus, button:focus {
   height: var(--visible-vh, 100vh);
   background: rgba(0, 0, 0, 0.5);
   display: flex;
-  /* 居中 + overlay 自身可滚动:modal 受 max-height 限制不超高,超高时 overlay 兜底滚动,
-     顶部/底部都不会被裁 → 长表单(修改密码)可完整滚到底部按钮 */
-  align-items: center;
+  /* 参考图机制:顶对齐(超高不裁顶)+ overlay 自身滚动(超高可滚到底),
+     + 可触摸滚动 —— 顶部完整、底部总能滚到,键盘弹起时随高度收缩 */
+  align-items: flex-start;
   justify-content: center;
-  overflow-y: auto;       /* overlay 滚动兜底:内容超高时整层可滚,不被裁切 */
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch; /* iOS 平滑原生滚动 */
   z-index: 1000;
   backdrop-filter: blur(4px);
   padding: 16px;
@@ -162,15 +163,26 @@ input:focus, textarea:focus, button:focus {
   padding: 32px;
   width: 100%;
   max-width: 400px;
-  max-height: none;      /* overlay 负责容量限制与滚动,modal 不再 self 限高以防不滚动 */
-  overflow-y: visible;
+  /* 上下 24px 边距 + 顶对齐:正常时居中偏上;超高时随 overlay 滚动,顶部不被裁、底部可到底 */
+  margin: 24px auto;
   box-shadow: 0 20px 60px rgba(43, 36, 32, 0.18);
   box-sizing: border-box;
-  /* 居中由 overlay align-items:center 负责;不再用 margin:auto(会与 flex 居中冲突,
-     导致超高 modal 上下切边、滚不到底部按钮) */
-  margin: 0;
 }
 /* 注册/登录弹窗滚动条 — 统一站点风格 */
+/* ── 全屏浮层打开时,淡出画布底部工具栏(个人主页/联系我们等弹窗出现时,
+      底部 fixed 工具栏挡在 modal 下方,使其无法滚到底部按钮 —— 采纳用户建议用淡出清除) ── */
+body:has(.contact-overlay) .mobile-toolbar,
+body:has(.modal-overlay) .mobile-toolbar,
+body:has(.image-quantizer-overlay) .mobile-toolbar,
+body:has(.profile-overlay) .mobile-toolbar,
+body:has(.admin-modal-overlay) .mobile-toolbar,
+body:has(.users-confirm-overlay) .mobile-toolbar,
+body:has(.profile-confirm-overlay) .mobile-toolbar {
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.2s ease;
+}
+
 .modal-content::-webkit-scrollbar {
   width: 6px;
 }
