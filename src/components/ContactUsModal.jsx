@@ -328,7 +328,7 @@ export default function ContactUsModal({ onClose, user }) {
            使浮层只覆盖键盘之上的可见区域,输入框不被键盘吞掉 */
         .contact-overlay {
           position: fixed;
-          top: 0;
+          top: var(--visible-vh-top, 0px);
           left: 0;
           right: 0;
           height: var(--visible-vh, 100vh);

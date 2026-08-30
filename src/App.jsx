@@ -1,4 +1,5 @@
 import { useState, useEffect, lazy, Suspense, useRef, useCallback } from 'react'
+import useKeyboardSafe from './hooks/useKeyboardSafe'
 import { Routes, Route, useNavigate, useLocation, Navigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { LANGUAGES } from './i18n'
@@ -41,28 +42,8 @@ export default function App() {
     else navigate('/')
   }
 
-  // iOS Safari 视口测量
-  useEffect(() => {
-    const setVh = () => {
-      const inner = window.innerHeight || 0
-      const visual = window.visualViewport?.height ?? inner
-      const vh = Math.min(inner, visual) * 0.01
-      document.documentElement.style.setProperty('--vh', `${vh}px`)
-    }
-    const measureNextFrame = () => requestAnimationFrame(setVh)
-    const onShow = (e) => { if (e.persisted) measureNextFrame() }
-    setVh()
-    document.addEventListener('visibilitychange', measureNextFrame)
-    window.addEventListener('pageshow', onShow)
-    window.addEventListener('resize', setVh)
-    window.visualViewport?.addEventListener('resize', setVh)
-    return () => {
-      document.removeEventListener('visibilitychange', measureNextFrame)
-      window.removeEventListener('pageshow', onShow)
-      window.removeEventListener('resize', setVh)
-      window.visualViewport?.removeEventListener('resize', setVh)
-    }
-  }, [])
+  // iOS Safari 视口测量已由 useKeyboardSafe 统一处理(监听 visualViewport + 键盘 focusin/focusout,
+  // 同时更新 --vh 与 --visible-vh),此处不再重复注册。
 
   const { user, isAdmin, loading: authLoading, login, register, resetPassword, logout, updateProfile,
     sendOtp, verifyOtp, setPassword, changePassword, registerUsername, loginByUsername, forgotPasswordCustom, usernameExists } = useAuth()
@@ -116,19 +97,11 @@ export default function App() {
   // 独立页(登录/注册/管理员登录/隐私/条款):隐藏站点导航栏与操作按钮,只保留 LOGO + 返回,避免元素冲突
   const isStandalonePage = currentPage === 'login' || currentPage === 'adminLogin' || currentPage === 'privacy' || currentPage === 'terms'
 
-  // iOS Safari 键盘弹起时布局视口不变、visual viewport 缩小 →
-  // 把可视高度写入 CSS 变量 --visible-vh,各固定浮层(.modal-overlay / .image-quantizer-overlay
-  // / .contact-overlay)的 height 改用该变量,输入框不被键盘吞掉。
-  useEffect(() => {
-    const vv = window.visualViewport
-    if (!vv) return undefined
-    const update = () => {
-      document.documentElement.style.setProperty('--visible-vh', `${vv.height}px`)
-    }
-    update()
-    vv.addEventListener('resize', update)
-    return () => vv.removeEventListener('resize', update)
-  }, [])
+  // iOS Safari 键盘安全(全站统一,防复发机制):
+  // 监听 visual viewport 的 resize/scroll 与聚焦,把可视高度写入 --visible-vh、
+  // 视口顶部偏移写入 --visible-vh-top。所有需要响应键盘收缩的可滚动容器
+  // (floating overlay / 页面 / 面板)引用这两个变量即可随键盘自动收缩复位。
+  useKeyboardSafe()
 
   // 保存作品弹层打开时锁定背景滚动(防 iOS 键盘 pop 起时 body 被顶开)
   useEffect(() => {

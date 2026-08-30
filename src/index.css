@@ -136,12 +136,17 @@ input:focus, textarea:focus, button:focus {
 /* Modal Overlay */
 .modal-overlay {
   position: fixed;
-  inset: 0;
-  /* iOS Safari 键盘弹起时改为可视高度(--visible-vh 由 App.jsx 监听 visualViewport 更新) */
+  top: var(--visible-vh-top, 0px);
+  left: 0;
+  right: 0;
+  /* iOS Safari 键盘弹起时改为可视高度(--visible-vh 由 useKeyboardSafe 监听 visualViewport 更新);
+     top 用视口顶部偏移补偿,浮层随键盘收缩、顶部不被顶出 */
   height: var(--visible-vh, 100vh);
   background: rgba(0, 0, 0, 0.5);
   display: flex;
-  align-items: center;
+  /* 超高内容从顶部对齐:避免 align-items:center 把超高 modal 顶部/底部分别裁掉,
+     导致滚动条「卡住」滚不到底部操作按钮(修改密码面板/长表单的根因) */
+  align-items: flex-start;
   justify-content: center;
   z-index: 1000;
   backdrop-filter: blur(4px);
@@ -157,10 +162,12 @@ input:focus, textarea:focus, button:focus {
   padding: 32px;
   width: 100%;
   max-width: 400px;
-  max-height: 100%;
+  max-height: calc(100% - 32px); /* 留出 overlay padding,超高时可完整滚动到底部按钮 */
   overflow-y: auto;
   box-shadow: 0 20px 60px rgba(43, 36, 32, 0.18);
   box-sizing: border-box;
+  /* 矮内容垂直居中(overlay flex-start + 此处 auto = 居中),高内容可滚到底 */
+  margin: auto;
 }
 /* 注册/登录弹窗滚动条 — 统一站点风格 */
 .modal-content::-webkit-scrollbar {

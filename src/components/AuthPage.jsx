@@ -444,8 +444,11 @@ export default function AuthPage({
 
       <style>{`
         .auth-page {
-          height: 100%;
+          /* iOS 键盘弹起时随 --visible-vh 收缩(旧 100% 基于 --vh 布局视口不变 → 白板根因);
+             overscroll-behavior 防滚动穿透 */
+          height: var(--visible-vh, 100vh);
           overflow-y: auto;
+          overscroll-behavior: contain;
           display: flex;
           flex-direction: column;
           align-items: center;
