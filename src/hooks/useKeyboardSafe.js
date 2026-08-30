@@ -36,15 +36,19 @@ export default function useKeyboardSafe() {
     }
     const onFocusOut = () => requestAnimationFrame(update)
     const onFocusIn = (e) => {
-      // 先更新视口变量
+      // 先更新视口变量(键盘弹出把 --visible-vh 收缩,overlay/modal 高度随之收缩)
       update()
-      // 把聚焦输入框滚入可视区:任何输入框(注册/登录/搜索/回复/密码)聚焦时,
-      // 即使所在滚动容器随键盘收缩,也能保证输入框露出(全站统一兜底,不重复写每组件)
+      // 只滚动输入框所在的 modal 容器内部,绝不 scrollIntoView —— iOS 上 scrollIntoView
+      // 会滚动视觉视口,键盘弹出瞬间把视口下移 → 大面积白板、输入框消失(白板元凶)。
       const el = e.target
       if (el instanceof window.HTMLElement && /INPUT|TEXTAREA|SELECT/.test(el.tagName)) {
-        try {
-          el.scrollIntoView?.({ block: 'center', behavior: 'instant' })
-        } catch (err) { /* 忽略 */ }
+        const scrollable = el.closest('.modal-content, .contact-modal, .admin-modal, .profile-modal')
+        if (scrollable && scrollable.scrollHeight > scrollable.clientHeight) {
+          try {
+            const top = el.offsetTop - scrollable.clientHeight * 0.4
+            scrollable.scrollTo?.(0, Math.max(0, top))
+          } catch (err) { /* 忽略 */ }
+        }
       }
     }
     update()

@@ -136,11 +136,10 @@ input:focus, textarea:focus, button:focus {
 /* Modal Overlay */
 .modal-overlay {
   position: fixed;
-  top: var(--visible-vh-top, 0px);
+  top: 0; /* 全屏 modal 固定 top:0;不用视觉视口偏移(iOS 键盘弹时 offsetTop 变负会把整层顶偏露白) */
   left: 0;
   right: 0;
-  /* iOS Safari 键盘弹起时改为可视高度(--visible-vh 由 useKeyboardSafe 监听 visualViewport 更新);
-     top 用视口顶部偏移补偿,浮层随键盘收缩、顶部不被顶出 */
+  /* iOS Safari 键盘弹起时改为可视高度(--visible-vh 由 useKeyboardSafe 监听 visualViewport 更新) */
   height: var(--visible-vh, 100vh);
   background: rgba(0, 0, 0, 0.5);
   display: flex;

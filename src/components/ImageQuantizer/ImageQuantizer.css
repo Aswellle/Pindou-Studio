@@ -1,6 +1,6 @@
 .image-quantizer-overlay {
   position: fixed;
-  top: var(--visible-vh-top, 0px);
+  top: 0; /* 全屏 modal 固定 top:0;不用视觉视口偏移(键盘弹时 offsetTop 变负会顶偏露白) */
   left: 0;
   right: 0;
   /* iOS Safari 键盘弹起时改为可视高度(--visible-vh 由 useKeyboardSafe 监听 visualViewport 更新) */
