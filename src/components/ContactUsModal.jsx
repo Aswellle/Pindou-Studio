@@ -340,7 +340,8 @@ export default function ContactUsModal({ onClose, user }) {
           /* 顶部少量留白,模态框略偏下;改用小数值避免 PC/矮视口下溢出 */
           padding: 4vh 12px 12px;
           box-sizing: border-box;
-          /* 阻止触摸滚动穿透:在模态框上滑动不会带动下层图库滚动(仅聊天区放行) */
+          /* 超高兜底滚动(键盘唤起时 modal 顶部也可滚到),同时防穿透 */
+          overflow-y: auto;
           overscroll-behavior: contain;
           touch-action: none;
         }
@@ -350,7 +351,9 @@ export default function ContactUsModal({ onClose, user }) {
           max-height: 100%;
           display: flex;
           flex-direction: column;
-          overflow: hidden;
+          /* 键盘唤起 overlay 收缩 → modal 高度受限;超高部分内部滚动,
+             配合全局 focusin scrollIntoView,输入框不被 overflow:hidden 吞掉(白板根因) */
+          overflow-y: auto;
           background: var(--bg-primary);
           border: 2px solid var(--contact-ink);
           border-radius: 18px;

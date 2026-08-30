@@ -144,10 +144,11 @@ input:focus, textarea:focus, button:focus {
   height: var(--visible-vh, 100vh);
   background: rgba(0, 0, 0, 0.5);
   display: flex;
-  /* 超高内容从顶部对齐:避免 align-items:center 把超高 modal 顶部/底部分别裁掉,
-     导致滚动条「卡住」滚不到底部操作按钮(修改密码面板/长表单的根因) */
-  align-items: flex-start;
+  /* 居中 + overlay 自身可滚动:modal 受 max-height 限制不超高,超高时 overlay 兜底滚动,
+     顶部/底部都不会被裁 → 长表单(修改密码)可完整滚到底部按钮 */
+  align-items: center;
   justify-content: center;
+  overflow-y: auto;       /* overlay 滚动兜底:内容超高时整层可滚,不被裁切 */
   z-index: 1000;
   backdrop-filter: blur(4px);
   padding: 16px;
@@ -162,12 +163,13 @@ input:focus, textarea:focus, button:focus {
   padding: 32px;
   width: 100%;
   max-width: 400px;
-  max-height: calc(100% - 32px); /* 留出 overlay padding,超高时可完整滚动到底部按钮 */
-  overflow-y: auto;
+  max-height: none;      /* overlay 负责容量限制与滚动,modal 不再 self 限高以防不滚动 */
+  overflow-y: visible;
   box-shadow: 0 20px 60px rgba(43, 36, 32, 0.18);
   box-sizing: border-box;
-  /* 矮内容垂直居中(overlay flex-start + 此处 auto = 居中),高内容可滚到底 */
-  margin: auto;
+  /* 居中由 overlay align-items:center 负责;不再用 margin:auto(会与 flex 居中冲突,
+     导致超高 modal 上下切边、滚不到底部按钮) */
+  margin: 0;
 }
 /* 注册/登录弹窗滚动条 — 统一站点风格 */
 .modal-content::-webkit-scrollbar {
