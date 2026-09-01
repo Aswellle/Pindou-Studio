@@ -627,6 +627,11 @@ body:has(.profile-confirm-overlay) .mobile-toolbar {
   height: 100vh;
   height: 100svh;
   height: calc(var(--vh, 1svh) * 100);
+  /* 页面容器不是 overlay(无法 inset:0 盖满布局视口),高度只到 --vh(视觉视口高)。
+     iOS 26 键盘弹出自动滚动视觉视口(offsetTop>0)时,视觉视口底 = offsetTop+视觉视口高
+     超出容器底 → 露白板(后台联系消息卡片等复现)。min-height = 视觉视口顶偏移 + 视觉
+     视口高 = 恰好覆盖视觉视口底部;offsetTop=0 时等于原 --vh 高度,无副作用。 */
+  min-height: calc(var(--visible-vh-top, 0px) + var(--visible-vh, 100vh));
   display: flex;
   flex-direction: column;
   overflow: hidden;
