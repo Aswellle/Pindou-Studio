@@ -1,5 +1,18 @@
 import { useEffect } from 'react'
 
+// 全屏浮层类:聚焦这些容器内的输入框由 overlay 收缩机制处理(--visible-vh),
+// 不做主动滚动;页面内输入框(后台表单、联系消息回复、登录页等)用 nearest 兜底。
+const OVERLAY_SELECTOR = [
+  '.modal-overlay',
+  '.contact-overlay',
+  '.image-quantizer-overlay',
+  '.admin-modal-overlay',
+  '.users-confirm-overlay',
+  '.profile-confirm-overlay',
+  '.load-confirm-overlay',
+  '.quantizer-zoom',
+].join(',')
+
 /**
  * 防复发机制:iOS Safari 键盘安全 + 全站视觉视口基础设施(单一事实来源)。
  *
@@ -57,11 +70,21 @@ export default function useKeyboardSafe() {
       if (!raf) raf = requestAnimationFrame(update)
     }
     const onFocusOut = () => schedule()
-    const onFocusIn = () => {
+    const onFocusIn = (e) => {
       // 聚焦输入框仅更新视口变量:键盘弹出把 --visible-vh 收缩,overlay/modal 高度随之收缩,
       // 配合 overlay 顶对齐 + 内容可滚,输入框自然落在键盘上方。
-      // 不在此处做任何 scrollIntoView/scrollTo —— iOS 上主动滚动会把 modal 挤出视口(元凶)。
       schedule()
+      // 页面内输入框(非全屏浮层):iOS 26 键盘弹出时视觉视口自动滚动可能与页面滚动容器
+      // 错位导致白板(后台联系消息回复框等)。用 nearest 最小滚动兜底确保输入框可见 ——
+      // 仅当输入框不在可视区才滚,不用 center/scrollTo(那会与 iOS 自动滚动打架)。
+      const el = e.target
+      if (el && (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA' || el.tagName === 'SELECT')) {
+        if (!el.closest(OVERLAY_SELECTOR)) {
+          requestAnimationFrame(() => {
+            try { el.scrollIntoView?.({ block: 'nearest', inline: 'nearest' }) } catch { /* 忽略 */ }
+          })
+        }
+      }
     }
     update()
     vv?.addEventListener('resize', schedule)
