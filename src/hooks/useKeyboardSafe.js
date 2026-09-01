@@ -65,24 +65,54 @@ export default function useKeyboardSafe() {
       const vh = Math.min(inner, vv.height) * 0.01
       set('--vh', `${vh}px`)
     }
-    // 高频事件(键盘动画 / 滚动)合并到单次 rAF,避免重复 setProperty 触发重排
-    const schedule = () => {
-      if (!raf) raf = requestAnimationFrame(update)
+    // 键盘弹出时临时放开 body/html 滚动锁定:body overflow:hidden 使 iOS 26 无法滚动
+    // 页面,被迫用「视觉视口滚动而内容不跟随」的方式显示聚焦输入框 → 容器与视觉视口
+    // 错位 → 键盘上方白板(后台联系消息等复现)。放开后 iOS 原生滚动页面/容器,内容跟随,
+    // 视觉视口 offsetTop 归零。body 内容高度 = --vh(正好一屏),放开后无可滚范围,无副作用。
+    let scrollUnlocked = false
+    const unlockScroll = () => {
+      if (scrollUnlocked) return
+      scrollUnlocked = true
+      document.documentElement.style.overflow = 'auto'
+      document.body.style.overflow = 'auto'
     }
-    const onFocusOut = () => schedule()
+    const relockScroll = () => {
+      if (!scrollUnlocked) return
+      scrollUnlocked = false
+      document.documentElement.style.overflow = ''
+      document.body.style.overflow = ''
+    }
+    // 确保聚焦的页面内输入框在可视区:nearest 最小滚动(仅不在可视区才滚),不用 center/scrollTo
+    const ensureFocusedVisible = () => {
+      const el = document.activeElement
+      if (el && (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA' || el.tagName === 'SELECT')) {
+        if (!el.closest(OVERLAY_SELECTOR)) {
+          try { el.scrollIntoView?.({ block: 'nearest', inline: 'nearest' }) } catch { /* 忽略 */ }
+        }
+      }
+    }
+    // 高频事件(键盘动画 / 滚动)合并到单次 rAF:更新视口变量后再确保聚焦输入框可见
+    const schedule = () => {
+      if (!raf) raf = requestAnimationFrame(() => {
+        update()
+        ensureFocusedVisible()
+      })
+    }
+    const onFocusOut = () => {
+      schedule()
+      relockScroll()
+    }
     const onFocusIn = (e) => {
       // 聚焦输入框仅更新视口变量:键盘弹出把 --visible-vh 收缩,overlay/modal 高度随之收缩,
       // 配合 overlay 顶对齐 + 内容可滚,输入框自然落在键盘上方。
       schedule()
-      // 页面内输入框(非全屏浮层):iOS 26 键盘弹出时视觉视口自动滚动可能与页面滚动容器
-      // 错位导致白板(后台联系消息回复框等)。用 nearest 最小滚动兜底确保输入框可见 ——
-      // 仅当输入框不在可视区才滚,不用 center/scrollTo(那会与 iOS 自动滚动打架)。
       const el = e.target
       if (el && (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA' || el.tagName === 'SELECT')) {
         if (!el.closest(OVERLAY_SELECTOR)) {
-          requestAnimationFrame(() => {
-            try { el.scrollIntoView?.({ block: 'nearest', inline: 'nearest' }) } catch { /* 忽略 */ }
-          })
+          // 页面内输入框(非全屏浮层):放开 body 滚动让 iOS 原生滚动(内容跟随,offsetTop 归零),
+          // 并立即同步 nearest(抢在 iOS 自动滚动前)兜底;键盘弹出后由 schedule 再补一次。
+          unlockScroll()
+          try { el.scrollIntoView?.({ block: 'nearest', inline: 'nearest' }) } catch { /* 忽略 */ }
         }
       }
     }
