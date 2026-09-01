@@ -137,7 +137,9 @@ export default function Gallery({ onLoadTemplate, onDeleteWork, onLoadWork, save
     let left = r.left
     let top = r.bottom + 6
     if (left + mw > window.innerWidth - 8) left = Math.max(8, window.innerWidth - mw - 8)
-    if (top + mh > window.innerHeight - 8) top = Math.max(8, r.top - mh - 6)
+    // iOS 键盘弹起时 window.innerHeight 是布局视口(不收缩),用视觉视口高度才正确
+    const vh = window.visualViewport?.height ?? window.innerHeight
+    if (top + mh > vh - 8) top = Math.max(8, r.top - mh - 6)
     menu.style.left = `${left}px`
     menu.style.top = `${top}px`
   }, [brandMenuId])
@@ -152,7 +154,9 @@ export default function Gallery({ onLoadTemplate, onDeleteWork, onLoadWork, save
     let top = r.top - mh - 6
     if (left < 8) left = 8
     if (top < 8) top = r.bottom + 6
-    if (top + mh > window.innerHeight - 8) top = Math.max(8, window.innerHeight - mh - 8)
+    // iOS 键盘弹起时 window.innerHeight 是布局视口(不收缩),用视觉视口高度才正确
+    const vh = window.visualViewport?.height ?? window.innerHeight
+    if (top + mh > vh - 8) top = Math.max(8, vh - mh - 8)
     menu.style.left = `${left}px`
     menu.style.top = `${top}px`
   }, [exportMenuId])
@@ -1168,15 +1172,9 @@ export default function Gallery({ onLoadTemplate, onDeleteWork, onLoadWork, save
         }
         /* 填充模板确认对话框:桌面式两栏(左侧方形大预览 | 右侧信息+操作),防误触 */
         .load-confirm-overlay {
-          position: fixed;
-          inset: 0;
+          /* 定位/高度(--visible-vh)/滚动/safe-area/居中由 index.css 全屏浮层基础设施统一提供 */
           background: rgba(0, 0, 0, 0.4);
           z-index: 1100;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          padding: 16px;
-          box-sizing: border-box;
         }
         .load-confirm-modal {
           display: flex;

@@ -445,8 +445,8 @@ export default function AuthPage({
       <style>{`
         .auth-page {
           /* iOS 键盘弹起时随 --visible-vh 收缩(旧 100% 基于 --vh 布局视口不变 → 白板根因);
-             overscroll-behavior 防滚动穿透 */
-          height: var(--visible-vh, 100vh);
+             overscroll-behavior 防滚动穿透;100dvh 为 JS 就绪前的兜底 */
+          height: var(--visible-vh, 100dvh);
           overflow-y: auto;
           overscroll-behavior: contain;
           display: flex;
@@ -454,6 +454,7 @@ export default function AuthPage({
           align-items: center;
           justify-content: flex-start;
           padding: 32px 16px 64px;
+          padding-bottom: max(64px, env(safe-area-inset-bottom, 0px));
           background: var(--bg-primary);
           box-sizing: border-box;
         }

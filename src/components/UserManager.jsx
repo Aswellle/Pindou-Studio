@@ -432,18 +432,9 @@ export default function UserManager() {
         .users-actions { display: flex; gap: 6px; }
         .users-admin-note { color: var(--text-muted); }
         .users-confirm-overlay {
-          position: fixed;
-          top: 0;
-          left: 0;
-          right: 0;
-          height: var(--visible-vh, 100vh); /* iOS 键盘弹起收缩兜底 */
+          /* 定位/高度/滚动/safe-area/居中由 index.css 全屏浮层基础设施统一提供 */
           background: rgba(0, 0, 0, 0.45);
           z-index: 1200;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          padding: 16px;
-          box-sizing: border-box;
         }
         .users-confirm {
           background: var(--bg-primary);

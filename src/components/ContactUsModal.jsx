@@ -326,12 +326,9 @@ export default function ContactUsModal({ onClose, user }) {
       <style>{`
         /* iOS Safari 键盘弹起时 --visible-vh=可视高度(App.jsx 全局监听 visualViewport 更新),
            使浮层只覆盖键盘之上的可见区域,输入框不被键盘吞掉 */
+        /* 定位/高度/滚动/safe-area 由 index.css 的全屏浮层基础设施统一提供;
+           这里只保留本组件的对齐方式与视觉差异。 */
         .contact-overlay {
-          position: fixed;
-          top: 0;
-          left: 0;
-          right: 0;
-          height: var(--visible-vh, 100vh);
           background: rgba(43, 36, 32, 0.5);
           z-index: 1200;
           display: flex;
@@ -339,10 +336,7 @@ export default function ContactUsModal({ onClose, user }) {
           align-items: flex-start;
           justify-content: center;
           padding: 4vh 12px 12px;
-          box-sizing: border-box;
-          overflow-y: auto;
-          -webkit-overflow-scrolling: touch; /* iOS 平滑原生滚动 */
-          overscroll-behavior: contain;
+          padding-bottom: max(12px, env(safe-area-inset-bottom, 0px));
         }
         .contact-modal {
           width: 100%;

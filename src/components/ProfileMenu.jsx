@@ -283,18 +283,9 @@ export default function ProfileMenu({ user, onClose, onLogout, onUpdateProfile, 
         <style>{`
           .profile-overlay { z-index: 1100; }
           .profile-confirm-overlay {
-            position: fixed;
-            top: 0;
-            left: 0;
-            right: 0;
-            height: var(--visible-vh, 100vh); /* iOS 键盘弹起收缩兜底 */
+            /* 定位/高度/滚动/safe-area/居中由 index.css 全屏浮层基础设施统一提供 */
             background: rgba(0, 0, 0, 0.4);
             z-index: 1200;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            padding: 16px;
-            box-sizing: border-box;
           }
           .profile-modal {
             max-width: 440px;

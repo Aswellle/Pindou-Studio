@@ -713,7 +713,8 @@ export default function ExportPanel({ canvasData, gridSize, gridWidth, gridHeigh
       <style>{`
         .export-modal-content {
           width: min(420px, 92vw);
-          max-height: 80vh;
+          /* 上限随视觉视口收缩(--visible-vh):iOS 键盘弹起时按布局视口 80vh 会裁底 */
+          max-height: calc(var(--visible-vh, 100dvh) - 32px);
           overflow-y: auto;
         }
       `}</style>

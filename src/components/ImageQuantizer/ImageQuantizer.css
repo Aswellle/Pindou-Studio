@@ -1,21 +1,15 @@
 .image-quantizer-overlay {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  /* iOS Safari 键盘弹起时改为可视高度(--visible-vh 由 useKeyboardSafe 监听 visualViewport 更新) */
-  height: var(--visible-vh, 100vh);
+  /* 定位/高度/滚动/safe-area 由 index.css 的全屏浮层基础设施统一提供;
+     本组件保持无内边距(顶部对齐 + 内部滚动),仅底部追加 safe-area。 */
+  padding: 0;
+  padding-bottom: env(safe-area-inset-bottom, 0px);
   background: rgba(0, 0, 0, 0.5);
   display: flex;
   /* 顶对齐 + overlay 滚动:超高不裁顶、可滚到底,键盘弹起随高度收缩 */
   align-items: flex-start;
   justify-content: center;
-  overflow-y: auto;
-  -webkit-overflow-scrolling: touch;
   z-index: 1000;
   backdrop-filter: blur(4px);
-  /* 阻止滚动穿透:模态框上滑动不带动下层页面 */
-  overscroll-behavior: contain;
 }
 
 .image-quantizer-modal {
@@ -448,13 +442,9 @@
   transform: scale(1.08);
 }
 
-/* 放大查看 overlay */
+/* 放大查看 overlay
+   (定位/高度(--visible-vh)/滚动/safe-area 由 index.css 全屏浮层基础设施统一提供) */
 .quantizer-zoom {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  height: var(--visible-vh, 100vh); /* iOS 键盘弹起收缩兜底 */
   z-index: 1100;
   background: rgba(0, 0, 0, 0.85);
   display: flex;

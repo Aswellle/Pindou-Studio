@@ -133,28 +133,84 @@ input:focus, textarea:focus, button:focus {
   outline-offset: -2px;
 }
 
-/* Modal Overlay */
+/* ── 全屏浮层统一基础设施(iOS 键盘 / 视觉视口 / safe-area)────────────────────
+   · 高度跟随 visual viewport(--visible-vh,由 useKeyboardSafe 监听更新),
+     键盘弹起时随 --visible-vh 收缩,聚焦输入框不被吞;
+   · grid 居中 + 子元素 margin:auto:内容放得下时垂直居中,超高时 margin 塌缩
+     为 0 顶对齐、overlay 自身可滚到底 —— 既不裁顶、底部总能滚到;
+   · safe-area 内边距适配刘海 / Dynamic Island / Home Indicator。
+   组件侧 inline 样式只需保留对齐方式 / background / z-index / 自身 padding。 */
+
+/* Modal Overlay —— 全站 modal 的标准壳(App/Export/Profile/Quantizer 复用) */
 .modal-overlay {
   position: fixed;
   top: 0; /* 全屏 modal 固定 top:0;不用视觉视口偏移(iOS 键盘弹时 offsetTop 变负会把整层顶偏露白) */
   left: 0;
   right: 0;
-  /* iOS Safari 键盘弹起时改为可视高度(--visible-vh 由 useKeyboardSafe 监听 visualViewport 更新) */
-  height: var(--visible-vh, 100vh);
-  background: rgba(0, 0, 0, 0.5);
-  display: flex;
-  /* 参考图机制:顶对齐(超高不裁顶)+ overlay 自身滚动(超高可滚到底),
-     + 可触摸滚动 —— 顶部完整、底部总能滚到,键盘弹起时随高度收缩 */
-  align-items: flex-start;
-  justify-content: center;
+  height: 100vh; /* 旧浏览器回退 */
+  height: var(--visible-vh, 100dvh); /* --visible-vh=可视高度;JS 就绪前 100dvh 兜底(优于 100vh 大视口) */
+  background: rgba(0, 0, 0, 0.45);
+  display: grid;
+  place-items: center;
   overflow-y: auto;
   -webkit-overflow-scrolling: touch; /* iOS 平滑原生滚动 */
   z-index: 1000;
   backdrop-filter: blur(4px);
   padding: 16px;
+  padding-top: max(16px, env(safe-area-inset-top, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  padding-bottom: max(16px, env(safe-area-inset-bottom, 0px));
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
   box-sizing: border-box;
   /* 阻止滚动穿透:模态框上滑动不带动下层页面 */
   overscroll-behavior: contain;
+}
+/* grid 居中容器里的标准子项:放得下居中,超高时 margin 塌缩为 0 → 顶对齐 + overlay 滚动 */
+.modal-overlay > * {
+  margin: auto;
+}
+
+/* 其余全屏浮层(.contact / .image-quantizer / .admin-modal / .users-confirm /
+   .profile-confirm / .load-confirm / .quantizer-zoom)与 .modal-overlay 共享
+   同一套「fixed + 视觉视口高度 + 自身滚动 + safe-area」基础。
+   注意:各组件 inline <style> 后加载,会覆盖这里的 padding 等声明 ——
+   组件侧已相应只保留自身差异。 */
+.contact-overlay,
+.image-quantizer-overlay,
+.admin-modal-overlay,
+.users-confirm-overlay,
+.profile-confirm-overlay,
+.load-confirm-overlay,
+.quantizer-zoom {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 100vh;
+  height: var(--visible-vh, 100dvh);
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
+  box-sizing: border-box;
+  padding: 16px;
+  padding-top: max(16px, env(safe-area-inset-top, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  padding-bottom: max(16px, env(safe-area-inset-bottom, 0px));
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+}
+/* 居中组(确认框 / 后台模态):内容放得下居中、超高可滚到底 */
+.admin-modal-overlay,
+.users-confirm-overlay,
+.profile-confirm-overlay,
+.load-confirm-overlay {
+  display: grid;
+  place-items: center;
+}
+.admin-modal-overlay > *,
+.users-confirm-overlay > *,
+.profile-confirm-overlay > *,
+.load-confirm-overlay > * {
+  margin: auto;
 }
 
 .modal-content {

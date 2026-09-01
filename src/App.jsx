@@ -522,18 +522,6 @@ export default function App() {
         .left-sidebar.collapsed .left-sidebar-top {
           width: 56px;
         }
-        .modal-overlay {
-          position: fixed;
-          inset: 0;
-          background: rgba(0,0,0,0.45);
-          backdrop-filter: blur(4px);
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          z-index: 1000;
-          padding: 16px;
-          box-sizing: border-box;
-        }
         .save-toast {
           position: fixed;
           top: 72px;
@@ -772,18 +760,6 @@ export default function App() {
       )}
 
       <style>{`
-        .modal-overlay {
-          position: fixed;
-          inset: 0;
-          background: rgba(0,0,0,0.45);
-          backdrop-filter: blur(4px);
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          z-index: 1000;
-          padding: 16px;
-          box-sizing: border-box;
-        }
         .save-toast {
           position: fixed;
           top: 72px;
