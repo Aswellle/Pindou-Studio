@@ -631,11 +631,6 @@ body:has(.profile-confirm-overlay) .mobile-toolbar {
   height: 100vh;
   height: 100svh;
   height: calc(var(--vh, 1svh) * 100);
-  /* 视觉视口偏移补偿:键盘弹出时 iOS 26 会自动滚动视觉视口(offsetTop>0)以显示
-     聚焦输入框,若本容器只收缩到 --vh(=视觉视口高),视觉视口底部会露出容器之外
-     的页面 → 白板。min-height = offsetTop + 视觉视口高,保证容器覆盖视觉视口底。
-     offsetTop=0(无键盘/未滚动)时等于 --vh,不影响。 */
-  min-height: calc(var(--visible-vh-top, 0px) + var(--visible-vh, 100vh));
   display: flex;
   flex-direction: column;
   overflow: hidden;

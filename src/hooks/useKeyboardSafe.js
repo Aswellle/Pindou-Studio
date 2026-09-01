@@ -65,30 +65,39 @@ export default function useKeyboardSafe() {
       const vh = Math.min(inner, vv.height) * 0.01
       set('--vh', `${vh}px`)
     }
-    // 键盘弹出时临时放开 body/html 滚动锁定:body overflow:hidden 使 iOS 26 无法滚动
-    // 页面,被迫用「视觉视口滚动而内容不跟随」的方式显示聚焦输入框 → 容器与视觉视口
-    // 错位 → 键盘上方白板(后台联系消息等复现)。放开后 iOS 原生滚动页面/容器,内容跟随,
-    // 视觉视口 offsetTop 归零。body 内容高度 = --vh(正好一屏),放开后无可滚范围,无副作用。
-    let scrollUnlocked = false
-    const unlockScroll = () => {
-      if (scrollUnlocked) return
-      scrollUnlocked = true
-      document.documentElement.style.overflow = 'auto'
-      document.body.style.overflow = 'auto'
+    // 找到输入框最近的「可滚动」祖先(排除 html/body/不可滚动元素),仅内层滚动容器。
+    // 键盘弹出时让输入框在这个内层容器里可见 —— 不滚动 body/html(那会把整页内容
+    // 顶到屏幕上方 → 视觉视口看到容器之外 → 白板,已证实)。
+    const getScrollAncestor = (el) => {
+      let node = el.parentElement
+      while (node && node !== document.documentElement && node !== document.body) {
+        const style = window.getComputedStyle(node)
+        const oy = style.overflowY
+        if ((oy === 'auto' || oy === 'scroll' || oy === 'overlay') && node.scrollHeight > node.clientHeight) {
+          return node
+        }
+        node = node.parentElement
+      }
+      return null
     }
-    const relockScroll = () => {
-      if (!scrollUnlocked) return
-      scrollUnlocked = false
-      document.documentElement.style.overflow = ''
-      document.body.style.overflow = ''
-    }
-    // 确保聚焦的页面内输入框在可视区:nearest 最小滚动(仅不在可视区才滚),不用 center/scrollTo
+    // 确保聚焦的页面内输入框在可视区:优先滚到「最近的滚动容器底部对齐」(block:'end'),
+    // 让输入框贴住容器底部(下方恰好是容器内容,不露白);找不到滚动容器时退化为
+    // scrollIntoView nearest 兜底。不用 center/scrollTo(与 iOS 自动滚动打架)。
     const ensureFocusedVisible = () => {
       const el = document.activeElement
-      if (el && (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA' || el.tagName === 'SELECT')) {
-        if (!el.closest(OVERLAY_SELECTOR)) {
-          try { el.scrollIntoView?.({ block: 'nearest', inline: 'nearest' }) } catch { /* 忽略 */ }
+      if (!el || !(el.tagName === 'INPUT' || el.tagName === 'TEXTAREA' || el.tagName === 'SELECT')) return
+      if (el.closest(OVERLAY_SELECTOR)) return
+      const scroller = getScrollAncestor(el)
+      if (scroller) {
+        const elRect = el.getBoundingClientRect()
+        const scRect = scroller.getBoundingClientRect()
+        // 输入框顶部要露出可视区:滚动使输入框底部贴近滚动容器底部(下方不露白)
+        const target = elRect.bottom - scRect.top - scroller.clientHeight + elRect.height + 10
+        if (scroller.scrollTop < target) {
+          scroller.scrollTop = target
         }
+      } else {
+        try { el.scrollIntoView?.({ block: 'nearest', inline: 'nearest' }) } catch { /* 忽略 */ }
       }
     }
     // 高频事件(键盘动画 / 滚动)合并到单次 rAF:更新视口变量后再确保聚焦输入框可见
@@ -98,10 +107,7 @@ export default function useKeyboardSafe() {
         ensureFocusedVisible()
       })
     }
-    const onFocusOut = () => {
-      schedule()
-      relockScroll()
-    }
+    const onFocusOut = () => schedule()
     const onFocusIn = (e) => {
       // 聚焦输入框仅更新视口变量:键盘弹出把 --visible-vh 收缩,overlay/modal 高度随之收缩,
       // 配合 overlay 顶对齐 + 内容可滚,输入框自然落在键盘上方。
@@ -109,10 +115,9 @@ export default function useKeyboardSafe() {
       const el = e.target
       if (el && (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA' || el.tagName === 'SELECT')) {
         if (!el.closest(OVERLAY_SELECTOR)) {
-          // 页面内输入框(非全屏浮层):放开 body 滚动让 iOS 原生滚动(内容跟随,offsetTop 归零),
-          // 并立即同步 nearest(抢在 iOS 自动滚动前)兜底;键盘弹出后由 schedule 再补一次。
-          unlockScroll()
-          try { el.scrollIntoView?.({ block: 'nearest', inline: 'nearest' }) } catch { /* 忽略 */ }
+          // 页面内输入框(非全屏浮层):键盘弹出后滚到最近滚动容器底部(输入框贴底,
+          // 下方不露白);overlay 内输入框由 overlay 收缩机制处理,不做主动滚动。
+          requestAnimationFrame(() => ensureFocusedVisible())
         }
       }
     }
