@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react'
+import { createPortal } from 'react-dom'
 import { useTranslation } from 'react-i18next'
 import { supabase } from '../services/supabase'
 import LoadingScreen from './LoadingScreen'
@@ -303,8 +304,10 @@ export default function UserManager() {
         </div>
       </div>
 
-      {/* 删除 / 锁定 / 解锁 确认对话框 */}
-      {confirm && (
+      {/* 删除 / 锁定 / 解锁 确认对话框。
+          portal 到 body:后台 confirm 浮层位于 .admin-panel 滚动容器内,iOS Safari
+          滚动容器内的 fixed 在键盘/滚动后错位 → 移到 body 下稳定相对视口。 */}
+      {confirm && createPortal(
         <div className="users-confirm-overlay" onClick={() => !busy && setConfirm(null)}>
           <div className="users-confirm" onClick={e => e.stopPropagation()}>
             <h3 className="users-confirm-title">
@@ -326,7 +329,8 @@ export default function UserManager() {
               </button>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
 
       <style>{`

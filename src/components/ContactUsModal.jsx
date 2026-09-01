@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, useCallback, useMemo } from 'react'
+import { createPortal } from 'react-dom'
 import { useTranslation } from 'react-i18next'
 import { X, Send, User } from 'lucide-react'
 import { supabase } from '../services/supabase'
@@ -229,7 +230,9 @@ export default function ContactUsModal({ onClose, user }) {
     <span className="contact-avatar-default"><User size={14} /></span>
   )
 
-  return (
+  // portal 到 body:该浮层在 Gallery(.mobile-page-area 滚动容器)内渲染,
+  // iOS Safari 滚动容器内的 fixed 在键盘弹出/滚动后错位 → 移到 body 下稳定相对视口
+  return createPortal(
     <div className="contact-overlay" onClick={onClose}>
       <div className="contact-modal" onClick={e => e.stopPropagation()} role="dialog" aria-label={t('contact.title')}>
         <div className="contact-header">
@@ -574,6 +577,7 @@ export default function ContactUsModal({ onClose, user }) {
         .contact-send-btn:active { transform: translateY(2px); box-shadow: 0 1px 0 var(--contact-ink); }
         .contact-send-btn:disabled { opacity: 0.55; cursor: default; }
       `}</style>
-    </div>
+    </div>,
+    document.body
   )
 }

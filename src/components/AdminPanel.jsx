@@ -1,4 +1,5 @@
 import { useState, useMemo, useEffect, useCallback, useRef } from 'react'
+import { createPortal } from 'react-dom'
 import { useTranslation } from 'react-i18next'
 import { useToast } from './Toast'
 import { CATEGORIES, DIFFICULTIES, normalizeCustomTemplate } from '../data/templates'
@@ -32,8 +33,11 @@ function GateStyle() {
 
 // 后台共用模态框:全屏遮罩 + 居中卡片 + 标题栏 + 内容区自滚动。
 // 新增/编辑/删除确认等操作统一走模态框,减少页面纵向滚动。
+// createPortal 到 body:避免 fixed 浮层嵌套在 .admin-panel 滚动容器内 —— iOS Safari
+// 上「滚动容器内的 fixed」在键盘弹出/滚动后存在错位 bug(白板/被顶的元凶之一);
+// portal 后浮层脱离滚动容器与祖先 stacking context,fixed 稳定相对视口。
 function AdminModal({ title, onClose, wide, children }) {
-  return (
+  return createPortal(
     <div className="admin-modal-overlay" onClick={onClose}>
       <div className={`admin-modal${wide ? ' wide' : ''}`} onClick={e => e.stopPropagation()}>
         <div className="admin-modal-header">
@@ -47,7 +51,8 @@ function AdminModal({ title, onClose, wide, children }) {
         </div>
         <div className="admin-modal-body">{children}</div>
       </div>
-    </div>
+    </div>,
+    document.body
   )
 }
 
@@ -421,7 +426,9 @@ export default function AdminPanel({ user, isAdmin, authLoading, onLogin, onLogo
           box-shadow: 0 2px 8px rgba(43, 36, 32, 0.18);
         }
         .admin-tab-content {
-          min-height: 55vh;
+          /* 最小高度随视觉视口(--visible-vh)而非布局视口 vh:键盘弹起/URL 栏变化时
+             后台 tab 内容区随可视高度收缩,输入框不被推离可视区 */
+          min-height: calc(var(--visible-vh, 100vh) * 0.55);
           /* 仅透明度过渡:不使用 transform 动画 —— iOS Safari 在输入框聚焦
              时若页面仍在播放 transform 动画,会触发渲染层失效导致局部白板 */
           animation: adminFadeIn 0.15s ease;
