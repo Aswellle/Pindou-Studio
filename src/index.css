@@ -141,18 +141,17 @@ input:focus, textarea:focus, button:focus {
    · safe-area 内边距适配刘海 / Dynamic Island / Home Indicator。
    组件侧 inline 样式只需保留对齐方式 / background / z-index / 自身 padding。 */
 
-/* Modal Overlay —— 全站 modal 的标准壳(App/Export/Profile/Quantizer 复用) */
+/* Modal Overlay —— 全站 modal 的标准壳(App/Export/Profile/Quantizer 复用)。
+   关键:overlay 用 inset:0 盖满【整个布局视口】(不是 --visible-vh 视觉视口高)。
+   因为视觉视口总是布局视口的子集,iOS 26 键盘弹出自动滚动视觉视口(offsetTop>0)
+   时,视觉视口看到的仍是 overlay 内部 —— 白板在几何上不可能出现。
+   --visible-vh / --visible-vh-top 只用来约束【内部 modal】落在键盘上方,
+   不用于 overlay 边界。 */
 .modal-overlay {
   position: fixed;
-  /* top 跟随视觉视口偏移(--visible-vh-top = visualViewport.offsetTop):
-     iOS 键盘弹出时视觉视口会自动滚动以显示聚焦输入框,若 fixed 浮层固定在 top:0
-     会被挤出可见区 → 键盘上方露白板(间歇出现)。top=offsetTop + height=--visible-vh
-     恰好精确覆盖键盘上方的可见区域。 */
-  top: max(0px, var(--visible-vh-top, 0px));
-  left: 0;
-  right: 0;
-  height: 100vh; /* 旧浏览器(不支持 var())回退 */
-  height: var(--visible-vh, 100vh); /* --visible-vh=可视高度(浮层渲染前必已由 JS 设置);兜底恒合法 */
+  inset: 0;
+  height: 100vh; /* 旧浏览器(不支持 inset/var())回退 */
+  height: 100dvh;
   background: rgba(0, 0, 0, 0.45);
   display: grid;
   place-items: center;
@@ -188,13 +187,10 @@ input:focus, textarea:focus, button:focus {
 .load-confirm-overlay,
 .quantizer-zoom {
   position: fixed;
-  /* top 跟随视觉视口偏移(--visible-vh-top),防止 iOS 键盘自动滚动视觉视口
-     时 fixed 浮层被挤出可见区露白(见 .modal-overlay 注释) */
-  top: max(0px, var(--visible-vh-top, 0px));
-  left: 0;
-  right: 0;
+  /* 同 .modal-overlay:盖满布局视口(inset:0),视觉视口滚动也不露白 */
+  inset: 0;
   height: 100vh;
-  height: var(--visible-vh, 100vh);
+  height: 100dvh;
   overflow-y: auto;
   -webkit-overflow-scrolling: touch;
   overscroll-behavior: contain;

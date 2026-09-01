@@ -329,20 +329,17 @@ export default function ContactUsModal({ onClose, user }) {
       </div>
 
       <style>{`
-        /* iOS Safari 键盘弹起时 --visible-vh=可视高度(App.jsx 全局监听 visualViewport 更新),
-           使浮层只覆盖键盘之上的可见区域,输入框不被键盘吞掉 */
-        /* 定位/高度/滚动/safe-area 由 index.css 的全屏浮层基础设施统一提供;
-           这里只保留本组件的对齐方式与视觉差异。 */
+        /* overlay 由 index.css 全屏浮层基础设施统一提供(inset:0 盖满布局视口,
+           视觉视口滚动也不露白)。这里让 modal 内容随视觉视口定位到键盘上方:
+           顶部偏移 = --visible-vh-top(视觉视口 offsetTop),高度上限 = --visible-vh。 */
         .contact-overlay {
           background: rgba(43, 36, 32, 0.5);
           z-index: 1200;
-          /* 系统性键盘方案:overlay 不滚(覆盖共享组 overflow-y:auto),modal 内部滚动。
-             grid 居中,超高时 modal 受 max-height 约束内部滚,壳不被 iOS 顶出(白板根治) */
           display: grid;
           place-items: center;
           overflow: hidden;
           padding: 16px;
-          padding-top: max(16px, env(safe-area-inset-top, 0px));
+          padding-top: max(16px, var(--visible-vh-top, 0px), env(safe-area-inset-top, 0px));
           padding-right: max(16px, env(safe-area-inset-right, 0px));
           padding-bottom: max(16px, env(safe-area-inset-bottom, 0px));
           padding-left: max(16px, env(safe-area-inset-left, 0px));
