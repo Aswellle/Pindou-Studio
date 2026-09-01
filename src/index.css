@@ -148,7 +148,7 @@ input:focus, textarea:focus, button:focus {
      iOS 键盘弹出时视觉视口会自动滚动以显示聚焦输入框,若 fixed 浮层固定在 top:0
      会被挤出可见区 → 键盘上方露白板(间歇出现)。top=offsetTop + height=--visible-vh
      恰好精确覆盖键盘上方的可见区域。 */
-  top: var(--visible-vh-top, 0px);
+  top: max(0px, var(--visible-vh-top, 0px));
   left: 0;
   right: 0;
   height: 100vh; /* 旧浏览器(不支持 var())回退 */
@@ -190,7 +190,7 @@ input:focus, textarea:focus, button:focus {
   position: fixed;
   /* top 跟随视觉视口偏移(--visible-vh-top),防止 iOS 键盘自动滚动视觉视口
      时 fixed 浮层被挤出可见区露白(见 .modal-overlay 注释) */
-  top: var(--visible-vh-top, 0px);
+  top: max(0px, var(--visible-vh-top, 0px));
   left: 0;
   right: 0;
   height: 100vh;
@@ -631,6 +631,11 @@ body:has(.profile-confirm-overlay) .mobile-toolbar {
   height: 100vh;
   height: 100svh;
   height: calc(var(--vh, 1svh) * 100);
+  /* 视觉视口偏移补偿:键盘弹出时 iOS 26 会自动滚动视觉视口(offsetTop>0)以显示
+     聚焦输入框,若本容器只收缩到 --vh(=视觉视口高),视觉视口底部会露出容器之外
+     的页面 → 白板。min-height = offsetTop + 视觉视口高,保证容器覆盖视觉视口底。
+     offsetTop=0(无键盘/未滚动)时等于 --vh,不影响。 */
+  min-height: calc(var(--visible-vh-top, 0px) + var(--visible-vh, 100vh));
   display: flex;
   flex-direction: column;
   overflow: hidden;
