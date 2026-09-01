@@ -336,7 +336,10 @@ export default function ContactUsModal({ onClose, user }) {
           align-items: flex-start;
           justify-content: center;
           padding: 4vh 12px 12px;
+          padding-top: max(4vh, env(safe-area-inset-top, 0px));
+          padding-right: max(12px, env(safe-area-inset-right, 0px));
           padding-bottom: max(12px, env(safe-area-inset-bottom, 0px));
+          padding-left: max(12px, env(safe-area-inset-left, 0px));
         }
         .contact-modal {
           width: 100%;

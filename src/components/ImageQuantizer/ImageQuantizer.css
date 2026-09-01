@@ -1,8 +1,11 @@
 .image-quantizer-overlay {
   /* 定位/高度/滚动/safe-area 由 index.css 的全屏浮层基础设施统一提供;
-     本组件保持无内边距(顶部对齐 + 内部滚动),仅底部追加 safe-area。 */
+     本组件保持无内边距(顶部对齐 + 内部滚动),按需追加四方向 safe-area。 */
   padding: 0;
+  padding-top: env(safe-area-inset-top, 0px);
+  padding-right: env(safe-area-inset-right, 0px);
   padding-bottom: env(safe-area-inset-bottom, 0px);
+  padding-left: env(safe-area-inset-left, 0px);
   background: rgba(0, 0, 0, 0.5);
   display: flex;
   /* 顶对齐 + overlay 滚动:超高不裁顶、可滚到底,键盘弹起随高度收缩 */
@@ -453,6 +456,10 @@
   justify-content: center;
   gap: 14px;
   padding: 20px;
+  padding-top: max(20px, env(safe-area-inset-top, 0px));
+  padding-right: max(20px, env(safe-area-inset-right, 0px));
+  padding-bottom: max(20px, env(safe-area-inset-bottom, 0px));
+  padding-left: max(20px, env(safe-area-inset-left, 0px));
 }
 
 .quantizer-zoom canvas {

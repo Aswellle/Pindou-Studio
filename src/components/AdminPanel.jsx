@@ -709,7 +709,7 @@ export default function AdminPanel({ user, isAdmin, authLoading, onLogin, onLogo
           width: min(480px, 100%);
           /* 上限随视觉视口收缩(--visible-vh):键盘弹起时不再按布局视口 85vh 裁顶/裁底,
              配合 overlay 滚动保证「滚得到底」 */
-          max-height: calc(var(--visible-vh, 100dvh) - 32px);
+          max-height: calc(var(--visible-vh, 100vh) - 32px);
           display: flex;
           flex-direction: column;
           overflow: hidden;

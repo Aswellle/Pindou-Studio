@@ -147,8 +147,8 @@ input:focus, textarea:focus, button:focus {
   top: 0; /* 全屏 modal 固定 top:0;不用视觉视口偏移(iOS 键盘弹时 offsetTop 变负会把整层顶偏露白) */
   left: 0;
   right: 0;
-  height: 100vh; /* 旧浏览器回退 */
-  height: var(--visible-vh, 100dvh); /* --visible-vh=可视高度;JS 就绪前 100dvh 兜底(优于 100vh 大视口) */
+  height: 100vh; /* 旧浏览器(不支持 var())回退 */
+  height: var(--visible-vh, 100vh); /* --visible-vh=可视高度(浮层渲染前必已由 JS 设置);兜底恒合法 */
   background: rgba(0, 0, 0, 0.45);
   display: grid;
   place-items: center;
@@ -187,7 +187,7 @@ input:focus, textarea:focus, button:focus {
   left: 0;
   right: 0;
   height: 100vh;
-  height: var(--visible-vh, 100dvh);
+  height: var(--visible-vh, 100vh);
   overflow-y: auto;
   -webkit-overflow-scrolling: touch;
   overscroll-behavior: contain;
