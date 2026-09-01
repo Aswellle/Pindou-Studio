@@ -1,4 +1,5 @@
 import { useState, useMemo, useRef, useEffect } from 'react'
+import { createPortal } from 'react-dom'
 import { useTranslation } from 'react-i18next'
 import { getPalette } from '../data/palettes'
 import { exportAsPNG, exportAsSVG, createScaledCanvas } from '../services/BeadPatternExporter'
@@ -704,7 +705,9 @@ export default function ExportPanel({ canvasData, gridSize, gridWidth, gridHeigh
     </>
   )
 
-  return (
+  // portal 到 body:导出浮层含输入项,移出 .app 挂载到 body 下,避免 iOS 上
+  // 滚动容器/祖先 stacking context 影响 fixed 定位(键盘弹出错位)
+  return createPortal(
     <div className="modal-overlay" onClick={onClose}>
       <div className="export-modal-content" onClick={(e) => e.stopPropagation()}>
         {panel}
@@ -718,6 +721,7 @@ export default function ExportPanel({ canvasData, gridSize, gridWidth, gridHeigh
           overflow-y: auto;
         }
       `}</style>
-    </div>
+    </div>,
+    document.body
   )
 }

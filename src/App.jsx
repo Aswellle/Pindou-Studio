@@ -1,4 +1,5 @@
 import { useState, useEffect, lazy, Suspense, useRef, useCallback } from 'react'
+import { createPortal } from 'react-dom'
 import useKeyboardSafe from './hooks/useKeyboardSafe'
 import { Routes, Route, useNavigate, useLocation, Navigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
@@ -446,7 +447,7 @@ export default function App() {
         </Suspense>
       )}
 
-      {showSaveDialog && (
+      {showSaveDialog && createPortal(
         <div className="modal-overlay" onClick={() => setShowSaveDialog(false)}>
           <div className="save-dialog" onClick={e => e.stopPropagation()}>
             <h3>{t('gallery.saveTitle')}</h3>
@@ -485,7 +486,8 @@ export default function App() {
               </div>
             )}
           </div>
-        </div>
+        </div>,
+        document.body
       )}
       {saveToast && (
         <div className="save-toast">{user ? t('gallery.savedToastCloud') : t('gallery.savedToast')}</div>
@@ -708,7 +710,7 @@ export default function App() {
         </Suspense>
       )}
 
-      {showSaveDialog && (
+      {showSaveDialog && createPortal(
         <div className="modal-overlay" onClick={() => setShowSaveDialog(false)}>
           <div className="save-dialog" onClick={e => e.stopPropagation()}>
             <h3>{t('gallery.saveTitle')}</h3>
@@ -747,7 +749,8 @@ export default function App() {
               </div>
             )}
           </div>
-        </div>
+        </div>,
+        document.body
       )}
       {saveToast && (
         <div className="save-toast">{user ? t('gallery.savedToastCloud') : t('gallery.savedToast')}</div>

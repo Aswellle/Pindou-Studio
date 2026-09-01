@@ -1,4 +1,5 @@
 import { useState, useRef } from 'react'
+import { createPortal } from 'react-dom'
 import { useTranslation } from 'react-i18next'
 import { supabase, SUPABASE_URL } from '../services/supabase'
 import Avatar from './Avatar'
@@ -131,7 +132,9 @@ export default function ProfileMenu({ user, onClose, onLogout, onUpdateProfile, 
     }
   }
 
-  return (
+  // portal 到 body:浮层含输入项,移出 .app 挂载到 body 下(内部确认框随之带出),
+  // 避免 iOS 上滚动容器/祖先 stacking context 影响 fixed 定位
+  return createPortal(
     <div className="modal-overlay profile-overlay" onClick={onClose}>
       <div className="modal-content profile-modal" onClick={e => e.stopPropagation()}>
         <button className="close-btn" onClick={onClose} aria-label={t('common.close')}>
@@ -440,6 +443,7 @@ export default function ProfileMenu({ user, onClose, onLogout, onUpdateProfile, 
           }
         `}</style>
       </div>
-    </div>
+    </div>,
+    document.body
   )
 }
