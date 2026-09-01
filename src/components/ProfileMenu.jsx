@@ -294,6 +294,11 @@ export default function ProfileMenu({ user, onClose, onLogout, onUpdateProfile, 
             max-width: 440px;
             padding: 28px 24px 20px;
             position: relative;
+            /* .modal-overlay 已不滚(overflow:hidden):超高时本卡片内部滚动,
+               max-height 随视觉视口收缩(键盘场景防裁顶/顶出) */
+            max-height: calc(var(--visible-vh, 100vh) - 32px);
+            overflow-y: auto;
+            overscroll-behavior: contain;
           }
           .profile-header {
             display: flex;

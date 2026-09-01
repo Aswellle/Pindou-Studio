@@ -159,13 +159,10 @@ export default function ContactUsModal({ onClose, user }) {
     if (el) el.scrollTop = el.scrollHeight
   }, [thread, text])
 
-  // iOS 键盘弹起兜底:聚焦输入框时把输入区滚入可视区,
-  // 配合 interactive-widget=resizes-content 彻底避免输入框被键盘盖住/白板。
-  const focusInput = (e) => {
-    try {
-      e.target.scrollIntoView?.({ block: 'center', behavior: 'smooth' })
-    } catch (err) { /* 忽略 */ }
-  }
+  // iOS 键盘弹起已由 useKeyboardSafe 全局收缩 overlay(--visible-vh)并让内容可滚,
+  // 输入框自然落在键盘上方。此处不做任何 scrollIntoView/scrollTo —— 主动滚动会与
+  // iOS 的键盘自动滚动打架,把 modal 挤出视口(白板元凶,见 useKeyboardSafe 注释)。
+  const focusInput = () => {}
 
   const handleSend = async () => {
     if (sending) return
@@ -242,6 +239,10 @@ export default function ContactUsModal({ onClose, user }) {
           </button>
         </div>
 
+        {/* 可滚动内容区:overlay 不滚(overflow:hidden),由本区独立滚动 ——
+           键盘弹起时 overlay 随 --visible-vh 收缩,本区内部滚动保证输入框
+           可见且 modal 壳不被 iOS 顶出(白板根治) */}
+        <div className="contact-body">
         {/* 聊天区:官方欢迎消息 + 历史线程(用户消息/管理员回复)。
             区域为固定高度 + 底部渐隐:首条消息必然被截断,用户需滚动才能看完整,
             直观传递「这是可滚动的 IM 对话窗」 */}
@@ -324,6 +325,7 @@ export default function ContactUsModal({ onClose, user }) {
             <Send size={18} />
           </button>
         </div>
+        </div>{/* /contact-body */}
       </div>
 
       <style>{`
@@ -334,27 +336,38 @@ export default function ContactUsModal({ onClose, user }) {
         .contact-overlay {
           background: rgba(43, 36, 32, 0.5);
           z-index: 1200;
-          display: flex;
-          /* 参考图机制:顶对齐(键盘弹起或超高时顶部完整不被挤出)+ overlay 滚动 */
-          align-items: flex-start;
-          justify-content: center;
-          padding: 4vh 12px 12px;
-          padding-top: max(4vh, env(safe-area-inset-top, 0px));
-          padding-right: max(12px, env(safe-area-inset-right, 0px));
-          padding-bottom: max(12px, env(safe-area-inset-bottom, 0px));
-          padding-left: max(12px, env(safe-area-inset-left, 0px));
+          /* 系统性键盘方案:overlay 不滚(覆盖共享组 overflow-y:auto),modal 内部滚动。
+             grid 居中,超高时 modal 受 max-height 约束内部滚,壳不被 iOS 顶出(白板根治) */
+          display: grid;
+          place-items: center;
+          overflow: hidden;
+          padding: 16px;
+          padding-top: max(16px, env(safe-area-inset-top, 0px));
+          padding-right: max(16px, env(safe-area-inset-right, 0px));
+          padding-bottom: max(16px, env(safe-area-inset-bottom, 0px));
+          padding-left: max(16px, env(safe-area-inset-left, 0px));
         }
         .contact-modal {
           width: 100%;
           max-width: 420px;
-          margin: 24px 0; /* 顶对齐 + 上下边距:正常居中偏上,超高可随 overlay 滚到底 */
+          /* 上限随视觉视口收缩(--visible-vh):键盘弹起时 modal 收缩,内部滚动 */
+          max-height: calc(var(--visible-vh, 100vh) - 32px);
           display: flex;
           flex-direction: column;
+          overflow: hidden;
           background: var(--bg-primary);
           border: 2px solid var(--contact-ink);
           border-radius: 18px;
           box-shadow: 0 18px 48px rgba(43, 36, 32, 0.35);
           --contact-ink: #3a2f26;
+        }
+        /* 唯一滚动容器:聊天区 + 表单整体内部滚动,输入框聚焦时由 iOS 原生滚动保证可见 */
+        .contact-body {
+          flex: 1;
+          min-height: 0;
+          overflow-y: auto;
+          -webkit-overflow-scrolling: touch; /* iOS 平滑原生滚动 */
+          overscroll-behavior: contain;
         }
         .contact-header {
           display: flex;

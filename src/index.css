@@ -152,8 +152,9 @@ input:focus, textarea:focus, button:focus {
   background: rgba(0, 0, 0, 0.45);
   display: grid;
   place-items: center;
-  overflow-y: auto;
-  -webkit-overflow-scrolling: touch; /* iOS 平滑原生滚动 */
+  /* overlay 不滚:超高内容由 modal 内部滚动容器处理 —— 键盘场景下 overlay 自身滚动
+     会被 iOS 自动滚动聚焦顶起,把 modal 挤出视口(白板元凶) */
+  overflow: hidden;
   z-index: 1000;
   backdrop-filter: blur(4px);
   padding: 16px;

@@ -1,6 +1,8 @@
 .image-quantizer-overlay {
-  /* 定位/高度/滚动/safe-area 由 index.css 的全屏浮层基础设施统一提供;
-     本组件保持无内边距(顶部对齐 + 内部滚动),按需追加四方向 safe-area。 */
+  /* 定位/高度/safe-area 由 index.css 的全屏浮层基础设施统一提供;
+     overflow:hidden:overlay 不滚,超高由 quantizer-content 内部滚动
+     (键盘场景防 iOS 自动滚动把 modal 顶出) */
+  overflow: hidden;
   padding: 0;
   padding-top: env(safe-area-inset-top, 0px);
   padding-right: env(safe-area-inset-right, 0px);

@@ -702,8 +702,10 @@ export default function AdminPanel({ user, isAdmin, authLoading, onLogin, onLogo
         }
         /* ── 模态框 ───────────────────────────────────────── */
         .admin-modal-overlay {
-          /* 定位/高度/滚动/safe-area/居中(超高可滚到底)由 index.css 全屏浮层
-             基础设施统一提供,这里只保留本组件视觉差异。 */
+          /* 定位/高度/safe-area/居中由 index.css 全屏浮层基础设施统一提供;
+             overflow:hidden:overlay 不滚,超高由 admin-modal-body 内部滚动
+             (键盘场景防 iOS 自动滚动把 modal 顶出) */
+          overflow: hidden;
           background: rgba(0, 0, 0, 0.45);
           backdrop-filter: blur(4px);
           z-index: 1000;
