@@ -11,7 +11,7 @@ export const TUTORIALS_EN = [
         blocks: [
           { type: 'paragraph', text: 'Fuse beads (also known as Perler beads) are colorful plastic melt beads that originated in the United States and have become a craft material loved all over the world. Unlike traditional beads, fuse beads have a distinctive flat, disc-like shape with tiny bumps on both sides, which lets them fuse together and hold their shape when heated.' },
           { type: 'heading2', text: 'Main Brands' },
-          { type: 'paragraph', text: 'The three most common brands on the market are Perler (USA), Hama (Denmark), and Artkal (Italy/China). They differ slightly in color count, bead size, and texture, but the core technique is exactly the same.' },
+          { type: 'paragraph', text: 'Besides the internationally known Perler (USA), Hama (Denmark), and Artkal (China/Netherlands), Chinese-market brands such as COCO and MARD are also popular. Each brand differs slightly in color count, bead size, and texture, but the core technique is exactly the same.' },
           { type: 'bulletList', items: ['Perler: the widest color range (100+ colors) and the most well-known entry brand', 'Hama: Scandinavian style, soft and muted colors, great value for money', 'Artkal: known for metallic and fluorescent colors, with a slightly finer grain'] },
           { type: 'heading2', text: 'The Basic Principle' },
           { type: 'paragraph', text: 'The magic of fuse beads is heat-fusing: you arrange colored beads on a Pegboard according to your design, then heat them with an iron so the bead surfaces melt slightly. Once cooled, they fuse into one sturdy piece. No glue needed — the process is safe and easy to control, and the result can be flat or three-dimensional.' },
@@ -59,18 +59,18 @@ export const TUTORIALS_EN = [
         id: 'brands-guide',
         title: 'Brand Breakdown',
         blocks: [
-          { type: 'paragraph', text: 'The three major brands each have different ironing temperature requirements. Knowing each brand\'s characteristics makes ironing easier and helps you avoid mishaps.' },
+          { type: 'paragraph', text: 'Different mainstream brands (Perler, Hama, Artkal, and similar) each have different ironing temperature requirements. Knowing each brand\'s characteristics makes ironing easier and helps you avoid mishaps.' },
           { type: 'heading2', text: 'Brand Temperature Reference' },
           { type: 'table', headers: ['Brand', 'Recommended Temperature', 'Characteristics', 'Best For'], rows: [
             ['Perler (USA)', 'around 150°C (medium heat / cotton-synthetic setting)', 'Widest color range (100+ colors), fuses well', 'The first choice for beginners'],
             ['Hama (Denmark)', 'around 150°C (medium heat)', 'Soft, muted colors with a Scandinavian style', 'Crafters who love fresh, light aesthetics'],
-            ['Artkal (Italy)', '130-150°C (low to medium heat)', 'Plenty of metallic and fluorescent colors, slightly finer grain', 'Advanced and color-loving crafters'],
+            ['Artkal (China/Netherlands)', '130-150°C (low to medium heat)', 'Plenty of metallic and fluorescent colors, slightly finer grain', 'Advanced and color-loving crafters'],
             ['Sillyette (Korea)', 'below 130°C (low heat)', 'Ultra-fine beads, great for intricate patterns', 'Delicate, detailed openwork pieces']
           ] },
           { type: 'callout', variant: 'info', title: 'Test the Temperature', text: 'When ironing a new brand for the first time, test on one or two beads in a corner first, check how they melt, then iron the whole piece. Prefer several low-heat passes — one too-hot pass causes irreversible warping.' },
           { type: 'heading2', text: 'Bead Size Differences' },
           { type: 'paragraph', text: 'Perler and Hama beads are about 5mm in diameter, while Artkal beads are slightly finer at about 4.7mm. That means the same pattern uses slightly different amounts of beads per brand — keep size compatibility in mind when mixing.' },
-          { type: 'keyPoint', text: 'All three major brands iron within the 130-150°C range — medium-low heat across the board. Artkal prefers the low end, and Sillyette needs even lower heat.' }
+          { type: 'keyPoint', text: 'The mainstream brands covered here (Perler, Hama, Artkal, and similar) all iron within the 130-150°C range — medium-low heat across the board. Artkal prefers the low end, and Sillyette needs even lower heat.' }
         ],
         content: '', steps: [], tips: ''
       },
@@ -215,7 +215,7 @@ export const TUTORIALS_EN = [
           { type: 'heading2', text: 'The Conversion Process' },
           { type: 'numberedList', items: ['Choose your image: prefer images with bold, clear colors and crisp outlines, avoiding too many midtones', 'Adjust the size: crop the image to match the proportions of your target pegboard', 'Reduce colors: use software (like Photoshop, Webp-gif) or online tools (like Beadify) to bring the image down to your target color count', 'Match to the palette: map each pixel of the reduced image to a bead color — this tool can do the conversion automatically', 'Fine-tune: review the auto-converted result and manually adjust any colors that look off'] },
           { type: 'heading2', text: 'Things to Keep in Mind' },
-          { type: 'bulletList', items: ['The simpler the image colors, the better the result (cartoon and pixel-art images work best)', 'For photos, try an oil-painting or pop-art filter first, then convert', 'This tool automatically maps to the Perler / Hama / Artkal palettes'] },
+          { type: 'bulletList', items: ['The simpler the image colors, the better the result (cartoon and pixel-art images work best)', 'For photos, try an oil-painting or pop-art filter first, then convert', 'This tool automatically maps to the six supported palettes: COCO, MARD, MARD291, Perler, Hama, and Artkal'] },
           { type: 'callout', variant: 'tip', title: 'Recommended Image Types', text: 'High-contrast cartoons, pixel art, emoji, and simple logos are the easiest to convert. Landscape and portrait photos are much harder — save them for when you\'ve leveled up.' },
           { type: 'keyPoint', text: 'The core of image-to-pattern conversion: pick a simple, high-contrast image → reduce colors → map to brand palette → fine-tune by hand. Using good tools makes the job twice as easy.' }
         ],

@@ -11,7 +11,7 @@ export const TUTORIALS_ZH = [
         blocks: [
           { type: 'paragraph', text: '拼豆（Perler Beads）是一种彩色塑料熔珠，起源于美国，是一种风靡全球的手工艺术材料。与传统珠子不同，拼豆具有独特的扁平圆盘造型，两面均有微型凸起，能够在加热时相互融合，固定成形。' },
           { type: 'heading2', text: '主要品牌' },
-          { type: 'paragraph', text: '目前市场上最常见的三大品牌分别是 Perler（美国）、Hama（丹麦）和 Artkal（意大利/中国）。各品牌在颜色数量、珠子尺寸和质感上略有差异，但核心工艺完全相通。' },
+          { type: 'paragraph', text: '目前市面上常见的品牌，除了国际知名的 Perler（美国）、Hama（丹麦）、Artkal（中国/荷兰）外，还有 COCO、MARD 等国产品牌。各品牌在颜色数量、珠子尺寸和质感上略有差异，但核心工艺完全相通。' },
           { type: 'bulletList', items: ['Perler：颜色最丰富（100+色），最知名的入门品牌', 'Hama：北欧风格，颜色偏柔和，性价比高', 'Artkal：金属色和荧光色著称，颗粒感略细'] },
           { type: 'heading2', text: '基本原理' },
           { type: 'paragraph', text: '拼豆的核心魅力在于"热熔成型"：将彩色珠子按设计图案排列在带孔的 Pegboard 上，用熨斗加热使珠子表面微微熔化，冷却后即牢固融合为一体。整个过程无需胶水，安全可控，成品可做立体或平面作品。' },
@@ -59,18 +59,18 @@ export const TUTORIALS_ZH = [
         id: 'brands-guide',
         title: '品牌全解析',
         blocks: [
-          { type: 'paragraph', text: '三大主流品牌在熨烫温度要求上各有不同。了解各品牌特性，能让你的熨烫过程更加得心应手，避免翻车。' },
+          { type: 'paragraph', text: '不同主流品牌（如 Perler、Hama、Artkal 等）在熨烫温度要求上各有不同。了解各品牌特性，能让你的熨烫过程更加得心应手，避免翻车。' },
           { type: 'heading2', text: '品牌温度对照表' },
           { type: 'table', headers: ['品牌', '推荐温度', '特性', '适合人群'], rows: [
             ['Perler（美国）', '150°C 左右（中温/棉纶档）', '颜色最全（100+色），融合性好', '新手入门首选'],
             ['Hama（丹麦）', '150°C 左右（中温）', '颜色偏柔和，北欧风格', '喜欢小清新的玩家'],
-            ['Artkal（意大利）', '130-150°C（低温-中温）', '金属色/荧光色丰富，颗粒略细', '进阶玩家、色彩玩家'],
+            ['Artkal（中国/荷兰）', '130-150°C（低温-中温）', '金属色/荧光色丰富，颗粒略细', '进阶玩家、色彩玩家'],
             ['Sillyette（韩国）', '130°C 以下（低温）', '极细颗粒，擅长精细图案', '精细密镂空作品']
           ] },
           { type: 'callout', variant: 'info', title: '温度测试', text: '新品牌第一次熨烫时，建议先在角落一两颗珠子上测试温度，观察融化程度再全面熨烫。宁可低温多次，不要高温一次造成不可逆变形。' },
           { type: 'heading2', text: '珠子尺寸差异' },
           { type: 'paragraph', text: 'Perler 和 Hama 珠子直径约 5mm，Artkal 略细约 4.7mm。这意味着同一图案在不同品牌下用珠量略有差异，混用时需注意尺寸兼容问题。' },
-          { type: 'keyPoint', text: '三大品牌熨烫温度均在 130-150°C 区间，均为中低温熨烫。Artkal 偏好低温，Sillyette 需更低温。' }
+          { type: 'keyPoint', text: '常见主流品牌（Perler、Hama、Artkal 等）熨烫温度均在 130-150°C 区间，均为中低温熨烫。Artkal 偏好低温，Sillyette 需更低温。' }
         ],
         content: '', steps: [], tips: ''
       },
@@ -215,7 +215,7 @@ export const TUTORIALS_ZH = [
           { type: 'heading2', text: '转换步骤' },
           { type: 'numberedList', items: ['选择图片：优先选择色彩分明、轮廓清晰的图片，避免过多中间色调', '调整尺寸：根据目标 pegboard 尺寸比例裁剪图片', '降色处理：使用软件（如 Photoshop、Webp-gif）或在线工具（如 Beadify）将图片颜色减少到目标色数', '对照色板：将降色后的图片每个像素对应到拼豆珠子，可用本工具自动完成转换', '微调修正：检查自动转换结果，对明显不协调的颜色进行手动调整'] },
           { type: 'heading2', text: '注意事项' },
-          { type: 'bulletList', items: ['图片色彩越简单，转换效果越好（卡通/像素风格图片效果最佳）', '照片类图片建议先进行油画或波普艺术化处理再转换', '本工具支持 Perler / Hama / Artkal 三大品牌色板自动映射'] },
+          { type: 'bulletList', items: ['图片色彩越简单，转换效果越好（卡通/像素风格图片效果最佳）', '照片类图片建议先进行油画或波普艺术化处理再转换', '本工具支持 COCO、MARD、MARD291、Perler、Hama、Artkal 六大品牌色板自动映射'] },
           { type: 'callout', variant: 'tip', title: '推荐图片类型', text: '高对比度的卡通图案、像素艺术、emoji、简单 logo 是最适合转换的图片类型。风景照片和人物照片转换难度较高，建议进阶后再挑战。' },
           { type: 'keyPoint', text: '图片转图纸的核心：选择简单高对比图片 → 降色处理 → 品牌色映射 → 手动微调。善用工具可以事半功倍。' }
         ],
