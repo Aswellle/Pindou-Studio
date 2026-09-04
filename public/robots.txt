@@ -1,24 +1,46 @@
 # robots.txt for 拼豆Studio (Bead Studio)
 # https://tangnotes.site/
+#
+# 爬虫策略:SPLIT(2026-09 定案)
+# - 搜索引擎 + AI「检索/引用」爬虫(Googlebot、Bingbot、Baiduspider、OAI-SearchBot、
+#   ChatGPT-User、PerplexityBot、Claude-SearchBot 等)→ 允许抓取,利于收录与 GEO 被引用
+# - AI「训练」型爬虫(GPTBot、ClaudeBot、anthropic-ai、CCBot、Google-Extended 等)→ 一律禁止
+# 依据:aaron-marketing seo-geo llm-crawler-handling(允许检索、禁训练的 split 模板)
 
+# 全站通用:仅排除敏感/重复路径(未单独声明的爬虫也遵循此组)
 User-agent: *
-Allow: /
 Disallow: /api/
 Disallow: /_vercel/
 Disallow: /admin
 
-# 主要爬虫优化
-User-agent: Baiduspider
-Allow: /
-Disallow: /api/
-Disallow: /_vercel/
-Disallow: /admin
-
+# ── 搜索引擎(收录) ─────────────────────────────
 User-agent: Googlebot
-Allow: /
+User-agent: Bingbot
+User-agent: Baiduspider
+User-agent: Sogou web spider
+User-agent: 360Spider
 Disallow: /api/
 Disallow: /_vercel/
 Disallow: /admin
+
+# ── AI 检索 / 引用引擎(允许抓取,以便被 AI 检索引用) ──
+User-agent: OAI-SearchBot
+User-agent: ChatGPT-User
+User-agent: PerplexityBot
+User-agent: Perplexity-User
+User-agent: Claude-SearchBot
+User-agent: Claude-User
+Disallow: /api/
+Disallow: /_vercel/
+Disallow: /admin
+
+# ── AI 训练型爬虫(禁止抓取,仅用于训练) ─────────────
+User-agent: GPTBot
+User-agent: ClaudeBot
+User-agent: anthropic-ai
+User-agent: CCBot
+User-agent: Google-Extended
+Disallow: /
 
 # 站点地图
 Sitemap: https://tangnotes.site/sitemap.xml

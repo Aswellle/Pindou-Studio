@@ -1,0 +1,21 @@
+# 拼豆Studio (Bead Studio)
+
+> Free, browser-based fuse-bead / Perler pattern designer. Chinese-first, with a UI in 简体中文 / English / 日本語 / 한국어. Design bead patterns freehand, convert an uploaded image into a pixel-style bead pattern, match colors against six real bead-brand palettes, and export craft-ready PNG/SVG sheets with per-color codes. No account is required to design, convert, or export; optional accounts enable cloud-saved works and the cloud template library.
+
+## Pages
+
+- [Canvas tool (home)](https://tangnotes.site/): the editor — pencil / eraser / flood-fill / pan drawing on a configurable grid, a bead-brand palette picker (six brands), undo/redo, saved works, and PNG/SVG export.
+- [Template gallery (拼豆图库)](https://tangnotes.site/gallery): browse and favorite ready-made bead patterns by category and difficulty; load any template into the canvas (patterns can be re-mapped between brands).
+- [Tutorials (拼豆教程)](https://tangnotes.site/tutorials): beginner-to-advanced fuse-bead guides in four languages — brand overviews, ironing temperatures, anti-warping tips, color design, and finishing.
+
+## Key facts
+
+- Six supported bead-brand palettes: COCO (2.6 mm), MARD (5 mm), MARD291 (MARD extended line), Perler (US), Hama (DK), and Artkal. Each palette carries the brand's real bead color set; brand colors are mapped to canvas hex values.
+- Image-to-pattern pipeline: palette selection by K-means++ in Lab space, color matching by CIEDE2000 (perceptual, not naive RGB distance), Floyd–Steinberg / Bayer dithering, and ICM spatial refinement on small outputs. Runs in a Web Worker so the UI stays responsive.
+- Grid presets: square 29 / 57 / 87 / 114 / 140 / 170, or custom W×H (9–200 per side).
+- Export: PNG and SVG bead sheets in "realistic" (bead-like) or "professional" (flat squares with brand color codes) styles, plus a color legend and bead counts.
+
+## Machine-readable
+
+- [sitemap.xml](https://tangnotes.site/sitemap.xml)
+- [robots.txt](https://tangnotes.site/robots.txt)
