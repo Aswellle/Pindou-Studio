@@ -106,7 +106,7 @@ for (const [x, color, label] of pills) {
 // 品牌行 + 底部 URL
 ctx.fillStyle = '#a3968a'
 ctx.font = '22px "Microsoft YaHei", sans-serif'
-ctx.fillText('支持 Perler · Hama · Artkal 三大品牌色卡', 600, 460)
+ctx.fillText('支持 COCO · MARD · Artkal 等 6 大品牌色卡', 600, 460)
 ctx.font = '20px Consolas, Menlo, monospace'
 ctx.fillText('tangnotes.site', 600, 560)
 

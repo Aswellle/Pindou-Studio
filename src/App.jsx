@@ -817,8 +817,8 @@ export default function App() {
   // ── 每页动态 SEO(不改变功能与界面)───────────────────────
   const SEO_CONFIG = {
     canvas: {
-      title: '拼豆Studio - 在线拼豆图纸设计工具 | 图片转拼豆 · 支持Perler/Hama/Artkal',
-      desc: '免费的在线拼豆图纸设计工具。支持画笔、橡皮、填充、抓手工具自由绘制拼豆图案；上传图片一键智能转换为拼豆图纸(CIEDE2000精准配色)；支持Perler、Hama、Artkal三大品牌色卡；导出专业级PNG/SVG图纸，带色号标注与颜色清单。',
+      title: '拼豆Studio - 免费在线拼豆图纸生成,图片转像素拼豆|COCO/MARD/Artkal等6大色卡',
+      desc: '免费的在线拼豆图纸生成工具：自由绘制或上传图片一键转像素拼豆，CIEDE2000精准配色；支持 COCO/MARD/Artkal 等 6 大品牌色卡与专业 PNG/SVG 图纸导出，新手与亲子友好。',
     },
     gallery: {
       title: '拼豆图库与模板 - 拼豆Studio',
@@ -866,7 +866,7 @@ export default function App() {
       <meta property="og:description" content={seo.desc} />
       <meta property="og:url" content={canonical} />
       <meta property="og:type" content="website" />
-      <meta property="og:image" content="https://tangnotes.site/og-image.svg" />
+      <meta property="og:image" content="https://tangnotes.site/og-image.png" />
       <meta name="twitter:card" content="summary_large_image" />
     </Helmet>
   )

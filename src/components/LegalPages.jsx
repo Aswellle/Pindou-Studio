@@ -689,7 +689,7 @@ const TERMS_VERSIONS = [
           <ul>
             <li>在线绘制拼豆图案（画笔、橡皮、填充、抓手工具）</li>
             <li>上传图片智能转换为拼豆图案（基于CIEDE2000色彩匹配算法）</li>
-            <li>支持Perler、Hama、Artkal三大品牌色卡</li>
+            <li>支持COCO、MARD、MARD291、Perler、Hama、Artkal六大品牌色卡</li>
             <li>导出专业级PNG/SVG拼豆图纸</li>
             <li>云端模板库、个人作品管理（保存在您的浏览器本地）与图文教程</li>
             <li>可选账号体系：注册后可跨设备登录，设置昵称与头像</li>
@@ -788,7 +788,7 @@ const TERMS_VERSIONS = [
           <ul>
             <li>在线绘制拼豆图案（画笔、橡皮、填充、抓手工具）</li>
             <li>上传图片智能转换为拼豆图案（基于CIEDE2000色彩匹配算法）</li>
-            <li>支持Perler、Hama、Artkal三大品牌色卡</li>
+            <li>支持COCO、MARD、MARD291、Perler、Hama、Artkal六大品牌色卡</li>
             <li>导出专业级PNG/SVG拼豆图纸</li>
             <li>内置模板库和图文教程</li>
           </ul>
