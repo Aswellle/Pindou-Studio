@@ -8,6 +8,15 @@ import LoadingScreen from './LoadingScreen'
 import UserManager from './UserManager'
 import ContactMessages from './ContactMessages'
 
+// 分类显示名:自定义分类优先显示其「分类名称」label;内置分类走 i18n;兜底回退 ID。
+// 后台(模板列表 / 模板表单下拉)不能直接 t(`gallery.categories.<id>`, id)——
+// 自定义分类没有 i18n key,那样会把英文「分类 ID」当名称展示。与 Gallery.getCategoryLabel 逻辑对齐。
+function categoryDisplayName(store, t, cat) {
+  const custom = store?.categories?.find((c) => c.id === cat)
+  if (custom?.label) return custom.label
+  return t(`gallery.categories.${cat}`, cat)
+}
+
 // 门禁/提示卡片的共用样式
 function GateStyle() {
   return (
@@ -912,7 +921,7 @@ function TemplateManager({ store }) {
               <div className="admin-template-meta">
                 <div className="admin-template-name">{tpl.nameZh || tpl.name}</div>
                 <div className="admin-template-sub">
-                  {t(`gallery.categories.${tpl.category}`, tpl.category)} · {tpl.size}×{tpl.size} ·{' '}
+                  {categoryDisplayName(store, t, tpl.category)} · {tpl.size}×{tpl.size} ·{' '}
                   {t(`gallery.difficulties.${tpl.difficulty}`)}
                 </div>
                 <div className="admin-color-dots">
@@ -1045,7 +1054,7 @@ function TemplateForm({ store, editing, initial, onDone }) {
           <select className="admin-input" value={category} onChange={e => setCategory(e.target.value)}>
             {categoryOptions.map(cat => (
               <option key={cat} value={cat}>
-                {t(`gallery.categories.${cat}`, cat)}
+                {categoryDisplayName(store, t, cat)}
               </option>
             ))}
           </select>
