@@ -533,6 +533,7 @@
     "cloudEmptyHint": "An admin should sign in and run the local migration on the Templates tab.",
     "cloudLoadError": "Failed to load cloud templates",
     "cloudLoadErrorHint": "This may be a network hiccup, or the connection is establishing right after login. Try again below.",
+    "cloudFallbackNotice": "Showing built-in templates for now; the cloud library refreshes automatically once it reconnects.",
     "retry": "Reload",
     "localWorksTitle": "Works are saved on this device",
     "localWorksBody": "Your {{n}} works are stored in this browser and can be lost when you clear the cache or switch devices. Register to sync them to the cloud in one click — available on any device.",

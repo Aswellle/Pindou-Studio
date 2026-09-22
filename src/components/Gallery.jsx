@@ -49,9 +49,18 @@ export default function Gallery({ onLoadTemplate, onDeleteWork, onLoadWork, save
   // (内置模板 + localStorage 自定义模板,自定义在前)
   const localStore = useCustomTemplates()
   const cloudEnabled = !!cloudStore?.enabled
+  const localTemplates = useMemo(
+    () => [...localStore.templates, ...TEMPLATES],
+    [localStore.templates]
+  )
+  // 云端拉取失败(弱网 / supabase 域名在该网络下不可达):回退到本地 + 内置模板,
+  // 让图库仍然可用;顶部保留故障横幅与重试入口 —— 降级,但不静默吞掉故障。
+  const cloudDown = cloudEnabled
+    && !!cloudStore?.error
+    && (cloudStore?.templates?.length || 0) === 0
   const allTemplates = useMemo(
-    () => cloudEnabled ? (cloudStore?.templates || []) : [...localStore.templates, ...TEMPLATES],
-    [cloudEnabled, cloudStore, localStore.templates]
+    () => (cloudEnabled && !cloudDown) ? (cloudStore?.templates || []) : localTemplates,
+    [cloudEnabled, cloudDown, cloudStore, localTemplates]
   )
   const customCategories = cloudEnabled ? (cloudStore?.categories || []) : localStore.categories
   const categoryOptions = useMemo(
@@ -348,6 +357,21 @@ export default function Gallery({ onLoadTemplate, onDeleteWork, onLoadWork, save
       </div>
 
       <div className="gallery-content">
+        {/* 云端不可用:横幅说明 + 已回退本地/内置模板;网络恢复后自动重试(useCloudTemplates) */}
+        {cloudDown && !showMyWorks && (
+          <div className="cloud-offline-banner" role="status">
+            <div className="cloud-offline-text">
+              <strong>{t('gallery.cloudLoadError')}</strong>
+              <span>{t('gallery.cloudFallbackNotice')}</span>
+              {cloudStore?.error && (
+                <code className="cloud-offline-reason">{String(cloudStore.error).slice(0, 160)}</code>
+              )}
+            </div>
+            <button className="retry-btn" onClick={() => cloudStore.loadAll()}>
+              {t('gallery.retry')}
+            </button>
+          </div>
+        )}
         {showMyWorks ? (
           <div className="works-section">
             <h2 className="section-title">{t('gallery.myWorksSectionTitle')}</h2>
@@ -470,24 +494,6 @@ export default function Gallery({ onLoadTemplate, onDeleteWork, onLoadWork, save
         ) : cloudEnabled && cloudStore?.loading ? (
           <div className="empty-state">
             <p>{t('gallery.cloudLoading')}</p>
-          </div>
-        ) : cloudEnabled && cloudStore?.error && allTemplates.length === 0 ? (
-          // 云端拉取失败(网络抖动 / 登录后瞬时 RLS 或 Supabase 抖动):显示可重试的错误
-          // 提示,而不是误表现成「云端模板库为空 → 请联系管理员迁移」。
-          <div className="empty-state">
-            <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
-              <circle cx="12" cy="12" r="10"/>
-              <path d="M12 8v8"/>
-              <path d="M12 16.5v.01"/>
-            </svg>
-            <p>{t('gallery.cloudLoadError')}</p>
-            <span>{t('gallery.cloudLoadErrorHint')}</span>
-            <button
-              className="retry-btn"
-              onClick={() => cloudStore.loadAll()}
-            >
-              {t('gallery.retry')}
-            </button>
           </div>
         ) : cloudEnabled && allTemplates.length === 0 ? (
           <div className="empty-state">
@@ -854,6 +860,43 @@ export default function Gallery({ onLoadTemplate, onDeleteWork, onLoadWork, save
         }
         .gallery-content {
           min-height: 400px;
+        }
+        /* 云端不可用横幅:说明故障 + 已回退本地模板 + 重试入口(不遮挡模板内容) */
+        .cloud-offline-banner {
+          display: flex;
+          align-items: flex-start;
+          gap: 12px;
+          margin-bottom: 16px;
+          padding: 12px 14px;
+          background: var(--warning-bg);
+          border: 1px solid var(--warning-border);
+          border-radius: var(--radius-card);
+        }
+        .cloud-offline-text {
+          display: flex;
+          flex-direction: column;
+          gap: 4px;
+          flex: 1;
+          min-width: 0;
+        }
+        .cloud-offline-text strong {
+          color: var(--text-primary);
+          font-size: var(--text-md);
+        }
+        .cloud-offline-text span {
+          color: var(--text-secondary);
+          font-size: var(--text-sm);
+          line-height: 1.5;
+        }
+        .cloud-offline-reason {
+          font-family: var(--font-mono);
+          font-size: var(--text-xs);
+          color: var(--text-muted);
+          word-break: break-all;
+        }
+        .cloud-offline-banner .retry-btn {
+          flex-shrink: 0;
+          align-self: center;
         }
         .templates-grid {
           display: grid;
