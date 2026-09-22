@@ -1,5 +1,4 @@
 import { useState, useCallback, useRef, useEffect, useMemo } from 'react'
-import { createPortal } from 'react-dom'
 import { useTranslation } from 'react-i18next'
 import { useImageQuantizer } from '../../hooks/useImageQuantizer'
 import { getPalette, PALETTE_LIST } from '../../data/palettes'
@@ -139,6 +138,7 @@ export default function ImageQuantizer({ onApply, onClose }) {
   const [maxColors, setMaxColors] = useState(12)
   const [hasUserTouchedMaxColors, setHasUserTouchedMaxColors] = useState(false)
   const [dithering, setDithering] = useState('none')
+  const [colorSpace, setColorSpace] = useState('lab')
   const [brightness, setBrightness] = useState(0)
   const [contrast, setContrast] = useState(0)
   const [removeBackground, setRemoveBackground] = useState(true)
@@ -192,12 +192,13 @@ export default function ImageQuantizer({ onApply, onClose }) {
       lastGeneratedSettings.gridHeight !== gridHeight ||
       lastGeneratedSettings.maxColors !== maxColors ||
       lastGeneratedSettings.dithering !== dithering ||
+      lastGeneratedSettings.colorSpace !== colorSpace ||
       lastGeneratedSettings.brightness !== brightness ||
       lastGeneratedSettings.contrast !== contrast ||
       lastGeneratedSettings.removeBackground !== removeBackground ||
       lastGeneratedSettings.qualityMode !== qualityMode
     )
-  }, [lastGeneratedSettings, selectedPalette, gridWidth, gridHeight, maxColors, dithering, brightness, contrast, removeBackground, qualityMode])
+  }, [lastGeneratedSettings, selectedPalette, gridWidth, gridHeight, maxColors, dithering, colorSpace, brightness, contrast, removeBackground, qualityMode])
 
   // 处理关闭尝试
   const handleCloseAttempt = useCallback(() => {
@@ -315,6 +316,7 @@ export default function ImageQuantizer({ onApply, onClose }) {
         gridHeight,
         maxColors,
         dithering,
+        colorSpace,
         brightness,
         contrast,
         removeBackground,
@@ -333,7 +335,8 @@ export default function ImageQuantizer({ onApply, onClose }) {
           brightness,
           contrast,
           highQuality: qualityMode === 'high',
-          removeBackground
+          removeBackground,
+          colorSpace
         }
       )
 
@@ -346,7 +349,7 @@ export default function ImageQuantizer({ onApply, onClose }) {
       if (err?.message === 'CANCELLED') return // 用户主动取消,非错误
       console.error('Quantization failed:', err)
     }
-  }, [previewUrl, gridWidth, gridHeight, maxColors, selectedPalette, dithering, brightness, contrast, removeBackground, qualityMode, quantize])
+  }, [previewUrl, gridWidth, gridHeight, maxColors, selectedPalette, dithering, colorSpace, brightness, contrast, removeBackground, qualityMode, quantize])
 
   const handleApply = useCallback(() => {
     if (result) {
@@ -373,12 +376,13 @@ export default function ImageQuantizer({ onApply, onClose }) {
 
   const palette = getPalette(selectedPalette)
 
-  // portal 到 body:量化器浮层含输入项,移出 .app 挂载到 body 下(内部未保存确认框随之带出),
-  // 避免 iOS 上滚动容器/祖先 stacking context 影响 fixed 定位
-  return createPortal(
-    <div className="image-quantizer-overlay" onClick={handleClose}>
-      <div className="image-quantizer-modal" onClick={e => e.stopPropagation()}>
+  // 页面形态(/create/image):不再使用模态浮层 —— 模态在窄屏宽度受限,会把步骤条/预览裁掉,
+  // 且 iOS 键盘 + 浮层滚动叠加容易出白板。返回入口在头部(handleClose 内含未保存确认)。
+  return (
+    <div className="quantizer-page">
+      <div className="quantizer-shell">
         <div className="quantizer-header">
+          <button className="quantizer-back" onClick={handleClose} aria-label={t('common.back', '返回')}>←</button>
           <div className="quantizer-header-title">
             <h2>{t('quantizer.title', '图片转拼豆')}</h2>
             <span className="tech-badge" title={t('quantizer.techBadgeHint')}>
@@ -389,7 +393,6 @@ export default function ImageQuantizer({ onApply, onClose }) {
               {t('quantizer.techBadge', 'CIEDE2000 智能配色')}
             </span>
           </div>
-          <button className="close-btn" onClick={handleClose}>×</button>
         </div>
 
         {/* 步骤指示条 — 上传 → 设置 → 预览，让流程一目了然 */}
@@ -592,6 +595,21 @@ export default function ImageQuantizer({ onApply, onClose }) {
               </select>
               <span className="setting-hint">
                 {t('quantizer.algorithmHint')}
+              </span>
+            </div>
+
+            <div className="setting-item">
+              <label>{t('quantizer.colorMatching')}</label>
+              <select
+                value={colorSpace}
+                onChange={e => setColorSpace(e.target.value)}
+                disabled={isProcessing}
+              >
+                <option value="lab">{t('quantizer.colorSpaces.lab')}</option>
+                <option value="oklab">{t('quantizer.colorSpaces.oklab')}</option>
+              </select>
+              <span className="setting-hint">
+                {t('quantizer.colorMatchingHint')}
               </span>
             </div>
 
@@ -851,7 +869,6 @@ export default function ImageQuantizer({ onApply, onClose }) {
           </div>
         )}
       </div>
-    </div>,
-    document.body
+    </div>
   )
 }

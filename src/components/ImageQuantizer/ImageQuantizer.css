@@ -1,40 +1,30 @@
-.image-quantizer-overlay {
-  /* 定位/高度/safe-area 由 index.css 的全屏浮层基础设施统一提供;
-     overflow:hidden:overlay 不滚,超高由 quantizer-content 内部滚动
-     (键盘场景防 iOS 自动滚动把 modal 顶出) */
-  overflow: hidden;
-  padding: 0;
-  padding-top: env(safe-area-inset-top, 0px);
-  padding-right: env(safe-area-inset-right, 0px);
+/* ── 页面形态(/create/image)────────────────────────────────
+   量化器是核心功能页,不再用模态浮层:模态在窄屏上宽度受限会把步骤条/预览裁掉,
+   且 iOS 键盘 + 浮层滚动叠加易出白板。这里由整页滚动承担,内部不再嵌套滚动容器。 */
+.quantizer-page {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+  -webkit-overflow-scrolling: touch;
+  background: var(--bg-primary);
   padding-bottom: env(safe-area-inset-bottom, 0px);
-  padding-left: env(safe-area-inset-left, 0px);
-  background: rgba(0, 0, 0, 0.5);
-  display: flex;
-  /* 顶对齐 + overlay 滚动:超高不裁顶、可滚到底,键盘弹起随高度收缩 */
-  align-items: flex-start;
-  justify-content: center;
-  z-index: 1000;
-  backdrop-filter: blur(4px);
 }
 
-.image-quantizer-modal {
-  background: var(--bg-primary);
-  border-radius: 12px;
-  width: 90%;
-  max-width: 600px;
-  max-height: 90%;
+.quantizer-shell {
   display: flex;
   flex-direction: column;
-  overflow: hidden;
-  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
-  margin: 24px auto; /* 顶对齐 + 上下边距:超高不裁顶、可滚到底 */
+  width: 100%;
+  max-width: 720px; /* 桌面端保持可读列宽;窄屏自然铺满 */
+  margin: 0 auto;
+  min-height: 100%;
 }
 
 .quantizer-header {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  padding: 20px 24px;
+  gap: 12px;
+  padding: 16px 20px;
   border-bottom: 1px solid var(--border-color);
 }
 
@@ -48,6 +38,8 @@
   align-items: center;
   gap: 10px;
   flex-wrap: wrap;
+  flex: 1;
+  min-width: 0;
 }
 
 /* 技术亮点徽章 — 强调专业配色算法，制造第一印象记忆点 */
@@ -69,21 +61,24 @@
   flex-shrink: 0;
 }
 
-.close-btn {
-  width: 32px;
-  height: 32px;
-  border-radius: 6px;
-  font-size: var(--text-2xl);
+/* 返回按钮(页面形态的退出入口,内含未保存确认) */
+.quantizer-back {
+  width: 36px;
+  height: 36px;
+  flex-shrink: 0;
+  border-radius: 10px;
+  font-size: var(--text-lg);
   display: flex;
   align-items: center;
   justify-content: center;
-  color: var(--text-muted);
-  background: transparent;
-  border: none;
+  color: var(--text-secondary);
+  background: var(--bg-primary);
+  border: 1px solid var(--border-color);
   cursor: pointer;
+  transition: background 0.2s, color 0.2s;
 }
 
-.close-btn:hover {
+.quantizer-back:hover {
   background: var(--bg-secondary);
   color: var(--text-primary);
 }
@@ -154,10 +149,11 @@
   min-width: 16px;
 }
 
+/* 页面形态下不嵌套滚动:滚动由 .quantizer-page 统一承担(避免多祖先 overflow:auto) */
 .quantizer-content {
   flex: 1;
-  overflow-y: auto;
-  padding: 24px;
+  min-width: 0;
+  padding: 20px;
 }
 
 .upload-section {
@@ -373,6 +369,11 @@
 .error-text {
   color: var(--error);
   font-size: var(--text-base);
+  /* 错误里会带 URL / 堆栈等超长不可断词,窄屏必须允许在任意位置断行,否则文字被裁掉 */
+  overflow-wrap: anywhere;
+  word-break: break-word;
+  white-space: pre-wrap;
+  display: block;
 }
 
 .result-section {
@@ -534,11 +535,14 @@
 }
 
 .quantizer-footer {
+  position: sticky;
+  bottom: 0;
   display: flex;
   justify-content: flex-end;
   gap: 12px;
-  padding: 16px 24px;
+  padding: 16px 24px calc(16px + env(safe-area-inset-bottom, 0px));
   border-top: 1px solid var(--border-color);
+  background: var(--bg-primary);
 }
 
 /* "生成图纸" 主按钮 — 图片就位后用呼吸光晕吸引点击，是整个流程的关键强调点 */
@@ -630,4 +634,39 @@
   font-size: var(--text-lg);
   color: var(--text-secondary);
   font-weight: var(--font-weight-medium);
+}
+
+/* ── 窄屏适配 ────────────────────────────────────────────────
+   步骤条此前在手机上溢出错位(标签 nowrap + 连接线 min-width 撑破宽度,
+   模态 overflow:hidden 直接把「预览成品」裁掉)。这里缩字号/间距,
+   并给容器横向滚动兜底:任何情况下都不裁切内容。 */
+@media (max-width: 480px) {
+  .quantizer-header {
+    padding: 12px 14px;
+    gap: 10px;
+  }
+  .quantizer-steps {
+    padding: 10px 12px;
+    overflow-x: auto;
+  }
+  .step-item {
+    gap: 4px;
+  }
+  .step-dot {
+    width: 20px;
+    height: 20px;
+  }
+  .step-label {
+    font-size: var(--text-xs);
+  }
+  .step-connector {
+    margin: 0 6px;
+    min-width: 10px;
+  }
+  .quantizer-content {
+    padding: 14px;
+  }
+  .quantizer-footer {
+    padding: 12px 14px calc(12px + env(safe-area-inset-bottom, 0px));
+  }
 }

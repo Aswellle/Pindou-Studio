@@ -655,6 +655,12 @@
       "ordered": "有序抖动（规律纹理）"
     },
     "algorithmHint": "抖动可产生更平滑的颜色过渡",
+    "colorMatching": "色彩匹配",
+    "colorMatchingHint": "OKLab 对明度与肤色渐变更敏感；CIEDE2000 保持原有输出观感",
+    "colorSpaces": {
+      "lab": "CIEDE2000（兼容模式）",
+      "oklab": "OKLab（感知加权，肤色/渐变更准）"
+    },
     "quality": "处理质量",
     "qualityModes": {
       "high": "高质量（推荐，~3-5秒）",

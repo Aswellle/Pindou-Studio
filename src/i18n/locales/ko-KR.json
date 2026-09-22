@@ -655,6 +655,12 @@
       "ordered": "순서 디더링 (규칙적 질감)"
     },
     "algorithmHint": "디더링은 더 부드러운 색상 전환을 만듭니다",
+    "colorMatching": "색상 매칭",
+    "colorMatchingHint": "OKLab은 명도와 피부톤 그라데이션에 더 민감하고, CIEDE2000은 기존 결과를 유지합니다",
+    "colorSpaces": {
+      "lab": "CIEDE2000(호환 모드)",
+      "oklab": "OKLab(지각 가중, 피부톤·그라데이션 정확도 향상)"
+    },
     "quality": "처리 품질",
     "qualityModes": {
       "high": "고품질 (권장, ~3-5초)",

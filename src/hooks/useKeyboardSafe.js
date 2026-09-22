@@ -5,7 +5,6 @@ import { useEffect } from 'react'
 const OVERLAY_SELECTOR = [
   '.modal-overlay',
   '.contact-overlay',
-  '.image-quantizer-overlay',
   '.admin-modal-overlay',
   '.users-confirm-overlay',
   '.profile-confirm-overlay',

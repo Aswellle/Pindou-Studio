@@ -655,6 +655,12 @@
       "ordered": "秩序ディザリング（規則的なテクスチャ）"
     },
     "algorithmHint": "ディザリングはよりスムーズなカラー遷移を作ります",
+    "colorMatching": "色合わせ",
+    "colorMatchingHint": "OKLab は明度と肌色のグラデーションに敏感です。CIEDE2000 は従来の見た目を維持します",
+    "colorSpaces": {
+      "lab": "CIEDE2000（互換モード）",
+      "oklab": "OKLab（知覚加重、肌色・グラデーションがより正確）"
+    },
     "quality": "処理品質",
     "qualityModes": {
       "high": "高品質（推奨、~3-5秒）",

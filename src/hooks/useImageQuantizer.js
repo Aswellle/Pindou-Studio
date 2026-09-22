@@ -21,7 +21,8 @@ export function useImageQuantizer() {
       brightness = 0,
       contrast = 0,
       highQuality = true,   // Phase 2: 质量开关
-      removeBackground = true  // Phase 4: 背景移除开关
+      removeBackground = true,  // Phase 4: 背景移除开关
+      colorSpace = 'lab'    // 'lab' = CIEDE2000(兼容默认) | 'oklab' = OKLab 感知加权
     } = options
 
     const outW = gridWidth || gridSize
@@ -144,7 +145,8 @@ export function useImageQuantizer() {
               brightness,
               contrast,
               highQuality,
-              removeBackground
+              removeBackground,
+              colorSpace
             }
           },
           [pixelBuffer]             // Transferable list — 零拷贝

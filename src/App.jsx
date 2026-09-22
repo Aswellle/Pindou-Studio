@@ -24,12 +24,11 @@ import MobileColorPalette from './components/ColorPalette/MobileColorPalette'
 import { getPalette, PALETTES } from './data/palettes'
 import { PrivacyPolicy, TermsOfService } from './components/LegalPages'
 import MobileCanvasInfoBar from './components/MobileCanvasInfoBar'
-import CreateImagePage from './components/CreateImagePage'
+const CreateImagePage = lazy(() => import('./components/CreateImagePage'))
 import ProfilePage from './components/ProfilePage'
 const Gallery = lazy(() => import('./components/Gallery'))
 import AdminDashboardPage from './components/AdminDashboardPage'
 const Tutorials = lazy(() => import('./components/Tutorials'))
-const ImageQuantizer = lazy(() => import('./components/ImageQuantizer/ImageQuantizer'))
 import AdminPanel from './components/AdminPanel'
 
 export default function App() {
@@ -67,7 +66,6 @@ export default function App() {
 
   const [leftSidebarCollapsed, setLeftSidebarCollapsed] = useState(false)
   const [rightSidebarCollapsed, setRightSidebarCollapsed] = useState(false)
-  const [showQuantizer, setShowQuantizer] = useState(false)
   const [showExport, setShowExport] = useState(false)
   const [currentPalette, setCurrentPalette] = useState('perler')
   const [designName, setDesignName] = useState(() => t('export.defaultName'))
@@ -136,7 +134,7 @@ export default function App() {
   }, [handleUndo, handleRedo])
 
   // Lock body scroll while any modal is open; reset iOS Safari viewport offset on close
-  const anyModalOpen = showQuantizer || showSaveDialog || showExport
+  const anyModalOpen = showSaveDialog || showExport
   useEffect(() => {
     if (anyModalOpen) {
       document.body.style.overflow = 'hidden'
@@ -263,7 +261,8 @@ export default function App() {
     )
     resetCanvas(resolvedData)
     if (options.palette) setCurrentPalette(options.palette)
-    navigate('/')
+    // 不再在这里 navigate('/'):图片转拼豆是独立页面,应用完成后由该页面的 onClose
+    // 负责返回(历史回退/深链兜底)。两处各自导航会互相抵消,把用户留在转换页。
     if (w > 50 || h > 50) {
       setFitToast(true)
       setTimeout(() => setFitToast(false), 2500)
@@ -327,7 +326,7 @@ export default function App() {
             onClear={handleClearCanvas}
             canUndo={canUndo}
             canRedo={canRedo}
-            onOpenQuantizer={() => setShowQuantizer(true)}
+            onOpenQuantizer={() => navigate('/create/image')}
           />
         </div>
         <div className="left-sidebar-bottom">
@@ -417,7 +416,9 @@ export default function App() {
           } />
 
           <Route path="/create/image" element={
-            <CreateImagePage onApply={handleQuantizerApply} />
+            <Suspense fallback={<LoadingScreen />}>
+              <CreateImagePage onApply={handleQuantizerApply} />
+            </Suspense>
           } />
 
           <Route path="/admin/dashboard" element={
@@ -453,15 +454,6 @@ export default function App() {
           paletteId={currentPalette}
           onClose={() => setShowExport(false)}
         />
-      )}
-
-      {showQuantizer && (
-        <Suspense fallback={null}>
-          <ImageQuantizer
-            onApply={handleQuantizerApply}
-            onClose={() => setShowQuantizer(false)}
-          />
-        </Suspense>
       )}
 
       {showSaveDialog && createPortal(
@@ -656,7 +648,7 @@ export default function App() {
               canUndo={canUndo}
               canRedo={canRedo}
               onExport={() => setShowExport(true)}
-              onQuantize={() => setShowQuantizer(true)}
+              onQuantize={() => navigate('/create/image')}
             />
           </>
         } />
@@ -683,6 +675,11 @@ export default function App() {
             <div className="mobile-page-area">
               <Tutorials />
             </div>
+          </Suspense>
+        } />
+        <Route path="/create/image" element={
+          <Suspense fallback={<LoadingScreen />}>
+            <CreateImagePage onApply={handleQuantizerApply} />
           </Suspense>
         } />
         <Route path="/admin/login" element={renderAdminLoginPage()} />
@@ -716,15 +713,6 @@ export default function App() {
           paletteId={currentPalette}
           onClose={() => setShowExport(false)}
         />
-      )}
-
-      {showQuantizer && (
-        <Suspense fallback={null}>
-          <ImageQuantizer
-            onApply={handleQuantizerApply}
-            onClose={() => setShowQuantizer(false)}
-          />
-        </Suspense>
       )}
 
       {showSaveDialog && createPortal(

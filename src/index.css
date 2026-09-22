@@ -188,13 +188,12 @@ input:focus, textarea:focus, button:focus {
   margin: auto;
 }
 
-/* 其余全屏浮层(.contact / .image-quantizer / .admin-modal / .users-confirm /
+/* 其余全屏浮层(.contact / .admin-modal / .users-confirm /
    .profile-confirm / .load-confirm / .quantizer-zoom)与 .modal-overlay 共享
    同一套「fixed + 视觉视口高度 + 自身滚动 + safe-area」基础。
    注意:各组件 inline <style> 后加载,会覆盖这里的 padding 等声明 ——
    组件侧已相应只保留自身差异。 */
 .contact-overlay,
-.image-quantizer-overlay,
 .admin-modal-overlay,
 .users-confirm-overlay,
 .profile-confirm-overlay,
@@ -246,7 +245,6 @@ input:focus, textarea:focus, button:focus {
       底部 fixed 工具栏挡在 modal 下方,使其无法滚到底部按钮 —— 采纳用户建议用淡出清除) ── */
 body:has(.contact-overlay) .mobile-toolbar,
 body:has(.modal-overlay) .mobile-toolbar,
-body:has(.image-quantizer-overlay) .mobile-toolbar,
 body:has(.profile-overlay) .mobile-toolbar,
 body:has(.admin-modal-overlay) .mobile-toolbar,
 body:has(.users-confirm-overlay) .mobile-toolbar,

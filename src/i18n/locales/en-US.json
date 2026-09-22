@@ -655,6 +655,12 @@
       "ordered": "Ordered dithering (regular texture)"
     },
     "algorithmHint": "Dithering creates smoother color transitions",
+    "colorMatching": "Color matching",
+    "colorMatchingHint": "OKLab is more sensitive to lightness and skin-tone gradients; CIEDE2000 keeps the original look",
+    "colorSpaces": {
+      "lab": "CIEDE2000 (compatible)",
+      "oklab": "OKLab (perceptual, better skin tones & gradients)"
+    },
     "quality": "Processing Quality",
     "qualityModes": {
       "high": "High quality (recommended, ~3-5s)",
