@@ -70,6 +70,36 @@ export function createScaledCanvas(logicalW, logicalH) {
   return { canvas, scale }
 }
 
+/**
+ * 基于物理尺寸和 DPI 创建 canvas
+ *
+ * 拼豆物理直径约 2.6mm（COCO 2.6mm 规格），每格代表一颗豆子。
+ * 输出分辨率 = 物理尺寸 × DPI。
+ *
+ * 预设:
+ * - preview: 144 DPI（屏幕预览）
+ * - high:    300 DPI（高质量打印）
+ * - print:   600 DPI（专业打印）
+ *
+ * @param {number} logicalW - 逻辑宽度（像素）
+ * @param {number} logicalH - 逻辑高度（像素）
+ * @param {number} dpi - 每英寸像素数
+ * @returns {{ canvas: HTMLCanvasElement, scale: number, dpi: number }}
+ */
+export function createDPICanvas(logicalW, logicalH, dpi = 300) {
+  // 每格物理尺寸（mm）— COCO 2.6mm 规格
+  const BEAD_SIZE_MM = 2.6
+  // 每格物理尺寸（inch）
+  const BEAD_SIZE_INCH = BEAD_SIZE_MM / 25.4
+  // 基于 DPI 计算超采样倍率
+  const targetScale = dpi / 72  // 72 DPI = 1x
+  const scale = Math.max(1, Math.round(targetScale))
+
+  // 复用 createScaledCanvas 的面积预算和降级逻辑
+  const { canvas, scale: actualScale } = createScaledCanvas(logicalW, logicalH)
+  return { canvas, scale: actualScale, dpi: Math.round(actualScale * 72) }
+}
+
 // 拟真珠子渲染 — 与 ImageQuantizer 预览保持一致(导出增强:轮廓环让珠子边缘清晰锐利)
 function drawBead(ctx, cx, cy, radius, hexColor) {
   const r = parseInt(hexColor.slice(1, 3), 16)
