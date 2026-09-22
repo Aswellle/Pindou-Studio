@@ -787,6 +787,73 @@ function spatialRefinement(outIdx, areaColors, activePalette, activeLabs, outW, 
   return counts;
 }
 
+// ==================== 孤立豆清理 ====================
+
+/**
+ * 检测并清理孤立豆（量化噪点）。
+ * 孤立豆定义：一个格子的4邻域（上下左右）颜色都与其不同。
+ * 清理策略：计算将孤立豆替换为邻域主导颜色时的 OKLab 色距，
+ * 只有当色距小于阈值时才替换，避免破坏眼睛、瞳孔等重要细节。
+ * 禁止简单 majority filter — 必须同时考虑颜色距离和邻域一致性。
+ */
+function cleanupIsolatedBeads(outIdx, areaColors, activePalette, activeLabs, outW, outH, colorSpace, threshold) {
+  const useOklab = colorSpace === 'oklab';
+  const distFn = useOklab ? deltaEOKLabWeighted : deltaE2000;
+  const total = outW * outH;
+  const cleaned = new Uint16Array(outIdx); // 副本，避免原地修改影响邻居判断
+  let cleanedCount = 0;
+
+  for (let y = 0; y < outH; y += 1) {
+    for (let x = 0; x < outW; x += 1) {
+      const idx = y * outW + x;
+      if (outIdx[idx] === BLANK || !areaColors[idx]) continue;
+
+      // 收集4邻域颜色（上、下、左、右）
+      const neighbors = [];
+      if (y > 0 && outIdx[idx - outW] !== BLANK) neighbors.push(outIdx[idx - outW]);
+      if (y + 1 < outH && outIdx[idx + outW] !== BLANK) neighbors.push(outIdx[idx + outW]);
+      if (x > 0 && outIdx[idx - 1] !== BLANK) neighbors.push(outIdx[idx - 1]);
+      if (x + 1 < outW && outIdx[idx + 1] !== BLANK) neighbors.push(outIdx[idx + 1]);
+
+      // 少于2个邻居不算孤立
+      if (neighbors.length < 2) continue;
+
+      // 检查是否所有邻居颜色都与当前格子不同
+      const currentColor = outIdx[idx];
+      const allDifferent = neighbors.every(n => n !== currentColor);
+      if (!allDifferent) continue;
+
+      // 找邻域主导颜色（出现次数最多的颜色）
+      const counts = new Map();
+      for (const n of neighbors) {
+        counts.set(n, (counts.get(n) || 0) + 1);
+      }
+      let dominantColor = neighbors[0];
+      let maxCount = 0;
+      for (const [color, count] of counts) {
+        if (count > maxCount) { maxCount = count; dominantColor = color; }
+      }
+
+      // 只有当主导颜色出现次数 >= 邻居数的一半时才认为是孤立豆
+      // 这避免了在真实细节（如眼睛边界）处误清理
+      if (maxCount < Math.ceil(neighbors.length / 2)) continue;
+
+      // 计算将当前颜色替换为主导颜色时的色距
+      const currentLab = areaColors[idx].oklab || rgbToOklab(areaColors[idx].rgb[0], areaColors[idx].rgb[1], areaColors[idx].rgb[2]);
+      const dominantLab = useOklab ? activeLabs.oklabs[dominantColor] : activeLabs.labs[dominantColor];
+      const colorDist = distFn(currentLab, dominantLab);
+
+      // 只有当色距小于阈值时才替换
+      if (colorDist < threshold) {
+        cleaned[idx] = dominantColor;
+        cleanedCount++;
+      }
+    }
+  }
+
+  return { cleaned, cleanedCount };
+}
+
 // ==================== 有序抖动 ====================
 
 function orderedDitherValue(x, y) {
@@ -1058,13 +1125,38 @@ self.onmessage = (event) => {
         outCounts = spatialRefinement(outIdx, areaColors, activePalette, activeLabs, outW, outH, refinementIters, spatialWeight, colorSpace);
       }
 
+      // 孤立豆清理 — 检测并替换量化噪点（单像素孤岛），避免棋盘/孤立豆伪影
+      // OKLab 色距阈值 0.08（约等于 CIEDE2000 的 8），仅替换低代价孤立豆
+      const cleanThreshold = colorSpace === 'oklab' ? 0.08 : 8;
+      const { cleaned: cleanedIdx, cleanedCount } = cleanupIsolatedBeads(
+        outIdx, areaColors, activePalette, activeLabs, outW, outH, colorSpace, cleanThreshold
+      );
+      if (cleanedCount > 0) {
+        // 用清理后的索引替换原 outIdx
+        for (let i = 0; i < outW * outH; i += 1) {
+          outIdx[i] = cleanedIdx[i];
+        }
+      }
+
       self.postMessage({ type: 'PROGRESS', progress: 90 });
 
-      // 颜色统计
+      // 颜色统计（在孤立豆清理后重新计算，确保计数准确）
       const colorStats = {};
-      for (let i = 0; i < activePalette.length; i++) {
+      for (let i = 0; i < activePalette.length; i += 1) {
         if (outCounts[i] > 0) colorStats[activePalette[i].id] = outCounts[i];
       }
+
+      // 如果清理了孤立豆，重新统计颜色分布
+      if (cleanedCount > 0) {
+        const newCounts = new Array(activePalette.length).fill(0);
+        for (let i = 0; i < outW * outH; i += 1) {
+          if (outIdx[i] !== BLANK) newCounts[outIdx[i]] += 1;
+        }
+        for (let i = 0; i < activePalette.length; i += 1) {
+          if (newCounts[i] > 0) colorStats[activePalette[i].id] = newCounts[i];
+        }
+      }
+
 
       self.postMessage({ type: 'PROGRESS', progress: 100 });
 
