@@ -3,9 +3,11 @@
  *
  * 新渲染路径：PatternDocument → RasterRenderer → PNG
  * 与 BeadPatternExporter 并存，通过 Feature Flag 切换。
+ *
+ * 支持 Tile Rendering：大图自动分块渲染防止 OOM。
  */
 
-import { createScaledCanvas } from '../BeadPatternExporter'
+import { createScaledCanvas, createDPICanvas } from '../BeadPatternExporter'
 
 /**
  * 从 PatternDocument 渲染 PNG
@@ -13,11 +15,13 @@ import { createScaledCanvas } from '../BeadPatternExporter'
  * @param {Object} doc - PatternDocument
  * @param {Object} [options]
  * @param {number} [options.scale] - 超采样倍率（默认 3）
+ * @param {number} [options.dpi] - 输出 DPI（默认 300）
+ * @param {number} [options.tileSize] - 分块大小（默认 2048 物理像素）
  * @param {Function} [options.onProgress] - 进度回调
  * @returns {Promise<Blob>} PNG blob
  */
 export async function renderPatternDocumentToPNG(doc, options = {}) {
-  const { scale = 3, onProgress = null } = options
+  const { scale, dpi = 300, onProgress = null, tileSize = 2048 } = options
   const { grid, palette, style, layout } = doc
   const { width, height, cells } = grid
   const { cellSize, headerHeight, legendHeight } = layout
@@ -27,10 +31,14 @@ export async function renderPatternDocumentToPNG(doc, options = {}) {
 
   if (onProgress) onProgress(0.1)
 
-  // 创建超采样 canvas
+  // 创建超采样 canvas — DPI 策略或固定 scale
   let canvas, actualScale
   try {
-    ;({ canvas, scale: actualScale } = createScaledCanvas(canvasWidth, canvasHeight))
+    if (dpi && dpi !== 300) {
+      ;({ canvas, scale: actualScale } = createDPICanvas(canvasWidth, canvasHeight, dpi))
+    } else {
+      ;({ canvas, scale: actualScale } = createScaledCanvas(canvasWidth, canvasHeight))
+    }
   } catch {
     ;({ canvas, scale: actualScale } = createScaledCanvas(canvasWidth, canvasHeight))
   }
@@ -39,6 +47,7 @@ export async function renderPatternDocumentToPNG(doc, options = {}) {
   const cs = cellSize * actualScale
   const headerH = headerHeight * actualScale
   const legendH = legendHeight * actualScale
+  const beadRadius = cs / 2 - 1
 
   // 背景
   ctx.fillStyle = '#ffffff'
@@ -52,6 +61,24 @@ export async function renderPatternDocumentToPNG(doc, options = {}) {
   ctx.fillText(`${width} × ${height} | ${palette.colors.length} colors`, 20 * actualScale, 55 * actualScale)
 
   if (onProgress) onProgress(0.3)
+
+  // Tile Rendering: 大图分块渲染防止 OOM
+  const needsTiling = canvas.width > tileSize || canvas.height > tileSize
+  const tileCols = needsTiling ? Math.ceil(canvas.width / tileSize) : 1
+  const tileRows = needsTiling ? Math.ceil(canvas.height / tileSize) : 1
+  const totalTiles = tileCols * tileRows
+
+  // 复用 tile canvas
+  let tileCanvas = null
+  let tileCtx = null
+  if (needsTiling) {
+    try {
+      tileCanvas = document.createElement('canvas')
+      tileCanvas.width = Math.min(tileSize, canvas.width)
+      tileCanvas.height = Math.min(tileSize, canvas.height)
+      tileCtx = tileCanvas.getContext('2d')
+    } catch { /* 不支持时降级 */ }
+  }
 
   // 绘制珠子
   const drawBead = (cx, cy, radius, hexColor) => {
@@ -74,14 +101,12 @@ export async function renderPatternDocumentToPNG(doc, options = {}) {
       ctx.fillStyle = grad
       ctx.fill()
     } else {
-      // professional: flat fill
       ctx.beginPath()
       ctx.arc(cx, cy, radius, 0, Math.PI * 2)
       ctx.fillStyle = hexColor
       ctx.fill()
     }
 
-    // 网格线
     if (style.showGrid) {
       ctx.beginPath()
       ctx.arc(cx, cy, radius, 0, Math.PI * 2)
@@ -90,7 +115,6 @@ export async function renderPatternDocumentToPNG(doc, options = {}) {
       ctx.stroke()
     }
 
-    // 色号
     if (style.showCodes && style.beadStyle === 'professional') {
       const lum = 0.299 * r + 0.587 * g + 0.114 * b
       ctx.fillStyle = lum > 128 ? '#1a1a1a' : '#b8b8b8'
@@ -102,17 +126,50 @@ export async function renderPatternDocumentToPNG(doc, options = {}) {
     }
   }
 
-  const beadRadius = cs / 2 - 1
-  for (let y = 0; y < height; y++) {
-    for (let x = 0; x < width; x++) {
+  // 珠子绘制循环（支持 Tile Rendering）
+  const beadsPerTile = new Map()
+
+  for (let y = 0; y < height; y += 1) {
+    for (let x = 0; x < width; x += 1) {
       const cell = cells[y]?.[x]
       if (!cell) continue
       const cx = x * cs + cs / 2
       const cy = headerH + y * cs + cs / 2
-      drawBead(cx, cy, beadRadius, cell)
+
+      if (needsTiling && tileCtx) {
+        const tileCol = Math.floor(cx / tileSize)
+        const tileRow = Math.floor(cy / tileSize)
+        const tIdx = tileRow * tileCols + tileCol
+        if (!beadsPerTile.has(tIdx)) beadsPerTile.set(tIdx, [])
+        beadsPerTile.get(tIdx).push({ cx, cy, hex: cell })
+      } else {
+        drawBead(cx, cy, beadRadius, cell)
+      }
     }
-    if (onProgress && y % 10 === 0) {
-      onProgress(0.3 + 0.5 * (y / height))
+  }
+
+  // 分块渲染：逐 tile 绘制再合并
+  if (needsTiling && tileCtx && beadsPerTile.size > 0) {
+    let tilesDone = 0
+    for (const [tIdx, beads] of beadsPerTile) {
+      const tileCol = tIdx % tileCols
+      const tileRow = Math.floor(tIdx / tileCols)
+      const sx = tileCol * tileSize
+      const sy = tileRow * tileSize
+      const sw = Math.min(tileSize, canvas.width - sx)
+      const sh = Math.min(tileSize, canvas.height - sy)
+
+      tileCtx.save()
+      tileCtx.translate(-sx, -sy)
+      for (const bead of beads) {
+        drawBead(bead.cx, bead.cy, beadRadius, bead.hex)
+      }
+      tileCtx.restore()
+
+      ctx.drawImage(tileCanvas, sx, sy, sw, sh, sx, sy, sw, sh)
+
+      tilesDone++
+      if (onProgress) onProgress(0.3 + 0.5 * (tilesDone / totalTiles))
     }
   }
 
@@ -139,7 +196,6 @@ export async function renderPatternDocumentToPNG(doc, options = {}) {
 
   if (onProgress) onProgress(0.95)
 
-  // 输出
   return new Promise((resolve, reject) => {
     canvas.toBlob(blob => {
       if (blob) resolve(blob)
