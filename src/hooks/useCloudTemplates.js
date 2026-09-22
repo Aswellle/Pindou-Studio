@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
-import { supabase } from '../services/supabase'
+import { supabase, SUPABASE_PROXIED } from '../services/supabase'
 import { normalizeCustomTemplate } from '../data/templates'
 
 /**
@@ -125,9 +125,11 @@ export default function useCloudTemplates() {
     }
   }, [enabled, loadAll])
 
-  // 实时订阅:模板/分类被增删改(管理员操作或他人)时自动刷新,无需手动刷新/切 tab
+  // 实时订阅:模板/分类被增删改(管理员操作或他人)时自动刷新,无需手动刷新/切 tab。
+  // 同域代理下 Realtime WebSocket 不可用(vercel rewrite 不转发 WS),跳过订阅,
+  // 由「网络恢复 / 页面重新可见」的自动刷新与手动重试兜底。
   useEffect(() => {
-    if (!enabled || !supabase) return
+    if (!enabled || !supabase || SUPABASE_PROXIED) return undefined
     let t
     const trigger = () => { clearTimeout(t); t = setTimeout(() => refresh(), 400) }
     const ch = supabase

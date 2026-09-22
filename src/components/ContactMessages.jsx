@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
 import { User } from 'lucide-react'
-import { supabase } from '../services/supabase'
+import { supabase, toStorageUrl } from '../services/supabase'
 import LoadingScreen from './LoadingScreen'
 import { useToast } from './Toast'
 
@@ -165,7 +165,7 @@ export default function ContactMessages() {
                 const name = isUser
                   ? (c.profile.nickname || c.profile.id?.slice(0, 8))
                   : (c.nickname || anonFallback(c.participantId))
-                const avatar = isUser && c.profile.avatar_url ? c.profile.avatar_url : null
+                const avatar = isUser ? toStorageUrl(c.profile.avatar_url) : null
                 return (
                   <div key={c.participantId} className="cm-card">
                     {/* 顶部身份区 */}

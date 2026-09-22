@@ -39,6 +39,10 @@
   ],
   "rewrites": [
     {
+      "source": "/sb/:path*",
+      "destination": "https://gccrwnepwtpcsiqowzro.supabase.co/:path*"
+    },
+    {
       "source": "/gallery",
       "destination": "/gallery.html"
     },
