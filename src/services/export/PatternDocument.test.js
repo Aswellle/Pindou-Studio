@@ -96,4 +96,54 @@ describe('PatternDocument Golden Test', () => {
     expect(doc.palette.colors).toEqual([])
     expect(doc.grid.cells).toEqual(emptyGrid)
   })
+
+  it('SVG 输出包含正确数量的 circle 元素', () => {
+    const doc = createPatternDocument({
+      canvasData: TEST_CANVAS,
+      gridSize: 5,
+      paletteId: 'perler',
+    })
+    const svg = renderPatternDocumentToSVG(doc)
+    // 9 个珠子（3x3 中心区域）
+    const circleCount = (svg.match(/<circle/g) || []).length
+    expect(circleCount).toBeGreaterThanOrEqual(9)
+  })
+
+  it('SVG 输出包含正确的颜色值', () => {
+    const doc = createPatternDocument({
+      canvasData: TEST_CANVAS,
+      gridSize: 5,
+      paletteId: 'perler',
+    })
+    const svg = renderPatternDocumentToSVG(doc)
+    // 应包含测试颜色的 hex 值
+    expect(svg).toContain('#FF0000')
+    expect(svg).toContain('#00FF00')
+  })
+
+  it('SVG 输出包含 professional 模式的色号文本', () => {
+    const doc = createPatternDocument({
+      canvasData: TEST_CANVAS,
+      gridSize: 5,
+      paletteId: 'perler',
+      beadStyle: 'professional',
+    })
+    const svg = renderPatternDocumentToSVG(doc)
+    // professional 模式应包含 <text> 元素显示色号
+    expect(svg).toContain('<text')
+  })
+
+  it('SVG 输出具有正确的矢量结构', () => {
+    const doc = createPatternDocument({
+      canvasData: TEST_CANVAS,
+      gridSize: 5,
+      paletteId: 'perler',
+    })
+    const svg = renderPatternDocumentToSVG(doc)
+    // 应有 SVG 开闭标签
+    expect(svg).toContain('<svg')
+    expect(svg).toContain('</svg>')
+    // 应有 viewBox 属性
+    expect(svg).toContain('viewBox')
+  })
 })
