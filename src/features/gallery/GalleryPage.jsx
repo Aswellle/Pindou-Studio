@@ -11,6 +11,7 @@ import { useState, useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
 import { TEMPLATES, CATEGORIES, extractPatternColors } from '../../data/templates'
 import { useCustomTemplates } from '../../hooks/useCustomTemplates'
+import { useGalleryQuery } from './hooks/useGalleryQuery'
 
 /**
  * GalleryPage 壳组件
@@ -24,20 +25,16 @@ import { useCustomTemplates } from '../../hooks/useCustomTemplates'
 export default function GalleryPage({ templates = [], onLoadTemplate, onLogin, onRegister }) {
   const { t } = useTranslation()
   const localStore = useCustomTemplates()
-
-  // 筛选状态
-  const [searchTerm, setSearchTerm] = useState('')
-  const [selectedCategory, setSelectedCategory] = useState('all')
-  const [selectedDifficulty, setSelectedDifficulty] = useState('all')
+  const { searchTerm, setSearchTerm, category, setCategory, difficulty, setDifficulty } = useGalleryQuery()
 
   // 过滤后的模板
   const filtered = useMemo(() => {
     let result = templates
-    if (selectedCategory !== 'all') {
-      result = result.filter(t => t.category === selectedCategory)
+    if (category !== 'all') {
+      result = result.filter(t => t.category === category)
     }
-    if (selectedDifficulty !== 'all') {
-      result = result.filter(t => t.difficulty === selectedDifficulty)
+    if (difficulty !== 'all') {
+      result = result.filter(t => t.difficulty === difficulty)
     }
     if (searchTerm) {
       const q = searchTerm.toLowerCase()
@@ -46,7 +43,7 @@ export default function GalleryPage({ templates = [], onLoadTemplate, onLogin, o
       )
     }
     return result
-  }, [templates, selectedCategory, selectedDifficulty, searchTerm])
+  }, [templates, category, difficulty, searchTerm])
 
   // 分类选项
   const categoryOptions = useMemo(() => {
@@ -76,16 +73,16 @@ export default function GalleryPage({ templates = [], onLoadTemplate, onLogin, o
       {/* 分类快捷入口 */}
       <div className="gallery-quick-cats">
         <button
-          className={selectedCategory === 'all' ? 'active' : ''}
-          onClick={() => setSelectedCategory('all')}
+          className={category === 'all' ? 'active' : ''}
+          onClick={() => setCategory('all')}
         >
           {t('gallery.all', '全部')}
         </button>
         {categoryOptions.map(cat => (
           <button
             key={cat}
-            className={selectedCategory === cat ? 'active' : ''}
-            onClick={() => setSelectedCategory(cat)}
+            className={category === cat ? 'active' : ''}
+            onClick={() => setCategory(cat)}
           >
             {t(`gallery.categories.${cat}`, cat)}
           </button>
@@ -95,8 +92,8 @@ export default function GalleryPage({ templates = [], onLoadTemplate, onLogin, o
       {/* 难度筛选 */}
       <div className="gallery-difficulty-filter">
         <select
-          value={selectedDifficulty}
-          onChange={e => setSelectedDifficulty(e.target.value)}
+          value={difficulty}
+          onChange={e => setDifficulty(e.target.value)}
         >
           <option value="all">{t('gallery.allDifficulties', '全部难度')}</option>
           <option value="easy">{t('gallery.easy', '简单')}</option>
