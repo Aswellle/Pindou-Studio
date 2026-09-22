@@ -854,6 +854,105 @@ function cleanupIsolatedBeads(outIdx, areaColors, activePalette, activeLabs, out
   return { cleaned, cleanedCount };
 }
 
+// ==================== 棋盘抑制 ====================
+
+/**
+ * 检测并抑制棋盘伪影（ABABAB/BABABA 高频交替纹理）。
+ * 当两种颜色的 OKLab 距离较大且局部交替频率异常高时，
+ * 将孤立棋盘格子重新映射为邻域主导颜色，减少量化产生的棋盘噪点。
+ * 仅在明确棋盘模式区域操作，不破坏真实细节。
+ */
+function suppressCheckerboard(outIdx, areaColors, activePalette, activeLabs, outW, outH, colorSpace, threshold) {
+  const useOklab = colorSpace === 'oklab';
+  const distFn = useOklab ? deltaEOKLabWeighted : deltaE2000;
+  const total = outW * outH;
+  const suppressed = new Uint16Array(outIdx);
+  let suppressedCount = 0;
+
+  // 检测 2x2 棋盘模式：ABAB 或 BABA
+  for (let y = 0; y + 1 < outH; y += 1) {
+    for (let x = 0; x + 1 < outW; x += 1) {
+      const idx00 = y * outW + x;
+      const idx001 = idx00 + 1;
+      const idx10 = idx00 + outW;
+      const idx11 = idx10 + 1;
+
+      if (outIdx[idx00] === BLANK || outIdx[idx001] === BLANK || outIdx[idx10] === BLANK || outIdx[idx11] === BLANK) continue;
+
+      const c00 = outIdx[idx00], c01 = outIdx[idx001], c10 = outIdx[idx10], c11 = outIdx[idx11];
+
+      // ABAB 模式: c00==c11 && c01==c10 && c00!=c01
+      const isABAB = (c00 === c11 && c01 === c10 && c00 !== c01);
+      if (!isABAB) continue;
+
+      // 计算两种颜色的 OKLab 距离
+      const labA = useOklab ? activeLabs.oklabs[c00] : activeLabs.labs[c00];
+      const labB = useOklab ? activeLabs.oklabs[c01] : activeLabs.labs[c01];
+      const colorDist = distFn(labA, labB);
+
+      // 色距太小不处理（不是伪影）
+      if (colorDist < threshold) continue;
+
+      // 检查是否处于更大的棋盘区域（3x3 范围内模式一致）
+      // 只有当周围也是棋盘模式时才认为是伪影
+      let checkerNeighbors = 0;
+      for (let dy = -1; dy <= 1; dy += 2) {
+        for (let dx = -1; dx <= 1; dx += 2) {
+          const ny = y + dy, nx = x + dx;
+          if (ny < 0 || ny + 1 >= outH || nx < 0 || nx + 1 >= outW) continue;
+          const nIdx00 = ny * outW + nx;
+          const nIdx001 = nIdx00 + 1;
+          const nIdx10 = nIdx00 + outW;
+          const nIdx11 = nIdx10 + 1;
+          if (outIdx[nIdx00] === BLANK || outIdx[nIdx001] === BLANK || outIdx[nIdx10] === BLANK || outIdx[nIdx11] === BLANK) continue;
+          const nc00 = outIdx[nIdx00], nc01 = outIdx[nIdx001], nc10 = outIdx[nIdx10], nc11 = outIdx[nIdx11];
+          if ((nc00 === nc11 && nc01 === nc10 && nc00 !== nc01) &&
+              (nc00 === c00 || nc00 === c01)) {
+            checkerNeighbors++;
+          }
+        }
+      }
+
+      // 周围有棋盘模式才处理（避免破坏真实棋盘图案如衣服格子等）
+      if (checkerNeighbors < 2) continue;
+
+      // 将当前 2x2 区域重新映射为单一主导颜色
+      // 选择面积更大的颜色（或邻域中出现更多的颜色）
+      const colorCounts = new Map();
+      colorCounts.set(c00, (colorCounts.get(c00) || 0) + 2);
+      colorCounts.set(c01, (colorCounts.get(c01) || 0) + 2);
+
+      // 检查周围8格的颜色分布
+      for (let dy = -1; dy <= 1; dy += 1) {
+        for (let dx = -1; dx <= 1; dx += 1) {
+          if (dy === 0 && dx === 0) continue;
+          const ny = y + dy, nx = x + dx;
+          if (ny < 0 || ny >= outH || nx < 0 || nx >= outW) continue;
+          const nIdx = ny * outW + nx;
+          if (outIdx[nIdx] !== BLANK) {
+            colorCounts.set(outIdx[nIdx], (colorCounts.get(outIdx[nIdx]) || 0) + 1);
+          }
+        }
+      }
+
+      let dominantColor = c00;
+      let maxCount = 0;
+      for (const [color, count] of colorCounts) {
+        if (count > maxCount) { maxCount = count; dominantColor = color; }
+      }
+
+      // 替换当前 2x2 区域为单一颜色
+      suppressed[idx00] = dominantColor;
+      suppressed[idx001] = dominantColor;
+      suppressed[idx10] = dominantColor;
+      suppressed[idx11] = dominantColor;
+      suppressedCount++;
+    }
+  }
+
+  return { suppressed, suppressedCount };
+}
+
 // ==================== 有序抖动 ====================
 
 function orderedDitherValue(x, y) {
@@ -1033,7 +1132,6 @@ self.onmessage = (event) => {
           bufferA[i] = areaColors[i].lab[1];
           bufferB[i] = areaColors[i].lab[2];
         }
-
         for (let y = 0; y < outH; y += 1) {
           const leftToRight = (y % 2 === 0);
           const xStart = leftToRight ? 0 : outW - 1;
@@ -1084,6 +1182,7 @@ self.onmessage = (event) => {
           }
         }
       } else if (dithering === 'ordered') {
+
         // 有序抖动
         for (let y = 0; y < outH; y += 1) {
           for (let x = 0; x < outW; x += 1) {
@@ -1123,6 +1222,17 @@ self.onmessage = (event) => {
         const spatialWeight = minDim <= 30 ? 0.25 : (minDim <= 50 ? 0.18 : minDim <= 80 ? 0.12 : 0.07);
         const refinementIters = highQuality ? 4 : 2;
         outCounts = spatialRefinement(outIdx, areaColors, activePalette, activeLabs, outW, outH, refinementIters, spatialWeight, colorSpace);
+      }
+
+      // 棋盘抑制 — 在 ICM 之后检测并平滑 ABAB/BABA 高频交替伪影
+      const checkerThreshold = colorSpace === 'oklab' ? 0.10 : 10;
+      const { suppressed: suppressedIdx, suppressedCount } = suppressCheckerboard(
+        outIdx, areaColors, activePalette, activeLabs, outW, outH, colorSpace, checkerThreshold
+      );
+      if (suppressedCount > 0) {
+        for (let i = 0; i < outW * outH; i += 1) {
+          outIdx[i] = suppressedIdx[i];
+        }
       }
 
       // 孤立豆清理 — 检测并替换量化噪点（单像素孤岛），避免棋盘/孤立豆伪影
