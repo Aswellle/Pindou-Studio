@@ -25,20 +25,28 @@ export const SUPABASE_PROXY_PREFIX = '/sb'
 const isSupabaseHost = (host) => /(^|\.)supabase\.(co|in)$/.test(host)
 const isLocalHost = (host) => host === 'localhost' || host === '127.0.0.1' || host === '[::1]'
 
-function resolveEffectiveUrl() {
+/**
+ * 决定实际使用的 Supabase 基址(纯函数,便于测试)。
+ * @param {string} configuredUrl - 环境变量里配置的直连地址
+ * @param {{protocol:string, hostname:string, origin:string}|null} loc - 当前页面 location
+ * @param {'auto'|'off'} mode - VITE_SUPABASE_PROXY
+ */
+export function resolveSupabaseBase(configuredUrl, loc, mode = 'auto') {
   if (!configuredUrl) return ''
-  if ((import.meta.env.VITE_SUPABASE_PROXY || 'auto') === 'off') return configuredUrl
-  if (typeof window === 'undefined') return configuredUrl
+  if (mode === 'off' || !loc) return configuredUrl
   let host = ''
   try { host = new URL(configuredUrl).hostname } catch { return configuredUrl }
   if (!isSupabaseHost(host)) return configuredUrl
-  const { protocol, hostname, origin } = window.location
-  if (protocol !== 'http:' && protocol !== 'https:') return configuredUrl
-  if (isLocalHost(hostname)) return configuredUrl // 本地开发直连(开发机网络可达)
-  return `${origin}${SUPABASE_PROXY_PREFIX}`
+  if (loc.protocol !== 'http:' && loc.protocol !== 'https:') return configuredUrl
+  if (isLocalHost(loc.hostname)) return configuredUrl // 本地开发直连(开发机网络可达)
+  return `${loc.origin}${SUPABASE_PROXY_PREFIX}`
 }
 
-const effectiveUrl = resolveEffectiveUrl()
+const effectiveUrl = resolveSupabaseBase(
+  configuredUrl,
+  typeof window !== 'undefined' ? window.location : null,
+  import.meta.env.VITE_SUPABASE_PROXY || 'auto',
+)
 
 export const supabase =
   effectiveUrl && supabaseAnonKey
@@ -65,8 +73,8 @@ const AVATAR_STORAGE_PATH = '/storage/v1/object/public/avatars/'
  *   保持原有「防任意外部 URL 被当头像加载」的校验
  * - 历史数据里存的是直连域名,代理生效后改写为同源基址,否则受限网络下加载不出来
  */
-export function toStorageUrl(raw) {
+export function toStorageUrl(raw, currentBase = SUPABASE_URL, directBase = SUPABASE_DIRECT_URL) {
   if (typeof raw !== 'string' || !raw.includes(AVATAR_STORAGE_PATH)) return null
-  const base = [SUPABASE_URL, SUPABASE_DIRECT_URL].filter(Boolean).find((b) => raw.startsWith(b))
-  return base ? `${SUPABASE_URL}${raw.slice(base.length)}` : null
+  const base = [currentBase, directBase].filter(Boolean).find((b) => raw.startsWith(b))
+  return base ? `${currentBase}${raw.slice(base.length)}` : null
 }
