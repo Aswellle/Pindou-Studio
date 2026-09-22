@@ -167,7 +167,10 @@ const ROOT_STATIC = {
 }
 
 function injectRoot(html, inner) {
-  return inner ? html.replace('<div id="root"></div>', '<div id="root">' + inner + '</div>') : html
+  // 修复:不再将静态正文注入 #root,避免 React 挂载前闪烁满是文本的页面
+  // 原始: return inner ? html.replace('<div id="root"></div>', '<div id="root">' + inner + '</div>') : html
+  // 现在: 保持 #root 为空,由 React 渲染完整内容
+  return html
 }
 
 // ── 子路由预渲染 SEO HTML ─────────────────────────────────
