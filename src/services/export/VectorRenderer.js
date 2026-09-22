@@ -41,10 +41,16 @@ export function renderPatternDocumentToSVG(doc, options = {}) {
       const r = cellSize / 2 - 1
 
       if (style.beadStyle === 'realistic') {
-        // 拟真珠子：径向渐变
+        // 拟真珠子：径向渐变（高光 → 基色 → 暗部）
+        const r = parseInt(cell.slice(1, 3), 16)
+        const g = parseInt(cell.slice(3, 5), 16)
+        const b = parseInt(cell.slice(5, 7), 16)
+        const lighten = (c, f) => Math.min(255, Math.round(c + (255 - c) * f))
+        const darken = (c, f) => Math.max(0, Math.round(c * (1 - f)))
+        const highlight = `rgb(${lighten(r, 0.35)},${lighten(g, 0.35)},${lighten(b, 0.35)})`
+        const shadow = `rgb(${darken(r, 0.18)},${darken(g, 0.18)},${darken(b, 0.18)})`
         const gradId = `grad-${x}-${y}`
-        const grad = `<radialGradient id="${gradId}" cx="35%" cy="35%">`
-        parts.push(`<defs>${grad}</defs>`)
+        parts.push(`<defs><radialGradient id="${gradId}" cx="35%" cy="35%"><stop offset="0%" stop-color="${highlight}"/><stop offset="50%" stop-color="${cell}"/><stop offset="100%" stop-color="${shadow}"/></radialGradient></defs>`)
         parts.push(`<circle cx="${cx}" cy="${cy}" r="${r}" fill="url(#${gradId})"/>`)
       } else {
         // 专业图纸：平面填充
