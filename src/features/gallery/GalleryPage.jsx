@@ -9,7 +9,7 @@
 
 import { useState, useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
-import { TEMPLATES, CATEGORIES, extractPatternColors } from '../../data/templates'
+import { CATEGORIES, extractPatternColors } from '../../data/templates'
 import { useCustomTemplates } from '../../hooks/useCustomTemplates'
 import { useGalleryQuery } from './hooks/useGalleryQuery'
 
@@ -19,8 +19,6 @@ import { useGalleryQuery } from './hooks/useGalleryQuery'
  * @param {Object} props
  * @param {Array} props.templates - 模板列表（云端或本地）
  * @param {Function} props.onLoadTemplate - 加载模板回调
- * @param {Function} props.onLogin - 登录回调
- * @param {Function} props.onRegister - 注册回调
  */
 export default function GalleryPage({ templates = [], onLoadTemplate, onLogin, onRegister }) {
   const { t } = useTranslation()
