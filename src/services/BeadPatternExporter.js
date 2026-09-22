@@ -100,6 +100,25 @@ export function createDPICanvas(logicalW, logicalH, dpi = 300) {
   return { canvas, scale: actualScale, dpi: Math.round(actualScale * 72) }
 }
 
+/**
+ * 计算图纸物理尺寸
+ *
+ * @param {number} gridWidth - 网格宽度
+ * @param {number} gridHeight - 网格高度
+ @param {number} [beadSizeMm=2.6] - 拼豆直径（mm），COCO 2.6mm / MARD 5mm
+ * @returns {{ widthMm: number, heightMm: number, widthInch: number, heightInch: number }}
+ */
+export function calculatePhysicalSize(gridWidth, gridHeight, beadSizeMm = 2.6) {
+  const widthMm = gridWidth * beadSizeMm
+  const heightMm = gridHeight * beadSizeMm
+  return {
+    widthMm: Math.round(widthMm * 10) / 10,
+    heightMm: Math.round(heightMm * 10) / 10,
+    widthInch: Math.round((widthMm / 25.4) * 100) / 100,
+    heightInch: Math.round((heightMm / 25.4) * 100) / 100,
+  }
+}
+
 // 拟真珠子渲染 — 与 ImageQuantizer 预览保持一致(导出增强:轮廓环让珠子边缘清晰锐利)
 function drawBead(ctx, cx, cy, radius, hexColor) {
   const r = parseInt(hexColor.slice(1, 3), 16)

@@ -2,10 +2,9 @@ import { useState, useMemo, useRef, useEffect } from 'react'
 import { createPortal } from 'react-dom'
 import { useTranslation } from 'react-i18next'
 import { getPalette } from '../data/palettes'
-import { exportAsPNG, exportAsSVG, createScaledCanvas } from '../services/BeadPatternExporter'
 import { createPatternDocument } from '../services/export/PatternDocument'
 import { renderPatternDocumentToPNG } from '../services/export/RasterRenderer'
-import { renderPatternDocumentToSVG, svgStringToBlob } from '../services/export/VectorRenderer'
+import { exportAsPNG, exportAsSVG, createScaledCanvas, calculatePhysicalSize } from '../services/BeadPatternExporter'
 
 export default function ExportPanel({ canvasData, gridSize, gridWidth, gridHeight, designName, paletteId = 'perler', onClose }) {
   const { t } = useTranslation()
@@ -449,6 +448,16 @@ export default function ExportPanel({ canvasData, gridSize, gridWidth, gridHeigh
                   ✓ {t('export.resolution')}: {exportInfo}
                 </div>
               )}
+
+              {/* 物理尺寸信息 */}
+              {(() => {
+                const phys = calculatePhysicalSize(actualWidth, actualHeight)
+                return (
+                  <div style={{ fontSize: 11, color: 'var(--text-secondary)', padding: '4px 2px' }}>
+                    ✓ {t('export.physicalSize', '物理尺寸')}: {phys.widthMm}×{phys.heightMm}mm ({phys.widthInch}×{phys.heightInch}in)
+                  </div>
+                )
+              })()}
               <button onClick={() => requestExport(t('export.patternSheetSVG'), beadStyle === 'professional' ? t('export.professionalDesc') : t('export.realisticDesc'), currentStyleName, handleExportPatternSheetSVG)} className="btn btn-secondary">
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                   <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
