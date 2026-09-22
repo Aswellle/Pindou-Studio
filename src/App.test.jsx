@@ -29,6 +29,10 @@ function installMock2dContext() {
 }
 
 // jsdom 未实现 window.scrollTo(App 的 body scroll lock 在卸载时调用)
+// ProfilePage 和 CreateImagePage 是路由页面,smoke test 中 mock 为简单占位
+vi.mock('./components/ProfilePage', () => ({ default: () => <div data-testid="profile-page" /> }))
+vi.mock('./components/CreateImagePage', () => ({ default: () => <div data-testid="create-image-page" /> }))
+
 beforeAll(() => { window.scrollTo = () => {} })
 
 // jsdom 无 matchMedia(防御:渲染树中组件若使用则不崩)

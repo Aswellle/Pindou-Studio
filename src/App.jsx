@@ -24,8 +24,8 @@ import MobileColorPalette from './components/ColorPalette/MobileColorPalette'
 import { getPalette, PALETTES } from './data/palettes'
 import { PrivacyPolicy, TermsOfService } from './components/LegalPages'
 import MobileCanvasInfoBar from './components/MobileCanvasInfoBar'
+import CreateImagePage from './components/CreateImagePage'
 import ProfilePage from './components/ProfilePage'
-
 const Gallery = lazy(() => import('./components/Gallery'))
 const Tutorials = lazy(() => import('./components/Tutorials'))
 const ImageQuantizer = lazy(() => import('./components/ImageQuantizer/ImageQuantizer'))
@@ -414,6 +414,10 @@ export default function App() {
               onUpdateProfile={updateProfile}
               onChangePassword={changePassword}
             />
+          } />
+
+          <Route path="/create/image" element={
+            <CreateImagePage onApply={handleQuantizerApply} />
           } />
           <Route path="/admin/login" element={renderAdminLoginPage()} />
           <Route path="/admin" element={
