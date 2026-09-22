@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import { supabase } from '../services/supabase'
 import { normalizeCustomTemplate } from '../data/templates'
 
@@ -9,6 +9,14 @@ import { normalizeCustomTemplate } from '../data/templates'
  * - 云端未启用时:enabled=false,调用方回退到本地模式(localStorage)。
  * 行字段为 snake_case,返回给 UI 时映射为 camelCase。
  */
+
+// 云端请求超时(ms)。移动端弱网、切后台、或会话令牌静默刷新阻塞时,fetch 可能
+// 长时间不返回:图库会永久停在「加载中」且没有任何重试入口,表现为「云端模板加载失败」。
+// 超时后转入已有的错误+重试界面,并在网络恢复 / 页面重新可见时自动重试。
+const CLOUD_TIMEOUT_MS = 15000
+
+const isAbortError = (e) => e?.name === 'AbortError' || /abort/i.test(e?.message || '')
+
 const rowToTemplate = (row) => ({
   id: row.id,
   name: row.name,
@@ -42,25 +50,47 @@ export default function useCloudTemplates() {
   const [categories, setCategories] = useState([])
   const [error, setError] = useState('')
 
+  // 上一次拉取是否失败(供网络恢复 / 页面重新可见时判断要不要自动重试)
+  const failedRef = useRef(false)
+
+  // 拉取模板 + 分类(超时由调用方通过 signal 控制;失败抛错交给调用方)
+  const fetchCloudData = useCallback(async (signal) => {
+    const [tplRes, catRes] = await Promise.all([
+      supabase.from('templates').select('*').order('source').order('created_at').abortSignal(signal),
+      supabase.from('categories').select('*').order('id').abortSignal(signal),
+    ])
+    if (tplRes.error) throw tplRes.error
+    if (catRes.error) throw catRes.error
+    return { templates: tplRes.data.map(rowToTemplate), categories: catRes.data }
+  }, [])
+
+  // 带超时的单次拉取:到点主动 abort,避免请求永久挂起把 UI 锁死在「加载中」
+  const fetchWithTimeout = useCallback(async () => {
+    const ctrl = new AbortController()
+    const timer = setTimeout(() => ctrl.abort(), CLOUD_TIMEOUT_MS)
+    try {
+      return await fetchCloudData(ctrl.signal)
+    } finally {
+      clearTimeout(timer)
+    }
+  }, [fetchCloudData])
+
   const loadAll = useCallback(async () => {
     if (!supabase) return
     setLoading(true)
     try {
-      const [tplRes, catRes] = await Promise.all([
-        supabase.from('templates').select('*').order('source').order('created_at'),
-        supabase.from('categories').select('*').order('id'),
-      ])
-      if (tplRes.error) throw tplRes.error
-      if (catRes.error) throw catRes.error
-      setTemplates(tplRes.data.map(rowToTemplate))
-      setCategories(catRes.data)
+      const data = await fetchWithTimeout()
+      setTemplates(data.templates)
+      setCategories(data.categories)
+      failedRef.current = false
       setError('')
     } catch (e) {
-      setError(e.message || String(e))
+      failedRef.current = true
+      setError(isAbortError(e) ? 'timeout' : (e.message || String(e)))
     } finally {
       setLoading(false)
     }
-  }, [])
+  }, [fetchWithTimeout])
 
   useEffect(() => {
     if (enabled) loadAll()
@@ -70,19 +100,30 @@ export default function useCloudTemplates() {
   const refresh = useCallback(async () => {
     if (!supabase) return
     try {
-      const [tplRes, catRes] = await Promise.all([
-        supabase.from('templates').select('*').order('source').order('created_at'),
-        supabase.from('categories').select('*').order('id'),
-      ])
-      if (tplRes.error) throw tplRes.error
-      if (catRes.error) throw catRes.error
-      setTemplates(tplRes.data.map(rowToTemplate))
-      setCategories(catRes.data)
+      const data = await fetchWithTimeout()
+      setTemplates(data.templates)
+      setCategories(data.categories)
+      failedRef.current = false
       setError('')
     } catch (e) {
-      setError(e.message || String(e))
+      failedRef.current = true
+      setError(isAbortError(e) ? 'timeout' : (e.message || String(e)))
     }
-  }, [])
+  }, [fetchWithTimeout])
+
+  // 自愈:上一次拉取失败(含超时)后,网络恢复或页面重新可见时自动重试。
+  // 移动端最常见的就是「切走再回来 / 信号恢复」,不该让用户卡在错误页只能手点重试。
+  useEffect(() => {
+    if (!enabled || !supabase) return undefined
+    const retry = () => { if (failedRef.current) loadAll() }
+    const onVisible = () => { if (document.visibilityState === 'visible') retry() }
+    window.addEventListener('online', retry)
+    document.addEventListener('visibilitychange', onVisible)
+    return () => {
+      window.removeEventListener('online', retry)
+      document.removeEventListener('visibilitychange', onVisible)
+    }
+  }, [enabled, loadAll])
 
   // 实时订阅:模板/分类被增删改(管理员操作或他人)时自动刷新,无需手动刷新/切 tab
   useEffect(() => {
