@@ -24,6 +24,7 @@ import MobileColorPalette from './components/ColorPalette/MobileColorPalette'
 import { getPalette, PALETTES } from './data/palettes'
 import { PrivacyPolicy, TermsOfService } from './components/LegalPages'
 import MobileCanvasInfoBar from './components/MobileCanvasInfoBar'
+import ProfilePage from './components/ProfilePage'
 
 const Gallery = lazy(() => import('./components/Gallery'))
 const Tutorials = lazy(() => import('./components/Tutorials'))
@@ -405,6 +406,14 @@ export default function App() {
             <Suspense fallback={<LoadingScreen />}>
               <Tutorials />
             </Suspense>
+          } />
+          <Route path="/profile" element={
+            <ProfilePage
+              user={user}
+              onLogout={logout}
+              onUpdateProfile={updateProfile}
+              onChangePassword={changePassword}
+            />
           } />
           <Route path="/admin/login" element={renderAdminLoginPage()} />
           <Route path="/admin" element={
