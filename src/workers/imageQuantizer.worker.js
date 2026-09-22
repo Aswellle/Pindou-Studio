@@ -23,7 +23,7 @@ function radToDeg(r) {
 
 // ==================== 颜色空间转换 ====================
 
-function srgbToLinear(v) {
+export function srgbToLinear(v) {
   const c = v / 255;
   return c <= 0.04045 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4);
 }
@@ -37,7 +37,7 @@ function labF(t) {
   return t > 0.008856 ? Math.cbrt(t) : (7.787 * t + 16 / 116);
 }
 
-function rgbToLab(r, g, b) {
+export function rgbToLab(r, g, b) {
   const rl = srgbToLinear(r);
   const gl = srgbToLinear(g);
   const bl = srgbToLinear(b);
@@ -81,7 +81,7 @@ function labToRgb(L, a, b) {
 // ==================== OKLab 颜色空间 (Björn Ottosson) ====================
 
 // sRGB → Linear RGB → LMS（使用 OKLab 标准矩阵）
-function linearRgbToLms(r, g, b) {
+export function linearRgbToLms(r, g, b) {
   return [
     r * 0.4122214708 + g * 0.5363325363 + b * 0.0514459929,
     r * 0.2119034982 + g * 0.6806995451 + b * 0.1073969566,
@@ -90,7 +90,7 @@ function linearRgbToLms(r, g, b) {
 }
 
 // LMS → OKLab（立方根 + 线性变换）
-function lmsToOklab(l, m, s) {
+export function lmsToOklab(l, m, s) {
   const l_ = Math.cbrt(l);
   const m_ = Math.cbrt(m);
   const s_ = Math.cbrt(s);
@@ -101,7 +101,7 @@ function lmsToOklab(l, m, s) {
   ];
 }
 // CIELAB → OKLab（用于 nearestColor 输入转换）
-function labToOklab(lab) {
+export function labToOklab(lab) {
   const [L, a, b] = lab;
   // Lab → XYZ (D65)
   const fy = (L + 16) / 116;
@@ -127,7 +127,7 @@ function labToOklab(lab) {
 }
 
 // sRGB → OKLab（完整管线）
-function rgbToOklab(r, g, b) {
+export function rgbToOklab(r, g, b) {
   const rl = srgbToLinear(r);
   const gl = srgbToLinear(g);
   const bl = srgbToLinear(b);
@@ -137,7 +137,7 @@ function rgbToOklab(r, g, b) {
 }
 
 // OKLab → sRGB（反转换）
-function oklabToRgb(L, a, b) {
+export function oklabToRgb(L, a, b) {
   const l_ = L + 0.3963377774 * a + 0.2158037573 * b;
   const m_ = L - 0.1055613458 * a - 0.0638541728 * b;
   const s_ = L - 0.0894841775 * a - 1.2914855480 * b;
@@ -158,7 +158,7 @@ function oklabToRgb(L, a, b) {
 }
 
 // OKLab 色差（欧氏距离）
-function deltaEOKLab(lab1, lab2) {
+export function deltaEOKLab(lab1, lab2) {
   const dL = lab1[0] - lab2[0];
   const da = lab1[1] - lab2[1];
   const db = lab1[2] - lab2[2];
@@ -172,7 +172,7 @@ function oklabToLch(L, a, b) {
 
 // OKLab 加权色差（参考改进文档建议权重）
 // wL=1.30, wC=0.85, wH=1.00 — 明度权重更高，因为拼豆图纸中明度结构比色相更关键
-function deltaEOKLabWeighted(lab1, lab2) {
+export function deltaEOKLabWeighted(lab1, lab2) {
   const [L1, a1, b1] = lab1;
   const [L2, a2, b2] = lab2;
   const [L1c, C1, H1] = oklabToLch(L1, a1, b1);
@@ -192,7 +192,7 @@ function deltaEOKLabWeighted(lab1, lab2) {
 
 // ==================== CIEDE2000 ====================
 
-function deltaE2000(lab1, lab2) {
+export function deltaE2000(lab1, lab2) {
   const [L1, a1, b1] = lab1;
   const [L2, a2, b2] = lab2;
 
@@ -255,7 +255,7 @@ function deltaE2000(lab1, lab2) {
 }
 
 // 快速色差（CIEDE76）
-function deltaEFast(lab1, lab2) {
+export function deltaEFast(lab1, lab2) {
   const dL = lab1[0] - lab2[0];
   const da = lab1[1] - lab2[1];
   const db = lab1[2] - lab2[2];
@@ -402,7 +402,9 @@ function kmeansSelectPalette(imageData, maxColors, palette, paletteLabs, bgMask,
   }
 
   if (!samples.length || maxColors >= palette.length) {
-    return { palette, labs };
+    // 与下面的子集分支保持同一形状:调用方(nearestColor / spatialRefinement / cleanup)
+    // 一律按 paletteLabs.labs|oklabs 读取,返回纯数组会读到 undefined
+    return { palette, labs: { labs: paletteLabs.labs, oklabs: paletteLabs.oklabs } };
   }
 
   const k = Math.min(maxColors, samples.length);
@@ -472,7 +474,13 @@ function kmeansSelectPalette(imageData, maxColors, palette, paletteLabs, bgMask,
   }
 
   const subset = picked.map((i) => palette[i]);
-  const subsetLabs = picked.map((i) => labs[i]);
+  // 返回与 getPaletteLabs 相同的双空间形状({ labs, oklabs }):
+  // nearestColor / spatialRefinement / cleanupIsolatedBeads / suppressCheckerboard
+  // 都按 paletteLabs.labs|oklabs 读取,这里返回纯数组会让它们读到 undefined 而抛错。
+  const subsetLabs = {
+    labs: picked.map((i) => paletteLabs.labs[i]),
+    oklabs: picked.map((i) => paletteLabs.oklabs[i]),
+  };
   return { palette: subset, labs: subsetLabs };
 }
 
@@ -749,6 +757,8 @@ function spatialRefinement(outIdx, areaColors, activePalette, activeLabs, outW, 
         if (!areaColors[idx] || current[idx] === BLANK) continue;
 
         const targetLab = areaColors[idx].lab;
+        // 保真度代价必须与 paletteLabs 同空间(oklab 时先转换);nearestColor 内部自行转换
+        const targetWorkLab = useOklab ? labToOklab(targetLab) : targetLab;
         let bestCost = Infinity, bestColor = current[idx];
 
         const neighbors = [];
@@ -763,7 +773,7 @@ function spatialRefinement(outIdx, areaColors, activePalette, activeLabs, outW, 
         candidates.add(nearestColor(targetLab, activePalette, activeLabs, colorSpace));
 
         for (const ci of candidates) {
-          const fidelityCost = distFn(targetLab, paletteLabs[ci]);
+          const fidelityCost = distFn(targetWorkLab, paletteLabs[ci]);
           let smoothCost = 0;
           for (const n of neighbors) {
             if (n !== ci) smoothCost += smoothDistFn(paletteLabs[ci], paletteLabs[n]);
@@ -796,7 +806,7 @@ function spatialRefinement(outIdx, areaColors, activePalette, activeLabs, outW, 
  * 只有当色距小于阈值时才替换，避免破坏眼睛、瞳孔等重要细节。
  * 禁止简单 majority filter — 必须同时考虑颜色距离和邻域一致性。
  */
-function cleanupIsolatedBeads(outIdx, areaColors, activePalette, activeLabs, outW, outH, colorSpace, threshold) {
+export function cleanupIsolatedBeads(outIdx, areaColors, activePalette, activeLabs, outW, outH, colorSpace, threshold) {
   const useOklab = colorSpace === 'oklab';
   const distFn = useOklab ? deltaEOKLabWeighted : deltaE2000;
   const total = outW * outH;
@@ -839,7 +849,10 @@ function cleanupIsolatedBeads(outIdx, areaColors, activePalette, activeLabs, out
       if (maxCount < Math.ceil(neighbors.length / 2)) continue;
 
       // 计算将当前颜色替换为主导颜色时的色距
-      const currentLab = areaColors[idx].oklab || rgbToOklab(areaColors[idx].rgb[0], areaColors[idx].rgb[1], areaColors[idx].rgb[2]);
+      // 必须与 dominantLab 同空间:默认(lab)模式下拿 OKLab 值去比 CIEDE2000 会得到无意义色距
+      const currentLab = useOklab
+        ? rgbToOklab(areaColors[idx].rgb[0], areaColors[idx].rgb[1], areaColors[idx].rgb[2])
+        : areaColors[idx].lab;
       const dominantLab = useOklab ? activeLabs.oklabs[dominantColor] : activeLabs.labs[dominantColor];
       const colorDist = distFn(currentLab, dominantLab);
 
@@ -862,7 +875,7 @@ function cleanupIsolatedBeads(outIdx, areaColors, activePalette, activeLabs, out
  * 将孤立棋盘格子重新映射为邻域主导颜色，减少量化产生的棋盘噪点。
  * 仅在明确棋盘模式区域操作，不破坏真实细节。
  */
-function suppressCheckerboard(outIdx, areaColors, activePalette, activeLabs, outW, outH, colorSpace, threshold) {
+export function suppressCheckerboard(outIdx, areaColors, activePalette, activeLabs, outW, outH, colorSpace, threshold) {
   const useOklab = colorSpace === 'oklab';
   const distFn = useOklab ? deltaEOKLabWeighted : deltaE2000;
   const total = outW * outH;
@@ -1147,7 +1160,9 @@ self.onmessage = (event) => {
             outIdx[idx] = colorIndex;
             outCounts[colorIndex] += 1;
 
-            const matchedLab = activeLabs[colorIndex];
+            // 误差扩散缓冲(bufferL/A/B)存的是 Lab 空间数值,匹配色也必须取 Lab 表示;
+            // oklab 模式下 OKLab 的 L 量级为 0–1,与 Lab 的 0–100 混用会让扩散误差失真
+            const matchedLab = activeLabs.labs[colorIndex];
             let errL = bufferL[idx] - matchedLab[0];
             let errA = bufferA[idx] - matchedLab[1];
             let errB = bufferB[idx] - matchedLab[2];
