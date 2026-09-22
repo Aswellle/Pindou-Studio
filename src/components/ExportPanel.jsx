@@ -3,7 +3,9 @@ import { createPortal } from 'react-dom'
 import { useTranslation } from 'react-i18next'
 import { getPalette } from '../data/palettes'
 import { exportAsPNG, exportAsSVG, createScaledCanvas } from '../services/BeadPatternExporter'
-import { resolveToHex } from '../services/colorUtils'
+import { createPatternDocument } from '../services/export/PatternDocument'
+import { renderPatternDocumentToPNG } from '../services/export/RasterRenderer'
+import { renderPatternDocumentToSVG, svgStringToBlob } from '../services/export/VectorRenderer'
 
 export default function ExportPanel({ canvasData, gridSize, gridWidth, gridHeight, designName, paletteId = 'perler', onClose }) {
   const { t } = useTranslation()
@@ -17,6 +19,8 @@ export default function ExportPanel({ canvasData, gridSize, gridWidth, gridHeigh
   const [exportError, setExportError] = useState(null)
   const [exportInfo, setExportInfo] = useState('') // 导出后显示实际分辨率(验证超采样生效)
   const [beadStyle, setBeadStyle] = useState('professional')
+  // Feature Flag: 新导出路径(PatternDocument)，默认关闭使用旧路径
+  const [useExportV2, setUseExportV2] = useState(false)
   const palette = getPalette(paletteId)
   const panelRef = useRef(null)
 
@@ -69,6 +73,31 @@ export default function ExportPanel({ canvasData, gridSize, gridWidth, gridHeigh
     if (!canvasData || isExporting) return
     setIsExporting(true)
     try {
+
+      // Feature Flag: 新导出路径 (PatternDocument → RasterRenderer)
+      if (useExportV2) {
+        const doc = createPatternDocument({
+          canvasData,
+          gridSize,
+          gridWidth,
+          gridHeight,
+          paletteId,
+          designName: effectiveName,
+          beadStyle,
+        })
+        const blob = await renderPatternDocumentToPNG(doc, {
+          onProgress: setExportProgress,
+        })
+        const url = URL.createObjectURL(blob)
+        const link = document.createElement('a')
+        link.download = `bead-pattern-${actualWidth}x${actualHeight}.png`
+        link.href = url
+        link.click()
+        setTimeout(() => URL.revokeObjectURL(url), 1000)
+        return
+      }
+
+      // 旧路径 (BeadPatternExporter 直接绘制)
       const CELL_SIZE = 20
       const BEAD_RADIUS = CELL_SIZE / 2 - 1
 
@@ -187,6 +216,30 @@ export default function ExportPanel({ canvasData, gridSize, gridWidth, gridHeigh
 
   const handleExportSVG = () => {
     if (!canvasData) return
+
+    // Feature Flag: 新导出路径 (PatternDocument → VectorRenderer)
+    if (useExportV2) {
+      const doc = createPatternDocument({
+        canvasData,
+        gridSize,
+        gridWidth,
+        gridHeight,
+        paletteId,
+        designName: effectiveName,
+        beadStyle,
+      })
+      const svgString = renderPatternDocumentToSVG(doc)
+      const blob = svgStringToBlob(svgString)
+      const url = URL.createObjectURL(blob)
+      const link = document.createElement('a')
+      link.download = `bead-pattern-${actualWidth}x${actualHeight}.svg`
+      link.href = url
+      link.click()
+      setTimeout(() => URL.revokeObjectURL(url), 1000)
+      return
+    }
+
+    // 旧路径 (直接拼接 SVG)
 
     const CELL_SIZE = 20
     const BEAD_RADIUS = CELL_SIZE / 2 - 1
@@ -353,6 +406,21 @@ export default function ExportPanel({ canvasData, gridSize, gridWidth, gridHeigh
                 {beadStyle === 'professional'
                   ? t('export.professionalHint')
                   : t('export.realisticHint')}
+              </span>
+            </div>
+
+            {/* Feature Flag: 新导出路径开关（默认关闭） */}
+            <div className="export-style-group">
+              <label className="export-v2-toggle">
+                <input
+                  type="checkbox"
+                  checked={useExportV2}
+                  onChange={e => setUseExportV2(e.target.checked)}
+                />
+                <span>{t('export.useV2', '使用新导出引擎')}</span>
+              </label>
+              <span className="setting-hint">
+                {t('export.v2Hint', '基于 PatternDocument 的统一渲染（实验性）')}
               </span>
             </div>
             <div className="export-buttons">
