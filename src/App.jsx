@@ -27,8 +27,8 @@ import MobileCanvasInfoBar from './components/MobileCanvasInfoBar'
 import CreateImagePage from './components/CreateImagePage'
 import ProfilePage from './components/ProfilePage'
 const Gallery = lazy(() => import('./components/Gallery'))
+import AdminDashboardPage from './components/AdminDashboardPage'
 const Tutorials = lazy(() => import('./components/Tutorials'))
-const ImageQuantizer = lazy(() => import('./components/ImageQuantizer/ImageQuantizer'))
 // AdminPanel 同步引入:登录后进入后台无懒加载等待,避免画面闪动
 import AdminPanel from './components/AdminPanel'
 
@@ -418,6 +418,10 @@ export default function App() {
 
           <Route path="/create/image" element={
             <CreateImagePage onApply={handleQuantizerApply} />
+          } />
+
+          <Route path="/admin/dashboard" element={
+            <AdminDashboardPage cloudStore={cloudStore} />
           } />
           <Route path="/admin/login" element={renderAdminLoginPage()} />
           <Route path="/admin" element={
