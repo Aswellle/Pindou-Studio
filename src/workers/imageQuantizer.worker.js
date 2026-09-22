@@ -78,6 +78,117 @@ function labToRgb(L, a, b) {
     clamp(linearToSrgb(bl2), 0, 255)
   ];
 }
+// ==================== OKLab 颜色空间 (Björn Ottosson) ====================
+
+// sRGB → Linear RGB → LMS（使用 OKLab 标准矩阵）
+function linearRgbToLms(r, g, b) {
+  return [
+    r * 0.4122214708 + g * 0.5363325363 + b * 0.0514459929,
+    r * 0.2119034982 + g * 0.6806995451 + b * 0.1073969566,
+    r * 0.0883024619 + g * 0.2817188376 + b * 0.6299787005
+  ];
+}
+
+// LMS → OKLab（立方根 + 线性变换）
+function lmsToOklab(l, m, s) {
+  const l_ = Math.cbrt(l);
+  const m_ = Math.cbrt(m);
+  const s_ = Math.cbrt(s);
+  return [
+    0.2104542553 * l_ + 0.7936177850 * m_ - 0.0040720468 * s_,
+    1.9779984951 * l_ - 2.4285922050 * m_ + 0.4505937099 * s_,
+    0.0259040371 * l_ + 0.7827717662 * m_ - 0.8086757660 * s_
+  ];
+}
+// CIELAB → OKLab（用于 nearestColor 输入转换）
+function labToOklab(lab) {
+  const [L, a, b] = lab;
+  // Lab → XYZ (D65)
+  const fy = (L + 16) / 116;
+  const fx = a / 500 + fy;
+  const fz = fy - b / 200;
+
+  const labFInv = (t) => t > 6 / 29 ? t * t * t : 3 * (6 / 29) * (6 / 29) * (t - 4 / 29);
+  const xn = 0.95047, yn = 1.0, zn = 1.08883;
+  const x = xn * labFInv(fx);
+  const y = yn * labFInv(fy);
+  const z = zn * labFInv(fz);
+
+  // XYZ → Linear RGB
+  const rl = 3.2406 * x - 1.5372 * y - 0.4986 * z;
+  const gl = -0.9689 * x + 1.8758 * y + 0.0415 * z;
+  const bl = 0.0557 * x - 0.2040 * y + 1.0570 * z;
+
+  // Linear RGB → LMS → OKLab
+  const [l, m, s] = linearRgbToLms(
+    Math.max(0, rl), Math.max(0, gl), Math.max(0, bl)
+  );
+  return lmsToOklab(l, m, s);
+}
+
+// sRGB → OKLab（完整管线）
+function rgbToOklab(r, g, b) {
+  const rl = srgbToLinear(r);
+  const gl = srgbToLinear(g);
+  const bl = srgbToLinear(b);
+  const [l, m, s] = linearRgbToLms(rl, gl, bl);
+  // OKLab 要求 LMS 分量非负（超出色域的颜色可能出现负值，钳制到 0）
+  return lmsToOklab(Math.max(0, l), Math.max(0, m), Math.max(0, s));
+}
+
+// OKLab → sRGB（反转换）
+function oklabToRgb(L, a, b) {
+  const l_ = L + 0.3963377774 * a + 0.2158037573 * b;
+  const m_ = L - 0.1055613458 * a - 0.0638541728 * b;
+  const s_ = L - 0.0894841775 * a - 1.2914855480 * b;
+
+  const l = l_ * l_ * l_;
+  const m = m_ * m_ * m_;
+  const s = s_ * s_ * s_;
+
+  const rl = +4.0767416621 * l - 3.3077115913 * m + 0.2309699292 * s;
+  const gl = -1.2684380046 * l + 2.6097574011 * m - 0.3413193965 * s;
+  const bl = -0.0041960863 * l - 0.7034186147 * m + 1.7076147010 * s;
+
+  return [
+    clamp(linearToSrgb(rl), 0, 255),
+    clamp(linearToSrgb(gl), 0, 255),
+    clamp(linearToSrgb(bl), 0, 255)
+  ];
+}
+
+// OKLab 色差（欧氏距离）
+function deltaEOKLab(lab1, lab2) {
+  const dL = lab1[0] - lab2[0];
+  const da = lab1[1] - lab2[1];
+  const db = lab1[2] - lab2[2];
+  return Math.sqrt(dL * dL + da * da + db * db);
+}
+
+// OKLab → OKLCH
+function oklabToLch(L, a, b) {
+  return [L, Math.sqrt(a * a + b * b), Math.atan2(b, a)];
+}
+
+// OKLab 加权色差（参考改进文档建议权重）
+// wL=1.30, wC=0.85, wH=1.00 — 明度权重更高，因为拼豆图纸中明度结构比色相更关键
+function deltaEOKLabWeighted(lab1, lab2) {
+  const [L1, a1, b1] = lab1;
+  const [L2, a2, b2] = lab2;
+  const [L1c, C1, H1] = oklabToLch(L1, a1, b1);
+  const [L2c, C2, H2] = oklabToLch(L2, a2, b2);
+
+  const dL = L1c - L2c;
+  const dC = C1 - C2;
+  let dH = H1 - H2;
+  if (dH > Math.PI) dH -= 2 * Math.PI;
+  if (dH < -Math.PI) dH += 2 * Math.PI;
+
+  const wL = 1.30, wC = 0.85, wH = 1.00;
+  return Math.sqrt(wL * dL * dL + wC * dC * dC + wH * dH * dH);
+}
+
+// ==================== CIEDE2000 ====================
 
 // ==================== CIEDE2000 ====================
 
@@ -264,12 +375,20 @@ function getPaletteLabs(palette) {
   const key = palette.map((p) => p.id).join('|');
   if (paletteCache.has(key)) return paletteCache.get(key);
   const labs = palette.map((p) => rgbToLab(p.rgb.r, p.rgb.g, p.rgb.b));
-  paletteCache.set(key, { key, labs });
-  return { key, labs };
+  const oklabs = palette.map((p) => rgbToOklab(p.rgb.r, p.rgb.g, p.rgb.b));
+  paletteCache.set(key, { key, labs, oklabs });
+  return { key, labs, oklabs };
 }
 
 // K-means++ 调色板选择
-function kmeansSelectPalette(imageData, maxColors, palette, paletteLabs, bgMask, highQuality) {
+// colorSpace: 'lab' (默认, CIEDE2000) 或 'oklab' (OKLab 感知均匀)
+function kmeansSelectPalette(imageData, maxColors, palette, paletteLabs, bgMask, highQuality, colorSpace) {
+  const useOklab = colorSpace === 'oklab';
+  const labs = useOklab ? paletteLabs.oklabs : paletteLabs.labs;
+  const distFn = useOklab ? deltaEOKLab : deltaEFast;
+  const mapDistFn = useOklab ? deltaEOKLabWeighted : deltaE2000;
+  const toColorSpace = useOklab ? rgbToOklab : rgbToLab;
+
   const { data, width, height } = imageData;
   const total = width * height;
   const targetSamples = highQuality ? 22000 : 8000;
@@ -279,11 +398,11 @@ function kmeansSelectPalette(imageData, maxColors, palette, paletteLabs, bgMask,
   for (let i = 0; i < total; i += stride) {
     if (bgMask && bgMask[i]) continue;
     const o = i * 4;
-    samples.push(rgbToLab(data[o], data[o + 1], data[o + 2]));
+    samples.push(toColorSpace(data[o], data[o + 1], data[o + 2]));
   }
 
   if (!samples.length || maxColors >= palette.length) {
-    return { palette, labs: paletteLabs.labs };
+    return { palette, labs };
   }
 
   const k = Math.min(maxColors, samples.length);
@@ -294,7 +413,7 @@ function kmeansSelectPalette(imageData, maxColors, palette, paletteLabs, bgMask,
     const dists = samples.map((s) => {
       let best = Infinity;
       for (const c of centers) {
-        const d = deltaEFast(s, c);
+        const d = distFn(s, c);
         if (d < best) best = d;
       }
       return best * best;
@@ -315,7 +434,7 @@ function kmeansSelectPalette(imageData, maxColors, palette, paletteLabs, bgMask,
       const s = samples[i];
       let best = 0, bestDist = Infinity;
       for (let c = 0; c < centers.length; c += 1) {
-        const d = deltaEFast(s, centers[c]);
+        const d = distFn(s, centers[c]);
         if (d < bestDist) { bestDist = d; best = c; }
       }
       assign[i] = best;
@@ -336,7 +455,7 @@ function kmeansSelectPalette(imageData, maxColors, palette, paletteLabs, bgMask,
   const mapped = centers.map((cen) => {
     let best = 0, bestDist = Infinity;
     for (let p = 0; p < palette.length; p += 1) {
-      const d = deltaE2000(cen, paletteLabs.labs[p]);
+      const d = mapDistFn(cen, labs[p]);
       if (d < bestDist) { bestDist = d; best = p; }
     }
     return { index: best, dist: bestDist };
@@ -353,24 +472,32 @@ function kmeansSelectPalette(imageData, maxColors, palette, paletteLabs, bgMask,
   }
 
   const subset = picked.map((i) => palette[i]);
-  const subsetLabs = picked.map((i) => paletteLabs.labs[i]);
+  const subsetLabs = picked.map((i) => labs[i]);
   return { palette: subset, labs: subsetLabs };
 }
 
-function nearestColor(lab, palette, paletteLabs) {
+function nearestColor(lab, palette, paletteLabs, colorSpace) {
+  const useOklab = colorSpace === 'oklab';
+  const labs = useOklab ? paletteLabs.oklabs : paletteLabs.labs;
+  const distFn = useOklab ? deltaEOKLabWeighted : deltaE2000;
+  // 当使用 OKLab 空间时，将 Lab 输入转换为 OKLab 进行比较
+  const inputLab = useOklab ? labToOklab(lab) : lab;
   let best = 0, bestDist = Infinity;
   for (let i = 0; i < palette.length; i += 1) {
-    const d = deltaE2000(lab, paletteLabs[i]);
+    const d = distFn(inputLab, labs[i]);
     if (d < bestDist) { bestDist = d; best = i; }
   }
   return best;
 }
 
-// 返回索引和色差值（供未来扩展使用）
-function nearestColorWithDist(lab, palette, paletteLabs) {
+function nearestColorWithDist(lab, palette, paletteLabs, colorSpace) {
+  const useOklab = colorSpace === 'oklab';
+  const labs = useOklab ? paletteLabs.oklabs : paletteLabs.labs;
+  const distFn = useOklab ? deltaEOKLabWeighted : deltaE2000;
+  const inputLab = useOklab ? labToOklab(lab) : lab;
   let best = 0, bestDist = Infinity;
   for (let i = 0; i < palette.length; i += 1) {
-    const d = deltaE2000(lab, paletteLabs[i]);
+    const d = distFn(inputLab, labs[i]);
     if (d < bestDist) { bestDist = d; best = i; }
   }
   return { index: best, dist: bestDist };
@@ -606,7 +733,11 @@ function applyUnsharpMask(data, width, height, amount, radius) {
 
 // ==================== ICM 空间优化 ====================
 
-function spatialRefinement(outIdx, areaColors, activePalette, activeLabs, outW, outH, iterations, spatialWeight) {
+function spatialRefinement(outIdx, areaColors, activePalette, activeLabs, outW, outH, iterations, spatialWeight, colorSpace) {
+  const useOklab = colorSpace === 'oklab';
+  const paletteLabs = useOklab ? activeLabs.oklabs : activeLabs.labs;
+  const distFn = useOklab ? deltaEOKLabWeighted : deltaE2000;
+  const smoothDistFn = useOklab ? deltaEOKLab : deltaEFast;
   const total = outW * outH;
   const current = new Uint16Array(outIdx);
 
@@ -629,13 +760,13 @@ function spatialRefinement(outIdx, areaColors, activePalette, activeLabs, outW, 
         const candidates = new Set();
         candidates.add(current[idx]);
         for (const n of neighbors) candidates.add(n);
-        candidates.add(nearestColor(targetLab, activePalette, activeLabs));
+        candidates.add(nearestColor(targetLab, activePalette, activeLabs, colorSpace));
 
         for (const ci of candidates) {
-          const fidelityCost = deltaE2000(targetLab, activeLabs[ci]);
+          const fidelityCost = distFn(targetLab, paletteLabs[ci]);
           let smoothCost = 0;
           for (const n of neighbors) {
-            if (n !== ci) smoothCost += deltaEFast(activeLabs[ci], activeLabs[n]);
+            if (n !== ci) smoothCost += smoothDistFn(paletteLabs[ci], paletteLabs[n]);
           }
           smoothCost = neighbors.length > 0 ? smoothCost / neighbors.length : 0;
           const totalCost = fidelityCost + spatialWeight * smoothCost;
@@ -649,7 +780,7 @@ function spatialRefinement(outIdx, areaColors, activePalette, activeLabs, outW, 
   }
 
   const counts = new Array(activePalette.length).fill(0);
-  for (let i = 0; i < total; i++) {
+  for (let i = 0; i < total; i += 1) {
     outIdx[i] = current[i];
     if (current[i] !== BLANK) counts[current[i]] += 1;
   }
@@ -681,7 +812,8 @@ self.onmessage = (event) => {
         brightness = 0,
         contrast = 0,
         highQuality: inputHighQuality,   // Phase 2: 外部控制质量模式
-        removeBackground = true          // Phase 4: 背景移除开关
+        removeBackground = true,        // Phase 4: 背景移除开关
+        colorSpace = 'lab'              // 'lab' (CIEDE2000) 或 'oklab' (OKLab 感知均匀)
       } = payload;
 
       const outW = gridWidth || gridSize;
@@ -744,9 +876,9 @@ self.onmessage = (event) => {
       // K-means++ 调色板选择
       let subset;
       if (hasHiRes) {
-        subset = kmeansSelectPalette({ data: hiResData, width: hiResW, height: hiResH }, safeMaxColors, palette, paletteLabs, bgMask, highQuality);
+        subset = kmeansSelectPalette({ data: hiResData, width: hiResW, height: hiResH }, safeMaxColors, palette, paletteLabs, bgMask, highQuality, colorSpace);
       } else {
-        subset = kmeansSelectPalette({ data: hiResData, width: hiResW, height: hiResH }, safeMaxColors, palette, paletteLabs, null, highQuality);
+        subset = kmeansSelectPalette({ data: hiResData, width: hiResW, height: hiResH }, safeMaxColors, palette, paletteLabs, null, highQuality, colorSpace);
       }
       const activePalette = subset.palette;
       const activeLabs = subset.labs;
@@ -773,6 +905,15 @@ self.onmessage = (event) => {
             [r, g, b] = applyBrightnessContrastLinear(r, g, b, brightness, contrast);
           }
           areaColors[i] = { lab: rgbToLab(r, g, b), rgb: [r, g, b] };
+        }
+      }
+
+      // 当使用 OKLab 色彩空间时，将 areaColors 的 lab 转为 OKLab 供匹配使用
+      if (colorSpace === 'oklab') {
+        for (let i = 0; i < areaColors.length; i += 1) {
+          if (areaColors[i]) {
+            areaColors[i].oklab = rgbToOklab(areaColors[i].rgb[0], areaColors[i].rgb[1], areaColors[i].rgb[2]);
+          }
         }
       }
 
@@ -837,7 +978,7 @@ self.onmessage = (event) => {
             if (isTransparent[idx]) continue;
 
             const lab = [bufferL[idx], bufferA[idx], bufferB[idx]];
-            const colorIndex = nearestColor(lab, activePalette, activeLabs);
+            const colorIndex = nearestColor(lab, activePalette, activeLabs, colorSpace);
             outIdx[idx] = colorIndex;
             outCounts[colorIndex] += 1;
 
@@ -889,7 +1030,7 @@ self.onmessage = (event) => {
             const amount = 12 * varFactor * resolutionFactor;
             lab[0] = clamp(lab[0] + t * amount, 0, 100);
 
-            const colorIndex = nearestColor(lab, activePalette, activeLabs);
+            const colorIndex = nearestColor(lab, activePalette, activeLabs, colorSpace);
             outIdx[idx] = colorIndex;
             outCounts[colorIndex] += 1;
           }
@@ -900,7 +1041,7 @@ self.onmessage = (event) => {
           for (let x = 0; x < outW; x += 1) {
             const idx = y * outW + x;
             if (!areaColors[idx]) { outIdx[idx] = BLANK; continue; }
-            const colorIndex = nearestColor(areaColors[idx].lab, activePalette, activeLabs);
+            const colorIndex = nearestColor(areaColors[idx].lab, activePalette, activeLabs, colorSpace);
             outIdx[idx] = colorIndex;
             outCounts[colorIndex] += 1;
           }
@@ -914,7 +1055,7 @@ self.onmessage = (event) => {
         const minDim = Math.min(outW, outH);
         const spatialWeight = minDim <= 30 ? 0.25 : (minDim <= 50 ? 0.18 : minDim <= 80 ? 0.12 : 0.07);
         const refinementIters = highQuality ? 4 : 2;
-        outCounts = spatialRefinement(outIdx, areaColors, activePalette, activeLabs, outW, outH, refinementIters, spatialWeight);
+        outCounts = spatialRefinement(outIdx, areaColors, activePalette, activeLabs, outW, outH, refinementIters, spatialWeight, colorSpace);
       }
 
       self.postMessage({ type: 'PROGRESS', progress: 90 });
