@@ -44,10 +44,14 @@ create or replace function public.get_contact_thread(p_participant_id text, p_li
 returns table (id bigint, author text, message text, created_at timestamptz)
 language plpgsql security definer stable
 set search_path = public
-as $$
 begin
   if p_participant_id is null or p_participant_id = '' then
     raise exception 'invalid_participant';
+  end if;
+  -- IDOR 修复:已认证用户只能读取自己的线程(auth.uid() = participant_id)
+  -- 匿名访客(auth.uid() 为 null)保持原有行为
+  if auth.uid() is not null and p_participant_id::uuid != auth.uid() then
+    raise exception 'not authorized';
   end if;
   return query
     select c.id, c.author, c.message, c.created_at
