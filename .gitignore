@@ -69,6 +69,10 @@ CLAUDE.md
 系统架构与DB设计.md
 重构PRD.md
 sidebar_test.png
+BASELINE_REPORT.md
+CURRENT_ARCHITECTURE.md
+IMPACT_MAP.md
+PHASE_A_REPORT.md
 
 .vercel
 .env*
