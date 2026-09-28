@@ -27,6 +27,9 @@ create policy "contact_messages_admin_read"
   using (public.is_admin());
 
 -- ── 读取留言(security definer + is_admin 校验) ───────────────
+-- 重跑安全:0014 把返回列改成了 participant_id/author,create or replace 无法变更
+-- 返回类型(42P13),故先 drop 再建;末尾 grant 会重新授权。
+drop function if exists public.admin_list_contact_messages(int);
 create or replace function public.admin_list_contact_messages(p_limit int default 30)
 returns table (id bigint, email text, message text, created_at timestamptz)
 language plpgsql security definer stable

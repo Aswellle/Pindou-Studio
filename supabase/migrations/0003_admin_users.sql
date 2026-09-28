@@ -8,6 +8,9 @@
 -- ============================================================
 
 -- ── 用户列表(搜索 + 分页) ──────────────────────────────────
+-- 重跑安全:后续迁移(0008/0009/0010)改过此函数的返回列,create or replace 无法变更
+-- 返回类型(42P13: cannot change return type),故先 drop 再建;末尾 grant 会重新授权。
+drop function if exists public.admin_list_users(text, int, int);
 create or replace function public.admin_list_users(
   search text default '',
   page int default 0,

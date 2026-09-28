@@ -26,6 +26,9 @@ jobs:
       - name: Check i18n key parity
         run: npm run check-i18n
 
+      - name: Check migration version uniqueness
+        run: npm run check-migrations
+
       - name: Build
         run: npm run build
 

@@ -44,6 +44,7 @@ create or replace function public.get_contact_thread(p_participant_id text, p_li
 returns table (id bigint, author text, message text, created_at timestamptz)
 language plpgsql security definer stable
 set search_path = public
+as $$
 begin
   if p_participant_id is null or p_participant_id = '' then
     raise exception 'invalid_participant';

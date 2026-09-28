@@ -47,7 +47,7 @@ const workToRow = (w) => ({
   palette_id: w.paletteId || 'perler',
   saved_at: w.savedAt,
 })
-// 登录迁移去重键:与 0002_works.sql 的唯一索引 (user_id, saved_at, name) 对应
+// 登录迁移去重键:与 0017_works.sql 的唯一索引 (user_id, saved_at, name) 对应
 const dedupKey = (w) => `${w.savedAt}|${w.name}`
 
 /**

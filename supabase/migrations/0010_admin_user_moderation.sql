@@ -22,6 +22,9 @@ create policy "removed_accounts_admin_all"
   using (public.is_admin()) with check (public.is_admin());
 
 -- ── 登录门禁状态:解析邮箱/用户名 → banned | deleted | none ──
+-- 重跑安全:0011 把返回类型改成了 table(status, frozen_days),create or replace 无法变更
+-- 返回类型(42P13),故先 drop 再建;末尾 grant 会重新授权。
+drop function if exists public.user_account_status(text, text);
 create or replace function public.user_account_status(p_email text default null, p_username text default null)
 returns text
 language plpgsql security definer stable
