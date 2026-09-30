@@ -6,6 +6,7 @@
   "nav": {
     "canvas": "画布",
     "gallery": "图库",
+    "profile": "个人资料",
     "tutorials": "教程",
     "admin": "后台管理"
   },
@@ -775,6 +776,9 @@
   "admin": {
     "title": "模板库后台管理",
     "subtitle": "管理预设拼豆模板与分类,支持 JSON 统一协议导入(AI Agent 可直接生成)",
+    "dashboard": "管理概览",
+    "templates": "模板",
+    "categories": "分类",
     "tab": {
       "templates": "模板管理",
       "import": "JSON 导入",
@@ -929,6 +933,7 @@
     }
   },
   "profile": {
+    "openAsPage": "以独立页面打开",
     "title": "个人资料",
     "changeAvatar": "更换头像",
     "uploadAvatar": "上传图片",

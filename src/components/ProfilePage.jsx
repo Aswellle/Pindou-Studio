@@ -28,6 +28,7 @@ export default function ProfilePage({ user, onLogout, onUpdateProfile, onChangeP
       </div>
       <div className="profile-page-body">
         <ProfileMenu
+          embedded
           user={user}
           onClose={handleClose}
           onLogout={onLogout}

@@ -6,6 +6,7 @@
   "nav": {
     "canvas": "캔버스",
     "gallery": "갤러리",
+    "profile": "프로필",
     "tutorials": "튜토리얼",
     "admin": "관리"
   },
@@ -775,6 +776,9 @@
   "admin": {
     "title": "템플릿 라이브러리 관리",
     "subtitle": "비즈 템플릿과 카테고리를 관리하고 통합 JSON 프로토콜로 가져올 수 있습니다(AI 에이전트 지원)",
+    "dashboard": "관리 개요",
+    "templates": "템플릿",
+    "categories": "카테고리",
     "tab": {
       "templates": "템플릿 관리",
       "import": "JSON 가져오기",
@@ -929,6 +933,7 @@
     }
   },
   "profile": {
+    "openAsPage": "페이지로 열기",
     "title": "프로필",
     "changeAvatar": "아바타 변경",
     "uploadAvatar": "이미지 업로드",

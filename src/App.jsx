@@ -677,6 +677,21 @@ export default function App() {
             </div>
           </Suspense>
         } />
+        <Route path="/profile" element={
+          <div className="mobile-page-area">
+            <ProfilePage
+              user={user}
+              onLogout={logout}
+              onUpdateProfile={updateProfile}
+              onChangePassword={changePassword}
+            />
+          </div>
+        } />
+        <Route path="/admin/dashboard" element={
+          <div className="mobile-page-area">
+            <AdminDashboardPage cloudStore={cloudStore} />
+          </div>
+        } />
         <Route path="/create/image" element={
           <Suspense fallback={<LoadingScreen />}>
             <CreateImagePage onApply={handleQuantizerApply} />

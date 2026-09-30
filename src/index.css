@@ -715,6 +715,64 @@ body:has(.profile-confirm-overlay) .mobile-toolbar {
   -webkit-overflow-scrolling: touch;
 }
 
+/* /profile 个人资料独立页面(内容复用 ProfileMenu 的 embedded 形态) */
+.profile-page {
+  max-width: 640px;
+  margin: 0 auto;
+  padding: 24px 16px 32px;
+}
+
+.profile-page-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.profile-page-header h2 {
+  margin: 0;
+  font-size: var(--text-xl);
+}
+
+/* /admin/dashboard 管理概览独立页面 */
+.admin-dashboard {
+  max-width: 640px;
+  margin: 0 auto;
+  padding: 24px 16px 32px;
+}
+
+.admin-dashboard h2 {
+  margin: 0 0 16px;
+  font-size: var(--text-xl);
+}
+
+.admin-stats-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 12px;
+}
+
+.admin-stat-card {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 16px;
+  background: var(--bg-primary);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-card);
+}
+
+.admin-stat-value {
+  font-size: 28px;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.admin-stat-label {
+  font-size: var(--text-sm);
+  color: var(--text-secondary);
+}
+
 /* Left Sidebar Layout */
 .left-sidebar-top {
   flex-shrink: 0;

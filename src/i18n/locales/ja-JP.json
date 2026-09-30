@@ -6,6 +6,7 @@
   "nav": {
     "canvas": "キャンバス",
     "gallery": "ギャラリー",
+    "profile": "プロフィール",
     "tutorials": "チュートリアル",
     "admin": "管理"
   },
@@ -775,6 +776,9 @@
   "admin": {
     "title": "テンプレートライブラリ管理",
     "subtitle": "ビーズテンプレートとカテゴリを管理。統一 JSON プロトコルでのインポートに対応(AI エージェント可)",
+    "dashboard": "管理概要",
+    "templates": "テンプレート",
+    "categories": "カテゴリー",
     "tab": {
       "templates": "テンプレート管理",
       "import": "JSON インポート",
@@ -929,6 +933,7 @@
     }
   },
   "profile": {
+    "openAsPage": "ページで開く",
     "title": "プロフィール",
     "changeAvatar": "アバター変更",
     "uploadAvatar": "画像をアップロード",

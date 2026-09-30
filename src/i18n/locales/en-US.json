@@ -6,6 +6,7 @@
   "nav": {
     "canvas": "Canvas",
     "gallery": "Gallery",
+    "profile": "Profile",
     "tutorials": "Tutorials",
     "admin": "Admin"
   },
@@ -775,6 +776,9 @@
   "admin": {
     "title": "Template Library Admin",
     "subtitle": "Manage preset bead templates and categories; supports unified JSON protocol import (AI-agent friendly)",
+    "dashboard": "Admin Overview",
+    "templates": "Templates",
+    "categories": "Categories",
     "tab": {
       "templates": "Templates",
       "import": "JSON Import",
@@ -929,6 +933,7 @@
     }
   },
   "profile": {
+    "openAsPage": "Open as page",
     "title": "Profile",
     "changeAvatar": "Change Avatar",
     "uploadAvatar": "Upload Image",
