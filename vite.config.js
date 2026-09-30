@@ -10,11 +10,13 @@ export default defineConfig({
     rollupOptions: {
       input: 'index.html',
       output: {
-        // 框架/路由/i18n 拆 vendor 分包:代码更新时这些不变的大块
-        // 可命中长缓存,不重复下载
+        // 框架/路由/i18n/云客户端/图标 拆 vendor 分包:代码更新时这些不变的大块
+        // 可命中长缓存,不重复下载;主 chunk 因此显著变小(此前 775KB 超 500KB 告警)
         manualChunks: {
           'react-vendor': ['react', 'react-dom', 'react-router-dom'],
           'i18n-vendor': ['i18next', 'react-i18next', 'react-helmet-async'],
+          'supabase-vendor': ['@supabase/supabase-js'],
+          'icons-vendor': ['lucide-react'],
         },
       },
     },
