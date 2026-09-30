@@ -245,7 +245,6 @@ input:focus, textarea:focus, button:focus {
       底部 fixed 工具栏挡在 modal 下方,使其无法滚到底部按钮 —— 采纳用户建议用淡出清除) ── */
 body:has(.contact-overlay) .mobile-toolbar,
 body:has(.modal-overlay) .mobile-toolbar,
-body:has(.profile-overlay) .mobile-toolbar,
 body:has(.admin-modal-overlay) .mobile-toolbar,
 body:has(.users-confirm-overlay) .mobile-toolbar,
 body:has(.profile-confirm-overlay) .mobile-toolbar {

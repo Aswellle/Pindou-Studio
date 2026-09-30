@@ -1,14 +1,12 @@
-import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { NavLink } from 'react-router-dom'
+import { NavLink, useNavigate } from 'react-router-dom'
 import { PenTool, LayoutGrid, BookOpen } from 'lucide-react'
 import LanguageSelector from './Header/LanguageSelector'
 import Avatar from './Avatar'
-import ProfileMenu from './ProfileMenu'
 
-export default function Header({ user, onLogin, onRegister, onLogout, onSave, currentPage, onPageChange, simplified, onUpdateProfile, onChangePassword }) {
+export default function Header({ user, onLogin, onRegister, onLogout, onSave, currentPage, onPageChange, simplified }) {
   const { t } = useTranslation()
-  const [showProfile, setShowProfile] = useState(false)
+  const navigate = useNavigate()
 
   // 后台管理(admin)不在导航中显示,仅通过 /admin 路由访问
   const navItems = [
@@ -82,10 +80,10 @@ export default function Header({ user, onLogin, onRegister, onLogout, onSave, cu
         {/* 移动端:非画布页在导航与用户区之间显示语言切换按钮(🌐) */}
         {simplified && currentPage !== 'canvas' && <LanguageSelector compact />}
         {user ? (
-          /* 已登录:圆形头像(邮箱首字符,橙色底白字)为入口,点击打开个人设置 */
+          /* 已登录:圆形头像(邮箱首字符,橙色底白字)为入口,点击进入 /profile 个人资料页 */
           <button
             className="avatar-entry"
-            onClick={() => setShowProfile(true)}
+            onClick={() => navigate('/profile')}
             aria-label={t('profile.title')}
             title={t('profile.title')}
           >
@@ -108,16 +106,6 @@ export default function Header({ user, onLogin, onRegister, onLogout, onSave, cu
           </div>
         )}
       </div>
-
-      {showProfile && user && (
-        <ProfileMenu
-          user={user}
-          onClose={() => setShowProfile(false)}
-          onLogout={onLogout}
-          onUpdateProfile={onUpdateProfile}
-          onChangePassword={onChangePassword}
-        />
-      )}
 
       <style>{`
         .header {

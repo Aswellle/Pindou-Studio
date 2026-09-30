@@ -376,8 +376,6 @@ export default function App() {
           onSave={currentPage === 'canvas' ? handleOpenSaveDialog : undefined}
           currentPage={currentPage}
           onPageChange={handlePageChange}
-          onUpdateProfile={updateProfile}
-          onChangePassword={changePassword}
         />
       )}
 
@@ -596,8 +594,6 @@ export default function App() {
           onSave={currentPage === 'canvas' ? handleOpenSaveDialog : undefined}
           currentPage={currentPage}
           onPageChange={handlePageChange}
-          onUpdateProfile={updateProfile}
-          onChangePassword={changePassword}
           simplified={isMobile}
         />
       )}

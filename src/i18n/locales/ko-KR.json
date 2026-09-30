@@ -933,7 +933,6 @@
     }
   },
   "profile": {
-    "openAsPage": "페이지로 열기",
     "title": "프로필",
     "changeAvatar": "아바타 변경",
     "uploadAvatar": "이미지 업로드",

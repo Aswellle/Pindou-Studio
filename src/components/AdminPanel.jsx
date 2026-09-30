@@ -1,6 +1,7 @@
 import { useState, useMemo, useEffect, useCallback, useRef } from 'react'
 import { createPortal } from 'react-dom'
 import { useTranslation } from 'react-i18next'
+import { useNavigate } from 'react-router-dom'
 import { useToast } from './Toast'
 import { CATEGORIES, DIFFICULTIES, normalizeCustomTemplate } from '../data/templates'
 import ThumbnailCanvas from './ThumbnailCanvas'
@@ -90,6 +91,7 @@ const EXAMPLE_JSON = JSON.stringify({
 export default function AdminPanel({ user, isAdmin, authLoading, onLogin, onLogout, onChangePassword, cloudStore }) {
   const toast = useToast()
   const { t } = useTranslation()
+  const navigate = useNavigate()
   const [tab, setTab] = useState('templates')
 
   // iOS Safari 已知 bug:overflow 滚动容器内的 input/textarea 聚焦时,
@@ -221,6 +223,9 @@ export default function AdminPanel({ user, isAdmin, authLoading, onLogin, onLogo
           <p className="admin-subtitle">{t('admin.subtitle')}</p>
         </div>
         <div className="admin-header-actions">
+          <button className="admin-btn secondary" onClick={() => navigate('/admin/dashboard')}>
+            {t('admin.dashboard')}
+          </button>
           <span className="admin-account">
             <span className="admin-avatar">{(user.email || 'A')[0].toUpperCase()}</span>
             <span className="admin-account-name">{user.email}</span>

@@ -1,20 +1,16 @@
 import { useState, useRef } from 'react'
-import { createPortal } from 'react-dom'
 import { useTranslation } from 'react-i18next'
-import { useNavigate } from 'react-router-dom'
 import { supabase, SUPABASE_URL } from '../services/supabase'
 import Avatar from './Avatar'
 import AvatarCropper from './AvatarCropper'
 
 /**
- * 个人资料设置(两种形态,内容完全一致):
- * - 默认模态框:头像展示 / 上传图片 + 圆形裁剪 / 修改昵称 / 修改密码(邮件确认)/ 退出登录,
- *   PC 与移动端共用,内部布局响应式自适应。
- * - embedded 页面形态:/profile 独立路由页内嵌渲染,无遮罩、无关闭按钮、不 portal。
+ * 个人资料设置面板(/profile 独立路由页内嵌渲染):
+ * 头像展示 / 上传图片 + 圆形裁剪 / 修改昵称 / 修改密码(邮件确认)/ 退出登录。
+ * 页面形态已取代原先的模态框;PC 与移动端共用,内部布局响应式自适应。
  */
-export default function ProfileMenu({ user, onClose, onLogout, onUpdateProfile, onChangePassword, embedded = false }) {
+export default function ProfileMenu({ user, onLogout, onUpdateProfile, onChangePassword }) {
   const { t } = useTranslation()
-  const navigate = useNavigate()
   const [nickname, setNickname] = useState(user?.nickname || '')
   const [nickSaved, setNickSaved] = useState(false)
   const [busy, setBusy] = useState(false)
@@ -135,23 +131,8 @@ export default function ProfileMenu({ user, onClose, onLogout, onUpdateProfile, 
     }
   }
 
-  // 弹层内入口:跳转 /profile 独立页面(embedded 形态下不渲染该入口)
-  const openAsPage = () => {
-    onClose?.()
-    navigate('/profile')
-  }
-
-  const card = (
-    <div className={`modal-content profile-modal${embedded ? ' profile-modal-embedded' : ''}`} onClick={e => e.stopPropagation()}>
-        {!embedded && (
-          <button className="close-btn" onClick={onClose} aria-label={t('common.close')}>
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <line x1="18" y1="6" x2="6" y2="18"/>
-              <line x1="6" y1="6" x2="18" y2="18"/>
-            </svg>
-          </button>
-        )}
-
+  return (
+    <div className="profile-panel">
         <div className="profile-header">
           <Avatar user={user} size={72} />
           <div className="profile-ident">
@@ -159,12 +140,6 @@ export default function ProfileMenu({ user, onClose, onLogout, onUpdateProfile, 
             <p>{user.email}</p>
           </div>
         </div>
-
-        {!embedded && (
-          <button className="btn btn-ghost profile-open-page" onClick={openAsPage}>
-            {t('profile.openAsPage')}
-          </button>
-        )}
 
         {avatarSrc ? (
           /* 裁剪视图:自实现圆形裁剪器(拖动平移 + 滚轮/双指缩放) */
@@ -298,7 +273,6 @@ export default function ProfileMenu({ user, onClose, onLogout, onUpdateProfile, 
         )}
 
         <style>{`
-          .profile-overlay { z-index: 1100; }
           .profile-confirm-overlay {
             /* 定位/高度/滚动/safe-area/居中由 index.css 全屏浮层基础设施统一提供 */
             background: rgba(0, 0, 0, 0.4);
@@ -314,19 +288,10 @@ export default function ProfileMenu({ user, onClose, onLogout, onUpdateProfile, 
             overflow-y: auto;
             overscroll-behavior: contain;
           }
-          /* embedded 页面形态:去掉浮层卡片的高度钳制/阴影/底色,随页面自然滚动 */
-          .profile-modal-embedded {
+          /* 页面形态外壳:内容居中、随页面自然滚动(无浮层高度钳制/阴影/底色) */
+          .profile-panel {
             max-width: 560px;
             margin: 0 auto;
-            max-height: none;
-            overflow-y: visible;
-            box-shadow: none;
-            background: transparent;
-            padding: 0;
-          }
-          .profile-open-page {
-            margin: 0 0 16px;
-            font-size: var(--text-sm);
           }
           .profile-header {
             display: flex;
@@ -455,38 +420,10 @@ export default function ProfileMenu({ user, onClose, onLogout, onUpdateProfile, 
             justify-content: flex-end;
             gap: 8px;
           }
-          .close-btn {
-            position: absolute;
-            top: 14px;
-            right: 14px;
-            padding: 4px;
-            border-radius: 4px;
-            color: var(--text-muted);
-            background: none;
-            border: none;
-            cursor: pointer;
-            transition: all 0.2s;
-          }
-          .close-btn:hover {
-            color: var(--text-primary);
-            background: var(--bg-secondary);
-          }
           @media (max-width: 480px) {
             .profile-modal { padding: 24px 16px 16px; }
           }
         `}</style>
     </div>
-  )
-
-  // embedded:页面内嵌渲染,不需要 portal 与遮罩浮层
-  if (embedded) return card
-
-  // portal 到 body:浮层含输入项,移出 .app 挂载到 body 下(内部确认框随之带出),
-  // 避免 iOS 上滚动容器/祖先 stacking context 影响 fixed 定位
-  return createPortal(
-    <div className="modal-overlay profile-overlay" onClick={onClose}>
-      {card}
-    </div>,
-    document.body
   )
 }
