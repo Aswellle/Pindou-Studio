@@ -12,7 +12,6 @@
   },
   "auth": {
     "login": "로그인",
-    "loginOrRegister": "로그인 / 회원가입",
     "register": "회원가입",
     "logout": "로그아웃",
     "email": "이메일",
