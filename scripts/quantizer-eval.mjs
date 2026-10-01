@@ -183,8 +183,25 @@ for (const name of files) {
     const area = worker.computeEdgeAwareAreaColors(source.data, source.width, source.height, outW, outH, 0, 0)
     const base0 = name.replace(/\.[^.]+$/, '')
     renderAreaColors(area.colors, outW, outH, join(outDir, `${base0}__AREA-raw.png`))
-    renderAreaColors(worker.medianSmoothAreaColors(area.colors, outW, outH), outW, outH, join(outDir, `${base0}__AREA-median.png`))
   }
+
+  // 保真度:格子均值 vs 分配色的平均 ΔE00(越低越好)
+  const areaForFid = worker.computeEdgeAwareAreaColors(source.data, source.width, source.height, outW, outH, 0, 0).colors
+  const hexByIdFid = {}
+  for (const c of result.quantizedColors) hexByIdFid[c.id] = c.hex
+  let fidSum = 0, fidN = 0
+  for (let y = 0; y < outH; y += 1) {
+    for (let x = 0; x < outW; x += 1) {
+      const id = canvasData[y]?.[x]
+      const a = areaForFid[y * outW + x]
+      if (!id || !a) continue
+      const hex = hexByIdFid[id] || '#000000'
+      const beadLab = worker.rgbToLab(parseInt(hex.slice(1, 3), 16), parseInt(hex.slice(3, 5), 16), parseInt(hex.slice(5, 7), 16))
+      fidSum += worker.deltaE2000(a.lab, beadLab)
+      fidN += 1
+    }
+  }
+  const fidelity = fidN ? fidSum / fidN : 0
 
   const usedColors = Object.keys(result.colorStats).length
   let blankCount = 0
@@ -206,11 +223,12 @@ for (const name of files) {
     effectiveColors: result.effectiveMaxColors,
     usedColors,
     blankCount,
+    fidelity: fidelity.toFixed(2),
     topColors,
     detectedType: result.detectedType,
     dithering: result.effectiveDithering
   })
-  console.log(`${name}: ${outW}x${outH} type=${result.detectedType} dither=${result.effectiveDithering} colors ${maxColors}→${result.effectiveMaxColors} (used ${usedColors}, blank ${blankCount})`)
+  console.log(`${name}: ${outW}x${outH} type=${result.detectedType} dither=${result.effectiveDithering} colors ${maxColors}→${result.effectiveMaxColors} (used ${usedColors}, blank ${blankCount}, dE00 ${fidelity.toFixed(2)})`)
   console.log(`  top: ${topColors}`)
 }
 console.log('\n' + report.map((r) => JSON.stringify(r)).join('\n'))

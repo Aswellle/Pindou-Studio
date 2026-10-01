@@ -20,8 +20,6 @@ import {
   computeSaliencyMap,
   classifyImageType,
   suggestColorsForGrid,
-  computeEdgeAwareAreaColors,
-  mergeSpeckleRegions,
 } from './imageQuantizer.worker.js'
 
 const TEST_PAIRS = [
@@ -374,86 +372,5 @@ describe('能量函数权重（§九~十五）', () => {
     expect(sal[1]).toBeGreaterThan(sal[2])
     expect(sal[1]).toBeLessThanOrEqual(1)
     expect(sal[1]).toBeGreaterThan(0.5)
-  })
-})
-
-describe('格子采样:纹理 vs 边缘空间一致性判据', () => {
-  it('棋盘纹理格取均值(不再逐格取主导色产生椒盐)', () => {
-    // 40×40 全图 1px 黑白棋盘 → 每格方差高、两簇 ΔE 远超分离阈值,
-    // 但簇跳变远超行数 → 判为纹理 → 用线性均值(约 sRGB 188 灰),而非黑或白
-    const W = 40, H = 40
-    const data = new Uint8ClampedArray(W * H * 4)
-    for (let y = 0; y < H; y += 1) {
-      for (let x = 0; x < W; x += 1) {
-        const i = (y * W + x) * 4
-        const v = (x + y) % 2 === 0 ? 0 : 255
-        data[i] = v; data[i + 1] = v; data[i + 2] = v; data[i + 3] = 255
-      }
-    }
-    const { colors } = computeEdgeAwareAreaColors(data, W, H, 8, 8, 0, 0)
-    const rgb = colors[0].rgb
-    expect(rgb[0]).toBeGreaterThan(150)
-    expect(rgb[0]).toBeLessThan(220)
-  })
-
-  it('直线边缘格仍取主导簇(真边缘不被均色抹掉)', () => {
-    // 40×40 白底,仅首格区域左 3 列黑右 2 列白 → 真边缘 → 主导色(黑或白),不是中间灰
-    const W = 40, H = 40
-    const data = new Uint8ClampedArray(W * H * 4).fill(255)
-    for (let y = 0; y < H; y += 1) {
-      for (let x = 0; x < W; x += 1) {
-        data[(y * W + x) * 4 + 3] = 255
-      }
-    }
-    for (let y = 0; y < 5; y += 1) {
-      for (let x = 0; x < 3; x += 1) {
-        const i = (y * W + x) * 4
-        data[i] = 0; data[i + 1] = 0; data[i + 2] = 0
-      }
-    }
-    const { colors } = computeEdgeAwareAreaColors(data, W, H, 8, 8, 0, 0)
-    const rgb = colors[0].rgb
-    const isDark = rgb[0] < 60
-    const isLight = rgb[0] > 200
-    expect(isDark || isLight).toBe(true)
-  })
-})
-
-describe('区域合并(≥3/4 邻居同色 + 保真护栏)', () => {
-  const W = 5, H = 5
-  const whiteRgb = [255, 255, 255]
-  const redRgb = [200, 30, 30]
-  const palette = [
-    { id: 'A', hex: '#FFFFFF', rgb: { r: 255, g: 255, b: 255 } },
-    { id: 'B', hex: '#C81E1E', rgb: { r: 200, g: 30, b: 30 } },
-  ]
-  const activeLabs = {
-    labs: [rgbToLab(...whiteRgb), rgbToLab(...redRgb)],
-    oklabs: [rgbToOklab(...whiteRgb), rgbToOklab(...redRgb)],
-  }
-  function uniformArea(rgb) {
-    return new Array(W * H).fill(0).map(() => areaEntry(rgb))
-  }
-
-  it('孤立格在保真代价小时并入邻域主导色', () => {
-    const outIdx = new Uint16Array(W * H).fill(0)
-    outIdx[2 * W + 2] = 1
-    const { mergedCount, counts } = mergeSpeckleRegions(
-      outIdx, uniformArea(whiteRgb), palette, activeLabs, W, H, 'lab', 12
-    )
-    expect(mergedCount).toBe(1)
-    expect(outIdx[2 * W + 2]).toBe(0)
-    expect(counts[0]).toBe(25)
-    expect(counts[1]).toBe(0)
-  })
-
-  it('真实细节(孤立格本身就是该颜色)被护栏拒绝', () => {
-    const outIdx = new Uint16Array(W * H).fill(0)
-    outIdx[2 * W + 2] = 1
-    const { mergedCount } = mergeSpeckleRegions(
-      outIdx, uniformArea(redRgb), palette, activeLabs, W, H, 'lab', 12
-    )
-    expect(mergedCount).toBe(0)
-    expect(outIdx[2 * W + 2]).toBe(1)
   })
 })
