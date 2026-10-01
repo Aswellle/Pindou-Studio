@@ -18,6 +18,15 @@ const TEST_CANVAS = [
   [null, null, null, null, null],
 ]
 
+// 测试用品牌色卡(rgb 供 CIEDE2000 就近匹配)
+const FAKE_PALETTE = {
+  colors: [
+    { id: 'R1', name: 'Red', nameZh: '红', hex: '#FF0000', rgb: { r: 255, g: 0, b: 0 } },
+    { id: 'G1', name: 'Green', nameZh: '绿', hex: '#00FF00', rgb: { r: 0, g: 255, b: 0 } },
+    { id: 'B1', name: 'Blue', nameZh: '蓝', hex: '#0000FF', rgb: { r: 0, g: 0, b: 255 } },
+  ],
+}
+
 describe('PatternDocument Golden Test', () => {
   it('createPatternDocument 生成正确的结构', () => {
     const doc = createPatternDocument({
@@ -102,11 +111,25 @@ describe('PatternDocument Golden Test', () => {
       canvasData: TEST_CANVAS,
       gridSize: 5,
       paletteId: 'perler',
+      beadStyle: 'realistic',
     })
     const svg = renderPatternDocumentToSVG(doc)
-    // 9 个珠子（3x3 中心区域）
+    // 9 个珠子（3x3 中心区域）+ 图例 2 色圆点
     const circleCount = (svg.match(/<circle/g) || []).length
     expect(circleCount).toBeGreaterThanOrEqual(9)
+  })
+
+  it('professional 模式 SVG 输出方形格子(与 V1 专业图纸同语义)', () => {
+    const doc = createPatternDocument({
+      canvasData: TEST_CANVAS,
+      gridSize: 5,
+      paletteId: 'perler',
+      beadStyle: 'professional',
+    })
+    const svg = renderPatternDocumentToSVG(doc)
+    // 9 个珠子方块 + 1 个背景 rect
+    const rectCount = (svg.match(/<rect/g) || []).length
+    expect(rectCount).toBe(10)
   })
 
   it('SVG 输出包含正确的颜色值', () => {
@@ -119,6 +142,65 @@ describe('PatternDocument Golden Test', () => {
     // 应包含测试颜色的 hex 值
     expect(svg).toContain('#FF0000')
     expect(svg).toContain('#00FF00')
+  })
+
+  it('professional 模式输出 10 格加粗网格线(V1 惯例)', () => {
+    const doc = createPatternDocument({
+      canvasData: TEST_CANVAS,
+      gridSize: 5,
+      paletteId: 'perler',
+      beadStyle: 'professional',
+    })
+    const svg = renderPatternDocumentToSVG(doc)
+    // 5 格网格:粗线 #666666 只有 i=0 一纵一横;细线 #d0d0d0 各 6 条
+    expect((svg.match(/stroke="#666666"/g) || []).length).toBe(2)
+    expect((svg.match(/stroke="#d0d0d0"/g) || []).length).toBe(12)
+  })
+
+  it('提供品牌色卡时色号解析为品牌编号(精确 hex 命中)', () => {
+    const doc = createPatternDocument({
+      canvasData: TEST_CANVAS,
+      gridSize: 5,
+      paletteId: 'perler',
+      palette: FAKE_PALETTE,
+    })
+    const red = doc.palette.colors.find(c => c.hex === '#FF0000')
+    const green = doc.palette.colors.find(c => c.hex === '#00FF00')
+    expect(red.id).toBe('R1')
+    expect(red.name).toBe('红')
+    expect(green.id).toBe('G1')
+  })
+
+  it('非标准 hex 按 CIEDE2000 就近匹配品牌色号(V1 同语义)', () => {
+    const nearRed = TEST_CANVAS.map(row => row.map(c => (c === '#FF0000' ? '#FE0101' : c)))
+    const doc = createPatternDocument({
+      canvasData: nearRed,
+      gridSize: 5,
+      paletteId: 'perler',
+      palette: FAKE_PALETTE,
+    })
+    const red = doc.palette.colors.find(c => c.hex === '#FE0101')
+    expect(red.id).toBe('R1')
+  })
+
+  it('hex 大小写不敏感命中品牌色卡', () => {
+    const lower = TEST_CANVAS.map(row => row.map(c => (c === '#FF0000' ? '#ff0000' : c)))
+    const doc = createPatternDocument({
+      canvasData: lower,
+      gridSize: 5,
+      paletteId: 'perler',
+      palette: FAKE_PALETTE,
+    })
+    expect(doc.palette.colors.find(c => c.hex === '#ff0000').id).toBe('R1')
+  })
+
+  it('不提供色卡时回退 hex 充当编号(兼容旧行为)', () => {
+    const doc = createPatternDocument({
+      canvasData: TEST_CANVAS,
+      gridSize: 5,
+      paletteId: 'perler',
+    })
+    expect(doc.palette.colors.find(c => c.hex === '#FF0000').id).toBe('#FF0000')
   })
 
   it('SVG 输出包含 professional 模式的色号文本', () => {

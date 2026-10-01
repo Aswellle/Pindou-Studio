@@ -7,6 +7,8 @@
  * 版本: 2
  */
 
+import { findClosestColorCIEDE2000 } from '../../utils/colorDiff'
+
 /**
  * @typedef {Object} PatternDocument
  * @property {number} version - 模型版本（当前 2）
@@ -44,6 +46,8 @@
  * @param {string} params.paletteId - 色板 ID
  * @param {string} [params.designName] - 图纸名称
  * @param {string} [params.beadStyle] - 珠子风格
+ * @param {Object} [params.palette] - 品牌色卡对象(提供时把 hex 解析为品牌色号/名称,
+ *   与 V1 专业图纸同语义:先精确 hex 命中,失败按 CIEDE2000 就近匹配)
  * @returns {PatternDocument}
  */
 export function createPatternDocument({
@@ -54,12 +58,13 @@ export function createPatternDocument({
   paletteId,
   designName = '',
   beadStyle = 'professional',
+  palette = null,
 }) {
   const width = gridWidth || gridSize
   const height = gridHeight || gridSize
 
   // 提取实际使用的颜色
-  const usedColors = extractUsedColors(canvasData, width, height)
+  const usedColors = extractUsedColors(canvasData, width, height, palette)
 
   return {
     version: 2,
@@ -95,12 +100,18 @@ export function createPatternDocument({
 /**
  * 从 canvasData 中提取实际使用的颜色列表
  *
+ * canvasData 单元格统一存 hex;提供品牌色卡时解析出品牌色号/名称
+ * (V1 专业图纸同语义:精确 hex 命中 → CIEDE2000 就近匹配),
+ * 无色卡时回退用 hex 充当编号。
+ *
  * @param {Array} canvasData - 颜色矩阵
  * @param {number} width - 实际宽度
  * @param {number} height - 实际高度
+ * @param {Object} [palette] - 品牌色卡对象({ colors: [{ id, name, nameZh, hex }] })
  * @returns {Array} 颜色列表 [{ id, name, hex, rgb: { r, g, b } }]
  */
-function extractUsedColors(canvasData, width, height) {
+function extractUsedColors(canvasData, width, height, palette) {
+  const brandColors = palette?.colors || null
   const seen = new Map()
   for (let y = 0; y < height; y++) {
     for (let x = 0; x < width; x++) {
@@ -110,9 +121,19 @@ function extractUsedColors(canvasData, width, height) {
         const r = parseInt(cell.slice(1, 3), 16)
         const g = parseInt(cell.slice(3, 5), 16)
         const b = parseInt(cell.slice(5, 7), 16)
+        let id = cell
+        let name = cell
+        if (brandColors && cell.startsWith('#')) {
+          const exact = brandColors.find(c => c.hex?.toLowerCase() === cell.toLowerCase())
+          const matched = exact || findClosestColorCIEDE2000({ r, g, b }, brandColors)
+          if (matched) {
+            id = matched.id
+            name = matched.nameZh || matched.name || matched.id
+          }
+        }
         seen.set(cell, {
-          id: cell,
-          name: cell,
+          id,
+          name,
           hex: cell,
           rgb: { r, g, b },
         })

@@ -81,12 +81,27 @@ export async function renderPatternDocumentToPNG(doc, options = {}) {
   }
 
   // 绘制珠子
+  // 'realistic'    : 径向渐变圆珠(展示用)
+  // 'professional' : 方形填色 + 品牌色号标注(工艺施工用,与 V1 专业图纸同语义)
+  const proMode = style.beadStyle === 'professional'
+  // 色号自适应字号:4 字符色号(C100 等)缩至 8 逻辑 px,防溢出相邻格(V1 同规则)
+  const codeFontSize = Math.max(9, Math.floor(cellSize * 0.38)) * actualScale
+  const smallCodeFontSize = 8 * actualScale
+
+  const textColorForBg = (hex) => {
+    const r = parseInt(hex.slice(1, 3), 16)
+    const g = parseInt(hex.slice(3, 5), 16)
+    const b = parseInt(hex.slice(5, 7), 16)
+    const lum = 0.299 * r + 0.587 * g + 0.114 * b
+    return lum > 128 ? '#1a1a1a' : '#b8b8b8'
+  }
+
   const drawBead = (cx, cy, radius, hexColor) => {
     const r = parseInt(hexColor.slice(1, 3), 16)
     const g = parseInt(hexColor.slice(3, 5), 16)
     const b = parseInt(hexColor.slice(5, 7), 16)
 
-    if (style.beadStyle === 'realistic') {
+    if (!proMode) {
       const lighten = (c, f) => Math.min(255, Math.round(c + (255 - c) * f))
       const darken = (c, f) => Math.max(0, Math.round(c * (1 - f)))
       const grad = ctx.createRadialGradient(
@@ -100,29 +115,31 @@ export async function renderPatternDocumentToPNG(doc, options = {}) {
       ctx.arc(cx, cy, radius, 0, Math.PI * 2)
       ctx.fillStyle = grad
       ctx.fill()
-    } else {
-      ctx.beginPath()
-      ctx.arc(cx, cy, radius, 0, Math.PI * 2)
-      ctx.fillStyle = hexColor
-      ctx.fill()
     }
 
-    if (style.showGrid) {
+    if (style.showGrid && !proMode) {
       ctx.beginPath()
       ctx.arc(cx, cy, radius, 0, Math.PI * 2)
       ctx.strokeStyle = 'rgba(0,0,0,0.15)'
       ctx.lineWidth = Math.max(0.5, 0.5 * actualScale)
       ctx.stroke()
     }
+  }
 
-    if (style.showCodes && style.beadStyle === 'professional') {
-      const lum = 0.299 * r + 0.587 * g + 0.114 * b
-      ctx.fillStyle = lum > 128 ? '#1a1a1a' : '#b8b8b8'
-      ctx.font = `${Math.max(8, 10 * actualScale)}px sans-serif`
-      ctx.textAlign = 'center'
-      ctx.textBaseline = 'middle'
+  // 专业模式:方形填色 + 色号(编号在 doc.palette.colors 中已解析为品牌色号)
+  const drawProCell = (cellX, cellY, hexColor) => {
+    // +0.5 / -1 逻辑 px 留网格线位(网格线在珠子上层补画,放大后硬边锐利)
+    ctx.fillStyle = hexColor
+    ctx.fillRect(cellX + 0.5 * actualScale, cellY + 0.5 * actualScale, cs - actualScale, cs - actualScale)
+    if (style.showCodes) {
       const colorId = palette.colors.find(c => c.hex === hexColor)?.id || ''
-      if (colorId) ctx.fillText(colorId, cx, cy)
+      if (colorId) {
+        ctx.fillStyle = textColorForBg(hexColor)
+        ctx.font = `bold ${colorId.length >= 4 ? smallCodeFontSize : codeFontSize}px "Helvetica Neue", "Arial", sans-serif`
+        ctx.textAlign = 'center'
+        ctx.textBaseline = 'middle'
+        ctx.fillText(colorId, cellX + cs / 2, cellY + cs / 2 + actualScale)
+      }
     }
   }
 
@@ -142,6 +159,8 @@ export async function renderPatternDocumentToPNG(doc, options = {}) {
         const tIdx = tileRow * tileCols + tileCol
         if (!beadsPerTile.has(tIdx)) beadsPerTile.set(tIdx, [])
         beadsPerTile.get(tIdx).push({ cx, cy, hex: cell })
+      } else if (proMode) {
+        drawProCell(x * cs, headerH + y * cs, cell)
       } else {
         drawBead(cx, cy, beadRadius, cell)
       }
@@ -162,7 +181,8 @@ export async function renderPatternDocumentToPNG(doc, options = {}) {
       tileCtx.save()
       tileCtx.translate(-sx, -sy)
       for (const bead of beads) {
-        drawBead(bead.cx, bead.cy, beadRadius, bead.hex)
+        if (proMode) drawProCell(bead.cx - cs / 2, bead.cy - cs / 2, bead.hex)
+        else drawBead(bead.cx, bead.cy, beadRadius, bead.hex)
       }
       tileCtx.restore()
 
@@ -171,6 +191,33 @@ export async function renderPatternDocumentToPNG(doc, options = {}) {
       tilesDone++
       if (onProgress) onProgress(0.3 + 0.5 * (tilesDone / totalTiles))
     }
+  }
+
+  // 专业模式:网格线在珠子上层补画(V1 同语义)
+  // 细线分隔每格,每 10 格加粗一条(专业图纸惯例,便于手工对照坐标)
+  if (proMode && style.showGrid) {
+    const gridLeft = 0
+    const gridTop = headerH
+    const gridW = width * cs
+    const gridH = height * cs
+    const drawLines = (color, lineWidth, step) => {
+      ctx.strokeStyle = color
+      ctx.lineWidth = lineWidth
+      for (let i = 0; i <= width; i += step) {
+        ctx.beginPath()
+        ctx.moveTo(gridLeft + i * cs + 0.5 * actualScale, gridTop)
+        ctx.lineTo(gridLeft + i * cs + 0.5 * actualScale, gridTop + gridH)
+        ctx.stroke()
+      }
+      for (let i = 0; i <= height; i += step) {
+        ctx.beginPath()
+        ctx.moveTo(gridLeft, gridTop + i * cs + 0.5 * actualScale)
+        ctx.lineTo(gridLeft + gridW, gridTop + i * cs + 0.5 * actualScale)
+        ctx.stroke()
+      }
+    }
+    drawLines('#d0d0d0', actualScale, 1)
+    drawLines('#666666', 1.5 * actualScale, 10)
   }
 
   if (onProgress) onProgress(0.85)

@@ -83,6 +83,8 @@ export default function ExportPanel({ canvasData, gridSize, gridWidth, gridHeigh
           paletteId,
           designName: effectiveName,
           beadStyle,
+          // 品牌色卡:hex 解析为品牌色号,专业图纸色号标注/图例与 V1 同语义
+          palette,
         })
         const blob = await renderPatternDocumentToPNG(doc, {
           onProgress: setExportProgress,
@@ -226,6 +228,8 @@ export default function ExportPanel({ canvasData, gridSize, gridWidth, gridHeigh
         paletteId,
         designName: effectiveName,
         beadStyle,
+        // 品牌色卡:hex 解析为品牌色号,专业图纸色号标注/图例与 V1 同语义
+        palette,
       })
       const svgString = renderPatternDocumentToSVG(doc)
       const blob = svgStringToBlob(svgString)
