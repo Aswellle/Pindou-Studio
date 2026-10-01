@@ -27,6 +27,8 @@ import MobileCanvasInfoBar from './components/MobileCanvasInfoBar'
 const CreateImagePage = lazy(() => import('./components/CreateImagePage'))
 import ProfilePage from './components/ProfilePage'
 const Gallery = lazy(() => import('./components/Gallery'))
+// Gallery V2:功能与 V1 对齐 + URL 筛选状态,先挂 /gallery-v2 灰度,对齐验证后再切 /gallery
+const GalleryPage = lazy(() => import('./features/gallery/GalleryPage'))
 import AdminDashboardPage from './components/AdminDashboardPage'
 const Tutorials = lazy(() => import('./components/Tutorials'))
 import AdminPanel from './components/AdminPanel'
@@ -399,6 +401,22 @@ export default function App() {
               />
             </Suspense>
           } />
+          <Route path="/gallery-v2" element={
+            <Suspense fallback={<LoadingScreen />}>
+              <GalleryPage
+                onLoadTemplate={handleLoadTemplate}
+                onDeleteWork={deleteWork}
+                onLoadWork={handleLoadWork}
+                savedWorks={savedWorks}
+                worksLoading={worksLoading}
+                cloudMirrorCount={cloudMirrorCount}
+                cloudStore={cloudStore}
+                user={user}
+                onLogin={openLogin}
+                onRegister={openRegister}
+              />
+            </Suspense>
+          } />
           <Route path="/tutorials" element={
             <Suspense fallback={<LoadingScreen />}>
               <Tutorials />
@@ -652,6 +670,24 @@ export default function App() {
           <Suspense fallback={<LoadingScreen />}>
             <div className="mobile-page-area">
               <Gallery
+                onLoadTemplate={handleLoadTemplate}
+                onDeleteWork={deleteWork}
+                onLoadWork={handleLoadWork}
+                savedWorks={savedWorks}
+                worksLoading={worksLoading}
+                cloudMirrorCount={cloudMirrorCount}
+                cloudStore={cloudStore}
+                user={user}
+                onLogin={openLogin}
+                onRegister={openRegister}
+              />
+            </div>
+          </Suspense>
+        } />
+        <Route path="/gallery-v2" element={
+          <Suspense fallback={<LoadingScreen />}>
+            <div className="mobile-page-area">
+              <GalleryPage
                 onLoadTemplate={handleLoadTemplate}
                 onDeleteWork={deleteWork}
                 onLoadWork={handleLoadWork}
