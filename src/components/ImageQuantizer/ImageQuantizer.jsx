@@ -2,6 +2,7 @@ import { useState, useCallback, useRef, useEffect, useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useImageQuantizer } from '../../hooks/useImageQuantizer'
 import { getPalette, PALETTE_LIST } from '../../data/palettes'
+import { recommendGridSize, suggestMaxColorsForGrid } from '../../utils/autoGrid'
 import './ImageQuantizer.css'
 
 // 拟真珠子渲染 — 径向渐变 + 高光 + 中心孔
@@ -83,6 +84,7 @@ function ZoomPreviewCanvas({ result, resolveHex }) {
 }
 
 const GRID_PRESETS = [
+  { key: 'auto', w: null, h: null, auto: true },
   { key: '29x29',   w: 29,  h: 29  },
   { key: '57x57',   w: 57,  h: 57  },
   { key: '114x114', w: 114, h: 114 },
@@ -92,6 +94,22 @@ const GRID_PRESETS = [
   { key: 'aspect',  w: null, h: null, aspect: true },
   { key: 'custom',  w: null, h: null },
 ]
+
+// 图片解码 → 缩到 ≤96px 采样 → 内容分析推荐网格（DOM 依赖，纯分析在 utils/autoGrid）
+// sourceWidth/Height 传原图尺寸：封顶与宽高比必须基于原图，而非采样画布
+function analyzeImageElement(img) {
+  const maxSide = 96
+  const scale = Math.min(1, maxSide / Math.max(img.width, img.height))
+  const w = Math.max(1, Math.round(img.width * scale))
+  const h = Math.max(1, Math.round(img.height * scale))
+  const canvas = document.createElement('canvas')
+  canvas.width = w
+  canvas.height = h
+  const ctx = canvas.getContext('2d')
+  ctx.drawImage(img, 0, 0, w, h)
+  const { data } = ctx.getImageData(0, 0, w, h)
+  return recommendGridSize({ data, width: w, height: h, sourceWidth: img.width, sourceHeight: img.height })
+}
 
 export default function ImageQuantizer({ onApply, onClose }) {
   const { t } = useTranslation()
@@ -130,19 +148,21 @@ export default function ImageQuantizer({ onApply, onClose }) {
   }, [resultColorMap])
 
   const [selectedPalette, setSelectedPalette] = useState('perler')
-  const [gridPreset, setGridPreset] = useState('29x29')
+  const [gridPreset, setGridPreset] = useState('auto')
   const [gridWidth, setGridWidth] = useState(29)
   const [gridHeight, setGridHeight] = useState(29)
   const [imageAspectRatio, setImageAspectRatio] = useState(1)
   const [longSide, setLongSide] = useState(57)
   const [maxColors, setMaxColors] = useState(12)
   const [hasUserTouchedMaxColors, setHasUserTouchedMaxColors] = useState(false)
-  const [dithering, setDithering] = useState('none')
+  const [dithering, setDithering] = useState('auto')
   const [colorSpace, setColorSpace] = useState('lab')
   const [brightness, setBrightness] = useState(0)
   const [contrast, setContrast] = useState(0)
   const [removeBackground, setRemoveBackground] = useState(true)
   const [qualityMode, setQualityMode] = useState('high')
+  const [imageMode, setImageMode] = useState('auto')
+  const [autoSuggest, setAutoSuggest] = useState(null)
   const [previewUrl, setPreviewUrl] = useState(null)
   const [showUnsavedDialog, setShowUnsavedDialog] = useState(false)
   const [lastGeneratedSettings, setLastGeneratedSettings] = useState(null)
@@ -154,22 +174,19 @@ export default function ImageQuantizer({ onApply, onClose }) {
   const fileInputRef = useRef(null)
   const pendingCloseRef = useRef(false)
 
-  // 根据网格总格数推荐 maxColors — 经专业站 140×215（33色）和 29×29（12色）案例校准
-  function suggestMaxColors(w, h) {
-    const total = w * h
-    if (total <= 900)   return 12
-    if (total <= 3600)  return 20
-    if (total <= 10000) return 32
-    if (total <= 22500) return 48
-    return 64
-  }
-
-  // 尺寸变化时自动同步推荐值（仅在用户未手动调整时）
+  // 尺寸变化时自动同步推荐值（仅在用户未手动调整时）— 按网格长边分档（文档 §二十七）
   useEffect(() => {
     if (!hasUserTouchedMaxColors) {
-      setMaxColors(suggestMaxColors(gridWidth, gridHeight))
+      setMaxColors(suggestMaxColorsForGrid(gridWidth, gridHeight))
     }
   }, [gridWidth, gridHeight, hasUserTouchedMaxColors])
+
+  // 自动尺寸模式 — 上传图片后按内容分析推荐网格，用户无需自己挑选尺寸
+  useEffect(() => {
+    if (gridPreset !== 'auto' || !autoSuggest) return
+    setGridWidth(autoSuggest.gridWidth)
+    setGridHeight(autoSuggest.gridHeight)
+  }, [gridPreset, autoSuggest])
 
   // 按原图比例模式 — longSide / 宽高比变化时实时更新 gridWidth/gridHeight
   useEffect(() => {
@@ -196,9 +213,10 @@ export default function ImageQuantizer({ onApply, onClose }) {
       lastGeneratedSettings.brightness !== brightness ||
       lastGeneratedSettings.contrast !== contrast ||
       lastGeneratedSettings.removeBackground !== removeBackground ||
-      lastGeneratedSettings.qualityMode !== qualityMode
+      lastGeneratedSettings.qualityMode !== qualityMode ||
+      lastGeneratedSettings.imageMode !== imageMode
     )
-  }, [lastGeneratedSettings, selectedPalette, gridWidth, gridHeight, maxColors, dithering, colorSpace, brightness, contrast, removeBackground, qualityMode])
+  }, [lastGeneratedSettings, selectedPalette, gridWidth, gridHeight, maxColors, dithering, colorSpace, brightness, contrast, removeBackground, qualityMode, imageMode])
 
   // 处理关闭尝试
   const handleCloseAttempt = useCallback(() => {
@@ -231,7 +249,9 @@ export default function ImageQuantizer({ onApply, onClose }) {
     setLastGeneratedResult(null)
     setLastGeneratedSettings(null)
     setResultGridSize(null)
-    setGridPreset('29x29')
+    setAutoSuggest(null)
+    setImageMode('auto')
+    setGridPreset('auto')
     setGridWidth(29)
     setGridHeight(29)
     setHasUserTouchedMaxColors(false)
@@ -244,9 +264,17 @@ export default function ImageQuantizer({ onApply, onClose }) {
     }
   }, [result, settingsChanged])
 
-  const loadImageAspect = (url) => {
+  // 解码图片：取宽高比（按比例模式用）+ 内容分析（自动尺寸模式用）
+  const loadImageMeta = (url) => {
     const img = new Image()
-    img.onload = () => setImageAspectRatio(img.width / img.height)
+    img.onload = () => {
+      setImageAspectRatio(img.width / img.height)
+      try {
+        setAutoSuggest(analyzeImageElement(img))
+      } catch {
+        // 分析失败不影响主流程：保持当前网格设置
+      }
+    }
     img.src = url
   }
 
@@ -255,7 +283,7 @@ export default function ImageQuantizer({ onApply, onClose }) {
     if (file && file.type.startsWith('image/')) {
       const url = URL.createObjectURL(file)
       setPreviewUrl(url)
-      loadImageAspect(url)
+      loadImageMeta(url)
       reset()
       setHasUnsavedChanges(false)
       setLastGeneratedResult(null)
@@ -270,7 +298,7 @@ export default function ImageQuantizer({ onApply, onClose }) {
     if (file && file.type.startsWith('image/')) {
       const url = URL.createObjectURL(file)
       setPreviewUrl(url)
-      loadImageAspect(url)
+      loadImageMeta(url)
       reset()
       setHasUnsavedChanges(false)
       setLastGeneratedResult(null)
@@ -295,7 +323,7 @@ export default function ImageQuantizer({ onApply, onClose }) {
         const file = item.getAsFile()
         const url = URL.createObjectURL(file)
         setPreviewUrl(url)
-        loadImageAspect(url)
+        loadImageMeta(url)
         reset()
         setHasUnsavedChanges(false)
         setLastGeneratedResult(null)
@@ -320,7 +348,8 @@ export default function ImageQuantizer({ onApply, onClose }) {
         brightness,
         contrast,
         removeBackground,
-        qualityMode
+        qualityMode,
+        imageMode
       }
 
       const response = await quantize(
@@ -336,7 +365,8 @@ export default function ImageQuantizer({ onApply, onClose }) {
           contrast,
           highQuality: qualityMode === 'high',
           removeBackground,
-          colorSpace
+          colorSpace,
+          imageMode
         }
       )
 
@@ -349,7 +379,7 @@ export default function ImageQuantizer({ onApply, onClose }) {
       if (err?.message === 'CANCELLED') return // 用户主动取消,非错误
       console.error('Quantization failed:', err)
     }
-  }, [previewUrl, gridWidth, gridHeight, maxColors, selectedPalette, dithering, colorSpace, brightness, contrast, removeBackground, qualityMode, quantize])
+  }, [previewUrl, gridWidth, gridHeight, maxColors, selectedPalette, dithering, colorSpace, brightness, contrast, removeBackground, qualityMode, imageMode, quantize])
 
   const handleApply = useCallback(() => {
     if (result) {
@@ -498,7 +528,7 @@ export default function ImageQuantizer({ onApply, onClose }) {
                     setGridWidth(preset.w)
                     setGridHeight(preset.h)
                   }
-                  // aspect / custom 由 useEffect 或用户手动输入驱动
+                  // auto / aspect / custom 由 useEffect 或用户手动输入驱动
                 }}
                 disabled={isProcessing}
               >
@@ -506,6 +536,15 @@ export default function ImageQuantizer({ onApply, onClose }) {
                   <option key={p.key} value={p.key}>{t('quantizer.presets.' + p.key)}</option>
                 ))}
               </select>
+              {gridPreset === 'auto' && (
+                <span className="setting-hint">
+                  {!previewUrl
+                    ? t('quantizer.autoSizePending')
+                    : autoSuggest
+                      ? t('quantizer.autoSizeApplied', { size: `${autoSuggest.gridWidth} × ${autoSuggest.gridHeight}` })
+                      : t('quantizer.autoSizePending')}
+                </span>
+              )}
               {gridPreset === 'aspect' && (
                 <div className="aspect-mode-inputs">
                   <label style={{ fontSize: 12, color: '#666' }}>
@@ -583,12 +622,31 @@ export default function ImageQuantizer({ onApply, onClose }) {
             </div>
 
             <div className="setting-item">
+              <label>{t('quantizer.imageMode')}</label>
+              <select
+                value={imageMode}
+                onChange={e => setImageMode(e.target.value)}
+                disabled={isProcessing}
+              >
+                <option value="auto">{t('quantizer.imageModes.auto')}</option>
+                <option value="portrait">{t('quantizer.imageModes.portrait')}</option>
+                <option value="illustration">{t('quantizer.imageModes.illustration')}</option>
+                <option value="logo">{t('quantizer.imageModes.logo')}</option>
+                <option value="landscape">{t('quantizer.imageModes.landscape')}</option>
+              </select>
+              <span className="setting-hint">
+                {t('quantizer.imageModeHint')}
+              </span>
+            </div>
+
+            <div className="setting-item">
               <label>{t('quantizer.algorithm')}</label>
               <select
                 value={dithering}
                 onChange={e => setDithering(e.target.value)}
                 disabled={isProcessing}
               >
+                <option value="auto">{t('quantizer.dithering.auto')}</option>
                 <option value="none">{t('quantizer.dithering.none')}</option>
                 <option value="floyd-steinberg">{t('quantizer.dithering.floydSteinberg')}</option>
                 <option value="ordered">{t('quantizer.dithering.ordered')}</option>
@@ -769,8 +827,17 @@ export default function ImageQuantizer({ onApply, onClose }) {
                 </button>
               </div>
               <div className="color-summary">
+                {result.detectedType && (
+                  <span className="mode-badge">
+                    {imageMode === 'auto'
+                      ? t('quantizer.detectedPrefix', { type: t(`quantizer.imageModes.${result.detectedType}`) })
+                      : t('quantizer.modeAppliedPrefix', { type: t(`quantizer.imageModes.${result.detectedType}`) })}
+                  </span>
+                )}
                 <span>{t('quantizer.colorsUsed', '使用颜色')}: {Object.keys(result.colorStats).length}</span>
-                {dithering !== 'none' && <span className="dithering-badge">{t('quantizer.ditheringApplied')}</span>}
+                {dithering === 'floyd-steinberg' || dithering === 'ordered' || result.effectiveDithering === 'floyd-steinberg' ? (
+                  <span className="dithering-badge">{t('quantizer.ditheringApplied')}</span>
+                ) : null}
                 {hasUnsavedChanges && (
                   <span className="regenerate-hint">{t('quantizer.regenerateHint')}</span>
                 )}

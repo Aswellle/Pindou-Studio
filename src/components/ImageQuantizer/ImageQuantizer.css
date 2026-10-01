@@ -521,6 +521,17 @@
   font-weight: var(--font-weight-semibold);
 }
 
+/* 图片类型识别徽标 — 与 dithering-badge 同形但区分描边样式 */
+.mode-badge {
+  background: white;
+  color: var(--accent);
+  border: 1px solid var(--accent);
+  padding: 2px 8px;
+  border-radius: 10px;
+  font-size: var(--text-xs);
+  font-weight: var(--font-weight-semibold);
+}
+
 .settings-changed-warning {
   font-size: var(--text-sm);
   color: var(--warning);

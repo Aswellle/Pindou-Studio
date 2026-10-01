@@ -641,6 +641,8 @@
     "paramsChangedHint": "Settings changed — click to regenerate with new parameters",
     "applyToCanvas": "Apply to Canvas",
     "autoRecommended": "Auto · Recommended for size",
+    "autoSizePending": "上传图片后将按图片内容自动选择合适尺寸",
+    "autoSizeApplied": "已按图片内容推荐 {{size}}，可随时切换其他尺寸",
     "longSide": "Long side (cells)",
     "actualSize": "Actual size",
     "aspectRatio": "aspect ratio",
@@ -649,43 +651,36 @@
     "heightPlaceholder": "H",
     "settingsChanged": "Settings changed",
     "regenerateHint": "Click Generate to update",
-    "ditheringApplied": "Dithering applied",
-    "algorithm": "Algorithm",
-    "dithering": {
-      "none": "No dithering (clean edges)",
-      "floydSteinberg": "Floyd-Steinberg (smooth gradients)",
-      "ordered": "Ordered dithering (regular texture)"
-    },
-    "algorithmHint": "Dithering creates smoother color transitions",
-    "colorMatching": "Color matching",
-    "colorMatchingHint": "OKLab is more sensitive to lightness and skin-tone gradients; CIEDE2000 keeps the original look",
-    "colorSpaces": {
-      "lab": "CIEDE2000 (compatible)",
-      "oklab": "OKLab (perceptual, better skin tones & gradients)"
-    },
+    "ditheringApplied": "Soft transitions applied",
+    "algorithm": "细节过渡",
+    "algorithmHint": "智能模式会按图片类型自动决定；关闭时色块最干净，开启后渐变更平滑",
+    "colorMatching": "色彩还原",
+    "colorMatchingHint": "精准匹配贴近原图色值；明暗层次优先让轮廓和明暗结构更清楚",
     "quality": "Processing Quality",
-    "qualityModes": {
-      "high": "High quality (recommended, ~3-5s)",
-      "fast": "Fast preview (~1s)"
-    },
-    "qualityHint": "High quality uses more iterations for better color matching",
+    "qualityHint": "效果优先会进行更多轮优化，颜色结构更细腻",
     "removeBackground": "Auto remove background",
     "removeBackgroundHint": "Detects solid backgrounds and marks them transparent",
     "brightness": "Brightness",
     "contrast": "Contrast",
-    "colorHint": "Simple 12-24 · Illustration 28-48 · Complex 48-72 · High detail 72+",
+    "colorHint": "Bigger grids can use more colors; keep the auto recommendation if unsure",
+    "processingAlgo": "Matching bead colors intelligently",
+    "techBadge": "Smart color matching",
+    "techBadgeHint": "Analyzes your picture and picks the best-matching bead colors",
+    "presets.auto": "自动匹配（推荐）",
+    "imageMode": "Picture type",
+    "imageModeHint": "Auto detect picks the best processing; or choose the type yourself",
+    "detectedPrefix": "Detected: {{type}}",
+    "modeAppliedPrefix": "Optimized for \"{{type}}\"",
     "unsavedTitle": "Unsaved Changes",
     "unsavedBody": "You have a generated pattern that hasn't been applied. It will be lost if you close.",
     "continueEditing": "Continue Editing",
     "discardClose": "Discard & Close",
-    "processingAlgo": "Using CIEDE2000 color matching",
-    "techBadge": "CIEDE2000 Smart Matching",
-    "techBadgeHint": "Uses perceptually uniform color difference for human-eye-accurate matching",
     "stepUpload": "Upload Image",
     "stepConfigure": "Adjust Settings",
     "stepResult": "Preview Result",
     "dropActive": "Release to upload",
     "presets": {
+      "auto": "Auto fit (recommended)",
       "29x29": "29 × 29 (Standard)",
       "57x57": "57 × 57 (Large)",
       "114x114": "114 × 114 (Extra Large)",
@@ -694,6 +689,27 @@
       "29x57": "29 × 57 (Portrait)",
       "aspect": "Aspect ratio (set long edge)",
       "custom": "Custom W×H"
+    },
+    "dithering": {
+      "none": "Cleaner (crisp blocks)",
+      "floydSteinberg": "Soft gradients (smoother blends)",
+      "ordered": "Dot pattern (regular texture)",
+      "auto": "Smart (recommended)"
+    },
+    "imageModes": {
+      "auto": "Auto detect (recommended)",
+      "portrait": "Portrait photo",
+      "illustration": "Anime / illustration",
+      "logo": "Logo / text",
+      "landscape": "Scenery photo"
+    },
+    "colorSpaces": {
+      "lab": "Precise match (recommended)",
+      "oklab": "Lightness first"
+    },
+    "qualityModes": {
+      "high": "Best quality (recommended)",
+      "fast": "Faster preview"
     }
   },
   "tutorials": {

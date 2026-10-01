@@ -641,6 +641,8 @@
     "paramsChangedHint": "参数已变更，点击按新参数重新生成",
     "applyToCanvas": "应用到画布",
     "autoRecommended": "自动 · 根据尺寸推荐",
+    "autoSizePending": "上传图片后将按图片内容自动选择合适尺寸",
+    "autoSizeApplied": "已按图片内容推荐 {{size}}，可随时切换其他尺寸",
     "longSide": "长边像素数",
     "actualSize": "实际尺寸",
     "aspectRatio": "宽高比",
@@ -649,43 +651,36 @@
     "heightPlaceholder": "高",
     "settingsChanged": "设置已变更",
     "regenerateHint": "点击上方按钮重新生成",
-    "ditheringApplied": "已应用抖动",
-    "algorithm": "算法",
-    "dithering": {
-      "none": "无抖动（干净边缘）",
-      "floydSteinberg": "Floyd-Steinberg（渐变过渡好）",
-      "ordered": "有序抖动（规律纹理）"
-    },
-    "algorithmHint": "抖动可产生更平滑的颜色过渡",
-    "colorMatching": "色彩匹配",
-    "colorMatchingHint": "OKLab 对明度与肤色渐变更敏感；CIEDE2000 保持原有输出观感",
-    "colorSpaces": {
-      "lab": "CIEDE2000（兼容模式）",
-      "oklab": "OKLab（感知加权，肤色/渐变更准）"
-    },
+    "ditheringApplied": "已应用柔和过渡",
+    "algorithm": "细节过渡",
+    "algorithmHint": "智能模式会按图片类型自动决定；关闭时色块最干净，开启后渐变更平滑",
+    "colorMatching": "色彩还原",
+    "colorMatchingHint": "精准匹配贴近原图色值；明暗层次优先让轮廓和明暗结构更清楚",
     "quality": "处理质量",
-    "qualityModes": {
-      "high": "高质量（推荐，~3-5秒）",
-      "fast": "快速预览（~1秒）"
-    },
-    "qualityHint": "高质量模式使用更多次迭代优化配色",
+    "qualityHint": "效果优先会进行更多轮优化，颜色结构更细腻",
     "removeBackground": "自动移除背景",
     "removeBackgroundHint": "检测纯色背景并标记为透明（适合有背景的截图）",
     "brightness": "亮度",
     "contrast": "对比度",
-    "colorHint": "简单图 12-24 · 插画 28-48 · 复杂图 48-72 · 极高细节 72+",
+    "colorHint": "尺寸越大可用的颜色越多；不确定时保持自动推荐即可",
+    "processingAlgo": "正在按图片特点智能配色",
+    "techBadge": "智能配色",
+    "techBadgeHint": "自动分析图片并匹配最合适的拼豆颜色",
+    "presets.auto": "自动匹配（推荐）",
+    "imageMode": "转换方案",
+    "imageModeHint": "自动识别会按图片特点选择最优处理；也可以手动指定图片类型",
+    "detectedPrefix": "识别为：{{type}}",
+    "modeAppliedPrefix": "已按「{{type}}」方案优化",
     "unsavedTitle": "有未保存的更改",
     "unsavedBody": "您有已生成但未应用的图纸。关闭后将丢失。",
     "continueEditing": "继续编辑",
     "discardClose": "放弃并关闭",
-    "processingAlgo": "使用 CIEDE2000 精准配色算法",
-    "techBadge": "CIEDE2000 智能配色",
-    "techBadgeHint": "采用感知均匀色差算法，配色更接近人眼视觉",
     "stepUpload": "上传图片",
     "stepConfigure": "调整设置",
     "stepResult": "预览成品",
     "dropActive": "松开鼠标上传图片",
     "presets": {
+      "auto": "自动匹配（推荐）",
       "29x29": "29 × 29（标准）",
       "57x57": "57 × 57（大图）",
       "114x114": "114 × 114（超大）",
@@ -694,6 +689,27 @@
       "29x57": "29 × 57（竖幅）",
       "aspect": "按原图比例（指定长边）",
       "custom": "自定义宽×高"
+    },
+    "dithering": {
+      "none": "更干净（色块清晰）",
+      "floydSteinberg": "柔和渐变（过渡更自然）",
+      "ordered": "网点风格（规律纹理）",
+      "auto": "智能（推荐，按图片类型）"
+    },
+    "imageModes": {
+      "auto": "自动识别（推荐）",
+      "portrait": "人像照片",
+      "illustration": "动漫插画",
+      "logo": "标志 / 文字",
+      "landscape": "风景照片"
+    },
+    "colorSpaces": {
+      "lab": "精准匹配（推荐）",
+      "oklab": "明暗层次优先"
+    },
+    "qualityModes": {
+      "high": "效果优先（推荐）",
+      "fast": "速度优先"
     }
   },
   "tutorials": {

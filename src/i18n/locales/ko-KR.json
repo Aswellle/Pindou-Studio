@@ -641,6 +641,8 @@
     "paramsChangedHint": "설정이 변경되었습니다. 새 매개변수로 재생성하려면 클릭",
     "applyToCanvas": "캔버스에 적용",
     "autoRecommended": "자동 · 크기에 따라 추천",
+    "autoSizePending": "上传图片后将按图片内容自动选择合适尺寸",
+    "autoSizeApplied": "已按图片内容推荐 {{size}}，可随时切换其他尺寸",
     "longSide": "긴 쪽 (칸)",
     "actualSize": "실제 크기",
     "aspectRatio": "가로세로 비율",
@@ -649,43 +651,36 @@
     "heightPlaceholder": "높이",
     "settingsChanged": "설정이 변경됨",
     "regenerateHint": "생성 버튼을 클릭하여 업데이트",
-    "ditheringApplied": "디더링 적용됨",
-    "algorithm": "알고리즘",
-    "dithering": {
-      "none": "디더링 없음 (깔끔한 경계)",
-      "floydSteinberg": "Floyd-Steinberg (부드러운 그라데이션)",
-      "ordered": "순서 디더링 (규칙적 질감)"
-    },
-    "algorithmHint": "디더링은 더 부드러운 색상 전환을 만듭니다",
-    "colorMatching": "색상 매칭",
-    "colorMatchingHint": "OKLab은 명도와 피부톤 그라데이션에 더 민감하고, CIEDE2000은 기존 결과를 유지합니다",
-    "colorSpaces": {
-      "lab": "CIEDE2000(호환 모드)",
-      "oklab": "OKLab(지각 가중, 피부톤·그라데이션 정확도 향상)"
-    },
+    "ditheringApplied": "부드러운 전환 적용됨",
+    "algorithm": "细节过渡",
+    "algorithmHint": "智能模式会按图片类型自动决定；关闭时色块最干净，开启后渐变更平滑",
+    "colorMatching": "色彩还原",
+    "colorMatchingHint": "精准匹配贴近原图色值；明暗层次优先让轮廓和明暗结构更清楚",
     "quality": "처리 품질",
-    "qualityModes": {
-      "high": "고품질 (권장, ~3-5초)",
-      "fast": "빠른 미리보기 (~1초)"
-    },
-    "qualityHint": "고품질 모드는 더 많은 반복으로 색상 매칭을 개선합니다",
+    "qualityHint": "效果优先会进行更多轮优化，颜色结构更细腻",
     "removeBackground": "배경 자동 제거",
     "removeBackgroundHint": "단색 배경을 감지하여 투명으로 표시합니다",
     "brightness": "밝기",
     "contrast": "대비",
-    "colorHint": "단순 12-24 · 일러스트 28-48 · 복잡 48-72 · 고세밀 72+",
+    "colorHint": "크기가 클수록 더 많은 색을 쓸 수 있어요. 모르면 자동 추천 그대로 두세요",
+    "processingAlgo": "이미지에 맞춰 스마트하게 배색하는 중",
+    "techBadge": "스마트 배색",
+    "techBadgeHint": "이미지를 분석해 가장 어울리는 조각 색을 자동 매칭",
+    "presets.auto": "自动匹配（推荐）",
+    "imageMode": "이미지 유형",
+    "imageModeHint": "자동 인식은 최적 처리를 고릅니다. 직접 지정할 수도 있어요",
+    "detectedPrefix": "인식 결과: {{type}}",
+    "modeAppliedPrefix": "「{{type}}」에 맞춰 최적화됨",
     "unsavedTitle": "저장되지 않은 변경 사항",
     "unsavedBody": "생성된 패턴이 적용되지 않았습니다. 닫으면 사라집니다.",
     "continueEditing": "계속 편집",
     "discardClose": "버리고 닫기",
-    "processingAlgo": "CIEDE2000 색상 매칭 사용 중",
-    "techBadge": "CIEDE2000 스마트 매칭",
-    "techBadgeHint": "지각적으로 균일한 색차 알고리즘으로 사람 눈에 가까운 색상 매칭",
     "stepUpload": "이미지 업로드",
     "stepConfigure": "설정 조정",
     "stepResult": "결과 미리보기",
     "dropActive": "놓아서 업로드",
     "presets": {
+      "auto": "자동 맞춤(추천)",
       "29x29": "29 × 29（표준）",
       "57x57": "57 × 57（대형）",
       "114x114": "114 × 114（초대형）",
@@ -694,6 +689,27 @@
       "29x57": "29 × 57（세로）",
       "aspect": "원본 비율（긴 변 지정）",
       "custom": "사용자 지정 가로×세로"
+    },
+    "dithering": {
+      "none": "더 깔끔하게(색 블록 또렷)",
+      "floydSteinberg": "부드러운 그라데이션",
+      "ordered": "도트 스타일(규칙적 질감)",
+      "auto": "스마트(추천)"
+    },
+    "imageModes": {
+      "auto": "자동 인식(추천)",
+      "portrait": "인물 사진",
+      "illustration": "애니메이션·일러스트",
+      "logo": "로고·글자",
+      "landscape": "풍경 사진"
+    },
+    "colorSpaces": {
+      "lab": "정밀 매칭(추천)",
+      "oklab": "명암 우선"
+    },
+    "qualityModes": {
+      "high": "품질 우선(추천)",
+      "fast": "속도 우선"
     }
   },
   "tutorials": {

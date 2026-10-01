@@ -22,7 +22,8 @@ export function useImageQuantizer() {
       contrast = 0,
       highQuality = true,   // Phase 2: 质量开关
       removeBackground = true,  // Phase 4: 背景移除开关
-      colorSpace = 'lab'    // 'lab' = CIEDE2000(兼容默认) | 'oklab' = OKLab 感知加权
+      colorSpace = 'lab',   // 'lab' = CIEDE2000(兼容默认) | 'oklab' = OKLab 感知加权
+      imageMode = 'auto'    // 'auto' | 'portrait' | 'illustration' | 'logo' | 'landscape'
     } = options
 
     const outW = gridWidth || gridSize
@@ -85,7 +86,8 @@ export function useImageQuantizer() {
             setProgress(prog)
           } else if (type === 'COMPLETE') {
             // 将 Transferable 索引格式还原为 canvasData 二维数组，保持上游 API 不变
-            const { indexBuffer, width, height, quantizedColors, colorStats, BLANK_MARKER } = payload
+            const { indexBuffer, width, height, quantizedColors, colorStats, BLANK_MARKER,
+              detectedType, requestedMode, effectiveMaxColors, effectiveDithering } = payload
             const indices = new Uint16Array(indexBuffer)
             const BLANK = BLANK_MARKER ?? 0xffff
 
@@ -99,7 +101,10 @@ export function useImageQuantizer() {
               canvasData[y] = row
             }
 
-            const compatPayload = { canvasData, colorStats, quantizedColors, width, height }
+            const compatPayload = {
+              canvasData, colorStats, quantizedColors, width, height,
+              detectedType, requestedMode, effectiveMaxColors, effectiveDithering
+            }
             setResult(compatPayload)
             setIsProcessing(false)
             workerRef.current.terminate()
@@ -146,7 +151,8 @@ export function useImageQuantizer() {
               contrast,
               highQuality,
               removeBackground,
-              colorSpace
+              colorSpace,
+              imageMode
             }
           },
           [pixelBuffer]             // Transferable list — 零拷贝

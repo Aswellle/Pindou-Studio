@@ -641,6 +641,8 @@
     "paramsChangedHint": "設定が変更されました。クリックして新しいパラメータで再生成",
     "applyToCanvas": "キャンバスに適用",
     "autoRecommended": "自動 · サイズに基づく推奨",
+    "autoSizePending": "上传图片后将按图片内容自动选择合适尺寸",
+    "autoSizeApplied": "已按图片内容推荐 {{size}}，可随时切换其他尺寸",
     "longSide": "長辺（セル）",
     "actualSize": "実際のサイズ",
     "aspectRatio": "アスペクト比",
@@ -649,43 +651,36 @@
     "heightPlaceholder": "高さ",
     "settingsChanged": "設定が変更されました",
     "regenerateHint": "生成ボタンをクリックして更新",
-    "ditheringApplied": "ディザリング適用済み",
-    "algorithm": "アルゴリズム",
-    "dithering": {
-      "none": "ディザリングなし（クリーンなエッジ）",
-      "floydSteinberg": "Floyd-Steinberg（スムーズなグラデーション）",
-      "ordered": "秩序ディザリング（規則的なテクスチャ）"
-    },
-    "algorithmHint": "ディザリングはよりスムーズなカラー遷移を作ります",
-    "colorMatching": "色合わせ",
-    "colorMatchingHint": "OKLab は明度と肌色のグラデーションに敏感です。CIEDE2000 は従来の見た目を維持します",
-    "colorSpaces": {
-      "lab": "CIEDE2000（互換モード）",
-      "oklab": "OKLab（知覚加重、肌色・グラデーションがより正確）"
-    },
+    "ditheringApplied": "なめらか補間を適用",
+    "algorithm": "细节过渡",
+    "algorithmHint": "智能模式会按图片类型自动决定；关闭时色块最干净，开启后渐变更平滑",
+    "colorMatching": "色彩还原",
+    "colorMatchingHint": "精准匹配贴近原图色值；明暗层次优先让轮廓和明暗结构更清楚",
     "quality": "処理品質",
-    "qualityModes": {
-      "high": "高品質（推奨、~3-5秒）",
-      "fast": "高速プレビュー（~1秒）"
-    },
-    "qualityHint": "高品質モードはより多くのイテレーションでカラーマッチングを改善します",
+    "qualityHint": "效果优先会进行更多轮优化，颜色结构更细腻",
     "removeBackground": "背景を自動削除",
     "removeBackgroundHint": "単色背景を検出して透明にマークします",
     "brightness": "明るさ",
     "contrast": "コントラスト",
-    "colorHint": "シンプル 12-24 · イラスト 28-48 · 複雑 48-72 · 高精細 72+",
+    "colorHint": "大きいサイズほど多くの色が使えます。迷ったら自動推奨のままどうぞ",
+    "processingAlgo": "画像に合わせてスマートに配色中",
+    "techBadge": "スマート配色",
+    "techBadgeHint": "画像を解析して最適なビーズ色を自動マッチング",
+    "presets.auto": "自动匹配（推荐）",
+    "imageMode": "画像タイプ",
+    "imageModeHint": "自動判別は最適な処理を選びます。手動指定もできます",
+    "detectedPrefix": "判定：{{type}}",
+    "modeAppliedPrefix": "「{{type}}」向けに最適化",
     "unsavedTitle": "未保存の変更があります",
     "unsavedBody": "生成されたパターンがまだ適用されていません。閉じると失われます。",
     "continueEditing": "編集を続ける",
     "discardClose": "破棄して閉じる",
-    "processingAlgo": "CIEDE2000カラーマッチングを使用中",
-    "techBadge": "CIEDE2000 スマート配色",
-    "techBadgeHint": "知覚均等な色差アルゴリズムで人の目に近い配色を実現",
     "stepUpload": "画像をアップロード",
     "stepConfigure": "設定を調整",
     "stepResult": "結果を確認",
     "dropActive": "ドロップしてアップロード",
     "presets": {
+      "auto": "自動マッチ（おすすめ）",
       "29x29": "29 × 29（標準）",
       "57x57": "57 × 57（大）",
       "114x114": "114 × 114（特大）",
@@ -694,6 +689,27 @@
       "29x57": "29 × 57（縦長）",
       "aspect": "元の比率（長辺指定）",
       "custom": "カスタム 幅×高さ"
+    },
+    "dithering": {
+      "none": "くっきり（ブロック感重視）",
+      "floydSteinberg": "なめらか（グラデーション向き）",
+      "ordered": "ドット風（規則的な質感）",
+      "auto": "スマート（おすすめ）"
+    },
+    "imageModes": {
+      "auto": "自動判別（おすすめ）",
+      "portrait": "人物写真",
+      "illustration": "アニメ・イラスト",
+      "logo": "ロゴ・文字",
+      "landscape": "風景写真"
+    },
+    "colorSpaces": {
+      "lab": "正確マッチ（おすすめ）",
+      "oklab": "明るさ優先"
+    },
+    "qualityModes": {
+      "high": "品質優先（おすすめ）",
+      "fast": "スピード優先"
     }
   },
   "tutorials": {
