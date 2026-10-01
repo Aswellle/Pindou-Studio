@@ -1,8 +1,8 @@
 import { describe, it, expect } from 'vitest'
 import { analyzeImageContent, recommendGridSize, suggestMaxColorsForGrid } from './autoGrid'
 
-/** 纯色图 */
-function solid(w, h, rgb = [200, 120, 90]) {
+/** 纯色图(绿色,避开肤色判据) */
+function solid(w, h, rgb = [80, 160, 90]) {
   const data = new Uint8ClampedArray(w * h * 4)
   for (let i = 0; i < w * h; i += 1) {
     data[i * 4] = rgb[0]

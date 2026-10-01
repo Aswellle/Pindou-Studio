@@ -196,4 +196,16 @@ describe('quantizer worker pipeline', () => {
     const result = expectComplete(await runQuantizer({ imageMode: 'nonsense' }))
     expect(result.requestedMode).toBe('auto')
   })
+
+  it('调色板子集剔除近重复色(近重复会让最近邻逐格翻转)', async () => {
+    const dupPalette = [
+      { id: 'G1', hex: '#CACACA', rgb: { r: 202, g: 202, b: 202 } },
+      { id: 'G2', hex: '#C6C6C6', rgb: { r: 198, g: 198, b: 198 } },
+      { id: 'W1', hex: '#FFFFFF', rgb: { r: 255, g: 255, b: 255 } },
+      { id: 'B1', hex: '#141414', rgb: { r: 20, g: 20, b: 20 } },
+    ]
+    const result = expectComplete(await runQuantizer({ paletteColors: dupPalette, maxColors: 3, dithering: 'none' }))
+    const ids = result.quantizedColors.map((c) => c.id)
+    expect(ids.includes('G1') && ids.includes('G2')).toBe(false)
+  })
 })

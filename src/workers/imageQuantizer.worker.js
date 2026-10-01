@@ -495,14 +495,15 @@ export function classifyImageType(f) {
 }
 
 // 各类型自适应参数（文档 §二十五）
-// colorBudget: 颜色数乘数（人像肤色多留、风景层次多留、Logo 收紧）
+// colorBudget: 颜色数乘数 — 照片类刻意温和甚至收紧:相近色过多会让最近邻匹配
+// 在同色系颜色间逐格翻转,加剧椒盐噪点;logo 收紧保留纯色块
 // edgeBoost/salBoost: 加权 K-means 中边缘/显著性对采样权重的影响系数
 // dithering: 'auto' 细节过渡模式的类型默认值
 const IMAGE_TYPE_PARAMS = {
-  portrait:     { colorBudget: 1.15, dithering: 'none',            edgeBoost: 1.6, salBoost: 1.2 },
-  illustration: { colorBudget: 1.0,  dithering: 'none',            edgeBoost: 1.8, salBoost: 0.8 },
-  logo:         { colorBudget: 0.7,  dithering: 'none',            edgeBoost: 2.0, salBoost: 0.5 },
-  landscape:    { colorBudget: 1.25, dithering: 'floyd-steinberg', edgeBoost: 1.0, salBoost: 0.6 }
+  portrait:     { colorBudget: 1.0,  dithering: 'none',            edgeBoost: 1.6, salBoost: 1.2 },
+  illustration: { colorBudget: 0.9,  dithering: 'none',            edgeBoost: 1.8, salBoost: 0.8 },
+  logo:         { colorBudget: 0.6,  dithering: 'none',            edgeBoost: 2.0, salBoost: 0.5 },
+  landscape:    { colorBudget: 1.1,  dithering: 'floyd-steinberg', edgeBoost: 1.0, salBoost: 0.6 }
 };
 
 // 网格尺寸 → 基准颜色数（文档 §二十七：32→8-16、64→16-32、100→24-48、150→32-64）
@@ -631,13 +632,37 @@ function kmeansSelectPalette(imageData, maxColors, palette, paletteLabs, bgMask,
     if (!used.has(i)) { picked.push(i); used.add(i); }
   }
 
-  const subset = picked.map((i) => palette[i]);
+  // 近重复色剔除(关键反椒盐噪点步骤):
+  // K-means 中心映射到品牌色卡后,子集常含 ΔE00 只有 3~5 的近重复色
+  // (如 Perler 的 7 个灰系)。最近邻匹配在近重复色间逐格随机翻转,
+  // 且任何"邻域多数"机制都会因邻域内 ≥2 种等价色而失效 → 图纸呈彩色二维码。
+  // 子集内两两间距必须 ≥ MIN_PALETTE_SEP;被合并腾出的预算用与已选色都够远的颜色回填。
+  const MIN_PALETTE_SEP = 8;
+  const sepFrom = (idxArr, i) => {
+    let min = Infinity;
+    for (const j of idxArr) {
+      const d = deltaE2000(paletteLabs.labs[i], paletteLabs.labs[j]);
+      if (d < min) min = d;
+    }
+    return min;
+  };
+  const deduped = [];
+  for (const i of picked) {
+    if (sepFrom(deduped, i) >= MIN_PALETTE_SEP) deduped.push(i);
+  }
+  for (let i = 0; deduped.length < maxColors && i < palette.length; i += 1) {
+    if (deduped.includes(i)) continue;
+    if (sepFrom(deduped, i) >= MIN_PALETTE_SEP) deduped.push(i);
+  }
+  const finalPicked = deduped.length > 0 ? deduped : picked;
+
+  const subset = finalPicked.map((i) => palette[i]);
   // 返回与 getPaletteLabs 相同的双空间形状({ labs, oklabs }):
   // nearestColor / spatialRefinement / cleanupIsolatedBeads / suppressCheckerboard
   // 都按 paletteLabs.labs|oklabs 读取,这里返回纯数组会让它们读到 undefined 而抛错。
   const subsetLabs = {
-    labs: picked.map((i) => paletteLabs.labs[i]),
-    oklabs: picked.map((i) => paletteLabs.oklabs[i]),
+    labs: finalPicked.map((i) => paletteLabs.labs[i]),
+    oklabs: finalPicked.map((i) => paletteLabs.oklabs[i]),
   };
   return { palette: subset, labs: subsetLabs };
 }
@@ -695,12 +720,16 @@ function applyBrightnessContrastLinear(r, g, b, brightness, contrast) {
 
 // ==================== 边缘感知区域采样 ====================
 
-function computeEdgeAwareAreaColors(hiResData, hiResW, hiResH, outW, outH, brightness, contrast) {
+export function computeEdgeAwareAreaColors(hiResData, hiResW, hiResH, outW, outH, brightness, contrast) {
   const cellW = hiResW / outW;
   const cellH = hiResH / outH;
   const result = new Array(outW * outH);
   const edgeMap = new Float32Array(outW * outH);
-  const EDGE_VARIANCE_THRESHOLD = 0.008;
+  // 拆色双门槛:方差阈值过低(旧值 0.008)会让织物/发丝/皮肤渐变这类"有纹理但无结构"
+  // 的格子被逐格拆成深浅两簇 → 椒盐噪点(转换结果呈"彩色二维码"的主因之一)。
+  // 且两簇必须真正分开(ΔE≥12)才算边缘穿越,否则退回区域均色。
+  const EDGE_VARIANCE_THRESHOLD = 0.02;
+  const SPLIT_MIN_SEPARATION = 12;
 
   for (let oy = 0; oy < outH; oy += 1) {
     for (let ox = 0; ox < outW; ox += 1) {
@@ -727,7 +756,7 @@ function computeEdgeAwareAreaColors(hiResData, hiResW, hiResH, outW, outH, brigh
             [r, g, b] = applyBrightnessContrastLinear(r, g, b, brightness, contrast);
           }
           const lr = srgbToLinear(r), lg = srgbToLinear(g), lb = srgbToLinear(b);
-          pixels.push({ lr, lg, lb, weight });
+          pixels.push({ lr, lg, lb, weight, row: py - iy0 });
           totalWeight += weight;
         }
       }
@@ -753,7 +782,7 @@ function computeEdgeAwareAreaColors(hiResData, hiResW, hiResH, outW, outH, brigh
         const labAvg = rgbToLab(linearToSrgb(avgLR), linearToSrgb(avgLG), linearToSrgb(avgLB));
         const labPixels = pixels.map(p => ({
           lab: rgbToLab(linearToSrgb(p.lr), linearToSrgb(p.lg), linearToSrgb(p.lb)),
-          lr: p.lr, lg: p.lg, lb: p.lb, weight: p.weight
+          lr: p.lr, lg: p.lg, lb: p.lb, weight: p.weight, row: p.row
         }));
 
         let farthestDist = 0, farthestIdx = 0;
@@ -791,15 +820,39 @@ function computeEdgeAwareAreaColors(hiResData, hiResW, hiResH, outW, outH, brigh
           if (w2 > 0) c2 = [sumL2 / w2, sumA2 / w2, sumB2 / w2];
         }
 
-        if (w1 >= w2 && w1 > 0) {
-          const r = linearToSrgb(sumLR1 / w1), g = linearToSrgb(sumLG1 / w1), b = linearToSrgb(sumLB1 / w1);
-          result[outIdx] = { lab: rgbToLab(r, g, b), rgb: [r, g, b] };
-        } else if (w2 > 0) {
-          const r = linearToSrgb(sumLR2 / w2), g = linearToSrgb(sumLG2 / w2), b = linearToSrgb(sumLB2 / w2);
-          result[outIdx] = { lab: rgbToLab(r, g, b), rgb: [r, g, b] };
-        } else {
+        // 两簇拉不开差距 → 只是纹理噪声,不是边缘 → 用均色(抗椒盐噪点)
+        if (deltaEFast(c1, c2) < SPLIT_MIN_SEPARATION) {
           const r = linearToSrgb(avgLR), g = linearToSrgb(avgLG), b = linearToSrgb(avgLB);
           result[outIdx] = { lab: rgbToLab(r, g, b), rgb: [r, g, b] };
+        } else {
+          // 空间一致性判据:真边缘(直线穿过格子)每行只有 ~1 次簇跳变;
+          // 织物/屋顶/皮肤渐变这类纹理逐像素交替,跳变数远超行数。
+          // 纹理格子取主导色会在相邻格间来回翻转 → 图纸椒盐噪点;必须用均值(中调)。
+          let rows = 0, prevRow = -1, transitions = 0, prevLabel = -1;
+          for (let i = 0; i < labPixels.length; i += 1) {
+            const p = labPixels[i];
+            const d1 = deltaEFast(p.lab, c1);
+            const d2 = deltaEFast(p.lab, c2);
+            const label = d1 <= d2 ? 0 : 1;
+            if (p.row !== prevRow) { rows += 1; prevRow = p.row; prevLabel = -1; }
+            if (prevLabel !== -1 && label !== prevLabel) transitions += 1;
+            prevLabel = label;
+          }
+          const isEdge = rows > 0 && transitions <= rows * 1.5;
+
+          if (!isEdge) {
+            const r = linearToSrgb(avgLR), g = linearToSrgb(avgLG), b = linearToSrgb(avgLB);
+            result[outIdx] = { lab: rgbToLab(r, g, b), rgb: [r, g, b] };
+          } else if (w1 >= w2 && w1 > 0) {
+            const r = linearToSrgb(sumLR1 / w1), g = linearToSrgb(sumLG1 / w1), b = linearToSrgb(sumLB1 / w1);
+            result[outIdx] = { lab: rgbToLab(r, g, b), rgb: [r, g, b] };
+          } else if (w2 > 0) {
+            const r = linearToSrgb(sumLR2 / w2), g = linearToSrgb(sumLG2 / w2), b = linearToSrgb(sumLB2 / w2);
+            result[outIdx] = { lab: rgbToLab(r, g, b), rgb: [r, g, b] };
+          } else {
+            const r = linearToSrgb(avgLR), g = linearToSrgb(avgLG), b = linearToSrgb(avgLB);
+            result[outIdx] = { lab: rgbToLab(r, g, b), rgb: [r, g, b] };
+          }
         }
       } else {
         const r = linearToSrgb(avgLR), g = linearToSrgb(avgLG), b = linearToSrgb(avgLB);
@@ -808,6 +861,41 @@ function computeEdgeAwareAreaColors(hiResData, hiResW, hiResH, outW, outH, brigh
     }
   }
   return { colors: result, edgeMap };
+}
+
+// ==================== 格子色中值预滤波 ====================
+
+/**
+ * 3×3 Lab 中值滤波 —— 下采样后逐格色仍带 JPEG 噪声/锐化放大的残差，
+ * 近邻匹配会在相近调色板色间逐格翻转 → 脸部/大面积出现斑驳("彩色二维码"观感)。
+ * 中值是边缘保持滤波:平坦区去斑,真边缘不糊。仅用于下采样路径(1:1 像素画不处理)。
+ */
+export function medianSmoothAreaColors(areaColors, outW, outH) {
+  const smoothed = new Array(areaColors.length);
+  for (let y = 0; y < outH; y += 1) {
+    for (let x = 0; x < outW; x += 1) {
+      const idx = y * outW + x;
+      const c = areaColors[idx];
+      if (!c) { smoothed[idx] = null; continue; }
+      const lVals = [], aVals = [], bVals = [];
+      for (let dy = -1; dy <= 1; dy += 1) {
+        const yy = y + dy;
+        if (yy < 0 || yy >= outH) continue;
+        for (let dx = -1; dx <= 1; dx += 1) {
+          const xx = x + dx;
+          if (xx < 0 || xx >= outW) continue;
+          const n = areaColors[yy * outW + xx];
+          if (!n) continue;
+          lVals.push(n.lab[0]); aVals.push(n.lab[1]); bVals.push(n.lab[2]);
+        }
+      }
+      if (lVals.length < 4) { smoothed[idx] = c; continue; }
+      const lab = [median(lVals), median(aVals), median(bVals)];
+      const rgb = labToRgb(lab[0], lab[1], lab[2]);
+      smoothed[idx] = { lab, rgb };
+    }
+  }
+  return smoothed;
 }
 
 // ==================== 区域方差计算 ====================
@@ -917,10 +1005,11 @@ function spatialRefinement(outIdx, areaColors, activePalette, activeLabs, outW, 
         const targetLab = areaColors[idx].lab;
         // 保真度代价必须与 paletteLabs 同空间(oklab 时先转换);nearestColor 内部自行转换
         const targetWorkLab = useOklab ? labToOklab(targetLab) : targetLab;
-        // 能量函数 E_color×(1+ε·protection) − 平滑让位：边缘/主体格子的色错代价更高
+        // 能量函数 E_color×(1+ε·protection) − 平滑让位：边缘/主体格子的色错代价更高。
+        // 平滑豁免刻意大幅(0.85):强 λ 依赖保护图放行真边缘,否则细节会被抹平
         const prot = protection ? protection[idx] : 0;
-        const fidelityScale = 1 + 1.2 * prot;
-        const smoothScale = spatialWeight * (1 - 0.5 * prot);
+        const fidelityScale = 1 + 0.8 * prot;
+        const smoothScale = spatialWeight * (1 - 0.85 * prot);
         let bestCost = Infinity, bestColor = current[idx];
 
         const neighbors = [];
@@ -957,6 +1046,64 @@ function spatialRefinement(outIdx, areaColors, activePalette, activeLabs, outW, 
     if (current[i] !== BLANK) counts[current[i]] += 1;
   }
   return counts;
+}
+
+// ==================== 区域合并(椒盐噪点清理) ====================
+
+/**
+ * ICM 后置区域合并:某格 ≥3/4 邻居同色且与其不同 → 换成邻居主导色,
+ * 但只在保真代价增加 ≤ tolerance 时执行(文档 §二十一/二十二:
+ * 考虑色距与邻域一致性,不做盲目的 majority filter)。
+ * 直接清除孤立/成对的椒盐噪点;瞳孔等真实细节保真代价大,护栏会拒绝替换。
+ */
+export function mergeSpeckleRegions(outIdx, areaColors, activePalette, activeLabs, outW, outH, colorSpace, tolerance = 12) {
+  const useOklab = colorSpace === 'oklab';
+  const paletteLabs = useOklab ? activeLabs.oklabs : activeLabs.labs;
+  const distFn = useOklab ? deltaEOKLabWeighted : deltaE2000;
+  const current = new Uint16Array(outIdx);
+  let mergedCount = 0;
+
+  for (let pass = 0; pass < 2; pass += 1) {
+    let changed = 0;
+    for (let y = 0; y < outH; y += 1) {
+      for (let x = 0; x < outW; x += 1) {
+        const idx = y * outW + x;
+        if (current[idx] === BLANK || !areaColors[idx]) continue;
+
+        const neighborColors = [];
+        if (y > 0 && current[idx - outW] !== BLANK) neighborColors.push(current[idx - outW]);
+        if (y + 1 < outH && current[idx + outW] !== BLANK) neighborColors.push(current[idx + outW]);
+        if (x > 0 && current[idx - 1] !== BLANK) neighborColors.push(current[idx - 1]);
+        if (x + 1 < outW && current[idx + 1] !== BLANK) neighborColors.push(current[idx + 1]);
+        if (neighborColors.length < 3) continue;
+
+        const counts = new Map();
+        for (const n of neighborColors) counts.set(n, (counts.get(n) || 0) + 1);
+        let dominant = -1, dominantCount = 0;
+        for (const [color, count] of counts) {
+          if (count > dominantCount) { dominantCount = count; dominant = color; }
+        }
+        if (dominantCount < 3 || dominant === current[idx]) continue;
+
+        const targetLab = useOklab ? labToOklab(areaColors[idx].lab) : areaColors[idx].lab;
+        const curCost = distFn(targetLab, paletteLabs[current[idx]]);
+        const candCost = distFn(targetLab, paletteLabs[dominant]);
+        if (candCost - curCost <= tolerance) {
+          current[idx] = dominant;
+          changed += 1;
+          mergedCount += 1;
+        }
+      }
+    }
+    if (changed === 0) break;
+  }
+
+  const counts = new Array(activePalette.length).fill(0);
+  for (let i = 0; i < current.length; i += 1) {
+    outIdx[i] = current[i];
+    if (current[i] !== BLANK) counts[current[i]] += 1;
+  }
+  return { mergedCount, counts };
 }
 
 // ==================== 孤立豆清理 ====================
@@ -1203,7 +1350,8 @@ self.onmessage = (event) => {
       if (hasHiRes) {
         const scaleRatio = hiResW / outW;
         if (scaleRatio > 3) {
-          const sharpAmount = clamp(0.15 + (scaleRatio - 5) * 0.03, 0.1, 0.5);
+          // 上限 0.5→0.35:极端缩小时强锐化会放大单像素噪声,让下方拆色/匹配更碎
+          const sharpAmount = clamp(0.15 + (scaleRatio - 5) * 0.03, 0.1, 0.35);
           hiResData = applyUnsharpMask(hiResData, hiResW, hiResH, sharpAmount, 1);
         }
       }
@@ -1239,6 +1387,11 @@ self.onmessage = (event) => {
           }
           areaColors[i] = { lab: rgbToLab(r, g, b), rgb: [r, g, b] };
         }
+      }
+
+      // 下采样路径先做格子色中值预滤波(去逐格色斑);1:1 像素画跳过
+      if (hasHiRes) {
+        areaColors = medianSmoothAreaColors(areaColors, outW, outH);
       }
 
       // 当使用 OKLab 色彩空间时，将 areaColors 的 lab 转为 OKLab 供匹配使用
@@ -1438,10 +1591,17 @@ self.onmessage = (event) => {
       // ICM 空间优化（对小尺寸图纸效果更明显）— 短边 ≤120 即触发，兼容矩形网格
       if (Math.min(outW, outH) <= 120) {
         const minDim = Math.min(outW, outH);
-        const spatialWeight = minDim <= 30 ? 0.25 : (minDim <= 50 ? 0.18 : minDim <= 80 ? 0.12 : 0.07);
+        // 平滑权重是压住椒盐噪点的主力;平坦区需要 λ 与保真差同量级才能合并
+        // 碎色(旧值 0.07~0.25 时最近邻纹理噪声在 ICM 后存活)。真边缘由
+        // protection(0.85 豁免)放行,不会跟着被抹平。
+        const spatialWeight = minDim <= 30 ? 0.5 : (minDim <= 50 ? 0.45 : minDim <= 80 ? 0.35 : 0.25);
         const refinementIters = highQuality ? 4 : 2;
         outCounts = spatialRefinement(outIdx, areaColors, activePalette, activeLabs, outW, outH, refinementIters, spatialWeight, colorSpace, protection);
       }
+
+      // 区域合并 — ≥3/4 邻居同色的椒盐噪点在保真护栏内归入邻域主导色
+      const mergeResult = mergeSpeckleRegions(outIdx, areaColors, activePalette, activeLabs, outW, outH, colorSpace, 12);
+      outCounts = mergeResult.counts;
 
       // 棋盘抑制 — 在 ICM 之后检测并平滑 ABAB/BABA 高频交替伪影
       const checkerThreshold = colorSpace === 'oklab' ? 0.10 : 10;
@@ -1469,21 +1629,14 @@ self.onmessage = (event) => {
 
       self.postMessage({ type: 'PROGRESS', progress: 90 });
 
-      // 颜色统计（在孤立豆清理后重新计算，确保计数准确）
+      // 颜色统计 — 全部后处理(合并/棋盘/孤立豆)结束后统一重算,确保计数准确
       const colorStats = {};
-      for (let i = 0; i < activePalette.length; i += 1) {
-        if (outCounts[i] > 0) colorStats[activePalette[i].id] = outCounts[i];
+      const finalCounts = new Array(activePalette.length).fill(0);
+      for (let i = 0; i < outW * outH; i += 1) {
+        if (outIdx[i] !== BLANK) finalCounts[outIdx[i]] += 1;
       }
-
-      // 如果清理了孤立豆，重新统计颜色分布
-      if (cleanedCount > 0) {
-        const newCounts = new Array(activePalette.length).fill(0);
-        for (let i = 0; i < outW * outH; i += 1) {
-          if (outIdx[i] !== BLANK) newCounts[outIdx[i]] += 1;
-        }
-        for (let i = 0; i < activePalette.length; i += 1) {
-          if (newCounts[i] > 0) colorStats[activePalette[i].id] = newCounts[i];
-        }
+      for (let i = 0; i < activePalette.length; i += 1) {
+        if (finalCounts[i] > 0) colorStats[activePalette[i].id] = finalCounts[i];
       }
 
 

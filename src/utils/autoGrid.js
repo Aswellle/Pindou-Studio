@@ -9,7 +9,7 @@ function colorKey(r, g, b) {
   return ((r >> 4) << 8) | ((g >> 4) << 4) | (b >> 4)
 }
 
-// 图片内容特征：唯一色比例、边缘密度、平坦度
+// 图片内容特征：唯一色比例、边缘密度、平坦度、肤色占比
 export function analyzeImageContent({ data, width, height }) {
   const total = width * height
   const stride = Math.max(1, Math.floor(Math.sqrt(total / SAMPLE_TARGET)))
@@ -17,22 +17,33 @@ export function analyzeImageContent({ data, width, height }) {
   let samples = 0
   let edgeCount = 0
   let edgeChecks = 0
+  let skinCount = 0
 
   for (let y = 0; y < height; y += stride) {
     for (let x = 0; x < width; x += stride) {
       const o = (y * width + x) * 4
       if (data[o + 3] < 5) continue
+      const r = data[o], g = data[o + 1], b = data[o + 2]
       samples += 1
-      buckets.set(colorKey(data[o], data[o + 1], data[o + 2]), (buckets.get(colorKey(data[o], data[o + 1], data[o + 2])) || 0) + 1)
+      buckets.set(colorKey(r, g, b), (buckets.get(colorKey(r, g, b)) || 0) + 1)
 
       if (x + stride < width && y + stride < height) {
         const oR = (y * width + x + stride) * 4
         const oD = ((y + stride) * width + x) * 4
-        const lum = 0.2126 * data[o] + 0.7152 * data[o + 1] + 0.0722 * data[o + 2]
+        const lum = 0.2126 * r + 0.7152 * g + 0.0722 * b
         const lumR = 0.2126 * data[oR] + 0.7152 * data[oR + 1] + 0.0722 * data[oR + 2]
         const lumD = 0.2126 * data[oD] + 0.7152 * data[oD + 1] + 0.0722 * data[oD + 2]
         edgeChecks += 1
         if (Math.abs(lum - lumR) > 24 || Math.abs(lum - lumD) > 24) edgeCount += 1
+      }
+
+      // YCbCr 肤色判据:人像照片的网格太小会糊成噪点,需要更大的默认尺寸
+      const mx = Math.max(r, g, b), mn = Math.min(r, g, b)
+      const cb = 128 - 0.168736 * r - 0.331264 * g + 0.5 * b
+      const cr = 128 + 0.5 * r - 0.418688 * g - 0.081312 * b
+      if (r > 95 && g > 40 && b > 20 && mx > mn && Math.abs(r - g) > 15
+        && cb > 77 && cb < 127 && cr > 133 && cr < 173) {
+        skinCount += 1
       }
     }
   }
@@ -47,7 +58,8 @@ export function analyzeImageContent({ data, width, height }) {
     uniqueColors: buckets.size,
     uniqueRatio: buckets.size / samples,
     edgeDensity: edgeChecks > 0 ? edgeCount / edgeChecks : 0,
-    flatness: flatTop / samples
+    flatness: flatTop / samples,
+    skinRatio: skinCount / samples
   }
 }
 
@@ -65,10 +77,14 @@ export function recommendGridSize({ data, width, height, sourceWidth, sourceHeig
   else if (detailScore < 2.4) longSide = 114
   else longSide = 140
 
+  const detailLong = longSide
+  // 人像照片:小网格会把五官糊成噪点,长边至少 87(源分辨率封顶仍然生效)
+  const flooredLong = stats.skinRatio >= 0.08 ? Math.max(detailLong, 87) : detailLong
+
   const srcW = sourceWidth || width
   const srcH = sourceHeight || height
   const sourceLong = Math.max(srcW, srcH)
-  longSide = Math.max(29, Math.min(longSide, Math.round(sourceLong / 2)))
+  longSide = Math.max(29, Math.min(flooredLong, Math.round(sourceLong / 2)))
 
   const aspect = srcW / srcH
   const gridWidth = aspect >= 1 ? longSide : Math.max(9, Math.round(longSide * aspect))
