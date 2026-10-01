@@ -165,24 +165,20 @@ export function deltaEOKLab(lab1, lab2) {
   return Math.sqrt(dL * dL + da * da + db * db);
 }
 
-// OKLab → OKLCH
-function oklabToLch(L, a, b) {
-  return [L, Math.sqrt(a * a + b * b), Math.atan2(b, a)];
-}
-
 // OKLab 加权色差（参考改进文档建议权重）
 // wL=1.30, wC=0.85, wH=1.00 — 明度权重更高，因为拼豆图纸中明度结构比色相更关键
+// 色相项用感知弧长 2√(C1·C2)·sin(Δh/2)（CIEDE2000 同款弦长分解,与 dC 同量级）:
+// 原始弧度(0–π)比 OKLab 彩度(典型 0.02–0.3)大 10–30 倍,会让 wC/wH 的相对权重失效
 export function deltaEOKLabWeighted(lab1, lab2) {
   const [L1, a1, b1] = lab1;
   const [L2, a2, b2] = lab2;
-  const [L1c, C1, H1] = oklabToLch(L1, a1, b1);
-  const [L2c, C2, H2] = oklabToLch(L2, a2, b2);
+  const C1 = Math.sqrt(a1 * a1 + b1 * b1);
+  const C2 = Math.sqrt(a2 * a2 + b2 * b2);
 
-  const dL = L1c - L2c;
+  const dL = L1 - L2;
   const dC = C1 - C2;
-  let dH = H1 - H2;
-  if (dH > Math.PI) dH -= 2 * Math.PI;
-  if (dH < -Math.PI) dH += 2 * Math.PI;
+  const dh = Math.atan2(b1, a1) - Math.atan2(b2, a2);
+  const dH = 2 * Math.sqrt(C1 * C2) * Math.sin(dh / 2);
 
   const wL = 1.30, wC = 0.85, wH = 1.00;
   return Math.sqrt(wL * dL * dL + wC * dC * dC + wH * dH * dH);
@@ -215,10 +211,14 @@ export function deltaE2000(lab1, lab2) {
   if (h2p < 0) h2p += 2 * Math.PI;
 
   let avgHp = 0;
-  if (Math.abs(h1p - h2p) > Math.PI) {
+  // Sharma 原式:|Δh'| > π 时两组色相跨过 0° 边界,按 h1+h2 与 2π 的关系分支
+  // (与 utils/colorDiff.js 的 UI 侧实现保持一致;Sharma 数据集 11/12/15/16/17/19 号对锁定此分支)
+  if (Math.abs(h1p - h2p) <= Math.PI) {
+    avgHp = (h1p + h2p) / 2.0;
+  } else if (h1p + h2p < 2 * Math.PI) {
     avgHp = (h1p + h2p + 2 * Math.PI) / 2.0;
   } else {
-    avgHp = (h1p + h2p) / 2.0;
+    avgHp = (h1p + h2p - 2 * Math.PI) / 2.0;
   }
 
   let deltahp = 0;
@@ -382,10 +382,14 @@ function getPaletteLabs(palette) {
 
 // K-means++ 调色板选择
 // colorSpace: 'lab' (默认, CIEDE2000) 或 'oklab' (OKLab 感知均匀)
+// oklab 模式下聚类距离用加权色差(与最终匹配准则一致,文档"OKLab Weighted K-Means"):
+// 聚类/匹配准则不一致会让聚类中心系统性偏离匹配最优解
 function kmeansSelectPalette(imageData, maxColors, palette, paletteLabs, bgMask, highQuality, colorSpace) {
   const useOklab = colorSpace === 'oklab';
   const labs = useOklab ? paletteLabs.oklabs : paletteLabs.labs;
-  const distFn = useOklab ? deltaEOKLab : deltaEFast;
+  // lab 模式聚类用 Lab 欧氏(deltaEFast):ΔE00 太慢,且聚类/匹配的轻微不一致
+  // 对 lab 模式影响远小于 oklab 模式(欧氏 Lab 本身就是 ΔE00 的近似)
+  const distFn = useOklab ? deltaEOKLabWeighted : deltaEFast;
   const mapDistFn = useOklab ? deltaEOKLabWeighted : deltaE2000;
   const toColorSpace = useOklab ? rgbToOklab : rgbToLab;
 

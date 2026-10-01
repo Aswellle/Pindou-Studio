@@ -120,13 +120,13 @@ export function ciede2000(lab1, lab2) {
 
   let Hp = h1p + h2p
   if (C1p * C2p !== 0) {
-    const diff = h2p - h1p
-    if (diff > 180) {
-      if (h2p <= h1p) {
+    // Sharma 原式:按 (h1'+h2') 与 360° 的关系分支,而不是比较 h2/h1 ——
+    // |h1'−h2'| > 180° 时两组色相跨过 0° 边界,直接取均值会差 180°
+    // (Sharma 补充数据集 11/12/15/16/17/19 号对即锁定此分支)
+    if (Math.abs(h1p - h2p) > 180) {
+      if (h1p + h2p < 360) {
         Hp += 360
-      }
-    } else if (diff < -180) {
-      if (h2p >= h1p) {
+      } else {
         Hp -= 360
       }
     }
