@@ -121,8 +121,8 @@
     "recent": "最近使用",
     "colors": "色",
     "title2": "拼豆色卡",
-    "expand": "展开色卡",
-    "collapse": "收起色卡",
+    "expand": "展开",
+    "collapse": "收起",
     "colorNames": {
       "perler": {
         "P01": "白色",
@@ -454,8 +454,8 @@
     "quickActions": "快捷操作",
     "import": "导入",
     "imageToBead": "图片转拼豆",
-    "expand": "展开工具栏",
-    "collapse": "收起工具栏",
+    "expand": "展开",
+    "collapse": "收起",
     "clear": "清空",
     "undo": "撤销",
     "redo": "重做",

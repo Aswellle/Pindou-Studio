@@ -121,8 +121,8 @@
     "recent": "最近使用",
     "colors": "色",
     "title2": "ビードパレット",
-    "expand": "パレットを展開",
-    "collapse": "パレットを折りたたむ",
+    "expand": "広げる",
+    "collapse": "折りたたむ",
     "colorNames": {
       "perler": {
         "P01": "ホワイト",
@@ -454,8 +454,8 @@
     "quickActions": "クイックアクション",
     "import": "インポート",
     "imageToBead": "画像をビードに",
-    "expand": "ツールバーを展開",
-    "collapse": "ツールバーを折りたたむ",
+    "expand": "広げる",
+    "collapse": "折りたたむ",
     "clear": "クリア",
     "undo": "元に戻す",
     "redo": "やり直し",

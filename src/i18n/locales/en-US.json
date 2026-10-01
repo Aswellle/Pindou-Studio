@@ -121,8 +121,8 @@
     "recent": "Recently used",
     "colors": "colors",
     "title2": "Bead Palette",
-    "expand": "Expand palette",
-    "collapse": "Collapse palette",
+    "expand": "Expand",
+    "collapse": "Collapse",
     "colorNames": {
       "perler": {
         "P01": "White",
@@ -454,8 +454,8 @@
     "quickActions": "Quick Actions",
     "import": "Import",
     "imageToBead": "Image to Beads",
-    "expand": "Expand toolbar",
-    "collapse": "Collapse toolbar",
+    "expand": "Expand",
+    "collapse": "Collapse",
     "clear": "Clear",
     "undo": "Undo",
     "redo": "Redo",
