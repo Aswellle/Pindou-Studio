@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Globe } from 'lucide-react'
-import { LANGUAGES } from '../../i18n'
+import { LANGUAGES, switchLanguage } from '../../i18n'
 import { useResponsive } from '../../hooks/useResponsive'
 import './LanguageSelector.css'
 
@@ -50,7 +50,7 @@ export default function LanguageSelector({ compact }) {
                 role="menuitem"
                 className={`lang-menu-item ${lang.code === i18n.language ? 'active' : ''}`}
                 onClick={() => {
-                  i18n.changeLanguage(lang.code)
+                  switchLanguage(lang.code).catch(() => {})
                   setOpen(false)
                 }}
               >
@@ -84,7 +84,7 @@ export default function LanguageSelector({ compact }) {
                 role="menuitem"
                 className={`lang-menu-item ${lang.code === i18n.language ? 'active' : ''}`}
                 onClick={() => {
-                  i18n.changeLanguage(lang.code)
+                  switchLanguage(lang.code).catch(() => {})
                   setOpen(false)
                 }}
               >

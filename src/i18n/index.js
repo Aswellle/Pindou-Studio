@@ -1,15 +1,50 @@
 import i18n from 'i18next'
 import { initReactI18next } from 'react-i18next'
 import zhCN from './locales/zh-CN.json'
-import enUS from './locales/en-US.json'
-import jaJP from './locales/ja-JP.json'
-import koKR from './locales/ko-KR.json'
 
-const resources = {
-  'zh-CN': { translation: zhCN },
-  'en-US': { translation: enUS },
-  'ja-JP': { translation: jaJP },
-  'ko-KR': { translation: koKR },
+// 语言包按需加载:仅默认语言 zh-CN 内联打包(保证首屏永不闪烁缺翻译),
+// 其余语言通过动态 import 独立成 chunk,选择该语言时才下载。
+// scripts/check-i18n.js 直接读磁盘 JSON,与打包方式无关,四语言键位校验照常生效。
+const lazyLangs = {
+  'en-US': () => import('./locales/en-US.json'),
+  'ja-JP': () => import('./locales/ja-JP.json'),
+  'ko-KR': () => import('./locales/ko-KR.json'),
+}
+
+const loadedLangs = new Set(['zh-CN'])
+const pendingLoads = new Map()
+
+/**
+ * 确保某语言包已注册到 i18next(幂等;并发调用共享同一 promise)。
+ * 返回 promise;失败时 reject 由调用方决定兜底策略。
+ */
+export function ensureLanguage(lng) {
+  if (loadedLangs.has(lng) || !lazyLangs[lng]) return Promise.resolve()
+  if (!pendingLoads.has(lng)) {
+    pendingLoads.set(
+      lng,
+      lazyLangs[lng]()
+        .then(res => {
+          i18n.addResourceBundle(lng, 'translation', res.default, true, true)
+          loadedLangs.add(lng)
+        })
+        .catch(err => {
+          pendingLoads.delete(lng) // 允许下次重试
+          throw err
+        })
+    )
+  }
+  return pendingLoads.get(lng)
+}
+
+/**
+ * 运行时切换语言(语言选择器统一入口):
+ * 先按需加载语言包,成功后再 changeLanguage 触发全局重渲染;
+ * 加载失败保持当前语言不变。
+ */
+export function switchLanguage(lng) {
+  if (lng === i18n.language) return Promise.resolve()
+  return ensureLanguage(lng).then(() => i18n.changeLanguage(lng))
 }
 
 export const LANGUAGES = [
@@ -81,12 +116,17 @@ function urlLangParam() {
   return null
 }
 
+const initialLng = urlLangParam() || loadSavedLanguage()
+
 i18n
   .use(initReactI18next)
   .init({
-    resources,
-    lng: urlLangParam() || loadSavedLanguage(),
+    // 仅内置默认语言;其余语言经 ensureLanguage 以 addResourceBundle 注册
+    resources: { 'zh-CN': { translation: zhCN } },
+    lng: initialLng,
     fallbackLng: 'zh-CN',
+    // 允许 init 在语言包未齐时同步完成(缺失键暂时回退 zh-CN)
+    partialBundledLanguages: true,
     interpolation: {
       escapeValue: false
     },
@@ -110,6 +150,17 @@ i18n.on('languageChanged', (lng) => {
     url.searchParams.delete('lang')
     window.history.replaceState({}, '', url)
   }
+})
+
+/**
+ * 首屏就绪信号:初始语言非 zh-CN 时,先加载对应语言包再挂载 React,
+ * 避免非中文用户看到中文兜底文案闪烁;失败也不阻塞启动(回退 zh-CN)。
+ */
+export const i18nReady = (initialLng === 'zh-CN'
+  ? Promise.resolve()
+  : ensureLanguage(initialLng)
+).catch(err => {
+  console.warn(`[i18n] 初始语言包加载失败,回退 zh-CN: ${initialLng}`, err)
 })
 
 export default i18n
