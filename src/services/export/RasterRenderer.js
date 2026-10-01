@@ -27,10 +27,11 @@ import { BRAND_MARK_CELLS, BRAND_MARK_WHITE_STROKE, BRAND_MARK_CELL, BRAND_WORDM
  * @param {number} [options.dpi] - 输出 DPI（默认 300，传 300 走固定 3× 超采样）
  * @param {Function} [options.onProgress] - 进度回调(0–1)
  * @param {Function} [options.onResolution] - 分辨率回调(物理像素,供 UI 显示)
+ * @param {AbortSignal} [options.signal] - 取消信号(与 V1 同语义:分帧期间中止)
  * @returns {Promise<Blob>} PNG blob
  */
 export async function renderPatternDocumentToPNG(doc, options = {}) {
-  const { dpi = 300, onProgress = null, onResolution = null } = options
+  const { dpi = 300, onProgress = null, onResolution = null, signal = null } = options
   const { grid, palette, style, layout, stats } = doc
   const { width, height, cells } = grid
   const { cellSize, headerHeight, legendHeight, padding, rowLabelWidth, colLabelHeight, panelWidth } = layout
@@ -302,10 +303,23 @@ export async function renderPatternDocumentToPNG(doc, options = {}) {
     ctx.arc(cx, cy, radius, 0, Math.PI * 2)
     ctx.fillStyle = grad
     ctx.fill()
-    if (style.showGrid) {
-      ctx.strokeStyle = 'rgba(0,0,0,0.15)'
-      ctx.lineWidth = 0.5
-      ctx.stroke()
+    // 轮廓环:边缘加深,珠子与背景边界清晰(V1 drawBead 同款)
+    ctx.beginPath()
+    ctx.arc(cx, cy, radius - 0.4, 0, Math.PI * 2)
+    ctx.lineWidth = Math.max(0.8, radius * 0.09)
+    ctx.strokeStyle = `rgba(${darken(r, 0.38)},${darken(g, 0.38)},${darken(b, 0.38)},0.5)`
+    ctx.stroke()
+    // 月牙形高光
+    ctx.beginPath()
+    ctx.arc(cx - radius * 0.28, cy - radius * 0.28, radius * 0.28, 0, Math.PI * 2)
+    ctx.fillStyle = 'rgba(255,255,255,0.38)'
+    ctx.fill()
+    // 中心孔:拼豆实物的注塑孔特征(小格 radius<4 时省略,避免糊成脏点)
+    if (radius >= 4) {
+      ctx.beginPath()
+      ctx.arc(cx, cy, radius * 0.14, 0, Math.PI * 2)
+      ctx.fillStyle = `rgba(${darken(r, 0.3)},${darken(g, 0.3)},${darken(b, 0.3)},0.7)`
+      ctx.fill()
     }
   }
 
@@ -326,18 +340,33 @@ export async function renderPatternDocumentToPNG(doc, options = {}) {
     }
   }
 
+  // 分帧渲染:每 2000 格让出主线程(V1 同语义),期间响应取消信号。
+  // Node 环境(像素验证脚本)无 rAF,退化为 setTimeout 让出事件循环。
+  const nextFrame = () => new Promise(resolve => {
+    if (typeof requestAnimationFrame === 'function') requestAnimationFrame(resolve)
+    else setTimeout(resolve, 0)
+  })
+  const BATCH_SIZE = 2000
+  let processed = 0
   const total = width * height
   for (let y = 0; y < height; y++) {
     for (let x = 0; x < width; x++) {
       const cell = cells[y]?.[x]
-      if (!cell) continue
+      if (!cell) { processed += 1; continue }
       const cellX = gridStartX + x * cellSize
       const cellY = gridStartY + y * cellSize
       if (proMode) drawProCell(cellX, cellY, cell)
       else drawRealisticBead(cellX + cellSize / 2, cellY + cellSize / 2, beadRadius, cell)
+      processed += 1
+      if (processed % BATCH_SIZE === 0) {
+        if (signal?.aborted) throw new DOMException('导出已取消', 'AbortError')
+        onProgress?.(0.3 + 0.55 * (processed / total))
+        await nextFrame()
+      }
     }
-    if (onProgress) onProgress(0.3 + 0.55 * ((y + 1) * width / total))
   }
+  if (signal?.aborted) throw new DOMException('导出已取消', 'AbortError')
+  onProgress?.(0.85)
 
   // 专业模式:网格线在珠子上层补画 — 1px 细线分格,2px 粗线每 10 格
   // (整数逻辑坐标,整数倍超采样下物理像素对齐,硬边锐利)

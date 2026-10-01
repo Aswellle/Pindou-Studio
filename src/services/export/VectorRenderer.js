@@ -186,7 +186,7 @@ export function renderPatternDocumentToSVG(doc, options = {}) {
         // 专业图纸:方形填色(整数坐标,间隙露出网格线,锐利硬边)
         parts.push(`<rect x="${cellX}" y="${cellY}" width="${cellSize - 1}" height="${cellSize - 1}" fill="${cell}"${CRISP}/>`)
       } else {
-        // 拟真珠子：径向渐变（高光 → 基色 → 暗部）
+        // 拟真珠子：径向渐变 + 轮廓环 + 月牙高光 + 中心孔(与 V1 drawBead/光栅渲染器同款)
         const r0 = parseInt(cell.slice(1, 3), 16)
         const g0 = parseInt(cell.slice(3, 5), 16)
         const b0 = parseInt(cell.slice(5, 7), 16)
@@ -197,8 +197,10 @@ export function renderPatternDocumentToSVG(doc, options = {}) {
         const gradId = `grad-${x}-${y}`
         parts.push(`<defs><radialGradient id="${gradId}" cx="35%" cy="35%"><stop offset="0%" stop-color="${highlight}"/><stop offset="50%" stop-color="${cell}"/><stop offset="100%" stop-color="${shadow}"/></radialGradient></defs>`)
         parts.push(`<circle cx="${cx}" cy="${cy}" r="${r}" fill="url(#${gradId})"/>`)
-        if (style.showGrid) {
-          parts.push(`<circle cx="${cx}" cy="${cy}" r="${r}" fill="none" stroke="rgba(0,0,0,0.15)" stroke-width="1"/>`)
+        parts.push(`<circle cx="${cx}" cy="${cy}" r="${Math.max(1, r - 0.4)}" fill="none" stroke="rgba(${darken(r0, 0.38)},${darken(g0, 0.38)},${darken(b0, 0.38)},0.5)" stroke-width="${Math.max(0.8, r * 0.09)}"/>`)
+        parts.push(`<circle cx="${cx - r * 0.28}" cy="${cy - r * 0.28}" r="${r * 0.28}" fill="rgba(255,255,255,0.38)"/>`)
+        if (r >= 4) {
+          parts.push(`<circle cx="${cx}" cy="${cy}" r="${r * 0.14}" fill="rgba(${darken(r0, 0.3)},${darken(g0, 0.3)},${darken(b0, 0.3)},0.7)"/>`)
         }
       }
 

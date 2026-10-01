@@ -616,7 +616,9 @@
     "svgDesc": "Vector image, lossless scaling, ideal for editing & printing",
     "textDesc": "Plain-text pattern (color index) for manual checking",
     "professionalDesc": "Professional sheet: flat squares with brand color codes, ideal for crafting reference",
-    "realisticDesc": "Display sheet: realistic 3D bead effect, ideal for sharing"
+    "realisticDesc": "Display sheet: realistic 3D bead effect, ideal for sharing",
+    "useV2": "Use the full-sheet export engine",
+    "v2Hint": "On by default — renders the full sheet with header, brand mark, color panel and rulers. Turn off for the legacy exporter"
   },
   "quantizer": {
     "title": "Image to Beads",

@@ -18,8 +18,9 @@ export default function ExportPanel({ canvasData, gridSize, gridWidth, gridHeigh
   const [exportError, setExportError] = useState(null)
   const [exportInfo, setExportInfo] = useState('') // 导出后显示实际分辨率(验证超采样生效)
   const [beadStyle, setBeadStyle] = useState('professional')
-  // Feature Flag: 新导出路径(PatternDocument)，默认关闭使用旧路径
-  const [useExportV2, setUseExportV2] = useState(false)
+  // 导出引擎:V2(PatternDocument 统一渲染,完整 sheet 版式)为默认,
+  // 开关保留作为回退旧路径(BeadPatternExporter)的出口
+  const [useExportV2, setUseExportV2] = useState(true)
   const palette = getPalette(paletteId)
   const panelRef = useRef(null)
 
@@ -71,9 +72,10 @@ export default function ExportPanel({ canvasData, gridSize, gridWidth, gridHeigh
   const handleExportImage = async () => {
     if (!canvasData || isExporting) return
     setIsExporting(true)
+    setExportError(null)
     try {
 
-      // Feature Flag: 新导出路径 (PatternDocument → RasterRenderer)
+      // V2 导出路径 (PatternDocument → RasterRenderer):分帧 + 可取消
       if (useExportV2) {
         const doc = createPatternDocument({
           canvasData,
@@ -86,17 +88,27 @@ export default function ExportPanel({ canvasData, gridSize, gridWidth, gridHeigh
           // 品牌色卡:hex 解析为品牌色号,专业图纸色号标注/图例与 V1 同语义
           palette,
         })
-        const blob = await renderPatternDocumentToPNG(doc, {
-          onProgress: setExportProgress,
-          // 与 V1 路径一致:回传实际导出分辨率,UI 显示确认超采样生效
-          onResolution: (w, h) => setExportInfo(`${w}×${h}`),
-        })
-        const url = URL.createObjectURL(blob)
-        const link = document.createElement('a')
-        link.download = `bead-pattern-${actualWidth}x${actualHeight}.png`
-        link.href = url
-        link.click()
-        setTimeout(() => URL.revokeObjectURL(url), 1000)
+        const abortCtrl = new AbortController()
+        exportAbortRef.current = abortCtrl
+        try {
+          const blob = await renderPatternDocumentToPNG(doc, {
+            onProgress: setExportProgress,
+            // 与 V1 路径一致:回传实际导出分辨率,UI 显示确认超采样生效
+            onResolution: (w, h) => setExportInfo(`${w}×${h}`),
+            signal: abortCtrl.signal,
+          })
+          const url = URL.createObjectURL(blob)
+          const link = document.createElement('a')
+          link.download = `bead-pattern-${actualWidth}x${actualHeight}.png`
+          link.href = url
+          link.click()
+          setTimeout(() => URL.revokeObjectURL(url), 1000)
+        } catch (err) {
+          if (err?.name === 'AbortError') return // 组件卸载取消,非错误
+          throw err
+        } finally {
+          exportAbortRef.current = null
+        }
         return
       }
 
@@ -158,6 +170,10 @@ export default function ExportPanel({ canvasData, gridSize, gridWidth, gridHeigh
       link.href = url
       link.click()
       setTimeout(() => URL.revokeObjectURL(url), 1000)
+    } catch (err) {
+      if (err?.name === 'AbortError') return // 组件卸载取消,非错误
+      console.error('Export failed:', err)
+      setExportError(t('export.exportFailed'))
     } finally {
       exportAbortRef.current = null
       setIsExporting(false)
