@@ -1,7 +1,11 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
-import { getTutorials, getAllTutorials } from '../data/tutorials'
+import { flattenTutorials, loadTutorials } from '../data/tutorials'
 import i18n from '../i18n'
+import useTutorials from '../hooks/useTutorials'
+
+// chunk 被拉取时立即并行加载当前语言教程数据(与组件挂载重叠,少一拍等待)
+loadTutorials(i18n.language).catch(() => {})
 
 // Inline SVG 图示，不引入图片文件
 const SVG_DIAGRAMS = {
@@ -130,27 +134,31 @@ function BlockRenderer({ blocks = [] }) {
 }
 
 export default function Tutorials() {
-  const { t, i18n } = useTranslation()
-  const TUTORIALS = getTutorials(i18n.language)
+  const { t } = useTranslation()
+  const TUTORIALS = useTutorials()
   const [expandedSections, setExpandedSections] = useState(['getting-started'])
-  const [selectedTutorial, setSelectedTutorial] = useState(() => getTutorials(i18n.language)[0].children[0])
+  const [selectedTutorial, setSelectedTutorial] = useState(null)
   const [readProgress, setReadProgress] = useState(() => {
     const saved = localStorage.getItem('tutorial-progress')
     if (!saved) return []
     try { return JSON.parse(saved) } catch { return [] } // 脏数据不白屏
   })
 
-  // 初始化选中第一个教程
+  // 数据就绪且无选中时默认选中第一个教程;
+  // 切语言后保留旧选中(内容区按 id 重新解析当前语言版本),不重置
   useEffect(() => {
-    if (!selectedTutorial) {
-      setSelectedTutorial(getTutorials(i18n.language)[0].children[0])
+    if (TUTORIALS && !selectedTutorial) {
+      setSelectedTutorial(TUTORIALS[0].children[0])
     }
-  }, [])
+  }, [TUTORIALS])
 
   // 保存阅读进度
   useEffect(() => {
     localStorage.setItem('tutorial-progress', JSON.stringify(readProgress))
   }, [readProgress])
+
+  // 当前语言教程摊平列表(进度统计与上/下篇导航共用)
+  const allTutorials = useMemo(() => flattenTutorials(TUTORIALS), [TUTORIALS])
 
   // 切换章节展开/收起
   const toggleSection = (sectionId) => {
@@ -172,8 +180,7 @@ export default function Tutorials() {
 
   // 标记全部已读
   const markAllRead = () => {
-    const allIds = getAllTutorials(i18n.language).map(t => t.id)
-    setReadProgress(allIds)
+    setReadProgress(allTutorials.map(t => t.id))
   }
 
   // 重置进度
@@ -181,9 +188,25 @@ export default function Tutorials() {
     setReadProgress([])
   }
 
-  // 计算进度百分比
-  const totalTutorials = getAllTutorials(i18n.language).length
-  const progressPercent = Math.round((readProgress.length / totalTutorials) * 100)
+  // 计算进度百分比(数据未就绪时总数为 0,避免除零得 NaN)
+  const totalTutorials = allTutorials.length
+  const progressPercent = totalTutorials
+    ? Math.round((readProgress.length / totalTutorials) * 100)
+    : 0
+
+  // 当前语言数据尚未就绪 → loading 态(数据按语言异步 chunk 加载)
+  if (!TUTORIALS) {
+    return (
+      <div className="tutorials-page">
+        <div
+          className="tutorials-content"
+          style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+        >
+          <p style={{ color: 'var(--text-muted)' }}>{t('common.loading')}</p>
+        </div>
+      </div>
+    )
+  }
 
   return (
     <div className="tutorials-page">
@@ -321,7 +344,7 @@ export default function Tutorials() {
                 </>
               )}
               <div className="content-footer">
-                <NavigationButtons currentTutorial={selectedTutorial} onSelect={selectTutorial} />
+                <NavigationButtons currentTutorial={selectedTutorial} allTutorials={allTutorials} onSelect={selectTutorial} />
               </div>
             </div>
           </>
@@ -740,10 +763,9 @@ export default function Tutorials() {
   )
 }
 
-// 导航按钮组件
-function NavigationButtons({ currentTutorial, onSelect }) {
-  const { t, i18n } = useTranslation()
-  const allTutorials = getAllTutorials(i18n.language)
+// 导航按钮组件(摊平列表由父组件传入,随语言数据异步换装)
+function NavigationButtons({ currentTutorial, allTutorials = [], onSelect }) {
+  const { t } = useTranslation()
   const currentIndex = allTutorials.findIndex(t => t.id === currentTutorial?.id)
 
   const prevTutorial = currentIndex > 0 ? allTutorials[currentIndex - 1] : null
