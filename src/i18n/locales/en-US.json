@@ -12,6 +12,7 @@
   },
   "auth": {
     "login": "Login",
+    "loginOrRegister": "Sign in / Sign up",
     "register": "Register",
     "logout": "Logout",
     "email": "Email",

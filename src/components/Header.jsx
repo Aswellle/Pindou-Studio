@@ -98,10 +98,11 @@ export default function Header({ user, onLogin, onRegister, onLogout, onSave, cu
                 {t('auth.login')}
               </button>
             ) : (
-              <>
-                <button onClick={onLogin} className="btn btn-ghost">{t('auth.login')}</button>
-                <button onClick={onRegister} className="btn btn-primary">{t('auth.register')}</button>
-              </>
+              /* PC 游客:合并为单个"登录 / 注册"主按钮,为顶栏右侧留出后续扩展空间;
+                 落地 /login 后 AuthPage 顶部自带登录/注册切换,两个入口均保留 */
+              <button onClick={onLogin} className="btn btn-primary auth-merged-btn" aria-label={t('auth.loginOrRegister')}>
+                {t('auth.loginOrRegister')}
+              </button>
             )}
           </div>
         )}

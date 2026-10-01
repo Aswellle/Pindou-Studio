@@ -12,6 +12,7 @@
   },
   "auth": {
     "login": "登录",
+    "loginOrRegister": "登录 / 注册",
     "register": "注册",
     "logout": "退出登录",
     "email": "邮箱",
