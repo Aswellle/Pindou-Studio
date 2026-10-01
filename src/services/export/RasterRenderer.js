@@ -119,7 +119,7 @@ export async function renderPatternDocumentToPNG(doc, options = {}) {
   ctx.fillStyle = 'rgba(255,255,255,0.4)'
   ctx.fill()
 
-  // 品牌署名:4×4 拼豆 Logo + 字标(替代纯文字"导出自…")
+  // 品牌署名:"导出自" + 4×4 拼豆 Logo + 字标
   const markSize = BRAND_MARK_CELL * 4
   const wordmarkWidth = 84
   const markX = Math.round(sheetWidth - padding - (markSize + 8 + wordmarkWidth))
@@ -142,6 +142,11 @@ export async function renderPatternDocumentToPNG(doc, options = {}) {
   ctx.font = 'bold 15px "Fira Code", "Microsoft YaHei", sans-serif'
   ctx.textAlign = 'left'
   ctx.fillText(BRAND_WORDMARK, markX + markSize + 8, legendCY)
+  // "导出自"前缀:右对齐贴在 Logo 左侧(文本右缘 = markX - 6,免估宽度)
+  ctx.fillStyle = '#666666'
+  ctx.font = '12px "Fira Code", "Microsoft YaHei", sans-serif'
+  ctx.textAlign = 'right'
+  ctx.fillText(i18n.t('export.exportedFrom'), markX - 6, legendCY)
 
   // ========== 3. 右侧分级颜色面板(标题行跟品牌色卡名) ==========
   const panelX = sheetWidth - panelWidth - padding

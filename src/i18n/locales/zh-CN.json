@@ -603,6 +603,7 @@
     "usedColors": "使用颜色：{{n}}",
     "groupCount": "{{title}} · {{n}}种",
     "generatedBy": "导出自 拼豆Studio",
+    "exportedFrom": "导出自",
     "confirmTitle": "确认导出",
     "confirmText": "将导出当前拼豆图纸,当前导出设置如下:",
     "confirmBtn": "确认导出",

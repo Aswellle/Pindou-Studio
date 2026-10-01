@@ -603,6 +603,7 @@
     "usedColors": "使用色数：{{n}}",
     "groupCount": "{{title}} · {{n}}種",
     "generatedBy": "Bead Studio からエクスポート",
+    "exportedFrom": "エクスポート元",
     "confirmTitle": "エクスポートの確認",
     "confirmText": "現在のビーズパターンを以下の設定でエクスポートします:",
     "confirmBtn": "エクスポート",

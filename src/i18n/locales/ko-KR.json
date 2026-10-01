@@ -603,6 +603,7 @@
     "usedColors": "사용 색상 수: {{n}}",
     "groupCount": "{{title}} · {{n}}종",
     "generatedBy": "Bead Studio에서 내보냄",
+    "exportedFrom": "내보내기 출처",
     "confirmTitle": "내보내기 확인",
     "confirmText": "현재 비즈 패턴을 다음 설정으로 내보냅니다:",
     "confirmBtn": "내보내기",

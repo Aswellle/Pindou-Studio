@@ -78,7 +78,7 @@ export function renderPatternDocumentToSVG(doc, options = {}) {
   parts.push(`<circle cx="120" cy="${legendCY}" r="10" fill="#E53935"/>`)
   parts.push(`<circle cx="117" cy="${legendCY - 3}" r="3" fill="rgba(255,255,255,0.4)"/>`)
 
-  // 品牌署名:4×4 拼豆 Logo + 字标(替代纯文字"导出自…")
+  // 品牌署名:"导出自" + 4×4 拼豆 Logo + 字标
   const wordmarkWidth = 84
   const markSize = BRAND_MARK_CELL * 4
   const markX = sheetWidth - padding - (markSize + 8 + wordmarkWidth)
@@ -93,6 +93,8 @@ export function renderPatternDocumentToSVG(doc, options = {}) {
     }
   }
   parts.push(`<text x="${markX + markSize + 8}" y="${legendCY}" fill="#2b2420" font-size="15" font-weight="bold" text-anchor="start" dominant-baseline="middle">${escapeXml(BRAND_WORDMARK)}</text>`)
+  // "导出自"前缀:右对齐贴在 Logo 左侧(文本右缘 = markX - 6,免估宽度)
+  parts.push(`<text x="${markX - 6}" y="${legendCY}" fill="#666666" font-size="12" text-anchor="end" dominant-baseline="middle">${escapeXml(i18n.t('export.exportedFrom'))}</text>`)
 
   // ========== 3. 右侧分级颜色面板(标题行跟品牌色卡名) ==========
   const panelX = sheetWidth - panelWidth - padding
