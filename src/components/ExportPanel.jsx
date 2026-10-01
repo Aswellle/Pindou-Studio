@@ -88,6 +88,8 @@ export default function ExportPanel({ canvasData, gridSize, gridWidth, gridHeigh
         })
         const blob = await renderPatternDocumentToPNG(doc, {
           onProgress: setExportProgress,
+          // 与 V1 路径一致:回传实际导出分辨率,UI 显示确认超采样生效
+          onResolution: (w, h) => setExportInfo(`${w}×${h}`),
         })
         const url = URL.createObjectURL(blob)
         const link = document.createElement('a')

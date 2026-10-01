@@ -65,6 +65,9 @@ export function createPatternDocument({
 
   // 提取实际使用的颜色
   const usedColors = extractUsedColors(canvasData, width, height, palette)
+  // 颜色用量统计(按品牌码归并)与四级分组
+  const colorStats = calculateColorStats(canvasData, width, height, palette)
+  const totalBeads = colorStats.reduce((sum, s) => sum + s.count, 0)
 
   return {
     version: 2,
@@ -73,6 +76,8 @@ export function createPatternDocument({
       width,
       height,
       paletteId,
+      // 品牌显示名(表头"色卡："行);无色卡时回退 paletteId
+      paletteName: palette?.nameZh || palette?.name || paletteId,
       createdAt: new Date().toISOString(),
     },
     grid: {
@@ -82,7 +87,11 @@ export function createPatternDocument({
     },
     palette: {
       colors: usedColors,
+      // 四级分组(major/minor/accent/trace),供右侧颜色面板绘制
+      groups: groupColorStats(colorStats, totalBeads),
     },
+    // 颜色用量统计(V1 专业图纸同结构,按品牌码归并,数量降序)
+    stats: colorStats,
     style: {
       beadStyle,
       showCodes: beadStyle === 'professional',
@@ -93,8 +102,86 @@ export function createPatternDocument({
       cellSize: 28,
       headerHeight: 80,
       legendHeight: 50,
+      // 完整 sheet 布局(与 V1 generateBeadPatternSheet 同值)
+      padding: 20,
+      rowLabelWidth: 36,
+      colLabelHeight: 28,
+      panelWidth: 260,
     },
   }
+}
+
+/**
+ * 颜色用量统计(V1 专业图纸同语义):按解析出的品牌码归并计数,数量降序。
+ * 有品牌色卡时 hex 解析为品牌码(精确命中 → CIEDE2000 就近),
+ * 无色卡时以原始 hex 为键。
+ *
+ * @returns {Array} [{ id, name, hex, count }]
+ */
+export function calculateColorStats(canvasData, width, height, palette) {
+  const brandColors = palette?.colors || null
+  const stats = new Map()
+  for (let y = 0; y < height; y++) {
+    for (let x = 0; x < width; x++) {
+      const cell = canvasData[y]?.[x]
+      if (!cell) continue
+      let id = cell
+      let name = cell
+      let hex = cell.startsWith('#') ? cell : '#888888'
+      if (brandColors) {
+        if (cell.startsWith('#')) {
+          const exact = brandColors.find(c => c.hex?.toLowerCase() === cell.toLowerCase())
+          const matched = exact || findClosestColorCIEDE2000(
+            { r: parseInt(cell.slice(1, 3), 16), g: parseInt(cell.slice(3, 5), 16), b: parseInt(cell.slice(5, 7), 16) },
+            brandColors
+          )
+          if (matched) {
+            id = matched.id
+            name = matched.nameZh || matched.name || matched.id
+            hex = matched.hex
+          }
+        } else {
+          // 旧格式:单元格存品牌码,直接按 id 查色卡
+          const matched = brandColors.find(c => c.id === cell)
+          if (matched) {
+            name = matched.nameZh || matched.name || matched.id
+            hex = matched.hex
+          }
+        }
+      }
+      if (!stats.has(id)) {
+        stats.set(id, { id, name, hex, count: 0 })
+      }
+      stats.get(id).count++
+    }
+  }
+  return Array.from(stats.values()).sort((a, b) => b.count - a.count)
+}
+
+/**
+ * 把颜色统计分成 4 个层级(V1 同阈值):
+ *   major  — 占比 ≥5% 的主色(画面骨架)
+ *   minor  — 占比 1-5% 的辅色
+ *   accent — 占比 <1% 且 ≥5 粒的点缀色
+ *   trace  — <5 粒的微量色(采购需特别注意)
+ *
+ * @param {Array} colorStats - calculateColorStats 的结果(已按数量降序)
+ * @param {number} totalBeads - 总珠子数
+ * @returns {Object} { major, minor, accent, trace }
+ */
+export function groupColorStats(colorStats, totalBeads) {
+  const groups = { major: [], minor: [], accent: [], trace: [] }
+  for (const item of colorStats) {
+    const ratio = item.count / totalBeads
+    if (item.count < 5)          groups.trace.push(item)
+    else if (ratio >= 0.05)      groups.major.push(item)
+    else if (ratio >= 0.01)      groups.minor.push(item)
+    else                         groups.accent.push(item)
+  }
+  for (const key of Object.keys(groups)) {
+    groups[key].sort((a, b) => b.count - a.count)
+  }
+  return groups
 }
 
 /**
