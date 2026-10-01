@@ -103,7 +103,10 @@ export default function LanguageSelector({ compact }) {
     <div className="language-selector">
       <select
         value={i18n.language}
-        onChange={(e) => i18n.changeLanguage(e.target.value)}
+        // 必须走 switchLanguage(先 ensureLanguage 懒加载语言包再切换):
+        // 直接 changeLanguage 对 en/ja/ko 这类动态 chunk 语言不奏效——
+        // 语言码变了但资源包缺失,所有键回退 zh-CN,界面文字纹丝不动
+        onChange={(e) => switchLanguage(e.target.value).catch(() => {})}
         className="language-select"
         title={currentLang.name}
       >
