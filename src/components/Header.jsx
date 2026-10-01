@@ -98,9 +98,9 @@ export default function Header({ user, onLogin, onRegister, onLogout, onSave, cu
                 {t('auth.login')}
               </button>
             ) : (
-              /* PC 游客:单个「登录」按钮(注册在 /login 页顶部切换,入口保留),
-                 为顶栏右侧留出后续扩展空间 */
-              <button onClick={onLogin} className="btn btn-ghost">{t('auth.login')}</button>
+              /* PC 游客:单个「登录」按钮,保留品牌主色填充(网站标志色);
+                 注册在 /login 页顶部切换,入口保留。顶栏右侧留出后续扩展空间 */
+              <button onClick={onLogin} className="btn btn-primary">{t('auth.login')}</button>
             )}
           </div>
         )}
