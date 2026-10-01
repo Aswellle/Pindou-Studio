@@ -263,7 +263,7 @@ describe('PatternDocument Golden Test', () => {
     })
   })
 
-  it('SVG sheet 含表头带/图例条/分级面板/坐标尺(V1 布局要素)', () => {
+  it('SVG sheet 含表头带/图例条/分级面板/四周坐标尺/品牌署名', () => {
     const doc = createPatternDocument({
       canvasData: TEST_CANVAS,
       gridSize: 5,
@@ -272,22 +272,28 @@ describe('PatternDocument Golden Test', () => {
       beadStyle: 'professional',
     })
     const svg = renderPatternDocumentToSVG(doc)
-    // 表头深色带 + 标题 + 尺寸副标题
+    // 表头深色带 + 标题 + 单行居中元信息(尺寸在其中)
     expect(svg).toContain('fill="#2c2c2c"')
     expect(svg).toContain('布局验证')
     expect(svg).toContain('5 × 5 格子')
-    // 图例条(中心珠标记)与生成署名
+    // 图例条(中心珠标记 + 红色示例珠)
     expect(svg).toContain('★ = 中心珠')
-    expect(svg).toContain('导出自 拼豆Studio')
-    // 右侧分级面板:标题/分组/微量色警示
-    expect(svg).toContain('颜色清单')
+    expect(svg).toContain('#E53935')
+    // 品牌署名:4×4 拼��Logo(Header 同款配色) + 字标,替代纯文字署名
+    expect(svg).toContain('#F06292')
+    expect(svg).toContain('#BA68C8')
+    expect(svg).toContain('拼豆Studio')
+    // 右侧分级面板:标题行跟品牌色卡名/分组/微量色警示
+    expect(svg).toContain('颜色清单 · perler')
     expect(svg).toContain('主色（≥5%）')
     expect(svg).toContain('微量色 ⚠ 采购注意')
     expect(svg).toContain('颗 ⚠')
-    // 坐标尺:列 0 标签存在
+    // 坐标尺:行/列数字标签(左右行标尺 → 数字 0 至少出现两次文本节点)
     expect(svg).toContain('>0</text>')
-    // 图例条色块(中心珠示例)
-    expect(svg).toContain('#E53935')
+    expect(svg.match(/>0<\/text>/g).length).toBeGreaterThanOrEqual(2)
+    // 清晰度:网格元素带 crispEdges,粗网格线 2px
+    expect(svg).toContain('shape-rendering="crispEdges"')
+    expect(svg).toContain('stroke="#666666" stroke-width="2"')
   })
 
   it('SVG 输出包含 professional 模式的色号文本', () => {

@@ -4,15 +4,20 @@
  * 新渲染路径：PatternDocument → RasterRenderer → PNG
  * 与 BeadPatternExporter 并存，通过 Feature Flag 切换。
  *
- * sheet 布局与 V1 generateBeadPatternSheet 对齐（2026-10-01）:
- * 表头深色带(标题/尺寸/日期/色卡/总珠数/用色数) + 图例条(中心珠标记)
- * + 右侧分级颜色面板(major/minor/accent/trace,微量色 ⚠ 警示)
- * + 坐标尺(列 0..n / 行 0..n) + 网格区(专业模式方块+品牌色号+10格粗线)。
+ * sheet 布局（2026-10-01,与 VectorRenderer 同构）:
+ * 表头深色带(标题 + 单行居中元信息:尺寸/总珠数/用色数/色卡/日期)
+ * + 图例条(★中心珠标记 + 4×4 拼豆 Logo 品牌署名)
+ * + 右侧分级颜色面板(标题行跟品牌色卡名,微量色 ⚠ 警示)
+ * + 四周坐标尺(上列标 / 左右行标) + 网格区(专业模式方块+品牌色号+10格粗线)。
+ *
+ * 清晰度规则:超采样倍率为整数,所有填充/描边取整数逻辑坐标,
+ * 物理像素对齐硬边锐利;半像素偏移在 3× 下反而发糊,一律不用。
  * 内存安全:与 V1 同策略,createScaledCanvas 面积预算自动降级超采样倍率。
  */
 
 import { createScaledCanvas, createDPICanvas } from '../BeadPatternExporter'
 import i18n from '../../i18n'
+import { BRAND_MARK_CELLS, BRAND_MARK_WHITE_STROKE, BRAND_MARK_CELL, BRAND_WORDMARK } from './brandMark'
 
 /**
  * 从 PatternDocument 渲染 PNG
@@ -33,10 +38,10 @@ export async function renderPatternDocumentToPNG(doc, options = {}) {
 
   if (onProgress) onProgress(0.1)
 
-  // 画布尺寸(逻辑像素)——与 V1 generateBeadPatternSheet 同公式
+  // 画布尺寸(逻辑像素)——左右各一条行标尺,rowLabelWidth 计两次
   const gridPixelW = width * cellSize
   const gridPixelH = height * cellSize
-  const sheetWidth = gridPixelW + rowLabelWidth + padding * 2 + panelWidth
+  const sheetWidth = gridPixelW + rowLabelWidth * 2 + padding * 2 + panelWidth
   const sheetHeight = gridPixelH + headerHeight + legendHeight + colLabelHeight + padding * 2
 
   // 超采样 canvas — DPI 策略或面积预算自动降级(V1 同套逻辑)
@@ -53,10 +58,14 @@ export async function renderPatternDocumentToPNG(doc, options = {}) {
   onResolution?.(canvas.width, canvas.height)
 
   const ctx = canvas.getContext('2d')
-  // ctx.scale 后所有绘制按逻辑像素操作,坐标与 V1 代码一一对应
+  // ctx.scale 后所有绘制按逻辑像素操作。
+  // 清晰度规则:超采样倍率是整数,所有填充/描边一律取整数逻辑坐标,
+  // 映射到物理像素后仍是整数 → 硬边锐利;半像素偏移(+0.5)在 3× 下会落在
+  // 1.5px 物理位置,反而是模糊的来源,一律不用。
   ctx.scale(actualScale, actualScale)
 
   const totalBeads = stats.reduce((sum, s) => sum + s.count, 0)
+  const paletteName = doc.metadata.paletteName || doc.metadata.paletteId
   const textColorForBg = (hex) => {
     const r = parseInt(hex.slice(1, 3), 16)
     const g = parseInt(hex.slice(3, 5), 16)
@@ -69,7 +78,7 @@ export async function renderPatternDocumentToPNG(doc, options = {}) {
   ctx.fillStyle = '#ffffff'
   ctx.fillRect(0, 0, sheetWidth, sheetHeight)
 
-  // ========== 1. 表头深色带 ==========
+  // ========== 1. 表头深色带(标题 + 单行居中元信息) ==========
   ctx.fillStyle = '#2c2c2c'
   ctx.fillRect(0, 0, sheetWidth, headerHeight)
 
@@ -77,24 +86,21 @@ export async function renderPatternDocumentToPNG(doc, options = {}) {
   ctx.textBaseline = 'middle'
   ctx.fillStyle = '#ffffff'
   ctx.font = 'bold 24px "Fira Code", "Microsoft YaHei", sans-serif'
-  ctx.fillText(doc.metadata.name || i18n.t('export.defaultName'), sheetWidth / 2, headerHeight / 2 - 12)
+  ctx.fillText(doc.metadata.name || i18n.t('export.defaultName'), Math.round(sheetWidth / 2), Math.round(headerHeight / 2) - 14)
 
-  ctx.font = '14px "Fira Code", "Microsoft YaHei", sans-serif'
-  ctx.fillStyle = '#aaaaaa'
-  ctx.fillText(i18n.t('export.gridSize', { cols: width, rows: height }), sheetWidth / 2, headerHeight / 2 + 18)
-
-  ctx.textAlign = 'left'
   ctx.font = '12px "Fira Code", "Microsoft YaHei", sans-serif'
-  ctx.fillStyle = '#888888'
+  ctx.fillStyle = '#aaaaaa'
   const today = new Date(doc.metadata.createdAt || Date.now()).toLocaleDateString('zh-CN')
-  ctx.fillText(i18n.t('export.date', { date: today }), padding, headerHeight / 2)
-  ctx.fillText(i18n.t('export.palette', { palette: doc.metadata.paletteName || doc.metadata.paletteId }), padding, headerHeight / 2 + 18)
+  const metaLine = [
+    i18n.t('export.gridSize', { cols: width, rows: height }),
+    i18n.t('export.totalBeads', { n: totalBeads }),
+    i18n.t('export.usedColors', { n: stats.length }),
+    i18n.t('export.palette', { palette: paletteName }),
+    i18n.t('export.date', { date: today }),
+  ].join(' · ')
+  ctx.fillText(metaLine, Math.round(sheetWidth / 2), Math.round(headerHeight / 2) + 16)
 
-  ctx.textAlign = 'right'
-  ctx.fillText(i18n.t('export.totalBeads', { n: totalBeads }), sheetWidth - padding, headerHeight / 2)
-  ctx.fillText(i18n.t('export.usedColors', { n: stats.length }), sheetWidth - padding, headerHeight / 2 + 18)
-
-  // ========== 2. 图例条(中心珠标记) ==========
+  // ========== 2. 图例条(★中心珠标记 + 品牌 Logo 署名) ==========
   ctx.fillStyle = '#f0f0f0'
   ctx.fillRect(0, headerHeight, sheetWidth, legendHeight)
   ctx.fillStyle = '#666666'
@@ -113,11 +119,31 @@ export async function renderPatternDocumentToPNG(doc, options = {}) {
   ctx.fillStyle = 'rgba(255,255,255,0.4)'
   ctx.fill()
 
-  ctx.textAlign = 'right'
-  ctx.fillStyle = '#888888'
-  ctx.fillText(i18n.t('export.generatedBy'), sheetWidth - padding, legendCY)
+  // 品牌署名:4×4 拼豆 Logo + 字标(替代纯文字"导出自…")
+  const markSize = BRAND_MARK_CELL * 4
+  const wordmarkWidth = 84
+  const markX = Math.round(sheetWidth - padding - (markSize + 8 + wordmarkWidth))
+  const markY = Math.round(legendCY - markSize / 2)
+  for (let r = 0; r < 4; r++) {
+    for (let c = 0; c < 4; c++) {
+      const fill = BRAND_MARK_CELLS[r][c]
+      const mx = markX + c * BRAND_MARK_CELL
+      const my = markY + r * BRAND_MARK_CELL
+      ctx.fillStyle = fill
+      ctx.fillRect(mx, my, BRAND_MARK_CELL, BRAND_MARK_CELL)
+      if (fill === '#FFFFFF') {
+        ctx.strokeStyle = BRAND_MARK_WHITE_STROKE
+        ctx.lineWidth = 1
+        ctx.strokeRect(mx, my, BRAND_MARK_CELL, BRAND_MARK_CELL)
+      }
+    }
+  }
+  ctx.fillStyle = '#2b2420'
+  ctx.font = 'bold 15px "Fira Code", "Microsoft YaHei", sans-serif'
+  ctx.textAlign = 'left'
+  ctx.fillText(BRAND_WORDMARK, markX + markSize + 8, legendCY)
 
-  // ========== 3. 右侧分级颜色面板 ==========
+  // ========== 3. 右侧分级颜色面板(标题行跟品牌色卡名) ==========
   const panelX = sheetWidth - panelWidth - padding
   const panelY = headerHeight + legendHeight + padding
   const panelHeight = sheetHeight - headerHeight - legendHeight - padding * 2
@@ -129,7 +155,7 @@ export async function renderPatternDocumentToPNG(doc, options = {}) {
   ctx.font = 'bold 14px "Fira Code", "Microsoft YaHei", sans-serif'
   ctx.textAlign = 'left'
   ctx.textBaseline = 'middle'
-  ctx.fillText(i18n.t('export.legendTitle'), panelX + 12, panelY + 18)
+  ctx.fillText(`${i18n.t('export.legendTitle')} · ${paletteName}`, panelX + 12, panelY + 18)
 
   ctx.font = '11px "Fira Code", "Microsoft YaHei", sans-serif'
   ctx.fillStyle = '#666666'
@@ -157,7 +183,7 @@ export async function renderPatternDocumentToPNG(doc, options = {}) {
     colorY += 16
 
     ctx.strokeStyle = cfg.titleColor + '44'
-    ctx.lineWidth = 0.8
+    ctx.lineWidth = 1
     ctx.beginPath()
     ctx.moveTo(panelX + 8, colorY - 4)
     ctx.lineTo(panelX + panelWidth - 8, colorY - 4)
@@ -169,19 +195,19 @@ export async function renderPatternDocumentToPNG(doc, options = {}) {
       // 色块:专业模式方形(与图纸方格一致),拟真模式圆形
       if (proMode) {
         const swX = panelX + 10
-        const swY = colorY + colorItemH / 2 - 10
+        const swY = Math.round(colorY + colorItemH / 2 - 10)
         ctx.fillStyle = item.hex
         ctx.fillRect(swX, swY, 20, 20)
         ctx.strokeStyle = 'rgba(0,0,0,0.15)'
         ctx.lineWidth = 1
-        ctx.strokeRect(swX + 0.5, swY + 0.5, 19, 19)
+        ctx.strokeRect(swX, swY, 20, 20)
       } else {
         ctx.beginPath()
         ctx.arc(panelX + 20, colorY + colorItemH / 2, 8, 0, Math.PI * 2)
         ctx.fillStyle = item.hex
         ctx.fill()
         ctx.strokeStyle = 'rgba(0,0,0,0.22)'
-        ctx.lineWidth = 0.8
+        ctx.lineWidth = 1
         ctx.stroke()
       }
 
@@ -207,9 +233,10 @@ export async function renderPatternDocumentToPNG(doc, options = {}) {
 
   if (onProgress) onProgress(0.3)
 
-  // ========== 4. 网格区域 + 坐标尺 ==========
+  // ========== 4. 网格区域 + 四周坐标尺(上/左/右) ==========
   const gridStartX = padding + rowLabelWidth
   const gridStartY = headerHeight + legendHeight + padding + colLabelHeight
+  const gridEndX = gridStartX + gridPixelW
 
   ctx.fillStyle = '#666666'
   ctx.font = '11px "Fira Code", "Microsoft YaHei", sans-serif'
@@ -218,17 +245,21 @@ export async function renderPatternDocumentToPNG(doc, options = {}) {
   for (let x = 0; x < width; x++) {
     ctx.fillText(x.toString(), gridStartX + x * cellSize + cellSize / 2, gridStartY - colLabelHeight / 2)
   }
-  ctx.textAlign = 'right'
   for (let y = 0; y < height; y++) {
-    ctx.fillText(y.toString(), gridStartX - rowLabelWidth / 2 + 8, gridStartY + y * cellSize + cellSize / 2)
+    const rowY = gridStartY + y * cellSize + cellSize / 2
+    ctx.textAlign = 'right'
+    ctx.fillText(y.toString(), gridStartX - rowLabelWidth / 2 + 8, rowY)
+    // 右侧行标尺(与左侧镜像,方便从右端对照)
+    ctx.textAlign = 'left'
+    ctx.fillText(y.toString(), gridEndX + rowLabelWidth / 2 - 8, rowY)
   }
 
   ctx.fillStyle = '#ffffff'
   ctx.fillRect(gridStartX, gridStartY, gridPixelW, gridPixelH)
 
-  // 浅网格线(珠子底层)
+  // 浅网格线(珠子底层;整数坐标 + 1px,整数倍超采样下物理对齐锐利)
   ctx.strokeStyle = '#e0e0e0'
-  ctx.lineWidth = 0.5
+  ctx.lineWidth = 1
   for (let i = 0; i <= width; i++) {
     ctx.beginPath()
     ctx.moveTo(gridStartX + i * cellSize, gridStartY)
@@ -274,9 +305,9 @@ export async function renderPatternDocumentToPNG(doc, options = {}) {
   }
 
   const drawProCell = (cellX, cellY, hexColor) => {
-    // +0.5 / -1 留网格线位(粗网格线在珠子上层补画)
+    // 整数坐标填充,格子间留 1 逻辑px 露出网格线(粗网格线在珠子上层补画)
     ctx.fillStyle = hexColor
-    ctx.fillRect(cellX + 0.5, cellY + 0.5, cellSize - 1, cellSize - 1)
+    ctx.fillRect(cellX, cellY, cellSize - 1, cellSize - 1)
     if (style.showCodes) {
       const code = findCode(hexColor)
       if (code) {
@@ -303,26 +334,27 @@ export async function renderPatternDocumentToPNG(doc, options = {}) {
     if (onProgress) onProgress(0.3 + 0.55 * ((y + 1) * width / total))
   }
 
-  // 专业模式:网格线在珠子上层补画 — 细线分格,每 10 格加粗(V1 惯例)
+  // 专业模式:网格线在珠子上层补画 — 1px 细线分格,2px 粗线每 10 格
+  // (整数逻辑坐标,整数倍超采样下物理像素对齐,硬边锐利)
   if (proMode && style.showGrid) {
     const drawLines = (color, lineWidth, step) => {
       ctx.strokeStyle = color
       ctx.lineWidth = lineWidth
       for (let i = 0; i <= width; i += step) {
         ctx.beginPath()
-        ctx.moveTo(gridStartX + i * cellSize + 0.5, gridStartY)
-        ctx.lineTo(gridStartX + i * cellSize + 0.5, gridStartY + gridPixelH)
+        ctx.moveTo(gridStartX + i * cellSize, gridStartY)
+        ctx.lineTo(gridStartX + i * cellSize, gridStartY + gridPixelH)
         ctx.stroke()
       }
       for (let i = 0; i <= height; i += step) {
         ctx.beginPath()
-        ctx.moveTo(gridStartX, gridStartY + i * cellSize + 0.5)
-        ctx.lineTo(gridStartX + gridPixelW, gridStartY + i * cellSize + 0.5)
+        ctx.moveTo(gridStartX, gridStartY + i * cellSize)
+        ctx.lineTo(gridStartX + gridPixelW, gridStartY + i * cellSize)
         ctx.stroke()
       }
     }
     drawLines('#d0d0d0', 1, 1)
-    drawLines('#666666', 1.5, 10)
+    drawLines('#666666', 2, 10)
   }
 
   if (onProgress) onProgress(0.95)
