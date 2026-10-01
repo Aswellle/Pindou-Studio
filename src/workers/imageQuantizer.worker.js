@@ -366,7 +366,153 @@ function detectBackground(data, width, height, userThreshold) {
   const coverage = covCount / total;
 
   if (coverage < 0.005 || coverage > 0.35) return null;
-  return eroded;
+  // 返回背景参照色 lab：主体显著性（能量函数 E_saliency）需要"与背景的色距"
+  return { mask: eroded, lab: baseLab, coverage };
+}
+
+// ==================== 能量函数权重（边缘 / 显著性） ====================
+// 文档 §九~十五：E_total = E_color + λ1·E_neighbor + λ2·E_edge + λ3·E_saliency + λ4·E_isolation
+// 本节产出逐格 [0,1] 权重图，供三处消费：
+//   1) 加权 K-means++（调色板分配向边缘/主体倾斜）
+//   2) ICM 保真代价加权（边缘/主体格子色错代价更高，空间平滑让位）
+//   3) 误差扩散门控（抖动不污染显著区域）
+
+// 边缘强度 [0,1]：以 95 分位为白点归一化，避免个别离群格压扁整体分布
+export function computeEdgeStrength(edgeMap) {
+  const n = edgeMap.length;
+  const strength = new Float32Array(n);
+  const vals = [];
+  for (let i = 0; i < n; i += 1) {
+    if (edgeMap[i] > 0) vals.push(edgeMap[i]);
+  }
+  if (!vals.length) return strength;
+  vals.sort((a, b) => a - b);
+  const pivot = vals[Math.floor((vals.length - 1) * 0.95)] || 1;
+  for (let i = 0; i < n; i += 1) {
+    strength[i] = clamp(edgeMap[i] / pivot, 0, 1);
+  }
+  return strength;
+}
+
+// 主体显著性 [0,1]：与背景参照色的色距（无背景时退化为全图均色）
+// + 局部对比（边缘强度）+ 轻微中心先验（拼豆主体通常居中）
+export function computeSaliencyMap(areaColors, edgeStrength, outW, outH, bgLab) {
+  const total = outW * outH;
+  let sumL = 0, sumA = 0, sumB = 0, count = 0;
+  for (let i = 0; i < total; i += 1) {
+    const c = areaColors[i];
+    if (!c) continue;
+    sumL += c.lab[0]; sumA += c.lab[1]; sumB += c.lab[2]; count += 1;
+  }
+  const meanLab = count > 0 ? [sumL / count, sumA / count, sumB / count] : null;
+  const refLab = bgLab || meanLab;
+
+  const raw = new Float32Array(total);
+  let maxRaw = 0;
+  for (let y = 0; y < outH; y += 1) {
+    for (let x = 0; x < outW; x += 1) {
+      const idx = y * outW + x;
+      const c = areaColors[idx];
+      if (!c) continue;
+      const bgDist = refLab ? Math.min(1, deltaE2000(c.lab, refLab) / 40) : 0.5;
+      const centerPrior = clamp(
+        1 - 0.7 * (Math.abs(x / Math.max(1, outW - 1) - 0.5) + Math.abs(y / Math.max(1, outH - 1) - 0.5)),
+        0, 1
+      );
+      const v = (0.55 * bgDist + 0.45 * edgeStrength[idx]) * centerPrior;
+      raw[idx] = v;
+      if (v > maxRaw) maxRaw = v;
+    }
+  }
+  const sal = new Float32Array(total);
+  if (maxRaw > 0) {
+    for (let i = 0; i < total; i += 1) sal[i] = raw[i] / maxRaw;
+  }
+  return sal;
+}
+
+// 逐格保护权重 [0,1]：边缘与显著性的合成，供 ICM/抖动门控使用
+function computeProtectionMap(edgeStrength, saliency) {
+  const total = edgeStrength.length;
+  const protection = new Float32Array(total);
+  for (let i = 0; i < total; i += 1) {
+    protection[i] = clamp(0.5 * edgeStrength[i] + 0.5 * saliency[i], 0, 1);
+  }
+  return protection;
+}
+
+// ==================== 图片类型识别（自动适配，文档 §二十五~二十六） ====================
+
+// 分类特征：颜色丰富度 / 平坦度（主色桶占比）/ 饱和度 / 肤色占比 / 边缘密度
+export function extractImageFeatures(data, width, height, bgCoverage, edgeDensity) {
+  const total = width * height;
+  const stride = Math.max(1, Math.floor(total / 20000));
+  const buckets = new Map();
+  let sampled = 0, satSum = 0, skinCount = 0;
+
+  for (let i = 0; i < total; i += stride) {
+    const o = i * 4;
+    if (data[o + 3] < 5) continue;
+    const r = data[o], g = data[o + 1], b = data[o + 2];
+    sampled += 1;
+    buckets.set(quantKey(r, g, b), (buckets.get(quantKey(r, g, b)) || 0) + 1);
+    const mx = Math.max(r, g, b), mn = Math.min(r, g, b);
+    satSum += mx === 0 ? 0 : (mx - mn) / mx;
+    // YCbCr 肤色判据（Cb/Cr 椭圆域的经典近似）
+    const cb = 128 - 0.168736 * r - 0.331264 * g + 0.5 * b;
+    const cr = 128 + 0.5 * r - 0.418688 * g - 0.081312 * b;
+    if (r > 95 && g > 40 && b > 20 && mx > mn && Math.abs(r - g) > 15
+      && cb > 77 && cb < 127 && cr > 133 && cr < 173) {
+      skinCount += 1;
+    }
+  }
+  if (sampled === 0) sampled = 1;
+
+  const counts = [...buckets.values()].sort((a, b) => b - a);
+  let flatTop = 0;
+  for (let i = 0; i < Math.min(8, counts.length); i += 1) flatTop += counts[i];
+
+  return {
+    uniqueColors: buckets.size,
+    uniqueRatio: buckets.size / sampled,
+    flatness: flatTop / sampled,
+    meanSaturation: satSum / sampled,
+    skinRatio: skinCount / sampled,
+    bgCoverage: bgCoverage || 0,
+    edgeDensity: edgeDensity || 0
+  };
+}
+
+// 判定顺序：logo（极少纯色）→ illustration（平面色块+高饱和）→ portrait（肤色主体）→ landscape（兜底）
+export function classifyImageType(f) {
+  if (f.uniqueColors <= 24
+    || (f.uniqueRatio <= 0.05 && f.flatness >= 0.85 && f.edgeDensity >= 0.05)) {
+    return 'logo';
+  }
+  if (f.flatness >= 0.6 && f.uniqueRatio <= 0.25) return 'illustration';
+  if (f.skinRatio >= 0.08) return 'portrait';
+  return 'landscape';
+}
+
+// 各类型自适应参数（文档 §二十五）
+// colorBudget: 颜色数乘数（人像肤色多留、风景层次多留、Logo 收紧）
+// edgeBoost/salBoost: 加权 K-means 中边缘/显著性对采样权重的影响系数
+// dithering: 'auto' 细节过渡模式的类型默认值
+const IMAGE_TYPE_PARAMS = {
+  portrait:     { colorBudget: 1.15, dithering: 'none',            edgeBoost: 1.6, salBoost: 1.2 },
+  illustration: { colorBudget: 1.0,  dithering: 'none',            edgeBoost: 1.8, salBoost: 0.8 },
+  logo:         { colorBudget: 0.7,  dithering: 'none',            edgeBoost: 2.0, salBoost: 0.5 },
+  landscape:    { colorBudget: 1.25, dithering: 'floyd-steinberg', edgeBoost: 1.0, salBoost: 0.6 }
+};
+
+// 网格尺寸 → 基准颜色数（文档 §二十七：32→8-16、64→16-32、100→24-48、150→32-64）
+export function suggestColorsForGrid(outW, outH) {
+  const long = Math.max(outW, outH);
+  if (long <= 40) return 12;
+  if (long <= 70) return 24;
+  if (long <= 110) return 36;
+  if (long <= 150) return 48;
+  return 64;
 }
 
 // ==================== 调色板处理 ====================
@@ -384,7 +530,8 @@ function getPaletteLabs(palette) {
 // colorSpace: 'lab' (默认, CIEDE2000) 或 'oklab' (OKLab 感知均匀)
 // oklab 模式下聚类距离用加权色差(与最终匹配准则一致,文档"OKLab Weighted K-Means"):
 // 聚类/匹配准则不一致会让聚类中心系统性偏离匹配最优解
-function kmeansSelectPalette(imageData, maxColors, palette, paletteLabs, bgMask, highQuality, colorSpace) {
+// sampleWeights: 与 hiRes 像素一一对应的采样权重(边缘/显著性加权 K-means++,可 null = 等权)
+function kmeansSelectPalette(imageData, maxColors, palette, paletteLabs, bgMask, highQuality, colorSpace, sampleWeights) {
   const useOklab = colorSpace === 'oklab';
   const labs = useOklab ? paletteLabs.oklabs : paletteLabs.labs;
   // lab 模式聚类用 Lab 欧氏(deltaEFast):ΔE00 太慢,且聚类/匹配的轻微不一致
@@ -398,11 +545,13 @@ function kmeansSelectPalette(imageData, maxColors, palette, paletteLabs, bgMask,
   const targetSamples = highQuality ? 22000 : 8000;
   const stride = Math.max(1, Math.floor(total / targetSamples));
   const samples = [];
+  const weights = [];
 
   for (let i = 0; i < total; i += stride) {
     if (bgMask && bgMask[i]) continue;
     const o = i * 4;
     samples.push(toColorSpace(data[o], data[o + 1], data[o + 2]));
+    weights.push(sampleWeights ? sampleWeights[i] : 1);
   }
 
   if (!samples.length || maxColors >= palette.length) {
@@ -416,21 +565,24 @@ function kmeansSelectPalette(imageData, maxColors, palette, paletteLabs, bgMask,
   const centers = [];
   centers.push(samples[Math.floor(Math.random() * samples.length)]);
   while (centers.length < k) {
-    const dists = samples.map((s) => {
+    // 加权 K-means++:种子概率 ∝ w(x)·D²(x) — 边缘/主体像素更容易催生新中心
+    const dists = samples.map((s, i) => {
       let best = Infinity;
       for (const c of centers) {
         const d = distFn(s, c);
         if (d < best) best = d;
       }
-      return best * best;
+      return best * best * weights[i];
     });
     const sum = dists.reduce((a, b) => a + b, 0);
     const r = Math.random() * sum;
     let acc = 0;
+    let picked = samples.length - 1;
     for (let i = 0; i < dists.length; i += 1) {
       acc += dists[i];
-      if (acc >= r) { centers.push(samples[i]); break; }
+      if (acc >= r) { picked = i; break; }
     }
+    centers.push(samples[picked]);
   }
 
   const assign = new Array(samples.length).fill(0);
@@ -446,11 +598,13 @@ function kmeansSelectPalette(imageData, maxColors, palette, paletteLabs, bgMask,
       assign[i] = best;
     }
 
+    // 更新步按权重聚合：边缘/主体像素对簇中心的拉力更大
     const sums = centers.map(() => [0, 0, 0, 0]);
     for (let i = 0; i < samples.length; i += 1) {
       const c = assign[i];
       const s = samples[i];
-      sums[c][0] += s[0]; sums[c][1] += s[1]; sums[c][2] += s[2]; sums[c][3] += 1;
+      const w = weights[i];
+      sums[c][0] += s[0] * w; sums[c][1] += s[1] * w; sums[c][2] += s[2] * w; sums[c][3] += w;
     }
     for (let c = 0; c < centers.length; c += 1) {
       if (sums[c][3] === 0) continue;
@@ -745,7 +899,7 @@ function applyUnsharpMask(data, width, height, amount, radius) {
 
 // ==================== ICM 空间优化 ====================
 
-function spatialRefinement(outIdx, areaColors, activePalette, activeLabs, outW, outH, iterations, spatialWeight, colorSpace) {
+function spatialRefinement(outIdx, areaColors, activePalette, activeLabs, outW, outH, iterations, spatialWeight, colorSpace, protection) {
   const useOklab = colorSpace === 'oklab';
   const paletteLabs = useOklab ? activeLabs.oklabs : activeLabs.labs;
   const distFn = useOklab ? deltaEOKLabWeighted : deltaE2000;
@@ -763,6 +917,10 @@ function spatialRefinement(outIdx, areaColors, activePalette, activeLabs, outW, 
         const targetLab = areaColors[idx].lab;
         // 保真度代价必须与 paletteLabs 同空间(oklab 时先转换);nearestColor 内部自行转换
         const targetWorkLab = useOklab ? labToOklab(targetLab) : targetLab;
+        // 能量函数 E_color×(1+ε·protection) − 平滑让位：边缘/主体格子的色错代价更高
+        const prot = protection ? protection[idx] : 0;
+        const fidelityScale = 1 + 1.2 * prot;
+        const smoothScale = spatialWeight * (1 - 0.5 * prot);
         let bestCost = Infinity, bestColor = current[idx];
 
         const neighbors = [];
@@ -777,13 +935,13 @@ function spatialRefinement(outIdx, areaColors, activePalette, activeLabs, outW, 
         candidates.add(nearestColor(targetLab, activePalette, activeLabs, colorSpace));
 
         for (const ci of candidates) {
-          const fidelityCost = distFn(targetWorkLab, paletteLabs[ci]);
+          const fidelityCost = distFn(targetWorkLab, paletteLabs[ci]) * fidelityScale;
           let smoothCost = 0;
           for (const n of neighbors) {
             if (n !== ci) smoothCost += smoothDistFn(paletteLabs[ci], paletteLabs[n]);
           }
           smoothCost = neighbors.length > 0 ? smoothCost / neighbors.length : 0;
-          const totalCost = fidelityCost + spatialWeight * smoothCost;
+          const totalCost = fidelityCost + smoothScale * smoothCost;
           if (totalCost < bestCost) { bestCost = totalCost; bestColor = ci; }
         }
 
@@ -996,7 +1154,8 @@ self.onmessage = (event) => {
         contrast = 0,
         highQuality: inputHighQuality,   // Phase 2: 外部控制质量模式
         removeBackground = true,        // Phase 4: 背景移除开关
-        colorSpace = 'lab'              // 'lab' (CIEDE2000) 或 'oklab' (OKLab 感知均匀)
+        colorSpace = 'lab',             // 'lab' (CIEDE2000) 或 'oklab' (OKLab 感知均匀)
+        imageMode = 'auto'              // 'auto' | 'portrait' | 'illustration' | 'logo' | 'landscape'
       } = payload;
 
       const outW = gridWidth || gridSize;
@@ -1051,24 +1210,15 @@ self.onmessage = (event) => {
 
       self.postMessage({ type: 'PROGRESS', progress: 20 });
 
-      // 背景检测（由 removeBackground 参数控制）
-      const bgMask = removeBackground
+      // 背景检测（由 removeBackground 参数控制）— 返回 { mask, lab, coverage }
+      const bgResult = removeBackground
         ? detectBackground(hiResData, hiResW, hiResH, null)
         : null;
+      const bgMask = bgResult ? bgResult.mask : null;
 
-      // K-means++ 调色板选择
-      let subset;
-      if (hasHiRes) {
-        subset = kmeansSelectPalette({ data: hiResData, width: hiResW, height: hiResH }, safeMaxColors, palette, paletteLabs, bgMask, highQuality, colorSpace);
-      } else {
-        subset = kmeansSelectPalette({ data: hiResData, width: hiResW, height: hiResH }, safeMaxColors, palette, paletteLabs, null, highQuality, colorSpace);
-      }
-      const activePalette = subset.palette;
-      const activeLabs = subset.labs;
+      self.postMessage({ type: 'PROGRESS', progress: 25 });
 
-      self.postMessage({ type: 'PROGRESS', progress: 40 });
-
-      // 边缘感知区域采样
+      // 边缘感知区域采样（先于调色板选择：能量权重需要每格边缘强度）
       let areaColors, edgeMap;
       if (hasHiRes) {
         const areaResult = computeEdgeAwareAreaColors(hiResData, hiResW, hiResH, outW, outH, brightness, contrast);
@@ -1100,7 +1250,56 @@ self.onmessage = (event) => {
         }
       }
 
-      self.postMessage({ type: 'PROGRESS', progress: 60 });
+      // 能量函数权重（文档 §九~十五）：边缘强度 + 主体显著性 → 逐格保护权重
+      const edgeStrength = computeEdgeStrength(edgeMap);
+      const saliency = computeSaliencyMap(areaColors, edgeStrength, outW, outH, bgResult ? bgResult.lab : null);
+      const protection = computeProtectionMap(edgeStrength, saliency);
+      let edgeDensitySum = 0, edgeDensityCount = 0;
+      for (let i = 0; i < edgeStrength.length; i += 1) {
+        if (areaColors[i]) { edgeDensitySum += edgeStrength[i]; edgeDensityCount += 1; }
+      }
+      const edgeDensity = edgeDensityCount > 0 ? edgeDensitySum / edgeDensityCount : 0;
+
+      // 图片类型识别（文档 §二十六）：auto 时按特征判定，否则用用户指定类型
+      const REQUESTABLE_MODES = ['auto', 'portrait', 'illustration', 'logo', 'landscape'];
+      const requestedMode = REQUESTABLE_MODES.includes(imageMode) ? imageMode : 'auto';
+      const features = extractImageFeatures(
+        hiResData, hiResW, hiResH, bgResult ? bgResult.coverage : 0, edgeDensity
+      );
+      const activeMode = requestedMode === 'auto' ? classifyImageType(features) : requestedMode;
+      const typeParams = IMAGE_TYPE_PARAMS[activeMode];
+
+      // 颜色预算（§二十五/二十七）：用户基准 × 类型乘数（人像/风景略多、Logo 收紧）
+      const effectiveMaxColors = Math.max(1, Math.min(palette.length, Math.round(safeMaxColors * typeParams.colorBudget)));
+      // 细节过渡：'auto' 由图片类型决定（人像/动漫/Logo 关闭，风景轻度渐变）
+      const effectiveDithering = dithering === 'auto' ? typeParams.dithering : dithering;
+
+      // 采样权重：输出格权重映射回源像素（加权 K-means++）
+      let sampleWeights = null;
+      if (hasHiRes && (typeParams.edgeBoost !== 1 || typeParams.salBoost !== 1)) {
+        const cellWf = hiResW / outW, cellHf = hiResH / outH;
+        sampleWeights = new Float32Array(hiResW * hiResH);
+        for (let y = 0; y < hiResH; y += 1) {
+          const oy = Math.min(outH - 1, Math.floor(y / cellHf));
+          const rowBase = oy * outW;
+          for (let x = 0; x < hiResW; x += 1) {
+            const ci = rowBase + Math.min(outW - 1, Math.floor(x / cellWf));
+            sampleWeights[y * hiResW + x] = 1 + typeParams.edgeBoost * edgeStrength[ci] + typeParams.salBoost * saliency[ci];
+          }
+        }
+      }
+
+      // K-means++ 调色板选择（边缘/显著性加权）
+      let subset;
+      if (hasHiRes) {
+        subset = kmeansSelectPalette({ data: hiResData, width: hiResW, height: hiResH }, effectiveMaxColors, palette, paletteLabs, bgMask, highQuality, colorSpace, sampleWeights);
+      } else {
+        subset = kmeansSelectPalette({ data: hiResData, width: hiResW, height: hiResH }, effectiveMaxColors, palette, paletteLabs, null, highQuality, colorSpace, null);
+      }
+      const activePalette = subset.palette;
+      const activeLabs = subset.labs;
+
+      self.postMessage({ type: 'PROGRESS', progress: 50 });
 
       // 区域方差计算
       let areaVariance;
@@ -1137,7 +1336,7 @@ self.onmessage = (event) => {
       self.postMessage({ type: 'PROGRESS', progress: 70 });
 
       // Floyd-Steinberg 蛇形抖动
-      if (dithering === 'floyd-steinberg') {
+      if (effectiveDithering === 'floyd-steinberg') {
         const bufferL = new Float32Array(outTotal);
         const bufferA = new Float32Array(outTotal);
         const bufferB = new Float32Array(outTotal);
@@ -1173,7 +1372,8 @@ self.onmessage = (event) => {
 
             const variance = areaVariance[idx];
             const varFactor = Math.max(0, Math.min(1, (variance - VAR_LOW) / (VAR_HIGH - VAR_LOW)));
-            const diffusionStrength = varFactor * resolutionFactor;
+            // 抖动误差不扩散进边缘/显著格子（能量函数 λ2·E_edge + λ3·E_saliency 的抖动侧门控）
+            const diffusionStrength = varFactor * resolutionFactor * (1 - 0.5 * protection[idx]);
 
             if (diffusionStrength <= 0.02) continue;
             errL *= diffusionStrength; errA *= diffusionStrength; errB *= diffusionStrength;
@@ -1200,7 +1400,7 @@ self.onmessage = (event) => {
             }
           }
         }
-      } else if (dithering === 'ordered') {
+      } else if (effectiveDithering === 'ordered') {
 
         // 有序抖动
         for (let y = 0; y < outH; y += 1) {
@@ -1240,7 +1440,7 @@ self.onmessage = (event) => {
         const minDim = Math.min(outW, outH);
         const spatialWeight = minDim <= 30 ? 0.25 : (minDim <= 50 ? 0.18 : minDim <= 80 ? 0.12 : 0.07);
         const refinementIters = highQuality ? 4 : 2;
-        outCounts = spatialRefinement(outIdx, areaColors, activePalette, activeLabs, outW, outH, refinementIters, spatialWeight, colorSpace);
+        outCounts = spatialRefinement(outIdx, areaColors, activePalette, activeLabs, outW, outH, refinementIters, spatialWeight, colorSpace, protection);
       }
 
       // 棋盘抑制 — 在 ICM 之后检测并平滑 ABAB/BABA 高频交替伪影
@@ -1300,7 +1500,12 @@ self.onmessage = (event) => {
             height: outH,
             quantizedColors: activePalette,
             colorStats,
-            BLANK_MARKER: 0xffff
+            BLANK_MARKER: 0xffff,
+            // 类型识别与自适应结果（UI 展示"识别为 XX · 已自动优化"）
+            detectedType: activeMode,
+            requestedMode,
+            effectiveMaxColors,
+            effectiveDithering
           }
         },
         [outIdx.buffer]

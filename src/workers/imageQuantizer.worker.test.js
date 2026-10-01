@@ -27,6 +27,21 @@ function makeGradientImage(w, h) {
   return data
 }
 
+/** 冷色渐变图:不含肤色椭球内的暖色像素，类型识别必然落到 landscape 兜底 */
+function makeCoolGradientImage(w, h) {
+  const data = new Uint8ClampedArray(w * h * 4)
+  for (let y = 0; y < h; y += 1) {
+    for (let x = 0; x < w; x += 1) {
+      const i = (y * w + x) * 4
+      data[i] = 20
+      data[i + 1] = Math.round((x / Math.max(1, w - 1)) * 200)
+      data[i + 2] = 80 + Math.round((y / Math.max(1, h - 1)) * 175)
+      data[i + 3] = 255
+    }
+  }
+  return data
+}
+
 const PALETTE = [
   { id: 'P01', hex: '#000000', rgb: { r: 0, g: 0, b: 0 } },
   { id: 'P02', hex: '#FFFFFF', rgb: { r: 255, g: 255, b: 255 } },
@@ -84,7 +99,10 @@ describe('quantizer worker pipeline', () => {
     const indices = new Uint16Array(result.indexBuffer)
 
     expect(result.quantizedColors.length).toBeGreaterThan(0)
-    expect(result.quantizedColors.length).toBeLessThanOrEqual(4)
+    // 渐变图自动识别为 landscape，颜色预算乘数 1.25 → 4 颜色请求最多扩到 5
+    expect(result.quantizedColors.length).toBeLessThanOrEqual(5)
+    expect(result.effectiveMaxColors).toBeGreaterThan(0)
+    expect(result.effectiveMaxColors).toBeLessThanOrEqual(10)
     expect(indices.length).toBe(result.width * result.height)
 
     for (const value of indices) {
@@ -148,5 +166,34 @@ describe('quantizer worker pipeline', () => {
     expect(result.width).toBe(24)
     expect(result.height).toBe(12)
     expect(new Uint16Array(result.indexBuffer).length).toBe(24 * 12)
+  })
+
+  it('图片类型自动识别回传 detectedType（冷色渐变照片 → landscape）', async () => {
+    const result = expectComplete(await runQuantizer({ imageData: { width: 32, height: 32, data: makeCoolGradientImage(32, 32) } }))
+    expect(result.requestedMode).toBe('auto')
+    expect(result.detectedType).toBe('landscape')
+    expect(result.effectiveDithering).toBe('none')
+  })
+
+  it('显式 imageMode 生效并按类型收紧颜色预算（logo ×0.7）', async () => {
+    const result = expectComplete(await runQuantizer({ imageMode: 'logo', maxColors: 10 }))
+    expect(result.requestedMode).toBe('logo')
+    expect(result.detectedType).toBe('logo')
+    expect(result.effectiveMaxColors).toBeLessThanOrEqual(7) // round(10 × 0.7)
+    expect(result.quantizedColors.length).toBeLessThanOrEqual(result.effectiveMaxColors)
+  })
+
+  it('细节过渡 auto 由图片类型决定（风景→柔和渐变，标志→关闭）', async () => {
+    const landscape = expectComplete(await runQuantizer({ dithering: 'auto', imageData: { width: 32, height: 32, data: makeCoolGradientImage(32, 32) } }))
+    expect(landscape.detectedType).toBe('landscape')
+    expect(landscape.effectiveDithering).toBe('floyd-steinberg')
+
+    const logo = expectComplete(await runQuantizer({ dithering: 'auto', imageMode: 'logo' }))
+    expect(logo.effectiveDithering).toBe('none')
+  })
+
+  it('未知 imageMode 回退 auto，不抛错', async () => {
+    const result = expectComplete(await runQuantizer({ imageMode: 'nonsense' }))
+    expect(result.requestedMode).toBe('auto')
   })
 })

@@ -16,6 +16,10 @@ import {
   deltaE2000,
   cleanupIsolatedBeads,
   suppressCheckerboard,
+  computeEdgeStrength,
+  computeSaliencyMap,
+  classifyImageType,
+  suggestColorsForGrid,
 } from './imageQuantizer.worker.js'
 
 const TEST_PAIRS = [
@@ -287,5 +291,86 @@ describe('色差对比(OKLab vs CIEDE76)', () => {
     ).toBeGreaterThan(
       deltaEOKLab(rgbToOklab(128, 128, 128), rgbToOklab(130, 130, 130)),
     )
+  })
+})
+
+describe('图片类型识别（自动适配 §二十五~二十六）', () => {
+  it('极少纯色 → logo', () => {
+    expect(classifyImageType({
+      uniqueColors: 6, uniqueRatio: 0.004, flatness: 0.97, meanSaturation: 0.3,
+      skinRatio: 0, bgCoverage: 0.2, edgeDensity: 0.08,
+    })).toBe('logo')
+  })
+
+  it('平面色块 + 高饱和 → illustration', () => {
+    expect(classifyImageType({
+      uniqueColors: 120, uniqueRatio: 0.02, flatness: 0.75, meanSaturation: 0.6,
+      skinRatio: 0.02, bgCoverage: 0, edgeDensity: 0.1,
+    })).toBe('illustration')
+  })
+
+  it('肤色占比高 → portrait（即使颜色偏多）', () => {
+    expect(classifyImageType({
+      uniqueColors: 800, uniqueRatio: 0.08, flatness: 0.3, meanSaturation: 0.35,
+      skinRatio: 0.2, bgCoverage: 0, edgeDensity: 0.15,
+    })).toBe('portrait')
+  })
+
+  it('其余 → landscape（照片/风景兜底）', () => {
+    expect(classifyImageType({
+      uniqueColors: 2000, uniqueRatio: 0.2, flatness: 0.1, meanSaturation: 0.4,
+      skinRatio: 0.01, bgCoverage: 0, edgeDensity: 0.3,
+    })).toBe('landscape')
+  })
+})
+
+describe('网格尺寸 → 建议颜色数（§二十七）', () => {
+  it.each([
+    [32, 12], [40, 12],
+    [64, 24], [70, 24],
+    [87, 36], [100, 36],
+    [140, 48], [150, 48],
+    [170, 64], [200, 64],
+  ])('长边 %i → %i 色', (long, expected) => {
+    expect(suggestColorsForGrid(long, long)).toBe(expected)
+  })
+
+  it('矩形网格按长边取档', () => {
+    expect(suggestColorsForGrid(140, 105)).toBe(48)
+    expect(suggestColorsForGrid(57, 29)).toBe(24)
+  })
+})
+
+describe('能量函数权重（§九~十五）', () => {
+  it('边缘强度按 95 分位归一化到 [0,1]', () => {
+    const edgeMap = new Float32Array(100)
+    for (let i = 0; i < 100; i += 1) edgeMap[i] = i + 1 // 1..100，95 分位 ≈ 95
+    const s = computeEdgeStrength(edgeMap)
+    expect(s[99]).toBe(1) // clamp(100/95) → 1
+    expect(s[0]).toBeCloseTo(1 / 95, 5)
+    expect(Math.max(...s)).toBeLessThanOrEqual(1)
+    expect(Math.min(...s)).toBeGreaterThanOrEqual(0)
+  })
+
+  it('全平坦图边缘强度全 0', () => {
+    const s = computeEdgeStrength(new Float32Array(50))
+    expect([...s].every((v) => v === 0)).toBe(true)
+  })
+
+  it('显著性：与背景差异大的格子显著更高，空白格为 0', () => {
+    const outW = 4
+    const outH = 1
+    const areaColors = new Array(outW * outH)
+    areaColors[0] = areaEntry([255, 255, 255]) // = 背景参照
+    areaColors[1] = areaEntry([200, 30, 30])   // 与背景差异大
+    areaColors[2] = areaEntry([250, 245, 255]) // 接近背景
+    areaColors[3] = areaEntry([30, 30, 200])   // 与背景差异大
+    const edge = new Float32Array(outW * outH)
+    const bgLab = rgbToLab(255, 255, 255)
+    const sal = computeSaliencyMap(areaColors, edge, outW, outH, bgLab)
+    expect(sal[1]).toBeGreaterThan(sal[0])
+    expect(sal[1]).toBeGreaterThan(sal[2])
+    expect(sal[1]).toBeLessThanOrEqual(1)
+    expect(sal[1]).toBeGreaterThan(0.5)
   })
 })
