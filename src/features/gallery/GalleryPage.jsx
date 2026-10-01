@@ -1,16 +1,16 @@
 /**
- * GalleryPage — Gallery V2(灰度挂载于 /gallery-v2)
+ * GalleryPage — Gallery V2(/gallery 主路由)
  *
- * 目标:功能与 V1(components/Gallery.jsx)完全对齐,布局升级为
- * 「发现页」形态(Hero + URL 可分享/可回退的筛选状态)。
+ * 与 V1(components/Gallery.jsx,已归档于 _legacy/Gallery.v1.jsx)功能完全对齐,
+ * 布局升级为「发现页」形态(Hero + URL 可分享/可回退的筛选状态)。
  *
  * 与 V1 的差异:
  *  - 搜索词/分类/难度经 useGalleryQuery 同步到 URLSearchParams
- *    (/gallery-v2?q=…&cat=…&diff=…),刷新恢复、前进后退、可分享
+ *    (/gallery?q=…&cat=…&diff=…),刷新恢复、前进后退、可分享
  *  - 「全部模板 / 我的收藏 / 我的作品」三视图与 V1 一致(组件内状态)
  *  - 复用 V1 抽出的共享样式(gallery.css)与下载计数 hook(useDownloadCounts)
  *
- * 载入模板/我的作品等回调与 V1 相同,由 App.jsx 传入(见 /gallery 路由)。
+ * 载入模板/我的作品等回调由 App.jsx 传入。
  */
 import { useState, useEffect, useMemo, useRef, useLayoutEffect } from 'react'
 import { createPortal } from 'react-dom'

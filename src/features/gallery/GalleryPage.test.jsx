@@ -26,7 +26,7 @@ afterEach(() => {
 })
 
 const setup = (props = {}) => render(
-  <MemoryRouter initialEntries={['/gallery-v2']}>
+  <MemoryRouter initialEntries={['/gallery']}>
     <GalleryPage
       onLoadTemplate={vi.fn()}
       onDeleteWork={vi.fn()}

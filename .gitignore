@@ -79,3 +79,6 @@ PHASE_A_REPORT.md
 
 .vercel
 .env*
+
+# Legacy source archive (V1 components kept as local history backup, never committed/pushed)
+_legacy/

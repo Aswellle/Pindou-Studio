@@ -26,8 +26,8 @@ import { PrivacyPolicy, TermsOfService } from './components/LegalPages'
 import MobileCanvasInfoBar from './components/MobileCanvasInfoBar'
 const CreateImagePage = lazy(() => import('./components/CreateImagePage'))
 import ProfilePage from './components/ProfilePage'
-const Gallery = lazy(() => import('./components/Gallery'))
-// Gallery V2:功能与 V1 对齐 + URL 筛选状态,先挂 /gallery-v2 灰度,对齐验证后再切 /gallery
+// Gallery V2:已对齐 V1 全部功能并通过灰度验证,接任 /gallery 主路由
+// (V1 Gallery.jsx 源码转存 _legacy/ 本地归档,不再入库)
 const GalleryPage = lazy(() => import('./features/gallery/GalleryPage'))
 import AdminDashboardPage from './components/AdminDashboardPage'
 const Tutorials = lazy(() => import('./components/Tutorials'))
@@ -387,22 +387,6 @@ export default function App() {
           <Route path="/login" element={renderAuthPage()} />
           <Route path="/gallery" element={
             <Suspense fallback={<LoadingScreen />}>
-              <Gallery
-                onLoadTemplate={handleLoadTemplate}
-                onDeleteWork={deleteWork}
-                onLoadWork={handleLoadWork}
-                savedWorks={savedWorks}
-                worksLoading={worksLoading}
-                cloudMirrorCount={cloudMirrorCount}
-                cloudStore={cloudStore}
-                user={user}
-                onLogin={openLogin}
-                onRegister={openRegister}
-              />
-            </Suspense>
-          } />
-          <Route path="/gallery-v2" element={
-            <Suspense fallback={<LoadingScreen />}>
               <GalleryPage
                 onLoadTemplate={handleLoadTemplate}
                 onDeleteWork={deleteWork}
@@ -667,24 +651,6 @@ export default function App() {
           </>
         } />
         <Route path="/gallery" element={
-          <Suspense fallback={<LoadingScreen />}>
-            <div className="mobile-page-area">
-              <Gallery
-                onLoadTemplate={handleLoadTemplate}
-                onDeleteWork={deleteWork}
-                onLoadWork={handleLoadWork}
-                savedWorks={savedWorks}
-                worksLoading={worksLoading}
-                cloudMirrorCount={cloudMirrorCount}
-                cloudStore={cloudStore}
-                user={user}
-                onLogin={openLogin}
-                onRegister={openRegister}
-              />
-            </div>
-          </Suspense>
-        } />
-        <Route path="/gallery-v2" element={
           <Suspense fallback={<LoadingScreen />}>
             <div className="mobile-page-area">
               <GalleryPage
