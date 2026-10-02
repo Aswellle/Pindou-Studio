@@ -2,16 +2,22 @@
    量化器是核心功能页,不再用模态浮层:模态在窄屏上宽度受限会把步骤条/预览裁掉,
    且 iOS 键盘 + 浮层滚动叠加易出白板。这里由整页滚动承担,内部不再嵌套滚动容器。 */
 .quantizer-page {
-  --quantizer-ink: #20252b;
-  --quantizer-muted: #6d747c;
-  --quantizer-line: #e6e9ec;
-  --quantizer-accent: #e26c45;
+  /* 颜色一律取自站点设计令牌（src/index.css 手作暖调），此页不再自带冷灰配色 ——
+     独立功能页也必须是同一套视觉语言；--quantizer-* 只是本站令牌的语义别名，
+     便于布局区引用，改动本站主题色时此页自动跟随。 */
+  --quantizer-ink: var(--text-primary);
+  --quantizer-muted: var(--text-secondary);
+  --quantizer-line: var(--border-color);
+  --quantizer-accent: var(--accent);
+  --quantizer-surface: var(--bg-primary);        /* 主体表面：暖白 */
+  --quantizer-surface-soft: var(--bg-secondary); /* 次级表面：暖砂（页底 / 步骤条 / 拖放区） */
+  --quantizer-surface-sink: var(--bg-tertiary);  /* 凹陷表面：图片衬底 */
   flex: 1;
   min-height: 0;
   overflow-y: auto;
   overflow-x: hidden;
   -webkit-overflow-scrolling: touch;
-  background: #f5f6f4;
+  background: var(--quantizer-surface-soft);
   color: var(--quantizer-ink);
 }
 
@@ -19,19 +25,22 @@
   width: min(1440px, 100%);
   min-height: 100%;
   margin: 0 auto;
-  background: #fff;
-  box-shadow: 0 0 0 1px rgba(31, 38, 43, 0.04);
+  background: var(--quantizer-surface);
+  box-shadow: 0 0 0 1px var(--shadow-sm);
 }
 
-.quantizer-header { display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; gap: 24px; min-height: 78px; padding: 16px clamp(20px, 4vw, 56px); border-bottom: 1px solid var(--quantizer-line); background: rgba(255,255,255,.96); }
+.quantizer-header { display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; gap: 24px; min-height: 78px; padding: 16px clamp(20px, 4vw, 56px); border-bottom: 1px solid var(--quantizer-line); background: var(--quantizer-surface); }
 .quantizer-header h2 { margin: 0; color: var(--quantizer-ink); font-size: 20px; font-weight: 700; letter-spacing: 0; }
 .quantizer-header-title { display: flex; align-items: center; justify-self: center; gap: 12px; white-space: nowrap; }
 .quantizer-eyebrow { margin: 0 0 3px; color: var(--quantizer-muted); font-size: 9px; font-weight: 700; letter-spacing: 0.12em; }
-.quantizer-brand-mark { display: grid; place-items: center; width: 34px; height: 34px; border-radius: 10px; background: var(--quantizer-ink); color: #fff; font-size: 18px; }
+/* 品牌标 —— 取站点标志色（--accent），与 Header 徽标同色系 */
+.quantizer-brand-mark { display: grid; place-items: center; width: 34px; height: 34px; border-radius: 10px; background: var(--accent); color: #fff; font-size: 18px; box-shadow: var(--shadow-card); }
 .quantizer-header-meta { display: inline-flex; align-items: center; justify-self: end; gap: 8px; color: var(--quantizer-muted); font-size: 13px; }
-.quantizer-status-dot { width: 7px; height: 7px; border-radius: 50%; background: #67a979; }
+.quantizer-status-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--secondary-accent); }
 
-/* 返回按钮 —— 独立功能页的唯一退出入口，需自解释、可聚焦、按住有反馈 */
+/* 返回按钮 —— 独立功能页的唯一退出入口，需自解释、可聚焦、按住有反馈。
+   交互色全部落在暖调令牌上：默认暖白面 + 次级文字，hover 用标志色柔底（--accent-soft），
+   不使用深色填充（与本站暖调体系冲突）。 */
 .quantizer-back {
   display: inline-flex;
   align-items: center;
@@ -41,8 +50,8 @@
   padding: 0 14px 0 11px;
   border: 1px solid var(--quantizer-line);
   border-radius: 10px;
-  background: #fff;
-  color: var(--quantizer-ink);
+  background: var(--quantizer-surface);
+  color: var(--text-secondary);
   font-size: 14px;
   font-weight: 500;
   line-height: 1;
@@ -53,28 +62,28 @@
 .quantizer-back-label { white-space: nowrap; }
 .quantizer-back-icon { flex: 0 0 auto; transition: transform 160ms ease; }
 .quantizer-back:hover {
-  border-color: var(--quantizer-ink);
-  background: var(--quantizer-ink);
-  color: #fff;
-  box-shadow: 0 8px 18px rgba(32, 37, 43, 0.18);
+  border-color: var(--accent);
+  background: var(--accent-soft);
+  color: var(--accent-hover);
+  box-shadow: 0 6px 16px rgba(232, 115, 74, 0.18); /* --accent 的 18% 投影 */
 }
 .quantizer-back:hover .quantizer-back-icon { transform: translateX(-2px); }
 .quantizer-back:active { transform: translateY(1px); box-shadow: none; }
 .quantizer-back:focus-visible { outline: 2px solid var(--quantizer-accent); outline-offset: 2px; }
 
-.quantizer-steps { display: flex; align-items: center; justify-content: center; gap: 16px; padding: 16px 24px; background: #fbfcfb; border-bottom: 1px solid var(--quantizer-line); flex-shrink: 0; }
+.quantizer-steps { display: flex; align-items: center; justify-content: center; gap: 16px; padding: 16px 24px; background: var(--quantizer-surface-soft); border-bottom: 1px solid var(--quantizer-line); flex-shrink: 0; }
 
 /* 基础（<981px）：单列 + 整页滚动 —— 触屏上一栏到底最省事，
    桌面工作台布局在 min-width: 981px 里整体切换 */
 .quantizer-content { display: block; padding: 18px clamp(14px, 3vw, 28px) 24px; }
 .upload-section { min-width: 0; margin-bottom: 18px; }
-.upload-zone { position: relative; display: grid; place-content: center; min-height: 250px; padding: 32px; border: 1px dashed #cbd2d6; border-radius: 14px; background: #fafbfa; text-align: center; cursor: pointer; transition: border-color 160ms ease, background 160ms ease, transform 160ms ease; }
-.upload-zone:hover, .upload-zone.drag-active { border-color: var(--quantizer-accent); background: #fff8f4; transform: translateY(-2px); }
-.preview-image-frame { display: grid; place-items: center; min-height: 250px; padding: 18px; border: 1px solid var(--quantizer-line); border-radius: 14px; background: #f2f3f1; }
+.upload-zone { position: relative; display: grid; place-content: center; min-height: 250px; padding: 32px; border: 1px dashed var(--quantizer-line); border-radius: 14px; background: var(--quantizer-surface-soft); text-align: center; cursor: pointer; transition: border-color 160ms ease, background 160ms ease, transform 160ms ease; }
+.upload-zone:hover, .upload-zone.drag-active { border-color: var(--quantizer-accent); background: var(--accent-soft); transform: translateY(-2px); }
+.preview-image-frame { display: grid; place-items: center; min-height: 250px; padding: 18px; border: 1px solid var(--quantizer-line); border-radius: 14px; background: var(--quantizer-surface-sink); }
 .preview-image { display: block; max-width: 100%; max-height: 260px; object-fit: contain; border-radius: 8px; }
 .settings-section { min-width: 0; padding: 20px 0 0; border-top: 1px solid var(--quantizer-line); }
 .settings-section h3 { margin-top: 0; }
-.quantizer-footer { position: sticky; bottom: 0; z-index: 5; display: flex; justify-content: flex-end; gap: 12px; padding: 12px clamp(14px, 3vw, 32px) calc(12px + env(safe-area-inset-bottom, 0px)); border-top: 1px solid var(--quantizer-line); background: rgba(255,255,255,.96); }
+.quantizer-footer { position: sticky; bottom: 0; z-index: 5; display: flex; justify-content: flex-end; gap: 12px; padding: 12px clamp(14px, 3vw, 32px) calc(12px + env(safe-area-inset-bottom, 0px)); border-top: 1px solid var(--quantizer-line); background: var(--quantizer-surface); }
 
 /* 技术亮点徽章 — 强调专业配色算法，制造第一印象记忆点 */
 .tech-badge {
@@ -404,7 +413,7 @@
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
+  box-shadow: 0 2px 8px rgba(43, 36, 32, 0.12);
   transition: all 0.15s;
 }
 
@@ -417,7 +426,8 @@
    (定位/高度(--visible-vh)/滚动/safe-area 由 index.css 全屏浮层基础设施统一提供) */
 .quantizer-zoom {
   z-index: 1100;
-  background: rgba(0, 0, 0, 0.85);
+  /* 遮罩用本站暖墨色（--text-primary #2b2420）而非纯黑，页面上不出现体系外的冷色 */
+  background: rgba(43, 36, 32, 0.86);
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -432,7 +442,7 @@
 
 .quantizer-zoom canvas {
   border-radius: 4px;
-  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.5);
+  box-shadow: 0 4px 24px rgba(43, 36, 32, 0.45);
   image-rendering: pixelated;
   max-width: 95vw;
   max-height: 82vh;
@@ -619,11 +629,14 @@
   .quantizer-header-title h2 { overflow: hidden; font-size: 16px; text-overflow: ellipsis; }
   .quantizer-eyebrow { font-size: 8px; }
   .quantizer-header-meta { max-width: 88px; overflow: hidden; font-size: 11px; white-space: nowrap; text-overflow: ellipsis; }
-  .quantizer-steps { gap: 8px; padding: 10px 12px; overflow-x: auto; justify-content: flex-start; }
-  .step-item { gap: 4px; flex: 0 0 auto; }
+  /* 步骤条窄屏版式：三段改为「圆点在上、标签在下」的等分三列。
+     原先靠横向滚动兜底（标签 nowrap + 连接线 min-width 撑破宽度），实测 390px 下
+     第三段被挤到边缘；竖排后三步恒同屏可见，标签换行也不裁切（无横向滚动）。 */
+  .quantizer-steps { display: grid; grid-template-columns: 1fr auto 1fr auto 1fr; align-items: start; gap: 0; padding: 10px 12px; }
+  .step-item { flex-direction: column; align-items: center; gap: 4px; text-align: center; min-width: 0; }
   .step-dot { width: 20px; height: 20px; }
-  .step-label { font-size: var(--text-xs); }
-  .step-connector { flex: 0 0 18px; margin: 0; min-width: 18px; }
+  .step-label { font-size: var(--text-xs); white-space: normal; line-height: 1.3; }
+  .step-connector { flex: 0 0 auto; width: clamp(10px, 4vw, 28px); min-width: 10px; margin: 9px 6px 0; }
   .quantizer-content { display: block; padding: 18px 14px 24px; }
   .upload-section { margin-bottom: 18px; }
   .upload-zone, .preview-image-frame { min-height: 250px; }
@@ -726,8 +739,9 @@
   .quantizer-footer { position: static; flex: 0 0 auto; }
 }
 
-/* 矮视口（≤760px 高的桌面窗口）：隐藏步骤条 —— 头部状态点已经显示当前阶段，
-   省下的高度全部让给「输入 + 结果」两块常驻区域 */
-@media (min-width: 981px) and (max-height: 760px) {
-  .quantizer-steps { display: none; }
+/* 矮视口（≤820px 高的桌面窗口）：步骤条保留（三步流程是这一页的友好交互看点），
+   只压缩头尾三段的自留白，把高度让给「输入 + 结果」两块常驻区域。 */
+@media (min-width: 981px) and (max-height: 820px) {
+  .quantizer-header { min-height: 64px; padding-top: 10px; padding-bottom: 10px; }
+  .quantizer-steps { padding-top: 10px; padding-bottom: 10px; }
 }
