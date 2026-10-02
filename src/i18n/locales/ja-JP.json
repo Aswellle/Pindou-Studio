@@ -954,6 +954,22 @@
       "authorAdmin": "公式返信",
       "guestBadge": "ゲスト",
       "loadMore": "さらに会話を読み込む"
+    },
+    "mfa": {
+      "title": "二段階認証",
+      "hint": "認証アプリの 6 桁コードを入力して続行してください",
+      "codeLabel": "認証コード",
+      "submit": "確認して進む",
+      "invalid": "コードが正しくないか期限切れです。もう一度お試しください。",
+      "enrollTitle": "二段階認証を有効にする",
+      "enrollHint": "認証アプリ(Google Authenticator / 1Password など)で QR コードを読み取り、6 桁コードを入力して登録を完了してください",
+      "secretLabel": "QR を読み取れない場合はシークレットを手入力",
+      "enrollSubmit": "登録を完了",
+      "enrollFailed": "このプロジェクトでは MFA が有効になっていません。Supabase の Authentication → Multi-Factor Auth を有効にしてから再試行してください。",
+      "skip": "有効にせず進む",
+      "skipWarn": "二段階認証がない場合、パスワードだけで管理画面に入れます。今すぐの登録を強く推奨します(登録後はサーバー側で必須化できます)。",
+      "enableNow": "二段階認証を有効にする",
+      "switchAccount": "別のアカウントでログイン"
     }
   },
   "profile": {

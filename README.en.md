@@ -93,6 +93,9 @@ Any pattern can be remapped to another brand by CIEDE2000 nearest color (the bra
 - **Row-level security (RLS)** — templates/categories anon read-only, works readable and writable only by their owner, avatars writable only by their owner, admin write access
 - **Function-level guards** — every admin RPC is `security definer` and checks `is_admin()` internally
 - **Auth as the credential** — authentication via Supabase Auth (OTP / custom accounts); contact messages support Turnstile session trust plus rate limiting
+- **Two independent admin criteria** — `is_admin()` requires the `admin` role **and** membership in the `admin_allowlist` table (no client policies on it; maintained by service_role only, with atomic helpers `admin_grant_by_email` / `admin_revoke_by_email`). **Flipping `profiles.role` alone no longer grants admin access.**
+- **Two-factor authentication for admins** — `/admin/login` supports TOTP: once a factor is enrolled, an aal2 verification is required before reaching the console. After enrolling, set `security_settings.admin_require_mfa = true` and the **server** enforces aal2 on every admin request.
+- **Audit trail** — role changes and allowlist edits are written by database triggers (`admin_audit_log`, unforgeable from the client) and readable by admins through `admin_list_audit()`
 - **Read-only metadata** — the user dashboard exposes only what operations need (email / nickname / role / confirmation state / registration and sign-in times), never sensitive fields
 
 ---

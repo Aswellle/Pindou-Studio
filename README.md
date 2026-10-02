@@ -93,6 +93,9 @@
 - **行级安全(RLS)** — 模板/分类匿名只读、作品本人可读写、头像本人可写、管理员可写
 - **函数级门禁** — 所有管理类 RPC 均为 `security definer` 且内部校验 `is_admin()`
 - **登录即凭证** — 认证走 Supabase Auth(OTP / 自定义账号);留言支持 Turnstile 会话信任 + 频率限制
+- **管理员双判据** — `is_admin()` 要求「角色为 `admin` **且** 在白名单 `admin_allowlist` 内」;白名单无任何客户端策略(仅 service_role 可维护,附原子授予助手 `admin_grant_by_email` / `admin_revoke_by_email`)。**单纯改动 `profiles.role` 不再等于拿到管理员权限**
+- **管理员两步验证** — `/admin/login` 支持 TOTP:已绑定因子则必须通过 aal2 校验才进入后台;绑定完成后可将 `security_settings.admin_require_mfa` 置为 `true`,由**服务端**强制每个后台请求都必须是 aal2 会话
+- **安全审计** — 角色变更与白名单增删由数据库触发器在服务端落库(`admin_audit_log`,客户端无法伪造),管理员可经 `admin_list_audit()` 读取
 - **只读元数据** — 用户仪表盘仅展示运营所需字段(邮箱 / 昵称 / 角色 / 验证状态 / 注册与登录时间),不含敏感信息
 
 ---

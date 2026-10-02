@@ -954,6 +954,22 @@
       "authorAdmin": "공식 답변",
       "guestBadge": "게스트",
       "loadMore": "대화 더 불러오기"
+    },
+    "mfa": {
+      "title": "2단계 인증",
+      "hint": "인증 앱의 6자리 코드를 입력하세요",
+      "codeLabel": "인증 코드",
+      "submit": "확인 후 진행",
+      "invalid": "코드가 올바르지 않거나 만료되었습니다. 다시 시도하세요.",
+      "enrollTitle": "2단계 인증 사용",
+      "enrollHint": "인증 앱(Google Authenticator, 1Password 등)으로 QR 코드를 스캔한 뒤 6자리 코드를 입력해 등록을 완료하세요",
+      "secretLabel": "QR을 스캔할 수 없나요? 시크릿 직접 입력",
+      "enrollSubmit": "등록 완료",
+      "enrollFailed": "이 프로젝트에서 MFA가 활성화되어 있지 않습니다. Supabase의 Authentication → Multi-Factor Auth를 켠 뒤 다시 시도하세요.",
+      "skip": "사용하지 않고 진행",
+      "skipWarn": "2단계 인증이 없으면 비밀번호만으로 관리자 콘솔에 들어갈 수 있습니다. 지금 등록을 강력히 권장합니다(등록 후 서버에서 강제할 수 있습니다).",
+      "enableNow": "2단계 인증 사용",
+      "switchAccount": "다른 계정으로 로그인"
     }
   },
   "profile": {

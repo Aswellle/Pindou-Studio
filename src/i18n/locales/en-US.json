@@ -954,6 +954,22 @@
       "authorAdmin": "Official reply",
       "guestBadge": "Guest",
       "loadMore": "Load more conversations"
+    },
+    "mfa": {
+      "title": "Two-factor authentication",
+      "hint": "Enter the 6-digit code from your authenticator app to continue",
+      "codeLabel": "Authentication code",
+      "submit": "Verify and continue",
+      "invalid": "That code is incorrect or expired. Please try again.",
+      "enrollTitle": "Enable two-factor authentication",
+      "enrollHint": "Scan the QR code with an authenticator app (Google Authenticator, 1Password, …), then enter the 6-digit code to finish.",
+      "secretLabel": "Can't scan? Enter the secret manually",
+      "enrollSubmit": "Finish setup",
+      "enrollFailed": "MFA is not enabled for this project yet. Enable Authentication → Multi-Factor Auth in the Supabase dashboard and try again.",
+      "skip": "Continue without it",
+      "skipWarn": "Without two-factor authentication, a password alone grants access to the admin console. Binding it now is strongly recommended — the server can then enforce it.",
+      "enableNow": "Enable two-factor authentication",
+      "switchAccount": "Sign in as another account"
     }
   },
   "profile": {
