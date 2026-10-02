@@ -55,24 +55,19 @@ export function normalizeTrend(series) {
 }
 
 /**
- * 趋势柱数据:只保留最近 days 天,给出每根柱子的相对高度(0~100),
- * 以及窗口内的合计与两种注册方式的拆分。
+ * 趋势序列:只保留最近 days 天,给出窗口合计与两种注册方式的拆分。
+ * (柱高由图表库按数值自行换算,不再由这里算百分比)
  */
 export function buildTrend(series, options = {}) {
   const days = Number(options.days) > 0 ? Math.floor(Number(options.days)) : TREND_WINDOW_DAYS
-  const window = normalizeTrend(series).slice(-days)
-  const peak = window.reduce((max, day) => Math.max(max, day.total), 0)
-  const bars = window.map((day) => ({
-    ...day,
-    height: peak > 0 ? Math.round((day.total / peak) * 1000) / 10 : 0,
-  }))
+  const bars = normalizeTrend(series).slice(-days)
   return {
     bars,
-    peak,
-    windowTotal: window.reduce((sum, day) => sum + day.total, 0),
-    emailTotal: window.reduce((sum, day) => sum + day.email, 0),
-    usernameTotal: window.reduce((sum, day) => sum + day.username, 0),
-    hasData: window.some((day) => day.total > 0),
+    peak: bars.reduce((max, day) => Math.max(max, day.total), 0),
+    windowTotal: bars.reduce((sum, day) => sum + day.total, 0),
+    emailTotal: bars.reduce((sum, day) => sum + day.email, 0),
+    usernameTotal: bars.reduce((sum, day) => sum + day.username, 0),
+    hasData: bars.some((day) => day.total > 0),
   }
 }
 
@@ -91,8 +86,9 @@ function groupCounts(items, keyOf, knownKeys = [], total = items.length) {
 }
 
 /**
- * 模板库统计:总数/来源拆分/累计下载,按分类、难度、品牌色卡的分布,
- * 以及下载量前 N 的模板(直接引用模板对象,便于渲染缩略图)。
+ * 模板库统计:总数/来源拆分/累计下载,按分类与难度的分布,以及下载量前 N 的模板
+ * (直接引用模板对象,便于渲染缩略图)。
+ * 不做「按色卡品牌」分布:模板可在图库中转换到任意品牌色卡,品牌数不构成内容统计口径。
  */
 export function computeLibraryStats(templates = [], categories = []) {
   const list = Array.isArray(templates) ? templates : []
@@ -112,7 +108,6 @@ export function computeLibraryStats(templates = [], categories = []) {
     avgDownloads: total > 0 ? Math.round(downloads / total) : 0,
     byCategory: groupCounts(list, (tpl) => tpl?.category || 'uncategorized', categoryIds, total),
     byDifficulty: groupCounts(list, (tpl) => tpl?.difficulty || 'easy', [], total),
-    byPalette: groupCounts(list, (tpl) => tpl?.paletteId || 'perler', [], total),
     topDownloaded: [...list]
       .sort((a, b) => (toCount(b?.downloadCount) - toCount(a?.downloadCount))
         || String(a?.name || '').localeCompare(String(b?.name || '')))

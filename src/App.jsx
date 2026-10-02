@@ -29,7 +29,8 @@ import ProfilePage from './components/ProfilePage'
 // Gallery V2:已对齐 V1 全部功能并通过灰度验证,接任 /gallery 主路由
 // (V1 Gallery.jsx 源码转存 _legacy/ 本地归档,不再入库)
 const GalleryPage = lazy(() => import('./features/gallery/GalleryPage'))
-import AdminDashboardPage from './components/AdminDashboardPage'
+// 管理概览懒加载:recharts 图表库随之进入独立 chunk,普通用户不下载
+const AdminDashboardPage = lazy(() => import('./components/AdminDashboardPage'))
 const Tutorials = lazy(() => import('./components/Tutorials'))
 import AdminPanel from './components/AdminPanel'
 
@@ -96,9 +97,10 @@ export default function App() {
     : location.pathname.startsWith('/terms') ? 'terms'
     : location.pathname.startsWith('/login') ? 'login'
     : location.pathname.startsWith('/create/image') ? 'createImage'
+    : location.pathname.startsWith('/profile') ? 'profile'
     : 'canvas'
   // 核心功能页不继承站点导航，页面内部提供自己的返回与操作层。
-  const isStandalonePage = currentPage === 'login' || currentPage === 'adminLogin' || currentPage === 'privacy' || currentPage === 'terms' || currentPage === 'createImage'
+  const isStandalonePage = currentPage === 'login' || currentPage === 'adminLogin' || currentPage === 'privacy' || currentPage === 'terms' || currentPage === 'createImage' || currentPage === 'profile'
 
   // iOS Safari 键盘安全(全站统一,防复发机制):
   // 监听 visual viewport 的 resize/scroll 与聚焦,把可视高度写入 --visible-vh、
@@ -410,6 +412,7 @@ export default function App() {
           <Route path="/profile" element={
             <ProfilePage
               user={user}
+              authLoading={authLoading}
               onLogout={logout}
               onUpdateProfile={updateProfile}
               onChangePassword={changePassword}
@@ -423,14 +426,16 @@ export default function App() {
           } />
 
           <Route path="/admin/dashboard" element={
-            <AdminDashboardPage
-              cloudStore={cloudStore}
-              user={user}
-              isAdmin={isAdmin}
-              authLoading={authLoading}
-              onLogin={() => navigate('/admin/login')}
-              onLogout={logout}
-            />
+            <Suspense fallback={<LoadingScreen />}>
+              <AdminDashboardPage
+                cloudStore={cloudStore}
+                user={user}
+                isAdmin={isAdmin}
+                authLoading={authLoading}
+                onLogin={() => navigate('/admin/login')}
+                onLogout={logout}
+              />
+            </Suspense>
           } />
           <Route path="/admin/login" element={renderAdminLoginPage()} />
           <Route path="/admin" element={
@@ -687,6 +692,7 @@ export default function App() {
           <div className="mobile-page-area">
             <ProfilePage
               user={user}
+              authLoading={authLoading}
               onLogout={logout}
               onUpdateProfile={updateProfile}
               onChangePassword={changePassword}
@@ -695,14 +701,16 @@ export default function App() {
         } />
         <Route path="/admin/dashboard" element={
           <div className="mobile-page-area">
-            <AdminDashboardPage
-              cloudStore={cloudStore}
-              user={user}
-              isAdmin={isAdmin}
-              authLoading={authLoading}
-              onLogin={() => navigate('/admin/login')}
-              onLogout={logout}
-            />
+            <Suspense fallback={<LoadingScreen />}>
+              <AdminDashboardPage
+                cloudStore={cloudStore}
+                user={user}
+                isAdmin={isAdmin}
+                authLoading={authLoading}
+                onLogin={() => navigate('/admin/login')}
+                onLogout={logout}
+              />
+            </Suspense>
           </div>
         } />
         <Route path="/create/image" element={

@@ -984,7 +984,13 @@
     "confirmLogoutTitle": "Log Out",
     "confirmLogoutBody": "Are you sure you want to log out? You will need to sign in again.",
     "confirmChangePwTitle": "Change Password",
-    "confirmChangePwBody": "Are you sure you want to change your password?"
+    "confirmChangePwBody": "Are you sure you want to change your password?",
+    "subtitle": "Manage your account details and security",
+    "sectionAccount": "Basic info",
+    "sectionSecurity": "Account security",
+    "accountEmail": "Email account",
+    "accountUsername": "Username account",
+    "securityHint": "Changing your password regularly keeps your account safer"
   },
   "legal": {
     "back": "Back",

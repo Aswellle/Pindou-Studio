@@ -984,7 +984,13 @@
     "confirmLogoutTitle": "退出登录",
     "confirmLogoutBody": "确定要退出当前账号吗?退出后需重新登录。",
     "confirmChangePwTitle": "确认修改密码",
-    "confirmChangePwBody": "确定要修改登录密码吗?"
+    "confirmChangePwBody": "确定要修改登录密码吗?",
+    "subtitle": "管理你的账号信息与安全设置",
+    "sectionAccount": "基本信息",
+    "sectionSecurity": "账号安全",
+    "accountEmail": "邮箱账号",
+    "accountUsername": "用户名账号",
+    "securityHint": "定期更换密码可以提升账号安全性"
   },
   "legal": {
     "back": "返回",

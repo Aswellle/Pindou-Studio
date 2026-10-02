@@ -16,6 +16,9 @@
 
 import { useMemo } from 'react'
 import { useNavigate } from 'react-router-dom'
+import {
+  ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend,
+} from 'recharts'
 import AdminGate from './AdminGate'
 import ThumbnailCanvas from './ThumbnailCanvas'
 import useAdminOverview, { OVERVIEW_ERROR_TIMEOUT } from '../hooks/useAdminOverview'
@@ -85,6 +88,22 @@ function Section({ title, extra, children }) {
       </div>
       {children}
     </section>
+  )
+}
+
+/** 趋势图 tooltip:日期 + 两种注册方式 + 合计(默认 tooltip 只有数值,不够直观) */
+function TrendTooltip({ active, payload, label }) {
+  if (!active || !payload?.length) return null
+  const pick = (key) => payload.find((item) => item.dataKey === key)?.value || 0
+  const email = pick('email')
+  const username = pick('username')
+  return (
+    <div className="adash-tip">
+      <span className="adash-tip-date">{label}</span>
+      <span className="adash-tip-row"><i className="email" />邮箱注册<b>{email}</b></span>
+      <span className="adash-tip-row"><i className="username" />用户名注册<b>{username}</b></span>
+      <span className="adash-tip-row total">合计<b>{email + username}</b></span>
+    </div>
   )
 }
 
@@ -199,28 +218,47 @@ export default function AdminDashboardPage({ cloudStore, user, isAdmin, authLoad
         <div className="adash-grid-2">
           {/* ── 近 14 天注册趋势 ─────────────────────────────── */}
           <Section title={`近 ${TREND_DAYS} 天注册趋势`} extra={<span className="adash-total">合计 {trend.windowTotal}</span>}>
-            {trend.hasData ? (
-              <>
-                <div className="adash-chart" role="img" aria-label={`近 ${TREND_DAYS} 天每日注册数`}>
-                  {trend.bars.map((day, index) => (
-                    <div key={day.date} className="adash-bar-track" title={`${day.date} · 共 ${day.total}`}>
-                      <div className="adash-bar" style={{ height: `${day.height}%` }}>
-                        <span className="adash-bar-seg email" style={{ flexGrow: day.email }} />
-                        <span className="adash-bar-seg username" style={{ flexGrow: day.username }} />
-                      </div>
-                      <span className="adash-bar-label">{index % 2 === 0 ? day.date.slice(5) : ''}</span>
-                    </div>
-                  ))}
-                </div>
-                <div className="adash-legend">
-                  <span className="adash-legend-item"><i className="email" />邮箱注册 {trend.emailTotal}</span>
-                  <span className="adash-legend-item"><i className="username" />用户名注册 {trend.usernameTotal}</span>
-                  <span className="adash-legend-item"><i className="peak" />单日峰值 {trend.peak}</span>
-                </div>
-              </>
-            ) : (
-              <p className="adash-empty">该时间段内暂无新注册</p>
-            )}
+            {/* 图表恒常渲染:即使窗口内全为 0,坐标轴与 14 天刻度也在,便于确认「确实没有新注册」 */}
+            <div className="adash-chart">
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={trend.bars} margin={{ top: 6, right: 6, bottom: 0, left: -16 }} barCategoryGap="24%">
+                  <CartesianGrid vertical={false} stroke="var(--border-color)" strokeDasharray="3 3" />
+                  <XAxis
+                    dataKey="date"
+                    tickFormatter={(value) => value.slice(5)}
+                    tick={{ fontSize: 11, fill: 'var(--text-muted)' }}
+                    tickLine={false}
+                    axisLine={{ stroke: 'var(--border-color)' }}
+                    minTickGap={14}
+                  />
+                  <YAxis
+                    allowDecimals={false}
+                    tick={{ fontSize: 11, fill: 'var(--text-muted)' }}
+                    tickLine={false}
+                    axisLine={false}
+                    width={40}
+                    // 全零时 recharts 默认量程会到 4,留白过大;此时钉在 [0,1]
+                    domain={[0, trend.peak > 0 ? 'auto' : 1]}
+                  />
+                  <Tooltip content={<TrendTooltip />} cursor={{ fill: 'var(--accent-soft)', fillOpacity: 0.35 }} />
+                  <Legend
+                    verticalAlign="bottom"
+                    height={24}
+                    iconType="square"
+                    iconSize={9}
+                    formatter={(value) => <span className="adash-chart-legend">{value}</span>}
+                  />
+                  <Bar dataKey="email" stackId="reg" name="邮箱注册" fill="var(--accent)" />
+                  <Bar dataKey="username" stackId="reg" name="用户名注册" fill="var(--secondary-accent)" radius={[3, 3, 0, 0]} />
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+            <div className="adash-legend">
+              <span className="adash-legend-item">单日峰值 {trend.peak}</span>
+              {trend.hasData
+                ? <span className="adash-legend-item">邮箱 {trend.emailTotal} · 用户名 {trend.usernameTotal}</span>
+                : <span className="adash-legend-item muted">该时间段内暂无新注册</span>}
+            </div>
           </Section>
 
           {/* ── 最近注册 ─────────────────────────────────────── */}
@@ -266,7 +304,7 @@ export default function AdminDashboardPage({ cloudStore, user, isAdmin, authLoad
                   hint={`平均 ${library.avgDownloads} 次/模板`}
                 />
               </div>
-              <div className="adash-grid-3">
+              <div className="adash-grid-2">
                 <div>
                   <h3 className="adash-subtitle">按分类</h3>
                   <Distribution rows={library.byCategory} labelOf={categoryLabel} emptyText="暂无数据" />
@@ -274,10 +312,6 @@ export default function AdminDashboardPage({ cloudStore, user, isAdmin, authLoad
                 <div>
                   <h3 className="adash-subtitle">按难度</h3>
                   <Distribution rows={library.byDifficulty} labelOf={difficultyLabel} emptyText="暂无数据" />
-                </div>
-                <div>
-                  <h3 className="adash-subtitle">按色卡品牌</h3>
-                  <Distribution rows={library.byPalette} labelOf={paletteLabel} emptyText="暂无数据" />
                 </div>
               </div>
             </>

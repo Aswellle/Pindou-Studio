@@ -34,13 +34,14 @@ describe('normalizeTrend', () => {
 })
 
 describe('buildTrend', () => {
-  it('只保留最近 days 天,并按峰值给柱高(0~100)', () => {
+  it('只保留最近 days 天,并给出峰值', () => {
     const series = [day('2026-09-01', 9), day('2026-10-01', 2), day('2026-10-02', 4)]
     const trend = buildTrend(series, { days: 2 })
     expect(trend.bars.map((b) => b.date)).toEqual(['2026-10-01', '2026-10-02'])
     expect(trend.peak).toBe(4)
-    expect(trend.bars.map((b) => b.height)).toEqual([50, 100])
     expect(trend.windowTotal).toBe(6)
+    // 柱高交给图表库换算,纯计算层不再产出百分比
+    expect(trend.bars[0]).toEqual({ date: '2026-10-01', email: 2, username: 0, total: 2 })
   })
 
   it('拆分两种注册方式并给出窗口合计', () => {
@@ -51,11 +52,13 @@ describe('buildTrend', () => {
     expect(trend.hasData).toBe(true)
   })
 
-  it('全零窗口 hasData=false 且柱高为 0(不出现 NaN)', () => {
-    const trend = buildTrend([day('2026-10-01'), day('2026-10-02')])
+  it('全零窗口 hasData=false 但序列仍完整(图表照常渲染 14 天刻度)', () => {
+    const series = Array.from({ length: 14 }, (_, i) => day(`2026-09-${String(i + 19).padStart(2, '0')}`))
+    const trend = buildTrend(series)
     expect(trend.hasData).toBe(false)
     expect(trend.peak).toBe(0)
-    expect(trend.bars.every((b) => b.height === 0)).toBe(true)
+    expect(trend.bars).toHaveLength(14)
+    expect(trend.bars.every((b) => b.total === 0)).toBe(true)
   })
 })
 
@@ -95,10 +98,10 @@ describe('computeLibraryStats', () => {
     expect(stats.byCategory[0].share).toBeCloseTo(2 / 3, 5)
   })
 
-  it('难度/品牌分布覆盖全部模板', () => {
+  it('难度分布覆盖全部模板,品牌维度不再统计(模板可转换色卡)', () => {
     const stats = computeLibraryStats(templates, categories)
     expect(stats.byDifficulty.map((row) => row.id)).toEqual(['easy', 'hard'])
-    expect(stats.byPalette.map((row) => row.id)).toEqual(['perler', 'mard'])
+    expect(stats.byPalette).toBe(undefined)
   })
 
   it('热门模板按下载量降序取前 5,且不修改入参顺序', () => {

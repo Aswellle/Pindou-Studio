@@ -17,6 +17,9 @@ export default defineConfig({
           'i18n-vendor': ['i18next', 'react-i18next', 'react-helmet-async'],
           'supabase-vendor': ['@supabase/supabase-js'],
           'icons-vendor': ['lucide-react'],
+          // 图表库(recharts)只被后台概览页用:单独分包 + 页面 lazy 加载,
+          // 普通用户访问画布/图库不会下载它
+          'chart-vendor': ['recharts'],
         },
       },
     },

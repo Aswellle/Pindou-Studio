@@ -14,6 +14,14 @@ vi.mock('../services/supabase', () => ({
 
 beforeAll(async () => {
   await i18n.changeLanguage('zh-CN')
+  // recharts 的 ResponsiveContainer 依赖 ResizeObserver(jsdom 未实现)
+  if (!globalThis.ResizeObserver) {
+    globalThis.ResizeObserver = class {
+      observe() {}
+      unobserve() {}
+      disconnect() {}
+    }
+  }
   const ctx = {
     fillStyle: '', strokeStyle: '', lineWidth: 1,
     fillRect: () => {}, strokeRect: () => {}, beginPath: () => {}, closePath: () => {},
@@ -135,25 +143,42 @@ describe('AdminDashboardPage — 概览渲染', () => {
     expect(calls).toContain('admin_list_registrations')
   })
 
-  it('趋势图按聚合序列绘制,并显示合计/单日峰值', async () => {
+  it('趋势图用图表库渲染(jsdom 下容器存在),并显示合计/单日峰值', async () => {
     mockRpc()
     const { container } = setup()
     await screen.findByText('42')
-    const bars = container.querySelectorAll('.adash-bar-track')
-    // 组件按 14 天窗口渲染:序列只有 3 天则补不齐(数据源负责补零),此处只断言已有天数
-    expect(bars.length).toBe(3)
+    // 数据 → 图表由 recharts 承接;jsdom 无尺寸不做像素断言,这里验证图表容器与统计口径
+    expect(container.querySelector('.adash-chart')).toBeTruthy()
+    expect(container.querySelector('.recharts-responsive-container')).toBeTruthy()
     expect(screen.getByText('合计 6')).toBeTruthy()
-    expect(screen.getByText('邮箱注册 3')).toBeTruthy()
-    expect(screen.getByText('用户名注册 3')).toBeTruthy()
     expect(screen.getByText('单日峰值 3')).toBeTruthy()
+    expect(screen.getByText('邮箱 3 · 用户名 3')).toBeTruthy()
   })
 
-  it('内容库统计来自 cloudStore(规模/分类分布/热门模板)', async () => {
+  it('窗口内全为 0 时仍渲染图表,仅以附注说明暂无新注册', async () => {
+    const emptyOverview = {
+      ...OVERVIEW,
+      registrations: ['2026-10-01', '2026-10-02'].map((date) => ({ date, email: 0, username: 0 })),
+    }
+    rpc.mockImplementation((fn) => {
+      if (fn === 'admin_overview') return Promise.resolve({ data: emptyOverview, error: null })
+      return Promise.resolve({ data: [], error: null })
+    })
+    const { container } = setup()
+    await screen.findByText('42')
+    expect(container.querySelector('.recharts-responsive-container')).toBeTruthy()
+    expect(screen.getByText('该时间段内暂无新注册')).toBeTruthy()
+  })
+
+  it('内容库统计来自 cloudStore(规模/分类·难度分布/热门模板),不做品牌统计', async () => {
     mockRpc()
     setup()
     await screen.findByText('42')
     expect(screen.getByText('模板总数').previousSibling.textContent).toBe('2')
     expect(screen.getByText('累计下载').previousSibling.textContent).toBe('12')
+    expect(screen.getByText('按分类')).toBeTruthy()
+    expect(screen.getByText('按难度')).toBeTruthy()
+    expect(screen.queryByText('按色卡品牌')).toBe(null)
     expect(screen.getByText('热门模板(按下载量)')).toBeTruthy()
     expect(screen.getAllByText('小猫').length).toBeGreaterThan(0)
   })

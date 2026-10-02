@@ -984,7 +984,13 @@
     "confirmLogoutTitle": "ログアウト",
     "confirmLogoutBody": "ログアウトしますか?再度ログインが必要です。",
     "confirmChangePwTitle": "パスワード変更",
-    "confirmChangePwBody": "パスワードを変更しますか?"
+    "confirmChangePwBody": "パスワードを変更しますか?",
+    "subtitle": "アカウント情報とセキュリティを管理",
+    "sectionAccount": "基本情報",
+    "sectionSecurity": "アカウントの安全性",
+    "accountEmail": "メールアカウント",
+    "accountUsername": "ユーザー名アカウント",
+    "securityHint": "定期的にパスワードを変更すると安全性が高まります"
   },
   "legal": {
     "back": "戻る",

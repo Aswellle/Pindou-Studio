@@ -984,7 +984,13 @@
     "confirmLogoutTitle": "로그아웃",
     "confirmLogoutBody": "로그아웃하시겠습니까? 다시 로그인해야 합니다.",
     "confirmChangePwTitle": "비밀번호 변경",
-    "confirmChangePwBody": "비밀번호를 변경하시겠습니까?"
+    "confirmChangePwBody": "비밀번호를 변경하시겠습니까?",
+    "subtitle": "계정 정보와 보안을 관리하세요",
+    "sectionAccount": "기본 정보",
+    "sectionSecurity": "계정 보안",
+    "accountEmail": "이메일 계정",
+    "accountUsername": "아이디 계정",
+    "securityHint": "비밀번호를 주기적으로 변경하면 계정이 더 안전해집니다"
   },
   "legal": {
     "back": "뒤로",
