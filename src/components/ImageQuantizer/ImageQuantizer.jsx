@@ -410,8 +410,26 @@ export default function ImageQuantizer({ onApply, onClose }) {
         imageMode
       }
 
+      const MAX_IMAGE_BYTES = 25 * 1024 * 1024 // 25MB
+      const fetchController = new AbortController()
+      const fetchTimeout = setTimeout(() => fetchController.abort(), 15000)
+      let previewBlob
+      try {
+        const previewResponse = await fetch(previewUrl, { signal: fetchController.signal })
+        const contentLength = Number(previewResponse.headers.get('content-length'))
+        if (contentLength && contentLength > MAX_IMAGE_BYTES) {
+          throw new Error('IMAGE_TOO_LARGE')
+        }
+        previewBlob = await previewResponse.blob()
+        if (previewBlob.size > MAX_IMAGE_BYTES) {
+          throw new Error('IMAGE_TOO_LARGE')
+        }
+      } finally {
+        clearTimeout(fetchTimeout)
+      }
+
       const response = await quantize(
-        await fetch(previewUrl).then(r => r.blob()),
+        previewBlob,
         {
           gridWidth,
           gridHeight,
