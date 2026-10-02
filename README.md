@@ -237,19 +237,6 @@ CI(`.github/workflows/ci.yml`)在 push / PR 到 `main` 时依次运行:`test:run
 | `bead-studio-behavior` | `{ sessions, guideShown, quantizerVisited }`,驱动移动端首次使用引导 |
 | `custom-templates` / `custom-categories` | 本地模式下的自定义模板与分类(云端未配置时的回退) |
 
-**云端(Supabase,18 个迁移文件定义)**:
-
-| 对象 | 内容 |
-|----|------|
-| `profiles` | 昵称、头像、`role`(admin);自定义账号的 `security_key_hash` |
-| `templates` / `categories` | 云端模板库与分类(`source` / `palette_id` / `download_count`);匿名只读、管理员写入 |
-| `works` | 登录用户作品(`user_id` + `saved_at` + `name` 唯一),RLS 本人可读写 |
-| `contact_messages` | 线程式留言(参与者 = 登录用户或访客 UUID,含 `author` 区分用户/管理员) |
-| `registration_notifications` | 新用户注册流水(仅管理员可读,驱动概览的注册趋势) |
-| `removed_accounts` | 删除账号的墓碑记录 |
-| `avatars`(Storage) | 头像文件,公开读、本人写 |
-| RPC | `increment_template_download`、`admin_overview`、`admin_user_stats`、`admin_list_users`、`admin_list_registrations`、`admin_list_contact_messages`、`admin_reply_contact`、`get_contact_thread`、`ensure_contact_nickname`、`user_account_status`、`admin_lock_user` / `admin_unlock_user` / `admin_delete_user`、`resolve_auth_email`、`username_exists`、`set_security_key`、`reset_password_custom` |
-
 ---
 
 ## 🚀 部署
@@ -258,7 +245,6 @@ CI(`.github/workflows/ci.yml`)在 push / PR 到 `main` 时依次运行:`test:run
 - **规范域名** — 生产域名为 **https://tangnotes.site**;`vercel.json` 将旧域名 `pindou-studio.vercel.app/*` 永久重定向到新域名
 - **静态预渲染** — 构建时生成 `index` 与 `gallery` / `tutorials` / `privacy` / `terms` / `admin` 的静态 HTML(`/gallery` 等路径经 rewrite 指向对应文件),`admin` 标记 `noindex`
 - **缓存策略** — 带哈希的 `/assets/*` 一年不可变缓存,其余 no-cache
-- **SEO** — 每页独立 `<Helmet>` 元信息与 canonical、`hreflang` 四语言互链、Open Graph / Twitter 卡片、JSON-LD 结构化数据,`sitemap.xml` / `robots.txt` / `llms.txt` 随仓库发布
 
 ---
 
