@@ -1,13 +1,19 @@
 import { useState, useMemo, useEffect, useCallback, useRef } from 'react'
 import { createPortal } from 'react-dom'
 import { useTranslation } from 'react-i18next'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useSearchParams } from 'react-router-dom'
 import { useToast } from './Toast'
 import { CATEGORIES, DIFFICULTIES, normalizeCustomTemplate } from '../data/templates'
 import ThumbnailCanvas from './ThumbnailCanvas'
 import LoadingScreen from './LoadingScreen'
 import UserManager from './UserManager'
 import ContactMessages from './ContactMessages'
+import AdminGate from './AdminGate'
+
+// 后台标签页集合与默认值:/admin?tab=users 之类的深链(管理概览快捷入口)按此解析
+const ADMIN_TABS = ['templates', 'import', 'categories', 'users', 'contact']
+const DEFAULT_ADMIN_TAB = 'templates'
+const normalizeAdminTab = (value) => (ADMIN_TABS.includes(value) ? value : DEFAULT_ADMIN_TAB)
 
 // 分类显示名:自定义分类优先显示其「分类名称」label;内置分类走 i18n;兜底回退 ID。
 // 后台(模板列表 / 模板表单下拉)不能直接 t(`gallery.categories.<id>`, id)——
@@ -16,29 +22,6 @@ function categoryDisplayName(store, t, cat) {
   const custom = store?.categories?.find((c) => c.id === cat)
   if (custom?.label) return custom.label
   return t(`gallery.categories.${cat}`, cat)
-}
-
-// 门禁/提示卡片的共用样式
-function GateStyle() {
-  return (
-    <style>{`
-      .admin-gate {
-        max-width: 420px;
-        margin: 40px auto;
-        background: var(--bg-primary);
-        border: 1px solid var(--border-color);
-        border-radius: var(--radius-card);
-        padding: 28px 24px;
-        display: flex;
-        flex-direction: column;
-        gap: 12px;
-        text-align: center;
-      }
-      .admin-gate svg { margin: 0 auto; }
-      .admin-gate .admin-btn { align-self: center; padding: 0 32px; }
-      .admin-gate .admin-subtitle { line-height: 1.6; }
-    `}</style>
-  )
 }
 
 // 后台共用模态框:全屏遮罩 + 居中卡片 + 标题栏 + 内容区自滚动。
@@ -92,7 +75,21 @@ export default function AdminPanel({ user, isAdmin, authLoading, onLogin, onLogo
   const toast = useToast()
   const { t } = useTranslation()
   const navigate = useNavigate()
-  const [tab, setTab] = useState('templates')
+  const [searchParams, setSearchParams] = useSearchParams()
+  // 标签页支持 /admin?tab=users 深链(管理概览的快捷入口按标签跳转),
+  // 切换标签时同步 URL,浏览器前进/后退可回到上一个标签
+  const [tab, setTabState] = useState(() => normalizeAdminTab(searchParams.get('tab')))
+  const setTab = useCallback((next) => {
+    setTabState(next)
+    const params = new URLSearchParams(searchParams)
+    if (next === DEFAULT_ADMIN_TAB) params.delete('tab')
+    else params.set('tab', next)
+    setSearchParams(params, { replace: true })
+  }, [searchParams, setSearchParams])
+  useEffect(() => {
+    const next = normalizeAdminTab(searchParams.get('tab'))
+    setTabState(prev => (prev === next ? prev : next))
+  }, [searchParams])
 
   // iOS Safari 已知 bug:overflow 滚动容器内的 input/textarea 聚焦时,
   // 键盘弹起瞬间容器重排,偶发整段内容白屏。修复:聚焦瞬间把滚动容器
@@ -133,66 +130,6 @@ export default function AdminPanel({ user, isAdmin, authLoading, onLogin, onLogo
 
   const cloudEnabled = !!cloudStore?.enabled
 
-  if (!cloudEnabled) {
-    return (
-      <div className="admin-panel">
-        <div className="admin-gate">
-          <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" strokeWidth="1.8">
-            <rect x="3" y="11" width="18" height="11" rx="2" />
-            <path d="M7 11V7a5 5 0 0 1 10 0v4" />
-          </svg>
-          <h1 className="admin-title">{t('admin.gate.setupTitle')}</h1>
-          <p className="admin-subtitle">{t('admin.gate.setupHint')}</p>
-        </div>
-        <GateStyle />
-      </div>
-    )
-  }
-
-  if (authLoading) {
-    return (
-      <div className="admin-panel">
-        <LoadingScreen text={t('admin.gate.checking')} />
-      </div>
-    )
-  }
-
-  if (!user) {
-    return (
-      <div className="admin-panel">
-        <div className="admin-gate">
-          <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" strokeWidth="1.8">
-            <rect x="3" y="11" width="18" height="11" rx="2" />
-            <path d="M7 11V7a5 5 0 0 1 10 0v4" />
-          </svg>
-          <h1 className="admin-title">{t('admin.gate.loginTitle')}</h1>
-          <p className="admin-subtitle">{t('admin.gate.loginHint')}</p>
-          <button className="admin-btn primary" onClick={onLogin}>{t('admin.gate.loginBtn')}</button>
-        </div>
-        <GateStyle />
-      </div>
-    )
-  }
-
-  if (!isAdmin) {
-    return (
-      <div className="admin-panel">
-        <div className="admin-gate">
-          <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="var(--error)" strokeWidth="1.8">
-            <circle cx="12" cy="12" r="10" />
-            <path d="M12 8v4" />
-            <path d="M12 16h.01" />
-          </svg>
-          <h1 className="admin-title">{t('admin.gate.noPermission')}</h1>
-          <p className="admin-subtitle">{t('admin.gate.noPermissionHint')}</p>
-          <button className="admin-btn secondary" onClick={() => setConfirmSignOut(true)}>{t('admin.signOut')}</button>
-          {renderSignOutConfirm()}
-        </div>
-        <GateStyle />
-      </div>
-    )
-  }
-
   // 修改密码:旧密码验证 + 新密码(与个人资料一致,不再发邮件)
   const handleChangePassword = async () => {
     if (!oldPw) { setPwError(t('profile.oldPasswordRequired')); return }
@@ -216,6 +153,15 @@ export default function AdminPanel({ user, isAdmin, authLoading, onLogin, onLogo
   }
 
   return (
+    <AdminGate
+      cloudEnabled={cloudEnabled}
+      authLoading={authLoading}
+      user={user}
+      isAdmin={isAdmin}
+      onLogin={onLogin}
+      onLogout={onLogout}
+    >
+    {() => (
     <div className="admin-panel">
       <div className="admin-header">
         <div className="admin-header-main">
@@ -803,6 +749,8 @@ export default function AdminPanel({ user, isAdmin, authLoading, onLogin, onLogo
         }
       `}</style>
     </div>
+    )}
+    </AdminGate>
   )
 }
 

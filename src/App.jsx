@@ -423,7 +423,14 @@ export default function App() {
           } />
 
           <Route path="/admin/dashboard" element={
-            <AdminDashboardPage cloudStore={cloudStore} />
+            <AdminDashboardPage
+              cloudStore={cloudStore}
+              user={user}
+              isAdmin={isAdmin}
+              authLoading={authLoading}
+              onLogin={() => navigate('/admin/login')}
+              onLogout={logout}
+            />
           } />
           <Route path="/admin/login" element={renderAdminLoginPage()} />
           <Route path="/admin" element={
@@ -688,7 +695,14 @@ export default function App() {
         } />
         <Route path="/admin/dashboard" element={
           <div className="mobile-page-area">
-            <AdminDashboardPage cloudStore={cloudStore} />
+            <AdminDashboardPage
+              cloudStore={cloudStore}
+              user={user}
+              isAdmin={isAdmin}
+              authLoading={authLoading}
+              onLogin={() => navigate('/admin/login')}
+              onLogout={logout}
+            />
           </div>
         } />
         <Route path="/create/image" element={
