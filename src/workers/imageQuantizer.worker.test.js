@@ -192,6 +192,42 @@ describe('quantizer worker pipeline', () => {
     expect(logo.effectiveDithering).toBe('none')
   })
 
+  it('相同输入和随机种子输出完全一致', async () => {
+    const first = expectComplete(await runQuantizer({ colorSpace: 'oklab', randomSeed: 12345 }))
+    const second = expectComplete(await runQuantizer({ colorSpace: 'oklab', randomSeed: 12345 }))
+    expect(Array.from(new Uint16Array(first.indexBuffer))).toEqual(Array.from(new Uint16Array(second.indexBuffer)))
+    expect(first.quantizedColors.map((color) => color.id)).toEqual(second.quantizedColors.map((color) => color.id))
+    expect(first.colorStats).toEqual(second.colorStats)
+  })
+
+  it('低色数高对比图保留黑白锚点色', async () => {
+    const imageData = new Uint8ClampedArray(32 * 32 * 4)
+    for (let i = 0; i < 32 * 32; i += 1) {
+      const value = i % 32 < 16 ? 0 : 255
+      imageData[i * 4] = value
+      imageData[i * 4 + 1] = value
+      imageData[i * 4 + 2] = value
+      imageData[i * 4 + 3] = 255
+    }
+    const result = expectComplete(await runQuantizer({
+      imageData: { width: 32, height: 32, data: imageData },
+      maxColors: 2,
+      imageMode: 'landscape',
+      qualityMode: 'standard'
+    }))
+    expect(new Set(result.quantizedColors.map((color) => color.hex))).toEqual(new Set(['#000000', '#FFFFFF']))
+  })
+
+  it.each([
+    ['standard', 'standard'],
+    ['fine', 'fine'],
+    ['master', 'master'],
+    ['fast', 'standard'],
+  ])('质量模式 %s 返回实际档位 %s', async (qualityMode, expected) => {
+    const result = expectComplete(await runQuantizer({ qualityMode }))
+    expect(result.qualityMode).toBe(expected)
+  })
+
   it('未知 imageMode 回退 auto，不抛错', async () => {
     const result = expectComplete(await runQuantizer({ imageMode: 'nonsense' }))
     expect(result.requestedMode).toBe('auto')

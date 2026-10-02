@@ -710,8 +710,9 @@
       "oklab": "明暗层次优先"
     },
     "qualityModes": {
-      "high": "效果优先（推荐）",
-      "fast": "速度优先"
+      "standard": "标准模式（推荐）",
+      "fine": "精细模式",
+      "master": "大师模式（高质量）"
     }
   },
   "tutorials": {

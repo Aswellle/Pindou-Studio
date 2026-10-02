@@ -16,6 +16,7 @@ import {
   deltaE2000,
   cleanupIsolatedBeads,
   suppressCheckerboard,
+  cleanupTinyIslands,
   computeEdgeStrength,
   computeSaliencyMap,
   classifyImageType,
@@ -202,6 +203,43 @@ describe('孤立豆清理', () => {
 
     const { cleanedCount } = cleanupIsolatedBeads(
       block, areaColors, fakePalette(colors), activeLabsFor(colors), 5, 5, 'lab', 8,
+    )
+    expect(cleanedCount).toBe(0)
+  })
+})
+
+describe('小型连通域清理', () => {
+  it('清理颜色接近且未受保护的 2×2 小岛', () => {
+    const output = new Uint16Array([
+      0, 0, 0, 0, 0,
+      0, 1, 1, 0, 0,
+      0, 1, 1, 0, 0,
+      0, 0, 0, 0, 0,
+      0, 0, 0, 0, 0,
+    ])
+    const colors = [[242, 242, 242], [240, 240, 240]]
+    const areaColors = [...output].map((v) => areaEntry(colors[v]))
+    const { cleaned, cleanedCount } = cleanupTinyIslands(
+      output, areaColors, fakePalette(colors), activeLabsFor(colors), 5, 5, 'lab', 8,
+    )
+    expect(cleanedCount).toBe(4)
+    expect([...cleaned]).toEqual(new Array(25).fill(0))
+  })
+
+  it('保护边缘小岛，避免清除真实细节', () => {
+    const output = new Uint16Array([
+      0, 0, 0, 0, 0,
+      0, 1, 1, 0, 0,
+      0, 1, 1, 0, 0,
+      0, 0, 0, 0, 0,
+      0, 0, 0, 0, 0,
+    ])
+    const colors = [[242, 242, 242], [240, 240, 240]]
+    const areaColors = [...output].map((v) => areaEntry(colors[v]))
+    const protection = new Float32Array(25)
+    protection[6] = 1
+    const { cleanedCount } = cleanupTinyIslands(
+      output, areaColors, fakePalette(colors), activeLabsFor(colors), 5, 5, 'lab', 8, protection,
     )
     expect(cleanedCount).toBe(0)
   })

@@ -710,8 +710,9 @@
       "oklab": "Lightness first"
     },
     "qualityModes": {
-      "high": "Best quality (recommended)",
-      "fast": "Faster preview"
+      "standard": "Standard (recommended)",
+      "fine": "Fine detail",
+      "master": "Master quality"
     }
   },
   "tutorials": {

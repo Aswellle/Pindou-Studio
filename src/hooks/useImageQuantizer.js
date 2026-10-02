@@ -20,10 +20,12 @@ export function useImageQuantizer() {
       dithering = 'none',   // 'none' | 'floyd-steinberg' | 'ordered'
       brightness = 0,
       contrast = 0,
-      highQuality = true,   // Phase 2: 质量开关
-      removeBackground = true,  // Phase 4: 背景移除开关
-      colorSpace = 'lab',   // 'lab' = CIEDE2000(兼容默认) | 'oklab' = OKLab 感知加权
-      imageMode = 'auto'    // 'auto' | 'portrait' | 'illustration' | 'logo' | 'landscape'
+      highQuality = true,
+      qualityMode = null,
+      removeBackground = true,
+      colorSpace = 'lab',
+      imageMode = 'auto',
+      randomSeed = null
     } = options
 
     const outW = gridWidth || gridSize
@@ -87,7 +89,7 @@ export function useImageQuantizer() {
           } else if (type === 'COMPLETE') {
             // 将 Transferable 索引格式还原为 canvasData 二维数组，保持上游 API 不变
             const { indexBuffer, width, height, quantizedColors, colorStats, BLANK_MARKER,
-              detectedType, requestedMode, effectiveMaxColors, effectiveDithering } = payload
+              detectedType, requestedMode, effectiveMaxColors, effectiveDithering, qualityMode: effectiveQualityMode } = payload
             const indices = new Uint16Array(indexBuffer)
             const BLANK = BLANK_MARKER ?? 0xffff
 
@@ -103,7 +105,8 @@ export function useImageQuantizer() {
 
             const compatPayload = {
               canvasData, colorStats, quantizedColors, width, height,
-              detectedType, requestedMode, effectiveMaxColors, effectiveDithering
+              detectedType, requestedMode, effectiveMaxColors, effectiveDithering,
+              qualityMode: effectiveQualityMode
             }
             setResult(compatPayload)
             setIsProcessing(false)
@@ -150,9 +153,11 @@ export function useImageQuantizer() {
               brightness,
               contrast,
               highQuality,
+              qualityMode,
               removeBackground,
               colorSpace,
-              imageMode
+              imageMode,
+              randomSeed
             }
           },
           [pixelBuffer]             // Transferable list — 零拷贝

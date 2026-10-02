@@ -160,7 +160,7 @@ export default function ImageQuantizer({ onApply, onClose }) {
   const [brightness, setBrightness] = useState(0)
   const [contrast, setContrast] = useState(0)
   const [removeBackground, setRemoveBackground] = useState(true)
-  const [qualityMode, setQualityMode] = useState('high')
+  const [qualityMode, setQualityMode] = useState('fine')
   const [imageMode, setImageMode] = useState('auto')
   const [autoSuggest, setAutoSuggest] = useState(null)
   const [previewUrl, setPreviewUrl] = useState(null)
@@ -363,7 +363,8 @@ export default function ImageQuantizer({ onApply, onClose }) {
           dithering,
           brightness,
           contrast,
-          highQuality: qualityMode === 'high',
+          qualityMode,
+          highQuality: qualityMode !== 'standard',
           removeBackground,
           colorSpace,
           imageMode
@@ -678,8 +679,9 @@ export default function ImageQuantizer({ onApply, onClose }) {
                 onChange={e => setQualityMode(e.target.value)}
                 disabled={isProcessing}
               >
-                <option value="high">{t('quantizer.qualityModes.high')}</option>
-                <option value="fast">{t('quantizer.qualityModes.fast')}</option>
+                <option value="standard">{t('quantizer.qualityModes.standard')}</option>
+                <option value="fine">{t('quantizer.qualityModes.fine')}</option>
+                <option value="master">{t('quantizer.qualityModes.master')}</option>
               </select>
               <span className="setting-hint">
                 {t('quantizer.qualityHint')}

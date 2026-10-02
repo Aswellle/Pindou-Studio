@@ -506,6 +506,18 @@ const IMAGE_TYPE_PARAMS = {
   landscape:    { colorBudget: 1.1,  dithering: 'floyd-steinberg', edgeBoost: 1.0, salBoost: 0.6 }
 };
 
+const QUALITY_PARAMS = {
+  standard: { sampleTarget: 8000, kmeansIterations: 8, refinementIterations: 2, cleanup: false },
+  fine: { sampleTarget: 22000, kmeansIterations: 16, refinementIterations: 4, cleanup: true },
+  master: { sampleTarget: 32000, kmeansIterations: 24, refinementIterations: 6, cleanup: true }
+};
+
+function resolveQualityMode(qualityMode, highQuality) {
+  if (qualityMode === 'standard' || qualityMode === 'fine' || qualityMode === 'master') return qualityMode;
+  if (qualityMode === 'fast' || highQuality === false) return 'standard';
+  return 'fine';
+}
+
 // 网格尺寸 → 基准颜色数（文档 §二十七：32→8-16、64→16-32、100→24-48、150→32-64）
 export function suggestColorsForGrid(outW, outH) {
   const long = Math.max(outW, outH);
@@ -532,15 +544,46 @@ function getPaletteLabs(palette) {
 // 聚类距离与最终匹配保持一致：OKLab 使用无权 ΔE_OK；Lab 聚类使用快速 Lab 欧氏距离。
 // Lab 模式仍在最终最近色匹配阶段使用 CIEDE2000，避免对每个采样点重复计算昂贵色差。
 // sampleWeights: 与 hiRes 像素一一对应的采样权重(边缘/显著性加权 K-means++,可 null = 等权)
-function kmeansSelectPalette(imageData, maxColors, palette, paletteLabs, bgMask, highQuality, colorSpace, sampleWeights) {
+function createSeededRandom(seed) {
+  let state = (Number(seed) >>> 0) || 0x9e3779b9;
+  return () => {
+    state = (Math.imul(state ^ (state >>> 16), 0x45d9f3b) + 0x1b873593) >>> 0;
+    return (state >>> 0) / 0x100000000;
+  };
+}
+
+function hashImageSeed(imageData, maxColors, colorSpace) {
+  const data = imageData.data;
+  let hash = 2166136261;
+  const step = Math.max(1, Math.floor(data.length / 4096));
+  for (let i = 0; i < data.length; i += step) {
+    hash ^= data[i];
+    hash = Math.imul(hash, 16777619);
+  }
+  hash ^= imageData.width;
+  hash = Math.imul(hash, 16777619);
+  hash ^= imageData.height;
+  hash = Math.imul(hash, 16777619);
+  hash ^= maxColors;
+  hash = Math.imul(hash, 16777619);
+  for (let i = 0; i < colorSpace.length; i += 1) {
+    hash ^= colorSpace.charCodeAt(i);
+    hash = Math.imul(hash, 16777619);
+  }
+  return hash >>> 0;
+}
+
+// K-means++ 调色板选择
+function kmeansSelectPalette(imageData, maxColors, palette, paletteLabs, bgMask, quality, colorSpace, sampleWeights, randomSeed) {
   const useOklab = colorSpace === 'oklab';
   const labs = useOklab ? paletteLabs.oklabs : paletteLabs.labs;
   const distFn = useOklab ? deltaEOKLab : deltaEFast;
   const mapDistFn = useOklab ? deltaEOKLab : deltaE2000;
   const toColorSpace = useOklab ? rgbToOklab : rgbToLab;
+  const random = createSeededRandom(randomSeed ?? hashImageSeed(imageData, maxColors, colorSpace));
   const { data, width, height } = imageData;
   const total = width * height;
-  const targetSamples = highQuality ? 22000 : 8000;
+  const targetSamples = quality.sampleTarget;
   const stride = Math.max(1, Math.floor(total / targetSamples));
   const samples = [];
   const weights = [];
@@ -554,7 +597,7 @@ function kmeansSelectPalette(imageData, maxColors, palette, paletteLabs, bgMask,
     return { palette, labs: { labs: paletteLabs.labs, oklabs: paletteLabs.oklabs } };
   }
   const k = Math.min(maxColors, samples.length);
-  const centers = [samples[Math.floor(Math.random() * samples.length)]];
+  const centers = [samples[Math.floor(random() * samples.length)]];
   while (centers.length < k) {
     let totalDistance = 0;
     const dists = new Float64Array(samples.length);
@@ -570,7 +613,7 @@ function kmeansSelectPalette(imageData, maxColors, palette, paletteLabs, bgMask,
     }
     let picked = samples.length - 1;
     if (totalDistance > 0) {
-      const target = Math.random() * totalDistance;
+      const target = random() * totalDistance;
       let accumulated = 0;
       for (let i = 0; i < dists.length; i += 1) {
         accumulated += dists[i];
@@ -581,7 +624,7 @@ function kmeansSelectPalette(imageData, maxColors, palette, paletteLabs, bgMask,
   }
 
   const assign = new Array(samples.length).fill(0);
-  const iterMax = highQuality ? 16 : 8;
+  const iterMax = quality.kmeansIterations;
   for (let iter = 0; iter < iterMax; iter += 1) {
     for (let i = 0; i < samples.length; i += 1) {
       let best = 0, bestDist = Infinity;
@@ -601,6 +644,26 @@ function kmeansSelectPalette(imageData, maxColors, palette, paletteLabs, bgMask,
     }
   }
 
+  const nearestCounts = new Array(palette.length).fill(0);
+  for (const sample of samples) {
+    let nearest = 0, nearestDistance = Infinity;
+    for (let p = 0; p < palette.length; p += 1) {
+      const distance = distFn(sample, labs[p]);
+      if (distance < nearestDistance) { nearestDistance = distance; nearest = p; }
+    }
+    nearestCounts[nearest] += 1;
+  }
+  const lockCandidates = [];
+  for (let p = 0; p < palette.length; p += 1) {
+    const { r, g, b } = palette[p].rgb;
+    const ratio = nearestCounts[p] / samples.length;
+    const isNeutralAnchor = (Math.max(r, g, b) <= 24 || Math.min(r, g, b) >= 232) && ratio >= 0.001;
+    const isDominantAccent = Math.max(r, g, b) - Math.min(r, g, b) >= 150 && ratio >= 0.005;
+    if (isNeutralAnchor || isDominantAccent) lockCandidates.push({ index: p, count: nearestCounts[p] });
+  }
+  lockCandidates.sort((a, b) => b.count - a.count);
+  const lockedIndices = lockCandidates.slice(0, maxColors).map(({ index }) => index);
+
   const mapped = centers.map((center) => {
     let best = 0, bestDist = Infinity;
     for (let p = 0; p < palette.length; p += 1) {
@@ -609,7 +672,7 @@ function kmeansSelectPalette(imageData, maxColors, palette, paletteLabs, bgMask,
     }
     return { index: best, dist: bestDist };
   }).sort((a, b) => a.dist - b.dist);
-  const picked = [], used = new Set();
+  const picked = [...lockedIndices], used = new Set(lockedIndices);
   for (const mappedColor of mapped) {
     if (!used.has(mappedColor.index)) { picked.push(mappedColor.index); used.add(mappedColor.index); }
     if (picked.length === maxColors) break;
@@ -626,12 +689,11 @@ function kmeansSelectPalette(imageData, maxColors, palette, paletteLabs, bgMask,
   };
 }
 
-function nearestColor(lab, palette, paletteLabs, colorSpace) {
+function nearestColor(workColor, palette, paletteLabs, colorSpace) {
   const useOklab = colorSpace === 'oklab';
   const labs = useOklab ? paletteLabs.oklabs : paletteLabs.labs;
   const distFn = useOklab ? deltaEOKLab : deltaE2000;
-  // 当使用 OKLab 空间时，将 Lab 输入转换为 OKLab 进行比较
-  const inputLab = useOklab ? labToOklab(lab) : lab;
+  const inputLab = workColor;
   let best = 0, bestDist = Infinity;
   for (let i = 0; i < palette.length; i += 1) {
     const d = distFn(inputLab, labs[i]);
@@ -640,11 +702,11 @@ function nearestColor(lab, palette, paletteLabs, colorSpace) {
   return best;
 }
 
-function nearestColorWithDist(lab, palette, paletteLabs, colorSpace) {
+function nearestColorWithDist(workColor, palette, paletteLabs, colorSpace) {
   const useOklab = colorSpace === 'oklab';
   const labs = useOklab ? paletteLabs.oklabs : paletteLabs.labs;
   const distFn = useOklab ? deltaEOKLab : deltaE2000;
-  const inputLab = useOklab ? labToOklab(lab) : lab;
+  const inputLab = workColor;
   let best = 0, bestDist = Infinity;
   for (let i = 0; i < palette.length; i += 1) {
     const d = distFn(inputLab, labs[i]);
@@ -899,8 +961,7 @@ function spatialRefinement(outIdx, areaColors, activePalette, activeLabs, outW, 
         if (!areaColors[idx] || current[idx] === BLANK) continue;
 
         const targetLab = areaColors[idx].lab;
-        // 保真度代价必须与 paletteLabs 同空间(oklab 时先转换);nearestColor 内部自行转换
-        const targetWorkLab = useOklab ? labToOklab(targetLab) : targetLab;
+        const targetWorkLab = useOklab ? areaColors[idx].oklab : targetLab;
         // 能量函数(文档 §十四 边缘保护,温和档):边缘/主体格子的色错代价略高,
         // 平滑权重不变 —— 强保真/强平滑豁免组合实测会压平面部细节(眉毛/唇线),禁用
         const prot = protection ? protection[idx] : 0;
@@ -916,7 +977,7 @@ function spatialRefinement(outIdx, areaColors, activePalette, activeLabs, outW, 
         const candidates = new Set();
         candidates.add(current[idx]);
         for (const n of neighbors) candidates.add(n);
-        candidates.add(nearestColor(targetLab, activePalette, activeLabs, colorSpace));
+        candidates.add(nearestColor(targetWorkLab, activePalette, activeLabs, colorSpace));
 
         for (const ci of candidates) {
           const fidelityCost = distFn(targetWorkLab, paletteLabs[ci]) * fidelityScale;
@@ -1013,6 +1074,84 @@ export function cleanupIsolatedBeads(outIdx, areaColors, activePalette, activeLa
   return { cleaned, cleanedCount };
 }
 
+/**
+ * 清理小型同色连通域，覆盖 2×2 小岛和短的 1px 量化线。
+ * 只在边界有明确主导色、替换色差较小且区域未被 edge/saliency 保护时执行。
+ */
+export function cleanupTinyIslands(outIdx, areaColors, activePalette, activeLabs, outW, outH, colorSpace, threshold, protection = null, maxSize = 4) {
+  const useOklab = colorSpace === 'oklab';
+  const distFn = useOklab ? deltaEOKLab : deltaE2000;
+  const visited = new Uint8Array(outW * outH);
+  const cleaned = new Uint16Array(outIdx);
+  let cleanedCount = 0;
+
+  for (let y = 0; y < outH; y += 1) {
+    for (let x = 0; x < outW; x += 1) {
+      const start = y * outW + x;
+      if (visited[start] || outIdx[start] === BLANK) continue;
+      const component = [];
+      const queue = [start];
+      visited[start] = 1;
+      for (let qi = 0; qi < queue.length; qi += 1) {
+        const index = queue[qi];
+        component.push(index);
+        const cy = Math.floor(index / outW);
+        const cx = index % outW;
+        const neighbors = [[cx - 1, cy], [cx + 1, cy], [cx, cy - 1], [cx, cy + 1]];
+        for (const [nx, ny] of neighbors) {
+          if (nx < 0 || nx >= outW || ny < 0 || ny >= outH) continue;
+          const next = ny * outW + nx;
+          if (!visited[next] && outIdx[next] === outIdx[start]) {
+            visited[next] = 1;
+            queue.push(next);
+          }
+        }
+      }
+      if (component.length > maxSize) continue;
+
+      const boundaryCounts = new Map();
+      let boundaryTotal = 0;
+      let protectedCell = false;
+      for (const index of component) {
+        if (protection && protection[index] > 0.55) protectedCell = true;
+        const cy = Math.floor(index / outW);
+        const cx = index % outW;
+        const neighbors = [[cx - 1, cy], [cx + 1, cy], [cx, cy - 1], [cx, cy + 1]];
+        for (const [nx, ny] of neighbors) {
+          if (nx < 0 || nx >= outW || ny < 0 || ny >= outH) continue;
+          const next = ny * outW + nx;
+          if (outIdx[next] !== BLANK && outIdx[next] !== outIdx[start]) {
+            boundaryCounts.set(outIdx[next], (boundaryCounts.get(outIdx[next]) || 0) + 1);
+            boundaryTotal += 1;
+          }
+        }
+      }
+      if (protectedCell || boundaryTotal === 0) continue;
+
+      let dominantColor = null, dominantCount = 0;
+      for (const [color, count] of boundaryCounts) {
+        if (count > dominantCount) { dominantColor = color; dominantCount = count; }
+      }
+      if (dominantCount < Math.ceil(boundaryTotal / 2)) continue;
+
+      let canReplace = true;
+      for (const index of component) {
+        if (!areaColors[index]) { canReplace = false; break; }
+        const target = useOklab ? areaColors[index].oklab : areaColors[index].lab;
+        const replacement = useOklab ? activeLabs.oklabs[dominantColor] : activeLabs.labs[dominantColor];
+        if (distFn(target, replacement) >= threshold) { canReplace = false; break; }
+      }
+      if (!canReplace) continue;
+      for (const index of component) {
+        cleaned[index] = dominantColor;
+        cleanedCount += 1;
+      }
+    }
+  }
+  return { cleaned, cleanedCount };
+}
+
+ // ==================== 棋盘抑制 ====================
 // ==================== 棋盘抑制 ====================
 
 /**
@@ -1136,16 +1275,20 @@ self.onmessage = (event) => {
         dithering,
         brightness = 0,
         contrast = 0,
-        highQuality: inputHighQuality,   // Phase 2: 外部控制质量模式
-        removeBackground = true,        // Phase 4: 背景移除开关
-        colorSpace = 'lab',             // 'lab' (CIEDE2000) 或 'oklab' (OKLab 感知均匀)
-        imageMode = 'auto'              // 'auto' | 'portrait' | 'illustration' | 'logo' | 'landscape'
+        highQuality: inputHighQuality,
+        qualityMode = null,
+        removeBackground = true,
+        colorSpace = 'lab',
+        imageMode = 'auto',
+        randomSeed = null
       } = payload;
 
       const outW = gridWidth || gridSize;
       const outH = gridHeight || gridSize;
-      const highQuality = inputHighQuality !== false; // 默认 true
-      // 钳制颜色数下界:maxColors≤0 会产生空调色板 → 全部格子 NaN 索引,主线程崩溃
+      const highQuality = inputHighQuality !== false;
+      const activeQualityMode = resolveQualityMode(qualityMode, highQuality);
+      const quality = QUALITY_PARAMS[activeQualityMode];
+      // 向后兼容旧调用：未提供 qualityMode 时保持 high/fast 的原有行为。
       const safeMaxColors = Math.max(1, Math.min(maxColors || 1, paletteColors.length));
 
       self.postMessage({ type: 'PROGRESS', progress: 5 });
@@ -1255,6 +1398,11 @@ self.onmessage = (event) => {
 
       // 颜色预算（§二十五/二十七）：用户基准 × 类型乘数（人像/风景略多、Logo 收紧）
       const effectiveMaxColors = Math.max(1, Math.min(palette.length, Math.round(safeMaxColors * typeParams.colorBudget)));
+      const deterministicSeed = randomSeed ?? hashImageSeed(
+        { data: hiResData, width: hiResW, height: hiResH },
+        effectiveMaxColors,
+        colorSpace
+      );
       // 细节过渡：'auto' 由图片类型决定（人像/动漫/Logo 关闭，风景轻度渐变）
       const effectiveDithering = dithering === 'auto' ? typeParams.dithering : dithering;
 
@@ -1276,9 +1424,9 @@ self.onmessage = (event) => {
       // K-means++ 调色板选择（边缘/显著性加权）
       let subset;
       if (hasHiRes) {
-        subset = kmeansSelectPalette({ data: hiResData, width: hiResW, height: hiResH }, effectiveMaxColors, palette, paletteLabs, bgMask, highQuality, colorSpace, sampleWeights);
+        subset = kmeansSelectPalette({ data: hiResData, width: hiResW, height: hiResH }, effectiveMaxColors, palette, paletteLabs, bgMask, quality, colorSpace, sampleWeights, deterministicSeed);
       } else {
-        subset = kmeansSelectPalette({ data: hiResData, width: hiResW, height: hiResH }, effectiveMaxColors, palette, paletteLabs, null, highQuality, colorSpace, null);
+        subset = kmeansSelectPalette({ data: hiResData, width: hiResW, height: hiResH }, effectiveMaxColors, palette, paletteLabs, null, quality, colorSpace, null, deterministicSeed);
       }
       const activePalette = subset.palette;
       const activeLabs = subset.labs;
@@ -1328,9 +1476,10 @@ self.onmessage = (event) => {
 
         for (let i = 0; i < outTotal; i += 1) {
           if (!areaColors[i]) { isTransparent[i] = 1; outIdx[i] = BLANK; continue; }
-          bufferL[i] = areaColors[i].lab[0];
-          bufferA[i] = areaColors[i].lab[1];
-          bufferB[i] = areaColors[i].lab[2];
+          const workColor = colorSpace === 'oklab' ? areaColors[i].oklab : areaColors[i].lab
+          bufferL[i] = workColor[0];
+          bufferA[i] = workColor[1];
+          bufferB[i] = workColor[2];
         }
         for (let y = 0; y < outH; y += 1) {
           const leftToRight = (y % 2 === 0);
@@ -1342,17 +1491,14 @@ self.onmessage = (event) => {
             const idx = y * outW + x;
             if (isTransparent[idx]) continue;
 
-            const lab = [bufferL[idx], bufferA[idx], bufferB[idx]];
-            const colorIndex = nearestColor(lab, activePalette, activeLabs, colorSpace);
+            const workColor = [bufferL[idx], bufferA[idx], bufferB[idx]];
+            const colorIndex = nearestColor(workColor, activePalette, activeLabs, colorSpace);
             outIdx[idx] = colorIndex;
             outCounts[colorIndex] += 1;
-
-            // 误差扩散缓冲(bufferL/A/B)存的是 Lab 空间数值,匹配色也必须取 Lab 表示;
-            // oklab 模式下 OKLab 的 L 量级为 0–1,与 Lab 的 0–100 混用会让扩散误差失真
-            const matchedLab = activeLabs.labs[colorIndex];
-            let errL = bufferL[idx] - matchedLab[0];
-            let errA = bufferA[idx] - matchedLab[1];
-            let errB = bufferB[idx] - matchedLab[2];
+            const matchedColor = colorSpace === 'oklab' ? activeLabs.oklabs[colorIndex] : activeLabs.labs[colorIndex];
+            let errL = bufferL[idx] - matchedColor[0];
+            let errA = bufferA[idx] - matchedColor[1];
+            let errB = bufferB[idx] - matchedColor[2];
 
             const variance = areaVariance[idx];
             const varFactor = Math.max(0, Math.min(1, (variance - VAR_LOW) / (VAR_HIGH - VAR_LOW)));
@@ -1392,14 +1538,16 @@ self.onmessage = (event) => {
             const idx = y * outW + x;
             if (!areaColors[idx]) { outIdx[idx] = BLANK; continue; }
 
-            const lab = [...areaColors[idx].lab];
+            const workColor = [...(colorSpace === 'oklab' ? areaColors[idx].oklab : areaColors[idx].lab)];
             const variance = areaVariance[idx];
             const varFactor = Math.max(0, Math.min(1, (variance - VAR_LOW) / (VAR_HIGH - VAR_LOW)));
             const t = orderedDitherValue(x, y);
-            const amount = 12 * varFactor * resolutionFactor;
-            lab[0] = clamp(lab[0] + t * amount, 0, 100);
+            const amount = colorSpace === 'oklab' ? 0.12 : 12;
+            workColor[0] = colorSpace === 'oklab'
+              ? clamp(workColor[0] + t * amount * varFactor * resolutionFactor, 0, 1)
+              : clamp(workColor[0] + t * amount * varFactor * resolutionFactor, 0, 100);
 
-            const colorIndex = nearestColor(lab, activePalette, activeLabs, colorSpace);
+            const colorIndex = nearestColor(workColor, activePalette, activeLabs, colorSpace);
             outIdx[idx] = colorIndex;
             outCounts[colorIndex] += 1;
           }
@@ -1410,7 +1558,8 @@ self.onmessage = (event) => {
           for (let x = 0; x < outW; x += 1) {
             const idx = y * outW + x;
             if (!areaColors[idx]) { outIdx[idx] = BLANK; continue; }
-            const colorIndex = nearestColor(areaColors[idx].lab, activePalette, activeLabs, colorSpace);
+            const workColor = colorSpace === 'oklab' ? areaColors[idx].oklab : areaColors[idx].lab;
+            const colorIndex = nearestColor(workColor, activePalette, activeLabs, colorSpace);
             outIdx[idx] = colorIndex;
             outCounts[colorIndex] += 1;
           }
@@ -1423,7 +1572,7 @@ self.onmessage = (event) => {
       if (Math.min(outW, outH) <= 120) {
         const minDim = Math.min(outW, outH);
         const spatialWeight = minDim <= 30 ? 0.25 : (minDim <= 50 ? 0.18 : minDim <= 80 ? 0.12 : 0.07);
-        const refinementIters = highQuality ? 4 : 2;
+        const refinementIters = quality.refinementIterations;
         outCounts = spatialRefinement(outIdx, areaColors, activePalette, activeLabs, outW, outH, refinementIters, spatialWeight, colorSpace, protection);
       }
 
@@ -1448,6 +1597,15 @@ self.onmessage = (event) => {
         // 用清理后的索引替换原 outIdx
         for (let i = 0; i < outW * outH; i += 1) {
           outIdx[i] = cleanedIdx[i];
+        }
+      }
+      if (quality.cleanup) {
+        const tinyThreshold = colorSpace === 'oklab' ? 0.06 : 6;
+        const { cleaned: islandCleanedIdx, cleanedCount: islandCleanedCount } = cleanupTinyIslands(
+          outIdx, areaColors, activePalette, activeLabs, outW, outH, colorSpace, tinyThreshold, protection, 4
+        );
+        if (islandCleanedCount > 0) {
+          for (let i = 0; i < outTotal; i += 1) outIdx[i] = islandCleanedIdx[i];
         }
       }
 
@@ -1482,7 +1640,8 @@ self.onmessage = (event) => {
             detectedType: activeMode,
             requestedMode,
             effectiveMaxColors,
-            effectiveDithering
+            effectiveDithering,
+            qualityMode: activeQualityMode
           }
         },
         [outIdx.buffer]

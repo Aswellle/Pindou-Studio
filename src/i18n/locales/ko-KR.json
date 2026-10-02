@@ -710,8 +710,9 @@
       "oklab": "명암 우선"
     },
     "qualityModes": {
-      "high": "품질 우선(추천)",
-      "fast": "속도 우선"
+      "standard": "표준(추천)",
+      "fine": "정밀 모드",
+      "master": "마스터 품질"
     }
   },
   "tutorials": {

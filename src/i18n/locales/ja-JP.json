@@ -710,8 +710,9 @@
       "oklab": "明るさ優先"
     },
     "qualityModes": {
-      "high": "品質優先（おすすめ）",
-      "fast": "スピード優先"
+      "standard": "標準（おすすめ）",
+      "fine": "精細モード",
+      "master": "マスター品質"
     }
   },
   "tutorials": {
