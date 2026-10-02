@@ -97,24 +97,6 @@ Any pattern can be remapped to another brand by CIEDE2000 nearest color (the bra
 
 ---
 
-## 🗺️ Routes
-
-| Path | Page |
-|---|---|
-| `/` | Canvas (default) |
-| `/gallery` | Gallery V2 (template library + my works) |
-| `/create/image` | Image → bead pattern (standalone page) |
-| `/tutorials` | Illustrated tutorials |
-| `/profile` | Profile (standalone page) |
-| `/login` · `/admin/login` | User sign-in · admin sign-in (standalone pages) |
-| `/admin` · `/admin/dashboard` | Admin console (templates / import / categories / users / messages) · Overview |
-| `/privacy` · `/privacy/:versionId` · `/terms` · `/terms/:versionId` | Privacy policy · Terms of service (with version history) |
-| `*` | Redirect to `/` |
-
-Apart from the canvas, `/login` `/admin/login` `/privacy` `/terms` `/create/image` `/profile` are **standalone pages**: they render no site header and provide their own back/action layer.
-
----
-
 ## 🚀 Getting started
 
 ### Requirements
@@ -291,7 +273,6 @@ Conventions:
 - **New tutorials** must be maintained in all four data files (`src/data/tutorials.{zh,en,ja,ko}.js`)
 - **New standalone pages** (those that inherit no site navigation) must be registered in both the `currentPage` derivation and `isStandalonePage` in `App.jsx`
 - **New migrations** must use unique filename version prefixes (a duplicate makes `supabase db push` fail on a primary-key conflict; `check-migrations` catches it early)
-- Commit messages must not carry any AI co-author attribution
 
 ---
 
