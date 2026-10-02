@@ -668,7 +668,6 @@
     "processingAlgo": "正在按图片特点智能配色",
     "techBadge": "智能配色",
     "techBadgeHint": "自动分析图片并匹配最合适的拼豆颜色",
-    "presets.auto": "自动匹配（推荐）",
     "imageMode": "转换方案",
     "imageModeHint": "自动识别会按图片特点选择最优处理；也可以手动指定图片类型",
     "detectedPrefix": "识别为：{{type}}",
