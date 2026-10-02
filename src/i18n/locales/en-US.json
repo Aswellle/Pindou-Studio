@@ -712,6 +712,11 @@
       "standard": "Standard (recommended)",
       "fine": "Fine detail",
       "master": "Master quality"
+    },
+    "errors": {
+      "notImage": "Please choose an image file",
+      "imageTooLarge": "Image is too large (over 30 MB). Please compress it and try again.",
+      "tooManyPixels": "Image has too many pixels (over 40 megapixels). Please downscale it and try again."
     }
   },
   "tutorials": {

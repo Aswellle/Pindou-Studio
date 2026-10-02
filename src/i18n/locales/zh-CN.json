@@ -712,6 +712,11 @@
       "standard": "标准模式（推荐）",
       "fine": "精细模式",
       "master": "大师模式（高质量）"
+    },
+    "errors": {
+      "notImage": "请选择图片文件",
+      "imageTooLarge": "图片过大(超过 30MB),请压缩后重试",
+      "tooManyPixels": "图片像素过多(超过 4000 万),请缩小后重试"
     }
   },
   "tutorials": {

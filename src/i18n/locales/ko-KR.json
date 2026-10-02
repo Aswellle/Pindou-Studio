@@ -712,6 +712,11 @@
       "standard": "표준(추천)",
       "fine": "정밀 모드",
       "master": "마스터 품질"
+    },
+    "errors": {
+      "notImage": "이미지 파일을 선택하세요",
+      "imageTooLarge": "이미지가 너무 큽니다(30MB 초과). 압축 후 다시 시도하세요.",
+      "tooManyPixels": "픽셀 수가 너무 많습니다(4000만 초과). 축소 후 다시 시도하세요."
     }
   },
   "tutorials": {

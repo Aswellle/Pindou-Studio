@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next'
 import { useImageQuantizer } from '../../hooks/useImageQuantizer'
 import { getPalette, PALETTE_LIST } from '../../data/palettes'
 import { recommendGridSize, suggestMaxColorsForGrid } from '../../utils/autoGrid'
+import { checkImageFile, checkImagePixels } from '../../utils/imageGuard'
 import './ImageQuantizer.css'
 
 // 拟真珠子渲染 — 径向渐变 + 高光 + 中心孔
@@ -113,7 +114,7 @@ function analyzeImageElement(img) {
 
 export default function ImageQuantizer({ onApply, onClose }) {
   const { t } = useTranslation()
-  const { isProcessing, progress, result, error, quantize, reset } = useImageQuantizer()
+  const { isProcessing, progress, result, error, quantize, reset: resetQuantizer } = useImageQuantizer()
   const [zoomPreview, setZoomPreview] = useState(false)
 
   // iOS Safari 键盘弹起时锁定背景滚动,避免 visual viewport 偏移把浮层推走
@@ -164,6 +165,12 @@ export default function ImageQuantizer({ onApply, onClose }) {
   const [imageMode, setImageMode] = useState('auto')
   const [autoSuggest, setAutoSuggest] = useState(null)
   const [previewUrl, setPreviewUrl] = useState(null)
+  const [fileError, setFileError] = useState('') // 选图被门控拦下时的可见提示(i18n 文案)
+  // 任一重置路径(重新上传/重新选图)都清掉选图提示,避免旧提示残留
+  const reset = useCallback(() => {
+    setFileError('')
+    resetQuantizer()
+  }, [resetQuantizer])
   const [showUnsavedDialog, setShowUnsavedDialog] = useState(false)
   const [lastGeneratedSettings, setLastGeneratedSettings] = useState(null)
   const [lastGeneratedResult, setLastGeneratedResult] = useState(null)
@@ -323,7 +330,7 @@ export default function ImageQuantizer({ onApply, onClose }) {
   }, [result, settingsChanged])
 
   // 解码图片：取宽高比（按比例模式用）+ 内容分析（自动尺寸模式用）
-  const loadImageMeta = (url) => {
+  const loadImageMeta = useCallback((url) => {
     const img = new Image()
     img.onload = () => {
       setImageAspectRatio(img.width / img.height)
@@ -334,35 +341,50 @@ export default function ImageQuantizer({ onApply, onClose }) {
       }
     }
     img.src = url
-  }
+  }, [])
+
+  // 文件门控:选图(输入/拖放/粘贴)统一走这里 —— 类型 + 字节数 + 像素数三重校验,
+  // 像素数在**解码前**用文件头判定(纯色像素画常"文件很小但像素极多",按字节数拦不住)。
+  // 任一不过关都通过页面错误区给出可见提示,不再出现"点了没反应"。
+  const acceptFile = useCallback(async (file) => {
+    const fileCode = checkImageFile(file)
+    if (fileCode) {
+      setFileError(t(`quantizer.errors.${fileCode}`, fileCode))
+      return
+    }
+    let pixelCode = null
+    try {
+      // 只需文件头:PNG 的 IHDR 与绝大多数 JPEG 的 SOF 都在前 64KB 内
+      pixelCode = checkImagePixels(await file.slice(0, 65536).arrayBuffer())
+    } catch {
+      pixelCode = null // 读取失败不阻断,交由后续解码路径自然报错
+    }
+    if (pixelCode) {
+      setFileError(t(`quantizer.errors.${pixelCode}`, pixelCode))
+      return
+    }
+    setFileError('')
+    const url = URL.createObjectURL(file)
+    setPreviewUrl(url)
+    loadImageMeta(url)
+    reset()
+    setHasUnsavedChanges(false)
+    setLastGeneratedResult(null)
+    setLastGeneratedSettings(null)
+  }, [t, loadImageMeta, reset])
 
   const handleFileSelect = useCallback((e) => {
     const file = e.target.files[0]
-    if (file && file.type.startsWith('image/')) {
-      const url = URL.createObjectURL(file)
-      setPreviewUrl(url)
-      loadImageMeta(url)
-      reset()
-      setHasUnsavedChanges(false)
-      setLastGeneratedResult(null)
-      setLastGeneratedSettings(null)
-    }
-  }, [reset])
+    if (file) acceptFile(file)
+    e.target.value = '' // 允许重新选择同一个文件
+  }, [acceptFile])
 
   const handleDrop = useCallback((e) => {
     e.preventDefault()
     setIsDragActive(false)
     const file = e.dataTransfer.files[0]
-    if (file && file.type.startsWith('image/')) {
-      const url = URL.createObjectURL(file)
-      setPreviewUrl(url)
-      loadImageMeta(url)
-      reset()
-      setHasUnsavedChanges(false)
-      setLastGeneratedResult(null)
-      setLastGeneratedSettings(null)
-    }
-  }, [reset])
+    if (file) acceptFile(file)
+  }, [acceptFile])
 
   const handleDragOver = useCallback((e) => {
     e.preventDefault()
@@ -375,21 +397,14 @@ export default function ImageQuantizer({ onApply, onClose }) {
   }, [])
 
   const handlePaste = useCallback((e) => {
-    const items = e.clipboardData.items
-    for (const item of items) {
+    for (const item of e.clipboardData.items) {
       if (item.type.startsWith('image/')) {
         const file = item.getAsFile()
-        const url = URL.createObjectURL(file)
-        setPreviewUrl(url)
-        loadImageMeta(url)
-        reset()
-        setHasUnsavedChanges(false)
-        setLastGeneratedResult(null)
-        setLastGeneratedSettings(null)
+        if (file) acceptFile(file)
         break
       }
     }
-  }, [reset])
+  }, [acceptFile])
 
   const handleGenerate = useCallback(async () => {
     if (!previewUrl) return
@@ -830,9 +845,9 @@ export default function ImageQuantizer({ onApply, onClose }) {
             </div>
           )}
 
-          {error && (
+          {(fileError || error) && (
             <div className="error-section">
-              <span className="error-text">{error}</span>
+              <span className="error-text">{fileError || error}</span>
             </div>
           )}
 
