@@ -407,24 +407,27 @@ export default function ImageQuantizer({ onApply, onClose }) {
 
   const palette = getPalette(selectedPalette)
 
-  // 页面形态(/create/image):不再使用模态浮层 —— 模态在窄屏宽度受限,会把步骤条/预览裁掉,
-  // 且 iOS 键盘 + 浮层滚动叠加容易出白板。返回入口在头部(handleClose 内含未保存确认)。
+  // 独立功能页：不继承站点导航，页面内部提供自己的返回与状态层。
   return (
     <div className="quantizer-page">
       <div className="quantizer-shell">
-        <div className="quantizer-header">
-          <button className="quantizer-back" onClick={handleClose} aria-label={t('common.back', '返回')}>←</button>
+        <header className="quantizer-header">
+          <button className="quantizer-back" onClick={handleClose} aria-label={t('common.back', '返回')}>
+            <span aria-hidden="true">←</span>
+            <span className="quantizer-back-label">{t('common.back', '返回')}</span>
+          </button>
           <div className="quantizer-header-title">
-            <h2>{t('quantizer.title', '图片转拼豆')}</h2>
-            <span className="tech-badge" title={t('quantizer.techBadgeHint')}>
-              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-                <path d="M12 2l1.5 4.5L18 8l-4.5 1.5L12 14l-1.5-4.5L6 8l4.5-1.5L12 2z"/>
-                <path d="M19 15l0.8 2.2L22 18l-2.2 0.8L19 21l-0.8-2.2L16 18l2.2-0.8L19 15z"/>
-              </svg>
-              {t('quantizer.techBadge', 'CIEDE2000 智能配色')}
-            </span>
+            <span className="quantizer-brand-mark" aria-hidden="true">✦</span>
+            <div>
+              <p className="quantizer-eyebrow">PINDOU STUDIO / CREATE</p>
+              <h2>{t('quantizer.title', '图片转拼豆')}</h2>
+            </div>
           </div>
-        </div>
+          <div className="quantizer-header-meta">
+            <span className="quantizer-status-dot" aria-hidden="true" />
+            <span>{result ? t('quantizer.stepResult', '预览成品') : previewUrl ? t('quantizer.stepConfigure', '调整设置') : t('quantizer.stepUpload', '上传图片')}</span>
+          </div>
+        </header>
 
         {/* 步骤指示条 — 上传 → 设置 → 预览，让流程一目了然 */}
         <div className="quantizer-steps">

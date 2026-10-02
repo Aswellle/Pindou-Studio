@@ -2,45 +2,50 @@
    量化器是核心功能页,不再用模态浮层:模态在窄屏上宽度受限会把步骤条/预览裁掉,
    且 iOS 键盘 + 浮层滚动叠加易出白板。这里由整页滚动承担,内部不再嵌套滚动容器。 */
 .quantizer-page {
+  --quantizer-ink: #20252b;
+  --quantizer-muted: #6d747c;
+  --quantizer-line: #e6e9ec;
+  --quantizer-accent: #e26c45;
   flex: 1;
   min-height: 0;
   overflow-y: auto;
   overflow-x: hidden;
   -webkit-overflow-scrolling: touch;
-  background: var(--bg-primary);
-  padding-bottom: env(safe-area-inset-bottom, 0px);
+  background: #f5f6f4;
+  color: var(--quantizer-ink);
 }
 
 .quantizer-shell {
-  display: flex;
-  flex-direction: column;
-  width: 100%;
-  max-width: 720px; /* 桌面端保持可读列宽;窄屏自然铺满 */
-  margin: 0 auto;
+  width: min(1440px, 100%);
   min-height: 100%;
+  margin: 0 auto;
+  background: #fff;
+  box-shadow: 0 0 0 1px rgba(31, 38, 43, 0.04);
 }
 
-.quantizer-header {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  padding: 16px 20px;
-  border-bottom: 1px solid var(--border-color);
-}
+.quantizer-header { display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; gap: 24px; min-height: 78px; padding: 16px clamp(20px, 4vw, 56px); border-bottom: 1px solid var(--quantizer-line); background: rgba(255,255,255,.96); }
+.quantizer-header h2 { margin: 0; color: var(--quantizer-ink); font-size: 20px; font-weight: 700; letter-spacing: 0; }
+.quantizer-header-title { display: flex; align-items: center; justify-self: center; gap: 12px; white-space: nowrap; }
+.quantizer-eyebrow { margin: 0 0 3px; color: var(--quantizer-muted); font-size: 9px; font-weight: 700; letter-spacing: 0.12em; }
+.quantizer-brand-mark { display: grid; place-items: center; width: 34px; height: 34px; border-radius: 10px; background: var(--quantizer-ink); color: #fff; font-size: 18px; }
+.quantizer-header-meta { display: inline-flex; align-items: center; justify-self: end; gap: 8px; color: var(--quantizer-muted); font-size: 13px; }
+.quantizer-status-dot { width: 7px; height: 7px; border-radius: 50%; background: #67a979; }
 
-.quantizer-header h2 {
-  font-size: var(--text-xl);
-  font-weight: var(--font-weight-semibold);
-}
+.quantizer-back { display: inline-flex; align-items: center; justify-self: start; gap: 8px; min-height: 38px; padding: 0 12px; border: 1px solid var(--quantizer-line); border-radius: 8px; background: #fff; color: var(--quantizer-muted); cursor: pointer; font-size: 14px; white-space: nowrap; }
+.quantizer-back-label { white-space: nowrap; }
+.quantizer-back:hover { border-color: var(--quantizer-ink); color: var(--quantizer-ink); }
 
-.quantizer-header-title {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  flex-wrap: wrap;
-  flex: 1;
-  min-width: 0;
-}
+.quantizer-steps { justify-content: center; gap: 16px; padding: 16px 24px; background: #fbfcfb; border-bottom: 1px solid var(--quantizer-line); }
+
+.quantizer-content { display: grid; grid-template-columns: minmax(260px,.8fr) minmax(420px,1.2fr); gap: clamp(28px,5vw,72px); align-items: start; max-width: 1180px; margin: 0 auto; padding: clamp(28px,5vw,64px); }
+.upload-section { min-width: 0; }
+.upload-zone { display: grid; place-content: center; min-height: 390px; padding: 32px; border: 1px dashed #cbd2d6; border-radius: 14px; background: #fafbfa; text-align: center; cursor: pointer; transition: border-color 160ms ease, background 160ms ease, transform 160ms ease; }
+.upload-zone:hover, .upload-zone.drag-active { border-color: var(--quantizer-accent); background: #fff8f4; transform: translateY(-2px); }
+.preview-image-frame { display: grid; place-items: center; min-height: 390px; padding: 18px; border: 1px solid var(--quantizer-line); border-radius: 14px; background: #f2f3f1; }
+.preview-image { max-width: 100%; max-height: 390px; object-fit: contain; border-radius: 8px; }
+.settings-section { min-width: 0; padding: 24px; border-left: 1px solid var(--quantizer-line); }
+.settings-section h3 { margin-top: 0; }
+.quantizer-footer { position: sticky; bottom: 0; z-index: 5; display: flex; justify-content: flex-end; gap: 12px; padding: 16px clamp(20px,4vw,56px); border-top: 1px solid var(--quantizer-line); background: rgba(255,255,255,.96); }
 
 /* 技术亮点徽章 — 强调专业配色算法，制造第一印象记忆点 */
 .tech-badge {
@@ -651,33 +656,34 @@
    步骤条此前在手机上溢出错位(标签 nowrap + 连接线 min-width 撑破宽度,
    模态 overflow:hidden 直接把「预览成品」裁掉)。这里缩字号/间距,
    并给容器横向滚动兜底:任何情况下都不裁切内容。 */
-@media (max-width: 480px) {
+@media (max-width: 700px) {
   .quantizer-header {
-    padding: 12px 14px;
+    grid-template-columns: auto 1fr auto;
     gap: 10px;
+    min-height: 64px;
+    padding: 12px 14px;
   }
-  .quantizer-steps {
-    padding: 10px 12px;
-    overflow-x: auto;
-  }
-  .step-item {
-    gap: 4px;
-  }
-  .step-dot {
-    width: 20px;
-    height: 20px;
-  }
-  .step-label {
-    font-size: var(--text-xs);
-  }
-  .step-connector {
-    margin: 0 6px;
-    min-width: 10px;
-  }
-  .quantizer-content {
-    padding: 14px;
-  }
-  .quantizer-footer {
-    padding: 12px 14px calc(12px + env(safe-area-inset-bottom, 0px));
-  }
+  .quantizer-back { width: 38px; padding: 0; justify-content: center; }
+  .quantizer-back-label { display: none; }
+  .quantizer-header-title { justify-self: start; gap: 8px; min-width: 0; }
+  .quantizer-brand-mark { width: 30px; height: 30px; border-radius: 8px; font-size: 15px; }
+  .quantizer-header-title h2 { overflow: hidden; font-size: 16px; text-overflow: ellipsis; }
+  .quantizer-eyebrow { font-size: 8px; }
+  .quantizer-header-meta { max-width: 88px; overflow: hidden; font-size: 11px; white-space: nowrap; text-overflow: ellipsis; }
+  .quantizer-steps { gap: 8px; padding: 10px 12px; overflow-x: auto; justify-content: flex-start; }
+  .step-item { gap: 4px; flex: 0 0 auto; }
+  .step-dot { width: 20px; height: 20px; }
+  .step-label { font-size: var(--text-xs); }
+  .step-connector { flex: 0 0 18px; margin: 0; min-width: 18px; }
+  .quantizer-content { display: block; padding: 18px 14px 24px; }
+  .upload-section { margin-bottom: 18px; }
+  .upload-zone, .preview-image-frame { min-height: 250px; }
+  .settings-section { padding: 22px 0 0; border-top: 1px solid var(--quantizer-line); border-left: 0; }
+  .setting-item { margin-bottom: 18px; }
+  .quantizer-footer { padding: 12px 14px calc(12px + env(safe-area-inset-bottom, 0px)); }
+  .quantizer-footer .btn { min-height: 46px; flex: 1; }
+}
+
+@media (min-width: 701px) {
+  .quantizer-footer { max-width: 1180px; margin: 0 auto; }
 }

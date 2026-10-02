@@ -95,9 +95,10 @@ export default function App() {
     : location.pathname.startsWith('/privacy') ? 'privacy'
     : location.pathname.startsWith('/terms') ? 'terms'
     : location.pathname.startsWith('/login') ? 'login'
+    : location.pathname.startsWith('/create/image') ? 'createImage'
     : 'canvas'
-  // 独立页(登录/注册/管理员登录/隐私/条款):隐藏站点导航栏与操作按钮,只保留 LOGO + 返回,避免元素冲突
-  const isStandalonePage = currentPage === 'login' || currentPage === 'adminLogin' || currentPage === 'privacy' || currentPage === 'terms'
+  // 核心功能页不继承站点导航，页面内部提供自己的返回与操作层。
+  const isStandalonePage = currentPage === 'login' || currentPage === 'adminLogin' || currentPage === 'privacy' || currentPage === 'terms' || currentPage === 'createImage'
 
   // iOS Safari 键盘安全(全站统一,防复发机制):
   // 监听 visual viewport 的 resize/scroll 与聚焦,把可视高度写入 --visible-vh、
