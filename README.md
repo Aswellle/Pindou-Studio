@@ -97,23 +97,6 @@
 
 ---
 
-## 🗺️ 页面路由
-
-| 路径 | 页面 |
-|---|---|
-| `/` | 画布(默认页) |
-| `/gallery` | 图库 V2(模板库 + 我的作品) |
-| `/create/image` | 图片转拼豆(独立功能页) |
-| `/tutorials` | 图文教程 |
-| `/profile` | 个人资料(独立页) |
-| `/login` · `/admin/login` | 用户登录 · 管理员登录(独立页) |
-| `/admin` · `/admin/dashboard` | 管理后台(模板/导入/分类/用户/留言)· 管理概览 |
-| `/privacy` · `/privacy/:versionId` · `/terms` · `/terms/:versionId` | 隐私政策 · 服务条款(含历史版本) |
-| `*` | 重定向回 `/` |
-
-除画布页外,`/login` `/admin/login` `/privacy` `/terms` `/create/image` `/profile` 均为**独立页**:不渲染站点顶部导航,页面自带返回与操作层。
-
----
 
 ## 🚀 快速开始
 
@@ -291,7 +274,6 @@ CI(`.github/workflows/ci.yml`)在 push / PR 到 `main` 时依次运行:`test:run
 - **新增教程内容**请同时维护四语言数据文件(`src/data/tutorials.{zh,en,ja,ko}.js`)
 - **新增页面**若是独立页(不继承站点导航),需同时在 `App.jsx` 的 `currentPage` 推导与 `isStandalonePage` 两处登记
 - **新增迁移**文件名版本号必须唯一(重复会让 `supabase db push` 因主键冲突失败,`check-migrations` 会提前拦截)
-- 提交信息不添加任何 AI 协作署名
 
 ---
 
