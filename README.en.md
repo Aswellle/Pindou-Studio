@@ -142,7 +142,7 @@ VITE_SUPABASE_URL=https://<your-project>.supabase.co
 VITE_SUPABASE_ANON_KEY=<your-anon-key>
 ```
 
-The database schema is defined by the 18 idempotent migration files under `supabase/migrations/`. Promote an admin by setting `profiles.role = 'admin'`.
+The database schema is defined by the 19 idempotent migration files under `supabase/migrations/`. Do **not** flip `profiles.role` directly — grant admin atomically with `select public.admin_grant_by_email('you@example.com')` (writes the allowlist and the audit log).
 
 ---
 

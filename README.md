@@ -143,7 +143,7 @@ VITE_SUPABASE_URL=https://<your-project>.supabase.co
 VITE_SUPABASE_ANON_KEY=<your-anon-key>
 ```
 
-数据库结构由 `supabase/migrations/` 下的 18 个迁移文件定义(可重复执行)。生产环境要求管理员账号:将 `profiles.role` 置为 `admin`。
+数据库结构由 `supabase/migrations/` 下的 19 个迁移文件定义(可重复执行)。管理员账号**不要直接改 `profiles.role`**——请用 `select public.admin_grant_by_email('你的邮箱')` 原子授予(同时写入白名单与审计日志)。
 
 ---
 
