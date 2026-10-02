@@ -236,19 +236,6 @@ CI (`.github/workflows/ci.yml`) runs on every push / PR to `main`: `test:run` �
 | `bead-studio-behavior` | `{ sessions, guideShown, quantizerVisited }`, driving the mobile first-use guide |
 | `custom-templates` / `custom-categories` | Local custom templates and categories (fallback when the cloud is not configured) |
 
-**Cloud (Supabase, defined by 18 migrations)**:
-
-| Object | Contents |
-|----|------|
-| `profiles` | Nickname, avatar, `role` (admin); `security_key_hash` for custom accounts |
-| `templates` / `categories` | Cloud template library and categories (`source` / `palette_id` / `download_count`); anon read-only, admin write |
-| `works` | Signed-in users' works (unique on `user_id` + `saved_at` + `name`), own-row RLS |
-| `contact_messages` | Threaded messages (participant = signed-in user or guest UUID, with `author` distinguishing user/admin) |
-| `registration_notifications` | New-user registration feed (admin-only read; powers the overview trend) |
-| `removed_accounts` | Tombstones for deleted accounts |
-| `avatars` (Storage) | Avatar files, public read, owner write |
-| RPCs | `increment_template_download`, `admin_overview`, `admin_user_stats`, `admin_list_users`, `admin_list_registrations`, `admin_list_contact_messages`, `admin_reply_contact`, `get_contact_thread`, `ensure_contact_nickname`, `user_account_status`, `admin_lock_user` / `admin_unlock_user` / `admin_delete_user`, `resolve_auth_email`, `username_exists`, `set_security_key`, `reset_password_custom` |
-
 ---
 
 ## 🚀 Deployment
@@ -257,7 +244,6 @@ CI (`.github/workflows/ci.yml`) runs on every push / PR to `main`: `test:run` �
 - **Canonical domain** — production runs on **https://tangnotes.site**; `vercel.json` permanently redirects the old `pindou-studio.vercel.app/*` to the new domain
 - **Static prerendering** — the build emits static HTML for `index` plus `gallery` / `tutorials` / `privacy` / `terms` / `admin` (rewrites point `/gallery` etc. at those files); `admin` is marked `noindex`
 - **Caching** — hashed `/assets/*` immutable for a year, everything else no-cache
-- **SEO** — per-page `<Helmet>` meta and canonical, four-language `hreflang` alternates, Open Graph / Twitter cards, JSON-LD, plus `sitemap.xml` / `robots.txt` / `llms.txt` shipped from the repo
 
 ---
 
