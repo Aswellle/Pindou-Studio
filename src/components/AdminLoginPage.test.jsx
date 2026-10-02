@@ -36,7 +36,9 @@ const maybeSingle = mocks.maybeSingle
 beforeAll(async () => { await i18n.changeLanguage('zh-CN') })
 afterEach(cleanup)
 beforeEach(() => {
-  vi.clearAllMocks()
+  // resetAllMocks:清掉上个用例设过的 mockRejectedValue/mockResolvedValue,
+  // 保证每个用例从同一空白状态出发(用例内各自显式设定所需的实现)。
+  vi.resetAllMocks()
   auth.signOut.mockResolvedValue({ error: null })
   auth.mfa.unenroll.mockResolvedValue({ error: null })
   auth.getSession.mockResolvedValue({ data: { session: null } })

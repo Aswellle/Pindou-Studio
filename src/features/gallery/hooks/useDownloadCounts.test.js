@@ -10,7 +10,9 @@ import { supabase } from '../../../services/supabase'
 
 beforeEach(() => {
   localStorage.clear()
-  vi.clearAllMocks()
+  // 用 resetAllMocks 而非 clearAllMocks:后者只清调用记录、保留 mockImplementation,
+  // 会让「RPC 成功」用例的 mockResolvedValue 泄漏到先执行的用例,导致计数断言随机失败(顺序依赖)。
+  vi.resetAllMocks()
 })
 
 describe('useDownloadCounts 本地模式', () => {
@@ -31,9 +33,12 @@ describe('useDownloadCounts 云端模式', () => {
     const { result } = renderHook(() => useDownloadCounts({ cloudEnabled: true }))
     const tpl = { id: 't2', name: 'B', downloadCount: 10 }
     expect(result.current.getDownloadCount(tpl)).toBe(10)
-    await act(async () => { await result.current.bumpDownload(tpl) })
-    // 乐观 +1(DB 吸收前):max(10, 4) + 1
+    // RPC 挂起(未返回)时观察乐观值:max(10, 3+1) + 1 —— 不依赖 RPC 回执时序
+    let resolveRpc
+    supabase.rpc.mockReturnValue(new Promise((resolve) => { resolveRpc = resolve }))
+    act(() => { result.current.bumpDownload(tpl) })
     expect(result.current.getDownloadCount(tpl)).toBe(11)
+    await act(async () => { resolveRpc({ error: null }) }) // 收尾:让 RPC 回执,避免悬挂
   })
 
   it('RPC 成功后回冲乐观增量并触发云库刷新,避免与 DB 双算', async () => {
