@@ -173,6 +173,64 @@ export default function ImageQuantizer({ onApply, onClose }) {
 
   const fileInputRef = useRef(null)
   const pendingCloseRef = useRef(false)
+  const resultPreviewRef = useRef(null)
+  const resultCanvasRef = useRef(null)
+
+  // 结果预览画布：按可用容器尺寸自适应格子大小并重绘。
+  // 桌面工作台里左栏高度由视口决定，固定 480px 长边会撑破栏宽/栏高，
+  // 因此改成「实测容器 → 计算整数格子 → 绘制」，容器尺寸变化时用 ResizeObserver 重绘。
+  useEffect(() => {
+    const host = resultPreviewRef.current
+    const canvas = resultCanvasRef.current
+    if (!host || !canvas || !result?.canvasData) return
+
+    const paint = () => {
+      const displayWidth = result.width || (hasUnsavedChanges ? resultGridSize : gridWidth)
+      const displayHeight = result.height || displayWidth
+      if (!displayWidth || !displayHeight) return
+
+      // 桌面：栏位有确定高度，用实测值；窄屏：.result-preview 高度由画布撑开(循环依赖),
+      // 改用视口预算封顶,保证长图不把页面撑出屏幕
+      const widthBudget = host.clientWidth > 40 ? host.clientWidth : 480
+      const heightBudget = host.clientHeight > 40
+        ? host.clientHeight
+        : Math.min(560, Math.round(window.innerHeight * 0.5))
+
+      const cellSize = Math.max(2, Math.min(10, Math.floor(Math.min(
+        widthBudget / displayWidth,
+        heightBudget / displayHeight,
+      ))))
+      const cssW = displayWidth * cellSize
+      const cssH = displayHeight * cellSize
+      const dpr = Math.min(window.devicePixelRatio || 1, 2)
+
+      canvas.width = cssW * dpr
+      canvas.height = cssH * dpr
+      canvas.style.width = cssW + 'px'
+      canvas.style.height = cssH + 'px'
+
+      const ctx = canvas.getContext('2d')
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0)
+      ctx.fillStyle = '#e8e8e8'
+      ctx.fillRect(0, 0, cssW, cssH)
+
+      for (let y = 0; y < displayHeight; y++) {
+        for (let x = 0; x < displayWidth; x++) {
+          const hex = resolveHex(result.canvasData[y]?.[x])
+          if (!hex) continue
+          const cx = x * cellSize + cellSize / 2
+          const cy = y * cellSize + cellSize / 2
+          drawBeadPreview(ctx, cx, cy, Math.max(cellSize / 2 - 0.5, 1), hex)
+        }
+      }
+    }
+
+    paint()
+    if (typeof ResizeObserver === 'undefined') return
+    const observer = new ResizeObserver(paint)
+    observer.observe(host)
+    return () => observer.disconnect()
+  }, [result, resolveHex, hasUnsavedChanges, resultGridSize, gridWidth])
 
   // 尺寸变化时自动同步推荐值（仅在用户未手动调整时）— 按网格长边分档（文档 §二十七）
   useEffect(() => {
@@ -412,8 +470,21 @@ export default function ImageQuantizer({ onApply, onClose }) {
     <div className="quantizer-page">
       <div className="quantizer-shell">
         <header className="quantizer-header">
-          <button className="quantizer-back" onClick={handleClose} aria-label={t('common.back', '返回')}>
-            <span aria-hidden="true">←</span>
+          <button
+            type="button"
+            className="quantizer-back"
+            onClick={handleClose}
+            aria-label={t('common.back', '返回')}
+            title={t('common.back', '返回')}
+          >
+            <svg
+              className="quantizer-back-icon"
+              width="16" height="16" viewBox="0 0 24 24"
+              fill="none" stroke="currentColor" strokeWidth="2.2"
+              strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"
+            >
+              <path d="M15 18l-6-6 6-6" />
+            </svg>
             <span className="quantizer-back-label">{t('common.back', '返回')}</span>
           </button>
           <div className="quantizer-header-title">
@@ -447,7 +518,7 @@ export default function ImageQuantizer({ onApply, onClose }) {
           </div>
         </div>
 
-        <div className="quantizer-content">
+        <div className={`quantizer-content${result ? ' has-result' : ''}`}>
           <div className="upload-section">
             {!previewUrl ? (
               <div
@@ -774,48 +845,8 @@ export default function ImageQuantizer({ onApply, onClose }) {
                   <span className="settings-changed-warning">（{t('quantizer.settingsChanged')}）</span>
                 )}
               </h3>
-              <div className="result-preview">
-                <canvas
-                  ref={canvas => {
-                    if (canvas && result.canvasData) {
-                      const ctx = canvas.getContext('2d')
-                      const displayWidth = result.width || (hasUnsavedChanges ? resultGridSize : gridWidth)
-                      const displayHeight = result.height || displayWidth
-                      const maxDim = Math.max(displayWidth, displayHeight)
-
-                      // CSS 像素尺寸：长边最大 480px(默认预览格子更大,放大观感更清晰)
-                      const cssCell = Math.max(Math.min(480 / maxDim, 10), 4)
-                      const cssW = Math.max(displayWidth * cssCell, 200)
-                      const cssH = Math.max(displayHeight * cssCell, 200)
-
-                      // 物理像素：Retina 清晰渲染，限 2x 避免 4K 屏爆内存
-                      const dpr = Math.min(window.devicePixelRatio || 1, 2)
-                      canvas.width = cssW * dpr
-                      canvas.height = cssH * dpr
-                      canvas.style.width = cssW + 'px'
-                      canvas.style.height = cssH + 'px'
-                      ctx.scale(dpr, dpr)
-
-                      const cellSize = cssCell
-
-                      ctx.fillStyle = '#e8e8e8'
-                      ctx.fillRect(0, 0, cssW, cssH)
-
-                      for (let y = 0; y < displayHeight; y++) {
-                        for (let x = 0; x < displayWidth; x++) {
-                          const raw = result.canvasData[y]?.[x]
-                          const hex = resolveHex(raw)
-                          if (hex) {
-                            const cx = x * cellSize + cellSize / 2
-                            const cy = y * cellSize + cellSize / 2
-                            const r = Math.max(cellSize / 2 - 0.5, 1)
-                            drawBeadPreview(ctx, cx, cy, r, hex)
-                          }
-                        }
-                      }
-                    }
-                  }}
-                />
+              <div className="result-preview" ref={resultPreviewRef}>
+                <canvas ref={resultCanvasRef} />
                 {/* 放大查看:大尺寸纯色方块 + pixelated,放大后每颗珠子清晰锐利 */}
                 <button
                   className="result-preview-zoom-btn"
