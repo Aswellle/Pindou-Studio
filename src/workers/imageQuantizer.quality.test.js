@@ -341,6 +341,18 @@ describe('网格尺寸 → 建议颜色数（§二十七）', () => {
   })
 })
 
+describe('OKLab 聚类距离', () => {
+  it('使用无权 ΔE_OK，避免加权色差改变最终匹配语义', () => {
+    const neutral = rgbToOklab(128, 128, 128)
+    const chromatic = rgbToOklab(128, 80, 80)
+    const neutralDistance = deltaEOKLab(neutral, chromatic)
+    const weightedDistance = deltaEOKLabWeighted(neutral, chromatic)
+
+    expect(neutralDistance).toBeGreaterThan(0)
+    expect(weightedDistance).not.toBeCloseTo(neutralDistance, 6)
+  })
+})
+
 describe('能量函数权重（§九~十五）', () => {
   it('边缘强度按 95 分位归一化到 [0,1]', () => {
     const edgeMap = new Float32Array(100)

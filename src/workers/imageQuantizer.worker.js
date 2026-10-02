@@ -529,59 +529,53 @@ function getPaletteLabs(palette) {
 
 // K-means++ 调色板选择
 // colorSpace: 'lab' (默认, CIEDE2000) 或 'oklab' (OKLab 感知均匀)
-// oklab 模式下聚类距离用加权色差(与最终匹配准则一致,文档"OKLab Weighted K-Means"):
-// 聚类/匹配准则不一致会让聚类中心系统性偏离匹配最优解
+// 聚类距离与最终匹配保持一致：OKLab 使用无权 ΔE_OK；Lab 聚类使用快速 Lab 欧氏距离。
+// Lab 模式仍在最终最近色匹配阶段使用 CIEDE2000，避免对每个采样点重复计算昂贵色差。
 // sampleWeights: 与 hiRes 像素一一对应的采样权重(边缘/显著性加权 K-means++,可 null = 等权)
 function kmeansSelectPalette(imageData, maxColors, palette, paletteLabs, bgMask, highQuality, colorSpace, sampleWeights) {
   const useOklab = colorSpace === 'oklab';
   const labs = useOklab ? paletteLabs.oklabs : paletteLabs.labs;
-  // lab 模式聚类用 Lab 欧氏(deltaEFast):ΔE00 太慢,且聚类/匹配的轻微不一致
-  // 对 lab 模式影响远小于 oklab 模式(欧氏 Lab 本身就是 ΔE00 的近似)
   const distFn = useOklab ? deltaEOKLab : deltaEFast;
   const mapDistFn = useOklab ? deltaEOKLab : deltaE2000;
   const toColorSpace = useOklab ? rgbToOklab : rgbToLab;
-
   const { data, width, height } = imageData;
   const total = width * height;
   const targetSamples = highQuality ? 22000 : 8000;
   const stride = Math.max(1, Math.floor(total / targetSamples));
   const samples = [];
   const weights = [];
-
   for (let i = 0; i < total; i += stride) {
     if (bgMask && bgMask[i]) continue;
     const o = i * 4;
     samples.push(toColorSpace(data[o], data[o + 1], data[o + 2]));
     weights.push(sampleWeights ? sampleWeights[i] : 1);
   }
-
   if (!samples.length || maxColors >= palette.length) {
-    // 与下面的子集分支保持同一形状:调用方(nearestColor / spatialRefinement / cleanup)
-    // 一律按 paletteLabs.labs|oklabs 读取,返回纯数组会读到 undefined
     return { palette, labs: { labs: paletteLabs.labs, oklabs: paletteLabs.oklabs } };
   }
-
   const k = Math.min(maxColors, samples.length);
-
-  const centers = [];
-  centers.push(samples[Math.floor(Math.random() * samples.length)]);
+  const centers = [samples[Math.floor(Math.random() * samples.length)]];
   while (centers.length < k) {
-    // 加权 K-means++:种子概率 ∝ w(x)·D²(x) — 边缘/主体像素更容易催生新中心
-    const dists = samples.map((s, i) => {
+    let totalDistance = 0;
+    const dists = new Float64Array(samples.length);
+    for (let i = 0; i < samples.length; i += 1) {
       let best = Infinity;
-      for (const c of centers) {
-        const d = distFn(s, c);
+      for (const center of centers) {
+        const d = distFn(samples[i], center);
         if (d < best) best = d;
       }
-      return best * best * weights[i];
-    });
-    const sum = dists.reduce((a, b) => a + b, 0);
-    const r = Math.random() * sum;
-    let acc = 0;
+      const weighted = best * best * weights[i];
+      dists[i] = weighted;
+      totalDistance += weighted;
+    }
     let picked = samples.length - 1;
-    for (let i = 0; i < dists.length; i += 1) {
-      acc += dists[i];
-      if (acc >= r) { picked = i; break; }
+    if (totalDistance > 0) {
+      const target = Math.random() * totalDistance;
+      let accumulated = 0;
+      for (let i = 0; i < dists.length; i += 1) {
+        accumulated += dists[i];
+        if (accumulated >= target) { picked = i; break; }
+      }
     }
     centers.push(samples[picked]);
   }
@@ -590,57 +584,46 @@ function kmeansSelectPalette(imageData, maxColors, palette, paletteLabs, bgMask,
   const iterMax = highQuality ? 16 : 8;
   for (let iter = 0; iter < iterMax; iter += 1) {
     for (let i = 0; i < samples.length; i += 1) {
-      const s = samples[i];
       let best = 0, bestDist = Infinity;
       for (let c = 0; c < centers.length; c += 1) {
-        const d = distFn(s, centers[c]);
+        const d = distFn(samples[i], centers[c]);
         if (d < bestDist) { bestDist = d; best = c; }
       }
       assign[i] = best;
     }
-
-    // 更新步按权重聚合：边缘/主体像素对簇中心的拉力更大
     const sums = centers.map(() => [0, 0, 0, 0]);
     for (let i = 0; i < samples.length; i += 1) {
-      const c = assign[i];
-      const s = samples[i];
-      const w = weights[i];
+      const c = assign[i], s = samples[i], w = weights[i];
       sums[c][0] += s[0] * w; sums[c][1] += s[1] * w; sums[c][2] += s[2] * w; sums[c][3] += w;
     }
     for (let c = 0; c < centers.length; c += 1) {
-      if (sums[c][3] === 0) continue;
-      centers[c] = [sums[c][0] / sums[c][3], sums[c][1] / sums[c][3], sums[c][2] / sums[c][3]];
+      if (sums[c][3] > 0) centers[c] = [sums[c][0] / sums[c][3], sums[c][1] / sums[c][3], sums[c][2] / sums[c][3]];
     }
   }
 
-  const mapped = centers.map((cen) => {
+  const mapped = centers.map((center) => {
     let best = 0, bestDist = Infinity;
     for (let p = 0; p < palette.length; p += 1) {
-      const d = mapDistFn(cen, labs[p]);
+      const d = mapDistFn(center, labs[p]);
       if (d < bestDist) { bestDist = d; best = p; }
     }
     return { index: best, dist: bestDist };
   }).sort((a, b) => a.dist - b.dist);
-
-  const picked = [];
-  const used = new Set();
-  for (const m of mapped) {
-    if (!used.has(m.index)) { picked.push(m.index); used.add(m.index); }
+  const picked = [], used = new Set();
+  for (const mappedColor of mapped) {
+    if (!used.has(mappedColor.index)) { picked.push(mappedColor.index); used.add(mappedColor.index); }
     if (picked.length === maxColors) break;
   }
   for (let i = 0; picked.length < maxColors && i < palette.length; i += 1) {
     if (!used.has(i)) { picked.push(i); used.add(i); }
   }
-
-  const subset = picked.map((i) => palette[i]);
-  // 返回与 getPaletteLabs 相同的双空间形状({ labs, oklabs }):
-  // nearestColor / spatialRefinement / cleanupIsolatedBeads / suppressCheckerboard
-  // 都按 paletteLabs.labs|oklabs 读取,这里返回纯数组会让它们读到 undefined 而抛错。
-  const subsetLabs = {
-    labs: picked.map((i) => paletteLabs.labs[i]),
-    oklabs: picked.map((i) => paletteLabs.oklabs[i]),
+  return {
+    palette: picked.map((i) => palette[i]),
+    labs: {
+      labs: picked.map((i) => paletteLabs.labs[i]),
+      oklabs: picked.map((i) => paletteLabs.oklabs[i])
+    }
   };
-  return { palette: subset, labs: subsetLabs };
 }
 
 function nearestColor(lab, palette, paletteLabs, colorSpace) {
