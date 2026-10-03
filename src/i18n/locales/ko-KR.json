@@ -680,6 +680,10 @@
     "stepConfigure": "설정 조정",
     "stepResult": "결과 미리보기",
     "dropActive": "놓아서 업로드",
+    "errorUnsupportedType": "이미지 파일을 선택해 주세요",
+    "errorFileTooLarge": "이미지 파일은 25MB 이하여야 합니다",
+    "errorDimensionsTooLarge": "이미지 크기가 너무 커서 처리할 수 없습니다",
+    "errorInvalidImage": "이미지 파일이 손상되었거나 읽을 수 없습니다",
     "presets": {
       "auto": "자동 맞춤(추천)",
       "29x29": "29 × 29（표준）",

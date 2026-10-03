@@ -680,6 +680,10 @@
     "stepConfigure": "設定を調整",
     "stepResult": "結果を確認",
     "dropActive": "ドロップしてアップロード",
+    "errorUnsupportedType": "画像ファイルを選択してください",
+    "errorFileTooLarge": "画像ファイルは25MB以下にしてください",
+    "errorDimensionsTooLarge": "画像サイズが大きすぎて処理できません",
+    "errorInvalidImage": "画像ファイルが破損しているか読み込めません",
     "presets": {
       "auto": "自動マッチ（おすすめ）",
       "29x29": "29 × 29（標準）",

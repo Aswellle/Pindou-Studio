@@ -680,6 +680,10 @@
     "stepConfigure": "调整设置",
     "stepResult": "预览成品",
     "dropActive": "松开鼠标上传图片",
+    "errorUnsupportedType": "请选择图片格式的文件",
+    "errorFileTooLarge": "图片文件不能超过 25MB",
+    "errorDimensionsTooLarge": "图片尺寸过大，无法处理",
+    "errorInvalidImage": "图片文件已损坏或无法读取",
     "presets": {
       "auto": "自动匹配（推荐）",
       "29x29": "29 × 29（标准）",

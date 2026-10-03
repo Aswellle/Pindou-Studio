@@ -680,6 +680,10 @@
     "stepConfigure": "Adjust Settings",
     "stepResult": "Preview Result",
     "dropActive": "Release to upload",
+    "errorUnsupportedType": "Please choose an image file",
+    "errorFileTooLarge": "Image file must be under 25MB",
+    "errorDimensionsTooLarge": "Image dimensions are too large to process",
+    "errorInvalidImage": "This image file is corrupted or could not be read",
     "presets": {
       "auto": "Auto fit (recommended)",
       "29x29": "29 × 29 (Standard)",

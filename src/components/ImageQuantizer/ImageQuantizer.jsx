@@ -3,7 +3,11 @@ import { useTranslation } from 'react-i18next'
 import { useImageQuantizer } from '../../hooks/useImageQuantizer'
 import { getPalette, PALETTE_LIST } from '../../data/palettes'
 import { recommendGridSize, suggestMaxColorsForGrid } from '../../utils/autoGrid'
+import { readImageDimensions, INVALID_IMAGE } from './imageDimensions'
 import './ImageQuantizer.css'
+
+const MAX_FILE_SIZE = 25 * 1024 * 1024 // 25MB
+const MAX_PIXELS = 25_000_000 // 解码后约 100MB RGBA，封顶小图大像素的内存爆炸
 
 // 拟真珠子渲染 — 径向渐变 + 高光 + 中心孔
 function drawBeadPreview(ctx, cx, cy, radius, hexColor) {
@@ -164,6 +168,8 @@ export default function ImageQuantizer({ onApply, onClose }) {
   const [imageMode, setImageMode] = useState('auto')
   const [autoSuggest, setAutoSuggest] = useState(null)
   const [previewUrl, setPreviewUrl] = useState(null)
+  const [selectedFile, setSelectedFile] = useState(null)
+  const [uploadError, setUploadError] = useState(null)
   const [showUnsavedDialog, setShowUnsavedDialog] = useState(false)
   const [lastGeneratedSettings, setLastGeneratedSettings] = useState(null)
   const [lastGeneratedResult, setLastGeneratedResult] = useState(null)
@@ -303,6 +309,8 @@ export default function ImageQuantizer({ onApply, onClose }) {
   const handleFullReset = useCallback(() => {
     reset()
     setPreviewUrl(null)
+    setSelectedFile(null)
+    setUploadError(null)
     setHasUnsavedChanges(false)
     setLastGeneratedResult(null)
     setLastGeneratedSettings(null)
@@ -336,33 +344,57 @@ export default function ImageQuantizer({ onApply, onClose }) {
     img.src = url
   }
 
+  // 三个上传入口（文件选择/拖拽/粘贴）共用的校验与接入逻辑：
+  // 字节大小同步校验在前；PNG/JPEG 再做预解码头部尺寸校验（防「小字节大像素」解压炸弹），
+  // 全部通过才创建 previewUrl，避免未校验的文件进入后续解码流程。
+  const acceptFile = useCallback(async (file) => {
+    setUploadError(null)
+    if (!file || !file.type.startsWith('image/')) {
+      setUploadError(t('quantizer.errorUnsupportedType', '请选择图片格式的文件'))
+      return
+    }
+    if (file.size > MAX_FILE_SIZE) {
+      setUploadError(t('quantizer.errorFileTooLarge', '图片文件不能超过 25MB'))
+      return
+    }
+
+    let dimensions
+    try {
+      dimensions = await readImageDimensions(file)
+    } catch {
+      setUploadError(t('quantizer.errorInvalidImage', '图片文件已损坏或无法读取'))
+      return
+    }
+    if (dimensions === INVALID_IMAGE) {
+      setUploadError(t('quantizer.errorInvalidImage', '图片文件已损坏或无法读取'))
+      return
+    }
+    if (dimensions && dimensions.width * dimensions.height > MAX_PIXELS) {
+      setUploadError(t('quantizer.errorDimensionsTooLarge', '图片尺寸过大，无法处理'))
+      return
+    }
+
+    const url = URL.createObjectURL(file)
+    setSelectedFile(file)
+    setPreviewUrl(url)
+    loadImageMeta(url)
+    reset()
+    setHasUnsavedChanges(false)
+    setLastGeneratedResult(null)
+    setLastGeneratedSettings(null)
+  }, [reset, t])
+
   const handleFileSelect = useCallback((e) => {
     const file = e.target.files[0]
-    if (file && file.type.startsWith('image/')) {
-      const url = URL.createObjectURL(file)
-      setPreviewUrl(url)
-      loadImageMeta(url)
-      reset()
-      setHasUnsavedChanges(false)
-      setLastGeneratedResult(null)
-      setLastGeneratedSettings(null)
-    }
-  }, [reset])
+    if (file) acceptFile(file)
+  }, [acceptFile])
 
   const handleDrop = useCallback((e) => {
     e.preventDefault()
     setIsDragActive(false)
     const file = e.dataTransfer.files[0]
-    if (file && file.type.startsWith('image/')) {
-      const url = URL.createObjectURL(file)
-      setPreviewUrl(url)
-      loadImageMeta(url)
-      reset()
-      setHasUnsavedChanges(false)
-      setLastGeneratedResult(null)
-      setLastGeneratedSettings(null)
-    }
-  }, [reset])
+    if (file) acceptFile(file)
+  }, [acceptFile])
 
   const handleDragOver = useCallback((e) => {
     e.preventDefault()
@@ -374,25 +406,20 @@ export default function ImageQuantizer({ onApply, onClose }) {
     setIsDragActive(false)
   }, [])
 
+  // 当前未挂载到任何监听器（粘贴上传入口尚未接入 UI），保留并同样走共用校验，
+  // 以便未来接入时无需重复实现校验逻辑。
   const handlePaste = useCallback((e) => {
     const items = e.clipboardData.items
     for (const item of items) {
       if (item.type.startsWith('image/')) {
-        const file = item.getAsFile()
-        const url = URL.createObjectURL(file)
-        setPreviewUrl(url)
-        loadImageMeta(url)
-        reset()
-        setHasUnsavedChanges(false)
-        setLastGeneratedResult(null)
-        setLastGeneratedSettings(null)
+        acceptFile(item.getAsFile())
         break
       }
     }
-  }, [reset])
+  }, [acceptFile])
 
   const handleGenerate = useCallback(async () => {
-    if (!previewUrl) return
+    if (!previewUrl || !selectedFile) return
 
     try {
       // 保存当前设置用于比较
@@ -410,26 +437,9 @@ export default function ImageQuantizer({ onApply, onClose }) {
         imageMode
       }
 
-      const MAX_IMAGE_BYTES = 25 * 1024 * 1024 // 25MB
-      const fetchController = new AbortController()
-      const fetchTimeout = setTimeout(() => fetchController.abort(), 15000)
-      let previewBlob
-      try {
-        const previewResponse = await fetch(previewUrl, { signal: fetchController.signal })
-        const contentLength = Number(previewResponse.headers.get('content-length'))
-        if (contentLength && contentLength > MAX_IMAGE_BYTES) {
-          throw new Error('IMAGE_TOO_LARGE')
-        }
-        previewBlob = await previewResponse.blob()
-        if (previewBlob.size > MAX_IMAGE_BYTES) {
-          throw new Error('IMAGE_TOO_LARGE')
-        }
-      } finally {
-        clearTimeout(fetchTimeout)
-      }
-
+      // 文件已在 acceptFile 入口完成大小与尺寸校验，这里直接使用原始 File，无需重新 fetch
       const response = await quantize(
-        previewBlob,
+        selectedFile,
         {
           gridWidth,
           gridHeight,
@@ -456,7 +466,7 @@ export default function ImageQuantizer({ onApply, onClose }) {
       if (err?.message === 'CANCELLED') return // 用户主动取消,非错误
       console.error('Quantization failed:', err)
     }
-  }, [previewUrl, gridWidth, gridHeight, maxColors, selectedPalette, dithering, colorSpace, brightness, contrast, removeBackground, qualityMode, imageMode, quantize])
+  }, [previewUrl, selectedFile, gridWidth, gridHeight, maxColors, selectedPalette, dithering, colorSpace, brightness, contrast, removeBackground, qualityMode, imageMode, quantize])
 
   const handleApply = useCallback(() => {
     if (result) {
@@ -848,9 +858,9 @@ export default function ImageQuantizer({ onApply, onClose }) {
             </div>
           )}
 
-          {error && (
+          {(uploadError || error) && (
             <div className="error-section">
-              <span className="error-text">{error}</span>
+              <span className="error-text">{uploadError || error}</span>
             </div>
           )}
 
