@@ -15,6 +15,8 @@ import { useState, useRef, useEffect } from 'react'
 import { Navigate, useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { supabase, SUPABASE_URL } from '../services/supabase'
+import { passwordWeakness } from '../utils/password'
+import { checkImageFile, checkImagePixels } from '../utils/imageGuard'
 import Avatar from './Avatar'
 import AvatarCropper from './AvatarCropper'
 import LoadingScreen from './LoadingScreen'
@@ -74,14 +76,6 @@ export default function ProfilePage({ user, authLoading, onLogout, onUpdateProfi
     else navigate('/')
   }
 
-  const isWeakPassword = (p) => {
-    if (p.length < 8) return 'errors.passwordTooShort'
-    if (/^(.)\1+$/.test(p)) return 'errors.passwordRepeat'
-    if (/(?:012|123|234|345|456|567|678|789|890|abc|bcd|cde|def|efg|fgh|ghi|hij|ijk|jkl|klm|lmn|mno|nop|opq|pqr|qrs|rst|stu|tuv|uvw|vwx|wxy|xyz)/i.test(p)) return 'errors.passwordSequence'
-    if (!/[A-Za-z]/.test(p) || !/\d/.test(p)) return 'errors.passwordMix'
-    return null
-  }
-
   // 昵称只有真的改动过才允许保存(避免无意义写入)
   const nicknameDirty = nickname.trim() !== (user.nickname || '').trim()
 
@@ -104,12 +98,16 @@ export default function ProfilePage({ user, authLoading, onLogout, onUpdateProfi
     }
   }
 
-  const handleFile = (e) => {
+  const handleFile = async (e) => {
     const file = e.target.files?.[0]
     if (!file) return
-    // 类型与大小校验:20MB 手机原图全量读入内存可卡死移动端,这里硬性拦截
-    if (!file.type.startsWith('image/')) { setMessage(t('profile.avatarInvalid')); return }
-    if (file.size > 5 * 1024 * 1024) { setMessage(t('profile.avatarTooLarge')); return }
+    // 类型/字节/像素三重门控:头像虽经裁剪器缩到 240px,但裁剪前会按**原始分辨率**
+    // 整张解码 —— 「文件很小、像素极多」的图片会在这里撑爆移动端内存,复用与
+    // 图片转拼豆同一套 imageGuard 门(仅字节上限按头像收紧到 5MB)。
+    const fileErr = checkImageFile(file, { maxBytes: 5 * 1024 * 1024 })
+    if (fileErr) { setMessage(t(fileErr === 'notImage' ? 'profile.avatarInvalid' : 'profile.avatarTooLarge')); return }
+    const head = await file.slice(0, 65536).arrayBuffer()
+    if (checkImagePixels(head)) { setMessage(t('quantizer.errors.tooManyPixels')); return }
     const reader = new FileReader()
     reader.onload = () => setAvatarSrc(reader.result)
     reader.readAsDataURL(file)
@@ -148,7 +146,7 @@ export default function ProfilePage({ user, authLoading, onLogout, onUpdateProfi
 
   const handleChangePassword = () => {
     if (!oldPw) { setPwError(t('profile.oldPasswordRequired')); return }
-    const weak = isWeakPassword(newPw)
+    const weak = passwordWeakness(newPw)
     if (weak) { setPwError(t(weak)); return }
     if (newPw !== newPw2) { setPwError(t('errors.passwordMismatch')); return }
     setPwError('')

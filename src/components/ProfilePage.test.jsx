@@ -90,6 +90,27 @@ describe('ProfilePage', () => {
     expect(await screen.findByText('请输入当前密码')).toBeTruthy()
   })
 
+  it('头像上传过门控:非图片 / 超大字节 / 像素极多的文件均被拒绝,不进入裁剪', async () => {
+    const { container } = renderProfilePage()
+    const input = container.querySelector('input[type="file"]')
+    const pngWithSize = (w, h) => {
+      const bytes = new Uint8Array(24)
+      bytes.set([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a])
+      const dv = new DataView(bytes.buffer)
+      dv.setUint32(16, w)
+      dv.setUint32(20, h)
+      return bytes
+    }
+
+    fireEvent.change(input, { target: { files: [new File(['x'], 'a.txt', { type: 'text/plain' })] } })
+    expect(await screen.findByText('请选择图片格式的头像文件')).toBeTruthy()
+
+    fireEvent.change(input, { target: { files: [new File([pngWithSize(20000, 20000)], 'huge.png', { type: 'image/png' })] } })
+    expect(await screen.findByText(/像素过多/)).toBeTruthy()
+
+    expect(container.querySelector('.profile-crop')).toBeNull()
+  })
+
   it('退出登录需二次确认', () => {
     const onLogout = vi.fn()
     render(

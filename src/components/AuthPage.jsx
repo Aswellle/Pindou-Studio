@@ -9,20 +9,12 @@ import { useState, useEffect } from 'react'
 import { useTranslation, Trans } from 'react-i18next'
 import { useNavigate, Link } from 'react-router-dom'
 import { useToast } from './Toast'
+import { passwordWeakness } from '../utils/password'
 
 const USERNAME_RE = /^[a-zA-Z0-9_]{3,20}$/
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 const RESEND_COOLDOWN = 60
 const isEmailInput = (v) => EMAIL_RE.test(v || '')
-
-// 密码强度:过短 / 全同字符 / 连续序列 / 缺混合
-const isWeakPassword = (p) => {
-  if (p.length < 8) return 'PASSWORD_TOO_SHORT'
-  if (/^(.)\1+$/.test(p)) return 'PASSWORD_REPEAT'
-  if (/(?:012|123|234|345|456|567|678|789|890|abc|bcd|cde|def|efg|fgh|ghi|hij|ijk|jkl|klm|lmn|mno|nop|opq|pqr|qrs|rst|stu|tuv|uvw|vwx|wxy|xyz)/i.test(p)) return 'PASSWORD_SEQUENCE'
-  if (!/[A-Za-z]/.test(p) || !/\d/.test(p)) return 'PASSWORD_MIX'
-  return null
-}
 
 export default function AuthPage({
   initialMode = 'login',
@@ -98,10 +90,6 @@ export default function AuthPage({
     }
     const map = {
       PASSWORD_MISMATCH: 'errors.passwordMismatch',
-      PASSWORD_TOO_SHORT: 'errors.passwordTooShort',
-      PASSWORD_REPEAT: 'errors.passwordRepeat',
-      PASSWORD_SEQUENCE: 'errors.passwordSequence',
-      PASSWORD_MIX: 'errors.passwordMix',
       INVALID_USERNAME: 'errors.invalidUsername',
       USERNAME_TAKEN: 'errors.usernameTaken',
       USERNAME_NOT_FOUND: 'errors.usernameNotFound',
@@ -114,8 +102,8 @@ export default function AuthPage({
   }
   const toastError = (code, msg) => toast(msg || errMsg(code), 'error')
   const checkPwd = (p) => {
-    const weak = isWeakPassword(p)
-    if (weak) { toastError(weak); return false }
+    const weak = passwordWeakness(p)
+    if (weak) { toastError('', t(weak)); return false }
     return true
   }
 
