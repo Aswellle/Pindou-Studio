@@ -1,8 +1,17 @@
 import { render, waitFor } from '@testing-library/react'
 import { MemoryRouter } from 'react-router-dom'
 import { HelmetProvider } from 'react-helmet-async'
+import { vi } from 'vitest'
 import './i18n'
 import App from './App'
+
+// 冒烟测试必须与环境无关:本机 .env.local 配了真实项目时,不 mock 会让 App 建立真实
+// Supabase 客户端并发起网络/Realtime 连接(Node undici WebSocket 在测试环境抛未捕获异常,
+// 曾使整个套件 exit 1)。固定为「云端未配置」路径 —— 与 CI(无 env)行为一致。
+vi.mock('./services/supabase', async (importOriginal) => {
+  const actual = await importOriginal()
+  return { ...actual, supabase: null, SUPABASE_URL: '', SUPABASE_DIRECT_URL: '', SUPABASE_PROXIED: false }
+})
 
 function installMock2dContext() {
   const ctx = {
@@ -62,8 +71,9 @@ describe('App smoke test', () => {
           </HelmetProvider>
         </MemoryRouter>
       )
-      // 量化器自带页面头部必须渲染（lazy 组件，等待 Suspense 解析）
-      await waitFor(() => expect(container.querySelector('.quantizer-header')).toBeTruthy())
+      // 量化器自带页面头部必须渲染（lazy 组件，等待 Suspense 解析；
+      // 全量并发跑套件时动态 chunk 导入可能远超默认 1s,放宽超时避免顺序性误报）
+      await waitFor(() => expect(container.querySelector('.quantizer-header')).toBeTruthy(), { timeout: 10000 })
 
       // 站点导航(菜单/登录/语言切换)不得出现在该功能页
       expect(container.querySelector('header.header')).toBeNull()
