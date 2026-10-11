@@ -21,7 +21,7 @@ import {
 } from 'recharts'
 import AdminGate from './AdminGate'
 import ThumbnailCanvas from './ThumbnailCanvas'
-import useAdminOverview, { OVERVIEW_ERROR_TIMEOUT } from '../hooks/useAdminOverview'
+import useAdminOverview, { OVERVIEW_ERROR_TIMEOUT, OVERVIEW_ERROR_FORBIDDEN } from '../hooks/useAdminOverview'
 import { buildTrend, computeLibraryStats, checkContentHealth, TREND_WINDOW_DAYS } from '../utils/adminOverview'
 import { PALETTES } from '../data/palettes/index.js'
 import { CATEGORIES } from '../data/templates'
@@ -190,11 +190,15 @@ export default function AdminDashboardPage({ cloudStore, user, isAdmin, authLoad
         {error ? (
           <div className="adash-alert" role="alert">
             <span>
-              {error === OVERVIEW_ERROR_TIMEOUT
-                ? '加载超时:网络较慢或会话刷新中,请重试'
-                : '概览数据加载失败,请重试'}
+              {error === OVERVIEW_ERROR_FORBIDDEN
+                ? '后台拒绝了本次读取:该账号可能未加入管理员授权名单,或需先完成两步验证(请联系站点管理员处理)'
+                : error === OVERVIEW_ERROR_TIMEOUT
+                  ? '加载超时:网络较慢或会话刷新中,请重试'
+                  : '概览数据加载失败,请重试'}
             </span>
-            <button type="button" className="adash-btn small" onClick={reload}>重试</button>
+            {error !== OVERVIEW_ERROR_FORBIDDEN && (
+              <button type="button" className="adash-btn small" onClick={reload}>重试</button>
+            )}
           </div>
         ) : null}
 

@@ -6,8 +6,14 @@ import i18n from '../i18n'
 
 // 组件真实走 useAdminOverview → supabase.rpc,这里只替换网络层
 const rpc = vi.fn()
+// AdminGate 放行前会查会话两步验证等级;mockReset 后返回 undefined → 门禁按「不可用」放行
+const mfaAssurance = vi.fn()
 vi.mock('../services/supabase', () => ({
-  supabase: { rpc: (...args) => rpc(...args), from: vi.fn() },
+  supabase: {
+    rpc: (...args) => rpc(...args),
+    from: vi.fn(),
+    auth: { mfa: { getAuthenticatorAssuranceLevel: (...args) => mfaAssurance(...args) } },
+  },
   SUPABASE_PROXIED: false,
   toStorageUrl: () => null,
 }))
@@ -37,6 +43,7 @@ beforeAll(async () => {
 afterEach(() => {
   cleanup()
   rpc.mockReset()
+  mfaAssurance.mockReset()
 })
 
 const OVERVIEW = {
@@ -91,6 +98,7 @@ const setup = (props = {}) => render(
         />
       } />
       <Route path="/admin" element={<div>后台面板</div>} />
+      <Route path="/admin/login" element={<div>admin-login-marker</div>} />
       <Route path="*" element={<div>其他页面</div>} />
     </Routes>
   </MemoryRouter>,
@@ -212,13 +220,53 @@ describe('AdminDashboardPage — 概览渲染', () => {
 
   it('RPC 失败时给出重试入口,重试成功后渲染数据', async () => {
     rpc.mockImplementation((fn) => {
-      if (fn === 'admin_overview') return Promise.resolve({ data: null, error: { message: 'not authorized' } })
+      if (fn === 'admin_overview') return Promise.resolve({ data: null, error: { message: 'database unavailable' } })
       return Promise.resolve({ data: [], error: null })
     })
     setup()
     expect(await screen.findByText('概览数据加载失败,请重试')).toBeTruthy()
     mockRpc()
     fireEvent.click(screen.getByRole('button', { name: '重试' }))
+    expect(await screen.findByText('42')).toBeTruthy()
+  })
+
+  it('RPC 被拒(未授权)时明确提示无权限,且不提供永远失败的重试按钮', async () => {
+    rpc.mockImplementation((fn) => {
+      if (fn === 'admin_overview') return Promise.resolve({ data: null, error: { message: 'not authorized' } })
+      return Promise.resolve({ data: [], error: null })
+    })
+    setup()
+    expect(await screen.findByText(/后台拒绝了本次读取/)).toBeTruthy()
+    expect(screen.queryByRole('button', { name: '重试' })).toBe(null)
+  })
+})
+
+describe('AdminDashboardPage — 门禁两步验证分支', () => {
+  it('会话未过两步验证(aal1 + 已绑定因子)时,门禁引导前往管理员登录页', async () => {
+    mfaAssurance.mockResolvedValue({ data: { currentLevel: 'aal1', nextLevel: 'aal2' } })
+    setup()
+    expect(await screen.findByText('需要完成两步验证')).toBeTruthy()
+    fireEvent.click(screen.getByRole('button', { name: '去完成两步验证' }))
+    await waitFor(() => expect(currentLocation.pathname).toBe('/admin/login'))
+  })
+
+  it('会话已通过两步验证(aal2)时正常放行', async () => {
+    mfaAssurance.mockResolvedValue({ data: { currentLevel: 'aal2', nextLevel: 'aal2' } })
+    rpc.mockImplementation((fn) => {
+      if (fn === 'admin_overview') return Promise.resolve({ data: OVERVIEW, error: null })
+      return Promise.resolve({ data: [], error: null })
+    })
+    setup()
+    expect(await screen.findByText('42')).toBeTruthy()
+  })
+
+  it('AAL 接口不可用时不阻断(服务端 is_admin 仍兜底)', async () => {
+    mfaAssurance.mockRejectedValue(new Error('mfa api missing'))
+    rpc.mockImplementation((fn) => {
+      if (fn === 'admin_overview') return Promise.resolve({ data: OVERVIEW, error: null })
+      return Promise.resolve({ data: [], error: null })
+    })
+    setup()
     expect(await screen.findByText('42')).toBeTruthy()
   })
 })

@@ -873,7 +873,10 @@
       "noPermission": "관리자 권한이 없습니다",
       "noPermissionHint": "이 계정에는 관리 콘솔 접근 권한이 없습니다. 사이트 관리자에게 문의하세요.",
       "checking": "세션 확인 중...",
-      "notAdmin": "이 계정에는 관리자 권한이 없습니다"
+      "notAdmin": "이 계정에는 관리자 권한이 없습니다",
+      "mfaRequiredTitle": "2단계 인증이 필요합니다",
+      "mfaRequiredHint": "이 계정은 2단계 인증이 설정되어 있습니다. 관리자 로그인 페이지에서 인증 코드를 완료한 후 백오피스에 들어오세요.",
+      "mfaRequiredBtn": "인증하러 가기"
     },
     "signOut": "로그아웃",
     "resetPassword": "비밀번호 변경",

@@ -15,6 +15,9 @@ const REGISTRATION_FEED_LIMIT = 8
 
 export const OVERVIEW_ERROR_TIMEOUT = 'timeout'
 export const OVERVIEW_ERROR_FAILED = 'failed'
+// RPC 被 is_admin() 拒绝(SQL 侧抛 'not authorized'):重试永远不会成功,
+// 单独成码让页面显示「无权限」而非「加载失败请重试」
+export const OVERVIEW_ERROR_FORBIDDEN = 'forbidden'
 
 const withTimeout = (promise, ms) => new Promise((resolve, reject) => {
   const timer = setTimeout(() => reject(new Error(OVERVIEW_ERROR_TIMEOUT)), ms)
@@ -73,9 +76,12 @@ export default function useAdminOverview({ enabled = true } = {}) {
       })
     } catch (error) {
       if (!aliveRef.current || ticket !== ticketRef.current) return
-      const code = error?.message === OVERVIEW_ERROR_TIMEOUT ? OVERVIEW_ERROR_TIMEOUT : OVERVIEW_ERROR_FAILED
-      if (code !== OVERVIEW_ERROR_TIMEOUT) console.warn('[admin-overview] 概览数据加载失败', error)
-      setState((prev) => ({ ...prev, loading: false, error: code, errorDetail: String(error?.message || '') }))
+      const message = String(error?.message || '')
+      const code = message === OVERVIEW_ERROR_TIMEOUT
+        ? OVERVIEW_ERROR_TIMEOUT
+        : /not authorized/i.test(message) ? OVERVIEW_ERROR_FORBIDDEN : OVERVIEW_ERROR_FAILED
+      if (code === OVERVIEW_ERROR_FAILED) console.warn('[admin-overview] 概览数据加载失败', error)
+      setState((prev) => ({ ...prev, loading: false, error: code, errorDetail: message }))
     }
   }, [enabled])
 

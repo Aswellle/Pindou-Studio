@@ -873,7 +873,10 @@
       "noPermission": "No Admin Permission",
       "noPermissionHint": "This account has no access to the console. Contact the site administrator.",
       "checking": "Checking session...",
-      "notAdmin": "This account has no admin permission"
+      "notAdmin": "This account has no admin permission",
+      "mfaRequiredTitle": "Two-step verification required",
+      "mfaRequiredHint": "This account has two-step verification enabled. Complete the verification-code step on the admin login page before entering the admin area.",
+      "mfaRequiredBtn": "Go to verification"
     },
     "signOut": "Sign Out",
     "resetPassword": "Change Password",

@@ -873,7 +873,10 @@
       "noPermission": "当前账号无管理员权限",
       "noPermissionHint": "当前账号无后台权限,请与站点管理员联系",
       "checking": "正在检查登录状态...",
-      "notAdmin": "该账号无后台管理权限"
+      "notAdmin": "该账号无后台管理权限",
+      "mfaRequiredTitle": "需要完成两步验证",
+      "mfaRequiredHint": "该账号已绑定两步验证,请先在管理员登录页完成动态码校验,再进入后台",
+      "mfaRequiredBtn": "去完成两步验证"
     },
     "signOut": "退出登录",
     "resetPassword": "修改密码",
