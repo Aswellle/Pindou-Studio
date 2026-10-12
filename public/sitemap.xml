@@ -1,56 +1,75 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"
-        xmlns:xhtml="http://www.w3.org/1999/xhtml">
+        xmlns:xhtml="http://www.w3.org/1999/xhtml"
+        xmlns:mobile="http://www.baidu.com/schemas/sitemap-mobile/1/">
 
-  <!-- 首页(画布工具) — SEO 头信息于 2026-09-05 更新 -->
+  <!--
+    说明:
+    - 本站为自适应(响应式)站点,PC 与移动端同一套 URL,故每页标注百度移动 sitemap
+      协议的 mobile 标签(type=pc,mobile),无需再走「移动适配」工具提交对应关系。
+    - hreflang 语言变体使用 ?lang=en|ja|ko(与页面内 hreflang、页面 canonical 保持互指);
+      x-default 指向默认语言(简体中文)版本。
+    - Google 会忽略 priority/changefreq,保留仅为兼容百度/搜狗/360 的读取。
+    - lastmod 需与实际内容更新时间一致,内容更新时同步刷新本字段。
+  -->
+
+  <!-- 首页(画布工具) — SEO 头信息与结构化数据于 2026-10-12 更新 -->
   <url>
     <loc>https://tangnotes.site/</loc>
-    <lastmod>2026-09-05</lastmod>
+    <lastmod>2026-10-12</lastmod>
     <changefreq>weekly</changefreq>
     <priority>1.0</priority>
+    <mobile:mobile type="pc,mobile"/>
     <xhtml:link rel="alternate" hreflang="zh-CN" href="https://tangnotes.site/"/>
     <xhtml:link rel="alternate" hreflang="en" href="https://tangnotes.site/?lang=en"/>
     <xhtml:link rel="alternate" hreflang="ja" href="https://tangnotes.site/?lang=ja"/>
     <xhtml:link rel="alternate" hreflang="ko" href="https://tangnotes.site/?lang=ko"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://tangnotes.site/"/>
   </url>
 
   <!-- 图库 — 模板内容库 -->
   <url>
     <loc>https://tangnotes.site/gallery</loc>
-    <lastmod>2026-09-05</lastmod>
+    <lastmod>2026-10-12</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
+    <mobile:mobile type="pc,mobile"/>
     <xhtml:link rel="alternate" hreflang="zh-CN" href="https://tangnotes.site/gallery"/>
     <xhtml:link rel="alternate" hreflang="en" href="https://tangnotes.site/gallery?lang=en"/>
     <xhtml:link rel="alternate" hreflang="ja" href="https://tangnotes.site/gallery?lang=ja"/>
     <xhtml:link rel="alternate" hreflang="ko" href="https://tangnotes.site/gallery?lang=ko"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://tangnotes.site/gallery"/>
   </url>
 
-  <!-- 教程 — 四语言教程内容于 2026-09-05 更新(品牌信息同步六大色卡) -->
+  <!-- 教程 — 四语言教程内容 -->
   <url>
     <loc>https://tangnotes.site/tutorials</loc>
-    <lastmod>2026-09-05</lastmod>
+    <lastmod>2026-10-12</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
+    <mobile:mobile type="pc,mobile"/>
     <xhtml:link rel="alternate" hreflang="zh-CN" href="https://tangnotes.site/tutorials"/>
     <xhtml:link rel="alternate" hreflang="en" href="https://tangnotes.site/tutorials?lang=en"/>
     <xhtml:link rel="alternate" hreflang="ja" href="https://tangnotes.site/tutorials?lang=ja"/>
     <xhtml:link rel="alternate" hreflang="ko" href="https://tangnotes.site/tutorials?lang=ko"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://tangnotes.site/tutorials"/>
   </url>
 
   <!-- 隐私政策 — 正文为中文单语,不提供 ?lang= 变体,故无 hreflang alternate -->
   <url>
     <loc>https://tangnotes.site/privacy</loc>
-    <lastmod>2026-09-05</lastmod>
+    <lastmod>2026-10-12</lastmod>
     <changefreq>yearly</changefreq>
     <priority>0.3</priority>
+    <mobile:mobile type="pc,mobile"/>
   </url>
 
   <!-- 服务条款 — 同上,中文单语 -->
   <url>
     <loc>https://tangnotes.site/terms</loc>
-    <lastmod>2026-09-05</lastmod>
+    <lastmod>2026-10-12</lastmod>
     <changefreq>yearly</changefreq>
     <priority>0.3</priority>
+    <mobile:mobile type="pc,mobile"/>
   </url>
 </urlset>

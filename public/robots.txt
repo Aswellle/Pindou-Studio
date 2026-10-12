@@ -1,27 +1,44 @@
 # robots.txt for 拼豆Studio (Bead Studio)
 # https://tangnotes.site/
 #
-# 爬虫策略:SPLIT(2026-09 定案)
+# 爬虫策略:SPLIT(2026-09 定案,2026-10 修订)
 # - 搜索引擎 + AI「检索/引用」爬虫(Googlebot、Bingbot、Baiduspider、OAI-SearchBot、
 #   ChatGPT-User、PerplexityBot、Claude-SearchBot 等)→ 允许抓取,利于收录与 GEO 被引用
 # - AI「训练」型爬虫(GPTBot、ClaudeBot、anthropic-ai、CCBot、Google-Extended 等)→ 一律禁止
 # 依据:aaron-marketing seo-geo llm-crawler-handling(允许检索、禁训练的 split 模板)
+#
+# 注意:/login 不在此屏蔽 —— 该页用 <meta name="robots" content="noindex"> 处理,
+# 屏蔽抓取反而会让搜索引擎读不到 noindex(robots.txt 只控制抓取,不控制索引)。
 
 # 全站通用:仅排除敏感/重复路径(未单独声明的爬虫也遵循此组)
 User-agent: *
 Disallow: /api/
 Disallow: /_vercel/
 Disallow: /admin
+Disallow: /profile
 
 # ── 搜索引擎(收录) ─────────────────────────────
 User-agent: Googlebot
 User-agent: Bingbot
 User-agent: Baiduspider
 User-agent: Sogou web spider
+User-agent: Sogou inst spider
+Disallow: /api/
+Disallow: /_vercel/
+Disallow: /admin
+Disallow: /profile
+
+# ── 360 搜索:独立分组,以便使用其扩展命令 ─────────────
+# Indexpage 是 360 搜索的扩展指令(标准 robots 无此字段,其他引擎会忽略):
+# 声明经常更新的页面,360 据此提高抓取频率,让新模板/新教程更快被收录。
 User-agent: 360Spider
 Disallow: /api/
 Disallow: /_vercel/
 Disallow: /admin
+Disallow: /profile
+Indexpage: https://tangnotes.site/
+Indexpage: https://tangnotes.site/gallery
+Indexpage: https://tangnotes.site/tutorials
 
 # ── AI 检索 / 引用引擎(允许抓取,以便被 AI 检索引用) ──
 User-agent: OAI-SearchBot
@@ -33,6 +50,7 @@ User-agent: Claude-User
 Disallow: /api/
 Disallow: /_vercel/
 Disallow: /admin
+Disallow: /profile
 
 # ── AI 训练型爬虫(禁止抓取,仅用于训练) ─────────────
 User-agent: GPTBot

@@ -48,8 +48,12 @@ docs/
 AGENTS.md
 
 # Search engine verification files
+# 注意:public/ 下的验证文件必须部署(各站长平台会实际访问该 URL 校验),
+# 故对 public/ 内的验证文件反选,仅忽略散落在仓库根目录的临时副本。
 baidu_verify_*.html
 google*.html
+!public/baidu_verify_*.html
+!public/google*.html
 
 # SEO internal docs
 docs/seo/

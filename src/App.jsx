@@ -3,7 +3,7 @@ import { createPortal } from 'react-dom'
 import useKeyboardSafe from './hooks/useKeyboardSafe'
 import { Routes, Route, useNavigate, useLocation, Navigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
-import { LANGUAGES } from './i18n'
+import { LANGUAGES, initialLangParam } from './i18n'
 import { Helmet } from 'react-helmet-async'
 import AuthPage from './components/AuthPage'
 import AdminLoginPage from './components/AdminLoginPage'
@@ -869,9 +869,32 @@ export default function App() {
       title: '拼豆教程 - 从入门到进阶 · 拼豆Studio',
       desc: '系统学习拼豆制作：入门指南、熨烫全解、防变形技巧、配色设计、进阶技巧与作品保护，配有图示与温度对照表，新手友好。',
     },
+    // ── 工具页 / 私有页 ────────────────────────────────────
+    // 这些页面此前没有独立配置,会回退到首页的 title/description 且 index,follow,
+    // 造成同一份标题描述出现在多个 URL(重复内容)。统一 noindex:站内可达、不参与索引。
     admin: {
       title: '后台管理 - 拼豆Studio',
       desc: '拼豆Studio 站点后台管理。',
+      noindex: true,
+    },
+    adminLogin: {
+      title: '管理员登录 - 拼豆Studio',
+      desc: '拼豆Studio 管理后台登录入口。',
+      noindex: true,
+    },
+    login: {
+      title: '登录 / 注册 - 拼豆Studio',
+      desc: '登录或注册拼豆Studio账号，把拼豆作品与收藏保存到云端。',
+      noindex: true,
+    },
+    profile: {
+      title: '个人资料 - 拼豆Studio',
+      desc: '管理拼豆Studio账号资料、昵称与头像。',
+      noindex: true,
+    },
+    createImage: {
+      title: '图片转拼豆 - 拼豆Studio',
+      desc: '上传图片，一键生成像素拼豆图纸。',
       noindex: true,
     },
     privacy: {
@@ -885,24 +908,40 @@ export default function App() {
   }
 
   const seo = SEO_CONFIG[currentPage] || SEO_CONFIG.canvas
-  const canonical = currentPage === 'canvas'
-    ? 'https://tangnotes.site/'
-    : `https://tangnotes.site/${currentPage}`
-  const hreflangHref = (code) => {
-    if (code === 'zh-CN') return canonical
-    const sep = canonical.includes('?') ? '&' : '?'
-    return `${canonical}${sep}lang=${code.toLowerCase()}`
+
+  // 各页面对应的规范路径(privacy/terms 的 :versionId 历史版本归并到父路径)
+  const CANONICAL_PATH = {
+    canvas: '/', gallery: '/gallery', tutorials: '/tutorials', admin: '/admin',
+    adminLogin: '/admin/login', login: '/login', profile: '/profile',
+    createImage: '/create/image', privacy: '/privacy', terms: '/terms',
   }
+  const SITE_ORIGIN = 'https://tangnotes.site'
+  const baseUrl = `${SITE_ORIGIN}${CANONICAL_PATH[currentPage] || '/'}`
+
+  // hreflang 值统一为「语言子标签」(zh-CN 除外),与预渲染 HTML、sitemap.xml 保持一致。
+  // 此前 Helmet 输出 en-US/ja-JP/ko-KR 而静态文件写 en/ja/ko,同一语言两个值,
+  // 搜索引擎无法把语言变体归入同一组 → 多语言定向失效。
+  const HREFLANG = { 'zh-CN': 'zh-CN', 'en-US': 'en', 'ja-JP': 'ja', 'ko-KR': 'ko' }
+  const hreflangHref = (code) => (code === 'zh-CN' ? baseUrl : `${baseUrl}?lang=${HREFLANG[code]}`)
+
+  // canonical:?lang= 直达页自指(与上方 hreflang 互指,否则会被判为首页副本);
+  // 无该参数时自指裸路径。必须依据「请求进来的 URL」而非当前界面语言 ——
+  // 浏览器语言自动切换不等于用户访问的是语言版本 URL(i18n 初始化会把 ?lang= 从地址栏移除,
+  // 故用模块加载时捕获的 initialLangParam)。
+  const canonical = initialLangParam && initialLangParam !== 'zh-CN'
+    ? `${baseUrl}?lang=${HREFLANG[initialLangParam]}`
+    : baseUrl
+
   const seoHelmet = (
     <Helmet>
       <title>{seo.title}</title>
       <meta name="description" content={seo.desc} />
-      <meta name="robots" content={seo.noindex ? 'noindex, nofollow' : 'index, follow'} />
+      <meta name="robots" content={seo.noindex ? 'noindex, nofollow' : 'index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1'} />
       <link rel="canonical" href={canonical} />
       {LANGUAGES.map(l => (
-        <link key={l.code} rel="alternate" hrefLang={l.code} href={hreflangHref(l.code)} />
+        <link key={l.code} rel="alternate" hrefLang={HREFLANG[l.code]} href={hreflangHref(l.code)} />
       ))}
-      <link rel="alternate" hrefLang="x-default" href="https://tangnotes.site/" />
+      <link rel="alternate" hrefLang="x-default" href={baseUrl} />
       <meta property="og:title" content={seo.title} />
       <meta property="og:description" content={seo.desc} />
       <meta property="og:url" content={canonical} />

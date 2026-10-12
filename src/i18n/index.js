@@ -103,20 +103,35 @@ function loadSavedLanguage() {
 
 // URL 参数 ?lang= 优先(hreflang 语言页直达,SEO 标准行为;
 // 无参数时回退到已保存语言 → 浏览器语言)
+//
+// 兼容两种写法:
+//  - 完整 BCP-47(en-US / ja-JP / ko-KR)精确匹配
+//  - 仅语言子标签(en / ja / ko)前缀匹配 —— 站点对外广播的 hreflang 与 sitemap
+//    用的正是这种短写法(?lang=en),此前精确匹配会让这些深链静默失效
+//    (英文搜索结果点进来仍可能是中文)。zh 一律落到 zh-CN(本站仅简体)。
 function urlLangParam() {
   try {
     const params = new URLSearchParams(window.location.search)
-    const lang = params.get('lang')
-    if (lang && LANGUAGES.some(l => l.code.toLowerCase() === lang.toLowerCase())) {
-      return LANGUAGES.find(l => l.code.toLowerCase() === lang.toLowerCase()).code
-    }
+    const raw = (params.get('lang') || '').trim().toLowerCase()
+    if (!raw) return null
+    const exact = LANGUAGES.find(l => l.code.toLowerCase() === raw)
+    if (exact) return exact.code
+    const prefix = raw.split('-')[0]
+    const byPrefix = LANGUAGES.find(l => l.code.split('-')[0].toLowerCase() === prefix)
+    return byPrefix ? byPrefix.code : null
   } catch (e) {
     // ignore
   }
   return null
 }
 
-const initialLng = urlLangParam() || loadSavedLanguage()
+// ?lang= 直达页的初始语言(仅在模块首次求值时读取)。
+// 用于 SEO:canonical / hreflang 需要按「请求进来的 URL」自指,而 i18n 初始化后会把
+// ?lang= 从地址栏移除(languageChanged 里的 replaceState),App 渲染时已读不到该参数,
+// 故在此提前捕获并导出。无 ?lang=(或就是默认中文)时为 null。
+export const initialLangParam = urlLangParam()
+
+const initialLng = initialLangParam || loadSavedLanguage()
 
 i18n
   .use(initReactI18next)
@@ -143,6 +158,11 @@ i18n.on('languageChanged', (lng) => {
     localStorage.setItem('bead_studio_settings', JSON.stringify(settings))
   } catch (e) {
     // ignore
+  }
+  // 同步 <html lang>(index.html 里固定为 zh-CN):无障碍读屏软件据此选择发音,
+  // 搜索引擎也将其作为页面语言信号之一(Google 仍以可见正文判定语言)。
+  if (typeof document !== 'undefined') {
+    document.documentElement.lang = lng
   }
   // 移除 URL 中的 ?lang= 残留(用户切换语言后,刷新不再被残留参数拉回参数语言)
   if (typeof window !== 'undefined' && window.location.search.includes('lang=')) {

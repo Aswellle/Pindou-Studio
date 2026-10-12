@@ -142,35 +142,24 @@ function galleryStatic(locale) {
   return staticShell(b.join('\n'))
 }
 
-// 首页:工具概述(面向爬虫与 AI 引擎的可读正文)
-function homeStatic() {
-  const b = []
-  b.push('<h1>拼豆Studio · 免费在线拼豆图纸设计工具</h1>')
-  b.push('<p class="lead">拼豆Studio 是一款免费、在线、无需安装的拼豆(熔珠/Perler Beads)图纸设计工具,界面支持简体中文 / English / 日本語 / 한국어。</p>')
-  b.push('<h2>怎么用</h2>')
-  b.push('<p>像网格画一样自由绘制拼豆图案:画笔、橡皮、区域填充与平移工具,加上撤销/重做,可以慢慢推敲;也可以把画好的图纸存进作品集。</p>')
-  b.push('<p>想把喜欢的图片变成拼豆?上传图片后,工具会用 K-means 在 Lab 色彩空间挑选配色,再用 CIEDE2000 感知均匀算法把每个像素匹配到最近的珠色,并配合抖动与细化算法还原细节——一键得到像素拼豆图纸。</p>')
-  b.push('<h2>支持六大拼豆品牌色卡</h2>')
-  b.push('<p>内置六套真实品牌色卡,按你实际购买的珠子选色:COCO(中国,小颗粒)、MARD(中国)、MARD 291(中国,扩展色)、Perler(美国)、Hama(丹麦)、Artkal(中国/荷兰),共上千种颜色。</p>')
-  b.push('<h2>导出与分享</h2>')
-  b.push('<p>可导出高清 PNG 或 SVG 拼豆图纸:专业模式在每个格子上标注品牌色号并附颜色清单,适合照着图纸制作;逼真模式模拟珠子质感,适合展示与分享成品。</p>')
-  b.push('<p>内置模板库与 18 篇从入门到进阶的多语言教程,新手到进阶玩家都能直接上手。</p>')
-  return staticShell(b.join('\n'))
-}
+// 首页:无静态正文(纯工具页,见 injectRoot 注释)—— 故 ROOT_STATIC 不含 '/'。
 
 // 供脚本按路由取静态正文(无正文页为 null)
 const zhLocale = JSON.parse(fs.readFileSync(path.join(__dirname, '..', 'src', 'i18n', 'locales', 'zh-CN.json'), 'utf-8'))
 const ROOT_STATIC = {
-  '/': homeStatic(),
   '/gallery': galleryStatic(zhLocale),
   '/tutorials': tutorialsStatic(),
 }
 
 function injectRoot(html, inner) {
-  // 修复:不再将静态正文注入 #root,避免 React 挂载前闪烁满是文本的页面
-  // 原始: return inner ? html.replace('<div id="root"></div>', '<div id="root">' + inner + '</div>') : html
-  // 现在: 保持 #root 为空,由 React 渲染完整内容
-  return html
+  // 把构建期生成的静态正文注入 #root:不执行 JS 的抓取端(百度 / 搜狗 / 360 及部分 AI 引擎)
+  // 能读到真实正文,而非只有一个空 <div id="root">。执行 JS 的浏览器在 React 首帧渲染时
+  // 会用应用替换掉它 —— 这是标准预渲染(SSG)行为,抓取端与用户看到的是同一份 HTML,
+  // 不属于「隐藏文字/伪装内容」。
+  //
+  // 范围:仅内容页(/gallery、/tutorials)。首页是纯工具页,注入正文会在 JS 就绪前闪出
+  // 一屏文字而后被应用替换(体验代价大于收益),故首页保持空壳,SEO 依靠 head 元信息与 JSON-LD。
+  return inner ? html.replace('<div id="root"></div>', `<div id="root">${inner}</div>`) : html
 }
 
 // ── 子路由预渲染 SEO HTML ─────────────────────────────────
@@ -207,25 +196,34 @@ const PAGES = [
     path: '/privacy',
     title: '隐私政策 - 拼豆Studio',
     desc: '了解拼豆Studio如何收集、使用和保护您的个人信息，以及账号验证、云端存储与第三方服务的详细说明。',
+    breadcrumb: [
+      { name: '首页', item: `${SITE}/` },
+      { name: '隐私政策', item: `${SITE}/privacy` },
+    ],
   },
   {
     file: 'terms.html',
     path: '/terms',
     title: '服务条款 - 拼豆Studio',
     desc: '使用拼豆Studio在线拼豆图纸设计工具的服务条款：账户安全、用户内容、模板库与使用规范。',
+    breadcrumb: [
+      { name: '首页', item: `${SITE}/` },
+      { name: '服务条款', item: `${SITE}/terms` },
+    ],
   },
 ]
 
-// 首页:仅注入静态正文(head 保持 Vite 产物原样)
-const homeHtml = injectRoot(indexHtml, ROOT_STATIC['/'])
+// 首页:纯工具页,仅改写 head 保持不变(不注入静态正文,见 injectRoot 注释)
+const homeHtml = indexHtml
 fs.writeFileSync(path.join(dist, 'index.html'), homeHtml)
-console.log('prerendered: index.html -> / (static body injected)')
+console.log('prerendered: index.html -> / (head only, no static body)')
 
 for (const page of PAGES) {
   const url = SITE + page.path
+  // robots 指令与首页(index.html)及运行时 Helmet 保持一致,避免同一站出现两种写法
   const robots = page.noindex
     ? '<meta name="robots" content="noindex, nofollow" />'
-    : '<meta name="robots" content="index, follow" />'
+    : '<meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1" />'
 
   let out = indexHtml
     .replace(/<title>.*?<\/title>/s, `<title>${page.title}</title>`)
@@ -255,4 +253,4 @@ for (const page of PAGES) {
   fs.writeFileSync(path.join(dist, page.file), out)
   console.log(`prerendered: ${page.file} -> ${url}`)
 }
-console.log(`完成 ${PAGES.length} 个预渲染页面 + 首页静态正文`)
+console.log(`完成 ${PAGES.length} 个预渲染页面(静态正文仅注入内容页 /gallery、/tutorials)`)

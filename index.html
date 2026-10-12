@@ -54,7 +54,13 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="default" />
   <meta name="apple-mobile-web-app-title" content="拼豆Studio" />
   <meta name="format-detection" content="telephone=no" />
-  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='8' height='8' x='0' y='0' fill='%23E53935'/><rect width='8' height='8' x='8' y='0' fill='%23FDD835'/><rect width='8' height='8' x='16' y='0' fill='%2332CD32'/><rect width='8' height='8' x='24' y='0' fill='%231976D2'/><rect width='8' height='8' x='0' y='8' fill='%23F06292'/><rect width='8' height='8' x='8' y='8' fill='%23BA68C8'/><rect width='8' height='8' x='16' y='8' fill='%2300BCD4'/><rect width='8' height='8' x='24' y='8' fill='%23FF9800'/><rect width='8' height='8' x='0' y='16' fill='%23ffffff'/><rect width='8' height='8' x='8' y='16' fill='%23e0e0e0'/><rect width='8' height='8' x='16' y='16' fill='%23000000'/><rect width='8' height='8' x='24' y='16' fill='%23795548'/><rect width='8' height='8' x='0' y='24' fill='%238D6E63'/><rect width='8' height='8' x='8' y='24' fill='%23A1887F'/><rect width='8' height='8' x='16' y='24' fill='%23BDBDBD'/><rect width='8' height='8' x='24' y='24' fill='%236D4C41'/></svg>" />
+  <!-- 站点图标:真实文件而非 data: URI —— 搜索引擎需要可抓取的独立资源才会在
+       搜索结果中显示站点图标(data: URI 无法被抓取,Google/Bing 均不显示)。
+       图形与原 data: URI 完全一致(4×4 拼豆色卡),由 scripts/generate-favicon.mjs 生成。 -->
+  <link rel="icon" href="/favicon.ico" sizes="32x32" />
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+  <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png" />
+  <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
 
   <!-- ── JSON-LD 结构化数据 ─────────────────────────────────── -->
   <!-- SoftwareApplication: 告诉搜索引擎这是一个 Web 应用 -->
@@ -62,6 +68,7 @@
   {
     "@context": "https://schema.org",
     "@type": "SoftwareApplication",
+    "@id": "https://tangnotes.site/#app",
     "name": "拼豆Studio",
     "alternateName": ["Bead Studio", "拼豆图纸设计工具"],
     "description": "免费在线拼豆图纸生成工具，支持自由绘制、图片智能转像素拼豆、COCO/MARD/MARD291/Perler/Hama/Artkal六大品牌色卡配色、专业级PNG/SVG图纸导出。",
@@ -69,6 +76,9 @@
     "image": "https://tangnotes.site/og-image.png",
     "applicationCategory": "DesignApplication",
     "operatingSystem": "Web",
+    "isAccessibleForFree": true,
+    "inLanguage": ["zh-CN", "en", "ja", "ko"],
+    "publisher": { "@id": "https://tangnotes.site/#organization" },
     "offers": {
       "@type": "Offer",
       "price": "0",
@@ -92,9 +102,18 @@
   {
     "@context": "https://schema.org",
     "@type": "Organization",
+    "@id": "https://tangnotes.site/#organization",
     "name": "拼豆Studio",
+    "alternateName": "Bead Studio",
     "url": "https://tangnotes.site/",
-    "logo": "https://tangnotes.site/og-image.png",
+    "description": "免费在线拼豆图纸生成与图片转像素拼豆工具站点。",
+    "logo": {
+      "@type": "ImageObject",
+      "url": "https://tangnotes.site/logo-512.png",
+      "width": 512,
+      "height": 512
+    },
+    "image": "https://tangnotes.site/og-image.png",
     "sameAs": [
       "https://github.com/Aswellle/Pindou-Studio"
     ]
@@ -106,8 +125,12 @@
   {
     "@context": "https://schema.org",
     "@type": "WebSite",
+    "@id": "https://tangnotes.site/#website",
     "name": "拼豆Studio",
+    "alternateName": "Bead Studio",
     "url": "https://tangnotes.site/",
+    "inLanguage": "zh-CN",
+    "publisher": { "@id": "https://tangnotes.site/#organization" },
     "description": "免费在线拼豆图纸生成工具，支持自由绘制、图片智能转像素拼豆、COCO/MARD/MARD291/Perler/Hama/Artkal六大品牌色卡配色、专业级PNG/SVG图纸导出。"
   }
   </script>
