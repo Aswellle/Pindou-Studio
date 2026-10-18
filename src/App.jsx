@@ -653,8 +653,8 @@ export default function App() {
               gridHeight={gridHeight}
               onGridSizeChange={handleGridSizeChange}
               onGridDimensionsChange={handleGridDimensionsChange}
-              onUndo={undo}
-              onRedo={redo}
+              onUndo={handleUndo}
+              onRedo={handleRedo}
               onClear={handleClearCanvas}
               canUndo={canUndo}
               canRedo={canRedo}

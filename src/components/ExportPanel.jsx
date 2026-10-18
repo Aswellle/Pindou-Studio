@@ -4,6 +4,8 @@ import { useTranslation } from 'react-i18next'
 import { getPalette } from '../data/palettes'
 import { createPatternDocument } from '../services/export/PatternDocument'
 import { renderPatternDocumentToPNG } from '../services/export/RasterRenderer'
+import { renderPatternDocumentToSVG, svgStringToBlob } from '../services/export/VectorRenderer'
+import { resolveToHex } from '../services/colorUtils'
 import { exportAsPNG, exportAsSVG, createScaledCanvas, calculatePhysicalSize } from '../services/BeadPatternExporter'
 
 export default function ExportPanel({ canvasData, gridSize, gridWidth, gridHeight, designName, paletteId = 'perler', onClose }) {
