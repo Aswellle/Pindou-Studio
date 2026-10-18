@@ -7,8 +7,7 @@
  */
 import fs from 'fs'
 import path from 'path'
-import vm from 'vm'
-import { fileURLToPath } from 'url'
+import { fileURLToPath, pathToFileURL } from 'url'
 import { createCanvas, loadImage } from '@napi-rs/canvas'
 import { PERLER_PALETTE } from '../src/data/palettes/perler.js' // 带扩展名直接导入(node ESM 不解析无扩展名)
 
@@ -39,23 +38,18 @@ const imageData = sctx.getImageData(0, 0, sw, sh)
 
 console.log(`图片 ${img.width}x${img.height} → 缩放 ${sw}x${sh}, 网格 ${gridW}x${gridH}, maxColors=${maxColors}`)
 
-// ── 2. 在 vm 沙箱中执行 worker 量化算法(纯函数,无浏览器依赖) ───
-const workerCode = fs.readFileSync(path.join(ROOT, 'src/workers/imageQuantizer.worker.js'), 'utf8')
+// ── 2. 以 ESM 方式加载 worker 量化算法(纯函数,无浏览器依赖) ───
+// worker 自 Phase 6 起是 ESM(20 处 `export function`),裸 vm.runInContext 无法解析
+// `export` 语法(报 "Unexpected token 'export'")。这里用动态 import 直接加载模块,
+// 并把模块顶层引用的 `self` 注入为全局对象 —— worker 通过 self.postMessage 回传结果。
 let workerResult = null
-const sandbox = {
-  self: {
-    postMessage: (msg) => { workerResult = msg },
-  },
-  console, Math, Infinity,
-  Array, Object, Set, Map, Number, String, Boolean,
-  Uint8Array, Uint8ClampedArray, Uint16Array, Float32Array, Int32Array,
-  parseInt, parseFloat, isNaN, isFinite, Date,
+globalThis.self = {
+  postMessage: (msg) => { workerResult = msg },
 }
-vm.createContext(sandbox)
-vm.runInContext(workerCode, sandbox)
+await import(pathToFileURL(path.join(ROOT, 'src/workers/imageQuantizer.worker.js')).href)
 
 const palette = PERLER_PALETTE
-sandbox.self.onmessage({
+globalThis.self.onmessage({
   data: {
     type: 'QUANTIZE',
     payload: {
