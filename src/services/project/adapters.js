@@ -1,8 +1,10 @@
 /**
  * adapters — 现有数据结构与 BeadPatternProject 之间的双向转换
  *
- * 覆盖 5 个方向(docs/agent-spec/03 §2.3):
+ * 覆盖 7 个方向(docs/agent-spec/03 §2.3):
  *   legacyWorkToProject      useSavedWorks / localStorage 作品 → 项目
+ *   canvasToLegacyWork       画布状态 → 旧作品(保存路径,宽高由 cells 推导)
+ *   normalizeLegacyWork      旧作品宽松归一(存储层读写收口,不校验、不丢字段)
  *   projectToLegacyWork      项目 → 现有保存/载入工作流所需的字段
  *   templateToProject        模板/公共图纸 → 个人项目(gallery-copy,新 id)
  *   projectToTemplatePayload 项目 → 模板 JSON(仅管理员显式发布)
@@ -14,7 +16,7 @@
  *   - 不修改入参(所有输出都是新数组/新对象)。
  */
 
-import { createProject, normalizeProject, validateProject, PROJECT_SCHEMA_VERSION } from './projectModel'
+import { createProject, normalizeProject, validateProject, deriveGridDimensions, PROJECT_SCHEMA_VERSION } from './projectModel'
 import { createPatternDocument } from '../export/PatternDocument'
 import { getPalette } from '../../data/palettes'
 
@@ -64,6 +66,84 @@ export function legacyWorkToProject(work, options = {}) {
     kind: 'legacy-work',
   }
   return project
+}
+
+/**
+ * 画布状态 → 旧作品(保存路径)。
+ *
+ * 宽高**由 cells 实际形状推导**,而不是采信调用方传入的 gridSize/gridWidth/gridHeight:
+ * 历史上有过声明尺寸与数据不一致的保存(量化/模板载入路径各自维护一套状态),
+ * 以数据为准才能保证存下去的作品下次载入不偏移。
+ *
+ * 空画布(无 cells)没有保存意义,返回 null 由调用方跳过。
+ *
+ * @param {Object} params
+ * @param {Array<Array<string|null>>} params.canvasData
+ * @param {string} [params.name]
+ * @param {string} [params.paletteId]
+ * @param {string|number} [params.id]
+ * @param {string} [params.savedAt]
+ * @returns {Object|null}
+ */
+export function canvasToLegacyWork({
+  canvasData,
+  name = '',
+  paletteId = 'perler',
+  id = null,
+  savedAt = null,
+} = {}) {
+  if (!Array.isArray(canvasData) || canvasData.length === 0) return null
+
+  // 不走 createProject + projectToLegacyWork:后者会把 name 截断到 120 字、
+  // 把 paletteId 归一化,保存路径应当**原样**保留用户输入(旧行为如此),
+  // 只需让尺寸与数据形状一致。
+  const { width, height } = deriveGridDimensions(canvasData)
+  const isSquare = width === height
+  return {
+    id: id ?? Date.now(),
+    name,
+    canvasData: canvasData.map((row) => [...row]),
+    gridSize: Math.max(width, height),
+    gridWidth: isSquare ? null : width,
+    gridHeight: isSquare ? null : height,
+    paletteId: paletteId || 'perler',
+    savedAt: savedAt || new Date().toISOString(),
+  }
+}
+
+/**
+ * 旧作品宽松归一(存储层读写收口)。
+ *
+ * 只重算尺寸相关字段(`gridSize/gridWidth/gridHeight`),其余字段原样保留
+ * (spread),因此历史数据里的未知字段不会被丢掉。尺寸以 `canvasData` 的
+ * **实际形状**为准:声明尺寸与数据不一致的旧作品(历史上不同路径各自维护
+ * 尺寸状态)在载入后不再错位。
+ *
+ * 不做颜色校验、不拒绝任何行:品牌色号(`'P18'`)与参差行都保留原值,
+ * 由画布/缩略图自行解析 —— 在这里拒绝会让老用户的作品直接打不开。
+ *
+ * @param {Object} work
+ * @returns {Object} 归一后的 work;无法归一(非作品/空画布)时原样返回
+ */
+export function normalizeLegacyWork(work) {
+  if (!work || typeof work !== 'object' || !Array.isArray(work.canvasData)) return work
+  const { width, height } = deriveGridDimensions(work.canvasData)
+  if (width <= 0 || height <= 0) return work
+
+  const canvasData = work.canvasData.map((row) => {
+    const safe = Array.isArray(row) ? row : []
+    if (safe.length === width) return safe
+    if (safe.length > width) return safe.slice(0, width)
+    return [...safe, ...Array(width - safe.length).fill(null)]
+  })
+  const isSquare = width === height
+  return {
+    ...work,
+    canvasData,
+    gridSize: Math.max(width, height),
+    gridWidth: isSquare ? null : width,
+    gridHeight: isSquare ? null : height,
+  }
 }
 
 /**

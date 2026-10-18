@@ -2,6 +2,8 @@ import { describe, it, expect } from 'vitest'
 import {
   legacyWorkToProject,
   projectToLegacyWork,
+  canvasToLegacyWork,
+  normalizeLegacyWork,
   templateToProject,
   projectToTemplatePayload,
   projectToPatternDocument,
@@ -118,6 +120,111 @@ describe('adapters · projectToLegacyWork', () => {
   it('非法项目返回 null', () => {
     expect(projectToLegacyWork(null)).toBeNull()
     expect(projectToLegacyWork({ grid: {} })).toBeNull()
+  })
+})
+
+describe('adapters · canvasToLegacyWork(M3 保存路径)', () => {
+  it('方形画布输出 gridWidth/gridHeight = null,gridSize = 边长', () => {
+    const canvasData = blank()
+    const work = canvasToLegacyWork({ canvasData, name: '方', paletteId: 'mard' })
+    expect(work.gridSize).toBe(size)
+    expect(work.gridWidth).toBeNull()
+    expect(work.gridHeight).toBeNull()
+    expect(work.paletteId).toBe('mard')
+    expect(work.name).toBe('方')
+  })
+
+  it('矩形画布输出真实宽高(不采信调用方传入的尺寸)', () => {
+    const canvasData = Array.from({ length: 10 }, () => Array.from({ length: 12 }, () => '#E53935'))
+    const work = canvasToLegacyWork({ canvasData, name: '宽图' })
+    expect(work.gridSize).toBe(12)
+    expect(work.gridWidth).toBe(12)
+    expect(work.gridHeight).toBe(10)
+  })
+
+  it('保留调用方 id 的原始类型(数字 id 不被转成字符串)', () => {
+    const work = canvasToLegacyWork({ canvasData: blank(), id: 1700000000000 })
+    expect(work.id).toBe(1700000000000)
+    expect(typeof work.id).toBe('number')
+  })
+
+  it('不修改入参 canvasData', () => {
+    const canvasData = blank()
+    canvasData[0][0] = '#E53935'
+    const snapshot = JSON.stringify(canvasData)
+    const work = canvasToLegacyWork({ canvasData })
+    work.canvasData[0][0] = '#FFFFFF'
+    expect(JSON.stringify(canvasData)).toBe(snapshot)
+  })
+
+  it('空画布返回 null(不产生 0×0 作品)', () => {
+    expect(canvasToLegacyWork({ canvasData: [] })).toBeNull()
+    expect(canvasToLegacyWork({ canvasData: null })).toBeNull()
+    expect(canvasToLegacyWork()).toBeNull()
+  })
+})
+
+describe('adapters · normalizeLegacyWork(M3 存储收口)', () => {
+  it('以 canvasData 实际形状修正不一致的声明尺寸', () => {
+    // 历史 bug:声明 29×29,实际存的是 12×10
+    const canvasData = Array.from({ length: 10 }, () => Array.from({ length: 12 }, () => null))
+    const work = normalizeLegacyWork({ id: 'w1', name: '错位', canvasData, gridSize: 29, gridWidth: null, gridHeight: null })
+    expect(work.gridWidth).toBe(12)
+    expect(work.gridHeight).toBe(10)
+    expect(work.gridSize).toBe(12)
+  })
+
+  it('方形数据把 gridWidth/gridHeight 归为 null', () => {
+    const canvasData = Array.from({ length: 9 }, () => Array.from({ length: 9 }, () => null))
+    const work = normalizeLegacyWork({ id: 'w2', canvasData, gridSize: 9, gridWidth: 9, gridHeight: 9 })
+    expect(work.gridWidth).toBeNull()
+    expect(work.gridHeight).toBeNull()
+  })
+
+  it('不等长行补齐为 null,保证矩阵矩形', () => {
+    const work = normalizeLegacyWork({
+      id: 'w3',
+      canvasData: [['#FF0000', '#FF0000', '#FF0000'], ['#00FF00']],
+      gridSize: 3,
+    })
+    expect(work.canvasData[1]).toEqual(['#00FF00', null, null])
+    expect(work.gridWidth).toBe(3)
+    expect(work.gridHeight).toBe(2)
+  })
+
+  it('保留未知字段、品牌色号与 id 原样(不因归一丢数据)', () => {
+    const work = normalizeLegacyWork({
+      id: 'w4',
+      name: '老作品',
+      canvasData: [['P18', null], [null, '#F2F2F2']],
+      gridSize: 2,
+      paletteId: 'perler',
+      savedAt: '2026-01-01T00:00:00.000Z',
+      customField: 'keep-me',
+    })
+    expect(work.id).toBe('w4')
+    expect(work.name).toBe('老作品')
+    expect(work.paletteId).toBe('perler')
+    expect(work.savedAt).toBe('2026-01-01T00:00:00.000Z')
+    expect(work.customField).toBe('keep-me')
+    // 品牌色号保留原值,交给画布/缩略图解析
+    expect(work.canvasData[0][0]).toBe('P18')
+  })
+
+  it('非作品输入原样返回,不抛异常', () => {
+    expect(normalizeLegacyWork(null)).toBeNull()
+    expect(normalizeLegacyWork('nope')).toBe('nope')
+    const empty = { id: 'w5', canvasData: [] }
+    expect(normalizeLegacyWork(empty)).toBe(empty)
+  })
+
+  it('归一后再次归一幂等', () => {
+    const once = normalizeLegacyWork({
+      id: 'w6',
+      canvasData: [['#FF0000', '#FF0000'], ['#FF0000']],
+      gridSize: 2,
+    })
+    expect(normalizeLegacyWork(once)).toEqual(once)
   })
 })
 

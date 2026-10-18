@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback, useRef } from 'react'
 import i18n from '../i18n'
 import { supabase } from '../services/supabase'
 import { useToast } from '../components/Toast'
+import { normalizeLegacyWork } from '../services/project/adapters'
 
 const KEY = 'saved-works'
 // 云端作品计数镜像:登录时更新,登出后「我的作品」空态可提示"作品在云端,登录查看"
@@ -11,7 +12,12 @@ const WARN_BYTES = 4 * 1024 * 1024
 function loadLocal() {
   const raw = localStorage.getItem(KEY)
   if (!raw) return []
-  try { return JSON.parse(raw) }
+  try {
+    const parsed = JSON.parse(raw)
+    if (!Array.isArray(parsed)) return []
+    // 读入即归一:历史条目可能声明尺寸与 canvasData 实际形状不一致
+    return parsed.map(normalizeLegacyWork)
+  }
   catch {
     // 先备份再删除:损坏可能只是多标签页并发写的暂时性截断,避免永久丢失
     try { localStorage.setItem(KEY + '-corrupt', raw) } catch { /* 备份失败不阻塞 */ }
@@ -27,8 +33,10 @@ function readMirror() {
   } catch { return { count: 0 } }
 }
 
-// 云端行 <-> UI work 字段映射(snake_case <-> camelCase)
-const rowToWork = (row) => ({
+// 云端行 <-> UI work 字段映射(snake_case <-> camelCase)。
+// 读入走 normalizeLegacyWork:旧行可能 grid_size 与 canvas_data 形状不一致,
+// 以数据实际形状为准,避免载入后错位/裁切。
+const rowToWork = (row) => normalizeLegacyWork({
   id: row.id,
   name: row.name,
   canvasData: row.canvas_data,
@@ -137,13 +145,16 @@ export function useSavedWorks(user) {
     // 依赖 user?.id:昵称/头像等资料刷新(refreshProfile 生成新对象)不触发重拉
   }, [user?.id])
 
-  // 保存:云端直接落库;本机走原有配额/异常保护
+  // 保存:云端直接落库;本机走原有配额/异常保护。
+  // 落库前统一走 normalizeLegacyWork:尺寸以 canvasData 实际形状为准,
+  // 不再采信调用方传入的 gridSize/gridWidth/gridHeight(历史上两者会不一致)。
   const saveWork = useCallback(async (work) => {
+    const normalized = normalizeLegacyWork(work)
     if (isCloud()) {
       try {
         const { data, error } = await supabase
           .from('works')
-          .insert({ ...workToRow(work), user_id: user.id })
+          .insert({ ...workToRow(normalized), user_id: user.id })
           .select()
           .single()
         if (error) throw error
@@ -155,7 +166,7 @@ export function useSavedWorks(user) {
         return false
       }
     }
-    const updated = [...worksRef.current, work]
+    const updated = [...worksRef.current, normalized]
     const serialized = JSON.stringify(updated)
     if (serialized.length > WARN_BYTES) {
       const kb = Math.round(serialized.length / 1024)

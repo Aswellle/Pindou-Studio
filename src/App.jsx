@@ -18,6 +18,7 @@ import { useAuth } from './hooks/useAuth'
 import { useResponsive } from './hooks/useResponsive'
 import { useHistory } from './hooks/useHistory'
 import { useSavedWorks } from './hooks/useSavedWorks'
+import { canvasToLegacyWork, normalizeLegacyWork } from './services/project/adapters'
 import MobileToolbar from './components/Tools/MobileToolbar'
 import useCloudTemplates from './hooks/useCloudTemplates'
 import MobileColorPalette from './components/ColorPalette/MobileColorPalette'
@@ -169,16 +170,17 @@ export default function App() {
   }
 
   const handleConfirmSave = async () => {
-    const ok = await saveWork({
-      id: Date.now(),
-      name: saveInputName.trim() || designName,
+    // 作品字段由 adapter 统一构造:尺寸以 canvasData 实际形状为准,
+    // 不再手工拼 gridSize/gridWidth/gridHeight(三者历史上会与数据不一致)。
+    const work = canvasToLegacyWork({
       canvasData,
-      gridSize,
-      gridWidth: gridWidth ?? null,
-      gridHeight: gridHeight ?? null,
+      name: saveInputName.trim() || designName,
       paletteId: currentPalette,
+      id: Date.now(),
       savedAt: new Date().toISOString()
     })
+    if (!work) return
+    const ok = await saveWork(work)
     if (!ok) return
     setShowSaveDialog(false)
     setSaveToast(true)
@@ -228,7 +230,10 @@ export default function App() {
     navigate('/')
   }
 
-  const handleLoadWork = (work) => {
+  const handleLoadWork = (rawWork) => {
+    // 载入前归一:旧作品的声明尺寸可能与 canvasData 实际形状不一致,
+    // 直接 setGridSize 会让画布网格与数据错位(多出的行画不出来、少的行越界)。
+    const work = normalizeLegacyWork(rawWork)
     setGridSize(work.gridSize)
     setGridWidth(work.gridWidth ?? null)
     setGridHeight(work.gridHeight ?? null)
