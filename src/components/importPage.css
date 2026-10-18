@@ -1,0 +1,382 @@
+/* ImportPage — /import 个人图纸导入页
+ *
+ * 视觉沿用站点暖色 token(--bg-*、--accent、--border-color),
+ * 结构参照 ProfilePage 的页面条(返回按钮 + 标题),不引入新主题。
+ * 移动端:单列、文件区全宽可点;桌面端:内容区限宽 860px 居中。
+ */
+
+.import-page {
+  min-height: calc(var(--visible-vh, 100vh) - 60px);
+  background: var(--bg-secondary);
+  padding: 24px 16px 48px;
+  overflow-y: auto;
+}
+
+.import-page-inner {
+  max-width: 860px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.import-page-bar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.import-back {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  height: 34px;
+  padding: 0 12px;
+  border-radius: 999px;
+  border: 1px solid var(--border-color);
+  background: var(--bg-primary);
+  color: var(--text-secondary);
+  font-size: var(--text-sm);
+  cursor: pointer;
+}
+
+.import-back:hover {
+  background: var(--bg-tertiary);
+}
+
+.import-page-title h1 {
+  margin: 0;
+  font-size: 20px;
+  color: var(--text-primary);
+}
+
+.import-eyebrow {
+  display: block;
+  font-size: 10px;
+  letter-spacing: 0.12em;
+  color: var(--text-muted);
+  font-family: var(--font-mono);
+}
+
+.import-intro {
+  margin: 0;
+  color: var(--text-secondary);
+  font-size: var(--text-sm);
+  line-height: 1.7;
+}
+
+/* ── 文件选择区 ───────────────────────────────────────────── */
+.import-drop {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  padding: 28px 16px;
+  border: 1.5px dashed var(--border-color);
+  border-radius: var(--radius-card);
+  background: var(--bg-primary);
+  cursor: pointer;
+  text-align: center;
+  transition: border-color 0.2s, background 0.2s;
+}
+
+.import-drop:hover,
+.import-drop:focus-visible {
+  border-color: var(--accent);
+  background: var(--bg-secondary);
+  outline: none;
+}
+
+.import-file-input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.import-drop-icon {
+  color: var(--accent);
+}
+
+.import-drop-main {
+  font-size: var(--text-base);
+  font-weight: var(--font-weight-medium);
+  color: var(--text-primary);
+}
+
+.import-drop-hint {
+  font-size: var(--text-xs);
+  color: var(--text-muted);
+}
+
+.import-file-name {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin-top: 4px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: var(--bg-tertiary);
+  color: var(--text-secondary);
+  font-size: var(--text-xs);
+  max-width: 100%;
+  overflow-wrap: anywhere;
+}
+
+.import-reading {
+  font-size: var(--text-xs);
+  color: var(--text-muted);
+}
+
+/* ── 错误区 ───────────────────────────────────────────────── */
+.import-errors {
+  border: 1px solid var(--error-border);
+  background: var(--error-bg);
+  border-radius: var(--radius-card);
+  padding: 14px 16px;
+  color: var(--text-primary);
+  font-size: var(--text-sm);
+}
+
+.import-errors-head {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--error);
+  margin-bottom: 8px;
+}
+
+.import-errors ul {
+  margin: 0;
+  padding-left: 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  line-height: 1.6;
+}
+
+.import-errors-more,
+.import-errors-hint {
+  margin: 8px 0 0;
+  font-size: var(--text-xs);
+  color: var(--text-secondary);
+}
+
+/* ── 预览区 ───────────────────────────────────────────────── */
+.import-preview {
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-card);
+  background: var(--bg-primary);
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.import-preview-head {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--success);
+  flex-wrap: wrap;
+}
+
+.import-preview-head strong {
+  color: var(--text-primary);
+  font-size: var(--text-base);
+}
+
+.import-ok-icon {
+  color: var(--success);
+}
+
+.import-picker {
+  margin-left: auto;
+  height: 30px;
+  border-radius: 8px;
+  border: 1px solid var(--border-color);
+  background: var(--bg-secondary);
+  color: var(--text-primary);
+  font-size: var(--text-sm);
+  padding: 0 8px;
+}
+
+.import-preview-body {
+  display: flex;
+  gap: 16px;
+  align-items: flex-start;
+  flex-wrap: wrap;
+}
+
+.import-thumb {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 120px;
+  min-height: 120px;
+  padding: 8px;
+  border-radius: 10px;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  /* 大图缩略图不撑破布局 */
+  overflow: hidden;
+}
+
+.import-thumb canvas {
+  max-width: 220px;
+  max-height: 220px;
+  image-rendering: pixelated;
+}
+
+.import-meta {
+  flex: 1 1 240px;
+  margin: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 8px 16px;
+  font-size: var(--text-sm);
+}
+
+.import-meta > div {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.import-meta dt {
+  color: var(--text-muted);
+  font-size: var(--text-xs);
+}
+
+.import-meta dd {
+  margin: 0;
+  color: var(--text-primary);
+  overflow-wrap: anywhere;
+}
+
+/* ── 操作区 ───────────────────────────────────────────────── */
+.import-actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.import-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 38px;
+  padding: 0 16px;
+  border-radius: 999px;
+  border: 1px solid var(--border-color);
+  background: var(--bg-primary);
+  color: var(--text-secondary);
+  font-size: var(--text-sm);
+  font-family: inherit;
+  cursor: pointer;
+  transition: background 0.2s, color 0.2s;
+}
+
+.import-btn:hover {
+  background: var(--bg-tertiary);
+}
+
+.import-btn.ghost {
+  background: transparent;
+}
+
+.import-btn.secondary {
+  border-color: var(--secondary-accent);
+  color: var(--secondary-accent);
+}
+
+.import-btn.secondary:hover {
+  background: var(--bg-secondary);
+}
+
+.import-btn.primary {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #fff;
+}
+
+.import-btn.primary:hover {
+  background: var(--accent-hover);
+}
+
+.import-btn:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.import-storage-hint {
+  margin: 0;
+  font-size: var(--text-xs);
+  color: var(--text-muted);
+  line-height: 1.6;
+}
+
+/* ── 格式说明 ─────────────────────────────────────────────── */
+.import-format {
+  border-top: 1px dashed var(--border-color);
+  padding-top: 14px;
+  font-size: var(--text-sm);
+  color: var(--text-secondary);
+}
+
+.import-format h2 {
+  margin: 0 0 6px;
+  font-size: var(--text-base);
+  color: var(--text-primary);
+}
+
+.import-format p {
+  margin: 0 0 10px;
+  line-height: 1.7;
+}
+
+.import-format pre {
+  margin: 0 0 10px;
+  padding: 12px;
+  border-radius: 10px;
+  background: var(--bg-tertiary);
+  color: var(--text-primary);
+  font-family: var(--font-mono);
+  font-size: 11px;
+  line-height: 1.6;
+  overflow-x: auto;
+}
+
+.import-format-note {
+  color: var(--text-muted);
+  font-size: var(--text-xs);
+}
+
+/* ── 移动端 ───────────────────────────────────────────────── */
+@media (max-width: 639px) {
+  .import-page {
+    padding: 16px 12px 40px;
+  }
+  .import-preview-body {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .import-thumb {
+    align-self: center;
+  }
+  .import-actions {
+    flex-direction: column;
+  }
+  .import-btn {
+    justify-content: center;
+    height: 44px;
+  }
+  .import-picker {
+    margin-left: 0;
+    width: 100%;
+  }
+}

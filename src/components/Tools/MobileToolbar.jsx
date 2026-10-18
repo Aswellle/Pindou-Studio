@@ -84,6 +84,16 @@ const ExportIcon = () => (
   </svg>
 )
 
+// 导入项目文件(文件 + 向内箭头):与图片转拼豆并列的第二种导入入口
+const ImportIcon = () => (
+  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+    <polyline points="14,2 14,8 20,8" />
+    <line x1="12" y1="12" x2="12" y2="18" />
+    <polyline points="9,15 12,18 15,15" />
+  </svg>
+)
+
 // ── 引导 toast 的用户行为记录(localStorage)──────────────────────
 // 用途:判断「该用户需要图片转拼豆」或「该用户没发现该功能」。
 const BEHAVIOR_KEY = 'bead-studio-behavior'
@@ -113,6 +123,7 @@ export default function MobileToolbar({
   onClear,
   onExport,
   onQuantize,
+  onImport,
 }) {
   const { t } = useTranslation()
   const toast = useToast()
@@ -322,6 +333,17 @@ export default function MobileToolbar({
           <WandIcon />
           <span className="magic-sparkle" aria-hidden="true">✦</span>
         </button>
+
+        {onImport && (
+          <button
+            className="action-btn"
+            onClick={onImport}
+            aria-label={t('tools.importFile')}
+            title={t('tools.importFile')}
+          >
+            <ImportIcon />
+          </button>
+        )}
 
         <button className="action-btn primary" onClick={onExport} aria-label={t('export.title')}>
           <ExportIcon />

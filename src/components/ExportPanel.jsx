@@ -7,6 +7,9 @@ import { renderPatternDocumentToPNG } from '../services/export/RasterRenderer'
 import { renderPatternDocumentToSVG, svgStringToBlob } from '../services/export/VectorRenderer'
 import { resolveToHex } from '../services/colorUtils'
 import { exportAsPNG, exportAsSVG, createScaledCanvas, calculatePhysicalSize } from '../services/BeadPatternExporter'
+import { canvasToLegacyWork } from '../services/project/adapters'
+import { legacyWorkToProject } from '../services/project/adapters'
+import { projectToFileText, projectFileName, downloadProjectFile } from '../services/project/exportProject'
 
 export default function ExportPanel({ canvasData, gridSize, gridWidth, gridHeight, designName, paletteId = 'perler', onClose }) {
   const { t } = useTranslation()
@@ -237,7 +240,6 @@ export default function ExportPanel({ canvasData, gridSize, gridWidth, gridHeigh
 
   const handleExportSVG = () => {
     if (!canvasData) return
-
     // Feature Flag: 新导出路径 (PatternDocument → VectorRenderer)
     if (useExportV2) {
       const doc = createPatternDocument({
@@ -288,6 +290,38 @@ export default function ExportPanel({ canvasData, gridSize, gridWidth, gridHeigh
     link.download = `bead-pattern-${actualWidth}x${actualHeight}.svg`
     link.href = URL.createObjectURL(blob)
     link.click()
+  }
+
+  // ── 导出工程文件(.pindou.json)────────────────────────────
+  // 与 PNG/SVG 不同:这是可无损重新导入继续编辑的工程文件,不渲染。
+  // 走 canvasToLegacyWork → legacyWorkToProject 复用既有尺寸推导,
+  // 保证导出的宽高与画布实际数据一致(与 M3 的保存路径同源)。
+  const handleExportProjectFile = () => {
+    if (!canvasData) return
+    const work = canvasToLegacyWork({
+      canvasData,
+      name: effectiveName,
+      paletteId,
+      id: null,
+    })
+    if (!work) {
+      setExportError(t('export.exportFailed'))
+      return
+    }
+    const project = legacyWorkToProject(work, { id: undefined })
+    if (!project) {
+      setExportError(t('export.exportFailed'))
+      return
+    }
+    project.name = effectiveName
+    project.source = { ...project.source, kind: 'native-file' }
+    const text = projectToFileText(project)
+    if (!text) {
+      setExportError(t('export.exportFailed'))
+      return
+    }
+    downloadProjectFile(text, projectFileName(project, effectiveName))
+    setExportInfo(t('export.projectFileSaved'))
   }
 
   const handleExportPatternSheet = async () => {
@@ -404,6 +438,16 @@ export default function ExportPanel({ canvasData, gridSize, gridWidth, gridHeigh
                   <line x1="16" y1="17" x2="8" y2="17"/>
                 </svg>
                 {t('export.text')}
+              </button>
+              {/* 工程文件:可重新导入继续编辑(与 PNG/SVG 成品导出互补) */}
+              <button onClick={() => requestExport(t('export.projectFile'), t('export.projectFileDesc'), null, handleExportProjectFile)} className="btn btn-secondary">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                  <polyline points="14,2 14,8 20,8"/>
+                  <line x1="12" y1="12" x2="12" y2="18"/>
+                  <polyline points="15,15 12,18 9,15"/>
+                </svg>
+                {t('export.projectFile')}
               </button>
             </div>
           </div>

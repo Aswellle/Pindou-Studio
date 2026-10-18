@@ -1,6 +1,6 @@
 import { useTranslation } from 'react-i18next'
 import { useToast } from './Toast'
-import { Pencil, Eraser, PaintBucket, Hand, Undo2, Redo2, Trash2, ChevronLeft, ChevronRight } from 'lucide-react'
+import { Pencil, Eraser, PaintBucket, Hand, Undo2, Redo2, Trash2, ChevronLeft, ChevronRight, FileJson } from 'lucide-react'
 
 export default function Tools({
   tool,
@@ -17,7 +17,8 @@ export default function Tools({
   onClear,
   canUndo,
   canRedo,
-  onOpenQuantizer
+  onOpenQuantizer,
+  onOpenImport
 }) {
   const { t } = useTranslation()
   const toast = useToast()
@@ -178,6 +179,12 @@ export default function Tools({
             </svg>
             {t('tools.imageToBead')}
           </button>
+          {onOpenImport && (
+            <button className="action-btn import-btn" onClick={onOpenImport} title={t('tools.importFile')}>
+              <FileJson size={16} />
+              {t('tools.importFile')}
+            </button>
+          )}
         </div>
       </div>
 

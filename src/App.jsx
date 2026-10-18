@@ -19,6 +19,7 @@ import { useResponsive } from './hooks/useResponsive'
 import { useHistory } from './hooks/useHistory'
 import { useSavedWorks } from './hooks/useSavedWorks'
 import { canvasToLegacyWork, normalizeLegacyWork } from './services/project/adapters'
+import ImportPage from './components/ImportPage'
 import MobileToolbar from './components/Tools/MobileToolbar'
 import useCloudTemplates from './hooks/useCloudTemplates'
 import MobileColorPalette from './components/ColorPalette/MobileColorPalette'
@@ -98,10 +99,11 @@ export default function App() {
     : location.pathname.startsWith('/terms') ? 'terms'
     : location.pathname.startsWith('/login') ? 'login'
     : location.pathname.startsWith('/create/image') ? 'createImage'
+    : location.pathname.startsWith('/import') ? 'import'
     : location.pathname.startsWith('/profile') ? 'profile'
     : 'canvas'
   // 核心功能页不继承站点导航，页面内部提供自己的返回与操作层。
-  const isStandalonePage = currentPage === 'login' || currentPage === 'adminLogin' || currentPage === 'privacy' || currentPage === 'terms' || currentPage === 'createImage' || currentPage === 'profile'
+  const isStandalonePage = currentPage === 'login' || currentPage === 'adminLogin' || currentPage === 'privacy' || currentPage === 'terms' || currentPage === 'createImage' || currentPage === 'import' || currentPage === 'profile'
 
   // iOS Safari 键盘安全(全站统一,防复发机制):
   // 监听 visual viewport 的 resize/scroll 与聚焦,把可视高度写入 --visible-vh、
@@ -242,6 +244,19 @@ export default function App() {
     navigate('/')
   }
 
+  // 导入的项目直接进画布继续编辑(不落库;用户可再点保存决定是否留存)
+  const handleLoadImportedProject = (project) => {
+    const grid = project?.grid
+    if (!grid || !Array.isArray(grid.cells)) return
+    const isSquare = grid.width === grid.height
+    setGridSize(Math.max(grid.width, grid.height))
+    setGridWidth(isSquare ? null : grid.width)
+    setGridHeight(isSquare ? null : grid.height)
+    if (project.palette?.paletteId) setCurrentPalette(project.palette.paletteId)
+    resetCanvas(grid.cells.map(row => [...row]))
+    navigate('/')
+  }
+
   const resolveToHexAllPalettes = (colorVal, palette) => {
     if (!colorVal) return null
     if (typeof colorVal === 'string' && colorVal.startsWith('#')) return colorVal
@@ -346,6 +361,7 @@ export default function App() {
             canUndo={canUndo}
             canRedo={canRedo}
             onOpenQuantizer={() => navigate('/create/image')}
+            onOpenImport={() => navigate('/import')}
           />
         </div>
         <div className="left-sidebar-bottom">
@@ -437,6 +453,13 @@ export default function App() {
             <Suspense fallback={<LoadingScreen />}>
               <CreateImagePage onApply={handleQuantizerApply} />
             </Suspense>
+          } />
+
+          <Route path="/import" element={
+            <ImportPage
+              onLoadProject={handleLoadImportedProject}
+              onSaveProject={saveWork}
+            />
           } />
 
           <Route path="/admin/dashboard" element={
@@ -674,6 +697,7 @@ export default function App() {
               canRedo={canRedo}
               onExport={() => setShowExport(true)}
               onQuantize={() => navigate('/create/image')}
+              onImport={() => navigate('/import')}
             />
           </>
         } />
@@ -731,6 +755,14 @@ export default function App() {
           <Suspense fallback={<LoadingScreen />}>
             <CreateImagePage onApply={handleQuantizerApply} />
           </Suspense>
+        } />
+        <Route path="/import" element={
+          <div className="mobile-page-area">
+            <ImportPage
+              onLoadProject={handleLoadImportedProject}
+              onSaveProject={saveWork}
+            />
+          </div>
         } />
         <Route path="/admin/login" element={renderAdminLoginPage()} />
         <Route path="/admin" element={
@@ -911,6 +943,11 @@ export default function App() {
       desc: '上传图片，一键生成像素拼豆图纸。',
       noindex: true,
     },
+    import: {
+      title: '导入图纸 - 拼豆Studio',
+      desc: '导入 .pindou.json 原生项目文件或模板 JSON，校验后保存为仅自己可见的拼豆图纸。',
+      noindex: true,
+    },
     privacy: {
       title: '隐私政策 - 拼豆Studio',
       desc: '了解拼豆Studio如何收集、使用和保护您的个人信息，以及账号验证、云端存储与第三方服务的详细说明。',
@@ -927,7 +964,7 @@ export default function App() {
   const CANONICAL_PATH = {
     canvas: '/', gallery: '/gallery', tutorials: '/tutorials', admin: '/admin',
     adminLogin: '/admin/login', login: '/login', profile: '/profile',
-    createImage: '/create/image', privacy: '/privacy', terms: '/terms',
+    createImage: '/create/image', import: '/import', privacy: '/privacy', terms: '/terms',
   }
   const SITE_ORIGIN = 'https://tangnotes.site'
   const baseUrl = `${SITE_ORIGIN}${CANONICAL_PATH[currentPage] || '/'}`
