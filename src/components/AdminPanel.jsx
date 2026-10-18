@@ -3,7 +3,7 @@ import { createPortal } from 'react-dom'
 import { useTranslation } from 'react-i18next'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { useToast } from './Toast'
-import { CATEGORIES, DIFFICULTIES, normalizeCustomTemplate } from '../data/templates'
+import { CATEGORIES, DIFFICULTIES, normalizeCustomTemplate, templateDimensions } from '../data/templates'
 import ThumbnailCanvas from './ThumbnailCanvas'
 import LoadingScreen from './LoadingScreen'
 import UserManager from './UserManager'
@@ -869,12 +869,20 @@ function TemplateManager({ store }) {
           {filtered.map(tpl => (
             <div key={tpl.id} className="admin-template-row">
               <div className="thumb">
-                <ThumbnailCanvas pattern={tpl.pattern} size={tpl.size} />
+                <ThumbnailCanvas
+                  pattern={tpl.pattern}
+                  size={tpl.size}
+                  gridWidth={templateDimensions(tpl).width}
+                  gridHeight={templateDimensions(tpl).height}
+                />
               </div>
               <div className="admin-template-meta">
                 <div className="admin-template-name">{tpl.nameZh || tpl.name}</div>
                 <div className="admin-template-sub">
-                  {categoryDisplayName(store, t, tpl.category)} · {tpl.size}×{tpl.size} ·{' '}
+                  {categoryDisplayName(store, t, tpl.category)} · {(() => {
+                    const { width, height } = templateDimensions(tpl)
+                    return `${width}×${height}`
+                  })()} ·{' '}
                   {t(`gallery.difficulties.${tpl.difficulty}`)}
                 </div>
                 <div className="admin-color-dots">
@@ -1037,7 +1045,12 @@ function TemplateForm({ store, editing, initial, onDone }) {
           <label>{t('admin.colors')}<span className="admin-field-hint"> — {t('admin.colorsHint')}</span></label>
           <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
             <div className="admin-preview-thumb">
-              <ThumbnailCanvas pattern={preview.pattern} size={preview.size} />
+              <ThumbnailCanvas
+                pattern={preview.pattern}
+                size={preview.size}
+                gridWidth={preview.gridWidth}
+                gridHeight={preview.gridHeight}
+              />
             </div>
             <div className="admin-color-dots">
               {preview.colors.map((c, i) => (

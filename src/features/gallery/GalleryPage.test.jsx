@@ -114,3 +114,57 @@ describe('GalleryPage V2 — 云端模式', () => {
     expect(container.querySelectorAll('.template-card').length).toBe(TEMPLATES.length)
   })
 })
+
+describe('GalleryPage V2 — 矩形模板(M2 / R3)', () => {
+  const rectTemplate = {
+    id: 'cloud-rect',
+    name: 'Wide',
+    nameZh: '宽图',
+    category: 'animal',
+    difficulty: 'easy',
+    size: 4,                    // 旧协议只有单值 max
+    pattern: [
+      ['#FFD700', '#FFD700', '#FFD700', '#FFD700'],
+      [null, '#FFD700', '#FFD700', null],
+    ],
+  }
+  const rectStore = {
+    enabled: true, loading: false, error: null,
+    templates: [rectTemplate],
+    categories: [], refresh: vi.fn(), loadAll: vi.fn(),
+  }
+
+  it('卡片显示真实 W × H,而不是 size × size', () => {
+    const { container } = setup({ savedWorks: [], cloudStore: rectStore })
+    expect(container.querySelector('.template-size').textContent).toBe('4 x 2')
+  })
+
+  it('载入矩形模板时回调携带真实 gridWidth/gridHeight', () => {
+    const onLoadTemplate = vi.fn()
+    const { container } = setup({ savedWorks: [], cloudStore: rectStore, onLoadTemplate })
+    fireEvent.click(container.querySelector('.template-card'))
+    fireEvent.click(screen.getByText('填充到画布'))
+
+    const [pattern, size, opts] = onLoadTemplate.mock.calls[0]
+    expect(pattern).toHaveLength(2)
+    expect(size).toBe(4)                 // 兼容参数仍是 max
+    expect(opts.gridWidth).toBe(4)
+    expect(opts.gridHeight).toBe(2)
+  })
+
+  it('方形模板不传 gridWidth/gridHeight(保持旧调用形态)', () => {
+    const onLoadTemplate = vi.fn()
+    const { container } = setup({ savedWorks: [], onLoadTemplate })
+    fireEvent.click(container.querySelector('.template-card'))
+    fireEvent.click(screen.getByText('填充到画布'))
+
+    const [, , opts] = onLoadTemplate.mock.calls[0]
+    expect(opts).toBeUndefined()
+  })
+
+  it('填充确认弹窗尺寸文案使用真实宽高', () => {
+    const { container } = setup({ savedWorks: [], cloudStore: rectStore })
+    fireEvent.click(container.querySelector('.template-card'))
+    expect(screen.getByText(/\(4×2\)/)).toBeTruthy()
+  })
+})

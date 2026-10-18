@@ -398,6 +398,26 @@ export function extractPatternColors(pattern) {
   return seen
 }
 
+// 从 pattern 推导真实宽高:高 = 行数,宽 = 最大行长。
+// 模板协议里 `size` 是单值(max),无法表达矩形;所有需要真实尺寸的地方都应走这里。
+export function patternDimensions(pattern) {
+  if (!Array.isArray(pattern) || pattern.length === 0) return { width: 0, height: 0 }
+  let width = 0
+  for (const row of pattern) {
+    if (Array.isArray(row) && row.length > width) width = row.length
+  }
+  return { width, height: pattern.length }
+}
+
+// 模板真实宽高:优先显式 gridWidth/gridHeight(新协议字段,或未来 DB 列),
+// 否则由 pattern 推导。内置 TEMPLATES 与旧云端行都走推导分支,无需数据迁移。
+export function templateDimensions(template) {
+  const derived = patternDimensions(template?.pattern)
+  const width = Number(template?.gridWidth) || derived.width
+  const height = Number(template?.gridHeight) || derived.height
+  return { width, height }
+}
+
 // 把模板 pattern 的颜色重映射到指定品牌色卡(CIEDE2000 就近吸附)。
 // 只转换每种唯一颜色(≤几十种),按色缓存;不改变模板本身(载入时对副本转换)。
 // 注意:转到较小色卡(如 Perler 80/Hama 56)时部分颜色会就近近似。
@@ -438,7 +458,6 @@ export function normalizeCustomTemplate(input) {
 
   const normalized = []
   let nonEmpty = 0
-  let maxRowLen = 0
   for (let y = 0; y < pattern.length; y++) {
     const row = pattern[y]
     if (!Array.isArray(row)) {
@@ -461,13 +480,18 @@ export function normalizeCustomTemplate(input) {
         errors.push({ code: 'invalidColor', detail: `(行 ${y + 1}, 列 ${x + 1}): ${String(cell).slice(0, 12)}` })
       }
     }
-    maxRowLen = Math.max(maxRowLen, normRow.length)
     normalized.push(normRow)
   }
   if (nonEmpty === 0) errors.push({ code: 'emptyPattern' })
   if (errors.length > 0) return { ok: false, errors }
 
-  const size = Math.max(normalized.length, maxRowLen)
+  // 不等长行:补齐为 null 而不是拒绝 —— 云端/历史数据里存在参差行,
+  // 补齐后矩形宽高才是权威的(拒绝会让既有模板直接不可用)。
+  // 宽 = 最大行长,高 = 行数;size 保留为兼容字段(= max),旧代码仍可读取。
+  const { width, height } = patternDimensions(normalized)
+  const cells = normalized.map(row => (
+    row.length === width ? row : [...row, ...Array(width - row.length).fill(null)]
+  ))
   return {
     ok: true,
     template: {
@@ -477,9 +501,12 @@ export function normalizeCustomTemplate(input) {
       category,
       difficulty,
       paletteId,
-      size,
-      colors: extractPatternColors(normalized),
-      pattern: normalized,
+      // 真实宽高(权威);size 仅为兼容旧代码保留
+      gridWidth: width,
+      gridHeight: height,
+      size: Math.max(width, height),
+      colors: extractPatternColors(cells),
+      pattern: cells,
     },
   }
 }

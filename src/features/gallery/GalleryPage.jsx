@@ -17,7 +17,7 @@ import { createPortal } from 'react-dom'
 import { useNavigate } from 'react-router-dom'
 import { Home, MessageCircle } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
-import { TEMPLATES, CATEGORIES, DIFFICULTIES, extractPatternColors, convertTemplateToBrand } from '../../data/templates'
+import { TEMPLATES, CATEGORIES, DIFFICULTIES, extractPatternColors, convertTemplateToBrand, templateDimensions } from '../../data/templates'
 import { getPalette, PALETTE_LIST } from '../../data/palettes'
 import { exportAsPNG } from '../../services/BeadPatternExporter'
 import { useToast } from '../../components/Toast'
@@ -205,13 +205,15 @@ export default function GalleryPage({ onLoadTemplate, onDeleteWork, onLoadWork, 
     try {
       const brand = templateBrandId(template)
       const palette = getPalette(brand)
+      // 矩形模板必须传真实宽高,否则旧导出器按 size 单值当正方形裁/补
+      const { width, height } = templateDimensions(template)
       await exportAsPNG(
         templateConvertedPattern(template),
-        template.size,
+        Math.max(width, height),
         brand,
         t(`templates.names.${template.nameKey}`, template.nameKey),
         palette,
-        { beadStyle, gridWidth: null, gridHeight: null }
+        { beadStyle, gridWidth: width, gridHeight: height }
       )
       // 导出成功(任一格式)即计数 +1:本地同步 +1,云端 RPC 后台异步(不阻塞导出状态复位)
       bumpDownload(template)
@@ -224,10 +226,22 @@ export default function GalleryPage({ onLoadTemplate, onDeleteWork, onLoadWork, 
   }
 
   // 载入模板:有品牌(模板自带或用户覆盖)时转换 pattern 并通知 App 同步切换色卡;
-  // 无品牌(内置通用模板)则原样载入,不打扰用户当前色卡
+  // 无品牌(内置通用模板)则原样载入,不打扰用户当前色卡。
+  // 方形模板保持旧调用形态(不传 options),矩形模板才附带真实宽高。
   const handleTemplateLoad = (template) => {
     const brand = brandOverride[template.id] || template.paletteId
-    onLoadTemplate(templateConvertedPattern(template), template.size, brand ? { palette: brand } : undefined)
+    const { width, height } = templateDimensions(template)
+    const options = {}
+    if (brand) options.palette = brand
+    if (width !== height) {
+      options.gridWidth = width
+      options.gridHeight = height
+    }
+    onLoadTemplate(
+      templateConvertedPattern(template),
+      Math.max(width, height),
+      Object.keys(options).length > 0 ? options : undefined
+    )
   }
 
   return (
@@ -475,7 +489,7 @@ export default function GalleryPage({ onLoadTemplate, onDeleteWork, onLoadWork, 
                 onClick={() => setPendingLoad(template)}
               >
                 <div className="template-thumbnail">
-                  <ThumbnailCanvas pattern={template.pattern} size={template.size} />
+                  <ThumbnailCanvas pattern={template.pattern} size={template.size} gridWidth={templateDimensions(template).width} gridHeight={templateDimensions(template).height} />
                   <button
                     className={`favorite-btn ${favorites.some(f => String(f) === String(template.id)) ? 'active' : ''}`}
                     onClick={(e) => toggleFavorite(template.id, e)}
@@ -561,7 +575,11 @@ export default function GalleryPage({ onLoadTemplate, onDeleteWork, onLoadWork, 
                     {template.name ? (template.nameZh || template.name) : t(`templates.names.${template.nameKey}`, template.nameKey)}
                   </h3>
                   <div className="template-meta">
-                    <span className="template-size">{template.size} x {template.size}</span>
+                    {/* 真实宽高:矩形模板显示 W × H,方形显示 N × N */}
+                    {(() => {
+                      const { width, height } = templateDimensions(template)
+                      return <span className="template-size">{width} x {height}</span>
+                    })()}
                     {/* 拼豆品牌徽章:显示模板所属色卡品牌;点击可切换并转换为指定品牌 */}
                     <button
                       className={`template-brand${brandOverride[template.id] ? ' overridden' : ''}`}
@@ -656,7 +674,8 @@ export default function GalleryPage({ onLoadTemplate, onDeleteWork, onLoadWork, 
               <p className="load-confirm-body">
                 {t('gallery.loadConfirmBody', {
                   name: pendingLoad.name ? (pendingLoad.nameZh || pendingLoad.name) : t(`templates.names.${pendingLoad.nameKey}`, pendingLoad.nameKey),
-                  size: pendingLoad.size,
+                  width: templateDimensions(pendingLoad).width,
+                  height: templateDimensions(pendingLoad).height,
                 })}
               </p>
               <div className="load-confirm-actions">

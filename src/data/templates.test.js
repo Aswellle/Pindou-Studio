@@ -1,5 +1,12 @@
 import { describe, test, expect } from 'vitest'
-import { extractPatternColors, normalizeCustomTemplate, convertTemplateToBrand } from './templates'
+import {
+  extractPatternColors,
+  normalizeCustomTemplate,
+  convertTemplateToBrand,
+  patternDimensions,
+  templateDimensions,
+  TEMPLATES,
+} from './templates'
 
 describe('extractPatternColors', () => {
   test('extracts unique colors in order of first appearance', () => {
@@ -122,6 +129,40 @@ describe('normalizeCustomTemplate — unified protocol', () => {
     const pattern = Array(rows).fill(null).map(() => Array(cols).fill('#FF0000'))
     const res = normalizeCustomTemplate({ name: 'Rect', category: 'food', pattern })
     expect(res.template.size).toBe(10)
+    expect(res.template.gridWidth).toBe(10)
+    expect(res.template.gridHeight).toBe(4)
+  })
+
+  test('M2: 矩形模板输出真实 gridWidth/gridHeight,不再丢宽高', () => {
+    const res = normalizeCustomTemplate({
+      name: 'Wide',
+      category: 'icon',
+      pattern: [
+        ['#FF0000', '#FF0000', '#FF0000', '#FF0000'],
+        [null, '#00FF00', '#00FF00', null],
+      ],
+    })
+    expect(res.ok).toBe(true)
+    expect(res.template.gridWidth).toBe(4)
+    expect(res.template.gridHeight).toBe(2)
+    expect(res.template.size).toBe(4) // 兼容字段仍是 max
+  })
+
+  test('M2: 不等长行补齐为 null,而不是拒绝或留下参差行', () => {
+    const res = normalizeCustomTemplate({
+      name: 'Ragged',
+      category: 'icon',
+      pattern: [
+        ['#FF0000', '#FF0000', '#FF0000'],
+        ['#00FF00'],
+      ],
+    })
+    expect(res.ok).toBe(true)
+    expect(res.template.gridWidth).toBe(3)
+    expect(res.template.gridHeight).toBe(2)
+    expect(res.template.pattern[1]).toEqual(['#00FF00', null, null])
+    // 每行等长,可直接交给 canvasData
+    expect(new Set(res.template.pattern.map(r => r.length))).toEqual(new Set([3]))
   })
 
   test('carries paletteId through (defaults to perler when absent)', () => {
@@ -129,6 +170,32 @@ describe('normalizeCustomTemplate — unified protocol', () => {
     expect(withBrand.template.paletteId).toBe('mard')
     const noBrand = normalizeCustomTemplate({ name: 'N', category: 'icon', pattern: [['#FF0000']] })
     expect(noBrand.template.paletteId).toBe('perler')
+  })
+})
+
+describe('patternDimensions / templateDimensions', () => {
+  test('由 pattern 推导宽高(矩形取最大行长)', () => {
+    expect(patternDimensions([[null, null, null], [null, null]])).toEqual({ width: 3, height: 2 })
+    expect(patternDimensions([])).toEqual({ width: 0, height: 0 })
+    expect(patternDimensions(null)).toEqual({ width: 0, height: 0 })
+  })
+
+  test('优先使用显式 gridWidth/gridHeight', () => {
+    expect(templateDimensions({ pattern: [['#000000']], gridWidth: 5, gridHeight: 3 }))
+      .toEqual({ width: 5, height: 3 })
+  })
+
+  test('内置模板无显式宽高时由 pattern 推导(全部 29×29)', () => {
+    for (const tpl of TEMPLATES) {
+      const { width, height } = templateDimensions(tpl)
+      expect(width).toBe(29)
+      expect(height).toBe(29)
+    }
+  })
+
+  test('缺少 pattern 时回退 0,不抛异常', () => {
+    expect(templateDimensions(null)).toEqual({ width: 0, height: 0 })
+    expect(templateDimensions({})).toEqual({ width: 0, height: 0 })
   })
 })
 

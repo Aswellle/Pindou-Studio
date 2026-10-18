@@ -494,7 +494,7 @@
     "brandConvert": "点击选择拼豆品牌(载入时转换为该品牌色卡)",
     "brandDefault": "跟随模板(默认)",
     "loadConfirmTitle": "填充模板到画布",
-    "loadConfirmBody": "是否将「{{name}}」({{size}}×{{size}})填充到画布?",
+    "loadConfirmBody": "是否将「{{name}}」({{width}}×{{height}})填充到画布?",
     "loadToCanvas": "填充到画布",
     "downloadCount": "下载次数",
     "categories": {

@@ -24,7 +24,7 @@ import ThumbnailCanvas from './ThumbnailCanvas'
 import useAdminOverview, { OVERVIEW_ERROR_TIMEOUT, OVERVIEW_ERROR_FORBIDDEN } from '../hooks/useAdminOverview'
 import { buildTrend, computeLibraryStats, checkContentHealth, TREND_WINDOW_DAYS } from '../utils/adminOverview'
 import { PALETTES } from '../data/palettes/index.js'
-import { CATEGORIES } from '../data/templates'
+import { CATEGORIES, templateDimensions } from '../data/templates'
 
 const VALID_PALETTE_IDS = Object.keys(PALETTES)
 const TREND_DAYS = TREND_WINDOW_DAYS
@@ -330,11 +330,22 @@ export default function AdminDashboardPage({ cloudStore, user, isAdmin, authLoad
                 {library.topDownloaded.map((tpl) => (
                   <li key={tpl.id}>
                     <span className="adash-thumb">
-                      <ThumbnailCanvas pattern={tpl.pattern} size={tpl.size} />
+                      <ThumbnailCanvas
+                        pattern={tpl.pattern}
+                        size={tpl.size}
+                        gridWidth={templateDimensions(tpl).width}
+                        gridHeight={templateDimensions(tpl).height}
+                      />
                     </span>
                     <span className="adash-top-main">
                       <span className="adash-top-name">{tpl.nameZh || tpl.name}</span>
-                      <span className="adash-top-meta">{paletteLabel(tpl.paletteId || 'perler')} · 尺寸 {tpl.size}</span>
+                      <span className="adash-top-meta">
+                        {paletteLabel(tpl.paletteId || 'perler')} · 尺寸{' '}
+                        {(() => {
+                          const { width, height } = templateDimensions(tpl)
+                          return `${width}×${height}`
+                        })()}
+                      </span>
                     </span>
                     <span className="adash-top-count">{tpl.downloadCount || 0} 次</span>
                   </li>

@@ -494,7 +494,7 @@
     "brandConvert": "Choose a bead brand (converts on load)",
     "brandDefault": "Follow template (default)",
     "loadConfirmTitle": "Fill Template to Canvas",
-    "loadConfirmBody": "Fill \"{{name}}\" ({{size}}×{{size}}) to the canvas?",
+    "loadConfirmBody": "Fill \"{{name}}\" ({{width}}×{{height}}) to the canvas?",
     "loadToCanvas": "Fill to Canvas",
     "downloadCount": "Downloads",
     "categories": {

@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { supabase, SUPABASE_PROXIED } from '../services/supabase'
-import { normalizeCustomTemplate } from '../data/templates'
+import { normalizeCustomTemplate, patternDimensions } from '../data/templates'
 
 /**
  * 云端模板库(Supabase templates / categories 表)。
@@ -17,26 +17,39 @@ const CLOUD_TIMEOUT_MS = 15000
 
 const isAbortError = (e) => e?.name === 'AbortError' || /abort/i.test(e?.message || '')
 
-const rowToTemplate = (row) => ({
-  id: row.id,
-  name: row.name,
-  nameZh: row.name_zh,
-  category: row.category,
-  difficulty: row.difficulty,
-  size: row.size,
-  colors: Array.isArray(row.colors) ? row.colors : [],
-  pattern: row.pattern,
-  source: row.source,
-  paletteId: row.palette_id || 'perler',
-  downloadCount: row.download_count ?? 0,
-})
+// 云端行 → UI 模板。宽高在读取时由 pattern 推导(不依赖 DB 列,零迁移):
+// templates 表只有单值 size,矩形信息只能从 pattern 恢复。
+// 若未来加了 grid_width/grid_height 列,这里会优先使用行上的显式值。
+const rowToTemplate = (row) => {
+  const derived = patternDimensions(row.pattern)
+  const gridWidth = Number(row.grid_width) || derived.width
+  const gridHeight = Number(row.grid_height) || derived.height
+  return {
+    id: row.id,
+    name: row.name,
+    nameZh: row.name_zh,
+    category: row.category,
+    difficulty: row.difficulty,
+    // size 以 pattern 推导为准(与 gridWidth/gridHeight 同源),DB 列仅作兜底:
+    // 历史行可能存着与 pattern 不符的 size,以数据实际形状为准才不会错位。
+    size: Math.max(gridWidth, gridHeight) || row.size,
+    gridWidth,
+    gridHeight,
+    colors: Array.isArray(row.colors) ? row.colors : [],
+    pattern: row.pattern,
+    source: row.source,
+    paletteId: row.palette_id || 'perler',
+    downloadCount: row.download_count ?? 0,
+  }
+}
 
 const templateToRow = (t) => ({
   name: t.name,
   name_zh: t.nameZh || null,
   category: t.category,
   difficulty: t.difficulty,
-  size: t.size,
+  // DB 只有单值 size(= max),矩形宽高由 pattern 在读取时推导
+  size: t.size ?? Math.max(t.gridWidth || 0, t.gridHeight || 0),
   colors: t.colors,
   pattern: t.pattern,
   source: t.source || 'custom',

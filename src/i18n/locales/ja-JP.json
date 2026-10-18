@@ -494,7 +494,7 @@
     "brandConvert": "ビーズブランドを選択(読み込み時に変換)",
     "brandDefault": "テンプレートに従う(デフォルト)",
     "loadConfirmTitle": "テンプレートをキャンバスへ",
-    "loadConfirmBody": "「{{name}}」({{size}}×{{size}})をキャンバスに配置しますか?",
+    "loadConfirmBody": "「{{name}}」({{width}}×{{height}})をキャンバスに配置しますか?",
     "loadToCanvas": "キャンバスへ配置",
     "downloadCount": "ダウンロード数",
     "categories": {

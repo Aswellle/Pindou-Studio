@@ -210,9 +210,18 @@ export default function App() {
   }
 
   const handleLoadTemplate = (pattern, size, options = {}) => {
-    setGridSize(size)
-    setGridWidth(null)
-    setGridHeight(null)
+    // 矩形模板由 Gallery 传入真实宽高;方形模板不传,沿用旧的 size 单值语义
+    const width = Number(options.gridWidth) || size
+    const height = Number(options.gridHeight) || size
+    if (width === height) {
+      setGridSize(width)
+      setGridWidth(null)
+      setGridHeight(null)
+    } else {
+      setGridSize(Math.max(width, height))
+      setGridWidth(width)
+      setGridHeight(height)
+    }
     // 载入模板时同步切换到其所属(或用户指定转换的)拼豆品牌色卡
     if (options.palette) setCurrentPalette(options.palette)
     resetCanvas(pattern)
