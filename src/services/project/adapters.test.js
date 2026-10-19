@@ -353,3 +353,24 @@ describe('adapters · parseProject', () => {
     expect(validateProject(res.project).ok).toBe(true)
   })
 })
+
+describe('canvasToLegacyWork · 图库复制溯源', () => {
+  it('传入 sourceTemplateId 时原样写入作品', () => {
+    const work = canvasToLegacyWork({
+      canvasData: [[null, '#FF0000']],
+      name: '复制',
+      sourceTemplateId: 'tpl-9',
+    })
+    expect(work.sourceTemplateId).toBe('tpl-9')
+  })
+
+  it('未传来源时不产生该字段(普通保存不依赖新列)', () => {
+    const work = canvasToLegacyWork({ canvasData: [[null]], name: '普通' })
+    expect('sourceTemplateId' in work).toBe(false)
+  })
+
+  it('数字来源(内置模板 id)不被字符串化', () => {
+    const work = canvasToLegacyWork({ canvasData: [[null]], sourceTemplateId: 12 })
+    expect(work.sourceTemplateId).toBe(12)
+  })
+})

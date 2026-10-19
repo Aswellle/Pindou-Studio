@@ -91,6 +91,7 @@ export function canvasToLegacyWork({
   paletteId = 'perler',
   id = null,
   savedAt = null,
+  sourceTemplateId = null,
 } = {}) {
   if (!Array.isArray(canvasData) || canvasData.length === 0) return null
 
@@ -108,6 +109,10 @@ export function canvasToLegacyWork({
     gridHeight: isSquare ? null : height,
     paletteId: paletteId || 'perler',
     savedAt: savedAt || new Date().toISOString(),
+    // 图库复制溯源(可选):不参与尺寸/渲染,原样保留
+    ...(sourceTemplateId !== null && sourceTemplateId !== undefined
+      ? { sourceTemplateId }
+      : {}),
   }
 }
 
