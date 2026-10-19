@@ -15,6 +15,7 @@ import Tools from './components/Tools'
 import ExportPanel from './components/ExportPanel'
 import ColorStatsBar from './components/ColorStatsBar'
 import ReplaceColorDialog from './components/ReplaceColorDialog'
+import MyBeadsPage from './components/MyBeadsPage'
 import { useToast } from './components/Toast'
 import {
   fillSelection,
@@ -122,10 +123,11 @@ export default function App() {
     : location.pathname.startsWith('/login') ? 'login'
     : location.pathname.startsWith('/create/image') ? 'createImage'
     : location.pathname.startsWith('/import') ? 'import'
+    : location.pathname.startsWith('/my/beads') ? 'myBeads'
     : location.pathname.startsWith('/profile') ? 'profile'
     : 'canvas'
   // 核心功能页不继承站点导航，页面内部提供自己的返回与操作层。
-  const isStandalonePage = currentPage === 'login' || currentPage === 'adminLogin' || currentPage === 'privacy' || currentPage === 'terms' || currentPage === 'createImage' || currentPage === 'import' || currentPage === 'profile'
+  const isStandalonePage = currentPage === 'login' || currentPage === 'adminLogin' || currentPage === 'privacy' || currentPage === 'terms' || currentPage === 'createImage' || currentPage === 'import' || currentPage === 'profile' || currentPage === 'myBeads'
 
   // iOS Safari 键盘安全(全站统一,防复发机制):
   // 监听 visual viewport 的 resize/scroll 与聚焦,把可视高度写入 --visible-vh、
@@ -388,6 +390,12 @@ export default function App() {
     toast(t('tools.replacedToast', { n: result.changed }), 'success')
   }, [canvasData, setCanvas, toast, t])
 
+  // M6:图纸匹配确认后的批量替色。只调用一次 setCanvas → 一条可撤销历史。
+  const handleApplyBeadMapping = useCallback((nextData) => {
+    if (!nextData) return
+    setCanvas(nextData)
+  }, [setCanvas])
+
   // 页面切换(通过路由)
   const handlePageChange = (page) => {
     if (page === 'canvas') navigate('/')
@@ -538,6 +546,14 @@ export default function App() {
             <ImportPage
               onLoadProject={handleLoadImportedProject}
               onSaveProject={saveWork}
+            />
+          } />
+
+          <Route path="/my/beads" element={
+            <MyBeadsPage
+              user={user}
+              canvasData={canvasData}
+              onApplyMapping={handleApplyBeadMapping}
             />
           } />
 
@@ -857,6 +873,15 @@ export default function App() {
             />
           </div>
         } />
+        <Route path="/my/beads" element={
+          <div className="mobile-page-area">
+            <MyBeadsPage
+              user={user}
+              canvasData={canvasData}
+              onApplyMapping={handleApplyBeadMapping}
+            />
+          </div>
+        } />
         <Route path="/admin/login" element={renderAdminLoginPage()} />
         <Route path="/admin" element={
           <Suspense fallback={<LoadingScreen />}>
@@ -1051,6 +1076,11 @@ export default function App() {
       desc: '导入 .pindou.json 原生项目文件或模板 JSON，校验后保存为仅自己可见的拼豆图纸。',
       noindex: true,
     },
+    myBeads: {
+      title: '我的色卡与库存 - 拼豆Studio',
+      desc: '管理个人拼豆色卡、豆子库存，并把当前图纸的颜色匹配到目标色卡。',
+      noindex: true,
+    },
     privacy: {
       title: '隐私政策 - 拼豆Studio',
       desc: '了解拼豆Studio如何收集、使用和保护您的个人信息，以及账号验证、云端存储与第三方服务的详细说明。',
@@ -1068,6 +1098,7 @@ export default function App() {
     canvas: '/', gallery: '/gallery', tutorials: '/tutorials', admin: '/admin',
     adminLogin: '/admin/login', login: '/login', profile: '/profile',
     createImage: '/create/image', import: '/import', privacy: '/privacy', terms: '/terms',
+    myBeads: '/my/beads',
   }
   const SITE_ORIGIN = 'https://tangnotes.site'
   const baseUrl = `${SITE_ORIGIN}${CANONICAL_PATH[currentPage] || '/'}`

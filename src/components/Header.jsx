@@ -1,6 +1,6 @@
 import { useTranslation } from 'react-i18next'
 import { NavLink, useNavigate } from 'react-router-dom'
-import { PenTool, LayoutGrid, BookOpen } from 'lucide-react'
+import { PenTool, LayoutGrid, BookOpen, Palette } from 'lucide-react'
 import LanguageSelector from './Header/LanguageSelector'
 import Avatar from './Avatar'
 
@@ -13,6 +13,7 @@ export default function Header({ user, onLogin, onRegister, onLogout, onSave, cu
     { id: 'canvas', path: '/', label: t('nav.canvas'), icon: PenTool },
     { id: 'gallery', path: '/gallery', label: t('nav.gallery'), icon: LayoutGrid },
     { id: 'tutorials', path: '/tutorials', label: t('nav.tutorials'), icon: BookOpen },
+    { id: 'myBeads', path: '/my/beads', label: t('nav.myBeads'), icon: Palette },
   ]
 
   return (

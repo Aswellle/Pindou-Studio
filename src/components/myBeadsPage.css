@@ -1,0 +1,701 @@
+/* MyBeadsPage — /my/beads 个人色卡与库存
+ *
+ * 视觉沿用站点暖色 token(--bg-*、--accent、--secondary-accent、--border-color),
+ * 结构参照 ImportPage 的页面条(返回 + 标题)与卡片区。
+ * 移动端:单列;桌面端:内容区限宽 960px 居中。
+ * 全屏弹层遵循 index.css 的共享浮层规则(--visible-vh / --visible-vh-top)。
+ */
+
+.my-beads-page {
+  min-height: calc(var(--visible-vh, 100vh) - 60px);
+  background: var(--bg-secondary);
+  padding: 24px 16px 48px;
+  overflow-y: auto;
+}
+
+.my-beads-inner {
+  max-width: 960px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.my-beads-bar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.my-beads-back {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  height: 34px;
+  padding: 0 12px;
+  border-radius: 999px;
+  border: 1px solid var(--border-color);
+  background: var(--bg-primary);
+  color: var(--text-secondary);
+  font-size: var(--text-sm);
+  cursor: pointer;
+}
+
+.my-beads-back:hover { background: var(--bg-tertiary); }
+
+.my-beads-title h1 {
+  margin: 0;
+  font-size: 20px;
+  color: var(--text-primary);
+}
+
+.my-beads-title p {
+  margin: 2px 0 0;
+  font-size: var(--text-xs);
+  color: var(--text-muted);
+}
+
+.my-beads-eyebrow {
+  display: block;
+  font-size: 10px;
+  letter-spacing: 0.12em;
+  color: var(--text-muted);
+  font-family: var(--font-mono);
+}
+
+/* ── 模式说明 ─────────────────────────────────────────────── */
+.my-beads-mode {
+  margin: 0;
+  padding: 8px 12px;
+  border-radius: 10px;
+  font-size: var(--text-xs);
+  line-height: 1.6;
+}
+
+.my-beads-mode.cloud {
+  background: var(--bg-primary);
+  border: 1px solid var(--border-color);
+  color: var(--secondary-accent);
+}
+
+.my-beads-mode.local {
+  background: var(--warning-bg);
+  border: 1px solid var(--warning-border);
+  color: var(--warning);
+}
+
+.my-beads-banner {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: var(--bg-primary);
+  border: 1px solid var(--border-color);
+  font-size: var(--text-sm);
+  color: var(--text-secondary);
+}
+
+/* ── Tabs ─────────────────────────────────────────────────── */
+.my-beads-tabs {
+  display: flex;
+  gap: 6px;
+  border-bottom: 1px solid var(--border-color);
+  padding-bottom: 2px;
+}
+
+.my-beads-tabs button {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 14px;
+  border: none;
+  border-radius: 8px 8px 0 0;
+  background: transparent;
+  color: var(--text-secondary);
+  font-family: inherit;
+  font-size: var(--text-sm);
+  cursor: pointer;
+  border-bottom: 2px solid transparent;
+}
+
+.my-beads-tabs button.active {
+  color: var(--accent);
+  border-bottom-color: var(--accent);
+  font-weight: var(--font-weight-semibold);
+}
+
+/* ── 区块 ─────────────────────────────────────────────────── */
+.my-beads-section {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  background: var(--bg-primary);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-card);
+  padding: 16px;
+}
+
+.my-beads-section-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.my-beads-section-head h2,
+.my-beads-section-head h3 {
+  margin: 0;
+  font-size: var(--text-base);
+  color: var(--text-primary);
+}
+
+.my-beads-hint {
+  margin: 0;
+  color: var(--text-muted);
+  font-size: var(--text-sm);
+  line-height: 1.6;
+}
+
+.my-beads-hint.small { font-size: var(--text-xs); }
+
+/* ── 按钮 ─────────────────────────────────────────────────── */
+.my-beads-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  height: 32px;
+  padding: 0 12px;
+  border-radius: 8px;
+  border: 1px solid transparent;
+  font-family: inherit;
+  font-size: var(--text-xs);
+  font-weight: var(--font-weight-medium);
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background 0.15s, border-color 0.15s;
+}
+
+.my-beads-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+.my-beads-btn.primary {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #fff;
+}
+.my-beads-btn.primary:hover:not(:disabled) { background: var(--accent-hover); }
+
+.my-beads-btn.secondary {
+  background: var(--bg-secondary);
+  border-color: var(--border-color);
+  color: var(--text-primary);
+}
+.my-beads-btn.secondary:hover:not(:disabled) { background: var(--bg-tertiary); }
+
+.my-beads-btn.ghost {
+  background: transparent;
+  border-color: var(--border-color);
+  color: var(--text-secondary);
+}
+.my-beads-btn.ghost:hover:not(:disabled) { background: var(--bg-secondary); }
+
+.my-beads-btn.danger {
+  background: var(--error);
+  border-color: var(--error);
+  color: #fff;
+}
+
+.my-beads-icon-btn {
+  width: 30px;
+  height: 30px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 8px;
+  border: 1px solid var(--border-color);
+  background: var(--bg-primary);
+  color: var(--text-secondary);
+  cursor: pointer;
+}
+.my-beads-icon-btn:hover { background: var(--bg-secondary); }
+.my-beads-icon-btn.danger { color: var(--error); border-color: var(--error-border); }
+
+.my-beads-row-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-left: auto;
+}
+
+/* ── 色卡列表 ─────────────────────────────────────────────── */
+.my-beads-palette-list {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.my-beads-palette-card {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 12px;
+  border-radius: 10px;
+  border: 1px solid var(--border-color);
+  background: var(--bg-primary);
+  color: var(--text-secondary);
+  font-family: inherit;
+  font-size: var(--text-sm);
+  cursor: pointer;
+  text-align: left;
+}
+
+.my-beads-palette-card.active {
+  border-color: var(--accent);
+  color: var(--text-primary);
+  background: var(--accent-soft);
+}
+
+.my-beads-palette-card .name { font-weight: var(--font-weight-medium); }
+.my-beads-palette-card .meta { font-size: var(--text-xs); color: var(--text-muted); }
+
+.my-beads-palette-detail {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 12px;
+  border-radius: 10px;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+}
+
+/* ── 颜色 / 库存行 ────────────────────────────────────────── */
+.my-beads-color-list,
+.my-beads-inv-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  max-height: 460px;
+  overflow-y: auto;
+}
+
+.my-beads-color-row,
+.my-beads-inv-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 5px 8px;
+  border-radius: 6px;
+  font-size: var(--text-xs);
+  color: var(--text-secondary);
+}
+
+.my-beads-color-row:nth-child(odd),
+.my-beads-inv-row:nth-child(odd) {
+  background: var(--bg-primary);
+}
+
+.swatch {
+  width: 16px;
+  height: 16px;
+  border-radius: 4px;
+  border: 1px solid rgba(43, 36, 32, 0.15);
+  flex-shrink: 0;
+}
+
+.swatch.big { width: 30px; height: 30px; border-radius: 8px; }
+
+.my-beads-color-row code,
+.my-beads-inv-row code,
+.my-beads-match-table code {
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  color: var(--text-primary);
+  min-width: 34px;
+}
+
+.my-beads-color-row .name,
+.my-beads-inv-row .name {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.my-beads-color-row .hex,
+.my-beads-inv-row .hex {
+  font-family: var(--font-mono);
+  color: var(--text-muted);
+}
+
+.inv-tag {
+  margin-left: 6px;
+  padding: 1px 6px;
+  border-radius: 999px;
+  background: var(--bg-tertiary);
+  color: var(--text-secondary);
+  font-size: 10px;
+}
+
+/* ── 内置色卡 ─────────────────────────────────────────────── */
+.my-beads-builtin {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  border-top: 1px dashed var(--border-color);
+  padding-top: 12px;
+}
+
+.my-beads-builtin h3 {
+  margin: 0;
+  font-size: var(--text-sm);
+  color: var(--text-primary);
+}
+
+.my-beads-builtin-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 8px;
+}
+
+.my-beads-builtin-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 8px 10px;
+  border-radius: 10px;
+  border: 1px solid var(--border-color);
+  background: var(--bg-secondary);
+}
+
+.my-beads-builtin-card div {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.my-beads-builtin-card strong { font-size: var(--text-sm); color: var(--text-primary); }
+.my-beads-builtin-card span { font-size: 10px; color: var(--text-muted); }
+
+/* ── 筛选 ─────────────────────────────────────────────────── */
+.my-beads-filters {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+.my-beads-filters select,
+.my-beads-size input,
+.my-beads-search input {
+  height: 32px;
+  padding: 0 8px;
+  border-radius: 8px;
+  border: 1px solid var(--border-color);
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  font-family: inherit;
+  font-size: var(--text-xs);
+  /* 移动端输入框 ≥16px 防止 iOS 自动缩放 */
+  min-width: 120px;
+}
+
+.my-beads-search {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  color: var(--text-muted);
+}
+
+.my-beads-search input { padding-left: 4px; }
+
+.my-beads-size {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: var(--text-xs);
+  color: var(--text-secondary);
+}
+
+.my-beads-size input { width: 84px; min-width: 0; }
+
+.my-beads-inv-stats {
+  display: flex;
+  gap: 14px;
+  flex-wrap: wrap;
+  font-size: var(--text-xs);
+  color: var(--text-secondary);
+}
+
+.my-beads-inv-stats span {
+  padding: 3px 9px;
+  border-radius: 999px;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+}
+
+.stock-controls {
+  margin-left: auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.stock-btn {
+  width: 26px;
+  height: 26px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 6px;
+  border: 1px solid var(--border-color);
+  background: var(--bg-primary);
+  color: var(--text-muted);
+  cursor: pointer;
+}
+
+.stock-btn.on { color: var(--success); border-color: var(--success); }
+.stock-btn.out { color: var(--error); border-color: var(--error); }
+
+.qty-input {
+  width: 64px;
+  height: 26px;
+  padding: 0 6px;
+  border-radius: 6px;
+  border: 1px solid var(--border-color);
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+}
+
+/* ── 匹配 ─────────────────────────────────────────────────── */
+.my-beads-match-preview {
+  display: flex;
+  gap: 14px;
+  align-items: flex-start;
+  flex-wrap: wrap;
+}
+
+.my-beads-thumb {
+  width: 120px;
+  height: 120px;
+  border-radius: 10px;
+  border: 1px solid var(--border-color);
+  background: #fff;
+  overflow: hidden;
+  flex-shrink: 0;
+}
+
+.my-beads-thumb canvas { width: 100% !important; height: 100% !important; }
+
+.my-beads-match-summary {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: var(--text-xs);
+  color: var(--text-secondary);
+}
+
+.my-beads-match-actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.my-beads-table-wrap {
+  overflow-x: auto;
+  border: 1px solid var(--border-color);
+  border-radius: 10px;
+}
+
+.my-beads-match-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: var(--text-xs);
+  min-width: 640px;
+}
+
+.my-beads-match-table th {
+  text-align: left;
+  padding: 8px;
+  background: var(--bg-secondary);
+  color: var(--text-secondary);
+  font-weight: var(--font-weight-medium);
+  white-space: nowrap;
+}
+
+.my-beads-match-table td {
+  padding: 6px 8px;
+  border-top: 1px solid var(--border-color);
+  color: var(--text-secondary);
+  white-space: nowrap;
+}
+
+.my-beads-match-table tr.accepted td { background: var(--accent-soft); }
+
+.my-beads-match-table td code { margin-left: 4px; }
+
+.override-select {
+  margin-left: 6px;
+  height: 24px;
+  border-radius: 6px;
+  border: 1px solid var(--border-color);
+  background: var(--bg-primary);
+  color: var(--text-secondary);
+  font-size: 11px;
+}
+
+.status-badge {
+  display: inline-block;
+  padding: 1px 7px;
+  border-radius: 999px;
+  font-size: 10px;
+  white-space: nowrap;
+}
+
+.status-badge.exact { background: #e6f4f1; color: var(--secondary-accent); }
+.status-badge.close { background: #eef6e8; color: #4c8b3f; }
+.status-badge.poor { background: var(--warning-bg); color: var(--warning); }
+.status-badge.missing { background: var(--error-bg); color: var(--error); }
+.status-badge.size { background: var(--error-bg); color: var(--error); }
+.status-badge.unknown { background: var(--bg-tertiary); color: var(--text-secondary); }
+.status-badge.manual { background: var(--accent-soft); color: var(--accent); margin-left: 4px; }
+
+.my-beads-shopping {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+}
+
+.my-beads-shopping h3 {
+  margin: 0;
+  font-size: var(--text-sm);
+  color: var(--text-primary);
+}
+
+.my-beads-shopping ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.my-beads-shopping li {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: var(--text-xs);
+  color: var(--text-secondary);
+}
+
+.my-beads-shopping code {
+  font-family: var(--font-mono);
+  color: var(--text-primary);
+}
+
+/* ── 弹层(共享浮层规则:height 用 --visible-vh)────────────── */
+.my-beads-modal-overlay {
+  position: fixed;
+  top: var(--visible-vh-top, 0px);
+  left: 0;
+  right: 0;
+  height: var(--visible-vh, 100vh);
+  z-index: 1200;
+  display: grid;
+  place-items: center;
+  padding: 16px;
+  padding-bottom: calc(16px + env(safe-area-inset-bottom, 0px));
+  background: rgba(43, 36, 32, 0.45);
+  overflow: hidden;
+}
+
+.my-beads-modal {
+  width: min(440px, 100%);
+  max-height: 100%;
+  overflow-y: auto;
+  margin: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 18px;
+  border-radius: 14px;
+  background: var(--bg-primary);
+  border: 1px solid var(--border-color);
+  box-shadow: 0 12px 40px rgba(43, 36, 32, 0.22);
+}
+
+.my-beads-modal h3 {
+  margin: 0;
+  font-size: var(--text-base);
+  color: var(--text-primary);
+}
+
+.my-beads-modal.confirm { text-align: center; align-items: center; }
+.my-beads-modal .warn-icon { color: var(--warning); }
+.my-beads-modal p { margin: 0; font-size: var(--text-sm); color: var(--text-secondary); }
+
+.my-beads-modal label {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: var(--text-xs);
+  color: var(--text-secondary);
+}
+
+.my-beads-modal label input,
+.my-beads-modal label textarea {
+  width: 100%;
+  padding: 8px 10px;
+  border-radius: 8px;
+  border: 1px solid var(--border-color);
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  font-family: inherit;
+  font-size: var(--text-md);
+  resize: vertical;
+}
+
+.my-beads-hex-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.my-beads-hex-row input { flex: 1; }
+
+.my-beads-modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 4px;
+}
+
+/* ── 移动端 ───────────────────────────────────────────────── */
+@media (max-width: 640px) {
+  .my-beads-page { padding: 16px 12px 96px; }
+  .my-beads-section { padding: 12px; }
+  .my-beads-filters select,
+  .my-beads-search input,
+  .my-beads-size input,
+  .my-beads-modal label input,
+  .my-beads-modal label textarea {
+    font-size: 16px; /* iOS 聚焦不缩放 */
+  }
+  .my-beads-match-preview { flex-direction: column; }
+  .my-beads-thumb { width: 100%; height: 160px; }
+  .my-beads-color-row .hex,
+  .my-beads-inv-row .hex { display: none; }
+}
