@@ -12,6 +12,9 @@ const OVERLAY_SELECTOR = [
   '.quantizer-zoom',
 ].join(',')
 
+// 本 hook 负责写入的 CSS 变量(卸载时逐一清理)
+const VARS = ['--visible-vh', '--visible-vh-top', '--visual-offset-left', '--keyboard-height', '--vh']
+
 /**
  * 防复发机制:iOS Safari 键盘安全 + 全站视觉视口基础设施(单一事实来源)。
  *
@@ -132,6 +135,9 @@ export default function useKeyboardSafe() {
       document.removeEventListener('focusin', onFocusIn)
       document.removeEventListener('focusout', onFocusOut)
       if (raf) cancelAnimationFrame(raf)
+      // 卸载时清掉本 hook 写入的变量(规格 08 §8):避免污染测试环境或
+      // 同一文档里的其他应用实例。只移除自己设置的键,不动 :root 上的其他自定义属性。
+      for (const key of VARS) root.style.removeProperty(key)
     }
   }, [])
 }
