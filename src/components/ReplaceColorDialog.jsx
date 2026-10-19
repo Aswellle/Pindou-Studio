@@ -20,6 +20,7 @@ import { createPortal } from 'react-dom'
 import { Replace, X } from 'lucide-react'
 import { getPalette } from '../data/palettes'
 import { collectColorStats, countColor } from '../utils/selectionUtils'
+import { useScrollLock } from '../hooks/useScrollLock'
 
 export default function ReplaceColorDialog({
   open,
@@ -45,6 +46,9 @@ export default function ReplaceColorDialog({
   }, [open, initialFrom, stats, palette])
 
   const hits = useMemo(() => (open && from ? countColor(canvasData, from) : 0), [open, from, canvasData])
+
+  // 弹层打开期间锁定背景滚动(必须在早退 return 之前调用,保持 hooks 顺序)
+  useScrollLock(!!open)
 
   if (!open) return null
 

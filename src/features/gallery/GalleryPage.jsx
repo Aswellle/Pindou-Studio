@@ -27,6 +27,7 @@ import { useGalleryQuery } from './hooks/useGalleryQuery'
 import { useGalleryTemplates } from './hooks/useGalleryTemplates'
 import useDownloadCounts from './hooks/useDownloadCounts'
 import { useGalleryContent } from '../../hooks/useGalleryContent'
+import { useScrollLock } from '../../hooks/useScrollLock'
 import { buildDiscoverySections } from './discovery'
 import DiscoveryRails from './components/DiscoveryRails'
 import WorkThumbnail from './components/WorkThumbnail'
@@ -87,6 +88,8 @@ export default function GalleryPage({ onLoadTemplate, onDeleteWork, onLoadWork, 
   // 待确认填充到画布的模板(卡片点击不再直接填充,弹窗让用户确认,避免误触)
   const [pendingLoad, setPendingLoad] = useState(null)
   const [showContact, setShowContact] = useState(false)
+  // 载入确认与联系弹层打开时锁背景滚动(引用计数;联系弹层内部也持有同一把锁)
+  useScrollLock(!!pendingLoad)
 
   // 下载量:本地计数(localStorage 持久)叠加云端模板 download_count(抽出的共享 hook)
   const { getDownloadCount, bumpDownload } = useDownloadCounts({
