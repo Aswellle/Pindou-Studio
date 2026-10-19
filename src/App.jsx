@@ -614,8 +614,11 @@ export default function App() {
           <div className="save-dialog" onClick={e => e.stopPropagation()}>
             <h3>{t('gallery.saveTitle')}</h3>
             <label>{t('gallery.saveNameLabel')}</label>
+            {/* 移动端不自动聚焦(规格 08 §5):autoFocus 会立刻唤起键盘,
+                用户刚点「保存」就被键盘盖掉半屏,还与浮层收缩动画互相竞争,
+                iOS 上容易把弹层顶出可视区。桌面端保持原有自动聚焦。 */}
             <input
-              autoFocus
+              autoFocus={!isMobile && !isTablet}
               type="text"
               value={saveInputName}
               onChange={e => setSaveInputName(e.target.value)}
@@ -953,8 +956,11 @@ export default function App() {
           <div className="save-dialog" onClick={e => e.stopPropagation()}>
             <h3>{t('gallery.saveTitle')}</h3>
             <label>{t('gallery.saveNameLabel')}</label>
+            {/* 移动端不自动聚焦(规格 08 §5):autoFocus 会立刻唤起键盘,
+                用户刚点「保存」就被键盘盖掉半屏,还与浮层收缩动画互相竞争,
+                iOS 上容易把弹层顶出可视区。桌面端保持原有自动聚焦。 */}
             <input
-              autoFocus
+              autoFocus={!isMobile && !isTablet}
               type="text"
               value={saveInputName}
               onChange={e => setSaveInputName(e.target.value)}
