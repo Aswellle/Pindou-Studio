@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { useToast } from './Toast'
 import { useScrollLock } from '../hooks/useScrollLock'
+import { isIOSSafariLike } from '../utils/device'
 import { CATEGORIES, DIFFICULTIES, normalizeCustomTemplate, templateDimensions } from '../data/templates'
 import ThumbnailCanvas from './ThumbnailCanvas'
 import LoadingScreen from './LoadingScreen'
@@ -98,16 +99,27 @@ export default function AdminPanel({ user, isAdmin, authLoading, onLogin, onLogo
   // iOS Safari 已知 bug:overflow 滚动容器内的 input/textarea 聚焦时,
   // 键盘弹起瞬间容器重排,偶发整段内容白屏。修复:聚焦瞬间把滚动容器
   // overflow-y 切 hidden 再恢复,强制 iOS 重新布局重绘(用户无感知)。
+  //
+  // 判据用「是否触屏 + 是否为 iOS 内核」而不是 UA 里的 iPhone|iPad|iPod:
+  //   · iPadOS 13+ 默认以桌面 UA 上报,永远匹配不到 iPhone|iPad|iPod,旧写法在
+  //     iPad 上完全不生效(分屏/横屏正是最容易白屏的场景);
+  //   · 只判 UA 不判触屏,会把桌面 Safari 也带上,导致鼠标点击输入框时容器闪一下。
+  // 滚动容器从 `.admin-panel` 改成「聚焦元素最近的滚动祖先」:后台的联系消息卡片、
+  // 内容运营表单都嵌在内层滚动容器里,写死外层容器重绘不到真正出问题的那个。
   useEffect(() => {
-    if (!/iPhone|iPad|iPod/i.test(navigator.userAgent || '')) return
+    if (!isIOSSafariLike(navigator.userAgent, navigator.maxTouchPoints)) return
     const handler = (e) => {
       const el = e.target
       if (!el || (el.tagName !== 'INPUT' && el.tagName !== 'TEXTAREA')) return
-      const scroller = el.closest('.admin-panel')
-      if (scroller) {
-        scroller.style.overflowY = 'hidden'
-        requestAnimationFrame(() => { scroller.style.overflowY = '' })
+      let scroller = el.parentElement
+      while (scroller && scroller !== document.body) {
+        const oy = window.getComputedStyle(scroller).overflowY
+        if (oy === 'auto' || oy === 'scroll') break
+        scroller = scroller.parentElement
       }
+      if (!scroller || scroller === document.body) return
+      scroller.style.overflowY = 'hidden'
+      requestAnimationFrame(() => { scroller.style.overflowY = '' })
     }
     document.addEventListener('focusin', handler, true)
     return () => document.removeEventListener('focusin', handler, true)
