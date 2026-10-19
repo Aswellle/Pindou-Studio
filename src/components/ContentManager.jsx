@@ -13,6 +13,7 @@ import { createPortal } from 'react-dom'
 import { useTranslation } from 'react-i18next'
 import { ArrowDown, ArrowUp, Plus, Trash2, X } from 'lucide-react'
 import { useGalleryContent } from '../hooks/useGalleryContent'
+import { useScrollLock } from '../hooks/useScrollLock'
 import {
   CONTENT_STATUS,
   TRANSLATION_LANGS,
@@ -27,6 +28,8 @@ const LANGS = [
 ]
 
 function ContentModal({ title, onClose, children }) {
+  // 与后台其他模态框一致:打开期间锁背景滚动(引用计数)
+  useScrollLock(true)
   return createPortal(
     <div className="admin-modal-overlay" onClick={onClose}>
       <div className="admin-modal wide" onClick={(e) => e.stopPropagation()}>

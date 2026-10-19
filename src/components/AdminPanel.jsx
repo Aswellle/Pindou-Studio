@@ -3,6 +3,7 @@ import { createPortal } from 'react-dom'
 import { useTranslation } from 'react-i18next'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { useToast } from './Toast'
+import { useScrollLock } from '../hooks/useScrollLock'
 import { CATEGORIES, DIFFICULTIES, normalizeCustomTemplate, templateDimensions } from '../data/templates'
 import ThumbnailCanvas from './ThumbnailCanvas'
 import LoadingScreen from './LoadingScreen'
@@ -31,6 +32,8 @@ function categoryDisplayName(store, t, cat) {
 // 上「滚动容器内的 fixed」在键盘弹出/滚动后存在错位 bug(白板/被顶的元凶之一);
 // portal 后浮层脱离滚动容器与祖先 stacking context,fixed 稳定相对视口。
 function AdminModal({ title, onClose, wide, children }) {
+  // 后台模态框打开期间锁定背景滚动(引用计数,可与其他弹层叠加)
+  useScrollLock(true)
   return createPortal(
     <div className="admin-modal-overlay" onClick={onClose}>
       <div className={`admin-modal${wide ? ' wide' : ''}`} onClick={e => e.stopPropagation()}>

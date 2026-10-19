@@ -5,6 +5,7 @@ import { supabase } from '../services/supabase'
 import LoadingScreen from './LoadingScreen'
 import { useToast } from './Toast'
 import { useAuth } from '../hooks/useAuth'
+import { useScrollLock } from '../hooks/useScrollLock'
 
 /**
  * 用户管理面板(管理员仪表盘)
@@ -33,6 +34,8 @@ export default function UserManager() {
   // 待确认的账号操作:{ type:'delete' | 'lock' | 'unlock', user }
   const [confirm, setConfirm] = useState(null)
   const [busy, setBusy] = useState(false)
+  // 确认浮层打开时锁背景滚动(portal 后仍需防止下层页面跟随滚动)
+  useScrollLock(!!confirm)
 
   const loadStats = useCallback(async () => {
     setStatsLoading(true)
