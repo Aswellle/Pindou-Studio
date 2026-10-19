@@ -146,6 +146,35 @@ describe('移动端全屏浮层契约', () => {
     expect(ruleWith('.modal-overlay > *', 'max-height')).toContain('max-height: 100%')
   })
 
+  it('居中浮层内层容器不得用 overflow:hidden 覆盖滚动兜底', () => {
+    // index.css 给居中子元素加了 max-height:100% + overflow-y:auto,组件若再写
+    // overflow:hidden 会把它覆盖掉 —— 低高度视口下按钮被裁且滚不到。
+    // 允许 `overflow: hidden auto`(横向裁圆角、纵向可滚)。
+    const cssFiles = []
+    const collect = (dir) => {
+      for (const name of readdirSync(dir)) {
+        const full = join(dir, name)
+        if (statSync(full).isDirectory()) collect(full)
+        else if (name.endsWith('.css')) cssFiles.push(full)
+      }
+    }
+    collect(SRC)
+    const offenders = []
+    for (const file of cssFiles) {
+      const code = readFileSync(file, 'utf8')
+      // 只查「浮层/弹层」相关规则块里的 overflow: hidden(单独出现)
+      for (const m of code.matchAll(/\.([a-z-]*(?:overlay|modal|confirm)[a-z-]*)\s*(?:>\s*\*)?\s*\{([^}]*)\}/gi)) {
+        const body = m[2]
+        if (/overflow\s*:\s*hidden\s*;/.test(body) && !/overflow\s*:\s*hidden\s+auto/.test(body)) {
+          // overlay 自身隐藏滚动是刻意的(见 index.css 注释);只约束内层 modal 容器
+          if (/^\.[a-z-]*-overlay$/.test(`.${m[1]}`)) continue
+          offenders.push(`${relative(SRC, file)} → .${m[1]}`)
+        }
+      }
+    }
+    expect(offenders).toEqual([])
+  })
+
   it('组件不再自建浮层高度(top:var(--visible-vh-top))', () => {
     // myBeadsPage.css 曾用 top:var(--visible-vh-top)+height:var(--visible-vh) 自建浮层,
     // 与共享组的 inset:0 冲突;约定:组件只保留背景/层级/内边距。

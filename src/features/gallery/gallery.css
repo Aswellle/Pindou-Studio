@@ -507,7 +507,10 @@
           display: flex;
           background: var(--bg-primary);
           border-radius: 16px;
-          overflow: hidden;
+          /* 横向裁切保住圆角,纵向允许滚动:index.css 给居中子元素加了
+             max-height:100% + overflow-y:auto 兜底,这里若写 overflow:hidden
+             会把它覆盖掉 —— 横屏低高度时按钮会被裁在可视区之外且滚不到。 */
+          overflow: hidden auto;
           max-width: 720px; /* PC 焦点内容:更大的浏览尺寸,预览与文案都舒展 */
           width: 100%;
           box-shadow: 0 16px 48px rgba(43,36,32,0.22);
@@ -584,12 +587,20 @@
           .load-confirm-preview {
             flex: none;
             width: 100%;
-            aspect-ratio: 1 / 1; /* 移动端同样方形预览区:预览图铺满,无白边 */
+            /* 方形预览区,但上限跟随可视高度:低高度横屏时若仍是满宽正方形,
+               预览就把按钮挤出屏幕(共享组的滚动兜底只能让用户滚,体验很差)。 */
+            aspect-ratio: 1 / 1;
+            max-height: 42vh;
+            max-height: calc(var(--visible-vh, 100vh) * 0.42);
             min-height: 0;
             padding: 0;         /* 去内边距,预览图刚好铺满预览区 */
             display: flex;
             align-items: stretch;
             justify-content: stretch;
+          }
+          .load-confirm-preview canvas {
+            /* 预览区被压低时保持等比,不拉伸变形 */
+            object-fit: contain;
           }
           .load-confirm-info {
             text-align: center;
