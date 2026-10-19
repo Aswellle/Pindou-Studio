@@ -3,6 +3,7 @@ import i18n from '../i18n'
 import { supabase } from '../services/supabase'
 import { useToast } from '../components/Toast'
 import { normalizeLegacyWork } from '../services/project/adapters'
+import { PROJECT_SCHEMA_VERSION } from '../services/project/projectModel'
 
 const KEY = 'saved-works'
 // 云端作品计数镜像:登录时更新,登出后「我的作品」空态可提示"作品在云端,登录查看"
@@ -46,8 +47,10 @@ const rowToWork = (row) => normalizeLegacyWork({
   paletteId: row.palette_id,
   savedAt: row.saved_at,
   sourceTemplateId: row.source_template_id ?? null,
+  // 来源类别(迁移 0024):旧行没有该列 → null,由适配层按 legacy-work 处理
+  sourceKind: row.source_kind ?? null,
 })
-const workToRow = (w) => {
+const workToRow = (w, { includeMetadata = true } = {}) => {
   const row = {
     name: w.name,
     canvas_data: w.canvasData,
@@ -63,7 +66,30 @@ const workToRow = (w) => {
   if (w.sourceTemplateId !== null && w.sourceTemplateId !== undefined) {
     row.source_template_id = String(w.sourceTemplateId)
   }
+  if (!includeMetadata) return row
+  // 来源类别(migration 0024):同样只在有值时发送。
+  // 值已由适配层过滤为白名单,这里不再重复校验。
+  if (w.sourceKind) {
+    row.source_kind = w.sourceKind
+  }
+  // 项目模型版本:每行都写,用于将来判断某行是哪个版本写出来的(升级/迁移依据)。
+  row.schema_version = PROJECT_SCHEMA_VERSION
   return row
+}
+
+/**
+ * 判断错误是否「目标列不存在」(迁移 0024 尚未执行)。
+ *
+ * 0024 只是元数据列,缺列不应让用户连作品都保存不了 —— 这种情况下退化为
+ * 不写元数据再试一次,数据本体(canvas_data/尺寸/色卡)照常落库。
+ * PostgREST 报 PGRST204(列不存在)/ 42703(undefined_column),文本里带列名。
+ */
+const isMissingMetadataColumn = (error) => {
+  if (!error) return false
+  const code = String(error.code || '')
+  const text = `${error.message || ''} ${error.details || ''}`
+  if (code !== 'PGRST204' && code !== '42703') return false
+  return /source_kind|schema_version|visibility/.test(text)
 }
 // 登录迁移去重键:与 0017_works.sql 的唯一索引 (user_id, saved_at, name) 对应
 const dedupKey = (w) => `${w.savedAt}|${w.name}`
@@ -123,12 +149,19 @@ export function useSavedWorks(user) {
           })
           let migrated = 0
           if (toPush.length > 0) {
-            const { data: pushed, error: insErr } = await supabase
+            const pushRows = (rows) => supabase
               .from('works')
-              .upsert(toPush.map((w) => ({ ...workToRow(w), user_id: user.id })), {
+              .upsert(rows.map((w) => ({ ...w, user_id: user.id })), {
                 onConflict: 'user_id,saved_at,name',
               })
               .select()
+            let { data: pushed, error: insErr } = await pushRows(toPush.map((w) => workToRow(w)))
+            // 迁移 0024 未执行:去掉元数据列重试,作品本体照常迁移
+            if (insErr && isMissingMetadataColumn(insErr)) {
+              ;({ data: pushed, error: insErr } = await pushRows(
+                toPush.map((w) => workToRow(w, { includeMetadata: false }))
+              ))
+            }
             if (insErr) throw insErr
             migrated = (pushed || []).length
             cloudWorks.push(...(pushed || []).map(rowToWork))
@@ -162,11 +195,16 @@ export function useSavedWorks(user) {
     const normalized = normalizeLegacyWork(work)
     if (isCloud()) {
       try {
-        const { data, error } = await supabase
+        const insert = (includeMetadata) => supabase
           .from('works')
-          .insert({ ...workToRow(normalized), user_id: user.id })
+          .insert({ ...workToRow(normalized, { includeMetadata }), user_id: user.id })
           .select()
           .single()
+        let { data, error } = await insert(true)
+        // 迁移 0024 未执行:退化为不写元数据重试,作品本体不能因此存不下来
+        if (error && isMissingMetadataColumn(error)) {
+          ;({ data, error } = await insert(false))
+        }
         if (error) throw error
         setWorks((prev) => [rowToWork(data), ...prev])
         return true
