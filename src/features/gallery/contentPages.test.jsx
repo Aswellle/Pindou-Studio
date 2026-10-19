@@ -5,6 +5,7 @@ import CollectionPage from './CollectionPage'
 import PatternDetailPage from './PatternDetailPage'
 import i18n from '../../i18n'
 import { MemoryRouter, Route, Routes } from 'react-router-dom'
+import { HelmetProvider } from 'react-helmet-async'
 
 /**
  * M7 页面级测试:主题页 / 合集页 / 图纸详情页。
@@ -75,11 +76,13 @@ const theme = (id, over = {}) => ({
 const cloudStore = (templates) => ({ enabled: true, loading: false, error: null, templates, categories: [], refresh: vi.fn(), loadAll: vi.fn() })
 
 const renderAt = (element, path, route) => render(
-  <MemoryRouter initialEntries={[path]}>
-    <Routes>
-      <Route path={route} element={element} />
-    </Routes>
-  </MemoryRouter>,
+  <HelmetProvider>
+    <MemoryRouter initialEntries={[path]}>
+      <Routes>
+        <Route path={route} element={element} />
+      </Routes>
+    </MemoryRouter>
+  </HelmetProvider>,
 )
 
 describe('ThemePage', () => {

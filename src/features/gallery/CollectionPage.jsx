@@ -15,6 +15,7 @@ import { useFilteredTemplates } from './hooks/useFilteredTemplates'
 import { resolveTemplatesByIds } from './discovery'
 import { localizedContentText } from '../../services/gallery/contentModel'
 import TemplateGrid from './components/TemplateGrid'
+import ContentSeo from './components/ContentSeo'
 import './gallery.css'
 
 export default function CollectionPage({ cloudStore }) {
@@ -46,6 +47,11 @@ export default function CollectionPage({ cloudStore }) {
 
   return (
     <div className="content-page">
+      <ContentSeo
+        title={text?.title}
+        description={text?.curationNote || text?.description}
+        noindex={!collection}
+      />
       <div className="content-page-head">
         <button className="content-back" onClick={() => navigate('/gallery')}>
           <ArrowLeft size={16} aria-hidden="true" />

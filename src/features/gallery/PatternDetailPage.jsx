@@ -24,6 +24,7 @@ import { templateToProject } from '../../services/project/adapters'
 import { projectToImportWork } from '../../services/project/importProject'
 import { useGalleryTemplates } from './hooks/useGalleryTemplates'
 import { templateById } from './discovery'
+import ContentSeo from './components/ContentSeo'
 import './gallery.css'
 
 export default function PatternDetailPage({ cloudStore, onSaveProject, onLoadTemplate }) {
@@ -96,6 +97,13 @@ export default function PatternDetailPage({ cloudStore, onSaveProject, onLoadTem
 
   return (
     <div className="content-page">
+      <ContentSeo
+        title={name}
+        description={template
+          ? `${name} · ${width} × ${height} · ${t(`palette.brand.${template.paletteId || 'perler'}`)}`
+          : undefined}
+        noindex={!template}
+      />
       <div className="content-page-head">
         <button className="content-back" onClick={() => navigate('/gallery')}>
           <ArrowLeft size={16} aria-hidden="true" />
