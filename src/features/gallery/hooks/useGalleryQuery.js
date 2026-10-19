@@ -43,6 +43,29 @@ export function useGalleryQuery() {
     setSearchParams(params, { replace: true })
   }
 
+  /**
+   * 一次写入多个筛选值。
+   * 连续调用单个 setter 时,每个 setter 都从「当前渲染的 searchParams」构造,
+   * 同一 tick 内后一次会覆盖前一次(例如重置三个筛选只剩最后一个生效)。
+   * 需要同时改多项时用这个。
+   */
+  const setFilters = (patch = {}) => {
+    const params = new URLSearchParams(searchParams)
+    if ('q' in patch) {
+      if (patch.q) params.set('q', patch.q)
+      else params.delete('q')
+    }
+    if ('cat' in patch) {
+      if (patch.cat && patch.cat !== 'all') params.set('cat', patch.cat)
+      else params.delete('cat')
+    }
+    if ('diff' in patch) {
+      if (patch.diff && patch.diff !== 'all') params.set('diff', patch.diff)
+      else params.delete('diff')
+    }
+    setSearchParams(params, { replace: true })
+  }
+
   return {
     searchTerm,
     category,
@@ -50,5 +73,6 @@ export function useGalleryQuery() {
     setSearchTerm,
     setCategory,
     setDifficulty,
+    setFilters,
   }
 }
