@@ -16,7 +16,8 @@
     "check-i18n": "node scripts/check-i18n.js",
     "check-migrations": "node scripts/check-migrations.js",
     "indexnow": "node scripts/indexnow-submit.mjs",
-    "favicon": "node scripts/generate-favicon.mjs"
+    "favicon": "node scripts/generate-favicon.mjs",
+    "verify:exports": "node scripts/verify-exports.mjs"
   },
   "dependencies": {
     "@fontsource/noto-sans-sc": "^5.3.0",
