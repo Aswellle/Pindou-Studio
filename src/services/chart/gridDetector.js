@@ -101,6 +101,15 @@ const TRACK_MAX_ITER = 2000
 const TRACK_MAX_STEP_RATIO = 2.3
 /** 相邻间距不得低于格宽的这个倍数(低于说明吸附回了同一条线) */
 const TRACK_MIN_STEP_RATIO = 0.5
+/**
+ * 跟踪过程中格宽滚动估计的下/上界(相对初始估计)。
+ *
+ * 扫描件的书页文字、图案笔画会在真实网格线之间插进伪峰,伪峰间距恰好是半格。
+ * 若允许 est 自由滚动,跟踪会一路按半格走,最终给出两倍的线数。钳制在
+ * ±25% 内既允许跟上扫描造成的轻微不等距,又挡住半格/倍格的错误吸附。
+ */
+const TRACK_EST_FLOOR = 0.75
+const TRACK_EST_CEIL = 1.25
 
 /**
  * 两端修剪:强度低于链中位强度的这个比例 → 视为图例/标题等非网格边缘。
@@ -111,8 +120,15 @@ const TRACK_MIN_STEP_RATIO = 0.5
  * 强度只用来兜底挡掉极弱的杂散边缘。
  */
 const TRIM_STRENGTH_RATIO = 0.3
-/** 两端修剪:间距偏离链中位数超过此比例 → 视为走出图纸 */
-const TRIM_GAP_TOLERANCE = 0.15
+/**
+ * 两端修剪用的**放宽**间距容忍。
+ *
+ * 真实图纸的网格线有 2–3px 宽,加权质心会随抗锯齿与扫描噪声抖动 ±1px,
+ * 相邻间距在 ±19% 内波动是正常的(实测 perler 图纸 10.2–14.4px,格宽 12.4px)。
+ * 用 0.15 会把真实的末端线当成图例剪掉;0.35 只挡明显不在格点上的边缘
+ * (半个格宽 ≈ 0.5)。间距判据本身还要求配合弱强度才生效。
+ */
+const TRIM_GAP_SOFT_TOLERANCE = 0.35
 /** 端点修剪:强度低于链中位强度的这个比例 → 视为图例/标题边缘 */
 const TRIM_OUTLIER_STRENGTH = 0.45
 /** 网格线覆盖率相对链中位数的下限:低于此值说明只覆盖一小段(图例色块/标题笔画) */
@@ -324,9 +340,28 @@ function collectPeaks(ink, strengthProfile, threshold) {
     raw.push({ i, value: v })
   }
 
+  // 边缘峰到 ink 中心的搜索半径。扫描件的粗线(2–3px)在边缘投影上是相距
+  // 3–5px 的双峰,而 ink 的中心恰好落在两者之间 —— 从边缘峰直接取 ink 会
+  // 落在线的肩部(远低于峰高),measureLine 判定失败后退回边缘位置,
+  // 双峰就合并不了,跟踪会按半格宽走出两倍的线数。
+  const CENTER_RADIUS = Math.max(4, Math.round(n * 0.01))
+
   const peaks = []
   for (const r of raw) {
-    const line = measureLine(ink, r.i)
+    // 在邻域里找 ink 局部最大作为定中心种子。
+    // **只在中心明显强于当前点时才采用**:1px 细线的 ink 峰就在边缘峰上,
+    // 盲目外扩会把相邻两条细线都吸到同一个 ink 峰,间距序列被拉成
+    // 「10.8/13.8 交替」这类不规则值,反而破坏格宽一致性。
+    let seed = r.i
+    let bestInk = ink[r.i] || 0
+    for (let d = -CENTER_RADIUS; d <= CENTER_RADIUS; d++) {
+      const j = r.i + d
+      if (j < 0 || j >= n) continue
+      if (ink[j] > bestInk) { bestInk = ink[j]; seed = j }
+    }
+    // 中心不明显更强 → 说明当前点本身就是 ink 峰(细线),不做外扩
+    const useCenter = bestInk > (ink[r.i] || 0) * 1.5
+    const line = useCenter ? measureLine(ink, seed) : measureLine(ink, r.i)
     // ink 上没有对应峰(纯边缘噪声)时回落到边缘峰自身的索引
     const pos = line ? line.pos : r.i
     const prev = peaks[peaks.length - 1]
@@ -505,6 +540,10 @@ function nearestPeak(peaks, target, window, exclude) {
  * 每一步都用「上一条已吸附的线 + 当前格宽」预测下一个位置,再吸附到最近的
  * 候选线 —— 锚点始终是**实测位置**,所以非整数格宽不会累积成漂移。
  * 找不到线时按预测继续前进(允许连续漏检),重新捕获后把跨过的格子数记在 skip 上。
+ *
+ * **格宽只允许小幅修正,不能被拉向半格。** 扫描件的书页文字、图案笔画会在
+ * 真实网格线之间插进伪峰;若允许滚动估计自由更新,跟踪会按半格宽一路走下去,
+ * 最终给出两倍的线数。这里把 est 限制在初始估计的 ±25% 内。
  */
 function trackDirection(peaks, seed, cell, dir) {
   const out = []
@@ -512,6 +551,8 @@ function trackDirection(peaks, seed, cell, dir) {
   let cur = seed.pos
   let est = cell
   let misses = 0
+  const minEst = cell * TRACK_EST_FLOOR
+  const maxEst = cell * TRACK_EST_CEIL
 
   for (let iter = 0; iter < TRACK_MAX_ITER; iter++) {
     const target = cur + dir * est
@@ -538,7 +579,8 @@ function trackDirection(peaks, seed, cell, dir) {
     const perCell = span / (misses + 1)
     steps.push(perCell)
     if (steps.length > TRACK_HISTORY) steps.shift()
-    est = median(steps)
+    // 钳制在初始估计附近,防止被伪峰逐步拉向半格/倍格
+    est = Math.min(maxEst, Math.max(minEst, median(steps)))
     cur = cand.pos
     misses = 0
   }
@@ -575,6 +617,11 @@ function expandTracked(entries, startPos) {
  * 跟踪会一路走进右侧图例、标题笔画等弱边缘 —— 它们的强度只有真实网格线的
  * 一小部分。反复剪掉强度明显偏弱或间距明显不符的端点,直到端点可信为止。
  * **只剪两端**:图纸内部的弱线(相邻两格颜色接近)是真实存在的,不能动。
+ *
+ * **间距偏差单独不足以剪线**:真实图纸的网格线有 2–3px 宽,加权质心会随
+ * 抗锯齿和扫描噪声抖动 ±1px,相邻间距在 ±19% 内波动是正常的(实测 perler
+ * 图纸间距 10.2–14.4px,格宽 12.4px)。只有「间距明显不符 **且** 强度也弱」
+ * 才说明是图例/标题边缘;强度足够的线即便间距偏一点也应保留。
  */
 function trimEnds(lines, strengths, referenceCell) {
   const L = lines.slice()
@@ -590,16 +637,19 @@ function trimEnds(lines, strengths, referenceCell) {
 
     const weakFirst = S[0] > 0 && level > 0 && S[0] < level * TRIM_STRENGTH_RATIO
     const weakLast = S[S.length - 1] > 0 && level > 0 && S[S.length - 1] < level * TRIM_STRENGTH_RATIO
-    const badFirstGap = L.length > 2 && Math.abs(L[1] - L[0] - cell) > cell * TRIM_GAP_TOLERANCE
+    // 间距偏差用**放宽容忍**(TRIM_GAP_SOFT_TOLERANCE):真实线宽带来的质心抖动
+    // 可达 ±20%,只有明显偏离(如半个格宽)才说明不在格点上。
+    const badFirstGap = L.length > 2 && Math.abs(L[1] - L[0] - cell) > cell * TRIM_GAP_SOFT_TOLERANCE
     const badLastGap = L.length > 2
-      && Math.abs(L[L.length - 1] - L[L.length - 2] - cell) > cell * TRIM_GAP_TOLERANCE
+      && Math.abs(L[L.length - 1] - L[L.length - 2] - cell) > cell * TRIM_GAP_SOFT_TOLERANCE
 
     // 插值线(强度 0)在端点没有像素证据,直接剪掉
     const zeroFirst = S[0] === 0
     const zeroLast = S[S.length - 1] === 0
 
-    const dropFirst = badFirstGap || weakFirst || zeroFirst
-    const dropLast = badLastGap || weakLast || zeroLast
+    // 间距偏差必须配合弱强度才剪:强度高的线即使间距偏一点也是真实网格线
+    const dropFirst = (badFirstGap && weakFirst) || weakFirst || zeroFirst
+    const dropLast = (badLastGap && weakLast) || weakLast || zeroLast
     if (!dropFirst && !dropLast) break
 
     if (dropFirst && dropLast) {
@@ -716,7 +766,10 @@ function lineCoverage(luma, width, height, axis, pos) {
   const idx = Math.round(pos)
   const n = axis === 'vertical' ? height : width
   const limit = axis === 'vertical' ? width : height
-  if (idx <= 0 || idx >= limit - 1) return 1 // 贴边的线无法判定,按可信处理
+  // 贴边像素:把索引夹到有效范围后照常测量,而不是直接返回 1。
+  // 返回 1 会让图像底边/右边上的伪峰永远"覆盖率满分",修剪在第一步就停住,
+  // 整条正文伪峰链因此被保留下来。夹取后仍能反映该位置的真实边缘密度。
+  const clamped = Math.max(1, Math.min(limit - 2, idx))
   let hits = 0
   // 粗线(每 10 格一条的加粗线)中心两侧还在线内,单点差值≈0。
   // 取 ±2px 窗口内的最大差值,让粗线与细线用同一判据。
@@ -726,7 +779,7 @@ function lineCoverage(luma, width, height, axis, pos) {
       const base = y * width
       let best = 0
       for (let d = -RAD; d <= RAD; d++) {
-        const j = idx + d
+        const j = clamped + d
         if (j <= 0 || j >= limit - 1) continue
         const i = base + j
         const l = luma[i]
@@ -739,7 +792,7 @@ function lineCoverage(luma, width, height, axis, pos) {
     for (let x = 0; x < width; x++) {
       let best = 0
       for (let d = -RAD; d <= RAD; d++) {
-        const j = idx + d
+        const j = clamped + d
         if (j <= 0 || j >= limit - 1) continue
         const i = j * width + x
         const l = luma[i]
@@ -753,24 +806,32 @@ function lineCoverage(luma, width, height, axis, pos) {
 }
 
 /**
- * 剔除端点处覆盖率明显偏低的线(图例色块、标题笔画)。
+ * 剔除端点处覆盖率明显偏低的线(图例色块、标题笔画、书页正文)。
  *
- * 用**相对**覆盖率:与链内各线覆盖率的中位数比较。
- * 图纸边界线的覆盖率本来就低(图纸外是留白,它只跨图纸高度、不跨整幅图),
- * 用绝对阈值会误剪边界;而图例色块只覆盖图纸高度的一小段,
- * 相对中位数仍明显偏低。
+ * 参考值取**覆盖率最高的前 25%** 的中位数,而不是全体中位数:
+ * 扫描件的正文文字会产生大量伪峰,若它们在链中占多数,全体中位数会被拉到
+ * 伪峰水平,相对判据就完全失效(实测扫描件 32 条线里 18 条是伪峰)。
+ * 真实网格线始终是覆盖率最高的一批,取高分位参考值不受伪峰数量影响。
+ *
+ * 为什么不用绝对阈值:覆盖率的分母是整幅图像,而竖线只跨图纸高度、
+ * 横线只跨图纸宽度 —— 两个方向的绝对值天然相差很大
+ * (实测扫描件竖线中位 0.61、横线中位 0.82),单一门槛必然误剪一个方向。
  */
 function trimLowCoverage(lines, strengths, luma, width, height, axis, debugOut) {
   const L = lines.slice()
   const S = strengths.slice()
   while (L.length > TRIM_MIN_LINES) {
     const covs = L.map((p) => lineCoverage(luma, width, height, axis, p))
-    const ref = median(covs)
+    // 高分位参考:真实网格线的覆盖率水平,不受伪峰数量稀释
+    const sortedCov = covs.slice().sort((a, b) => a - b)
+    const topCount = Math.max(1, Math.ceil(sortedCov.length * 0.25))
+    const ref = median(sortedCov.slice(sortedCov.length - topCount))
     if (debugOut) {
       debugOut.coverages = {
         first: +covs[0].toFixed(2),
         last: +covs[covs.length - 1].toFixed(2),
-        median: +ref.toFixed(2),
+        median: +median(covs).toFixed(2),
+        topRef: +ref.toFixed(2),
         n: L.length,
       }
     }
@@ -793,8 +854,9 @@ function trimLowCoverage(lines, strengths, luma, width, height, axis, debugOut) 
  * 格点阵的残差容忍内(单个残差小),因此不会被 reconcileLattice 剔除。
  * 这里以**估计格宽**为基准,从两端反复剔除间距超差的端点,直到两端都合格。
  *
- * 与 trimEnds 的区别:这里**只看间距**,不看强度,而且放在格点阵裁决之后,
- * 确保「已对齐到阵上但仍多出一列」的情况也能收干净。
+ * 与 trimEnds 的区别:这里同样要求「间距超差 **且** 强度偏弱」才剪,
+ * 并且使用放宽的 TRIM_GAP_SOFT_TOLERANCE —— 真实网格线宽造成的质心抖动
+ * 会让间距在 ±19% 内波动,只用间距判据会误剪真实边界线。
  */
 function trimOutlierEnds(lines, strengths, cell) {
   const L = lines.slice()
@@ -812,17 +874,15 @@ function trimOutlierEnds(lines, strengths, cell) {
     const lastGap = L[L.length - 1] - L[L.length - 2]
     const firstWeak = S[0] > 0 && level > 0 && S[0] < level * TRIM_OUTLIER_STRENGTH
     const lastWeak = S[S.length - 1] > 0 && level > 0 && S[S.length - 1] < level * TRIM_OUTLIER_STRENGTH
-    const firstGapBad = Math.abs(firstGap - ref) > ref * TRIM_GAP_TOLERANCE
-    const lastGapBad = Math.abs(lastGap - ref) > ref * TRIM_GAP_TOLERANCE
+    const firstGapBad = Math.abs(firstGap - ref) > ref * TRIM_GAP_SOFT_TOLERANCE
+    const lastGapBad = Math.abs(lastGap - ref) > ref * TRIM_GAP_SOFT_TOLERANCE
 
-    // 判定条件(任一成立):
-    //   1. 间距明显超差 —— 图例/标题边缘不在等距格点上;
-    //   2. 强度明显偏弱 **且** 间距也偏大 —— 低分辨率下真实线强度也会偏低,
-    //      单看强度会误剪;两者同时偏离才说明不是网格线。
-    const badFirst = firstGapBad
-      || (firstWeak && Math.abs(firstGap - ref) > ref * TRIM_GAP_TOLERANCE * 0.6)
-    const badLast = lastGapBad
-      || (lastWeak && Math.abs(lastGap - ref) > ref * TRIM_GAP_TOLERANCE * 0.6)
+    // 判定条件:间距明显超差 **且** 强度偏弱。
+    // 两者必须同时成立 —— 图例/标题边缘既不在格点上又比较淡;
+    // 真实网格线因线宽导致的质心抖动会让间距偏 10–20%,但强度足够,
+    // 单看间距就剪会少掉一行/一列。
+    const badFirst = firstGapBad && firstWeak
+    const badLast = lastGapBad && lastWeak
     if (!badFirst && !badLast) break
     if (badFirst && badLast) {
       const firstScore = Math.abs(firstGap - ref) / ref
@@ -1090,6 +1150,7 @@ export function detectChartGrid(imageData, options = {}) {
       yEstimate: h.estimate,
       xPeaks: v.peakCount,
       yPeaks: h.peakCount,
+      quality,
       xPeaksList: v.peakList,
       yPeaksList: h.peakList,
       xChains: vDebug?.chains,
