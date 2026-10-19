@@ -23,9 +23,13 @@ export const DETECT_MAX_GRID = 200
 
 /** 自相关低于该值视为没有周期性(纯色图、照片、噪点) */
 const MIN_CORRELATION = 0.3
-/** 自相关局部极大至少要达到全局最高分的这个比例,才被当作基频 */
-const PERIOD_TOLERANCE = 0.6
-/** 有效格点段允许的断档比例(中间偶尔一条线偏淡) */
+/** 最多尝试几个自相关峰作为候选周期(按强度降序) */
+const MAX_PERIOD_CANDIDATES = 6
+/** 「线上 vs 格中」强度比下限:整数倍周期的比值接近 1,真实网格远大于 1 */
+const MIN_LATTICE_CONTRAST = 4
+/** 格内/格间颜色对比度下限(低于此值说明网格切错了) */
+const MIN_GRID_QUALITY = 0.15
+/** 有效格点段要求的最小连续比例:整数倍周期会留下交替空缺,必须被切断 */
 const MIN_RUN_FILL = 0.9
 /** 高通的滑动窗口:去掉缓慢变化的底色/光照,保留网格线的尖峰 */
 const HIGH_PASS_WINDOW = 31
@@ -119,12 +123,13 @@ function correlationAt(profile, lag) {
   return denom > 1e-9 ? num / denom : 0
 }
 
-function peakAt(profile, pos) {
+function peakAt(profile, pos, radius = 1) {
   const n = profile.length
-  const a = pos > 0 ? profile[pos - 1] : 0
-  const b = profile[pos]
-  const c = pos + 1 < n ? profile[pos + 1] : 0
-  return Math.max(a, b, c)
+  let best = 0
+  for (let q = Math.max(0, pos - radius); q <= Math.min(n - 1, pos + radius); q++) {
+    if (profile[q] > best) best = profile[q]
+  }
+  return best
 }
 
 /**
@@ -159,10 +164,47 @@ function bestLattice(profile, period) {
 }
 
 /**
- * 最长有效格点段。
+ * 线上 vs 格中的对比度。
  *
- * 两侧留白处没有网格线,格点强度接近 0,会被阈值切开。取首尾两个有效格点,
- * 并要求中间断档不超过 10%(某条线偏淡时不至于把整段腰斩)。
+ * 真实单元格周期会让格点全部落在线上、半格位置落在格子内部;整数倍周期则会让
+ * 半格位置也落在**真实**网格线上,两者强度接近 → 比值接近 1。
+ * 用 ±12% 周期的邻域取最大值,容忍截图缩放带来的轻微错位。
+ */
+function lineStrength(profile, pos, radius) {
+  const n = profile.length
+  let best = 0
+  for (let q = Math.max(0, pos - radius); q <= Math.min(n - 1, pos + radius); q++) {
+    if (profile[q] > best) best = profile[q]
+  }
+  return best
+}
+
+function latticeContrast(profile, period, phase) {
+  const n = profile.length
+  const radius = Math.max(1, Math.round(period * 0.12))
+  let onSum = 0
+  let onN = 0
+  let offSum = 0
+  let offN = 0
+  for (let q = phase; q + period <= n; q += period) {
+    onSum += lineStrength(profile, q, radius)
+    onN++
+    const mid = Math.round(q + period / 2)
+    offSum += lineStrength(profile, mid, radius)
+    offN++
+  }
+  if (!onN || !offN) return 0
+  return (onSum / onN) / (offSum / offN + 1e-6)
+}
+
+/**
+ * 最长连续有效格点段。
+ *
+ * 两侧留白处没有网格线,格点强度接近 0,会被阈值切开。
+ *
+ * 这里必须**严格**(fill ≥ 0.9):整数倍周期会让一半格点落在格子中间,
+ * 那些位置的强度会掉下去,段就被切断 —— 这正是区分真实周期与整数倍周期的关键。
+ * 放松阈值会让「2 格并 1 格」的错网格通过,产生列数悄悄减半的结果。
  */
 function latticeExtent(peaks) {
   if (!peaks.length) return null
@@ -182,7 +224,6 @@ function latticeExtent(peaks) {
   const last = active[active.length - 1]
   const span = last - first + 1
   if (active.length / span < MIN_RUN_FILL) return null
-
   return {
     first: peaks[first].pos,
     last: peaks[last].pos,
@@ -194,13 +235,18 @@ function latticeExtent(peaks) {
 /**
  * 找单元格周期(基频)。
  *
- * 只看「格点评分最高的周期」会被整数倍骗到:真实周期 20px 时,40px 的格点
- * 也能全部落在线上;若每隔一条线的对比度更强(交替配色很常见),40px 的平均分
- * 反而更高。因此以**自相关**定基频:
- *   1. 计算 [minLag, maxLag] 内每个 lag 的归一化自相关;
- *   2. 取第一个超过阈值(≥ 全局最高分 60% 且 ≥ MIN_CORRELATION)的**局部极大**,
- *      它才是最小重复单元 —— 整数倍的自相关更高,但位置更靠后;
- *   3. 纯色图/照片/噪点没有稳定局部极大 → 返回 null,由调用方报失败。
+ * 三个陷阱,按顺序处理:
+ *   1. **整数倍**:真实周期 24px 时,48/240 的格点也能全部落在线上。自相关在整数倍上
+ *      往往更高(尤其「每 10 格一条粗线」会让 240 成为最强峰),所以不能直接取最大峰;
+ *   2. **半周期**:如果每格都有线,12px 也能让格点全部落在线上 —— 但此时 12 的一半
+ *      格点会落在格子中间,格点段会被阈值切断;
+ *   3. **非周期纹理**(照片/噪点):自相关没有稳定峰。
+ *
+ * 做法:
+ *   a. 取自相关最强的几个局部极大作为候选(它们通常是真实周期的整数倍);
+ *   b. 对每个候选枚举**升序的约数**,用「格点段是否连续有效」判定哪个才是真实周期 ——
+ *      整数倍会让一半格点落在格子中间,段被切断;真实周期则整段连续;
+ *   c. 全部候选都过不了段连续性 → 视为没有网格,返回 null。
  */
 function findPeriod(profile, minLag, maxLag) {
   if (maxLag < minLag) return null
@@ -213,37 +259,119 @@ function findPeriod(profile, minLag, maxLag) {
   }
   if (maxCorr < MIN_CORRELATION) return null
 
-  const threshold = Math.max(MIN_CORRELATION, maxCorr * PERIOD_TOLERANCE)
+  // 自相关局部极大(候选周期),按强度降序
+  const peaks = []
   for (let lag = minLag; lag <= maxLag; lag++) {
     const c = corr[lag]
-    if (c < threshold) continue
+    if (c < MIN_CORRELATION) continue
     const prev = lag > minLag ? corr[lag - 1] : -Infinity
     const next = lag < maxLag ? corr[lag + 1] : -Infinity
-    if (c >= prev && c >= next) return { period: lag, corr: c }
+    if (c >= prev && c >= next) peaks.push({ lag, corr: c })
+  }
+  if (!peaks.length) return null
+  peaks.sort((a, b) => b.corr - a.corr)
+
+  const tryPeriod = (period) => {
+    if (period < minLag || period > maxLag) return null
+    const lattice = bestLattice(profile, period)
+    const extent = latticeExtent(lattice.peaks)
+    if (!extent) return null
+    // 「线上 vs 格中」对比度:真实网格的格点远强于半格位置。
+    // 整数倍周期会让半格位置也落在真实网格线上,两者接近 → 拒绝。
+    // 这一步专门拦住「检测出了周期,但它是真实格子的 2 倍/10 倍」的静默错误。
+    const contrast = latticeContrast(profile, period, lattice.phase)
+    if (contrast < MIN_LATTICE_CONTRAST) return null
+    return { period, corr: corr[period] || 0, extent, contrast }
   }
 
-  // 没有明确局部极大(信号很平):退回全局最大值,仍要求达到 MIN_CORRELATION
-  let bestLag = minLag
-  for (let lag = minLag; lag <= maxLag; lag++) if (corr[lag] > corr[bestLag]) bestLag = lag
-  return corr[bestLag] >= MIN_CORRELATION ? { period: bestLag, corr: corr[bestLag] } : null
+  // 低于 minCell 的真实格子:此时只能识别出它的整数倍(2 格并 1 格)。
+  // 若不检查,3px 格子的图纸会被静默识别成「一半的列数」。宁可报 cellTooSmall,
+  // 也不能给用户一个列数悄悄减半的结果。
+  // latticeExtent 自带连续性判定:半周期只有一半位置真有线时,会被切断而返回 null。
+  const tooSmall = (hit) => {
+    const half = hit.period / 2
+    if (!Number.isInteger(half) || half < 2 || half >= minLag) return null
+    const halfExtent = latticeExtent(bestLattice(profile, half).peaks)
+    if (!halfExtent) return null
+    return { period: half, corr: corr[half] || 0, extent: halfExtent, tooSmall: true }
+  }
+
+  for (const peak of peaks.slice(0, MAX_PERIOD_CANDIDATES)) {
+    // 升序约数 + 候选本身:最小的「段连续」周期才是真实单元格
+    const divisors = []
+    for (let d = minLag; d < peak.lag; d++) {
+      if (peak.lag % d === 0) divisors.push(d)
+    }
+    for (const d of divisors) {
+      const hit = tryPeriod(d)
+      if (hit) return tooSmall(hit) || hit
+    }
+    const hit = tryPeriod(peak.lag)
+    if (hit) return tooSmall(hit) || hit
+  }
+  return null
 }
 
 /**
- * 检测图纸网格。
+ * 网格质量评估:正确的网格里,每格中心区域颜色几乎一致(珠子/色块),
+ * 而不同格子之间有差异;错误网格(例如把 29×29 的图纸识别成 2×2)会把
+ * 许多真实格子塞进一个"大格",格内方差与格间方差接近。
  *
- * @param {{data: Uint8ClampedArray|Uint8Array, width: number, height: number}} imageData
- * @param {{minCell?: number, maxCell?: number, maxGrid?: number}} [options]
- * @returns {{
- *   ok: boolean,
- *   status: 'auto'|'low-confidence'|'failed',
- *   confidence: number,
- *   reason?: string,
- *   bounds?: {x0:number,y0:number,x1:number,y1:number},
- *   cols?: number, rows?: number,
- *   cellWidth?: number, cellHeight?: number,
- *   period?: {x:number,y:number}
- * }}
+ * 用 inter/(intra+floor) 作为判据:真网格通常 >3,错网格接近 1。
+ * 这一步专门拦住「检测出了一个周期,但周期是真实格子的整数倍」的静默错误 ——
+ * 宁可报失败让用户手动设置,也不能给出列数悄悄减半的结果。
  */
+function gridQuality(data, width, height, bounds, cols, rows) {
+  const cellW = (bounds.x1 - bounds.x0) / cols
+  const cellH = (bounds.y1 - bounds.y0) / rows
+  const stepX = Math.max(1, Math.round(cellW / 5))
+  const stepY = Math.max(1, Math.round(cellH / 5))
+  const cellMeans = []
+  let intra = 0
+  let counted = 0
+
+  for (let y = 0; y < rows; y++) {
+    for (let x = 0; x < cols; x++) {
+      const cx = bounds.x0 + (x + 0.5) * cellW
+      const cy = bounds.y0 + (y + 0.5) * cellH
+      let sr = 0; let sg = 0; let sb = 0; let n = 0
+      const samples = []
+      for (let dy = -2; dy <= 2; dy++) {
+        for (let dx = -2; dx <= 2; dx++) {
+          const px = Math.round(cx + dx * stepX)
+          const py = Math.round(cy + dy * stepY)
+          if (px < 0 || py < 0 || px >= width || py >= height) continue
+          const o = (py * width + px) * 4
+          const r = data[o]; const g = data[o + 1]; const b = data[o + 2]
+          samples.push([r, g, b])
+          sr += r; sg += g; sb += b; n++
+        }
+      }
+      if (n < 5) continue
+      const mr = sr / n; const mg = sg / n; const mb = sb / n
+      let v = 0
+      for (const [r, g, b] of samples) {
+        v += (r - mr) ** 2 + (g - mg) ** 2 + (b - mb) ** 2
+      }
+      intra += v / n
+      counted++
+      cellMeans.push([mr, mg, mb])
+    }
+  }
+  if (counted < 4) return 0
+  intra /= counted
+
+  let gr = 0; let gg = 0; let gb = 0
+  for (const [r, g, b] of cellMeans) { gr += r; gg += g; gb += b }
+  gr /= cellMeans.length; gg /= cellMeans.length; gb /= cellMeans.length
+  let inter = 0
+  for (const [r, g, b] of cellMeans) {
+    inter += (r - gr) ** 2 + (g - gg) ** 2 + (b - gb) ** 2
+  }
+  inter /= cellMeans.length
+
+  return inter / (intra + 25)
+}
 export function detectChartGrid(imageData, options = {}) {
   const { data, width, height } = imageData || {}
   if (!data || !(width > 8) || !(height > 8)) return fail('invalidImage')
@@ -260,10 +388,11 @@ export function detectChartGrid(imageData, options = {}) {
   const vPeriod = findPeriod(vProfile, minCell, Math.min(maxCell, Math.floor(width / 3)))
   const hPeriod = findPeriod(hProfile, minCell, Math.min(maxCell, Math.floor(height / 3)))
   if (!vPeriod || !hPeriod) return fail('noPeriodicity')
+  if (vPeriod.tooSmall || hPeriod.tooSmall) return fail('cellTooSmall')
 
-  const vExtent = latticeExtent(bestLattice(vProfile, vPeriod.period).peaks)
-  const hExtent = latticeExtent(bestLattice(hProfile, hPeriod.period).peaks)
-  if (!vExtent || !hExtent) return fail('noLatticeExtent')
+  // findPeriod 已用格点段连续性验证过,这里直接复用其边界
+  const vExtent = vPeriod.extent
+  const hExtent = hPeriod.extent
 
   // 两端都是网格线,间隔数才是格子数
   const cols = vExtent.activeCount - 1
@@ -275,9 +404,17 @@ export function detectChartGrid(imageData, options = {}) {
   const cellHeight = (hExtent.last - hExtent.first) / rows
   if (cellWidth < minCell || cellHeight < minCell) return fail('cellTooSmall')
 
+  // 静默错误拦截:周期是真实格子的整数倍时,网格看起来「成立」但每格混进了多颗珠子。
+  // 用格内/格间颜色对比度判定;明显不像逐格图纸就报失败,交给用户手动设置。
+  const quality = gridQuality(data, width, height, {
+    x0: vExtent.first, y0: hExtent.first, x1: vExtent.last, y1: hExtent.last,
+  }, cols, rows)
+  if (quality < MIN_GRID_QUALITY) return fail('lowGridQuality', { cols, rows, quality })
+
   const confidence = clamp01(
-    0.75 * Math.min(vPeriod.corr, hPeriod.corr)
+    0.6 * Math.min(vPeriod.corr, hPeriod.corr)
     + 0.25 * Math.min(1, Math.min(cols, rows) / 8)
+    + 0.15 * Math.min(1, quality / 6)
   )
 
   return {
