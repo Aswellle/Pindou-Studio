@@ -64,6 +64,15 @@ function cssBlockFor(selector) {
   return INDEX_CSS.slice(brace + 1, INDEX_CSS.indexOf('}', brace))
 }
 
+/** 在所有规则里找出「选择器含 selector 且声明含 property」的那一条的声明体 */
+function ruleWith(selector, property) {
+  const ruleRe = /(?:^|\n)([^{}\n][^{}]*)\{([^}]*)\}/g
+  for (const m of INDEX_CSS.matchAll(ruleRe)) {
+    if (m[1].includes(selector) && m[2].includes(property)) return m[2]
+  }
+  return ''
+}
+
 const overlayMap = collectOverlayClasses()
 const overlays = [...overlayMap.keys()].sort()
 
@@ -119,6 +128,22 @@ describe('移动端全屏浮层契约', () => {
     const block = cssBlockFor('.modal-overlay')
     expect(block).toContain('var(--visible-vh-top')
     expect(block).toContain('var(--keyboard-height')
+  })
+
+  it('居中组子元素有高度上限与滚动兜底,不会在低高度视口被裁顶', () => {
+    // overlay 自身 overflow:hidden,居中子元素若没有 max-height,横屏/键盘弹起后
+    // 上下同时溢出 → 顶部被裁且滚不到。
+    const confirmBlock = ruleWith('.users-confirm-overlay > *', 'max-height')
+    expect(confirmBlock, '确认框类缺少居中子元素兜底').toBeTruthy()
+    expect(confirmBlock).toContain('max-height: 100%')
+    expect(confirmBlock).toContain('overflow-y: auto')
+    // 选择器组必须覆盖三类确认框
+    expect(INDEX_CSS).toMatch(/\.profile-confirm-overlay > \*/)
+    expect(INDEX_CSS).toMatch(/\.load-confirm-overlay > \*/)
+    // 行高锁定:auto 行会让子元素的 max-height:100% 解析到「长高后的行」而失效
+    expect(ruleWith('.admin-modal-overlay', 'grid-template-rows')).toContain('minmax(0, 1fr)')
+    expect(ruleWith('.modal-overlay', 'grid-template-rows')).toContain('minmax(0, 1fr)')
+    expect(ruleWith('.modal-overlay > *', 'max-height')).toContain('max-height: 100%')
   })
 
   it('组件不再自建浮层高度(top:var(--visible-vh-top))', () => {

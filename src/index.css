@@ -243,6 +243,10 @@ input:focus, textarea:focus, button:focus {
 .load-confirm-overlay,
 .my-beads-modal-overlay {
   display: grid;
+  /* 与 .modal-overlay 同理:auto 行会随内容长高,子元素的高度约束全部失效;
+     锁成 1fr 后行恒等于 overlay 内容区(已扣掉键盘与 safe-area 内边距)。 */
+  grid-template-rows: minmax(0, 1fr);
+  grid-template-columns: minmax(0, 1fr);
   place-items: center;
 }
 .admin-modal-overlay > *,
@@ -251,6 +255,15 @@ input:focus, textarea:focus, button:focus {
 .load-confirm-overlay > *,
 .my-beads-modal-overlay > * {
   margin: auto;
+}
+/* 确认框类子元素自身没有高度上限:横屏 / 键盘弹起后可视高度不足时,
+   不加上限会上下同时溢出、顶部被裁且无法滚动(load-confirm 的方形预览尤其高)。 */
+.users-confirm-overlay > *,
+.profile-confirm-overlay > *,
+.load-confirm-overlay > * {
+  max-height: 100%;
+  overflow-y: auto;
+  overscroll-behavior: contain;
 }
 
 .modal-content {
