@@ -606,20 +606,16 @@
   color: var(--text-primary);
 }
 
-/* ── 弹层(共享浮层规则:height 用 --visible-vh)────────────── */
+/* ── 弹层(定位/高度/滚动/居中/safe-area 由 index.css 全屏浮层基础设施统一提供)──
+   此前这里自带 top:var(--visible-vh-top) + height:var(--visible-vh):iOS 键盘弹出
+   自动滚动视觉视口时,浮层边界会随 offsetTop 移动,和共享组(inset:0 盖满布局视口)
+   相互打架。现统一交给共享组,组件只保留自身差异(底色 / 层级 / 内边距)。 */
 .my-beads-modal-overlay {
-  position: fixed;
-  top: var(--visible-vh-top, 0px);
-  left: 0;
-  right: 0;
-  height: var(--visible-vh, 100vh);
   z-index: 1200;
-  display: grid;
-  place-items: center;
   padding: 16px;
-  padding-bottom: calc(16px + env(safe-area-inset-bottom, 0px));
+  /* 与共享组保持一致:底部让出键盘高度,弹层才不会被键盘盖住下半截 */
+  padding-bottom: max(16px, calc(var(--keyboard-height, 0px) + 16px), env(safe-area-inset-bottom, 0px));
   background: rgba(43, 36, 32, 0.45);
-  overflow: hidden;
 }
 
 .my-beads-modal {

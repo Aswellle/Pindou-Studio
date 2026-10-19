@@ -2,6 +2,7 @@ import { useEffect } from 'react'
 
 // 全屏浮层类:聚焦这些容器内的输入框由 overlay 收缩机制处理(--visible-vh),
 // 不做主动滚动;页面内输入框(后台表单、联系消息回复、登录页等)用 nearest 兜底。
+// 新增全屏浮层时必须同步加入 index.css 的共享浮层组(mobileOverlayContract.test.js 强制)。
 const OVERLAY_SELECTOR = [
   '.modal-overlay',
   '.contact-overlay',
@@ -9,6 +10,7 @@ const OVERLAY_SELECTOR = [
   '.users-confirm-overlay',
   '.profile-confirm-overlay',
   '.load-confirm-overlay',
+  '.my-beads-modal-overlay',
   '.quantizer-zoom',
 ].join(',')
 
