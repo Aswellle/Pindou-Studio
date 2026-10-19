@@ -123,6 +123,55 @@ describe('adapters · projectToLegacyWork', () => {
   })
 })
 
+describe('adapters · 来源元数据往返(统一图纸模型持久化)', () => {
+  it('导入项目 → work 带 sourceKind,重新打开仍能识别来源', () => {
+    const project = createProject({ cells: blank(), name: '导入的' })
+    project.source = { ...project.source, kind: 'chart-import' }
+    const work = projectToLegacyWork(project)
+    expect(work.sourceKind).toBe('chart-import')
+
+    const reopened = legacyWorkToProject(work)
+    expect(reopened.source.kind).toBe('chart-import')
+  })
+
+  it('图库复制:sourceKind 与 sourceTemplateId 一起往返', () => {
+    const work = canvasToLegacyWork({
+      canvasData: blank(),
+      name: '副本',
+      sourceKind: 'gallery-copy',
+      sourceTemplateId: 'tpl-7',
+    })
+    expect(work.sourceKind).toBe('gallery-copy')
+    expect(work.sourceTemplateId).toBe('tpl-7')
+
+    const project = legacyWorkToProject(work)
+    expect(project.source.kind).toBe('gallery-copy')
+    expect(project.source.sourceTemplateId).toBe('tpl-7')
+
+    // 再保存:来源不丢
+    const again = projectToLegacyWork(project)
+    expect(again.sourceKind).toBe('gallery-copy')
+    expect(again.sourceTemplateId).toBe('tpl-7')
+  })
+
+  it('历史作品(无来源字段)仍按 legacy-work 处理', () => {
+    const project = legacyWorkToProject(legacyWork())
+    expect(project.source.kind).toBe('legacy-work')
+    // legacy-work 是读取时的默认值,不作为来源存回存储层
+    expect(projectToLegacyWork(project).sourceKind).toBeUndefined()
+  })
+
+  it('存储层的非法来源值被丢弃,不污染项目模型', () => {
+    const work = { ...legacyWork(), sourceKind: '<script>alert(1)</script>' }
+    expect(legacyWorkToProject(work).source.kind).toBe('legacy-work')
+  })
+
+  it('canvasToLegacyWork 丢弃白名单外的 sourceKind', () => {
+    const work = canvasToLegacyWork({ canvasData: blank(), sourceKind: 'made-up' })
+    expect(work.sourceKind).toBeUndefined()
+  })
+})
+
 describe('adapters · canvasToLegacyWork(M3 保存路径)', () => {
   it('方形画布输出 gridWidth/gridHeight = null,gridSize = 边长', () => {
     const canvasData = blank()
