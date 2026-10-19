@@ -175,6 +175,10 @@ input:focus, textarea:focus, button:focus {
   height: 100dvh;
   background: rgba(0, 0, 0, 0.45);
   display: grid;
+  /* 行/列都锁成 1fr:auto 行会随内容长高,子元素的 max-height:100% 就解析到「长高后的
+     行」而非容器,约束失效;1fr 让行恒等于 overlay 内容区高度。 */
+  grid-template-rows: minmax(0, 1fr);
+  grid-template-columns: minmax(0, 1fr);
   place-items: center;
   /* overlay 不滚:超高内容由 modal 内部滚动容器处理 —— 键盘场景下 overlay 自身滚动
      会被 iOS 自动滚动聚焦顶起,把 modal 挤出视口(白板元凶) */
@@ -191,9 +195,15 @@ input:focus, textarea:focus, button:focus {
   /* 阻止滚动穿透:模态框上滑动不带动下层页面 */
   overscroll-behavior: contain;
 }
-/* grid 居中容器里的标准子项:放得下居中,超高时 margin 塌缩为 0 → 顶对齐 + overlay 滚动 */
+/* grid 居中容器里的标准子项:放得下居中,超高时由子元素自己滚动。
+   overlay 是 overflow:hidden(不让 overlay 自己滚,避免 iOS 自动滚动把它顶出视口),
+   所以子元素必须自带 max-height + 滚动兜底 —— 否则横屏 / 键盘弹起后可视高度不足时,
+   居中内容会上下同时溢出,顶部被裁且无法滚到(保存对话框、导出确认框都踩过)。 */
 .modal-overlay > * {
   margin: auto;
+  max-height: 100%;
+  overflow-y: auto;
+  overscroll-behavior: contain;
 }
 
 /* 其余全屏浮层(.contact / .admin-modal / .users-confirm /
