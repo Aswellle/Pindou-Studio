@@ -1,4 +1,5 @@
 import { useState, useCallback, useRef, useEffect, useMemo } from 'react'
+import { createPortal } from 'react-dom'
 import { useTranslation } from 'react-i18next'
 import { useImageQuantizer } from '../../hooks/useImageQuantizer'
 import { useScrollLock } from '../../hooks/useScrollLock'
@@ -949,8 +950,8 @@ export default function ImageQuantizer({ onApply, onClose }) {
           )}
         </div>
 
-        {/* 未保存更改对话框 */}
-        {showUnsavedDialog && (
+        {/* 未保存更改对话框 —— portal 到 body(R5),避免 fixed 浮层嵌在页面滚动容器内 */}
+        {showUnsavedDialog && createPortal(
           <div className="modal-overlay" onClick={() => setShowUnsavedDialog(false)}>
             <div className="modal-content unsaved-dialog" onClick={e => e.stopPropagation()}>
               <h3>{t('quantizer.unsavedTitle')}</h3>
@@ -973,16 +974,18 @@ export default function ImageQuantizer({ onApply, onClose }) {
                 </button>
               </div>
             </div>
-          </div>
+          </div>,
+          document.body,
         )}
 
-        {/* 放大查看 overlay:大尺寸纯色方块,点击任意处关闭 */}
-        {zoomPreview && result && (
+        {/* 放大查看 overlay:大尺寸纯色方块,点击任意处关闭 —— 同样 portal 到 body */}
+        {zoomPreview && result && createPortal(
           <div className="quantizer-zoom" onClick={() => setZoomPreview(false)}>
             <button className="quantizer-zoom-close" onClick={() => setZoomPreview(false)} aria-label={t('common.close')}>×</button>
             <ZoomPreviewCanvas result={result} resolveHex={resolveHex} />
             <p className="quantizer-zoom-hint">{t('quantizer.zoomHint')}</p>
-          </div>
+          </div>,
+          document.body,
         )}
       </div>
     </div>

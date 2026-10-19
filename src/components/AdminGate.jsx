@@ -1,7 +1,9 @@
 import { useState, useEffect } from 'react'
+import { createPortal } from 'react-dom'
 import { useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { supabase } from '../services/supabase'
+import { useScrollLock } from '../hooks/useScrollLock'
 import LoadingScreen from './LoadingScreen'
 
 /**
@@ -28,6 +30,9 @@ export default function AdminGate({ cloudEnabled, authLoading, user, isAdmin, on
   const [confirmSignOut, setConfirmSignOut] = useState(false)
   // pending → checking → ok | required(仅 user+isAdmin 分支关心;其余分支在它之前返回)
   const [assurance, setAssurance] = useState('pending')
+  // 退出确认浮层统一 portal 到 body(R5):与全站 iOS 修复策略一致,
+  // 避免 fixed 浮层嵌套在页面滚动容器内被键盘顶起。
+  useScrollLock(confirmSignOut)
 
   useEffect(() => {
     if (!user || !isAdmin) { setAssurance('ok'); return undefined }
@@ -89,7 +94,7 @@ export default function AdminGate({ cloudEnabled, authLoading, user, isAdmin, on
         <h1>{t('admin.gate.noPermission')}</h1>
         <p>{t('admin.gate.noPermissionHint')}</p>
         <button type="button" className="admin-gate-btn secondary" onClick={() => setConfirmSignOut(true)}>{t('admin.signOut')}</button>
-        {confirmSignOut && (
+        {confirmSignOut && createPortal(
           <div className="admin-modal-overlay" onClick={() => setConfirmSignOut(false)}>
             <div className="admin-gate-confirm" onClick={(e) => e.stopPropagation()}>
               <h3>{t('admin.confirmSignOutTitle')}</h3>
@@ -99,7 +104,8 @@ export default function AdminGate({ cloudEnabled, authLoading, user, isAdmin, on
                 <button type="button" className="admin-gate-btn danger" onClick={() => { setConfirmSignOut(false); onLogout() }}>{t('admin.signOut')}</button>
               </div>
             </div>
-          </div>
+          </div>,
+          document.body,
         )}
       </div>,
     )
