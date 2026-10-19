@@ -828,3 +828,262 @@
           background: var(--error);
           color: white;
         }
+
+        /* ── 发现区块(精选 / 热门 / 最新 / 主题 / 合集) ───────── */
+        .discovery {
+          display: flex;
+          flex-direction: column;
+          gap: 24px;
+          margin-bottom: 32px;
+        }
+        .discovery-loading,
+        .discovery-degraded {
+          padding: 12px 16px;
+          border-radius: 8px;
+          background: var(--bg-secondary);
+          color: var(--text-secondary);
+          font-size: var(--text-sm);
+        }
+        .discovery-degraded {
+          border: 1px solid var(--border-color);
+          color: var(--warning);
+        }
+        .discovery-featured {
+          display: grid;
+          grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+          gap: 16px;
+        }
+        .featured-card {
+          display: flex;
+          flex-direction: column;
+          align-items: flex-start;
+          gap: 6px;
+          padding: 20px;
+          border: 1px solid var(--border-color);
+          border-radius: 12px;
+          background: linear-gradient(135deg, var(--bg-secondary), var(--bg-primary));
+          cursor: pointer;
+          text-align: left;
+          font-family: inherit;
+          transition: border-color 0.2s, transform 0.15s;
+        }
+        .featured-card:hover {
+          border-color: var(--accent);
+          transform: translateY(-1px);
+        }
+        .featured-kicker {
+          font-size: var(--text-xs);
+          letter-spacing: 0.08em;
+          text-transform: uppercase;
+          color: var(--accent);
+          font-weight: var(--font-weight-semibold);
+        }
+        .featured-title {
+          font-size: var(--text-xl);
+          font-weight: var(--font-weight-semibold);
+          color: var(--text-primary);
+        }
+        .featured-desc {
+          font-size: var(--text-sm);
+          color: var(--text-secondary);
+          line-height: 1.5;
+        }
+        .discovery-rail {
+          display: flex;
+          flex-direction: column;
+          gap: 12px;
+        }
+        .rail-head {
+          display: flex;
+          align-items: baseline;
+          gap: 10px;
+          flex-wrap: wrap;
+        }
+        .rail-title {
+          font-size: var(--text-lg);
+          font-weight: var(--font-weight-semibold);
+        }
+        .rail-hint {
+          font-size: var(--text-xs);
+          color: var(--text-muted);
+        }
+        /* 横向轨道:触摸滑动 + 桌面滚轮/键盘焦点;不阻止卡片点击 */
+        .rail-track {
+          display: flex;
+          gap: 12px;
+          overflow-x: auto;
+          padding-bottom: 6px;
+          scroll-snap-type: x proximity;
+          -webkit-overflow-scrolling: touch;
+        }
+        .rail-card {
+          flex: 0 0 132px;
+          display: flex;
+          flex-direction: column;
+          gap: 6px;
+          padding: 0;
+          border: none;
+          background: none;
+          cursor: pointer;
+          font-family: inherit;
+          text-align: left;
+          scroll-snap-align: start;
+          min-height: 44px;
+        }
+        .rail-card:focus-visible {
+          outline: 2px solid var(--accent);
+          outline-offset: 3px;
+          border-radius: 8px;
+        }
+        .rail-thumb {
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          width: 132px;
+          height: 132px;
+          border: 1px solid var(--border-color);
+          border-radius: 10px;
+          background: #ffffff;
+          overflow: hidden;
+        }
+        .rail-thumb canvas {
+          max-width: 100%;
+          max-height: 100%;
+          width: auto;
+          height: auto;
+        }
+        .rail-thumb-empty {
+          font-size: 32px;
+          color: var(--text-muted);
+        }
+        .rail-card-name {
+          font-size: var(--text-sm);
+          font-weight: var(--font-weight-semibold);
+          color: var(--text-primary);
+          overflow: hidden;
+          text-overflow: ellipsis;
+          white-space: nowrap;
+        }
+        .rail-card-meta,
+        .rail-card-desc {
+          font-size: var(--text-xs);
+          color: var(--text-muted);
+          overflow: hidden;
+          text-overflow: ellipsis;
+          white-space: nowrap;
+        }
+        .rail-card-theme .rail-thumb,
+        .rail-card-collection .rail-thumb {
+          background: var(--bg-secondary);
+        }
+
+        /* ── 主题 / 合集 / 图纸详情页 ─────────────────────────── */
+        .content-page {
+          max-width: 1200px;
+          margin: 0 auto;
+          padding: 24px;
+          display: flex;
+          flex-direction: column;
+          gap: 20px;
+        }
+        .content-page-head {
+          display: flex;
+          flex-direction: column;
+          gap: 8px;
+        }
+        .content-back {
+          align-self: flex-start;
+          display: inline-flex;
+          align-items: center;
+          gap: 6px;
+          min-height: 44px;
+          padding: 8px 12px;
+          border: 1px solid var(--border-color);
+          border-radius: 8px;
+          background: var(--bg-secondary);
+          color: var(--text-secondary);
+          font-family: inherit;
+          font-size: var(--text-sm);
+          cursor: pointer;
+        }
+        .content-back:hover {
+          color: var(--text-primary);
+          border-color: var(--accent);
+        }
+        .content-kicker {
+          font-size: var(--text-xs);
+          letter-spacing: 0.08em;
+          text-transform: uppercase;
+          color: var(--accent);
+          font-weight: var(--font-weight-semibold);
+        }
+        .content-title {
+          font-size: var(--text-2xl);
+          font-weight: var(--font-weight-semibold);
+        }
+        .content-desc,
+        .content-note {
+          font-size: var(--text-md);
+          color: var(--text-secondary);
+          line-height: 1.6;
+        }
+        .content-note {
+          padding: 12px 16px;
+          border-left: 3px solid var(--accent);
+          background: var(--bg-secondary);
+          border-radius: 0 8px 8px 0;
+        }
+        .content-toolbar {
+          display: flex;
+          flex-direction: column;
+          gap: 12px;
+        }
+        .content-count {
+          font-size: var(--text-sm);
+          color: var(--text-muted);
+        }
+        .content-empty {
+          padding: 48px 16px;
+          text-align: center;
+          color: var(--text-secondary);
+        }
+        .content-detail-actions {
+          display: flex;
+          gap: 12px;
+          flex-wrap: wrap;
+        }
+        .content-detail-meta {
+          display: flex;
+          gap: 16px;
+          flex-wrap: wrap;
+          font-size: var(--text-sm);
+          color: var(--text-secondary);
+        }
+        .content-detail-preview {
+          display: flex;
+          justify-content: center;
+          padding: 16px;
+          border: 1px solid var(--border-color);
+          border-radius: 12px;
+          background: #ffffff;
+          overflow: auto;
+        }
+        .content-detail-preview canvas {
+          max-width: 100%;
+          height: auto;
+          image-rendering: pixelated;
+        }
+
+        @media (max-width: 640px) {
+          .content-page {
+            padding: 12px;
+          }
+          .rail-card,
+          .rail-thumb {
+            flex-basis: 108px;
+            width: 108px;
+          }
+          .rail-thumb {
+            height: 108px;
+          }
+        }
