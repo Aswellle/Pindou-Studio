@@ -130,5 +130,7 @@ describe('ExportPanel 导出路径回归(M0 / R1)', () => {
 
     await waitFor(() => expect(mock.createObjectURL).toHaveBeenCalled())
     expect(screen.queryByText(/导出失败/)).toBeNull()
+    // 真实分辨率回显:确认超采样倍率生效(而不是静默降级/未回传)
+    expect(await screen.findByText(/导出分辨率: \d+×\d+/)).toBeTruthy()
   })
 })
