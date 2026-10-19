@@ -72,6 +72,24 @@ describe('GalleryPage V2 — 本地模式', () => {
     expect(screen.getByText('我的小鸭')).toBeTruthy()
   })
 
+  it('我的作品:已持久化的来源类别显示为徽标,无来源的旧作品不显示', () => {
+    const { container } = setup({
+      savedWorks: [
+        { id: 'w1', name: '导入的图纸', canvasData: [[null, '#FFD700']], gridSize: 2, gridWidth: 2, gridHeight: 1,
+          savedAt: '2026-10-01T00:00:00Z', sourceKind: 'chart-import' },
+        { id: 'w2', name: '手绘', canvasData: [[null, '#FFD700']], gridSize: 2, gridWidth: 2, gridHeight: 1,
+          savedAt: '2026-10-02T00:00:00Z' },
+      ],
+    })
+    fireEvent.click(screen.getByText(/我的作品 \(2\)/))
+
+    const badges = [...container.querySelectorAll('.work-source')]
+    // 旧作品(无 sourceKind)不得凭空显示来源
+    expect(badges).toHaveLength(1)
+    expect(badges[0].textContent).toBe('图纸导入')
+    expect(badges[0].className).toContain('source-chart-import')
+  })
+
   it('点击卡片弹出填充确认弹窗,确认后回调携带模板 pattern', () => {
     const onLoadTemplate = vi.fn()
     const { container } = setup({ savedWorks: [], onLoadTemplate })
