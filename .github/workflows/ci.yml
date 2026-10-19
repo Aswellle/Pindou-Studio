@@ -6,22 +6,34 @@ on:
   pull_request:
     branches: [main]
 
+# 同一分支的新 push 会取消上一次还在跑的 run:排队拥堵时不会堆叠无用任务。
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   build-and-test:
-    runs-on: ubuntu-latest
+    # 固定到 Ubuntu 24.04,不跟随 ubuntu-latest。
+    # ubuntu-latest 自 2026-10-19 起迁移到 Ubuntu 26,镜像工具链会变化;
+    # 等 26 生态稳定后再显式升级,避免迁移期出现难以定位的构建差异。
+    runs-on: ubuntu-24.04
+    # 兜底:任何一步挂死都不会无限占用 runner(排队故障时尤其重要)。
+    timeout-minutes: 20
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7
         with:
           node-version-file: .nvmrc
           cache: npm
 
       - name: Install dependencies
         run: npm ci
+        timeout-minutes: 10
 
       - name: Run tests
         run: npm run test:run
+        timeout-minutes: 10
 
       - name: Check i18n key parity
         run: npm run check-i18n
@@ -31,6 +43,7 @@ jobs:
 
       - name: Build
         run: npm run build
+        timeout-minutes: 10
 
       - name: Verify generated fonts CSS in sync
         run: git diff --exit-code -- src/styles/fonts-all.css || (echo "::error::src/styles/fonts-all.css 与生成器输出不一致,请重新运行 node scripts/generate-fonts-css.js 并提交"; exit 1)
