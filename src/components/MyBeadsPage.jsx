@@ -14,6 +14,7 @@
  */
 
 import { useCallback, useEffect, useMemo, useState } from 'react'
+import { createPortal } from 'react-dom'
 import { useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import {
@@ -22,6 +23,7 @@ import {
 } from 'lucide-react'
 import { useToast } from '../components/Toast'
 import ThumbnailCanvas from '../components/ThumbnailCanvas'
+import { useScrollLock } from '../hooks/useScrollLock'
 import { PALETTE_LIST, getPalette } from '../data/palettes'
 import { useUserPalettes } from '../hooks/useUserPalettes'
 import {
@@ -111,6 +113,9 @@ export default function MyBeadsPage({ user, canvasData, onApplyMapping }) {
   const [editingPalette, setEditingPalette] = useState(null) // { id?, ...fields }
   const [editingColor, setEditingColor] = useState(null) // { id?, ...fields }
   const [confirmDelete, setConfirmDelete] = useState(null) // { kind:'palette'|'color', id, name }
+  // 三个编辑/确认浮层共享一把滚动锁;浮层全部 portal 到 body,避免页面滚动容器
+  // 在 iOS 键盘弹起时把 fixed 浮层顶出可视区
+  useScrollLock(!!(editingPalette || editingColor || confirmDelete))
   const [busy, setBusy] = useState(false)
 
   // 匹配页状态
@@ -757,8 +762,8 @@ export default function MyBeadsPage({ user, canvasData, onApplyMapping }) {
         )}
       </div>
 
-      {/* ── 色卡编辑弹层 ─────────────────────────────────── */}
-      {editingPalette && (
+      {/* ── 色卡编辑弹层(portal 到 body) ─────────────────── */}
+      {editingPalette && createPortal(
         <div className="my-beads-modal-overlay" onClick={() => setEditingPalette(null)}>
           <div className="my-beads-modal" role="dialog" aria-modal="true" onClick={(e) => e.stopPropagation()}>
             <h3>{editingPalette.id ? t('myBeads.palettes.editTitle') : t('myBeads.palettes.newTitle')}</h3>
@@ -812,11 +817,12 @@ export default function MyBeadsPage({ user, canvasData, onApplyMapping }) {
               <button type="button" className="my-beads-btn primary" disabled={busy} onClick={savePalette}>{t('common.save')}</button>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body,
       )}
 
-      {/* ── 颜色编辑弹层 ─────────────────────────────────── */}
-      {editingColor && (
+      {/* ── 颜色编辑弹层(portal 到 body) ─────────────────── */}
+      {editingColor && createPortal(
         <div className="my-beads-modal-overlay" onClick={() => setEditingColor(null)}>
           <div className="my-beads-modal" role="dialog" aria-modal="true" onClick={(e) => e.stopPropagation()}>
             <h3>{editingColor.id ? t('myBeads.colors.editTitle') : t('myBeads.colors.newTitle')}</h3>
@@ -859,11 +865,12 @@ export default function MyBeadsPage({ user, canvasData, onApplyMapping }) {
               <button type="button" className="my-beads-btn primary" disabled={busy} onClick={saveColor}>{t('common.save')}</button>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body,
       )}
 
-      {/* ── 删除确认 ─────────────────────────────────────── */}
-      {confirmDelete && (
+      {/* ── 删除确认(portal 到 body) ─────────────────────── */}
+      {confirmDelete && createPortal(
         <div className="my-beads-modal-overlay" onClick={() => setConfirmDelete(null)}>
           <div className="my-beads-modal confirm" role="alertdialog" aria-modal="true" onClick={(e) => e.stopPropagation()}>
             <AlertTriangle size={20} className="warn-icon" />
@@ -875,7 +882,8 @@ export default function MyBeadsPage({ user, canvasData, onApplyMapping }) {
               <button type="button" className="my-beads-btn danger" onClick={doDeletePalette}>{t('common.delete')}</button>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body,
       )}
     </div>
   )
