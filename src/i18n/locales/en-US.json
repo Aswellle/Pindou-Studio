@@ -590,6 +590,13 @@
       "copied": "Copied to my patterns",
       "curationNote": "Curation note",
       "patternCount": "{{n}} patterns"
+    },
+    "workSource": {
+      "blank": "Blank",
+      "photo-quantized": "Photo to pattern",
+      "chart-import": "Chart import",
+      "native-file": "File import",
+      "gallery-copy": "Gallery copy"
     }
   },
   "contact": {

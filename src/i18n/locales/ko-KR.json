@@ -590,6 +590,13 @@
       "copied": "내 도안으로 복사했습니다",
       "curationNote": "큐레이션 설명",
       "patternCount": "도안 {{n}}개"
+    },
+    "workSource": {
+      "blank": "새로 만들기",
+      "photo-quantized": "사진 변환",
+      "chart-import": "도안 가져오기",
+      "native-file": "파일 가져오기",
+      "gallery-copy": "갤러리 복사"
     }
   },
   "contact": {

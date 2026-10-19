@@ -590,6 +590,13 @@
       "copied": "已复制到我的图纸",
       "curationNote": "策展说明",
       "patternCount": "{{n}} 张图纸"
+    },
+    "workSource": {
+      "blank": "空白创作",
+      "photo-quantized": "图片转图纸",
+      "chart-import": "图纸导入",
+      "native-file": "文件导入",
+      "gallery-copy": "图库复制"
     }
   },
   "contact": {

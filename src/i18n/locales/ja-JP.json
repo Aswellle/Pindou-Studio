@@ -590,6 +590,13 @@
       "copied": "マイ図案にコピーしました",
       "curationNote": "キュレーション説明",
       "patternCount": "{{n}} 件の図案"
+    },
+    "workSource": {
+      "blank": "新規作成",
+      "photo-quantized": "写真から図案",
+      "chart-import": "図案取り込み",
+      "native-file": "ファイル取り込み",
+      "gallery-copy": "ギャラリーから複製"
     }
   },
   "contact": {
