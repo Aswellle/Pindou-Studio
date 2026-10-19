@@ -107,6 +107,10 @@ export default function App() {
   useEffect(() => { setDesignName(t('export.defaultName')) }, [i18n.language, t])
   const [showSaveDialog, setShowSaveDialog] = useState(false)
   const [saveInputName, setSaveInputName] = useState('')
+  // 当前画布内容的来源类别(导入 / 图库复制 / 手绘),随保存一起落库。
+  // 只记录「这份矩阵是怎么来的」,不改变任何画布行为;切换网格/载入作品时同步更新,
+  // 否则导入的图纸保存后会被当成手绘作品,重新打开就失去来源。
+  const [canvasSource, setCanvasSource] = useState(null)
   const [saveToast, setSaveToast] = useState(false)
   const [fitToast, setFitToast] = useState(false)
   const [syncToast, setSyncToast] = useState(false)
@@ -176,6 +180,8 @@ export default function App() {
     if (canvasData && canvasData.every(row => row.every(cell => cell === null))) return
     const rows = gridHeight || gridSize
     const cols = gridWidth || gridSize
+    // 清空后画布不再来自任何导入/复制,来源归零(否则会带着旧来源保存)
+    setCanvasSource(null)
     setCanvas(Array(rows).fill(null).map(() => Array(cols).fill(null)))
   }
 
@@ -192,7 +198,8 @@ export default function App() {
       name: saveInputName.trim() || designName,
       paletteId: currentPalette,
       id: Date.now(),
-      savedAt: new Date().toISOString()
+      savedAt: new Date().toISOString(),
+      sourceKind: canvasSource,
     })
     if (!work) return
     const ok = await saveWork(work)
@@ -210,6 +217,8 @@ export default function App() {
     setGridSize(newSize)
     setGridWidth(null)
     setGridHeight(null)
+    // 换网格 = 一张新画布,旧的导入/复制来源不再适用
+    setCanvasSource(null)
     resetCanvas(Array(newSize).fill(null).map(() => Array(newSize).fill(null)))
   }
 
@@ -223,6 +232,7 @@ export default function App() {
       setGridWidth(width)
       setGridHeight(height)
     }
+    setCanvasSource(null)
     resetCanvas(Array(height).fill(null).map(() => Array(width).fill(null)))
   }
 
@@ -241,6 +251,8 @@ export default function App() {
     }
     // 载入模板时同步切换到其所属(或用户指定转换的)拼豆品牌色卡
     if (options.palette) setCurrentPalette(options.palette)
+    // 公共图纸载入画布 = 图库复制语义(与 /gallery/pattern/:id 的复制一致)
+    setCanvasSource('gallery-copy')
     resetCanvas(pattern)
     navigate('/')
   }
@@ -253,6 +265,8 @@ export default function App() {
     setGridWidth(work.gridWidth ?? null)
     setGridHeight(work.gridHeight ?? null)
     setCurrentPalette(work.paletteId || 'perler')
+    // 来源随作品一起载入:再次保存时不会把「图库复制」退化成「手绘」
+    setCanvasSource(work.sourceKind || null)
     resetCanvas(work.canvasData)
     navigate('/')
   }
@@ -266,6 +280,7 @@ export default function App() {
     setGridWidth(isSquare ? null : grid.width)
     setGridHeight(isSquare ? null : grid.height)
     if (project.palette?.paletteId) setCurrentPalette(project.palette.paletteId)
+    setCanvasSource(project.source?.kind || 'native-file')
     resetCanvas(grid.cells.map(row => [...row]))
     navigate('/')
   }
@@ -307,6 +322,8 @@ export default function App() {
       row.map(cell => resolveToHexAllPalettes(cell, palette))
     )
     resetCanvas(resolvedData)
+    // 画布内容来自照片量化(复用既有 Worker 管线),保存时如实记录来源
+    setCanvasSource('photo-quantized')
     if (options.palette) setCurrentPalette(options.palette)
     // 不再在这里 navigate('/'):图片转拼豆是独立页面,应用完成后由该页面的 onClose
     // 负责返回(历史回退/深链兜底)。两处各自导航会互相抵消,把用户留在转换页。
