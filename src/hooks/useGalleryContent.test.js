@@ -95,6 +95,41 @@ describe('useGalleryContent', () => {
     expect(result.current.error).toMatch(/does not exist/)
   })
 
+  it('active=false 时挂起请求,首次进入图库才加载', async () => {
+    let calls = 0
+    const rows = {
+      gallery_themes: [theme('t1')],
+      gallery_collections: [],
+      gallery_theme_templates: [],
+      gallery_collection_templates: [],
+    }
+    state.client = {
+      from(table) {
+        const builder = {
+          select() { return builder },
+          order() { return builder },
+          then(resolve) {
+            calls++
+            return Promise.resolve({ data: rows[table], error: null }).then(resolve)
+          },
+        }
+        return builder
+      },
+    }
+    const { result, rerender } = renderHook(
+      ({ active }) => useGalleryContent({ active }),
+      { initialProps: { active: false } },
+    )
+    await act(async () => {})
+    expect(calls).toBe(0)
+    expect(result.current.loading).toBe(false)
+    expect(result.current.themes).toEqual([])
+
+    rerender({ active: true })
+    await waitFor(() => expect(result.current.themes).toHaveLength(1))
+    expect(calls).toBe(4)
+  })
+
   it('reload 重新拉取', async () => {
     // store 在挂载时按 client 建一次;换数据应改同一 client 的返回,而不是换 client
     const rows = {

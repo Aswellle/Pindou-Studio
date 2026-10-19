@@ -8,6 +8,9 @@
  *
  * 不提供本地回退:主题/合集是云端运营数据,本地凭空造一份会让管理员误以为
  * 已经发布。云端未配置时 enabled=false,UI 直接不渲染发现区块。
+ *
+ * `active=false` 时挂起加载(画布/教程等页面不需要策展数据),
+ * 首次变为 true 才发起请求,避免每次启动都多打四张表。
  */
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
@@ -27,10 +30,10 @@ function withTimeout(promise, ms) {
   return Promise.race([promise, timeout]).finally(() => clearTimeout(timer))
 }
 
-export function useGalleryContent() {
+export function useGalleryContent({ active = true } = {}) {
   const store = useMemo(() => createGalleryContentStore(supabase), [])
   const [state, setState] = useState(EMPTY)
-  const [loading, setLoading] = useState(!!supabase)
+  const [loading, setLoading] = useState(!!supabase && active)
   const [error, setError] = useState('')
   const [reloadKey, setReloadKey] = useState(0)
   const aliveRef = useRef(true)
@@ -67,11 +70,14 @@ export function useGalleryContent() {
     }
   }, [store])
 
-  useEffect(() => { load() }, [load, reloadKey])
+  useEffect(() => {
+    if (!active) return
+    load()
+  }, [active, load, reloadKey])
 
   // 网络恢复 / 页面重新可见时自动重试(与 useCloudTemplates 同一策略)
   useEffect(() => {
-    if (!store.enabled) return undefined
+    if (!store.enabled || !active) return undefined
     const retry = () => { if (error) load() }
     const onVisible = () => { if (document.visibilityState === 'visible') retry() }
     window.addEventListener('online', retry)
@@ -80,7 +86,7 @@ export function useGalleryContent() {
       window.removeEventListener('online', retry)
       document.removeEventListener('visibilitychange', onVisible)
     }
-  }, [store.enabled, error, load])
+  }, [store.enabled, active, error, load])
 
   const reload = useCallback(() => setReloadKey((k) => k + 1), [])
 
