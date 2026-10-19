@@ -134,3 +134,33 @@ describe('ExportPanel 导出路径回归(M0 / R1)', () => {
     expect(await screen.findByText(/导出分辨率: \d+×\d+/)).toBeTruthy()
   })
 })
+
+describe('导出确认框的关闭语义', () => {
+  it('取消确认框只关确认框,不连带关闭导出面板', () => {
+    const onClose = vi.fn()
+    render(
+      <ExportPanel
+        canvasData={CANVAS_DATA}
+        gridSize={2}
+        gridWidth={2}
+        gridHeight={2}
+        designName="测试图纸"
+        paletteId="perler"
+        onClose={onClose}
+      />
+    )
+
+    // 点快捷导出 → 弹出确认框(不执行导出)
+    fireEvent.click(screen.getByText('PNG 图片'))
+    expect(document.querySelector('.export-confirm-actions')).toBeTruthy()
+
+    // 点确认框遮罩 = 取消这次导出
+    fireEvent.click(document.querySelector('.export-confirm-overlay'))
+
+    // 确认框消失,但导出面板仍在(此前确认框嵌在外层 overlay 内,
+    // 这次点击会冒泡到外层 onClick,把整个导出面板一起关掉)
+    expect(document.querySelector('.export-confirm-actions')).toBeNull()
+    expect(onClose).not.toHaveBeenCalled()
+    expect(screen.getByText('PNG 图片')).toBeTruthy()
+  })
+})

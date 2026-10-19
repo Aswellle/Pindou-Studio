@@ -853,10 +853,15 @@ export default function ExportPanel({ canvasData, gridSize, gridWidth, gridHeigh
   // portal 到 body:导出浮层含输入项,移出 .app 挂载到 body 下,避免 iOS 上
   // 滚动容器/祖先 stacking context 影响 fixed 定位(键盘弹出错位)
   return createPortal(
-    <div className="modal-overlay" onClick={onClose}>
-      <div className="export-modal-content" onClick={(e) => e.stopPropagation()}>
-        {panel}
+    <>
+      <div className="modal-overlay" onClick={onClose}>
+        <div className="export-modal-content" onClick={(e) => e.stopPropagation()}>
+          {panel}
+        </div>
       </div>
+      {/* 确认框必须是外层浮层的兄弟节点:此前嵌在 .modal-overlay 内部,点击确认框
+          的遮罩(关闭确认框)会冒泡到外层 onClick 把整个导出面板一起关掉,
+          用户取消导出后要重新打开面板再选一遍参数。 */}
       {confirmDialog}
       <style>{`
         .export-modal-content {
@@ -866,7 +871,7 @@ export default function ExportPanel({ canvasData, gridSize, gridWidth, gridHeigh
           overflow-y: auto;
         }
       `}</style>
-    </div>,
+    </>,
     document.body
   )
 }
