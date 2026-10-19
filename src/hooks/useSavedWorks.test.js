@@ -97,6 +97,36 @@ describe('useSavedWorks · 本地模式写入归一', () => {
     expect(result.current.works[0].gridWidth).toBe(12)
     expect(result.current.works[0].gridHeight).toBe(10)
   })
+
+  it('图库复制来源 id 在本地往返中原样保留(数字与 uuid 均可)', async () => {
+    const { result } = renderHook(() => useSavedWorks(null))
+    // 两次保存分两个 act:worksRef 在渲染后同步,同一 act 内连续保存会互相覆盖
+    await act(async () => {
+      await result.current.saveWork({
+        id: 4,
+        name: '复制内置',
+        canvasData: blank(9, 9),
+        paletteId: 'perler',
+        savedAt: '2026-10-19T00:00:00.000Z',
+        sourceTemplateId: 7,
+      })
+    })
+    await act(async () => {
+      await result.current.saveWork({
+        id: 5,
+        name: '复制云端',
+        canvasData: blank(9, 9),
+        paletteId: 'perler',
+        savedAt: '2026-10-19T00:00:01.000Z',
+        sourceTemplateId: 'a1b2c3d4-0000-0000-0000-000000000000',
+      })
+    })
+
+    const stored = readStored()
+    expect(stored).toHaveLength(2)
+    expect(stored[0].sourceTemplateId).toBe(7)
+    expect(stored[1].sourceTemplateId).toBe('a1b2c3d4-0000-0000-0000-000000000000')
+  })
 })
 
 describe('useSavedWorks · 本地模式读取归一', () => {

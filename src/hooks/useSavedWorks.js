@@ -45,16 +45,26 @@ const rowToWork = (row) => normalizeLegacyWork({
   gridHeight: row.grid_height,
   paletteId: row.palette_id,
   savedAt: row.saved_at,
+  sourceTemplateId: row.source_template_id ?? null,
 })
-const workToRow = (w) => ({
-  name: w.name,
-  canvas_data: w.canvasData,
-  grid_size: w.gridSize,
-  grid_width: w.gridWidth ?? null,
-  grid_height: w.gridHeight ?? null,
-  palette_id: w.paletteId || 'perler',
-  saved_at: w.savedAt,
-})
+const workToRow = (w) => {
+  const row = {
+    name: w.name,
+    canvas_data: w.canvasData,
+    grid_size: w.gridSize,
+    grid_width: w.gridWidth ?? null,
+    grid_height: w.gridHeight ?? null,
+    palette_id: w.paletteId || 'perler',
+    saved_at: w.savedAt,
+  }
+  // 图库复制溯源(migration 0023):内置模板 id 是数字、云端是 uuid,统一存文本。
+  // 不设外键 —— 源模板删除后个人副本必须继续存在。
+  // 仅在存在来源时发送该列:普通保存不依赖 0023 是否已执行。
+  if (w.sourceTemplateId !== null && w.sourceTemplateId !== undefined) {
+    row.source_template_id = String(w.sourceTemplateId)
+  }
+  return row
+}
 // 登录迁移去重键:与 0017_works.sql 的唯一索引 (user_id, saved_at, name) 对应
 const dedupKey = (w) => `${w.savedAt}|${w.name}`
 
