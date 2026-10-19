@@ -5,6 +5,9 @@
  * 支持刷新恢复、浏览器前进后退、分享链接。
  *
  * URL 格式: /gallery?q=xxx&cat=animal&diff=easy
+ *
+ * 主题页/合集页复用同一套筛选:它们也读取 q/cat/diff,
+ * 只是作用在各自范围内的模板列表上。
  */
 
 import { useSearchParams } from 'react-router-dom'
