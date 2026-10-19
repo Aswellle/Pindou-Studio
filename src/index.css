@@ -159,8 +159,15 @@ input:focus, textarea:focus, button:focus {
    关键:overlay 用 inset:0 盖满【整个布局视口】(不是 --visible-vh 视觉视口高)。
    因为视觉视口总是布局视口的子集,iOS 26 键盘弹出自动滚动视觉视口(offsetTop>0)
    时,视觉视口看到的仍是 overlay 内部 —— 白板在几何上不可能出现。
-   --visible-vh / --visible-vh-top 只用来约束【内部 modal】落在键盘上方,
-   不用于 overlay 边界。 */
+
+   键盘弹出时还要把「居中区」缩到视觉视口内,否则 modal 仍会在整个布局视口里居中、
+   下半截落到键盘后面(Safari 不支持 viewport 的 interactive-widget,布局视口不会
+   自己收缩,只能靠 JS 变量):
+     padding-top    = visualViewport.offsetTop        → 内容区从视觉视口顶部开始
+     padding-bottom = 键盘高度(--keyboard-height) + 16 → 内容区到键盘上沿结束
+   两者相减,内容区恰好等于视觉视口高度减去 16px 上下留白,与内部 modal 的
+   `max-height: calc(var(--visible-vh) - 32px)` 完全吻合。键盘收起时两值均为 0,
+   与改动前逐像素一致。 */
 .modal-overlay {
   position: fixed;
   inset: 0;
@@ -175,9 +182,10 @@ input:focus, textarea:focus, button:focus {
   z-index: 1000;
   backdrop-filter: blur(4px);
   padding: 16px;
-  padding-top: max(16px, env(safe-area-inset-top, 0px));
+  padding-top: max(16px, var(--visible-vh-top, 0px), env(safe-area-inset-top, 0px));
   padding-right: max(16px, env(safe-area-inset-right, 0px));
-  padding-bottom: max(16px, env(safe-area-inset-bottom, 0px));
+  /* 键盘高度补偿:见上方注释。max() 保证键盘收起/无 visualViewport 时仍是 16px */
+  padding-bottom: max(16px, calc(var(--keyboard-height, 0px) + 16px), env(safe-area-inset-bottom, 0px));
   padding-left: max(16px, env(safe-area-inset-left, 0px));
   box-sizing: border-box;
   /* 阻止滚动穿透:模态框上滑动不带动下层页面 */
@@ -189,15 +197,17 @@ input:focus, textarea:focus, button:focus {
 }
 
 /* 其余全屏浮层(.contact / .admin-modal / .users-confirm /
-   .profile-confirm / .load-confirm / .quantizer-zoom)与 .modal-overlay 共享
-   同一套「fixed + 视觉视口高度 + 自身滚动 + safe-area」基础。
+   .profile-confirm / .load-confirm / .my-beads-modal / .quantizer-zoom)
+   与 .modal-overlay 共享同一套「fixed + 布局视口 + 视觉视口内边距 + 自身滚动 + safe-area」基础。
    注意:各组件 inline <style> 后加载,会覆盖这里的 padding 等声明 ——
-   组件侧已相应只保留自身差异。 */
+   组件侧已相应只保留自身差异;新加全屏浮层时必须同步加入本组与
+   useKeyboardSafe 的 OVERLAY_SELECTOR(mobileOverlayContract.test.js 会强制检查)。 */
 .contact-overlay,
 .admin-modal-overlay,
 .users-confirm-overlay,
 .profile-confirm-overlay,
 .load-confirm-overlay,
+.my-beads-modal-overlay,
 .quantizer-zoom {
   position: fixed;
   /* 同 .modal-overlay:盖满布局视口(inset:0),视觉视口滚动也不露白 */
@@ -209,23 +219,27 @@ input:focus, textarea:focus, button:focus {
   overscroll-behavior: contain;
   box-sizing: border-box;
   padding: 16px;
-  padding-top: max(16px, env(safe-area-inset-top, 0px));
+  /* 与 .modal-overlay 同一套键盘补偿:顶部让出视觉视口偏移,底部让出键盘高度,
+     居中组(确认框 / 后台模态)才会落在键盘上方的可见区,而不是被键盘盖住下半截 */
+  padding-top: max(16px, var(--visible-vh-top, 0px), env(safe-area-inset-top, 0px));
   padding-right: max(16px, env(safe-area-inset-right, 0px));
-  padding-bottom: max(16px, env(safe-area-inset-bottom, 0px));
+  padding-bottom: max(16px, calc(var(--keyboard-height, 0px) + 16px), env(safe-area-inset-bottom, 0px));
   padding-left: max(16px, env(safe-area-inset-left, 0px));
 }
 /* 居中组(确认框 / 后台模态):内容放得下居中、超高可滚到底 */
 .admin-modal-overlay,
 .users-confirm-overlay,
 .profile-confirm-overlay,
-.load-confirm-overlay {
+.load-confirm-overlay,
+.my-beads-modal-overlay {
   display: grid;
   place-items: center;
 }
 .admin-modal-overlay > *,
 .users-confirm-overlay > *,
 .profile-confirm-overlay > *,
-.load-confirm-overlay > * {
+.load-confirm-overlay > *,
+.my-beads-modal-overlay > * {
   margin: auto;
 }
 
@@ -241,13 +255,17 @@ input:focus, textarea:focus, button:focus {
   box-sizing: border-box;
 }
 /* 注册/登录弹窗滚动条 — 统一站点风格 */
-/* ── 全屏浮层打开时,淡出画布底部工具栏(个人主页/联系我们等弹窗出现时,
-      底部 fixed 工具栏挡在 modal 下方,使其无法滚到底部按钮 —— 采纳用户建议用淡出清除) ── */
+/* 手机(≤639px)全屏浮层打开时淡出画布底部工具栏 —— 工具栏是 fixed 定位,不受
+   overlay 的 inset:0 遮挡,会盖在 modal 底部按钮上方;桌面端工具栏是侧栏,不需要。
+   注意:`.my-beads-modal-overlay` 也要列进来,否则该页的编辑浮层底部按钮会被工具栏压住。 */
 body:has(.contact-overlay) .mobile-toolbar,
 body:has(.modal-overlay) .mobile-toolbar,
 body:has(.admin-modal-overlay) .mobile-toolbar,
 body:has(.users-confirm-overlay) .mobile-toolbar,
-body:has(.profile-confirm-overlay) .mobile-toolbar {
+body:has(.profile-confirm-overlay) .mobile-toolbar,
+body:has(.load-confirm-overlay) .mobile-toolbar,
+body:has(.my-beads-modal-overlay) .mobile-toolbar,
+body:has(.quantizer-zoom) .mobile-toolbar {
   opacity: 0;
   pointer-events: none;
   transition: opacity 0.2s ease;
