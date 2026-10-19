@@ -1,6 +1,7 @@
 import { useState, useCallback, useRef, useEffect, useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useImageQuantizer } from '../../hooks/useImageQuantizer'
+import { useScrollLock } from '../../hooks/useScrollLock'
 import { getPalette, PALETTE_LIST } from '../../data/palettes'
 import { recommendGridSize, suggestMaxColorsForGrid } from '../../utils/autoGrid'
 import { checkImageFile, checkImagePixels } from '../../utils/imageGuard'
@@ -118,11 +119,8 @@ export default function ImageQuantizer({ onApply, onClose }) {
   const [zoomPreview, setZoomPreview] = useState(false)
 
   // iOS Safari 键盘弹起时锁定背景滚动,避免 visual viewport 偏移把浮层推走
-  useEffect(() => {
-    const prev = document.body.style.overflow
-    document.body.style.overflow = 'hidden'
-    return () => { document.body.style.overflow = prev }
-  }, [])
+  // (统一滚动锁:与其他弹层叠加时按引用计数释放)
+  useScrollLock(true)
 
   // 品牌 ID → hex 查找表(预览与放大查看共用)
   const resultColorMap = useMemo(() => {

@@ -3,6 +3,7 @@ import { createPortal } from 'react-dom'
 import { useTranslation } from 'react-i18next'
 import { X, Send, User } from 'lucide-react'
 import { supabase } from '../services/supabase'
+import { useScrollLock } from '../hooks/useScrollLock'
 import { useToast } from './Toast'
 
 // Cloudflare Turnstile 站点密钥(Vercel 环境变量 / 本地 .env.local)
@@ -69,11 +70,8 @@ export default function ContactUsModal({ onClose, user }) {
   const captchaRequired = !!TURNSTILE_SITE_KEY
 
   // iOS Safari 键盘弹起时锁定背景滚动,避免 visual viewport 偏移把浮层推走
-  useEffect(() => {
-    const prev = document.body.style.overflow
-    document.body.style.overflow = 'hidden'
-    return () => { document.body.style.overflow = prev }
-  }, [])
+  // (统一滚动锁:与其他弹层叠加时按引用计数释放)
+  useScrollLock(true)
 
   // 拉取线程 + 每 5s 轮询(管理员回复即时可见;不依赖 Realtime/RLS 配置,稳)
   const loadThread = useCallback(async () => {
