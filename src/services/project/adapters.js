@@ -16,7 +16,7 @@
  *   - 不修改入参(所有输出都是新数组/新对象)。
  */
 
-import { createProject, normalizeProject, validateProject, deriveGridDimensions, PROJECT_SCHEMA_VERSION } from './projectModel'
+import { createProject, normalizeProject, validateProject, deriveGridDimensions, PROJECT_SCHEMA_VERSION, SOURCE_KINDS } from './projectModel'
 import { createPatternDocument } from '../export/PatternDocument'
 import { getPalette } from '../../data/palettes'
 
@@ -63,7 +63,11 @@ export function legacyWorkToProject(work, options = {}) {
   project.updatedAt = work.savedAt || project.updatedAt
   project.source = {
     ...project.source,
-    kind: 'legacy-work',
+    // 作品若已带来源(导入/图库复制),载入时原样恢复;没有才是真正的历史作品。
+    // 这条还原是「保存 → 重新打开 → 再保存」不丢来源的前提。
+    // 存储层的值是外部输入,必须过白名单:非法来源按 legacy-work 处理,不让脏值进模型。
+    kind: SOURCE_KINDS.includes(work.sourceKind) ? work.sourceKind : 'legacy-work',
+    sourceTemplateId: work.sourceTemplateId ?? project.source.sourceTemplateId,
   }
   return project
 }
@@ -92,6 +96,7 @@ export function canvasToLegacyWork({
   id = null,
   savedAt = null,
   sourceTemplateId = null,
+  sourceKind = null,
 } = {}) {
   if (!Array.isArray(canvasData) || canvasData.length === 0) return null
 
@@ -109,10 +114,12 @@ export function canvasToLegacyWork({
     gridHeight: isSquare ? null : height,
     paletteId: paletteId || 'perler',
     savedAt: savedAt || new Date().toISOString(),
-    // 图库复制溯源(可选):不参与尺寸/渲染,原样保留
+    // 来源元数据(可选):不参与尺寸/渲染,原样保留以便「保存 → 重开 → 再保存」不丢来源。
+    // sourceKind 必须是白名单值,否则丢弃(存储层是外部输入,不能污染模型)。
     ...(sourceTemplateId !== null && sourceTemplateId !== undefined
       ? { sourceTemplateId }
       : {}),
+    ...(SOURCE_KINDS.includes(sourceKind) ? { sourceKind } : {}),
   }
 }
 
@@ -172,6 +179,7 @@ export function projectToLegacyWork(project, options = {}) {
   const width = grid.width
   const height = grid.height
   const isSquare = width === height
+  const kind = project.source?.kind
   return {
     id: project.id,
     name: project.name || '',
@@ -182,6 +190,12 @@ export function projectToLegacyWork(project, options = {}) {
     gridHeight: isSquare ? null : height,
     paletteId: project.palette?.paletteId || 'perler',
     savedAt: options.savedAt || project.updatedAt || project.createdAt || new Date().toISOString(),
+    // 来源随作品一起落到存储层(否则「导入 → 保存 → 重开」后来源丢失)。
+    // 仅白名单值写出,`legacy-work` 是读取时补的默认值,不作为来源存回去。
+    ...(SOURCE_KINDS.includes(kind) && kind !== 'legacy-work' ? { sourceKind: kind } : {}),
+    ...(project.source?.sourceTemplateId != null
+      ? { sourceTemplateId: project.source.sourceTemplateId }
+      : {}),
   }
 }
 

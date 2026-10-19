@@ -19,7 +19,7 @@
  *      这是项目既有协议,不额外新增格式。
  */
 
-import { normalizeProject, validateProject, PROJECT_ERROR_CODES, PROJECT_SCHEMA_VERSION } from './projectModel'
+import { normalizeProject, validateProject, PROJECT_ERROR_CODES, PROJECT_SCHEMA_VERSION, SOURCE_KINDS } from './projectModel'
 import { legacyWorkToProject } from './adapters'
 import { normalizeCustomTemplate } from '../../data/templates'
 
@@ -223,6 +223,7 @@ export function projectToImportWork(project, options = {}) {
   const grid = project?.grid
   if (!grid || !Array.isArray(grid.cells)) return null
   const isSquare = grid.width === grid.height
+  const kind = project.source?.kind
   return {
     id: options.id ?? Date.now(),
     name: project.name || '',
@@ -232,8 +233,9 @@ export function projectToImportWork(project, options = {}) {
     gridHeight: isSquare ? null : grid.height,
     paletteId: project.palette?.paletteId || 'perler',
     savedAt: options.savedAt || project.updatedAt || project.createdAt || new Date().toISOString(),
-    // 导入来源:仅本地作品对象携带,不会写进云端行(workToRow 不读它)
-    source: project.source?.kind || 'native-file',
+    // 导入来源:随作品一起持久化,重新打开时仍能区分「导入 / 图库复制 / 手绘」。
+    // 只接受白名单值 —— 文件内容不可信,不能让任意字符串进存储层。
+    sourceKind: SOURCE_KINDS.includes(kind) ? kind : 'native-file',
   }
 }
 
