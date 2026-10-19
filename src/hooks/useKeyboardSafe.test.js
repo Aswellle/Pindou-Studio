@@ -16,11 +16,13 @@ class FakeViewport extends EventTarget {
     this.height = height
     this.offsetTop = offsetTop
     this.offsetLeft = 0
+    this.scale = 1
   }
 
-  set(height, offsetTop = 0) {
+  set(height, offsetTop = 0, scale = 1) {
     this.height = height
     this.offsetTop = offsetTop
+    this.scale = scale
     this.dispatchEvent(new Event('resize'))
   }
 }
@@ -31,8 +33,11 @@ beforeEach(() => {
   viewport = new FakeViewport(800)
   Object.defineProperty(window, 'visualViewport', { value: viewport, configurable: true })
   Object.defineProperty(window, 'innerHeight', { value: 800, configurable: true })
-  // jsdom 没有 rAF 的即时语义;用同步回调让断言无需等待
-  vi.spyOn(window, 'requestAnimationFrame').mockImplementation((cb) => { cb(0); return 1 })
+  // jsdom 没有 rAF 的即时语义;用同步回调让断言无需等待。
+  // 注意:mock 需要吞掉参数 —— hook 里 `raf = requestAnimationFrame(cb)` 拿到返回值后
+  // 再判断 `if (!raf)`,回调里又会把 raf 置 0;若 mock 返回 1 且同步执行回调,
+  // 回调把 raf 清零后赋值语句又把 raf 写回 1,下一次 schedule 就被永久跳过。
+  vi.spyOn(window, 'requestAnimationFrame').mockImplementation((cb) => { cb(0); return 0 })
   vi.spyOn(window, 'cancelAnimationFrame').mockImplementation(() => {})
 })
 
@@ -50,11 +55,43 @@ describe('useKeyboardSafe', () => {
     expect(cssVar('--visible-vh')).toBe('800px')
     expect(cssVar('--vh')).toBe('8px')
 
+    // --keyboard-height 只在「文本输入聚焦且未缩放」时才计入差值(见下一条用例)
+    const input = document.createElement('input')
+    document.body.appendChild(input)
+    input.focus()
+    // focus 触发的 rAF 用的是当前(尚未变化)视口尺寸,这里显式再同步一次
+    viewport.dispatchEvent(new Event('resize'))
+
     viewport.set(500, 20)
     expect(cssVar('--visible-vh')).toBe('500px')
     expect(cssVar('--visible-vh-top')).toBe('20px')
     expect(cssVar('--keyboard-height')).toBe('280px') // 800 - 500 - 20
     expect(cssVar('--vh')).toBe('5px')
+    unmount()
+  })
+
+  it('双指缩放造成的视觉视口收缩不算键盘高度', () => {
+    const { unmount } = renderHook(() => useKeyboardSafe())
+    // 有文本输入聚焦,但页面被放大到 2 倍:差值来自缩放而非键盘
+    const input = document.createElement('input')
+    document.body.appendChild(input)
+    input.focus()
+
+    viewport.set(400, 0, 2)
+    expect(cssVar('--keyboard-height')).toBe('0px')
+    unmount()
+  })
+
+  it('无文本输入聚焦时不算键盘高度(几何差值来自地址栏动画等)', () => {
+    const { unmount } = renderHook(() => useKeyboardSafe())
+    // 焦点在按钮/复选框上不会唤起键盘
+    const checkbox = document.createElement('input')
+    checkbox.type = 'checkbox'
+    document.body.appendChild(checkbox)
+    checkbox.focus()
+
+    viewport.set(400, 0)
+    expect(cssVar('--keyboard-height')).toBe('0px')
     unmount()
   })
 

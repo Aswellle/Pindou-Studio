@@ -41,6 +41,18 @@ export default function useKeyboardSafe() {
     const vv = window.visualViewport
     let raf = 0
     const set = (k, v) => root.style.setProperty(k, v)
+    // 是否真的处于「键盘可见」状态:文本类控件聚焦 + 未缩放。
+    // 只看几何差值会在双指缩放、地址栏动画时误判。
+    const TEXT_INPUT_TYPES = new Set(['text', 'email', 'password', 'search', 'tel', 'url', 'number', 'date', 'datetime-local', 'month', 'time', 'week'])
+    const hasKeyboard = (viewport) => {
+      if (!viewport || (viewport.scale && Math.abs(viewport.scale - 1) > 0.01)) return false
+      const el = document.activeElement
+      if (!el) return false
+      if (el.isContentEditable) return true
+      if (el.tagName === 'TEXTAREA') return true
+      if (el.tagName === 'INPUT') return TEXT_INPUT_TYPES.has((el.type || 'text').toLowerCase())
+      return false
+    }
     const update = () => {
       raf = 0
       if (!vv) {
@@ -59,9 +71,11 @@ export default function useKeyboardSafe() {
       // 视觉视口相对布局视口的纵向/横向偏移(键盘安全 / 顶部刘海)
       set('--visible-vh-top', `${vv.offsetTop}px`)
       set('--visual-offset-left', `${vv.offsetLeft}px`)
-      // 键盘高度 = 布局视口 − 视觉视口 − 顶部偏移;全屏浮层靠 --visible-vh 收缩
-      // 已解决,此变量仅给「不收缩的容器」按需读取(如想保持全高但给底部留空)。
-      const keyboardHeight = Math.max(0, inner - vv.height - vv.offsetTop)
+      // 键盘高度 = 布局视口 − 视觉视口 − 顶部偏移。
+      // 这个差值在「双指放大」时同样为正(视觉视口缩小但根本没有键盘),所以必须
+      // 叠加两个判据:确实有文本输入聚焦,且页面未被缩放。否则放大图库/画布时
+      // 全屏浮层会把这段差值当成键盘高度,内容被压到屏幕顶部。
+      const keyboardHeight = hasKeyboard(vv) ? Math.max(0, inner - vv.height - vv.offsetTop) : 0
       set('--keyboard-height', `${keyboardHeight}px`)
       // --vh:整棵树(#root/.app)高度基准。键盘弹出时 visualViewport 收缩,
       // 用 min(innerHeight, visualViewport.height) 使布局随键盘收缩(旧方案只监听
