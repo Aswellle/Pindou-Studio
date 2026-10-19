@@ -1194,7 +1194,12 @@
       "notJson": "Please choose a .json file",
       "fileReadError": "Failed to read the file",
       "unknown": "Unknown error"
-    }
+    },
+    "modeLabel": "Import method",
+    "modeFile": "Project file",
+    "modeFileHint": "Native .pindou.json or template JSON",
+    "modeChart": "Chart screenshot",
+    "modeChartHint": "An image of an existing bead grid, recognized and corrected"
   },
   "replace": {
     "title": "Replace Color",
@@ -1337,5 +1342,40 @@
       "notFound": "Record not found",
       "unknown": "Operation failed"
     }
+  },
+  "chartImport": {
+    "chooseImage": "Choose a chart image",
+    "dropHint": "Screenshots or photos work; recognition runs locally and the image is never uploaded",
+    "detecting": "Detecting grid…",
+    "decodeFailed": "Could not read the image. Please try another file.",
+    "detectFailed": "No stable grid was detected. Drag a box over the chart area on the left, then set columns and rows manually.",
+    "lowConfidence": "Grid detection confidence is low ({{confidence}}%). Please verify columns, rows and bounds before using.",
+    "detected": "Detected {{cols}} columns × {{rows}} rows",
+    "cols": "Columns",
+    "rows": "Rows",
+    "palette": "Palette",
+    "removeBackground": "Treat cells matching the background as empty",
+    "cropHint": "Drag on the left image to reset the bounds; click cells on the right to correct them one by one.",
+    "sourcePreview": "Image and grid",
+    "resultPreview": "Recognition result",
+    "previewUnavailable": "These settings produce no result. Check columns, rows and bounds.",
+    "size": "Size",
+    "colors": "Colors",
+    "beads": "Beads",
+    "blanks": "Empty cells",
+    "uncertain": "Review",
+    "uncertainHint": "{{n}} cells differ noticeably from the palette. Click them on the right to verify.",
+    "correctionTitle": "Cell correction",
+    "pickCell": "Click a cell in the right preview",
+    "selectedCell": "Selected",
+    "blank": "empty",
+    "markBlank": "Mark as empty",
+    "restoreAuto": "Restore automatic",
+    "pickColor": "Assign color",
+    "reselect": "Choose another image",
+    "loadToCanvas": "Load into canvas",
+    "saveAsWork": "Save as my work",
+    "saved": "Saved to my works",
+    "storageHint": "Recognition and correction run locally. Saving works like any other work: written to your cloud library when signed in (visible only to you), otherwise kept in this browser."
   }
 }

@@ -139,7 +139,6 @@ export function buildChartProject({
     if (!Number.isInteger(x) || !Number.isInteger(y)) continue
     if (x < 0 || x >= cols || y < 0 || y >= rows) continue
     mapped.hexCells[y][x] = value || null
-    mapped.cells[y][x] = value || null
     mapped.deltaEs[y][x] = null
     overrideCount++
   }

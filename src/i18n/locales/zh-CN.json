@@ -1194,7 +1194,12 @@
       "notJson": "请选择 .json 文件",
       "fileReadError": "文件读取失败",
       "unknown": "未知错误"
-    }
+    },
+    "modeLabel": "导入方式",
+    "modeFile": "项目文件",
+    "modeFileHint": "原生 .pindou.json 或模板 JSON",
+    "modeChart": "图纸截图",
+    "modeChartHint": "已有拼豆格子的图片，识别后校正"
   },
   "replace": {
     "title": "颜色替换",
@@ -1337,5 +1342,40 @@
       "notFound": "记录不存在",
       "unknown": "操作失败"
     }
+  },
+  "chartImport": {
+    "chooseImage": "选择图纸图片",
+    "dropHint": "支持截图或拍照；识别在本机完成，图片不会上传",
+    "detecting": "正在识别网格…",
+    "decodeFailed": "图片读取失败，请换一张图片重试",
+    "detectFailed": "没有识别出稳定网格。请在左侧图上拖框选择图纸区域，并手动填写列数与行数。",
+    "lowConfidence": "网格识别置信度较低（{{confidence}}%），请核对列数、行数与边界后再使用。",
+    "detected": "已识别 {{cols}} 列 × {{rows}} 行",
+    "cols": "列数",
+    "rows": "行数",
+    "palette": "色卡",
+    "removeBackground": "把与背景相同的格子识别为空白",
+    "cropHint": "在左侧图片上拖出图纸区域可重新设定边界；右侧点选格子可逐格修正。",
+    "sourcePreview": "原图与网格",
+    "resultPreview": "识别结果",
+    "previewUnavailable": "当前参数无法生成结果，请检查列数、行数与边界",
+    "size": "尺寸",
+    "colors": "颜色数",
+    "beads": "总颗数",
+    "blanks": "空白格",
+    "uncertain": "建议复核",
+    "uncertainHint": "有 {{n}} 个格子与色卡色差较大，建议在右侧点选核对。",
+    "correctionTitle": "逐格修正",
+    "pickCell": "在右侧预览中点选一个格子",
+    "selectedCell": "当前格",
+    "blank": "空白",
+    "markBlank": "标记为空白",
+    "restoreAuto": "恢复自动识别",
+    "pickColor": "指定颜色",
+    "reselect": "重新选择图片",
+    "loadToCanvas": "载入画布编辑",
+    "saveAsWork": "保存为我的作品",
+    "saved": "已保存为我的作品",
+    "storageHint": "识别与校正都在本机完成；保存后与其他作品一样：登录时写入你的云端作品库（仅本人可读写），未登录时只保存在本机浏览器。"
   }
 }

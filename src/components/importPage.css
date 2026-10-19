@@ -65,6 +65,66 @@
   line-height: 1.7;
 }
 
+/* ── 导入方式切换 ─────────────────────────────────────────── */
+.import-modes {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+.import-mode {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 12px 14px;
+  border-radius: var(--radius-card);
+  border: 1px solid var(--border-color);
+  background: var(--bg-primary);
+  color: var(--text-secondary);
+  font-family: inherit;
+  text-align: left;
+  cursor: pointer;
+  transition: border-color 0.2s, background 0.2s;
+}
+
+.import-mode svg {
+  flex: 0 0 auto;
+  margin-top: 2px;
+  color: var(--text-muted);
+}
+
+.import-mode span {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.import-mode strong {
+  font-size: var(--text-base);
+  font-weight: var(--font-weight-medium);
+  color: var(--text-primary);
+}
+
+.import-mode small {
+  font-size: var(--text-xs);
+  color: var(--text-muted);
+  line-height: 1.5;
+}
+
+.import-mode:hover {
+  background: var(--bg-secondary);
+}
+
+.import-mode.active {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+}
+
+.import-mode.active svg {
+  color: var(--accent);
+}
+
 /* ── 文件选择区 ───────────────────────────────────────────── */
 .import-drop {
   position: relative;
@@ -360,6 +420,9 @@
 @media (max-width: 639px) {
   .import-page {
     padding: 16px 12px 40px;
+  }
+  .import-modes {
+    grid-template-columns: 1fr;
   }
   .import-preview-body {
     flex-direction: column;

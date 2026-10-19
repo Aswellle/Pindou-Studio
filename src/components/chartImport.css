@@ -1,0 +1,371 @@
+/* ChartImportWizard — 已有图纸截图识别
+ *
+ * 视觉沿用站点暖色 token(--bg-*、--accent、--border-color),
+ * 与 ImportPage 的页面条/卡片保持同一套观感,不引入新主题。
+ * 桌面:双预览并排;移动:上下堆叠,操作按钮全宽。
+ */
+
+.chart-drop {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  padding: 32px 16px;
+  border: 1.5px dashed var(--border-color);
+  border-radius: var(--radius-card);
+  background: var(--bg-primary);
+  cursor: pointer;
+  text-align: center;
+  transition: border-color 0.2s, background 0.2s;
+}
+
+.chart-drop:hover,
+.chart-drop:focus-visible {
+  border-color: var(--accent);
+  background: var(--bg-secondary);
+  outline: none;
+}
+
+.chart-file-input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.chart-drop-icon {
+  color: var(--accent);
+}
+
+.chart-drop-main {
+  font-size: var(--text-base);
+  font-weight: var(--font-weight-medium);
+  color: var(--text-primary);
+}
+
+.chart-drop-hint,
+.chart-drop-busy {
+  font-size: var(--text-xs);
+  color: var(--text-muted);
+}
+
+.chart-drop-error {
+  margin-top: 4px;
+  font-size: var(--text-sm);
+  color: var(--error);
+}
+
+/* ── 向导主体 ─────────────────────────────────────────────── */
+.chart-wizard {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.chart-banner {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 14px;
+  border-radius: 10px;
+  font-size: var(--text-sm);
+  line-height: 1.6;
+}
+
+.chart-banner.warning {
+  border: 1px solid var(--warning-border);
+  background: var(--warning-bg);
+  color: var(--text-primary);
+}
+
+.chart-banner.warning svg {
+  color: var(--warning);
+  flex: 0 0 auto;
+}
+
+.chart-banner.ok {
+  border: 1px solid var(--border-color);
+  background: var(--bg-secondary);
+  color: var(--text-primary);
+}
+
+.chart-banner.ok svg {
+  color: var(--success);
+  flex: 0 0 auto;
+}
+
+/* ── 参数 ─────────────────────────────────────────────────── */
+.chart-controls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 10px 16px;
+}
+
+.chart-field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: var(--text-xs);
+  color: var(--text-muted);
+}
+
+.chart-field input,
+.chart-field select {
+  height: 34px;
+  min-width: 96px;
+  padding: 0 10px;
+  border-radius: 8px;
+  border: 1px solid var(--border-color);
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  font-family: inherit;
+  font-size: var(--text-sm);
+}
+
+.chart-check {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 34px;
+  font-size: var(--text-sm);
+  color: var(--text-secondary);
+  cursor: pointer;
+}
+
+.chart-tip {
+  margin: 0;
+  font-size: var(--text-xs);
+  color: var(--text-muted);
+  line-height: 1.6;
+}
+
+.chart-tip.warn {
+  color: var(--warning);
+}
+
+/* ── 双预览 ───────────────────────────────────────────────── */
+.chart-previews {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+.chart-preview {
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+}
+
+.chart-preview figcaption {
+  font-size: var(--text-xs);
+  color: var(--text-muted);
+}
+
+.chart-source-canvas,
+.chart-result-canvas {
+  display: block;
+  width: 100%;
+  max-height: 420px;
+  object-fit: contain;
+  border-radius: 10px;
+  border: 1px solid var(--border-color);
+  background: var(--bg-secondary);
+}
+
+.chart-source-canvas {
+  cursor: crosshair;
+  touch-action: none;
+}
+
+.chart-result-canvas {
+  image-rendering: pixelated;
+  cursor: pointer;
+}
+
+.chart-result-empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-height: 180px;
+  border-radius: 10px;
+  border: 1px dashed var(--border-color);
+  color: var(--text-muted);
+  font-size: var(--text-sm);
+}
+
+/* ── 统计 ─────────────────────────────────────────────────── */
+.chart-stats {
+  margin: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(110px, 1fr));
+  gap: 8px 16px;
+  font-size: var(--text-sm);
+}
+
+.chart-stats > div {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.chart-stats dt {
+  color: var(--text-muted);
+  font-size: var(--text-xs);
+}
+
+.chart-stats dd {
+  margin: 0;
+  color: var(--text-primary);
+}
+
+.chart-stats .warn dd {
+  color: var(--warning);
+  font-weight: var(--font-weight-semibold);
+}
+
+/* ── 逐格修正 ─────────────────────────────────────────────── */
+.chart-correction {
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-card);
+  background: var(--bg-primary);
+  padding: 12px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.chart-correction-head {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.chart-correction-head strong {
+  font-size: var(--text-base);
+  color: var(--text-primary);
+}
+
+.chart-selected {
+  font-size: var(--text-xs);
+  color: var(--text-muted);
+  font-family: var(--font-mono);
+}
+
+.chart-correction-actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.chart-swatches {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  max-height: 132px;
+  overflow-y: auto;
+}
+
+.chart-swatch {
+  width: 22px;
+  height: 22px;
+  padding: 0;
+  border-radius: 5px;
+  border: 1px solid var(--border-color);
+  cursor: pointer;
+}
+
+.chart-swatch:hover,
+.chart-swatch:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+
+/* ── 操作 ─────────────────────────────────────────────────── */
+.chart-actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.chart-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 38px;
+  padding: 0 16px;
+  border-radius: 999px;
+  border: 1px solid var(--border-color);
+  background: var(--bg-primary);
+  color: var(--text-secondary);
+  font-size: var(--text-sm);
+  font-family: inherit;
+  cursor: pointer;
+  transition: background 0.2s, color 0.2s;
+}
+
+.chart-btn:hover {
+  background: var(--bg-tertiary);
+}
+
+.chart-btn.ghost {
+  background: transparent;
+}
+
+.chart-btn.secondary {
+  border-color: var(--secondary-accent);
+  color: var(--secondary-accent);
+}
+
+.chart-btn.secondary:hover {
+  background: var(--bg-secondary);
+}
+
+.chart-btn.primary {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #fff;
+}
+
+.chart-btn.primary:hover {
+  background: var(--accent-hover);
+}
+
+.chart-btn:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.chart-storage-hint {
+  margin: 0;
+  font-size: var(--text-xs);
+  color: var(--text-muted);
+  line-height: 1.6;
+}
+
+/* ── 移动端 ───────────────────────────────────────────────── */
+@media (max-width: 639px) {
+  .chart-previews {
+    grid-template-columns: 1fr;
+  }
+  .chart-actions {
+    flex-direction: column;
+  }
+  .chart-btn {
+    justify-content: center;
+    height: 44px;
+  }
+  .chart-field {
+    flex: 1 1 120px;
+  }
+  .chart-field input,
+  .chart-field select {
+    width: 100%;
+  }
+}

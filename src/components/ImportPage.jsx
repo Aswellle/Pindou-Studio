@@ -1,10 +1,14 @@
 /**
- * ImportPage — /import 个人图纸导入页(原生项目 JSON / 模板 JSON)
+ * ImportPage — /import 个人图纸导入页
  *
- * 规格:docs/agent-spec/02 §3(路由 `/import`)、03 §3–§5(格式与校验)。
+ * 规格:docs/agent-spec/02 §3(路由 `/import`)、03 §3–§5(格式与校验)、03 §4B(图纸识别)。
+ *
+ * 两种导入模式(不要让所有输入走同一条管线,规格 03 §4 明确要求区分):
+ *   1. 项目文件 —— .pindou.json / 模板 JSON:选文件 → 校验 → 预览 → 落库/进编辑器;
+ *   2. 图纸截图 —— 已有拼豆格子的截图/照片:走 ChartImportWizard(网格检测 + 逐格修正),
+ *      **不**复用照片量化的 K-means 管线。
  *
  * 页面职责(只做「选文件 → 校验 → 预览 → 落库/进编辑器」):
- *   - 文件选择与拖拽(桌面)/点选(移动端),不做图片识别 —— 那是后续阶段;
  *   - 校验全部委托给 services/project/importProject.js(纯函数);
  *   - 失败时**不改动画布、不写存储**,只在页面上给出分类错误;
  *   - 成功后两种出口:①保存为私有作品(与手绘作品同一套存储与隔离),
@@ -18,9 +22,10 @@
 import { useCallback, useMemo, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
-import { Upload, FileJson, CheckCircle2, AlertTriangle, ArrowLeft, Eye, Save } from 'lucide-react'
+import { Upload, FileJson, CheckCircle2, AlertTriangle, ArrowLeft, Eye, Save, ImagePlus } from 'lucide-react'
 import { useToast } from '../components/Toast'
 import ThumbnailCanvas from '../components/ThumbnailCanvas'
+import ChartImportWizard from './ChartImportWizard'
 import {
   parseImportText,
   checkImportFile,
@@ -82,6 +87,9 @@ export default function ImportPage({ onLoadProject, onSaveProject }) {
   const [reading, setReading] = useState(false)
   const [selectedIndex, setSelectedIndex] = useState(0)
   const [saving, setSaving] = useState(false)
+  // 导入模式:'file' 项目文件 / 'chart' 已有图纸截图识别。
+  // 两种输入语义完全不同(离散色块 vs 连续照片),不共用一条管线。
+  const [mode, setMode] = useState('file')
 
   const selected = projects[selectedIndex] || null
   const stats = useMemo(() => (selected ? computeProjectStats(selected) : null), [selected])
@@ -183,6 +191,40 @@ export default function ImportPage({ onLoadProject, onSaveProject }) {
 
         <p className="import-intro">{t('importPage.intro')}</p>
 
+        {/* ── 导入模式切换 ─────────────────────────────────── */}
+        <div className="import-modes" role="tablist" aria-label={t('importPage.modeLabel')}>
+          <button
+            type="button"
+            role="tab"
+            aria-selected={mode === 'file'}
+            className={`import-mode${mode === 'file' ? ' active' : ''}`}
+            onClick={() => setMode('file')}
+          >
+            <FileJson size={16} />
+            <span>
+              <strong>{t('importPage.modeFile')}</strong>
+              <small>{t('importPage.modeFileHint')}</small>
+            </span>
+          </button>
+          <button
+            type="button"
+            role="tab"
+            aria-selected={mode === 'chart'}
+            className={`import-mode${mode === 'chart' ? ' active' : ''}`}
+            onClick={() => setMode('chart')}
+          >
+            <ImagePlus size={16} />
+            <span>
+              <strong>{t('importPage.modeChart')}</strong>
+              <small>{t('importPage.modeChartHint')}</small>
+            </span>
+          </button>
+        </div>
+
+        {mode === 'chart' ? (
+          <ChartImportWizard onLoadProject={onLoadProject} onSaveProject={onSaveProject} />
+        ) : (
+          <>
         {/* ── 选择文件 ─────────────────────────────────────── */}
         <section
           className="import-drop"
@@ -304,6 +346,8 @@ export default function ImportPage({ onLoadProject, onSaveProject }) {
 }`}</pre>
           <p className="import-format-note">{t('importPage.formatNote')}</p>
         </section>
+          </>
+        )}
       </div>
     </div>
   )

@@ -1194,7 +1194,12 @@
       "notJson": ".json ファイルを選択してください",
       "fileReadError": "ファイルの読み込みに失敗しました",
       "unknown": "不明なエラー"
-    }
+    },
+    "modeLabel": "インポート方法",
+    "modeFile": "プロジェクトファイル",
+    "modeFileHint": "ネイティブ .pindou.json またはテンプレート JSON",
+    "modeChart": "図案のスクリーンショット",
+    "modeChartHint": "既存のビーズ格子の画像を認識して補正"
   },
   "replace": {
     "title": "色を置換",
@@ -1337,5 +1342,40 @@
       "notFound": "記録が見つかりません",
       "unknown": "操作に失敗しました"
     }
+  },
+  "chartImport": {
+    "chooseImage": "図案画像を選択",
+    "dropHint": "スクリーンショットや写真に対応。認識は端末内で行い、画像はアップロードされません",
+    "detecting": "グリッドを認識中…",
+    "decodeFailed": "画像を読み込めませんでした。別の画像でお試しください。",
+    "detectFailed": "安定したグリッドを検出できませんでした。左の画像で図案範囲をドラッグして選択し、列数と行数を手動で入力してください。",
+    "lowConfidence": "グリッド認識の信頼度が低めです（{{confidence}}%）。列数・行数・範囲を確認してから使用してください。",
+    "detected": "{{cols}} 列 × {{rows}} 行を検出しました",
+    "cols": "列数",
+    "rows": "行数",
+    "palette": "カラーパレット",
+    "removeBackground": "背景と同じ色のマスを空白として扱う",
+    "cropHint": "左の画像をドラッグして範囲を再設定できます。右のマスをクリックすると個別に修正できます。",
+    "sourcePreview": "画像とグリッド",
+    "resultPreview": "認識結果",
+    "previewUnavailable": "現在の設定では結果を生成できません。列数・行数・範囲を確認してください",
+    "size": "サイズ",
+    "colors": "色数",
+    "beads": "ビーズ数",
+    "blanks": "空白マス",
+    "uncertain": "要確認",
+    "uncertainHint": "{{n}} 個のマスがパレットとの色差が大きめです。右側でクリックして確認してください。",
+    "correctionTitle": "マスの修正",
+    "pickCell": "右のプレビューでマスをクリック",
+    "selectedCell": "選択中",
+    "blank": "空白",
+    "markBlank": "空白にする",
+    "restoreAuto": "自動認識に戻す",
+    "pickColor": "色を指定",
+    "reselect": "別の画像を選ぶ",
+    "loadToCanvas": "キャンバスで編集",
+    "saveAsWork": "マイ作品として保存",
+    "saved": "マイ作品に保存しました",
+    "storageHint": "認識と修正は端末内で完了します。保存後の扱いは他の作品と同じです：ログイン時はクラウド作品庫（本人のみ）、未ログイン時はこのブラウザにのみ保存されます。"
   }
 }
