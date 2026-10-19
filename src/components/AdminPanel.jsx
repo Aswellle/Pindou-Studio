@@ -8,10 +8,11 @@ import ThumbnailCanvas from './ThumbnailCanvas'
 import LoadingScreen from './LoadingScreen'
 import UserManager from './UserManager'
 import ContactMessages from './ContactMessages'
+import ContentManager from './ContentManager'
 import AdminGate from './AdminGate'
 
 // 后台标签页集合与默认值:/admin?tab=users 之类的深链(管理概览快捷入口)按此解析
-const ADMIN_TABS = ['templates', 'import', 'categories', 'users', 'contact']
+const ADMIN_TABS = ['templates', 'import', 'categories', 'content', 'users', 'contact']
 const DEFAULT_ADMIN_TAB = 'templates'
 const normalizeAdminTab = (value) => (ADMIN_TABS.includes(value) ? value : DEFAULT_ADMIN_TAB)
 
@@ -196,6 +197,9 @@ export default function AdminPanel({ user, isAdmin, authLoading, onLogin, onLogo
         <button role="tab" aria-selected={tab === 'categories'} className={`admin-tab ${tab === 'categories' ? 'active' : ''}`} onClick={() => setTab('categories')}>
           {t('admin.tab.categories')}
         </button>
+        <button role="tab" aria-selected={tab === 'content'} className={`admin-tab ${tab === 'content' ? 'active' : ''}`} onClick={() => setTab('content')}>
+          {t('admin.tab.content')}
+        </button>
         <button role="tab" aria-selected={tab === 'users'} className={`admin-tab ${tab === 'users' ? 'active' : ''}`} onClick={() => setTab('users')}>
           {t('admin.tab.users')}
         </button>
@@ -217,6 +221,7 @@ export default function AdminPanel({ user, isAdmin, authLoading, onLogin, onLogo
             {tab === 'templates' && <TemplateManager store={cloudStore} />}
             {tab === 'import' && <JsonImporter store={cloudStore} />}
             {tab === 'categories' && <CategoryManager store={cloudStore} />}
+            {tab === 'content' && <ContentManager cloudStore={cloudStore} />}
           </>
         )}
       </div>

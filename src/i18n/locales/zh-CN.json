@@ -856,7 +856,8 @@
       "import": "JSON 导入",
       "categories": "分类管理",
       "users": "用户管理",
-      "contactMessage": "联系消息"
+      "contactMessage": "联系消息",
+      "content": "内容运营"
     },
     "templatesEmpty": "暂无自定义模板,点击「添加新模板」或到「JSON 导入」上传",
     "addTemplate": "添加新模板",
@@ -1021,6 +1022,60 @@
       "skipWarn": "未启用两步验证时,仅凭密码即可进入后台;强烈建议现在绑定,绑定后可在服务端强制生效。",
       "enableNow": "立即启用两步验证",
       "switchAccount": "换个账号登录"
+    },
+    "content": {
+      "themes": "主题",
+      "collections": "合集",
+      "addTheme": "新增主题",
+      "addCollection": "新增合集",
+      "editTheme": "编辑主题",
+      "editCollection": "编辑合集",
+      "empty": "还没有主题或合集,先新增一个",
+      "slug": "Slug(URL 标识)",
+      "slugHint": "小写字母/数字/连字符,发布后作为 /gallery/theme/:slug 的地址",
+      "title": "标题",
+      "description": "简介",
+      "curationNote": "策展说明",
+      "coverUrl": "封面地址",
+      "coverHint": "留空会在健康检查中提示;支持站内路径 /... 或 https://",
+      "statusLabel": "状态",
+      "sortOrder": "排序(越小越靠前)",
+      "featured": "首页精选",
+      "manageLinks": "管理图纸",
+      "linkCount": "{{n}} 张图纸",
+      "selected": "已选 {{n}} 张",
+      "noLinks": "尚未关联图纸",
+      "searchTemplates": "搜索模板加入",
+      "noCandidates": "没有更多可加入的模板",
+      "deleteHint": "确定删除「{{name}}」?关联会一并清理,个人图纸副本不受影响。",
+      "healthTitle": "内容健康检查",
+      "healthReload": "重新检查",
+      "healthOk": "未发现问题",
+      "status": {
+        "draft": "草稿",
+        "published": "已发布"
+      },
+      "issues": {
+        "duplicateSlug": "重复 slug",
+        "missingCover": "缺封面",
+        "featuredWithoutTitle": "精选缺标题",
+        "missingTranslation": "缺多语言",
+        "orphanLink": "孤儿关联",
+        "missingTemplate": "模板已删除",
+        "emptyPublished": "已发布但为空"
+      },
+      "errors": {
+        "slugRequired": "请填写 slug",
+        "slugInvalid": "slug 只能包含小写字母、数字与连字符",
+        "titleRequired": "请填写标题",
+        "titleTooLong": "标题过长",
+        "descriptionTooLong": "简介过长",
+        "invalidStatus": "状态不合法",
+        "invalidSortOrder": "排序必须是数字",
+        "invalidCoverUrl": "封面地址不合法(只允许 http(s) 或站内路径)",
+        "notObject": "数据格式不正确",
+        "cloud": "保存失败,请稍后重试"
+      }
     }
   },
   "profile": {

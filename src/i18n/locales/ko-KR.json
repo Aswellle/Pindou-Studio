@@ -856,7 +856,8 @@
       "import": "JSON 가져오기",
       "categories": "카테고리 관리",
       "users": "사용자 관리",
-      "contactMessage": "문의 메시지"
+      "contactMessage": "문의 메시지",
+      "content": "콘텐츠"
     },
     "templatesEmpty": "사용자 정의 템플릿이 없습니다. 추가하거나 JSON으로 가져오세요",
     "addTemplate": "템플릿 추가",
@@ -1021,6 +1022,60 @@
       "skipWarn": "2단계 인증이 없으면 비밀번호만으로 관리자 콘솔에 들어갈 수 있습니다. 지금 등록을 강력히 권장합니다(등록 후 서버에서 강제할 수 있습니다).",
       "enableNow": "2단계 인증 사용",
       "switchAccount": "다른 계정으로 로그인"
+    },
+    "content": {
+      "themes": "테마",
+      "collections": "컬렉션",
+      "addTheme": "테마 추가",
+      "addCollection": "컬렉션 추가",
+      "editTheme": "테마 편집",
+      "editCollection": "컬렉션 편집",
+      "empty": "아직 테마나 컬렉션이 없습니다",
+      "slug": "슬러그",
+      "slugHint": "소문자/숫자/하이픈. /gallery/theme/:slug 주소로 사용됩니다",
+      "title": "제목",
+      "description": "설명",
+      "curationNote": "큐레이션 설명",
+      "coverUrl": "커버 URL",
+      "coverHint": "비워두면 상태 점검에서 경고됩니다. /... 또는 https://",
+      "statusLabel": "상태",
+      "sortOrder": "정렬(작을수록 앞)",
+      "featured": "홈 추천",
+      "manageLinks": "도안 관리",
+      "linkCount": "도안 {{n}}개",
+      "selected": "{{n}}개 선택됨",
+      "noLinks": "연결된 도안이 없습니다",
+      "searchTemplates": "템플릿 검색 후 추가",
+      "noCandidates": "추가할 템플릿이 없습니다",
+      "deleteHint": "「{{name}}」을(를) 삭제할까요? 연결도 함께 정리되며 개인 도안은 영향을 받지 않습니다.",
+      "healthTitle": "콘텐츠 상태 점검",
+      "healthReload": "다시 점검",
+      "healthOk": "문제가 없습니다",
+      "status": {
+        "draft": "초안",
+        "published": "게시됨"
+      },
+      "issues": {
+        "duplicateSlug": "중복 슬러그",
+        "missingCover": "커버 없음",
+        "featuredWithoutTitle": "추천에 제목 없음",
+        "missingTranslation": "번역 누락",
+        "orphanLink": "고아 연결",
+        "missingTemplate": "삭제된 템플릿",
+        "emptyPublished": "게시되었지만 비어 있음"
+      },
+      "errors": {
+        "slugRequired": "슬러그를 입력하세요",
+        "slugInvalid": "슬러그는 소문자/숫자/하이픈만 가능합니다",
+        "titleRequired": "제목을 입력하세요",
+        "titleTooLong": "제목이 너무 깁니다",
+        "descriptionTooLong": "설명이 너무 깁니다",
+        "invalidStatus": "잘못된 상태입니다",
+        "invalidSortOrder": "정렬은 숫자여야 합니다",
+        "invalidCoverUrl": "잘못된 커버 URL 입니다(http(s) 또는 사이트 경로)",
+        "notObject": "데이터 형식이 올바르지 않습니다",
+        "cloud": "저장에 실패했습니다. 다시 시도하세요"
+      }
     }
   },
   "profile": {

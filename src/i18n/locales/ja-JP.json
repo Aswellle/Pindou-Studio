@@ -856,7 +856,8 @@
       "import": "JSON インポート",
       "categories": "カテゴリ管理",
       "users": "ユーザー管理",
-      "contactMessage": "お問い合わせメッセージ"
+      "contactMessage": "お問い合わせメッセージ",
+      "content": "コンテンツ"
     },
     "templatesEmpty": "カスタムテンプレートはまだありません。追加するか JSON からインポートしてください",
     "addTemplate": "テンプレート追加",
@@ -1021,6 +1022,60 @@
       "skipWarn": "二段階認証がない場合、パスワードだけで管理画面に入れます。今すぐの登録を強く推奨します(登録後はサーバー側で必須化できます)。",
       "enableNow": "二段階認証を有効にする",
       "switchAccount": "別のアカウントでログイン"
+    },
+    "content": {
+      "themes": "テーマ",
+      "collections": "コレクション",
+      "addTheme": "テーマを追加",
+      "addCollection": "コレクションを追加",
+      "editTheme": "テーマを編集",
+      "editCollection": "コレクションを編集",
+      "empty": "テーマやコレクションがまだありません",
+      "slug": "スラッグ",
+      "slugHint": "小文字英数字とハイフン。/gallery/theme/:slug のアドレスになります",
+      "title": "タイトル",
+      "description": "説明",
+      "curationNote": "キュレーション説明",
+      "coverUrl": "カバー画像 URL",
+      "coverHint": "空の場合はヘルスチェックで警告されます。/... または https://",
+      "statusLabel": "状態",
+      "sortOrder": "並び順(小さいほど前)",
+      "featured": "ホームで注目",
+      "manageLinks": "図案を管理",
+      "linkCount": "{{n}} 件の図案",
+      "selected": "{{n}} 件選択中",
+      "noLinks": "図案がまだ紐付いていません",
+      "searchTemplates": "テンプレートを検索して追加",
+      "noCandidates": "追加できるテンプレートがありません",
+      "deleteHint": "「{{name}}」を削除しますか?関連も削除されます。個人の図案には影響しません。",
+      "healthTitle": "コンテンツ健全性",
+      "healthReload": "再チェック",
+      "healthOk": "問題はありません",
+      "status": {
+        "draft": "下書き",
+        "published": "公開中"
+      },
+      "issues": {
+        "duplicateSlug": "スラッグ重複",
+        "missingCover": "カバーなし",
+        "featuredWithoutTitle": "注目にタイトルなし",
+        "missingTranslation": "翻訳不足",
+        "orphanLink": "孤立した関連",
+        "missingTemplate": "テンプレート削除済み",
+        "emptyPublished": "公開だが空"
+      },
+      "errors": {
+        "slugRequired": "スラッグを入力してください",
+        "slugInvalid": "スラッグは小文字英数字とハイフンのみ",
+        "titleRequired": "タイトルを入力してください",
+        "titleTooLong": "タイトルが長すぎます",
+        "descriptionTooLong": "説明が長すぎます",
+        "invalidStatus": "状態が不正です",
+        "invalidSortOrder": "並び順は数値で入力してください",
+        "invalidCoverUrl": "カバー URL が不正です(http(s) またはサイト内パス)",
+        "notObject": "データ形式が不正です",
+        "cloud": "保存に失敗しました。再試行してください"
+      }
     }
   },
   "profile": {

@@ -856,7 +856,8 @@
       "import": "JSON Import",
       "categories": "Categories",
       "users": "Users",
-      "contactMessage": "Contact Messages"
+      "contactMessage": "Contact Messages",
+      "content": "Content"
     },
     "templatesEmpty": "No custom templates yet. Add one or import via JSON.",
     "addTemplate": "Add Template",
@@ -1021,6 +1022,60 @@
       "skipWarn": "Without two-factor authentication, a password alone grants access to the admin console. Binding it now is strongly recommended — the server can then enforce it.",
       "enableNow": "Enable two-factor authentication",
       "switchAccount": "Sign in as another account"
+    },
+    "content": {
+      "themes": "Themes",
+      "collections": "Collections",
+      "addTheme": "New theme",
+      "addCollection": "New collection",
+      "editTheme": "Edit theme",
+      "editCollection": "Edit collection",
+      "empty": "No themes or collections yet",
+      "slug": "Slug",
+      "slugHint": "Lowercase letters, digits and hyphens; used as /gallery/theme/:slug",
+      "title": "Title",
+      "description": "Description",
+      "curationNote": "Curation note",
+      "coverUrl": "Cover URL",
+      "coverHint": "Empty covers are flagged in the health check; use /... or https://",
+      "statusLabel": "Status",
+      "sortOrder": "Sort order (lower first)",
+      "featured": "Featured on home",
+      "manageLinks": "Manage patterns",
+      "linkCount": "{{n}} patterns",
+      "selected": "{{n}} selected",
+      "noLinks": "No patterns linked yet",
+      "searchTemplates": "Search templates to add",
+      "noCandidates": "No more templates to add",
+      "deleteHint": "Delete \"{{name}}\"? Links are removed too; personal copies are unaffected.",
+      "healthTitle": "Content health",
+      "healthReload": "Re-check",
+      "healthOk": "No issues found",
+      "status": {
+        "draft": "Draft",
+        "published": "Published"
+      },
+      "issues": {
+        "duplicateSlug": "Duplicate slug",
+        "missingCover": "Missing cover",
+        "featuredWithoutTitle": "Featured without title",
+        "missingTranslation": "Missing translation",
+        "orphanLink": "Orphan link",
+        "missingTemplate": "Template deleted",
+        "emptyPublished": "Published but empty"
+      },
+      "errors": {
+        "slugRequired": "Slug is required",
+        "slugInvalid": "Slug may only contain lowercase letters, digits and hyphens",
+        "titleRequired": "Title is required",
+        "titleTooLong": "Title is too long",
+        "descriptionTooLong": "Description is too long",
+        "invalidStatus": "Invalid status",
+        "invalidSortOrder": "Sort order must be a number",
+        "invalidCoverUrl": "Invalid cover URL (http(s) or a site path)",
+        "notObject": "Invalid data",
+        "cloud": "Save failed, please retry"
+      }
     }
   },
   "profile": {
