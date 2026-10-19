@@ -41,6 +41,10 @@ import ProfilePage from './components/ProfilePage'
 // Gallery V2:已对齐 V1 全部功能并通过灰度验证,接任 /gallery 主路由
 // (V1 Gallery.jsx 源码转存 _legacy/ 本地归档,不再入库)
 const GalleryPage = lazy(() => import('./features/gallery/GalleryPage'))
+// 图库内容发现(M7):主题 / 合集 / 公共图纸详情
+const ThemePage = lazy(() => import('./features/gallery/ThemePage'))
+const CollectionPage = lazy(() => import('./features/gallery/CollectionPage'))
+const PatternDetailPage = lazy(() => import('./features/gallery/PatternDetailPage'))
 // 管理概览懒加载:recharts 图表库随之进入独立 chunk,普通用户不下载
 const AdminDashboardPage = lazy(() => import('./components/AdminDashboardPage'))
 const Tutorials = lazy(() => import('./components/Tutorials'))
@@ -521,6 +525,25 @@ export default function App() {
               />
             </Suspense>
           } />
+          <Route path="/gallery/theme/:slug" element={
+            <Suspense fallback={<LoadingScreen />}>
+              <ThemePage cloudStore={cloudStore} />
+            </Suspense>
+          } />
+          <Route path="/gallery/collection/:slug" element={
+            <Suspense fallback={<LoadingScreen />}>
+              <CollectionPage cloudStore={cloudStore} />
+            </Suspense>
+          } />
+          <Route path="/gallery/pattern/:id" element={
+            <Suspense fallback={<LoadingScreen />}>
+              <PatternDetailPage
+                cloudStore={cloudStore}
+                onSaveProject={saveWork}
+                onLoadTemplate={handleLoadTemplate}
+              />
+            </Suspense>
+          } />
           <Route path="/tutorials" element={
             <Suspense fallback={<LoadingScreen />}>
               <Tutorials />
@@ -824,6 +847,31 @@ export default function App() {
                 user={user}
                 onLogin={openLogin}
                 onRegister={openRegister}
+              />
+            </div>
+          </Suspense>
+        } />
+        <Route path="/gallery/theme/:slug" element={
+          <Suspense fallback={<LoadingScreen />}>
+            <div className="mobile-page-area">
+              <ThemePage cloudStore={cloudStore} />
+            </div>
+          </Suspense>
+        } />
+        <Route path="/gallery/collection/:slug" element={
+          <Suspense fallback={<LoadingScreen />}>
+            <div className="mobile-page-area">
+              <CollectionPage cloudStore={cloudStore} />
+            </div>
+          </Suspense>
+        } />
+        <Route path="/gallery/pattern/:id" element={
+          <Suspense fallback={<LoadingScreen />}>
+            <div className="mobile-page-area">
+              <PatternDetailPage
+                cloudStore={cloudStore}
+                onSaveProject={saveWork}
+                onLoadTemplate={handleLoadTemplate}
               />
             </div>
           </Suspense>
