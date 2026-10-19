@@ -96,7 +96,21 @@ export default function App() {
   // 撤销/重做前先丢弃活动笔画,避免笔画进行中 undo 后 mouseUp 时 commitStroke 重推快照回滚
   const handleUndo = useCallback(() => { canvasRef.current?.cancelStroke?.(); undo() }, [undo])
   const handleRedo = useCallback(() => { canvasRef.current?.cancelStroke?.(); redo() }, [redo])
-  const { works: savedWorks, worksLoading, syncCount, cloudMirrorCount, saveWork, deleteWork, ackSync } = useSavedWorks(user)
+  const { works: savedWorks, worksLoading, syncCount, cloudMirrorCount, saveState, markDirty, saveWork, deleteWork, ackSync } = useSavedWorks(user)
+
+  // 画布内容变化 → 标记「未保存」。
+  // 只在 canvasData 真的换了一个矩阵对象时触发(useHistory 每次 PUSH/RESET
+  // 都产生新引用),因此不会因为无关的重新渲染而误标。
+  // 首次挂载时 canvasData 为 null,不标记。
+  const firstCanvasRef = useRef(true)
+  useEffect(() => {
+    if (!canvasData) return
+    if (firstCanvasRef.current) {
+      firstCanvasRef.current = false
+      return
+    }
+    markDirty()
+  }, [canvasData, markDirty])
 
   const [leftSidebarCollapsed, setLeftSidebarCollapsed] = useState(false)
   const [rightSidebarCollapsed, setRightSidebarCollapsed] = useState(false)
@@ -504,6 +518,7 @@ export default function App() {
           onSave={currentPage === 'canvas' ? handleOpenSaveDialog : undefined}
           currentPage={currentPage}
           onPageChange={handlePageChange}
+          saveState={saveState}
         />
       )}
 
@@ -780,6 +795,7 @@ export default function App() {
           currentPage={currentPage}
           onPageChange={handlePageChange}
           simplified={isMobile}
+          saveState={saveState}
         />
       )}
 

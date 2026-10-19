@@ -4,28 +4,38 @@ import { supabase } from '../services/supabase'
 import { useToast } from '../components/Toast'
 import { normalizeLegacyWork } from '../services/project/adapters'
 import { PROJECT_SCHEMA_VERSION } from '../services/project/projectModel'
+import {
+  listWorks,
+  saveWorkRecord,
+  deleteWorkRecord,
+  clearWorks,
+  migrateLegacyWorks,
+  estimateBytes,
+} from '../services/project/worksStore'
 
-const KEY = 'saved-works'
+/**
+ * 保存状态机(规格 03 §7)。
+ *
+ *   idle    — 没有待保存的改动
+ *   dirty   — 画布改过了,还没保存
+ *   saving  — 保存请求进行中
+ *   saved   — 最近一次保存成功
+ *   failed  — 最近一次保存失败(必须让用户看见,不能静默吞掉)
+ *
+ * 只描述「本地作品」这一条链路;云端/本地两种存储共用同一套状态。
+ */
+export const SAVE_STATES = Object.freeze({
+  IDLE: 'idle',
+  DIRTY: 'dirty',
+  SAVING: 'saving',
+  SAVED: 'saved',
+  FAILED: 'failed',
+})
+
 // 云端作品计数镜像:登录时更新,登出后「我的作品」空态可提示"作品在云端,登录查看"
 const MIRROR_KEY = 'cloud-works-mirror'
+/** 本地作品接近配额时的提示阈值(4MB) */
 const WARN_BYTES = 4 * 1024 * 1024
-
-function loadLocal() {
-  const raw = localStorage.getItem(KEY)
-  if (!raw) return []
-  try {
-    const parsed = JSON.parse(raw)
-    if (!Array.isArray(parsed)) return []
-    // 读入即归一:历史条目可能声明尺寸与 canvasData 实际形状不一致
-    return parsed.map(normalizeLegacyWork)
-  }
-  catch {
-    // 先备份再删除:损坏可能只是多标签页并发写的暂时性截断,避免永久丢失
-    try { localStorage.setItem(KEY + '-corrupt', raw) } catch { /* 备份失败不阻塞 */ }
-    localStorage.removeItem(KEY)
-    return []
-  }
-}
 
 function readMirror() {
   try {
@@ -103,14 +113,36 @@ const dedupKey = (w) => `${w.savedAt}|${w.name}`
  */
 export function useSavedWorks(user) {
   const toast = useToast()
-  const [works, setWorks] = useState(() => loadLocal())
-  const [worksLoading, setWorksLoading] = useState(false)
+  const [works, setWorks] = useState([])
+  const [worksLoading, setWorksLoading] = useState(true)
   const [syncCount, setSyncCount] = useState(null)
   const [cloudMirrorCount, setCloudMirrorCount] = useState(() => readMirror().count)
+  const [saveState, setSaveState] = useState(SAVE_STATES.IDLE)
   const worksRef = useRef(works)
   useEffect(() => { worksRef.current = works }, [works])
 
   const isCloud = useCallback(() => !!user && !!supabase, [user])
+
+  // 本地作品首次加载(IndexedDB 主存;首次运行把 localStorage 旧数据搬过来)。
+  // 这是**唯一**的本地加载入口 —— 登录态 effect 的 else 分支不再重复读,
+  // 否则两个 effect 并发时,先跑完的那个会用空列表覆盖另一个的结果。
+  useEffect(() => {
+    let cancelled = false
+    ;(async () => {
+      try {
+        await migrateLegacyWorks()
+        const items = await listWorks()
+        if (!cancelled) setWorks(items.map(normalizeLegacyWork))
+      } catch {
+        // 仓储层自身已做降级,走到这里说明是意料之外的异常:
+        // 保持空列表而不是让整个页面崩掉
+        if (!cancelled) setWorks([])
+      } finally {
+        if (!cancelled) setWorksLoading(false)
+      }
+    })()
+    return () => { cancelled = true }
+  }, [])
 
   // 云端模式下作品变化时同步镜像计数(登出后「我的作品」空态提示依赖它)
   useEffect(() => {
@@ -138,7 +170,7 @@ export function useSavedWorks(user) {
           const cloudWorks = (data || []).map(rowToWork)
 
           // 本机作品一次性合并进云端:savedAt+name 去重,upsert 幂等
-          const local = loadLocal()
+          const local = await listWorks()
           const existing = new Set(cloudWorks.map(dedupKey))
           const seen = new Set()
           const toPush = local.filter((w) => {
@@ -168,31 +200,41 @@ export function useSavedWorks(user) {
             cloudWorks.sort((a, b) => String(b.savedAt).localeCompare(String(a.savedAt)))
           }
           if (cancelled) return
-          // 迁移成功后清空本机(作品已在云端)
-          localStorage.removeItem(KEY)
+          // 迁移成功后清空本机(作品已在云端)。
+          // 本地作品现在可能在 IndexedDB,统一走仓储层清理,不要只删 localStorage 键。
+          await clearWorks()
           setWorks(cloudWorks)
           if (migrated > 0) setSyncCount(migrated)
         } catch (e) {
           // 云端拉取/迁移失败:回退到本机作品,保证「我的作品」不空、不丢数据
           console.error('云端作品加载失败,回退到本机作品:', e)
-          if (!cancelled) setWorks(loadLocal())
+          if (!cancelled) setWorks((await listWorks()).map(normalizeLegacyWork))
         } finally {
           if (!cancelled) setWorksLoading(false)
         }
       })()
     } else {
-      setWorks(loadLocal())
+      // 登出 / 未登录:本机作品已由首次加载 effect 读好。
+      // 这里只把 loading 收掉,不再重复读库 —— 重复读会在两个 effect
+      // 并发时互相覆盖。
       setWorksLoading(false)
     }
     return () => { cancelled = true }
     // 依赖 user?.id:昵称/头像等资料刷新(refreshProfile 生成新对象)不触发重拉
   }, [user?.id])
 
-  // 保存:云端直接落库;本机走原有配额/异常保护。
+  // 保存:云端直接落库;本机写 IndexedDB(不可用时降级 localStorage)。
   // 落库前统一走 normalizeLegacyWork:尺寸以 canvasData 实际形状为准,
   // 不再采信调用方传入的 gridSize/gridWidth/gridHeight(历史上两者会不一致)。
+  //
+  // 并发保护:保存请求可能重叠(用户连点两次、或自动保存与手动保存撞车)。
+  // 用单调递增的请求序号 + 只让最新一次写回 state,避免较早的响应后到
+  // 把新列表覆盖成旧列表。落库本身按 id 覆盖,不会产生重复行。
+  const saveSeqRef = useRef(0)
   const saveWork = useCallback(async (work) => {
     const normalized = normalizeLegacyWork(work)
+    const seq = ++saveSeqRef.current
+    setSaveState(SAVE_STATES.SAVING)
     if (isCloud()) {
       try {
         const insert = (includeMetadata) => supabase
@@ -206,34 +248,57 @@ export function useSavedWorks(user) {
           ;({ data, error } = await insert(false))
         }
         if (error) throw error
-        setWorks((prev) => [rowToWork(data), ...prev])
+        if (seq === saveSeqRef.current) {
+          setWorks((prev) => [rowToWork(data), ...prev])
+          setSaveState(SAVE_STATES.SAVED)
+        }
         return true
       } catch (e) {
         console.error('云端保存失败:', e)
+        if (seq === saveSeqRef.current) setSaveState(SAVE_STATES.FAILED)
         toast(i18n.t('errors.saveFailed'), 'error')
         return false
       }
     }
+
     const updated = [...worksRef.current, normalized]
-    const serialized = JSON.stringify(updated)
-    if (serialized.length > WARN_BYTES) {
-      const kb = Math.round(serialized.length / 1024)
-      if (!window.confirm(`存储空间已使用约 ${kb}KB（接近 5MB 上限），建议先删除部分旧作品。是否继续保存？`)) return false
-    }
-    try {
-      localStorage.setItem(KEY, serialized)
-    } catch (e) {
-      if (e.name === 'QuotaExceededError') {
-        toast(i18n.t('errors.storageFull'), 'error')
+    // 配额提示只在接近上限时出现;IndexedDB 的实际配额远大于此,
+    // 但仍按同一阈值提醒,避免用户攒到无法导出时才被发现
+    const bytes = estimateBytes(updated)
+    if (bytes > WARN_BYTES) {
+      const kb = Math.round(bytes / 1024)
+      if (!window.confirm(`本地作品已占用约 ${kb}KB，建议先删除部分旧作品。是否继续保存？`)) {
+        setSaveState(SAVE_STATES.DIRTY)
         return false
       }
-      throw e
     }
-    setWorks(updated)
+
+    const result = await saveWorkRecord(normalized)
+    if (!result.ok) {
+      if (seq === saveSeqRef.current) setSaveState(SAVE_STATES.FAILED)
+      toast(i18n.t('errors.storageFull'), 'error')
+      return false
+    }
+    if (seq === saveSeqRef.current) {
+      setWorks(updated)
+      setSaveState(SAVE_STATES.SAVED)
+    }
     return true
   }, [isCloud, user])
 
-  // 删除:云端删行;本机写回过滤后的列表
+  /**
+   * 画布发生变化时调用:把状态标记为 dirty。
+   * 由 App 在 canvasData 变化后调用 —— 保存状态只有画布层知道,
+   * 不该让存储层去猜。
+   */
+  const markDirty = useCallback(() => {
+    setSaveState((prev) => (
+      // 保存进行中不改状态:请求还没回来,此时标 dirty 会让「保存中」闪回「未保存」
+      prev === SAVE_STATES.SAVING ? prev : SAVE_STATES.DIRTY
+    ))
+  }, [])
+
+  // 删除:云端删行;本机删仓储记录
   const deleteWork = useCallback(async (work) => {
     if (isCloud()) {
       try {
@@ -246,17 +311,12 @@ export function useSavedWorks(user) {
       }
       return
     }
-    const updated = worksRef.current.filter((w) => w.id !== work.id)
-    try {
-      localStorage.setItem(KEY, JSON.stringify(updated))
-    } catch (e) {
-      if (e.name === 'QuotaExceededError') {
-        toast(i18n.t('errors.storageFull'), 'error')
-        return
-      }
-      throw e
+    const ok = await deleteWorkRecord(work.id)
+    if (!ok) {
+      toast(i18n.t('errors.deleteFailed'), 'error')
+      return
     }
-    setWorks(updated)
+    setWorks((prev) => prev.filter((w) => w.id !== work.id))
   }, [isCloud])
 
   // 同步 toast 已展示后调用,重置迁移计数
@@ -267,6 +327,8 @@ export function useSavedWorks(user) {
     worksLoading,
     syncCount,
     cloudMirrorCount,
+    saveState,
+    markDirty,
     saveWork,
     deleteWork,
     ackSync,

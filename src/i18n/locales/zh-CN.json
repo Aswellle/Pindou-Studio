@@ -540,6 +540,7 @@
     "delete": "删除",
     "myWorksSectionTitle": "我的作品",
     "saveTitle": "保存作品",
+    "unsavedHint": "画布有未保存的修改",
     "saveNameLabel": "作品名称",
     "saveNamePlaceholder": "请输入作品名称",
     "saveConfirm": "确认保存",

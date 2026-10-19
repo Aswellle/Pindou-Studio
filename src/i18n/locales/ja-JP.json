@@ -540,6 +540,7 @@
     "delete": "削除",
     "myWorksSectionTitle": "マイ作品",
     "saveTitle": "作品を保存",
+    "unsavedHint": "未保存の変更があります",
     "saveNameLabel": "作品名",
     "saveNamePlaceholder": "作品名を入力してください",
     "saveConfirm": "保存する",

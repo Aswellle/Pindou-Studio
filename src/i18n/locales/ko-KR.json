@@ -540,6 +540,7 @@
     "delete": "삭제",
     "myWorksSectionTitle": "내 작품",
     "saveTitle": "작품 저장",
+    "unsavedHint": "저장되지 않은 변경 사항이 있습니다",
     "saveNameLabel": "작품 이름",
     "saveNamePlaceholder": "작품 이름을 입력하세요",
     "saveConfirm": "저장",

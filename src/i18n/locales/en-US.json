@@ -540,6 +540,7 @@
     "delete": "Delete",
     "myWorksSectionTitle": "My Works",
     "saveTitle": "Save Work",
+    "unsavedHint": "You have unsaved changes",
     "saveNameLabel": "Work Name",
     "saveNamePlaceholder": "Enter a name for your work",
     "saveConfirm": "Confirm",

@@ -4,7 +4,7 @@ import { PenTool, LayoutGrid, BookOpen, Palette } from 'lucide-react'
 import LanguageSelector from './Header/LanguageSelector'
 import Avatar from './Avatar'
 
-export default function Header({ user, onLogin, onRegister, onLogout, onSave, currentPage, onPageChange, simplified }) {
+export default function Header({ user, onLogin, onRegister, onLogout, onSave, currentPage, onPageChange, simplified, saveState }) {
   const { t } = useTranslation()
   const navigate = useNavigate()
 
@@ -68,13 +68,20 @@ export default function Header({ user, onLogin, onRegister, onLogout, onSave, cu
 
       <div className="header-right">
         {currentPage === 'canvas' && onSave && (
-          <button onClick={onSave} className="btn btn-ghost save-work-btn" aria-label={t('gallery.saveTitle')}>
+          <button
+            onClick={onSave}
+            className={`btn btn-ghost save-work-btn${saveState === 'dirty' ? ' has-unsaved' : ''}`}
+            aria-label={t('gallery.saveTitle')}
+            title={saveState === 'dirty' ? t('gallery.unsavedHint') : undefined}
+          >
             <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
               <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/>
               <polyline points="17 21 17 13 7 13 7 21"/>
               <polyline points="7 3 7 8 15 8"/>
             </svg>
             {!simplified && t('gallery.saveTitle')}
+            {/* 未保存标记:一个不依赖颜色的圆点,窄屏也能看见 */}
+            {saveState === 'dirty' && <span className="save-unsaved-dot" aria-hidden="true" />}
           </button>
         )}
         {!simplified && <LanguageSelector />}
@@ -267,6 +274,22 @@ export default function Header({ user, onLogin, onRegister, onLogout, onSave, cu
           align-items: center;
           gap: 6px;
           font-size: var(--text-base);
+          position: relative;
+        }
+        /* 未保存标记:小圆点,不依赖颜色区分(色弱也能看出形状变化)。
+           定位在图标右上角,简版(仅图标)按钮下同样可见。 */
+        .save-unsaved-dot {
+          width: 6px;
+          height: 6px;
+          border-radius: 50%;
+          background: var(--accent);
+          flex: none;
+        }
+        .header.simplified .save-unsaved-dot {
+          position: absolute;
+          top: 6px;
+          right: 6px;
+          margin: 0;
         }
         .icon-only-btn,
         .header.simplified .save-work-btn {
