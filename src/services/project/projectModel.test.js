@@ -129,6 +129,36 @@ describe('projectModel · validateProject', () => {
     expect(validateProject(p2).errors.some(e => e.code === PROJECT_ERROR_CODES.ROW_LENGTH_MISMATCH)).toBe(true)
   })
 
+  it('宽度越界但数据整齐时,不逐行重复报行长度错误', () => {
+    // 声明 width=500、每行实际都是 9:唯一根因是宽度写错。
+    // 逐行比对会产生 9 条同源噪音,把真正原因淹没。
+    const p = validProject()
+    p.grid.width = MAX_GRID_DIMENSION + 1
+    const res = validateProject(p)
+    expect(res.errors.some(e => e.code === PROJECT_ERROR_CODES.DIMENSION_TOO_LARGE)).toBe(true)
+    expect(res.errors.filter(e => e.code === PROJECT_ERROR_CODES.ROW_LENGTH_MISMATCH)).toHaveLength(0)
+  })
+
+  it('宽度越界且数据确实参差时,仍报告行长度不一致', () => {
+    // 声明 width=500、各行是 9/8:不齐是独立于尺寸的真实问题,不能一起吞掉
+    const p = validProject()
+    p.grid.width = MAX_GRID_DIMENSION + 1
+    p.grid.cells[1] = p.grid.cells[1].slice(0, MIN_GRID_DIMENSION - 1)
+    const res = validateProject(p)
+    expect(res.errors.some(e => e.code === PROJECT_ERROR_CODES.DIMENSION_TOO_LARGE)).toBe(true)
+    expect(res.errors.some(e => e.code === PROJECT_ERROR_CODES.ROW_LENGTH_MISMATCH)).toBe(true)
+  })
+
+  it('宽度不可用(非正整数)时不逐行报告行长度', () => {
+    for (const bad of [0, -1, 1.5, '35', null]) {
+      const p = validProject()
+      p.grid.width = bad
+      const res = validateProject(p)
+      expect(res.errors.some(e => e.code === PROJECT_ERROR_CODES.INVALID_DIMENSION)).toBe(true)
+      expect(res.errors.filter(e => e.code === PROJECT_ERROR_CODES.ROW_LENGTH_MISMATCH)).toHaveLength(0)
+    }
+  })
+
   it('非 hex / 品牌号被拒绝', () => {
     const p = validProject()
     p.grid.cells[0][0] = 'P18'
