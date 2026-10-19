@@ -17,14 +17,14 @@ import { createPortal } from 'react-dom'
 import { useNavigate } from 'react-router-dom'
 import { Home, MessageCircle } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
-import { TEMPLATES, CATEGORIES, DIFFICULTIES, extractPatternColors, convertTemplateToBrand, templateDimensions } from '../../data/templates'
+import { CATEGORIES, DIFFICULTIES, extractPatternColors, convertTemplateToBrand, templateDimensions } from '../../data/templates'
 import { getPalette, PALETTE_LIST } from '../../data/palettes'
 import { exportAsPNG } from '../../services/BeadPatternExporter'
 import { useToast } from '../../components/Toast'
-import useCustomTemplates from '../../hooks/useCustomTemplates'
 import ThumbnailCanvas from '../../components/ThumbnailCanvas'
 import ContactUsModal from '../../components/ContactUsModal'
 import { useGalleryQuery } from './hooks/useGalleryQuery'
+import { useGalleryTemplates } from './hooks/useGalleryTemplates'
 import useDownloadCounts from './hooks/useDownloadCounts'
 import WorkThumbnail from './components/WorkThumbnail'
 // 与 V1 共享的全部图库样式(卡片/菜单/横幅/弹窗)
@@ -55,22 +55,7 @@ export default function GalleryPage({ onLoadTemplate, onDeleteWork, onLoadWork, 
 
   // 云端启用时,模板库完全来自云端(RLS 公开只读);未启用时回退本地模式
   // (内置模板 + localStorage 自定义模板,自定义在前)
-  const localStore = useCustomTemplates()
-  const cloudEnabled = !!cloudStore?.enabled
-  const localTemplates = useMemo(
-    () => [...localStore.templates, ...TEMPLATES],
-    [localStore.templates]
-  )
-  // 云端拉取失败(弱网 / supabase 域名在该网络下不可达):回退到本地 + 内置模板,
-  // 让图库仍然可用;顶部保留故障横幅与重试入口 —— 降级,但不静默吞掉故障。
-  const cloudDown = cloudEnabled
-    && !!cloudStore?.error
-    && (cloudStore?.templates?.length || 0) === 0
-  const allTemplates = useMemo(
-    () => (cloudEnabled && !cloudDown) ? (cloudStore?.templates || []) : localTemplates,
-    [cloudEnabled, cloudDown, cloudStore, localTemplates]
-  )
-  const customCategories = cloudEnabled ? (cloudStore?.categories || []) : localStore.categories
+  const { cloudEnabled, cloudDown, allTemplates, customCategories } = useGalleryTemplates(cloudStore)
   const categoryOptions = useMemo(
     () => [...new Set([...CATEGORIES, ...customCategories.map(c => c.id)])],
     [customCategories]
