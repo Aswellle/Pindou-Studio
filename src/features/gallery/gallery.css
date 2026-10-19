@@ -1087,3 +1087,14 @@
             height: 108px;
           }
         }
+
+        /* TemplateGrid 用 button 承载卡片:清掉浏览器默认按钮样式,
+           视觉仍完全由 .template-card 决定 */
+        .template-card-button {
+          display: block;
+          width: 100%;
+          padding: 0;
+          text-align: left;
+          font-family: inherit;
+          color: inherit;
+        }
