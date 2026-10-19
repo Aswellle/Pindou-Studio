@@ -28,6 +28,7 @@ import { useAuth } from './hooks/useAuth'
 import { useResponsive } from './hooks/useResponsive'
 import { useHistory } from './hooks/useHistory'
 import { useSavedWorks } from './hooks/useSavedWorks'
+import { useScrollLock } from './hooks/useScrollLock'
 import { canonicalPathFor } from './utils/seoPath'
 import { canvasToLegacyWork, normalizeLegacyWork } from './services/project/adapters'
 import ImportPage from './components/ImportPage'
@@ -141,12 +142,8 @@ export default function App() {
   useKeyboardSafe()
 
   // 保存作品弹层打开时锁定背景滚动(防 iOS 键盘 pop 起时 body 被顶开)
-  useEffect(() => {
-    if (!showSaveDialog) return undefined
-    const prev = document.body.style.overflow
-    document.body.style.overflow = 'hidden'
-    return () => { document.body.style.overflow = prev }
-  }, [showSaveDialog])
+  // 由 useScrollLock 统一引用计数:与其他弹层叠加时不会互相清锁。
+  useScrollLock(showSaveDialog)
 
   // Initialize blank canvas on first render and when grid size changes with no data
   useEffect(() => {
@@ -170,23 +167,10 @@ export default function App() {
     return () => window.removeEventListener('keydown', handler)
   }, [handleUndo, handleRedo])
 
-  // Lock body scroll while any modal is open; reset iOS Safari viewport offset on close
+  // 保存/导出弹层同时打开时用 fixed 锁(记录并回滚滚动位置);单独保存弹层只需 overflow 锁。
+  // 统一走引用计数,避免与 ContactUsModal / ImageQuantizer 等弹层互相覆盖。
   const anyModalOpen = showSaveDialog || showExport
-  useEffect(() => {
-    if (anyModalOpen) {
-      document.body.style.overflow = 'hidden'
-      document.body.style.position = 'fixed'
-      document.body.style.width = '100%'
-      document.body.style.top = `-${window.scrollY}px`
-    } else {
-      const scrollY = document.body.style.top
-      document.body.style.overflow = ''
-      document.body.style.position = ''
-      document.body.style.width = ''
-      document.body.style.top = ''
-      window.scrollTo(0, parseInt(scrollY || '0', 10) * -1)
-    }
-  }, [anyModalOpen])
+  useScrollLock(anyModalOpen, { fixed: showExport })
 
   const handleClearCanvas = () => {
     if (canvasData && canvasData.every(row => row.every(cell => cell === null))) return
