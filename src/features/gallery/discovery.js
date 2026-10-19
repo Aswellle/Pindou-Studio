@@ -1,0 +1,117 @@
+/**
+ * 图库发现页的纯函数:把「模板列表 + 策展内容」组装成首页各区块。
+ *
+ * 设计约束(对应 docs/agent-spec/07 §3/§7):
+ *   - 不制造数据:内置模板没有创建时间,就不参与「最新」;下载量为 0 的不进「热门」;
+ *   - 策展区块只使用已发布对象(即使管理员在公开图库页看,也按公开规则);
+ *   - 关联里引用的模板被删除时跳过,不抛错、不显示空白卡片;
+ *   - 所有区块都可能为空,由 UI 决定是否渲染。
+ */
+
+import { CONTENT_STATUS } from '../../services/gallery/contentModel'
+
+export const RAIL_LIMIT = 12
+
+/** 只保留已发布对象(RLS 对匿名已过滤,管理员会拿到草稿,这里再兜一层) */
+export function publishedOnly(list) {
+  return (list || []).filter((item) => item?.status === CONTENT_STATUS.PUBLISHED)
+}
+
+/**
+ * 按 id 顺序解析模板,跳过已删除的引用。
+ * @returns {{ templates: Array, missing: number }}
+ */
+export function resolveTemplatesByIds(allTemplates, ids) {
+  if (!Array.isArray(ids) || ids.length === 0) return { templates: [], missing: 0 }
+  const byId = new Map((allTemplates || []).map((t) => [String(t.id), t]))
+  const templates = []
+  let missing = 0
+  for (const id of ids) {
+    const found = byId.get(String(id))
+    if (found) templates.push(found)
+    else missing++
+  }
+  return { templates, missing }
+}
+
+export function templateById(allTemplates, id) {
+  if (id === null || id === undefined) return null
+  return (allTemplates || []).find((t) => String(t.id) === String(id)) || null
+}
+
+/**
+ * 热门:按真实下载量降序,0 下载不进入(避免用随机顺序冒充热门)。
+ * 同量时保持原列表顺序(稳定排序),不引入随机性。
+ *
+ * @param {Array} templates
+ * @param {(t:object)=>number} countOf
+ */
+export function pickPopular(templates, countOf, limit = RAIL_LIMIT) {
+  return (templates || [])
+    .map((template, index) => ({ template, index, count: Number(countOf?.(template)) || 0 }))
+    .filter((x) => x.count > 0)
+    .sort((a, b) => (b.count - a.count) || (a.index - b.index))
+    .slice(0, limit)
+    .map((x) => x.template)
+}
+
+/**
+ * 最新:只取有可信创建时间的模板(云端 created_at),按时间降序。
+ * 内置模板没有时间戳 → 不参与,绝不用数组下标伪装「最新」。
+ */
+export function pickLatest(templates, limit = RAIL_LIMIT) {
+  return (templates || [])
+    .filter((t) => {
+      if (!t?.createdAt) return false
+      const d = new Date(t.createdAt)
+      return !Number.isNaN(d.getTime())
+    })
+    .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
+    .slice(0, limit)
+}
+
+/**
+ * 首页精选:优先取 isFeatured 的主题/合集,没有则取排序后的第一个已发布对象。
+ * 返回 null 表示不渲染该区块(不凭空造精选)。
+ */
+export function pickFeatured(list) {
+  const published = publishedOnly(list)
+  return published.find((item) => item.isFeatured) || null
+}
+
+/**
+ * 组装发现页区块。
+ *
+ * @param {object} params
+ * @param {Array} params.templates - 当前可见模板(云端或本地)
+ * @param {(t:object)=>number} params.downloadCountOf
+ * @param {Array} params.themes
+ * @param {Array} params.collections
+ * @param {Map<string,string[]>} params.themeTemplateIds
+ * @param {Map<string,string[]>} params.collectionTemplateIds
+ * @param {number} [params.limit]
+ */
+export function buildDiscoverySections({
+  templates = [],
+  downloadCountOf = () => 0,
+  themes = [],
+  collections = [],
+  themeTemplateIds = new Map(),
+  collectionTemplateIds = new Map(),
+  limit = RAIL_LIMIT,
+} = {}) {
+  const publishedThemes = publishedOnly(themes)
+  const publishedCollections = publishedOnly(collections)
+
+  return {
+    featuredTheme: pickFeatured(publishedThemes),
+    featuredCollection: pickFeatured(publishedCollections),
+    popular: pickPopular(templates, downloadCountOf, limit),
+    latest: pickLatest(templates, limit),
+    themes: publishedThemes,
+    collections: publishedCollections,
+    // 预览缩略图:主题/合集卡片用其首个可解析模板
+    themePreview: (theme) => resolveTemplatesByIds(templates, themeTemplateIds.get(theme.id) || []).templates[0] || null,
+    collectionPreview: (collection) => resolveTemplatesByIds(templates, collectionTemplateIds.get(collection.id) || []).templates[0] || null,
+  }
+}
