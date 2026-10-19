@@ -127,6 +127,41 @@ describe('useSavedWorks · 本地模式写入归一', () => {
     expect(stored[0].sourceTemplateId).toBe(7)
     expect(stored[1].sourceTemplateId).toBe('a1b2c3d4-0000-0000-0000-000000000000')
   })
+
+  it('来源类别随作品落库,重新读取后仍可区分导入/复制/手绘', async () => {
+    const { result } = renderHook(() => useSavedWorks(null))
+    await act(async () => {
+      await result.current.saveWork({
+        id: 6,
+        name: '导入的图纸',
+        canvasData: blank(9, 9),
+        paletteId: 'perler',
+        savedAt: '2026-10-19T00:00:00.000Z',
+        sourceKind: 'chart-import',
+      })
+    })
+
+    expect(readStored()[0].sourceKind).toBe('chart-import')
+
+    // 重新挂载 = 用户下次打开页面;来源必须还在,否则「导入」会退化成「手绘」
+    cleanup()
+    const reopened = renderHook(() => useSavedWorks(null))
+    expect(reopened.result.current.works[0].sourceKind).toBe('chart-import')
+  })
+
+  it('未提供来源时不会凭空写入 sourceKind(手绘作品保持无来源)', async () => {
+    const { result } = renderHook(() => useSavedWorks(null))
+    await act(async () => {
+      await result.current.saveWork({
+        id: 7,
+        name: '手绘',
+        canvasData: blank(9, 9),
+        paletteId: 'perler',
+        savedAt: '2026-10-19T00:00:00.000Z',
+      })
+    })
+    expect(readStored()[0].sourceKind).toBeUndefined()
+  })
 })
 
 describe('useSavedWorks · 本地模式读取归一', () => {
