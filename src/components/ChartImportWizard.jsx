@@ -16,10 +16,11 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { ImagePlus, Wand2, AlertTriangle, CheckCircle2, Eye, Save, RotateCcw, Eraser } from 'lucide-react'
+import { ImagePlus, Wand2, AlertTriangle, CheckCircle2, Eye, Save, RotateCcw, Eraser, History } from 'lucide-react'
 import { useChartImport } from '../hooks/useChartImport'
 import { getPalette, PALETTE_LIST } from '../data/palettes'
 import { projectToImportWork } from '../services/project/importProject'
+import { saveSession, deleteSession } from '../services/project/chartImportStore'
 import { CHART_MAX_DIMENSION } from '../services/chart/chartImport'
 import { clientToCanvasPoint } from '../services/chart/pointerMapping'
 import { useToast } from './Toast'
@@ -38,7 +39,7 @@ function hexFor(value) {
 export default function ChartImportWizard({ onLoadProject, onSaveProject }) {
   const { t } = useTranslation()
   const toast = useToast()
-  const { image, detection, fileError, busy, loadFile, applyManualBounds, build, reset } = useChartImport()
+  const { image, detection, fileError, busy, sessionId, restored, imageBlob, loadFile, applyManualBounds, build, reset } = useChartImport()
 
   const [cols, setCols] = useState(29)
   const [rows, setRows] = useState(29)
@@ -48,6 +49,8 @@ export default function ChartImportWizard({ onLoadProject, onSaveProject }) {
   const [selected, setSelected] = useState(null) // { x, y }
   const [saving, setSaving] = useState(false)
   const [dragRect, setDragRect] = useState(null)
+  // 是否从历史会话恢复了修正(仅用于界面提示,不参与逻辑)
+  const [restoredFromHistory, setRestoredFromHistory] = useState(false)
 
   const fileInputRef = useRef(null)
   const sourceCanvasRef = useRef(null)
@@ -58,12 +61,26 @@ export default function ChartImportWizard({ onLoadProject, onSaveProject }) {
 
   // 换图时把网格参数同步为检测值,并清空上一张图的人工修正。
   // 只跟随 image 变化:拖动边界会更新 detection,不能因此清掉用户已改的格子。
+  // 若这张图有历史会话,则用历史参数覆盖检测值 —— 用户上次调好的列数/行数
+  // 与逐格修正都应原样回来。
   useEffect(() => {
     if (!detection) return
     if (Number.isInteger(detection.cols) && detection.cols > 0) setCols(detection.cols)
     if (Number.isInteger(detection.rows) && detection.rows > 0) setRows(detection.rows)
     setOverrides({})
     setSelected(null)
+    setRestoredFromHistory(false)
+
+    if (restored) {
+      if (Number.isInteger(restored.cols) && restored.cols > 0) setCols(restored.cols)
+      if (Number.isInteger(restored.rows) && restored.rows > 0) setRows(restored.rows)
+      if (typeof restored.paletteId === 'string' && restored.paletteId) setPaletteId(restored.paletteId)
+      if (typeof restored.removeBackground === 'boolean') setRemoveBackground(restored.removeBackground)
+      if (restored.overrides && typeof restored.overrides === 'object') {
+        setOverrides({ ...restored.overrides })
+      }
+      setRestoredFromHistory(true)
+    }
   }, [image]) // eslint-disable-line react-hooks/exhaustive-deps
 
   // 换色卡/改参数后,旧的逐格修正可能已不适用:保留但重新映射时仍以用户指定为准
@@ -157,6 +174,47 @@ export default function ChartImportWizard({ onLoadProject, onSaveProject }) {
     await loadFile(file)
   }, [loadFile])
 
+  // 参数或逐格修正变化后,把会话写回 IndexedDB(防抖)。
+  // 用防抖而不是每次点击都写:连续改十几格会产生几十次写入,
+  // 原图 Blob 每次都要落盘,频繁写会拖慢交互。
+  // 写入失败不提示 —— 历史修正是附加能力,不能打断主流程。
+  //
+  // 卸载时必须补一次立即写入:防抖窗口(600ms)内用户直接切走页面或关标签,
+  // 最后一两处修正就丢了 —— 而那恰恰是最容易发生的情形(改完立刻关)。
+  const pendingSessionRef = useRef(null)
+
+  useEffect(() => {
+    if (!sessionId || !imageBlob || !image) {
+      pendingSessionRef.current = null
+      return undefined
+    }
+    const payload = {
+      id: sessionId,
+      imageBlob,
+      name: '',
+      state: {
+        cols,
+        rows,
+        paletteId,
+        removeBackground,
+        bounds: detection?.bounds || null,
+        overrides,
+      },
+    }
+    pendingSessionRef.current = payload
+    const timer = setTimeout(() => {
+      saveSession(payload)
+      pendingSessionRef.current = null
+    }, 600)
+    return () => clearTimeout(timer)
+  }, [sessionId, imageBlob, image, cols, rows, paletteId, removeBackground, detection, overrides])
+
+  // 卸载补写:只在确实有未落盘改动时执行一次
+  useEffect(() => () => {
+    const pending = pendingSessionRef.current
+    if (pending) saveSession(pending)
+  }, [])
+
   const handleDrop = (e) => {
     e.preventDefault()
     handleFile(e.dataTransfer?.files?.[0])
@@ -248,6 +306,9 @@ export default function ChartImportWizard({ onLoadProject, onSaveProject }) {
       const ok = await onSaveProject(work)
       if (ok) {
         toast(t('chartImport.saved'), 'success')
+        // 作品已落库,识别会话的历史使命结束:留着只会占空间,
+        // 且下次重新选同一张图会莫名其妙带回上一份修正。
+        if (sessionId) await deleteSession(sessionId)
         reset()
       }
     } finally {
@@ -307,6 +368,12 @@ export default function ChartImportWizard({ onLoadProject, onSaveProject }) {
   return (
     <section className="chart-wizard">
       {/* 识别状态 */}
+      {restoredFromHistory && (
+        <div className="chart-banner ok" role="status">
+          <History size={16} />
+          <span>{t('chartImport.restoredHistory', { n: Object.keys(overrides).length })}</span>
+        </div>
+      )}
       {detectFailed && (
         <div className="chart-banner warning" role="status">
           <AlertTriangle size={16} />
@@ -459,7 +526,7 @@ export default function ChartImportWizard({ onLoadProject, onSaveProject }) {
         <button
           type="button"
           className="chart-btn ghost"
-          onClick={() => { reset(); setOverrides({}); setSelected(null) }}
+          onClick={() => { reset(); setOverrides({}); setSelected(null); setRestoredFromHistory(false) }}
         >
           {t('chartImport.reselect')}
         </button>
@@ -485,6 +552,7 @@ export default function ChartImportWizard({ onLoadProject, onSaveProject }) {
       </div>
 
       <p className="chart-storage-hint">{t('chartImport.storageHint')}</p>
+      <p className="chart-storage-hint">{t('chartImport.historyHint')}</p>
     </section>
   )
 }

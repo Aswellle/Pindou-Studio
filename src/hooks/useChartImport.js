@@ -16,6 +16,7 @@
 import { useCallback, useRef, useState } from 'react'
 import { analyzeChart, buildChartProject } from '../services/chart/chartImport'
 import { checkImageFile, checkImagePixels } from '../utils/imageGuard'
+import { fingerprintImage, loadSession } from '../services/project/chartImportStore'
 
 /** 工作分辨率长边上限 */
 export const WORK_MAX_SIDE = 1600
@@ -52,6 +53,14 @@ export function useChartImport() {
   const [detection, setDetection] = useState(null)
   const [fileError, setFileError] = useState('')
   const [busy, setBusy] = useState(false)
+  // 当前图片的会话 id(图片指纹)。用于把人工修正写回 IndexedDB,
+  // 以及判断「重选同一张图」时能否恢复上次的修正。
+  const [sessionId, setSessionId] = useState(null)
+  // 恢复出来的历史状态:{ cols, rows, paletteId, removeBackground, bounds, overrides }
+  // 由组件在挂载后读取一次,用于还原参数与逐格修正。
+  const [restored, setRestored] = useState(null)
+  // 当前图片的原始 Blob(会话写回 IndexedDB 时需要连同原图一起存)
+  const [imageBlob, setImageBlob] = useState(null)
   const genRef = useRef(0)
 
   const reset = useCallback(() => {
@@ -60,10 +69,13 @@ export function useChartImport() {
     setDetection(null)
     setFileError('')
     setBusy(false)
+    setSessionId(null)
+    setRestored(null)
+    setImageBlob(null)
   }, [])
 
   /**
-   * 选择图片:门控 → 解码到工作分辨率 → 自动检测网格。
+   * 选择图片:门控 → 解码到工作分辨率 → 自动检测网格 → 查历史修正。
    * @returns {Promise<boolean>} 是否成功进入识别状态
    */
   const loadFile = useCallback(async (file) => {
@@ -87,7 +99,9 @@ export function useChartImport() {
     const gen = ++genRef.current
     setBusy(true)
     setFileError('')
+    setRestored(null)
     try {
+      const fp = await fingerprintImage(file)
       const decoded = await decodeToImageData(file)
       if (gen !== genRef.current) return false // 期间换了图片/取消了
       const result = analyzeChart(decoded.imageData)
@@ -96,8 +110,23 @@ export function useChartImport() {
       const withBounds = result.bounds
         ? result
         : { ...result, bounds: { x0: 0, y0: 0, x1: decoded.width, y1: decoded.height } }
+
+      // 同一张图重新导入:取回上次的参数与逐格修正。
+      // 读不到(首次导入 / IndexedDB 不可用)就按全新会话处理。
+      const saved = await loadSession(fp)
+      if (gen !== genRef.current) return false
+
+      setSessionId(fp)
       setImage(decoded)
+      setImageBlob(file)
       setDetection(withBounds)
+      if (saved?.state) {
+        setRestored(saved.state)
+        // 历史边界属于同一张图,直接沿用;否则用本次自动检测结果
+        if (saved.state.bounds) {
+          setDetection({ ...withBounds, bounds: saved.state.bounds })
+        }
+      }
       return true
     } catch {
       if (gen === genRef.current) setFileError('decodeFailed')
@@ -142,6 +171,9 @@ export function useChartImport() {
     detection,
     fileError,
     busy,
+    sessionId,
+    restored,
+    imageBlob,
     loadFile,
     applyManualGrid,
     applyManualBounds,
