@@ -21,6 +21,7 @@ import { useChartImport } from '../hooks/useChartImport'
 import { getPalette, PALETTE_LIST } from '../data/palettes'
 import { projectToImportWork } from '../services/project/importProject'
 import { CHART_MAX_DIMENSION } from '../services/chart/chartImport'
+import { clientToCanvasPoint } from '../services/chart/pointerMapping'
 import { useToast } from './Toast'
 import './chartImport.css'
 
@@ -164,22 +165,30 @@ export default function ChartImportWizard({ onLoadProject, onSaveProject }) {
   const handleResultClick = (e) => {
     if (!result?.ok) return
     const canvas = resultCanvasRef.current
-    const rect = canvas.getBoundingClientRect()
     const w = result.project.grid.width
     const h = result.project.grid.height
-    const x = Math.floor(((e.clientX - rect.left) / rect.width) * w)
-    const y = Math.floor(((e.clientY - rect.top) / rect.height) * h)
+    // 预览是 object-fit:contain 的非等比缩放,必须按内容区换算;
+    // 点在外侧留白里返回 null,不改当前选中格
+    const p = clientToCanvasPoint(e.clientX, e.clientY, canvas.getBoundingClientRect(), canvas.width, canvas.height)
+    if (!p) return
+    const x = Math.floor((p.x / canvas.width) * w)
+    const y = Math.floor((p.y / canvas.height) * h)
     if (x < 0 || y < 0 || x >= w || y >= h) return
     setSelected({ x, y })
   }
 
   const toImagePoint = (e) => {
     const canvas = sourceCanvasRef.current
-    const rect = canvas.getBoundingClientRect()
-    return {
-      x: Math.max(0, Math.min(image.width, ((e.clientX - rect.left) / rect.width) * image.width)),
-      y: Math.max(0, Math.min(image.height, ((e.clientY - rect.top) / rect.height) * image.height)),
-    }
+    // 原图预览同样是 contain 布局:拖框起点落在留白里时夹到最近的边缘,
+    // 否则用户从图边外侧开始拖会整个失效;终点也夹住,避免拖出图片后边界为负
+    return clientToCanvasPoint(
+      e.clientX,
+      e.clientY,
+      canvas.getBoundingClientRect(),
+      canvas.width,
+      canvas.height,
+      { clamp: true },
+    )
   }
 
   const handleSourcePointerDown = (e) => {
