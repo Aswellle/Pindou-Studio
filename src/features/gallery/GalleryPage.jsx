@@ -26,6 +26,9 @@ import ContactUsModal from '../../components/ContactUsModal'
 import { useGalleryQuery } from './hooks/useGalleryQuery'
 import { useGalleryTemplates } from './hooks/useGalleryTemplates'
 import useDownloadCounts from './hooks/useDownloadCounts'
+import { useGalleryContent } from '../../hooks/useGalleryContent'
+import { buildDiscoverySections } from './discovery'
+import DiscoveryRails from './components/DiscoveryRails'
 import WorkThumbnail from './components/WorkThumbnail'
 // 与 V1 共享的全部图库样式(卡片/菜单/横幅/弹窗)
 import './gallery.css'
@@ -90,6 +93,21 @@ export default function GalleryPage({ onLoadTemplate, onDeleteWork, onLoadWork, 
     cloudEnabled,
     onCloudSync: () => cloudStore?.refresh?.(),
   })
+
+  // 策展内容(主题/合集):与模板数据相互独立,失败时为空集合,旧图库照常可用。
+  // active 只在本页挂载时加载 —— 主题/详情页各自调用同一 hook。
+  const galleryContent = useGalleryContent()
+  const discoverySections = useMemo(() => buildDiscoverySections({
+    templates: allTemplates,
+    downloadCountOf: getDownloadCount,
+    themes: galleryContent.themes,
+    collections: galleryContent.collections,
+    themeTemplateIds: galleryContent.themeTemplateIds,
+    collectionTemplateIds: galleryContent.collectionTemplateIds,
+  }), [allTemplates, getDownloadCount, galleryContent.themes, galleryContent.collections, galleryContent.themeTemplateIds, galleryContent.collectionTemplateIds])
+  const discoveryEnabled = galleryContent.enabled && !cloudDown
+  // 搜索/分类/难度任一激活时隐藏发现区块,避免「筛选了却还看到无关推荐」
+  const filtersActive = !!searchTerm || category !== 'all' || difficulty !== 'all'
 
   // 模板生效品牌:优先用户覆盖,否则模板自带 paletteId(缺省 perler)
   const templateBrandId = (template) => brandOverride[template.id] || template.paletteId || 'perler'
@@ -328,6 +346,18 @@ export default function GalleryPage({ onLoadTemplate, onDeleteWork, onLoadWork, 
       </div>
 
       <div className="gallery-content">
+        {/* 策展区块:仅在「全部模板」视图、无筛选、云端可用且确实有内容时出现。
+            数据为空 / 加载失败 → 整块不渲染,下方旧图库网格不受影响。 */}
+        {view === 'all' && !filtersActive && discoveryEnabled && (
+          <DiscoveryRails
+            sections={discoverySections}
+            loading={galleryContent.loading}
+            error={galleryContent.error}
+            onOpenTheme={(theme) => navigate(`/gallery/theme/${encodeURIComponent(theme.slug)}`)}
+            onOpenCollection={(collection) => navigate(`/gallery/collection/${encodeURIComponent(collection.slug)}`)}
+            onOpenPattern={(template) => navigate(`/gallery/pattern/${encodeURIComponent(template.id)}`)}
+          />
+        )}
         {/* 云端不可用:横幅说明 + 已回退本地/内置模板;网络恢复后自动重试(useCloudTemplates) */}
         {cloudDown && view !== 'works' && (
           <div className="cloud-offline-banner" role="status">
