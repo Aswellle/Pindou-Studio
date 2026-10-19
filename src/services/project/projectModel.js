@@ -186,9 +186,17 @@ export function validateProject(input, options = {}) {
   }
 
   const { width, height } = grid
+  // 尺寸「不可用」(非正整数)与尺寸「越界」(整数但超出 9–200)要分开:
+  //   · 不可用 → width 不能参与任何比对,逐行长度校验必须跳过;
+  //   · 越界 → width 仍是可信整数,但**只有当数据本身也参差时**才继续逐行比对。
+  //     声明 width=500、每行却都整齐地是 35 时,逐行比对只会产生 20 条同源噪音,
+  //     把「宽度写错了」这个唯一根因淹掉;而声明 width=3、各行是 3/3/1 时,
+  //     数据确实不齐,行长度错误是独立信息,应当保留。
+  let widthUsable = true
   for (const [label, value] of [['width', width], ['height', height]]) {
     if (!Number.isInteger(value) || value <= 0) {
       errors.push(err(PROJECT_ERROR_CODES.INVALID_DIMENSION, label))
+      if (label === 'width') widthUsable = false
     } else if (value < minDimension) {
       errors.push(err(PROJECT_ERROR_CODES.DIMENSION_TOO_SMALL, `${label}=${value}`))
     } else if (value > maxDimension) {
@@ -208,13 +216,21 @@ export function validateProject(input, options = {}) {
     errors.push(err(PROJECT_ERROR_CODES.GRID_TOO_LARGE, `${width}x${height}`))
   }
 
+  // 数据自身是否参差(行与行长度不同)。与 width 声明值无关。
+  const rowLens = new Set()
+  for (const row of cells) if (Array.isArray(row)) rowLens.add(row.length)
+  const dataRagged = rowLens.size > 1
+
+  // 只有在 width 可信、且「不齐是真实存在的」时才逐行报告。
+  const checkRowLength = widthUsable && (width >= minDimension && width <= maxDimension || dataRagged)
+
   for (let y = 0; y < cells.length; y++) {
     const row = cells[y]
     if (!Array.isArray(row)) {
       errors.push(err(PROJECT_ERROR_CODES.ROW_NOT_ARRAY, `row ${y + 1}`))
       continue
     }
-    if (Number.isInteger(width) && row.length !== width) {
+    if (checkRowLength && row.length !== width) {
       errors.push(err(PROJECT_ERROR_CODES.ROW_LENGTH_MISMATCH, `row ${y + 1}: ${row.length} vs ${width}`))
     }
     for (let x = 0; x < row.length; x++) {
