@@ -123,6 +123,41 @@ describe('gridDetector · 失败必须可解释', () => {
     const res = detectChartGrid(makeChart({ cols: 10, rows: 10, cell: 3, margin: 2 }), { minCell: DETECT_MIN_CELL })
     expect(res.ok).toBe(false)
   })
+
+  /**
+   * 珠片刺绣/织物褶皱的边缘会形成「看似等距」的密集纹理:间距能在 0.75–1.5 倍之间
+   * 随机游走,但仍有 85% 落在 ±20% 内,足以骗过「一致间距比例」判据。
+   * 变异系数能区分它们 —— 真网格的间距几乎恒定。
+   */
+  it('间距随机抖动的纹理不被当成网格', () => {
+    const width = 400
+    const height = 400
+    const data = new Uint8ClampedArray(width * height * 4)
+    // 背景:中灰
+    for (let i = 0; i < data.length; i += 4) {
+      data[i] = 128; data[i + 1] = 128; data[i + 2] = 128; data[i + 3] = 255
+    }
+    // 用确定性的伪随机间距铺竖线与横线,模拟刺绣纹理
+    let seed = 12345
+    const rnd = () => {
+      seed = (seed * 1103515245 + 12345) & 0x7fffffff
+      return seed / 0x7fffffff
+    }
+    const paint = (x, y) => {
+      const o = (y * width + x) * 4
+      data[o] = 40; data[o + 1] = 40; data[o + 2] = 40; data[o + 3] = 255
+    }
+    for (let x = 10; x < width - 10; x += 7 + Math.round(rnd() * 6)) {
+      for (let y = 20; y < height - 20; y++) paint(x, y)
+    }
+    for (let y = 10; y < height - 10; y += 7 + Math.round(rnd() * 6)) {
+      for (let x = 20; x < width - 20; x++) paint(x, y)
+    }
+
+    const res = detectChartGrid({ data, width, height })
+    expect(res.ok).toBe(false)
+    expect(res.reason).toBe('noPeriodicity')
+  })
 })
 
 describe('gridDetector · 默认上限', () => {

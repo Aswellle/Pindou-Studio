@@ -132,6 +132,17 @@ const TRIM_MIN_LINES = 4
 const TRACK_GAP_TOLERANCE = 0.2
 /** 间距落在容忍范围内的最低比例 */
 const TRACK_MIN_CONSISTENT = 0.85
+/**
+ * 相邻间距的变异系数(标准差/均值)上限。
+ *
+ * `TRACK_MIN_CONSISTENT` 只看「多少间距落在 ±20% 内」,挡不住整体都在抖动的纹理:
+ * 珠片刺绣、织物褶皱的边缘间距可以在 0.75–1.5 倍之间随机游走,仍能有 85% 落进 ±20%。
+ * 真实网格的格宽则高度一致 —— 实测合成图纸 15 个缩放档位 cv ≤ 0.08(多数 < 0.04),
+ * 降质 JPEG 0.042,而误检纹理 cv ≥ 0.12。取 0.1 作为分界。
+ */
+const TRACK_MAX_GAP_CV = 0.1
+/** 间距太少时变异系数不可靠(2–3 个样本的 cv 没有统计意义),低于此数量不做该判定 */
+const TRACK_MIN_GAPS_FOR_CV = 5
 /** 格点阵残差容忍(相对格宽):超过即视为不在阵上的杂线 */
 const LATTICE_RESIDUAL_RATIO = 0.3
 
@@ -627,6 +638,15 @@ function validateGaps(lines) {
     if (Math.abs(g - cell) <= cell * TRACK_GAP_TOLERANCE) consistent++
   }
   if (consistent / gaps.length < TRACK_MIN_CONSISTENT) return null
+
+  // 变异系数:挡住「整体都在抖动」的纹理。真网格的间距几乎恒定,
+  // 而珠片/织物边缘的间距是随机游走,即使大半落在 ±20% 内,整体离散度也明显偏高。
+  if (gaps.length >= TRACK_MIN_GAPS_FOR_CV) {
+    const mean = gaps.reduce((a, b) => a + b, 0) / gaps.length
+    const variance = gaps.reduce((a, b) => a + (b - mean) ** 2, 0) / gaps.length
+    if (Math.sqrt(variance) / mean > TRACK_MAX_GAP_CV) return null
+  }
+
   return { cell, gaps, consistent: consistent / gaps.length }
 }
 
