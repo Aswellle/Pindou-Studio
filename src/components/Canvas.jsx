@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect, useCallback, useImperativeHandle, forwardRef } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useCanvasPainter } from '../hooks/useCanvasPainter'
+import { normalizeSelection } from '../utils/selectionUtils'
 
 const CELL_SIZE = 16
 const MIN_SCALE = 0.3
@@ -18,6 +19,10 @@ const Canvas = forwardRef(function Canvas({
   committedData,
   onCanvasChange,
   onTransformChange,
+  // M5: 取色器把画布上的颜色交回父组件;选区变化时同步矩形给工具条
+  onPickColor,
+  selection,
+  onSelectionChange,
 }, ref) {
   const { t } = useTranslation()
   const containerRef = useRef(null)
@@ -29,6 +34,15 @@ const Canvas = forwardRef(function Canvas({
 
   // 变换状态：scale + canvas画布中心在container中的位置
   const [transform, setTransform] = useState({ scale: 1, cx: 0, cy: 0 })
+
+  // 选区拖动状态(矩形选区工具专用,与笔画状态互斥):
+  //   anchor — 按下时的格子;focus — 当前指针所在格子(实时更新选框)
+  // 选区本身由父组件持有,画布只负责「拖出矩形」和「绘制选框」。
+  const selAnchorRef = useRef(null)
+  const selDraggingRef = useRef(false)
+  // 最新焦点用 ref 保存:拖动回调需要读到它,但不希望它进入依赖数组
+  const selFocusRef = useRef(null)
+  const [selFocus, setSelFocus] = useState(null)
 
   // 缩放比例变化时通知父组件
   useEffect(() => {
@@ -119,16 +133,16 @@ const Canvas = forwardRef(function Canvas({
   }, [committedData, cols, rows, painter])
 
   // ─────────────────────────────────────────────────────────────────
-  // Effect 2: hover highlight on the overlay layer (cheap — 1 cell).
+  // Effect 2: hover highlight + selection marquee on the overlay layer.
   // Skipped while a stroke is in progress: the overlay is then owned by the
   // stroke-painting path (paintToStroke / applyFill), not the hover effect.
-  // When not drawing, the overlay contains ONLY the hover cell, so clearing
-  // it fully on each change is safe and avoids a trail.
+  // When not drawing, the overlay contains ONLY the hover cell and the
+  // marquee, so clearing it fully on each change is safe and leaves no trail.
   // ─────────────────────────────────────────────────────────────────
   useEffect(() => {
-    if (isDrawingRef.current) return
+    if (isDrawingRef.current || selDraggingRef.current) return
     painter.clearOverlay()
-    if (hoverCell && tool === 'pencil') {
+    if (tool === 'pencil' && hoverCell) {
       const ctx = painter.overlayRef.current?.getContext('2d')
       if (ctx) {
         ctx.fillStyle = 'rgba(0, 0, 0, 0.08)'
@@ -138,7 +152,26 @@ const Canvas = forwardRef(function Canvas({
         ctx.strokeRect(hoverCell.x * CELL_SIZE, hoverCell.y * CELL_SIZE, CELL_SIZE, CELL_SIZE)
       }
     }
-  }, [hoverCell, tool, painter])
+    // 选区框画在 overlay 上:棋盘格虚线描边 + 内部淡色遮罩,
+    // 与 hover 高亮同一层,提交/取消时统一 clearOverlay 清掉。
+    if (tool === 'select' && selection) {
+      const ctx = painter.overlayRef.current?.getContext('2d')
+      if (ctx) {
+        const px = selection.x * CELL_SIZE
+        const py = selection.y * CELL_SIZE
+        const pw = selection.w * CELL_SIZE
+        const ph = selection.h * CELL_SIZE
+        ctx.save()
+        ctx.fillStyle = 'rgba(74, 155, 142, 0.10)'
+        ctx.fillRect(px, py, pw, ph)
+        ctx.setLineDash([6, 4])
+        ctx.lineWidth = 2
+        ctx.strokeStyle = 'rgba(74, 155, 142, 0.95)'
+        ctx.strokeRect(px + 1, py + 1, pw - 2, ph - 2)
+        ctx.restore()
+      }
+    }
+  }, [hoverCell, tool, painter, selection])
 
   // ─────────────────────────────────────────────────────────────────
   // 坐标转换
@@ -246,6 +279,50 @@ const Canvas = forwardRef(function Canvas({
     strokeAccumRef.current = null
     painter.clearOverlay()
   }, [painter])
+
+  // ─────────────────────────────────────────────────────────────────
+  // 选区 / 取色 命令
+  // ─────────────────────────────────────────────────────────────────
+  // 取色器:读该格颜色交回父组件(空网格不取色,避免把 null 设成当前色)。
+  const pickColorAt = useCallback((x, y) => {
+    const hex = committedData?.[y]?.[x]
+    if (typeof hex === 'string' && /^#[0-9a-fA-F]{6}$/.test(hex)) {
+      onPickColor?.(hex)
+    }
+  }, [committedData, onPickColor])
+
+  // 开始拖选:记录锚点并清掉旧选区(新选区随拖动实时生成)
+  const startSelection = useCallback((x, y) => {
+    selAnchorRef.current = { x, y }
+    selFocusRef.current = { x, y }
+    selDraggingRef.current = true
+    setSelFocus({ x, y })
+    onSelectionChange?.(null)
+  }, [onSelectionChange])
+
+  // 拖动中:把锚点与当前格规范成矩形同步给父组件
+  const updateSelection = useCallback((x, y) => {
+    if (!selDraggingRef.current || !selAnchorRef.current) return
+    selFocusRef.current = { x, y }
+    setSelFocus({ x, y })
+    onSelectionChange?.(normalizeSelection(selAnchorRef.current, { x, y }, cols, rows))
+  }, [onSelectionChange, cols, rows])
+
+  // 松开:确认选区。单击(锚点=焦点)视为「取消选区」,避免 1×1 选框常驻。
+  const endSelection = useCallback(() => {
+    if (!selDraggingRef.current) return
+    selDraggingRef.current = false
+    const anchor = selAnchorRef.current
+    selAnchorRef.current = null
+    setSelFocus(null)
+    if (!anchor) return
+    const focus = selFocusRef.current || anchor
+    if (anchor.x === focus.x && anchor.y === focus.y) {
+      onSelectionChange?.(null)
+      return
+    }
+    onSelectionChange?.(normalizeSelection(anchor, focus, cols, rows))
+  }, [onSelectionChange, cols, rows])
 
   // ─────────────────────────────────────────────────────────────────
   // 适应屏幕
@@ -356,6 +433,17 @@ const Canvas = forwardRef(function Canvas({
       // 在canvas内 → 记录起始位置，等移动超过阈值后切换为平移
       const pos = getGridPos(e.clientX, e.clientY)
       if (pos) {
+        // 取色器 / 矩形选区:一次性操作,不进入笔画状态机(不创建 stroke 累加器)
+        if (tool === 'eyedropper') {
+          e.preventDefault()
+          pickColorAt(pos.x, pos.y)
+          return
+        }
+        if (tool === 'select') {
+          e.preventDefault()
+          startSelection(pos.x, pos.y)
+          return
+        }
         isDrawingRef.current = true
         drawStartRef.current = { x: e.clientX, y: e.clientY }
         startStroke()
@@ -376,13 +464,20 @@ const Canvas = forwardRef(function Canvas({
     isDrawingRef.current = false
     panCursorStartRef.current = { x: cursorX, y: cursorY }
     panStartRef.current = { x: transform.cx, y: transform.cy }
-  }, [isOverCanvas, getGridPos, startStroke, paintToStroke, applyFill, transform, tool])
+  }, [isOverCanvas, getGridPos, startStroke, paintToStroke, applyFill, transform, tool, pickColorAt, startSelection])
 
   const handleContainerMouseMove = useCallback((e) => {
     const rect = containerRef.current?.getBoundingClientRect()
     if (!rect) return
     const cursorX = e.clientX - rect.left - rect.width / 2
     const cursorY = e.clientY - rect.top - rect.height / 2
+
+    // 选区拖动:更新矩形,不参与笔画/平移判定
+    if (selDraggingRef.current) {
+      const pos = getGridPos(e.clientX, e.clientY)
+      if (pos) updateSelection(pos.x, pos.y)
+      return
+    }
 
     // Drawing mode: only draw if actually on a cell AND haven't exceeded pan threshold
     if (isDrawingRef.current && !panHasStartedRef.current) {
@@ -439,23 +534,25 @@ const Canvas = forwardRef(function Canvas({
       const clamped = softClamp(rawCX, rawCY, prev.scale)
       return { ...prev, cx: clamped.x, cy: clamped.y }
     })
-  }, [getGridPos, paintToStroke, applyFill, commitStroke, softClamp, tool])
+  }, [getGridPos, paintToStroke, applyFill, commitStroke, softClamp, tool, updateSelection])
 
   const handleContainerMouseUp = useCallback(() => {
+    if (selDraggingRef.current) endSelection()
     if (isDrawingRef.current) commitStroke()
     isDrawingRef.current = false
     isPanningRef.current = false
     panHasStartedRef.current = false
     setPanActive(false)
-  }, [commitStroke])
+  }, [commitStroke, endSelection])
 
   const handleContainerMouseLeave = useCallback(() => {
+    if (selDraggingRef.current) endSelection()
     if (isDrawingRef.current) commitStroke()
     isDrawingRef.current = false
     isPanningRef.current = false
     setPanActive(false)
     setHoverCell(null)
-  }, [commitStroke])
+  }, [commitStroke, endSelection])
 
   // PC hover
   const handleMouseMove = useCallback((e) => {
@@ -541,13 +638,19 @@ const Canvas = forwardRef(function Canvas({
       lastTouchTimeRef.current = Date.now()
       lastTouchPosRef.current = { x: t.clientX, y: t.clientY }
 
+      // 矩形选区:在格子上按下即开始拖选(不用等 10px 阈值,选框需要即时反馈)
+      if (tool === 'select' && gridPos) {
+        startSelection(gridPos.x, gridPos.y)
+        return
+      }
+
       // 抓手工具或不在grid上 → 开始单指平移
       if (!gridPos) {
         touchPanCursorStartRef.current = { x: cursorX, y: cursorY }
         touchPanCanvasStartRef.current = { x: transform.cx, y: transform.cy }
       }
     }
-  }, [stopMomentum, getGridPos, transform, tool])
+  }, [stopMomentum, getGridPos, transform, tool, startSelection])
 
   const handleTouchMove = useCallback((e) => {
     e.preventDefault()
@@ -594,6 +697,13 @@ const Canvas = forwardRef(function Canvas({
       lastTouchTimeRef.current = now
       lastTouchPosRef.current = { x: t.clientX, y: t.clientY }
 
+      // 选区拖动:只更新选框,不平移、不填色
+      if (selDraggingRef.current) {
+        const pos = getGridPos(t.clientX, t.clientY)
+        if (pos) updateSelection(pos.x, pos.y)
+        return
+      }
+
       const cursorX = t.clientX - rect.left - rect.width / 2
       const cursorY = t.clientY - rect.top - rect.height / 2
 
@@ -634,7 +744,7 @@ const Canvas = forwardRef(function Canvas({
         }
       }
     }
-  }, [getGridPos, transform, softClamp])
+  }, [getGridPos, transform, softClamp, updateSelection])
 
   const handleTouchEnd = useCallback((e) => {
     e.preventDefault()
@@ -642,14 +752,31 @@ const Canvas = forwardRef(function Canvas({
     if (e.touches.length === 0) {
       pinchRef.current = null
 
+      // 选区拖动结束:确认矩形(单指点按 = 取消选区)
+      if (selDraggingRef.current) {
+        endSelection()
+        touchStartRef.current = null
+        touchMovedRef.current = false
+        wasPinchingRef.current = false
+        setHoverCell(null)
+        return
+      }
+
       // 单指点击(未移动)且在grid上 → 填色（抓手工具不绘制;
       // pinch 结束后的剩余手指抬起不算点按,不得填色）
       if (tool !== 'hand' && !wasPinchingRef.current && touchStartRef.current?.gridPos && !touchMovedRef.current) {
         const { x, y } = touchStartRef.current.gridPos
-        startStroke()
-        if (tool === 'pencil' || tool === 'eraser') paintToStroke(x, y)
-        else if (tool === 'fill') applyFill(x, y)
-        commitStroke()
+        if (tool === 'eyedropper') {
+          pickColorAt(x, y)
+        } else if (tool === 'select') {
+          // 选区工具单击空点 = 取消选区(由 endSelection 语义覆盖)
+          onSelectionChange?.(null)
+        } else {
+          startStroke()
+          if (tool === 'pencil' || tool === 'eraser') paintToStroke(x, y)
+          else if (tool === 'fill') applyFill(x, y)
+          commitStroke()
+        }
       }
 
       // 惯性
@@ -683,10 +810,17 @@ const Canvas = forwardRef(function Canvas({
         }
       }
     }
-  }, [startStroke, paintToStroke, applyFill, commitStroke, getGridPos, transform, startMomentum, tool])
+  }, [startStroke, paintToStroke, applyFill, commitStroke, getGridPos, transform, startMomentum, tool, pickColorAt, endSelection, onSelectionChange])
 
   const handleTouchCancel = useCallback(() => {
     stopMomentum()
+    if (selDraggingRef.current) {
+      // 取消手势:丢弃半成品选区,保留父组件已有的选区
+      selDraggingRef.current = false
+      selAnchorRef.current = null
+      selFocusRef.current = null
+      setSelFocus(null)
+    }
     touchStartRef.current = null
     touchMovedRef.current = false
     pinchRef.current = null
@@ -709,12 +843,22 @@ const Canvas = forwardRef(function Canvas({
     willChange: 'transform',
   }
 
+  // 选区工具与取色器沿用 crosshair(与画笔一致),抓手工具用抓取光标
+  const canvasCursor = tool === 'hand'
+    ? (panActive ? 'grabbing' : 'grab')
+    : (panActive ? 'grabbing' : 'crosshair')
+
   return (
     <div className="canvas-wrapper">
 <div className="canvas-info">
         <span>{cols} × {rows}</span>
         <span className="info-divider">|</span>
         <span>{Math.round(transform.scale * 100)}%</span>
+        {tool === 'select' && selection && (
+          <span className="info-selection" data-testid="selection-size">
+            {selection.w} × {selection.h}
+          </span>
+        )}
         <button className="reset-btn" onClick={resetTransform} title={t('canvas.resetTitle')}>
           {t('canvas.reset')}
         </button>
@@ -735,7 +879,7 @@ const Canvas = forwardRef(function Canvas({
         onTouchEnd={handleTouchEnd}
         onTouchCancel={handleTouchCancel}
         onDoubleClick={handleDoubleClick}
-        style={{ cursor: tool === 'hand' ? (panActive ? 'grabbing' : 'grab') : (panActive ? 'grabbing' : 'default') }}
+        style={{ cursor: canvasCursor }}
       >
         <div className="canvas-inner" style={transformStyle}>
           <div style={{ position: 'relative', lineHeight: 0 }}>
@@ -749,7 +893,7 @@ const Canvas = forwardRef(function Canvas({
                 imageRendering: 'pixelated',
                 touchAction: 'none',
                 display: 'block',
-                cursor: tool === 'hand' ? (panActive ? 'grabbing' : 'grab') : (panActive ? 'grabbing' : 'crosshair'),
+                cursor: canvasCursor,
               }}
             />
             <canvas
@@ -803,6 +947,11 @@ const Canvas = forwardRef(function Canvas({
         }
         .canvas-info:hover { opacity: 1; }
         .canvas-info .info-divider { opacity: 0.5; }
+        .canvas-info .info-selection {
+          font-variant-numeric: tabular-nums;
+          color: var(--secondary-accent);
+          font-weight: var(--font-weight-semibold);
+        }
         /* 手机(<640px)：隐藏画布悬浮胶囊，由顶部 MobileCanvasInfoBar 横幅替代。
            平板(≥640px)沿用与 PC 相同的悬浮胶囊样式(半透明 0.65、hover 变清晰),
            不做额外放大，保持与移动端/PC 一致的观感 */

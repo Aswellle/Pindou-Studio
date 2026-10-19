@@ -30,6 +30,27 @@ const TOOL_ICONS = {
       <path d="M18 8a2 2 0 1 1 4 0v6a8 8 0 0 1-8 8h-2c-2.8 0-4.5-.86-5.99-2.34l-3.6-3.6a2 2 0 0 1 2.83-2.82L7 15" />
     </svg>
   ),
+  // 取色器(吸管):与桌面端 lucide Pipette 同形
+  eyedropper: (
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="m12 9-8.414 8.414A2 2 0 0 0 3 18.828v1.344a2 2 0 0 1-.586 1.414A2 2 0 0 1 3.828 21h1.344a2 2 0 0 0 1.414-.586L15 12" />
+      <path d="m18 9 .4.4a1 1 0 1 1-3 3l-3.8-3.8a1 1 0 1 1 3-3l.4.4 3.4-3.4a1 1 0 1 1 3 3z" />
+      <path d="m2 22 .414-.414" />
+    </svg>
+  ),
+  // 矩形选区:虚线方框
+  select: (
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M5 3a2 2 0 0 0-2 2" />
+      <path d="M19 3a2 2 0 0 1 2 2" />
+      <path d="M21 19a2 2 0 0 1-2 2" />
+      <path d="M5 21a2 2 0 0 1-2-2" />
+      <path d="M9 3h1" /><path d="M9 21h1" />
+      <path d="M14 3h1" /><path d="M14 21h1" />
+      <path d="M3 9v1" /><path d="M21 9v1" />
+      <path d="M3 14v1" /><path d="M21 14v1" />
+    </svg>
+  ),
 }
 
 const UndoIcon = () => (
@@ -94,6 +115,19 @@ const ImportIcon = () => (
   </svg>
 )
 
+// 颜色替换(两个重叠色块 + 交换箭头):与桌面端 lucide Replace 同义
+const ReplaceIcon = () => (
+  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M14 4a1 1 0 0 1 1-1" />
+    <path d="M15 10a1 1 0 0 1-1-1" />
+    <path d="M21 4a1 1 0 0 0-1-1" />
+    <path d="M21 9a1 1 0 0 1-1 1" />
+    <path d="m3 7 3 3 3-3" />
+    <path d="M6 10V5a2 2 0 0 1 2-2h2" />
+    <rect x="3" y="14" width="7" height="7" rx="1" />
+  </svg>
+)
+
 // ── 引导 toast 的用户行为记录(localStorage)──────────────────────
 // 用途:判断「该用户需要图片转拼豆」或「该用户没发现该功能」。
 const BEHAVIOR_KEY = 'bead-studio-behavior'
@@ -124,6 +158,11 @@ export default function MobileToolbar({
   onExport,
   onQuantize,
   onImport,
+  // M5:选区命令与颜色替换(移动端把命令收进一条紧凑操作条)
+  selection,
+  onSelectionCommand,
+  onClearSelection,
+  onOpenReplace,
 }) {
   const { t } = useTranslation()
   const toast = useToast()
@@ -207,6 +246,8 @@ export default function MobileToolbar({
     { id: 'eraser', label: t('canvas.tool.eraser') },
     { id: 'fill', label: t('canvas.tool.fill') },
     { id: 'hand', label: t('canvas.tool.hand') },
+    { id: 'eyedropper', label: t('canvas.tool.eyedropper') },
+    { id: 'select', label: t('canvas.tool.select') },
   ]
 
   const currentWidth = gridWidth || gridSize
@@ -258,6 +299,44 @@ export default function MobileToolbar({
           </button>
         ))}
       </div>
+
+      {/* 选区操作条:仅选区工具激活时出现,避免常驻占用底部空间 */}
+      {tool === 'select' && (
+        <div className="toolbar-row toolbar-selection" data-testid="mobile-selection-bar">
+          {selection ? (
+            <>
+              <span className="selection-size-badge">
+                {t('tools.selectionSize', { w: selection.w, h: selection.h })}
+              </span>
+              <button className="selection-btn" onClick={() => onSelectionCommand?.('fill')}>{t('tools.fillSelection')}</button>
+              <button className="selection-btn" onClick={() => onSelectionCommand?.('erase')}>{t('tools.clearSelection')}</button>
+              <button className="selection-btn icon" onClick={() => onSelectionCommand?.('mirrorH')} title={t('tools.mirrorH')} aria-label={t('tools.mirrorH')}>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M8 3H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h3" /><path d="M16 3h3a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-3" /><path d="M12 2v20" />
+                </svg>
+              </button>
+              <button className="selection-btn icon" onClick={() => onSelectionCommand?.('mirrorV')} title={t('tools.mirrorV')} aria-label={t('tools.mirrorV')}>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M3 8V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v3" /><path d="M3 16v3a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-3" /><path d="M2 12h20" />
+                </svg>
+              </button>
+              <button className="selection-btn icon" onClick={() => onSelectionCommand?.('rotateCw')} title={t('tools.rotateCw')} aria-label={t('tools.rotateCw')}>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M21 12a9 9 0 1 1-3-6.7" /><polyline points="21,3 21,9 15,9" />
+                </svg>
+              </button>
+              <button className="selection-btn icon" onClick={() => onSelectionCommand?.('rotateCcw')} title={t('tools.rotateCcw')} aria-label={t('tools.rotateCcw')}>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M3 12a9 9 0 1 0 3-6.7" /><polyline points="3,3 3,9 9,9" />
+                </svg>
+              </button>
+              <button className="selection-btn" onClick={onClearSelection}>{t('tools.clearSelectionBtn')}</button>
+            </>
+          ) : (
+            <span className="selection-size-badge muted">{t('tools.selectionEmpty')}</span>
+          )}
+        </div>
+      )}
 
       <div className="toolbar-row toolbar-actions">
         {/* 撤销/重做:边框 + 功能名文字,便于一眼分辨 */}
@@ -342,6 +421,17 @@ export default function MobileToolbar({
             title={t('tools.importFile')}
           >
             <ImportIcon />
+          </button>
+        )}
+
+        {onOpenReplace && (
+          <button
+            className="action-btn"
+            onClick={onOpenReplace}
+            aria-label={t('tools.replaceColor')}
+            title={t('tools.replaceColor')}
+          >
+            <ReplaceIcon />
           </button>
         )}
 

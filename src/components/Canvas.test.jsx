@@ -24,7 +24,7 @@ vi.mock('react-i18next', () => ({
 // like a real 48×48 px canvas (3×3 grid, scale 1): a click at (24,24) maps to
 // cell (1,1).
 function installCanvasMocks() {
-  const calls = { fillRect: [], stroke: 0, moveTo: [], lineTo: [], clearRect: [] }
+  const calls = { fillRect: [], stroke: 0, moveTo: [], lineTo: [], clearRect: [], setLineDash: [] }
   const ctx = {
     fillStyle: '#000000',
     strokeStyle: '#000000',
@@ -37,6 +37,10 @@ function installCanvasMocks() {
     lineTo: (x, y) => calls.lineTo.push({ x, y }),
     stroke: () => { calls.stroke++ },
     clearRect: (x, y, w, h) => calls.clearRect.push({ x, y, w, h }),
+    // 选区选框绘制用到:虚线状态与图层保存/恢复
+    save: () => {},
+    restore: () => {},
+    setLineDash: (segments) => calls.setLineDash.push(segments),
   }
   const origGetContext = HTMLCanvasElement.prototype.getContext
   const origGetRect = HTMLCanvasElement.prototype.getBoundingClientRect
@@ -158,5 +162,117 @@ describe('Canvas grid rendering + click-to-fill wiring', () => {
 
     expect(onCanvasChange).toHaveBeenCalledTimes(1)
     expect(onCanvasChange.mock.calls[0][0][1][1]).toBe('#ff0000')
+  })
+})
+
+/**
+ * M5:矩形选区与取色器。
+ * 3×3 网格、单元格 16px、scale 1 → clientX 0..48 映射到 0..2 列。
+ */
+describe('Canvas 选区与取色(M5)', () => {
+  let mock
+  beforeEach(() => { mock = installCanvasMocks() })
+  afterEach(() => mock.restore())
+
+  function renderWith(overrides = {}) {
+    const onCanvasChange = vi.fn()
+    const onSelectionChange = vi.fn()
+    const onPickColor = vi.fn()
+    const props = {
+      gridSize: 3,
+      gridWidth: null,
+      gridHeight: null,
+      selectedColor: '#ff0000',
+      tool: 'select',
+      committedData: blankGrid(3),
+      onCanvasChange,
+      onSelectionChange,
+      onPickColor,
+      ...overrides,
+    }
+    const view = render(<Canvas {...props} />)
+    return { ...view, onCanvasChange, onSelectionChange, onPickColor }
+  }
+
+  test('拖选生成规范矩形(反向拖动也得到左上角 + 宽高)', () => {
+    const { container, onSelectionChange } = renderWith()
+    const c = container.querySelector('.canvas-container')
+
+    // (2,2) → (0,1):从右下往左上拖
+    fireEvent.mouseDown(c, { clientX: 40, clientY: 40 })
+    fireEvent.mouseMove(c, { clientX: 8, clientY: 24 })
+    fireEvent.mouseUp(c, { clientX: 8, clientY: 24 })
+
+    const last = onSelectionChange.mock.calls.at(-1)[0]
+    expect(last).toEqual({ x: 0, y: 1, w: 3, h: 2 })
+    // 选区工具不得写入画布
+    expect(mock.calls.fillRect.filter(r => r.x === 8 && r.y === 24)).toHaveLength(0)
+  })
+
+  test('单击(未拖动)取消选区', () => {
+    const { container, onSelectionChange } = renderWith()
+    const c = container.querySelector('.canvas-container')
+
+    fireEvent.mouseDown(c, { clientX: 24, clientY: 24 })
+    fireEvent.mouseUp(c, { clientX: 24, clientY: 24 })
+
+    expect(onSelectionChange).toHaveBeenLastCalledWith(null)
+  })
+
+  test('选区工具按下时先清空旧选区,再随拖动更新', () => {
+    const { container, onSelectionChange } = renderWith()
+    const c = container.querySelector('.canvas-container')
+
+    fireEvent.mouseDown(c, { clientX: 8, clientY: 8 })
+    expect(onSelectionChange).toHaveBeenNthCalledWith(1, null)
+    fireEvent.mouseMove(c, { clientX: 40, clientY: 40 })
+    fireEvent.mouseUp(c, { clientX: 40, clientY: 40 })
+
+    expect(onSelectionChange).toHaveBeenLastCalledWith({ x: 0, y: 0, w: 3, h: 3 })
+  })
+
+  test('取色器读取该格颜色,不写入画布', () => {
+    const data = blankGrid(3)
+    data[1][2] = '#123456'
+    const { container, onPickColor, onCanvasChange } = renderWith({
+      tool: 'eyedropper',
+      committedData: data,
+    })
+    const c = container.querySelector('.canvas-container')
+
+    fireEvent.mouseDown(c, { clientX: 40, clientY: 24 })
+    fireEvent.mouseUp(c, { clientX: 40, clientY: 24 })
+
+    expect(onPickColor).toHaveBeenCalledWith('#123456')
+    expect(onCanvasChange).not.toHaveBeenCalled()
+  })
+
+  test('取色器点到空白格不改变当前颜色', () => {
+    const { container, onPickColor } = renderWith({ tool: 'eyedropper' })
+    const c = container.querySelector('.canvas-container')
+
+    fireEvent.mouseDown(c, { clientX: 24, clientY: 24 })
+    fireEvent.mouseUp(c, { clientX: 24, clientY: 24 })
+
+    expect(onPickColor).not.toHaveBeenCalled()
+  })
+
+  test('触屏拖选同样生成矩形,且不触发填色', () => {
+    const { container, onSelectionChange, onCanvasChange } = renderWith()
+    const c = container.querySelector('.canvas-container')
+
+    fireEvent.touchStart(c, { touches: [{ clientX: 8, clientY: 8, identifier: 0 }] })
+    fireEvent.touchMove(c, { touches: [{ clientX: 40, clientY: 24, identifier: 0 }] })
+    fireEvent.touchEnd(c, { touches: [] })
+
+    expect(onSelectionChange).toHaveBeenLastCalledWith({ x: 0, y: 0, w: 3, h: 2 })
+    expect(onCanvasChange).not.toHaveBeenCalled()
+  })
+
+  test('传入的选区在画布 HUD 上显示宽高', () => {
+    const { container } = renderWith({ selection: { x: 1, y: 1, w: 2, h: 1 } })
+    expect(container.querySelector('[data-testid="selection-size"]').textContent).toBe('2 × 1')
+    // 选框以虚线绘制,而不是实线
+    expect(mock.calls.setLineDash.length).toBeGreaterThan(0)
   })
 })

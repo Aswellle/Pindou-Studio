@@ -440,7 +440,9 @@
       "pencil": "Pencil",
       "eraser": "Eraser",
       "fill": "Fill",
-      "hand": "Hand"
+      "hand": "Hand",
+      "select": "Select",
+      "eyedropper": "Eyedropper"
     },
     "reset": "Reset",
     "fit": "Fit",
@@ -481,7 +483,24 @@
     "widthRange": "Width must be between 9 and 200. ~",
     "heightRange": "Height must be between 9 and 200. ~",
     "quantizeGuide": "Image to Beads: upload a photo, instantly get a bead pattern ✨",
-    "importFile": "Import File"
+    "importFile": "Import File",
+    "selection": "Selection",
+    "selectionEmpty": "Drag on the canvas to make a selection",
+    "fillSelection": "Fill selection",
+    "clearSelection": "Erase selection",
+    "mirrorH": "Flip horizontal",
+    "mirrorV": "Flip vertical",
+    "rotateCw": "Rotate clockwise",
+    "rotateCcw": "Rotate counter-clockwise",
+    "clearSelectionBtn": "Clear selection",
+    "replaceColor": "Replace color",
+    "selectionSize": "Selection {{w}} × {{h}}",
+    "replacedToast": "Replaced {{n}} beads",
+    "selectionFilledToast": "Filled {{n}} cells",
+    "selectionClearedToast": "Erased {{n}} cells",
+    "selectionMirroredToast": "Mirrored {{n}} cells",
+    "selectionRotatedToast": "Rotated {{n}} cells",
+    "pickedColorToast": "Picked {{hex}}"
   },
   "gallery": {
     "title": "Gallery",
@@ -1089,5 +1108,14 @@
       "fileReadError": "Failed to read the file",
       "unknown": "Unknown error"
     }
+  },
+  "replace": {
+    "title": "Replace Color",
+    "hint": "Pick a color already on the canvas and replace every instance with another palette color. Blank cells are never filled.",
+    "from": "Original color",
+    "to": "Replace with",
+    "hits": "{{n}} beads will change",
+    "apply": "Replace",
+    "emptyCanvas": "The canvas has no colors yet — draw something first"
   }
 }

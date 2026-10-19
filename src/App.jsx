@@ -14,6 +14,15 @@ import ColorPalette from './components/ColorPalette'
 import Tools from './components/Tools'
 import ExportPanel from './components/ExportPanel'
 import ColorStatsBar from './components/ColorStatsBar'
+import ReplaceColorDialog from './components/ReplaceColorDialog'
+import { useToast } from './components/Toast'
+import {
+  fillSelection,
+  clearSelection as clearSelectionRegion,
+  mirrorSelection,
+  rotateSelection,
+  replaceColor,
+} from './utils/selectionUtils'
 import { useAuth } from './hooks/useAuth'
 import { useResponsive } from './hooks/useResponsive'
 import { useHistory } from './hooks/useHistory'
@@ -40,6 +49,7 @@ export default function App() {
   const { t, i18n } = useTranslation()
   const navigate = useNavigate()
   const location = useLocation()
+  const toast = useToast()
 
   // 法律页「返回」:优先回退到进入该页前的浏览页(保留上下文,PC/移动端一致);
   // 无可回退历史(如直接深链进入)时兜底回到首页,避免卡死在空白。
@@ -63,6 +73,18 @@ export default function App() {
   const [gridWidth, setGridWidth] = useState(null)
   const [gridHeight, setGridHeight] = useState(null)
   const { canvasData, canUndo, canRedo, setCanvas, resetCanvas, undo, redo } = useHistory()
+
+  // M5:矩形选区与颜色替换。
+  // selection 只描述矩形(网格坐标),真正的矩阵变更全部走 setCanvas,
+  // 因此每个命令天然是「一次撤销回到原矩阵」。
+  const [selection, setSelection] = useState(null)
+  const [showReplace, setShowReplace] = useState(false)
+
+  // 切页 / 网格尺寸变化(换模板、载入作品、调整画布)后,旧选区坐标可能失效
+  // → 清空。普通绘制不改变网格,选区矩形仍然有效,无需清空。
+  useEffect(() => {
+    setSelection(null)
+  }, [location.pathname, gridSize, gridWidth, gridHeight])
 
   // 撤销/重做前先丢弃活动笔画,避免笔画进行中 undo 后 mouseUp 时 commitStroke 重推快照回滚
   const handleUndo = useCallback(() => { canvasRef.current?.cancelStroke?.(); undo() }, [undo])
@@ -311,7 +333,60 @@ export default function App() {
     tool,
     committedData: canvasData,
     onCanvasChange: setCanvas,
+    // M5:取色器把颜色写回当前选中色;选区由画布拖出、App 持有
+    onPickColor: (hex) => {
+      setSelectedColor(hex)
+      toast(t('tools.pickedColorToast', { hex }), 'success')
+    },
+    selection,
+    onSelectionChange: setSelection,
   }
+
+  // ── M5 选区命令 ─────────────────────────────────────────────
+  // 每个命令都只调用一次 setCanvas(单条历史),返回 null 表示无变化、不压栈。
+  const handleSelectionCommand = useCallback((command) => {
+    if (!selection) {
+      toast(t('tools.selectionEmpty'), 'error')
+      return
+    }
+    let result
+    if (command === 'fill') result = fillSelection(canvasData, selection, selectedColor)
+    else if (command === 'erase') result = clearSelectionRegion(canvasData, selection)
+    else if (command === 'mirrorH') result = mirrorSelection(canvasData, selection, 'horizontal')
+    else if (command === 'mirrorV') result = mirrorSelection(canvasData, selection, 'vertical')
+    else if (command === 'rotateCw') result = rotateSelection(canvasData, selection, 'cw')
+    else if (command === 'rotateCcw') result = rotateSelection(canvasData, selection, 'ccw')
+    else return
+
+    if (!result.data) {
+      // 内容本来就一样:不写历史,但旋转仍需把选框换成新的宽高
+      if (result.selection) setSelection(result.selection)
+      return
+    }
+    setCanvas(result.data)
+    if (result.selection) setSelection(result.selection)
+    // 旋转后宽高互换,选框跟随;其余命令保持原选区
+    const toastKey = {
+      fill: 'tools.selectionFilledToast',
+      erase: 'tools.selectionClearedToast',
+      mirrorH: 'tools.selectionMirroredToast',
+      mirrorV: 'tools.selectionMirroredToast',
+      rotateCw: 'tools.selectionRotatedToast',
+      rotateCcw: 'tools.selectionRotatedToast',
+    }[command]
+    if (toastKey) toast(t(toastKey, { n: result.changed }), 'success')
+  }, [selection, canvasData, selectedColor, setCanvas, toast, t])
+
+  const handleClearSelection = useCallback(() => setSelection(null), [])
+
+  // 颜色替换:一次事务替换,命中数量在对话框内已确认
+  const handleConfirmReplace = useCallback((from, to) => {
+    const result = replaceColor(canvasData, from, to)
+    setShowReplace(false)
+    if (!result.data) return
+    setCanvas(result.data)
+    toast(t('tools.replacedToast', { n: result.changed }), 'success')
+  }, [canvasData, setCanvas, toast, t])
 
   // 页面切换(通过路由)
   const handlePageChange = (page) => {
@@ -362,6 +437,10 @@ export default function App() {
             canRedo={canRedo}
             onOpenQuantizer={() => navigate('/create/image')}
             onOpenImport={() => navigate('/import')}
+            selection={selection}
+            onSelectionCommand={handleSelectionCommand}
+            onClearSelection={handleClearSelection}
+            onOpenReplace={() => setShowReplace(true)}
           />
         </div>
         <div className="left-sidebar-bottom">
@@ -558,6 +637,16 @@ export default function App() {
         <div className="fit-toast">{t('canvas.autoFitToast')}</div>
       )}
 
+      {/* M5:颜色替换对话框(桌面/移动布局各渲染一份,共享同一份状态) */}
+      <ReplaceColorDialog
+        open={showReplace}
+        canvasData={canvasData}
+        paletteId={currentPalette}
+        initialFrom={selection ? canvasData?.[selection.y]?.[selection.x] : null}
+        onClose={() => setShowReplace(false)}
+        onConfirm={handleConfirmReplace}
+      />
+
       <style>{`
         .left-sidebar {
           display: flex;
@@ -698,6 +787,10 @@ export default function App() {
               onExport={() => setShowExport(true)}
               onQuantize={() => navigate('/create/image')}
               onImport={() => navigate('/import')}
+              selection={selection}
+              onSelectionCommand={handleSelectionCommand}
+              onClearSelection={handleClearSelection}
+              onOpenReplace={() => setShowReplace(true)}
             />
           </>
         } />
@@ -848,6 +941,16 @@ export default function App() {
       {fitToast && (
         <div className="fit-toast">{t('canvas.autoFitToast')}</div>
       )}
+
+      {/* M5:颜色替换对话框(桌面/移动布局各渲染一份,共享同一份状态) */}
+      <ReplaceColorDialog
+        open={showReplace}
+        canvasData={canvasData}
+        paletteId={currentPalette}
+        initialFrom={selection ? canvasData?.[selection.y]?.[selection.x] : null}
+        onClose={() => setShowReplace(false)}
+        onConfirm={handleConfirmReplace}
+      />
 
       <style>{`
         .save-toast {

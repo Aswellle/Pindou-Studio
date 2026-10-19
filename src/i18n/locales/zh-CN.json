@@ -440,7 +440,9 @@
       "pencil": "画笔",
       "eraser": "橡皮擦",
       "fill": "填充",
-      "hand": "抓手"
+      "hand": "抓手",
+      "select": "选区",
+      "eyedropper": "取色"
     },
     "reset": "重置",
     "fit": "适应",
@@ -481,7 +483,24 @@
     "widthRange": "宽度需在 9-200 之间哦,像画板尺寸那样在合理范围内~",
     "heightRange": "高度需在 9-200 之间哦~",
     "quantizeGuide": "图片转拼豆：上传照片，一键生成拼豆图纸 ✨",
-    "importFile": "导入图纸文件"
+    "importFile": "导入图纸文件",
+    "selection": "选区操作",
+    "selectionEmpty": "先在画布上拖出选区",
+    "fillSelection": "填充选区",
+    "clearSelection": "擦除选区",
+    "mirrorH": "水平镜像",
+    "mirrorV": "垂直镜像",
+    "rotateCw": "顺时针旋转",
+    "rotateCcw": "逆时针旋转",
+    "clearSelectionBtn": "取消选区",
+    "replaceColor": "颜色替换",
+    "selectionSize": "选区 {{w}} × {{h}}",
+    "replacedToast": "已替换 {{n}} 颗",
+    "selectionFilledToast": "已填充 {{n}} 格",
+    "selectionClearedToast": "已擦除 {{n}} 格",
+    "selectionMirroredToast": "已镜像 {{n}} 格",
+    "selectionRotatedToast": "已旋转 {{n}} 格",
+    "pickedColorToast": "已取色 {{hex}}"
   },
   "gallery": {
     "title": "图库",
@@ -1089,5 +1108,14 @@
       "fileReadError": "文件读取失败",
       "unknown": "未知错误"
     }
+  },
+  "replace": {
+    "title": "颜色替换",
+    "hint": "选择画布上已有的颜色，一次性替换成色卡中的另一种颜色。空白格不会被填充。",
+    "from": "原颜色",
+    "to": "替换为",
+    "hits": "将替换 {{n}} 颗",
+    "apply": "确认替换",
+    "emptyCanvas": "画布上还没有颜色，先画点什么吧"
   }
 }

@@ -1,6 +1,9 @@
 import { useTranslation } from 'react-i18next'
 import { useToast } from './Toast'
-import { Pencil, Eraser, PaintBucket, Hand, Undo2, Redo2, Trash2, ChevronLeft, ChevronRight, FileJson } from 'lucide-react'
+import {
+  Pencil, Eraser, PaintBucket, Hand, Undo2, Redo2, Trash2, ChevronLeft, ChevronRight, FileJson,
+  Pipette, SquareDashed, Replace, FlipHorizontal2, FlipVertical2, RotateCw, RotateCcw, X,
+} from 'lucide-react'
 
 export default function Tools({
   tool,
@@ -18,7 +21,12 @@ export default function Tools({
   canUndo,
   canRedo,
   onOpenQuantizer,
-  onOpenImport
+  onOpenImport,
+  // M5:选区与颜色替换
+  selection,
+  onSelectionCommand,
+  onClearSelection,
+  onOpenReplace,
 }) {
   const { t } = useTranslation()
   const toast = useToast()
@@ -111,7 +119,63 @@ export default function Tools({
               <Hand size={20} />
             </button>
           </div>
+          {/* 第二排:取色与矩形选区。与第一排同宽同高,保持 2×3 网格观感 */}
+          <div className="tool-icons tool-icons-secondary">
+            <button
+              className={`tool-btn ${tool === 'eyedropper' ? 'active' : ''}`}
+              onClick={() => onToolChange('eyedropper')}
+              title={t('canvas.tool.eyedropper')}
+            >
+              <Pipette size={20} />
+            </button>
+            <button
+              className={`tool-btn ${tool === 'select' ? 'active' : ''}`}
+              onClick={() => onToolChange('select')}
+              title={t('canvas.tool.select')}
+            >
+              <SquareDashed size={20} />
+            </button>
+          </div>
         </div>
+
+        {/* 选区命令:仅在选区工具且有选区时展开,不占常驻空间 */}
+        {tool === 'select' && (
+          <div className="tool-group selection-group">
+            <label className="tool-label">{t('tools.selection')}</label>
+            {selection ? (
+              <>
+                <div className="selection-size">
+                  {t('tools.selectionSize', { w: selection.w, h: selection.h })}
+                </div>
+                <div className="selection-actions">
+                  <button className="action-btn" onClick={() => onSelectionCommand?.('fill')} title={t('tools.fillSelection')}>
+                    <PaintBucket size={15} />{t('tools.fillSelection')}
+                  </button>
+                  <button className="action-btn" onClick={() => onSelectionCommand?.('erase')} title={t('tools.clearSelection')}>
+                    <Eraser size={15} />{t('tools.clearSelection')}
+                  </button>
+                  <button className="action-btn icon-only" onClick={() => onSelectionCommand?.('mirrorH')} title={t('tools.mirrorH')}>
+                    <FlipHorizontal2 size={16} />
+                  </button>
+                  <button className="action-btn icon-only" onClick={() => onSelectionCommand?.('mirrorV')} title={t('tools.mirrorV')}>
+                    <FlipVertical2 size={16} />
+                  </button>
+                  <button className="action-btn icon-only" onClick={() => onSelectionCommand?.('rotateCw')} title={t('tools.rotateCw')}>
+                    <RotateCw size={16} />
+                  </button>
+                  <button className="action-btn icon-only" onClick={() => onSelectionCommand?.('rotateCcw')} title={t('tools.rotateCcw')}>
+                    <RotateCcw size={16} />
+                  </button>
+                  <button className="action-btn wide" onClick={onClearSelection} title={t('tools.clearSelectionBtn')}>
+                    <X size={15} />{t('tools.clearSelectionBtn')}
+                  </button>
+                </div>
+              </>
+            ) : (
+              <p className="selection-hint">{t('tools.selectionEmpty')}</p>
+            )}
+          </div>
+        )}
 
         <div className="tool-group">
           <label className="tool-label">{t('tools.canvasSize')}</label>
@@ -183,6 +247,12 @@ export default function Tools({
             <button className="action-btn import-btn" onClick={onOpenImport} title={t('tools.importFile')}>
               <FileJson size={16} />
               {t('tools.importFile')}
+            </button>
+          )}
+          {onOpenReplace && (
+            <button className="action-btn replace-btn" onClick={onOpenReplace} title={t('tools.replaceColor')}>
+              <Replace size={16} />
+              {t('tools.replaceColor')}
             </button>
           )}
         </div>
@@ -280,6 +350,43 @@ export default function Tools({
           display: flex;
           gap: 4px;
         }
+        /* 第二排工具(取色/选区)与第一排保持同宽同高,上下留一点呼吸 */
+        .tool-icons-secondary {
+          margin-top: 4px;
+        }
+        .selection-group {
+          padding: 10px;
+          border-radius: 8px;
+          background: var(--bg-secondary);
+        }
+        .selection-size {
+          font-size: var(--text-xs);
+          color: var(--secondary-accent);
+          font-weight: var(--font-weight-semibold);
+          margin-bottom: 6px;
+          font-variant-numeric: tabular-nums;
+        }
+        .selection-actions {
+          display: grid;
+          grid-template-columns: 1fr 1fr;
+          gap: 4px;
+        }
+        .selection-actions .action-btn {
+          font-size: var(--text-xs);
+          padding: 6px 4px;
+          gap: 4px;
+        }
+        .selection-actions .action-btn.icon-only {
+          flex: none;
+        }
+        .selection-actions .action-btn.wide {
+          grid-column: 1 / -1;
+        }
+        .selection-hint {
+          font-size: var(--text-xs);
+          color: var(--text-muted);
+          line-height: 1.5;
+        }
         .tool-btn {
           flex: 1;
           /* min-width:0 允许按钮收缩到内容宽度以下,配合较窄的水平内边距,
@@ -371,6 +478,26 @@ export default function Tools({
         .quantizer-btn:hover {
           background: var(--accent);
           color: white;
+        }
+        .replace-btn {
+          width: 100%;
+          color: var(--secondary-accent);
+          border-color: var(--secondary-accent);
+        }
+        .replace-btn:hover {
+          background: var(--secondary-accent);
+          color: white;
+        }
+        .quantizer-btn,
+        .import-btn,
+        .replace-btn {
+          width: 100%;
+          margin-bottom: 6px;
+        }
+        .quantizer-btn:last-child,
+        .import-btn:last-child,
+        .replace-btn:last-child {
+          margin-bottom: 0;
         }
       `}</style>
     </div>

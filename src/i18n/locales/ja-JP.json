@@ -440,7 +440,9 @@
       "pencil": "鉛筆",
       "eraser": "消しゴム",
       "fill": "塗りつぶし",
-      "hand": "移動"
+      "hand": "移動",
+      "select": "選択範囲",
+      "eyedropper": "スポイト"
     },
     "reset": "リセット",
     "fit": "調整",
@@ -481,7 +483,24 @@
     "widthRange": "幅は 9〜200 の間で指定してください~",
     "heightRange": "高さは 9〜200 の間で指定してください~",
     "quantizeGuide": "画像をビーズに：写真をアップロードしてビーズ図案に変換 ✨",
-    "importFile": "ファイルをインポート"
+    "importFile": "ファイルをインポート",
+    "selection": "選択範囲",
+    "selectionEmpty": "キャンバス上でドラッグして選択範囲を作成",
+    "fillSelection": "選択範囲を塗りつぶし",
+    "clearSelection": "選択範囲を消去",
+    "mirrorH": "左右反転",
+    "mirrorV": "上下反転",
+    "rotateCw": "時計回りに回転",
+    "rotateCcw": "反時計回りに回転",
+    "clearSelectionBtn": "選択を解除",
+    "replaceColor": "色を置換",
+    "selectionSize": "選択範囲 {{w}} × {{h}}",
+    "replacedToast": "{{n}} 個を置換しました",
+    "selectionFilledToast": "{{n}} マスを塗りつぶしました",
+    "selectionClearedToast": "{{n}} マスを消去しました",
+    "selectionMirroredToast": "{{n}} マスを反転しました",
+    "selectionRotatedToast": "{{n}} マスを回転しました",
+    "pickedColorToast": "{{hex}} を取得しました"
   },
   "gallery": {
     "title": "テンプレートギャラリー",
@@ -1089,5 +1108,14 @@
       "fileReadError": "ファイルの読み込みに失敗しました",
       "unknown": "不明なエラー"
     }
+  },
+  "replace": {
+    "title": "色を置換",
+    "hint": "キャンバス上の既存の色を選び、パレット内の別の色に一括で置き換えます。空白マスは塗りつぶされません。",
+    "from": "元の色",
+    "to": "置換後の色",
+    "hits": "{{n}} 個を置換します",
+    "apply": "置換する",
+    "emptyCanvas": "キャンバスにまだ色がありません"
   }
 }

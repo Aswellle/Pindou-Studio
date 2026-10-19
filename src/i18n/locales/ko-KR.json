@@ -440,7 +440,9 @@
       "pencil": "연필",
       "eraser": "지우개",
       "fill": "채우기",
-      "hand": "이동"
+      "hand": "이동",
+      "select": "선택 영역",
+      "eyedropper": "스포이트"
     },
     "reset": "초기화",
     "fit": "맞춤",
@@ -481,7 +483,24 @@
     "widthRange": "너비는 9~200 사이여야 합니다~",
     "heightRange": "높이는 9~200 사이여야 합니다~",
     "quantizeGuide": "이미지를 비드로：사진을 업로드하면 비즈 도안으로 변환 ✨",
-    "importFile": "파일 가져오기"
+    "importFile": "파일 가져오기",
+    "selection": "선택 영역",
+    "selectionEmpty": "캔버스에서 드래그하여 선택 영역을 만드세요",
+    "fillSelection": "선택 영역 채우기",
+    "clearSelection": "선택 영역 지우기",
+    "mirrorH": "좌우 반전",
+    "mirrorV": "상하 반전",
+    "rotateCw": "시계 방향 회전",
+    "rotateCcw": "반시계 방향 회전",
+    "clearSelectionBtn": "선택 해제",
+    "replaceColor": "색상 바꾸기",
+    "selectionSize": "선택 영역 {{w}} × {{h}}",
+    "replacedToast": "{{n}}개를 바꿨습니다",
+    "selectionFilledToast": "{{n}}칸을 채웠습니다",
+    "selectionClearedToast": "{{n}}칸을 지웠습니다",
+    "selectionMirroredToast": "{{n}}칸을 반전했습니다",
+    "selectionRotatedToast": "{{n}}칸을 회전했습니다",
+    "pickedColorToast": "{{hex}} 색을 선택했습니다"
   },
   "gallery": {
     "title": "갤러리",
@@ -1089,5 +1108,14 @@
       "fileReadError": "파일을 읽지 못했습니다",
       "unknown": "알 수 없는 오류"
     }
+  },
+  "replace": {
+    "title": "색상 바꾸기",
+    "hint": "캔버스에 있는 색을 골라 팔레트의 다른 색으로 한 번에 바꿉니다. 빈 칸은 채워지지 않습니다.",
+    "from": "원래 색상",
+    "to": "바꿀 색상",
+    "hits": "{{n}}개를 바꿉니다",
+    "apply": "바꾸기",
+    "emptyCanvas": "캔버스에 아직 색이 없습니다"
   }
 }
