@@ -28,6 +28,7 @@ import { useAuth } from './hooks/useAuth'
 import { useResponsive } from './hooks/useResponsive'
 import { useHistory } from './hooks/useHistory'
 import { useSavedWorks } from './hooks/useSavedWorks'
+import { canonicalPathFor } from './utils/seoPath'
 import { canvasToLegacyWork, normalizeLegacyWork } from './services/project/adapters'
 import ImportPage from './components/ImportPage'
 import MobileToolbar from './components/Tools/MobileToolbar'
@@ -1149,7 +1150,9 @@ export default function App() {
     myBeads: '/my/beads',
   }
   const SITE_ORIGIN = 'https://tangnotes.site'
-  const baseUrl = `${SITE_ORIGIN}${CANONICAL_PATH[currentPage] || '/'}`
+  // 主题/合集/图纸详情是动态内容页,canonical 自指;其余 /gallery/* 子路径
+  // 仍归并到 /gallery,避免把未知路径当作可收录页面。
+  const baseUrl = `${SITE_ORIGIN}${canonicalPathFor(location.pathname, CANONICAL_PATH[currentPage] || '/')}`
 
   // hreflang 值统一为「语言子标签」(zh-CN 除外),与预渲染 HTML、sitemap.xml 保持一致。
   // 此前 Helmet 输出 en-US/ja-JP/ko-KR 而静态文件写 en/ja/ko,同一语言两个值,
