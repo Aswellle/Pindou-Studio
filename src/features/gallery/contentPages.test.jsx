@@ -1,0 +1,180 @@
+import { describe, it, expect, beforeAll, afterEach, vi } from 'vitest'
+import { render, screen, fireEvent, cleanup } from '@testing-library/react'
+import ThemePage from './ThemePage'
+import CollectionPage from './CollectionPage'
+import PatternDetailPage from './PatternDetailPage'
+import i18n from '../../i18n'
+import { MemoryRouter, Route, Routes } from 'react-router-dom'
+
+/**
+ * M7 页面级测试:主题页 / 合集页 / 图纸详情页。
+ * 用 mock 的 useGalleryContent 直接提供策展数据,聚焦页面行为:
+ *   - 不存在/未发布 → 空状态而不是白屏;
+ *   - 已删除的模板引用被跳过;
+ *   - 复制图纸写入来源 id 且不改源模板。
+ */
+
+const contentState = {
+  loading: false,
+  error: '',
+  themes: [],
+  collections: [],
+  themeTemplateIds: new Map(),
+  collectionTemplateIds: new Map(),
+  enabled: true,
+}
+
+vi.mock('../../hooks/useGalleryContent', () => ({
+  useGalleryContent: () => ({
+    ...contentState,
+    getThemeBySlug: (slug) => contentState.themes.find((x) => x.slug === slug) || null,
+    getCollectionBySlug: (slug) => contentState.collections.find((x) => x.slug === slug) || null,
+    reload: vi.fn(),
+    createContent: vi.fn(),
+    updateContent: vi.fn(),
+    deleteContent: vi.fn(),
+    setLinks: vi.fn(),
+    clearError: vi.fn(),
+  }),
+}))
+
+vi.mock('../../hooks/useCustomTemplates', () => ({
+  default: () => ({ templates: [], categories: [] }),
+}))
+
+vi.mock('../../services/BeadPatternExporter', () => ({
+  exportAsPNG: vi.fn().mockResolvedValue(undefined),
+}))
+
+beforeAll(async () => {
+  await i18n.changeLanguage('zh-CN')
+  const ctx = {
+    fillStyle: '', fillRect: () => {}, clearRect: () => {},
+  }
+  HTMLCanvasElement.prototype.getContext = function () { return ctx }
+})
+
+afterEach(() => {
+  cleanup()
+  contentState.loading = false
+  contentState.themes = []
+  contentState.collections = []
+  contentState.themeTemplateIds = new Map()
+  contentState.collectionTemplateIds = new Map()
+})
+
+const template = (id, over = {}) => ({
+  id, name: `模板${id}`, category: 'animal', difficulty: 'easy',
+  size: 2, pattern: [['#FF0000', null], [null, null]], paletteId: 'perler', ...over,
+})
+const theme = (id, over = {}) => ({
+  id, slug: id, title: `主题${id}`, description: `说明${id}`,
+  status: 'published', isFeatured: false, sortOrder: 0, translations: {}, ...over,
+})
+
+const cloudStore = (templates) => ({ enabled: true, loading: false, error: null, templates, categories: [], refresh: vi.fn(), loadAll: vi.fn() })
+
+const renderAt = (element, path, route) => render(
+  <MemoryRouter initialEntries={[path]}>
+    <Routes>
+      <Route path={route} element={element} />
+    </Routes>
+  </MemoryRouter>,
+)
+
+describe('ThemePage', () => {
+  it('主题不存在时显示提示而不是白屏', () => {
+    renderAt(<ThemePage cloudStore={cloudStore([])} />, '/gallery/theme/nope', '/gallery/theme/:slug')
+    expect(screen.getByText(/内容不存在或尚未发布/)).toBeTruthy()
+  })
+
+  it('展示主题标题、说明与关联模板,并跳过已删除模板', () => {
+    contentState.themes = [theme('spring')]
+    contentState.themeTemplateIds = new Map([['spring', ['t1', 'ghost']]])
+    const { container } = renderAt(
+      <ThemePage cloudStore={cloudStore([template('t1')])} />,
+      '/gallery/theme/spring',
+      '/gallery/theme/:slug',
+    )
+    expect(screen.getByText('主题spring')).toBeTruthy()
+    expect(screen.getByText('说明spring')).toBeTruthy()
+    expect(container.querySelectorAll('.template-card')).toHaveLength(1)
+    expect(screen.getByText('共 1 张图纸')).toBeTruthy()
+  })
+
+  it('URL 筛选作用在主题范围内', () => {
+    contentState.themes = [theme('spring')]
+    contentState.themeTemplateIds = new Map([['spring', ['t1', 't2']]])
+    const templates = [template('t1'), template('t2', { category: 'food' })]
+    renderAt(
+      <ThemePage cloudStore={cloudStore(templates)} />,
+      '/gallery/theme/spring?cat=food',
+      '/gallery/theme/:slug',
+    )
+    expect(screen.getByText('共 1 张图纸')).toBeTruthy()
+  })
+})
+
+describe('CollectionPage', () => {
+  it('展示策展说明与有序模板', () => {
+    contentState.collections = [theme('pets', { curationNote: '适合新手' })]
+    contentState.collectionTemplateIds = new Map([['pets', ['t2', 't1']]])
+    const { container } = renderAt(
+      <CollectionPage cloudStore={cloudStore([template('t1'), template('t2')])} />,
+      '/gallery/collection/pets',
+      '/gallery/collection/:slug',
+    )
+    expect(screen.getByText('适合新手')).toBeTruthy()
+    const names = [...container.querySelectorAll('.template-name')].map((n) => n.textContent)
+    expect(names).toEqual(['模板t2', '模板t1']) // 保持管理员顺序
+  })
+
+  it('合集不存在时显示提示', () => {
+    renderAt(<CollectionPage cloudStore={cloudStore([])} />, '/gallery/collection/nope', '/gallery/collection/:slug')
+    expect(screen.getByText(/内容不存在或尚未发布/)).toBeTruthy()
+  })
+})
+
+describe('PatternDetailPage', () => {
+  it('复制到我的图纸:保存携带来源 id,源模板 pattern 不被修改', async () => {
+    const tpl = template('tpl-9')
+    const before = JSON.stringify(tpl.pattern)
+    const onSaveProject = vi.fn().mockResolvedValue(true)
+    renderAt(
+      <PatternDetailPage cloudStore={cloudStore([tpl])} onSaveProject={onSaveProject} onLoadTemplate={vi.fn()} />,
+      '/gallery/pattern/tpl-9',
+      '/gallery/pattern/:id',
+    )
+    fireEvent.click(screen.getByText('复制到我的图纸'))
+    await screen.findByText(/已复制到我的图纸/)
+    const saved = onSaveProject.mock.calls[0][0]
+    expect(saved.sourceTemplateId).toBe('tpl-9')
+    expect(saved.name).toBe('模板tpl-9')
+    expect(saved.canvasData).toHaveLength(2)
+    expect(JSON.stringify(tpl.pattern)).toBe(before)
+  })
+
+  it('开始编辑:回调携带 pattern 与品牌,矩形模板带真实宽高', () => {
+    const onLoadTemplate = vi.fn()
+    const rect = template('rect', { pattern: [['#FF0000', '#FF0000', '#FF0000'], [null, null, null]], paletteId: 'mard' })
+    renderAt(
+      <PatternDetailPage cloudStore={cloudStore([rect])} onSaveProject={vi.fn()} onLoadTemplate={onLoadTemplate} />,
+      '/gallery/pattern/rect',
+      '/gallery/pattern/:id',
+    )
+    fireEvent.click(screen.getByText('查看图纸'))
+    const [pattern, size, options] = onLoadTemplate.mock.calls[0]
+    expect(pattern).toHaveLength(2)
+    expect(size).toBe(3)
+    expect(options).toEqual({ palette: 'mard', gridWidth: 3, gridHeight: 2 })
+  })
+
+  it('图纸不存在时显示提示', () => {
+    renderAt(
+      <PatternDetailPage cloudStore={cloudStore([])} onSaveProject={vi.fn()} onLoadTemplate={vi.fn()} />,
+      '/gallery/pattern/ghost',
+      '/gallery/pattern/:id',
+    )
+    expect(screen.getByText(/内容不存在或尚未发布/)).toBeTruthy()
+  })
+})
