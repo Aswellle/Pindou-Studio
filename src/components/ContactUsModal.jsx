@@ -329,7 +329,10 @@ export default function ContactUsModal({ onClose, user }) {
       <style>{`
         /* overlay 由 index.css 全屏浮层基础设施统一提供(inset:0 盖满布局视口,
            视觉视口滚动也不露白)。这里让 modal 内容随视觉视口定位到键盘上方:
-           顶部偏移 = --visible-vh-top(视觉视口 offsetTop),高度上限 = --visible-vh。 */
+           顶部偏移 = --visible-vh-top(视觉视口 offsetTop),高度上限 = --visible-vh。
+           底部必须同时让出键盘高度(--keyboard-height):overlay 在布局视口内居中,
+           键盘弹起后布局视口不变(Safari 不支持 interactive-widget),只让出顶部会把
+           modal 整体居中在键盘后方,输入行与发送按钮被键盘盖住。 */
         .contact-overlay {
           background: rgba(43, 36, 32, 0.5);
           z-index: 1200;
@@ -339,7 +342,7 @@ export default function ContactUsModal({ onClose, user }) {
           padding: 16px;
           padding-top: max(16px, var(--visible-vh-top, 0px), env(safe-area-inset-top, 0px));
           padding-right: max(16px, env(safe-area-inset-right, 0px));
-          padding-bottom: max(16px, env(safe-area-inset-bottom, 0px));
+          padding-bottom: max(16px, calc(var(--keyboard-height, 0px) + 16px), env(safe-area-inset-bottom, 0px));
           padding-left: max(16px, env(safe-area-inset-left, 0px));
         }
         .contact-modal {
