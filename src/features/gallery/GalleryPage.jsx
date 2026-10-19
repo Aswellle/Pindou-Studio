@@ -453,6 +453,11 @@ export default function GalleryPage({ onLoadTemplate, onDeleteWork, onLoadWork, 
                       <div className="work-info">
                         <span className="work-name">{displayName}</span>
                         <span className="work-size">{w} × {h}</span>
+                        {work.sourceKind && (
+                          <span className={`work-source source-${work.sourceKind}`}>
+                            {t(`gallery.workSource.${work.sourceKind}`, '')}
+                          </span>
+                        )}
                         {displayDate && <span className="work-date">{displayDate}</span>}
                       </div>
                       <div className="work-actions">

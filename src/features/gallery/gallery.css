@@ -805,6 +805,18 @@
           font-size: var(--text-sm);
           color: var(--text-muted);
         }
+        /* 来源徽标:让「导入 / 图库复制 / 图片转图纸」在作品卡上可辨认。
+           与模板卡品牌徽标同一视觉语言(浅底小标签),不引入新配色。 */
+        .work-source {
+          align-self: flex-start;
+          font-size: var(--text-xs);
+          color: var(--text-muted);
+          background: var(--bg-primary);
+          border: 1px solid var(--border-color);
+          border-radius: 999px;
+          padding: 1px 8px;
+          margin-top: 2px;
+        }
         .work-date {
           font-size: var(--text-xs);
           color: var(--text-muted);
