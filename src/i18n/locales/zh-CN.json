@@ -566,7 +566,31 @@
     "cloudWorksEmptyBody": "登录后即可随时查看与管理这些作品",
     "savedToastCloud": "已保存到云端作品",
     "backHome": "返回首页",
-    "contactUs": "联系我们"
+    "contactUs": "联系我们",
+    "discovery": {
+      "featured": "编辑精选",
+      "featuredTheme": "精选主题",
+      "featuredCollection": "精选合集",
+      "popular": "热门图纸",
+      "popularHint": "按真实下载量排序",
+      "latest": "最新图纸",
+      "themes": "主题浏览",
+      "collections": "策展合集",
+      "loading": "正在加载精选内容…",
+      "unavailable": "精选内容暂时无法加载,下方图库不受影响",
+      "viewAll": "查看全部",
+      "themePage": "主题",
+      "collectionPage": "合集",
+      "notFound": "内容不存在或尚未发布",
+      "backToGallery": "返回图库",
+      "filteredCount": "共 {{n}} 张图纸",
+      "noMatch": "该范围内没有匹配的图纸",
+      "openPattern": "查看图纸",
+      "copyToWorkspace": "复制到我的图纸",
+      "copied": "已复制到我的图纸",
+      "curationNote": "策展说明",
+      "patternCount": "{{n}} 张图纸"
+    }
   },
   "contact": {
     "title": "联系我们",

@@ -566,7 +566,31 @@
     "cloudWorksEmptyBody": "Sign in to view and manage them anytime.",
     "savedToastCloud": "Saved to cloud works",
     "backHome": "Back to home",
-    "contactUs": "Contact us"
+    "contactUs": "Contact us",
+    "discovery": {
+      "featured": "Featured",
+      "featuredTheme": "Featured theme",
+      "featuredCollection": "Featured collection",
+      "popular": "Popular patterns",
+      "popularHint": "Sorted by real download counts",
+      "latest": "Latest patterns",
+      "themes": "Browse themes",
+      "collections": "Curated collections",
+      "loading": "Loading featured content…",
+      "unavailable": "Featured content is unavailable; the gallery below still works",
+      "viewAll": "View all",
+      "themePage": "Theme",
+      "collectionPage": "Collection",
+      "notFound": "This content does not exist or is not published",
+      "backToGallery": "Back to gallery",
+      "filteredCount": "{{n}} patterns",
+      "noMatch": "No patterns match within this scope",
+      "openPattern": "View pattern",
+      "copyToWorkspace": "Copy to my patterns",
+      "copied": "Copied to my patterns",
+      "curationNote": "Curation note",
+      "patternCount": "{{n}} patterns"
+    }
   },
   "contact": {
     "title": "Contact Us",

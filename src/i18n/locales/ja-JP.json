@@ -566,7 +566,31 @@
     "cloudWorksEmptyBody": "ログインすると、いつでもこれらの作品を表示・管理できます。",
     "savedToastCloud": "クラウドに保存しました",
     "backHome": "ホームへ戻る",
-    "contactUs": "お問い合わせ"
+    "contactUs": "お問い合わせ",
+    "discovery": {
+      "featured": "注目",
+      "featuredTheme": "注目テーマ",
+      "featuredCollection": "注目コレクション",
+      "popular": "人気の図案",
+      "popularHint": "実際のダウンロード数順",
+      "latest": "最新の図案",
+      "themes": "テーマを見る",
+      "collections": "キュレーション",
+      "loading": "注目コンテンツを読み込み中…",
+      "unavailable": "注目コンテンツを読み込めません。下のギャラリーは利用できます",
+      "viewAll": "すべて見る",
+      "themePage": "テーマ",
+      "collectionPage": "コレクション",
+      "notFound": "このコンテンツは存在しないか公開されていません",
+      "backToGallery": "ギャラリーに戻る",
+      "filteredCount": "{{n}} 件の図案",
+      "noMatch": "この範囲に一致する図案はありません",
+      "openPattern": "図案を見る",
+      "copyToWorkspace": "マイ図案にコピー",
+      "copied": "マイ図案にコピーしました",
+      "curationNote": "キュレーション説明",
+      "patternCount": "{{n}} 件の図案"
+    }
   },
   "contact": {
     "title": "お問い合わせ",

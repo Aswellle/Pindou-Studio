@@ -566,7 +566,31 @@
     "cloudWorksEmptyBody": "로그인하면 언제든지 작품을 보고 관리할 수 있습니다.",
     "savedToastCloud": "클라우드에 저장되었습니다",
     "backHome": "홈으로 돌아가기",
-    "contactUs": "문의하기"
+    "contactUs": "문의하기",
+    "discovery": {
+      "featured": "추천",
+      "featuredTheme": "추천 테마",
+      "featuredCollection": "추천 컬렉션",
+      "popular": "인기 도안",
+      "popularHint": "실제 다운로드 수 기준",
+      "latest": "최신 도안",
+      "themes": "테마 둘러보기",
+      "collections": "큐레이션 컬렉션",
+      "loading": "추천 콘텐츠를 불러오는 중…",
+      "unavailable": "추천 콘텐츠를 불러올 수 없습니다. 아래 갤러리는 정상적으로 사용할 수 있습니다",
+      "viewAll": "전체 보기",
+      "themePage": "테마",
+      "collectionPage": "컬렉션",
+      "notFound": "이 콘텐츠가 없거나 아직 공개되지 않았습니다",
+      "backToGallery": "갤러리로 돌아가기",
+      "filteredCount": "도안 {{n}}개",
+      "noMatch": "이 범위에 일치하는 도안이 없습니다",
+      "openPattern": "도안 보기",
+      "copyToWorkspace": "내 도안으로 복사",
+      "copied": "내 도안으로 복사했습니다",
+      "curationNote": "큐레이션 설명",
+      "patternCount": "도안 {{n}}개"
+    }
   },
   "contact": {
     "title": "문의하기",
