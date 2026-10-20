@@ -938,6 +938,91 @@
           padding-bottom: 6px;
           scroll-snap-type: x proximity;
           -webkit-overflow-scrolling: touch;
+          /* 弱化滚动条:默认隐藏,悬停/聚焦时以细线淡入。
+             原生滚动条在高 DPI 屏上又粗又亮,会压过卡片本身的视觉重量。 */
+          scrollbar-width: thin;
+          scrollbar-color: transparent transparent;
+        }
+        .rail-track:hover,
+        .rail-track:focus-within {
+          scrollbar-color: var(--border-color) transparent;
+        }
+        .rail-track::-webkit-scrollbar {
+          height: 6px;
+        }
+        .rail-track::-webkit-scrollbar-track {
+          background: transparent;
+        }
+        .rail-track::-webkit-scrollbar-thumb {
+          background: transparent;
+          border-radius: 999px;
+        }
+        .rail-track:hover::-webkit-scrollbar-thumb,
+        .rail-track:focus-within::-webkit-scrollbar-thumb {
+          background: var(--border-color);
+        }
+        .rail-track::-webkit-scrollbar-thumb:hover {
+          background: var(--text-muted);
+        }
+        /* 主题页/合集页的横向区块同样处理 */
+        .content-related-rail {
+          scrollbar-width: thin;
+          scrollbar-color: transparent transparent;
+        }
+        .content-related-rail:hover::-webkit-scrollbar-thumb {
+          background: var(--border-color);
+        }
+        .content-related-rail::-webkit-scrollbar { height: 6px; }
+        .content-related-rail::-webkit-scrollbar-track { background: transparent; }
+        .content-related-rail::-webkit-scrollbar-thumb {
+          background: transparent;
+          border-radius: 999px;
+        }
+        .content-related-rail:hover::-webkit-scrollbar-thumb { background: var(--border-color); }
+
+        /* ── 加载骨架:尺寸与真实 rail 对齐,避免内容到达时布局跳动 ── */
+        .rail-skeleton { pointer-events: none; }
+        .skeleton-bar,
+        .skeleton-thumb {
+          display: block;
+          background: linear-gradient(
+            90deg,
+            var(--bg-secondary) 0%,
+            var(--border-color) 50%,
+            var(--bg-secondary) 100%
+          );
+          background-size: 200% 100%;
+          animation: skeleton-shimmer 1.4s ease-in-out infinite;
+          border-radius: 6px;
+        }
+        .skeleton-title {
+          width: 120px;
+          height: 18px;
+        }
+        .skeleton-card {
+          flex: 0 0 132px;
+          display: flex;
+          flex-direction: column;
+          gap: 6px;
+        }
+        .skeleton-thumb {
+          width: 132px;
+          height: 132px;
+          border-radius: 10px;
+        }
+        .skeleton-line {
+          height: 12px;
+          width: 100%;
+        }
+        .skeleton-line.short { width: 60%; }
+        @keyframes skeleton-shimmer {
+          0% { background-position: 200% 0; }
+          100% { background-position: -200% 0; }
+        }
+        /* 尊重「减少动态效果」偏好 */
+        @media (prefers-reduced-motion: reduce) {
+          .skeleton-bar,
+          .skeleton-thumb { animation: none; }
         }
         .rail-card {
           flex: 0 0 132px;
@@ -1247,19 +1332,130 @@
           color: var(--text-muted);
           margin: 0;
         }
+        /* ── 图纸详情页:两栏布局 ───────────────────────────── */
+        .detail-page {
+          max-width: 1200px;
+        }
+        .detail-layout {
+          display: grid;
+          grid-template-columns: minmax(0, 1fr) 320px;
+          gap: 20px;
+          align-items: start;
+        }
+        @media (max-width: 900px) {
+          .detail-layout {
+            grid-template-columns: minmax(0, 1fr);
+          }
+        }
+        .detail-preview-pane {
+          display: flex;
+          flex-direction: column;
+          gap: 8px;
+          min-width: 0;
+        }
         .content-detail-preview {
           display: flex;
           justify-content: center;
+          align-items: center;
           padding: 16px;
           border: 1px solid var(--border-color);
           border-radius: 12px;
           background: #ffffff;
-          overflow: auto;
+          /* 关键:限制预览区最大高度并让画布等比缩放,
+             否则 170×170 的图纸按固定格宽会撑到 1360px,直接溢出视口。 */
+          max-height: min(70vh, 720px);
+          overflow: hidden;
         }
         .content-detail-preview canvas {
           max-width: 100%;
+          max-height: min(70vh, 720px);
+          width: auto;
           height: auto;
+          object-fit: contain;
           image-rendering: pixelated;
+        }
+
+        /* 右栏:事实表 + 操作 + 颜色清单 */
+        .detail-info-pane {
+          display: flex;
+          flex-direction: column;
+          gap: 16px;
+          min-width: 0;
+        }
+        .detail-facts {
+          display: grid;
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+          gap: 10px 16px;
+          margin: 0;
+          padding: 14px 16px;
+          border: 1px solid var(--border-color);
+          border-radius: 12px;
+          background: var(--bg-secondary);
+        }
+        .detail-facts > div {
+          display: flex;
+          flex-direction: column;
+          gap: 2px;
+          min-width: 0;
+        }
+        .detail-facts dt {
+          font-size: var(--text-xs);
+          color: var(--text-muted);
+        }
+        .detail-facts dd {
+          margin: 0;
+          font-size: var(--text-md);
+          font-weight: var(--font-weight-semibold);
+          color: var(--text-primary);
+          overflow-wrap: anywhere;
+        }
+        .detail-section-title {
+          font-size: var(--text-sm);
+          font-weight: var(--font-weight-semibold);
+          color: var(--text-secondary);
+          margin: 0 0 8px;
+        }
+        .detail-color-list {
+          list-style: none;
+          margin: 0;
+          padding: 0;
+          display: flex;
+          flex-direction: column;
+          gap: 6px;
+          max-height: 320px;
+          overflow-y: auto;
+          scrollbar-width: thin;
+        }
+        .detail-color-row {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          font-size: var(--text-xs);
+          min-width: 0;
+        }
+        .detail-color-swatch {
+          flex-shrink: 0;
+          width: 16px;
+          height: 16px;
+          border-radius: 4px;
+          border: 1px solid var(--border-color);
+        }
+        .detail-color-code {
+          font-family: var(--font-mono);
+          color: var(--text-primary);
+          flex-shrink: 0;
+        }
+        .detail-color-hex {
+          font-family: var(--font-mono);
+          color: var(--text-muted);
+          overflow: hidden;
+          text-overflow: ellipsis;
+          white-space: nowrap;
+        }
+        .detail-color-count {
+          margin-left: auto;
+          color: var(--text-secondary);
+          white-space: nowrap;
         }
 
         @media (max-width: 640px) {

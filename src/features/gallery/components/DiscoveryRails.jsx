@@ -150,8 +150,32 @@ export default function DiscoveryRails({
 }) {
   const { t, i18n } = useTranslation()
   if (!sections) return null
+  // 加载中渲染骨架而不是一行文字:
+  // 一行文字只占 20px,数据到达后区块突然撑到几百像素,下方网格被整体推下去 ——
+  // 这就是「热门/最新先消失再出现 + 页面跳一下」的观感来源。
+  // 骨架高度贴近真实 rail,内容替换时布局基本不动。
   if (loading) {
-    return <div className="discovery-loading" role="status">{t('gallery.discovery.loading')}</div>
+    return (
+      <div className="discovery" aria-busy="true" aria-label={t('gallery.discovery.loading')}>
+        {[0, 1].map((i) => (
+          <section className="discovery-rail rail-skeleton" key={i} aria-hidden="true">
+            <div className="rail-head">
+              <span className="skeleton-bar skeleton-title" />
+            </div>
+            <div className="rail-track">
+              {[0, 1, 2, 3, 4].map((j) => (
+                <span className="rail-card skeleton-card" key={j}>
+                  <span className="rail-thumb skeleton-thumb" />
+                  <span className="skeleton-bar skeleton-line" />
+                  <span className="skeleton-bar skeleton-line short" />
+                </span>
+              ))}
+            </div>
+          </section>
+        ))}
+        <span className="sr-only" role="status">{t('gallery.discovery.loading')}</span>
+      </div>
+    )
   }
 
   const { featuredTheme, featuredCollection, popular, latest, themes, collections, blocks } = sections

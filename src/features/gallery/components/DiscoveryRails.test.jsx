@@ -34,10 +34,15 @@ const sectionsOf = (over = {}) => buildDiscoverySections({
 })
 
 describe('DiscoveryRails', () => {
-  it('加载中只显示提示,不渲染任何区块', () => {
+  it('加载中渲染骨架占位(而不是一行文字导致布局跳动)', () => {
     const { container } = render(<DiscoveryRails sections={sectionsOf()} loading />)
+    // 无障碍:状态文本仍在,但视觉上是骨架
     expect(screen.getByText('正在加载精选内容…')).toBeTruthy()
-    expect(container.querySelector('.discovery-rail')).toBe(null)
+    expect(container.querySelector('.discovery')).toBeTruthy()
+    // 骨架 rail 有固定高度,内容到达后不会把下方网格整体推下去
+    expect(container.querySelectorAll('.rail-skeleton').length).toBeGreaterThan(0)
+    // 骨架不渲染任何真实卡片/标题
+    expect(container.querySelector('.rail-title')).toBe(null)
   })
 
   it('渲染热门 / 最新 / 主题 / 合集区块', () => {
