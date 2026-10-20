@@ -307,12 +307,15 @@ describe('PatternDetailPage · 布局与信息密度', () => {
       <PatternDetailPage cloudStore={cloudStore([tpl])} />,
       '/gallery/pattern/1', '/gallery/pattern/:id',
     )
-    const rows = document.querySelectorAll('.detail-color-row')
+    const rows = document.querySelectorAll('.detail-color-item')
     expect(rows).toHaveLength(2)
     expect(rows[0].textContent).toContain('3')
     expect(rows[1].textContent).toContain('1')
     // 每行都有色号(Perler 就近匹配)
     expect(rows[0].querySelector('.detail-color-code')?.textContent).toBeTruthy()
+    // 清单在通栏网格里,不是窄栏内的滚动列表
+    expect(document.querySelector('.detail-color-grid')).toBeTruthy()
+    expect(document.querySelector('.detail-color-list')).toBeNull()
   })
 
   it('预览画布有高度约束类,避免大图纸溢出视口', () => {

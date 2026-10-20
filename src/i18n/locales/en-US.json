@@ -626,7 +626,8 @@
       "factDifficulty": "Difficulty",
       "factBrand": "Palette",
       "colorList": "Color list",
-      "beadCount": "{{n}} beads"
+      "beadCount": "{{n}} beads",
+      "colorSummary": "{{colors}} colors · {{beads}} beads"
     },
     "workSource": {
       "blank": "Blank",

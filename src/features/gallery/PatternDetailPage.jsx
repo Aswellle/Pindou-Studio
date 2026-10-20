@@ -209,25 +209,38 @@ export default function PatternDetailPage({ cloudStore, onSaveProject, onLoadTem
               </button>
             </div>
             {saved && <span className="content-count" role="status">{t('gallery.discovery.copied')}</span>}
-
-            {/* 逐色清单:照着买豆子需要的核心信息 */}
-            <section className="detail-colors" aria-label={t('gallery.discovery.colorList')}>
-              <h2 className="detail-section-title">{t('gallery.discovery.colorList')}</h2>
-              <ul className="detail-color-list">
-                {makingInfo.list.map((c) => (
-                  <li key={c.hex} className="detail-color-row">
-                    <span className="detail-color-swatch" style={{ background: c.hex }} aria-hidden="true" />
-                    {c.code && <code className="detail-color-code">{c.code}</code>}
-                    <span className="detail-color-hex">{c.hex}</span>
-                    <span className="detail-color-count">
-                      {t('gallery.discovery.beadCount', { n: c.count })}
-                    </span>
-                  </li>
-                ))}
-              </ul>
-            </section>
           </aside>
         </div>
+      )}
+
+      {/* 逐色清单:通栏网格。窄栏里塞单列列表只能靠内部滚动,
+          滚动条既难用又看不见;PC 宽度足够时直接铺开,一屏看完。 */}
+      {template && makingInfo.list.length > 0 && (
+        <section className="detail-colors" aria-label={t('gallery.discovery.colorList')}>
+          <div className="detail-colors-head">
+            <h2 className="detail-section-title">{t('gallery.discovery.colorList')}</h2>
+            <span className="detail-colors-summary">
+              {t('gallery.discovery.colorSummary', {
+                colors: makingInfo.colors,
+                beads: makingInfo.beads,
+              })}
+            </span>
+          </div>
+          <ul className="detail-color-grid">
+            {makingInfo.list.map((c) => (
+              <li key={c.hex} className="detail-color-item">
+                <span className="detail-color-swatch" style={{ background: c.hex }} aria-hidden="true" />
+                <span className="detail-color-text">
+                  {c.code && <code className="detail-color-code">{c.code}</code>}
+                  <span className="detail-color-hex">{c.hex}</span>
+                </span>
+                <span className="detail-color-count">
+                  {t('gallery.discovery.beadCount', { n: c.count })}
+                </span>
+              </li>
+            ))}
+          </ul>
+        </section>
       )}
     </div>
   )

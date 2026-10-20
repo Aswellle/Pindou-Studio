@@ -626,7 +626,8 @@
       "factDifficulty": "难度",
       "factBrand": "色卡",
       "colorList": "颜色清单",
-      "beadCount": "{{n}} 颗"
+      "beadCount": "{{n}} 颗",
+      "colorSummary": "共 {{colors}} 种颜色 · {{beads}} 颗豆子"
     },
     "workSource": {
       "blank": "空白创作",

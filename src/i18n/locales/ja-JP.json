@@ -626,7 +626,8 @@
       "factDifficulty": "難易度",
       "factBrand": "パレット",
       "colorList": "色リスト",
-      "beadCount": "{{n}} 個"
+      "beadCount": "{{n}} 個",
+      "colorSummary": "{{colors}} 色 · {{beads}} 個"
     },
     "workSource": {
       "blank": "新規作成",

@@ -626,7 +626,8 @@
       "factDifficulty": "난이도",
       "factBrand": "팔레트",
       "colorList": "색상 목록",
-      "beadCount": "{{n}}개"
+      "beadCount": "{{n}}개",
+      "colorSummary": "{{colors}}색 · {{beads}}개"
     },
     "workSource": {
       "blank": "새로 만들기",
