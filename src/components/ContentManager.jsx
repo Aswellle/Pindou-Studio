@@ -335,6 +335,98 @@ function HomeSectionsPanel({ content, themes, collections }) {
   )
 }
 
+
+/**
+ * 关联对象编辑器(子主题 / 相关合集共用)。
+ *
+ * 与模板关联编辑同构:左侧是已选项(可上下移动、移除),右侧是候选搜索。
+ * 保存时整组提交 —— 与 setLinks 一样,不做逐条增删的中间态。
+ *
+ * 子主题额外做两件事:
+ *   - 排除自己(不能是自己的子主题);
+ *   - 排除「已经是别人子主题」的主题(DB 触发器也会拒绝,这里提前挡住,
+ *     避免用户点了保存才看到数据库报错)。
+ */
+function ContentRelationEditor({
+  title, hint, selectedIds, candidates, resolveLabel, onSave, onClose, busy,
+}) {
+  const { t } = useTranslation()
+  const [ids, setIds] = useState(selectedIds)
+  const [search, setSearch] = useState('')
+
+  const chosen = new Set(ids.map(String))
+  const q = search.trim().toLowerCase()
+  const visible = (candidates || [])
+    .filter((item) => !chosen.has(String(item.id)))
+    .filter((item) => !q || resolveLabel(item).toLowerCase().includes(q))
+    .slice(0, 30)
+
+  const move = (index, delta) => {
+    const target = index + delta
+    if (target < 0 || target >= ids.length) return
+    const next = [...ids]
+    ;[next[index], next[target]] = [next[target], next[index]]
+    setIds(next)
+  }
+
+  return (
+    <div className="content-link-editor">
+      <p className="admin-hint">{hint}</p>
+      <div className="content-link-current">
+        <strong>{t('admin.content.selected', { n: ids.length })}</strong>
+        {ids.length === 0 && <span className="admin-template-sub">{t('admin.content.noLinks')}</span>}
+        {ids.map((id, index) => {
+          const item = (candidates || []).find((x) => String(x.id) === String(id))
+          return (
+            <div key={id} className="content-link-row">
+              <span>{item ? resolveLabel(item) : id}</span>
+              <span className="content-link-actions">
+                <button className="admin-btn secondary small" onClick={() => move(index, -1)} disabled={index === 0} aria-label={t('admin.content.moveUp')}>
+                  <ArrowUp size={12} />
+                </button>
+                <button className="admin-btn secondary small" onClick={() => move(index, 1)} disabled={index === ids.length - 1} aria-label={t('admin.content.moveDown')}>
+                  <ArrowDown size={12} />
+                </button>
+                <button className="admin-btn secondary small" onClick={() => setIds(ids.filter((x) => x !== id))} aria-label={t('admin.content.removeSection')}>
+                  <X size={12} />
+                </button>
+              </span>
+            </div>
+          )
+        })}
+      </div>
+
+      <input
+        className="admin-input"
+        value={search}
+        onChange={(e) => setSearch(e.target.value)}
+        placeholder={t('admin.content.searchTemplates')}
+        aria-label={t('admin.content.searchTemplates')}
+      />
+      <div className="content-link-candidates">
+        {visible.length === 0 ? (
+          <span className="admin-template-sub">{t('admin.content.noCandidates')}</span>
+        ) : visible.map((item) => (
+          <button
+            key={item.id}
+            className="admin-btn secondary small"
+            onClick={() => setIds([...ids, String(item.id)])}
+          >
+            + {resolveLabel(item)}
+          </button>
+        ))}
+      </div>
+
+      <div className="admin-actions" style={{ justifyContent: 'flex-end' }}>
+        <button className="admin-btn secondary" onClick={onClose}>{t('admin.cancel')}</button>
+        <button className="admin-btn primary" onClick={() => onSave(ids)} disabled={busy}>
+          {t('admin.save')}
+        </button>
+      </div>
+    </div>
+  )
+}
+
 export default function ContentManager({ cloudStore }) {
   const { t, i18n } = useTranslation()
   const content = useGalleryContent()
@@ -344,6 +436,9 @@ export default function ContentManager({ cloudStore }) {
   const [linksFor, setLinksFor] = useState(null) // { kind, id, ids }
   const [linkSearch, setLinkSearch] = useState('')
   const [formError, setFormError] = useState('')
+  // 主题嵌套编辑(0027):{ mode: 'children'|'collections', id, title }
+  const [nestingFor, setNestingFor] = useState(null)
+  const [nestingBusy, setNestingBusy] = useState(false)
 
   const templates = cloudStore?.templates || []
   const list = kind === 'theme' ? content.themes : content.collections
@@ -398,6 +493,35 @@ export default function ContentManager({ cloudStore }) {
       ;[next[index], next[target]] = [next[target], next[index]]
       return { ...prev, ids: next }
     })
+  }
+
+  /**
+   * 子主题候选:排除自己,以及「已经是别人子主题」的主题。
+   * 深度限制是两层的 —— 已经是子主题的不能再当父主题。
+   */
+  const childThemeCandidates = useMemo(() => {
+    if (!nestingFor || nestingFor.mode !== 'children') return []
+    const takenAsChild = new Set()
+    for (const ids of content.childThemeIds?.values?.() || []) {
+      for (const id of ids) takenAsChild.add(String(id))
+    }
+    return (content.themes || [])
+      .filter((item) => String(item.id) !== String(nestingFor.id))
+      .filter((item) => !takenAsChild.has(String(item.id)))
+      .filter((item) => !(content.childThemeIds?.get(nestingFor.id) || []).map(String).includes(String(item.id)))
+  }, [nestingFor, content.themes, content.childThemeIds])
+
+  const saveNesting = async (ids) => {
+    if (!nestingFor) return
+    setNestingBusy(true)
+    try {
+      const res = nestingFor.mode === 'children'
+        ? await content.setThemeChildren(nestingFor.id, ids)
+        : await content.setThemeCollections(nestingFor.id, ids)
+      if (res.ok) setNestingFor(null)
+    } finally {
+      setNestingBusy(false)
+    }
   }
 
   const linkCandidates = useMemo(() => {
@@ -483,6 +607,22 @@ export default function ContentManager({ cloudStore }) {
                   >
                     {t('admin.content.manageLinks')}
                   </button>
+                  {kind === 'theme' && (
+                    <>
+                      <button
+                        className="admin-btn secondary small"
+                        onClick={() => setNestingFor({ mode: 'children', id: item.id, title: text.title })}
+                      >
+                        {t('admin.content.manageChildThemes')}
+                      </button>
+                      <button
+                        className="admin-btn secondary small"
+                        onClick={() => setNestingFor({ mode: 'collections', id: item.id, title: text.title })}
+                      >
+                        {t('admin.content.manageThemeCollections')}
+                      </button>
+                    </>
+                  )}
                   <button className="admin-btn secondary small" onClick={() => openEdit(item)}>
                     {t('admin.editTemplate')}
                   </button>
@@ -523,6 +663,30 @@ export default function ContentManager({ cloudStore }) {
             <button className="admin-btn secondary" onClick={() => setDeleting(null)}>{t('admin.cancel')}</button>
             <button className="admin-btn danger" onClick={confirmDelete}>{t('admin.delete')}</button>
           </div>
+        </ContentModal>
+      )}
+
+      {nestingFor && (
+        <ContentModal
+          title={nestingFor.mode === 'children'
+            ? t('admin.content.manageChildThemes')
+            : t('admin.content.manageThemeCollections')}
+          onClose={() => setNestingFor(null)}
+        >
+          <p className="admin-template-sub">{nestingFor.title}</p>
+          <ContentRelationEditor
+            selectedIds={nestingFor.mode === 'children'
+              ? (content.childThemeIds?.get(nestingFor.id) || [])
+              : (content.themeCollectionIds?.get(nestingFor.id) || [])}
+            candidates={nestingFor.mode === 'children' ? childThemeCandidates : (content.collections || [])}
+            resolveLabel={(item) => localizedContentText(item, i18n.language).title}
+            hint={nestingFor.mode === 'children'
+              ? t('admin.content.childThemesHint')
+              : t('admin.content.themeCollectionsHint')}
+            onSave={saveNesting}
+            onClose={() => setNestingFor(null)}
+            busy={nestingBusy}
+          />
         </ContentModal>
       )}
 

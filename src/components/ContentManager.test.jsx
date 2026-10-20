@@ -19,11 +19,15 @@ const contentState = {
   themeTemplateIds: new Map(),
   collectionTemplateIds: new Map(),
   homeSections: [],
+  childThemeIds: new Map(),
+  themeCollectionIds: new Map(),
   createContent: vi.fn(),
   updateContent: vi.fn(),
   deleteContent: vi.fn(),
   setLinks: vi.fn(),
   saveHomeSections: vi.fn(),
+  setThemeChildren: vi.fn(),
+  setThemeCollections: vi.fn(),
   reload: vi.fn(),
 }
 
@@ -44,6 +48,8 @@ afterEach(() => {
   contentState.collectionTemplateIds = new Map()
   contentState.homeSections = []
   contentState.saveHomeSections = vi.fn()
+  contentState.childThemeIds = new Map()
+  contentState.themeCollectionIds = new Map()
 })
 
 const theme = (id, over = {}) => ({
@@ -218,5 +224,77 @@ describe('ContentManager · 首页区块配置', () => {
         .map((l) => l.textContent)
       expect(labels.some((x) => x.includes('数据来源'))).toBe(false)
     })
+  })
+})
+
+describe('ContentManager · 主题嵌套', () => {
+  const th = (id, over = {}) => ({
+    id, slug: id, title: `主题${id}`, description: '', coverUrl: '/c.png',
+    status: 'published', isFeatured: false, sortOrder: 0, translations: {}, ...over,
+  })
+
+  it('主题行显示子主题与相关合集入口,合集行不显示', async () => {
+    contentState.themes = [th('a')]
+    const { rerender } = render(<ContentManager cloudStore={{ templates: [] }} />)
+    expect(screen.getByText('子主题')).toBeTruthy()
+    expect(screen.getByText('相关合集')).toBeTruthy()
+
+    // 切到合集标签后入口消失
+    fireEvent.click(screen.getByText('合集'))
+    await waitFor(() => expect(screen.queryByText('子主题')).toBeNull())
+  })
+
+  it('子主题候选排除自己与已是别人子主题的主题', async () => {
+    contentState.themes = [th('a'), th('b'), th('c')]
+    // c 已经是 b 的子主题 → 不能作为 a 的候选
+    contentState.childThemeIds = new Map([['b', ['c']]])
+    render(<ContentManager cloudStore={{ templates: [] }} />)
+
+    fireEvent.click(screen.getAllByText('子主题')[0])
+    await waitFor(() => expect(document.querySelector('.content-link-editor')).toBeTruthy())
+
+    const candidates = Array.from(document.querySelectorAll('.content-link-candidates button'))
+      .map((b) => b.textContent)
+    expect(candidates.some((x) => x.includes('主题b'))).toBe(true)
+    expect(candidates.some((x) => x.includes('主题c'))).toBe(false)
+  })
+
+  it('保存子主题时按顺序整组提交', async () => {
+    contentState.themes = [th('a'), th('b'), th('c')]
+    contentState.setThemeChildren = vi.fn().mockResolvedValue({ ok: true })
+    render(<ContentManager cloudStore={{ templates: [] }} />)
+
+    fireEvent.click(screen.getAllByText('子主题')[0])
+    await waitFor(() => expect(document.querySelector('.content-link-editor')).toBeTruthy())
+
+    // 依次加入 b、c
+    const addButtons = Array.from(document.querySelectorAll('.content-link-candidates button'))
+    fireEvent.click(addButtons.find((b) => b.textContent.includes('主题b')))
+    fireEvent.click(Array.from(document.querySelectorAll('.content-link-candidates button'))
+      .find((b) => b.textContent.includes('主题c')))
+
+    fireEvent.click(screen.getByText('保存'))
+    await waitFor(() => expect(contentState.setThemeChildren).toHaveBeenCalledTimes(1))
+    const [themeId, ids] = contentState.setThemeChildren.mock.calls[0]
+    expect(themeId).toBe('a')
+    expect(ids).toHaveLength(2)
+  })
+
+  it('保存相关合集调用 setThemeCollections', async () => {
+    contentState.themes = [th('a')]
+    contentState.collections = [
+      { id: 'c1', slug: 'c1', title: '合集一', status: 'published', translations: {} },
+    ]
+    contentState.setThemeCollections = vi.fn().mockResolvedValue({ ok: true })
+    render(<ContentManager cloudStore={{ templates: [] }} />)
+
+    fireEvent.click(screen.getAllByText('相关合集')[0])
+    await waitFor(() => expect(document.querySelector('.content-link-editor')).toBeTruthy())
+    fireEvent.click(Array.from(document.querySelectorAll('.content-link-candidates button'))
+      .find((b) => b.textContent.includes('合集一')))
+    fireEvent.click(screen.getByText('保存'))
+
+    await waitFor(() => expect(contentState.setThemeCollections).toHaveBeenCalledTimes(1))
+    expect(contentState.setThemeCollections.mock.calls[0][1]).toEqual(['c1'])
   })
 })
