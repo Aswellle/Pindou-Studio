@@ -29,6 +29,12 @@ const TABLES = {
 
 const HOME_SECTIONS_TABLE = 'gallery_home_sections'
 
+// 主题嵌套(0027):子主题与主题下的合集
+const NESTING_TABLES = {
+  children: 'gallery_theme_children',
+  collections: 'gallery_theme_collections',
+}
+
 const LINK_TABLES = {
   theme: { table: 'gallery_theme_templates', parentColumn: 'theme_id' },
   collection: { table: 'gallery_collection_templates', parentColumn: 'collection_id' },
@@ -51,13 +57,18 @@ export function createGalleryContentStore(client = supabase) {
     return {
       enabled: false,
       async load() {
-        return { themes: [], collections: [], themeLinks: [], collectionLinks: [], homeSections: [] }
+        return {
+          themes: [], collections: [], themeLinks: [], collectionLinks: [],
+          homeSections: [], themeChildren: [], themeCollections: [],
+        }
       },
       async createContent() { return fail([{ code: 'cloudNotConfigured' }]) },
       async updateContent() { return fail([{ code: 'cloudNotConfigured' }]) },
       async deleteContent() { return fail([{ code: 'cloudNotConfigured' }]) },
       async setLinks() { return fail([{ code: 'cloudNotConfigured' }]) },
       async saveHomeSections() { return fail([{ code: 'cloudNotConfigured' }]) },
+      async setThemeChildren() { return fail([{ code: 'cloudNotConfigured' }]) },
+      async setThemeCollections() { return fail([{ code: 'cloudNotConfigured' }]) },
     }
   }
 
@@ -67,6 +78,26 @@ export function createGalleryContentStore(client = supabase) {
   const listOf = async (table, orderColumn) => {
     const { data, error } = await client.from(table).select('*').order(orderColumn, { ascending: true })
     if (error) {
+      remember({ code: 'cloud', detail: error.message })
+      throw error
+    }
+    return data || []
+  }
+
+  /**
+   * 可选表的读取:表不存在时返回空数组,而不是让整个图库降级。
+   * 用于「新迁移尚未执行」也能正常浏览的向前兼容场景。
+   */
+  async function listOptional(table, orderColumn) {
+    const { data, error } = await client
+      .from(table)
+      .select('*')
+      .order(orderColumn, { ascending: true })
+    if (error) {
+      const missingTable = error.code === '42P01'
+        || error.code === 'PGRST205'
+        || /does not exist|schema cache/i.test(error.message || '')
+      if (missingTable) return []
       remember({ code: 'cloud', detail: error.message })
       throw error
     }
@@ -109,21 +140,27 @@ export function createGalleryContentStore(client = supabase) {
      * 「内容暂不可用」并继续使用旧图库 —— 不在这里静默吞掉。
      */
     async load() {
-      const [themes, collections, themeLinks, collectionLinks, homeSections] = await Promise.all([
-        listOf(TABLES.theme, 'sort_order'),
-        listOf(TABLES.collection, 'sort_order'),
-        listOf(LINK_TABLES.theme.table, 'sort_order'),
-        listOf(LINK_TABLES.collection.table, 'sort_order'),
-        // 区块配置表可能尚未创建(0026 未执行):此时不阻断整个图库,
-        // 返回空数组让前端回退到默认区块。
-        listHomeSections(),
-      ])
+      const [themes, collections, themeLinks, collectionLinks, homeSections, themeChildren, themeCollections] =
+        await Promise.all([
+          listOf(TABLES.theme, 'sort_order'),
+          listOf(TABLES.collection, 'sort_order'),
+          listOf(LINK_TABLES.theme.table, 'sort_order'),
+          listOf(LINK_TABLES.collection.table, 'sort_order'),
+          // 区块配置表可能尚未创建(0026 未执行):此时不阻断整个图库,
+          // 返回空数组让前端回退到默认区块。
+          listHomeSections(),
+          // 同理:0027 未执行时返回空数组,主题页不显示子主题区块。
+          listOptional(NESTING_TABLES.children, 'sort_order'),
+          listOptional(NESTING_TABLES.collections, 'sort_order'),
+        ])
       return {
         themes: themes.map((row) => rowToContent(row, 'theme')),
         collections: collections.map((row) => rowToContent(row, 'collection')),
         themeLinks,
         collectionLinks,
         homeSections,
+        themeChildren,
+        themeCollections,
       }
     },
 
@@ -185,6 +222,44 @@ export function createGalleryContentStore(client = supabase) {
       const { data, error } = await client.from(table).insert(rows).select()
       if (error) { remember({ code: 'cloud', detail: error.message }); return fromDbError(error) }
       return { ok: true, links: data || [] }
+    },
+
+    /**
+     * 整组替换主题的子主题列表(仅两层,深度由 DB 触发器强制)。
+     * 与 setLinks 同一策略:先删后插,失败不做部分成功。
+     */
+    async setThemeChildren(themeId, childIds = []) {
+      if (!themeId) return fail([{ code: 'notFound' }])
+      const ids = [...new Set((childIds || []).map(String).filter(Boolean))]
+        .filter((id) => id !== String(themeId)) // 自己不能是自己的子主题
+      const del = await client.from(NESTING_TABLES.children).delete().eq('parent_id', themeId)
+      if (del.error) { remember({ code: 'cloud', detail: del.error.message }); return fromDbError(del.error) }
+      if (ids.length === 0) return { ok: true, children: [] }
+      const { data, error } = await client
+        .from(NESTING_TABLES.children)
+        .insert(ids.map((childId, index) => ({
+          parent_id: themeId, child_id: childId, sort_order: index,
+        })))
+        .select()
+      if (error) { remember({ code: 'cloud', detail: error.message }); return fromDbError(error) }
+      return { ok: true, children: data || [] }
+    },
+
+    /** 整组替换主题关联的合集(主题页展示「相关合集」)。 */
+    async setThemeCollections(themeId, collectionIds = []) {
+      if (!themeId) return fail([{ code: 'notFound' }])
+      const ids = [...new Set((collectionIds || []).map(String).filter(Boolean))]
+      const del = await client.from(NESTING_TABLES.collections).delete().eq('theme_id', themeId)
+      if (del.error) { remember({ code: 'cloud', detail: del.error.message }); return fromDbError(del.error) }
+      if (ids.length === 0) return { ok: true, collections: [] }
+      const { data, error } = await client
+        .from(NESTING_TABLES.collections)
+        .insert(ids.map((collectionId, index) => ({
+          theme_id: themeId, collection_id: collectionId, sort_order: index,
+        })))
+        .select()
+      if (error) { remember({ code: 'cloud', detail: error.message }); return fromDbError(error) }
+      return { ok: true, collections: data || [] }
     },
 
     /**

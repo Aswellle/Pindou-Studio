@@ -25,7 +25,10 @@ import {
 /** 只保留已发布对象(公开路由用;与 discovery.publishedOnly 同一语义) */
 const publishedOnly = (list) => (list || []).filter((item) => item?.status === CONTENT_STATUS.PUBLISHED)
 
-const EMPTY = { themes: [], collections: [], themeLinks: [], collectionLinks: [], homeSections: [] }
+const EMPTY = {
+  themes: [], collections: [], themeLinks: [], collectionLinks: [], homeSections: [],
+  themeChildren: [], themeCollections: [],
+}
 
 const CONTENT_TIMEOUT_MS = 15000
 
@@ -66,6 +69,8 @@ export function useGalleryContent({ active = true } = {}) {
         themeLinks: Array.isArray(data.themeLinks) ? data.themeLinks : [],
         collectionLinks: Array.isArray(data.collectionLinks) ? data.collectionLinks : [],
         homeSections: Array.isArray(data.homeSections) ? data.homeSections : [],
+        themeChildren: Array.isArray(data.themeChildren) ? data.themeChildren : [],
+        themeCollections: Array.isArray(data.themeCollections) ? data.themeCollections : [],
       })
       setError('')
     } catch (e) {
@@ -132,6 +137,31 @@ export function useGalleryContent({ active = true } = {}) {
     return list.find((item) => String(item.slug || '').toLowerCase() === key) || null
   }, [])
 
+  // 主题嵌套:parentId → 有序子 id 列表(0027;未执行时为空 Map)
+  const childThemeIds = useMemo(() => {
+    const m = new Map()
+    for (const row of state.themeChildren) {
+      if (!m.has(row.parent_id)) m.set(row.parent_id, [])
+      m.get(row.parent_id).push(row)
+    }
+    for (const list of m.values()) {
+      list.sort((a, b) => (Number(a.sort_order) || 0) - (Number(b.sort_order) || 0))
+    }
+    return new Map([...m.entries()].map(([k, v]) => [k, v.map((r) => String(r.child_id))]))
+  }, [state.themeChildren])
+
+  const themeCollectionIds = useMemo(() => {
+    const m = new Map()
+    for (const row of state.themeCollections) {
+      if (!m.has(row.theme_id)) m.set(row.theme_id, [])
+      m.get(row.theme_id).push(row)
+    }
+    for (const list of m.values()) {
+      list.sort((a, b) => (Number(a.sort_order) || 0) - (Number(b.sort_order) || 0))
+    }
+    return new Map([...m.entries()].map(([k, v]) => [k, v.map((r) => String(r.collection_id))]))
+  }, [state.themeCollections])
+
   // 首页区块:无配置时回退到默认顺序(未执行 0026 的项目行为不变)
   const homeSections = useMemo(() => resolveHomeSections(state.homeSections), [state.homeSections])
 
@@ -196,6 +226,20 @@ export function useGalleryContent({ active = true } = {}) {
     return res
   }, [store, load, fail])
 
+  const setThemeChildren = useCallback(async (themeId, childIds) => {
+    const res = await store.setThemeChildren(themeId, childIds)
+    if (!res.ok) return fail(res.errors)
+    await load()
+    return res
+  }, [store, load, fail])
+
+  const setThemeCollections = useCallback(async (themeId, collectionIds) => {
+    const res = await store.setThemeCollections(themeId, collectionIds)
+    if (!res.ok) return fail(res.errors)
+    await load()
+    return res
+  }, [store, load, fail])
+
   return {
     enabled: store.enabled,
     loading,
@@ -204,6 +248,8 @@ export function useGalleryContent({ active = true } = {}) {
     themes,
     collections,
     homeSections,
+    childThemeIds,
+    themeCollectionIds,
     themeTemplateIds,
     collectionTemplateIds,
     getThemeBySlug,
@@ -216,6 +262,8 @@ export function useGalleryContent({ active = true } = {}) {
     deleteContent,
     setLinks,
     saveHomeSections,
+    setThemeChildren,
+    setThemeCollections,
   }
 }
 

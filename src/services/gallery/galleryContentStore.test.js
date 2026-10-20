@@ -68,7 +68,10 @@ describe('galleryContentStore · 读取', () => {
   it('未配置云端时 load 返回空集合', async () => {
     const store = createGalleryContentStore(null)
     expect(store.enabled).toBe(false)
-    await expect(store.load()).resolves.toEqual({ themes: [], collections: [], themeLinks: [], collectionLinks: [], homeSections: [] })
+    await expect(store.load()).resolves.toEqual({
+      themes: [], collections: [], themeLinks: [], collectionLinks: [],
+      homeSections: [], themeChildren: [], themeCollections: [],
+    })
   })
 })
 
