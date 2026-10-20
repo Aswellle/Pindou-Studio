@@ -123,6 +123,9 @@ export default function GalleryPage({ onLoadTemplate, onDeleteWork, onLoadWork, 
   }
 
   // 品牌/导出菜单:记录触发按钮位置 + 菜单元素,用 useLayoutEffect 贴近按钮定位(避免居中)
+  // 同时记录触发按钮本身,Escape 关闭后把焦点还回去(键盘用户不会丢位置)
+  const exportTriggerEl = useRef(null)
+  const brandTriggerEl = useRef(null)
   const brandTriggerRect = useRef(null)
   const brandMenuRef = useRef(null)
   const exportTriggerRect = useRef(null)
@@ -178,6 +181,21 @@ export default function GalleryPage({ onLoadTemplate, onDeleteWork, onLoadWork, 
     document.addEventListener('click', close)
     return () => document.removeEventListener('click', close)
   }, [exportMenuId])
+
+  // 菜单键盘可关闭:Esc 关闭并把焦点还给触发按钮(规格 07 §8)
+  useEffect(() => {
+    if (!exportMenuId && !brandMenuId) return undefined
+    const onKeyDown = (e) => {
+      if (e.key !== 'Escape') return
+      const trigger = exportMenuId ? exportTriggerEl.current : brandTriggerEl.current
+      if (exportMenuId) setExportMenuId(null)
+      if (brandMenuId) setBrandMenuId(null)
+      // 下一帧再聚焦:菜单卸载后再 focus 才能稳定落到按钮上
+      requestAnimationFrame(() => trigger?.focus?.())
+    }
+    document.addEventListener('keydown', onKeyDown)
+    return () => document.removeEventListener('keydown', onKeyDown)
+  }, [exportMenuId, brandMenuId])
 
   const filteredTemplates = useMemo(() => allTemplates.filter(template => {
     const displayName = (template.nameZh || template.name || '').toLowerCase()
@@ -531,6 +549,7 @@ export default function GalleryPage({ onLoadTemplate, onDeleteWork, onLoadWork, 
                       onClick={e => {
                         e.stopPropagation()
                         exportTriggerRect.current = e.currentTarget.getBoundingClientRect()
+                        exportTriggerEl.current = e.currentTarget
                         setBrandMenuId(null)
                         setExportMenuId(exportMenuId === template.id ? null : template.id)
                       }}
@@ -610,7 +629,7 @@ export default function GalleryPage({ onLoadTemplate, onDeleteWork, onLoadWork, 
                     {/* 拼豆品牌徽章:显示模板所属色卡品牌;点击可切换并转换为指定品牌 */}
                     <button
                       className={`template-brand${brandOverride[template.id] ? ' overridden' : ''}`}
-                      onClick={(e) => { e.stopPropagation(); brandTriggerRect.current = e.currentTarget.getBoundingClientRect(); setExportMenuId(null); setBrandMenuId(brandMenuId === template.id ? null : template.id) }}
+                      onClick={(e) => { e.stopPropagation(); brandTriggerRect.current = e.currentTarget.getBoundingClientRect(); brandTriggerEl.current = e.currentTarget; setExportMenuId(null); setBrandMenuId(brandMenuId === template.id ? null : template.id) }}
                       title={t('gallery.brandConvert')}
                       aria-label={t('gallery.brandConvert')}
                       aria-expanded={brandMenuId === template.id}
