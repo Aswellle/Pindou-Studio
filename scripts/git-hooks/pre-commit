@@ -1,0 +1,12 @@
+#!/bin/bash
+# i18n 键同步检查：只在 locale 文件被暂存时运行
+if git diff --cached --name-only | grep -q "src/i18n/locales/"; then
+  echo "🔍 检查 i18n 键同步..."
+  node scripts/check-i18n.js
+  if [ $? -ne 0 ]; then
+    echo ""
+    echo "❌ i18n 键不同步，提交已阻止。请先修复上面的问题。"
+    exit 1
+  fi
+  echo "✅ i18n 键同步通过"
+fi

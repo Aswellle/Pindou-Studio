@@ -1,0 +1,63 @@
+#!/bin/bash
+# 提交信息硬性约束(见 CLAUDE.md / AGENTS.md「Git 提交规则」):
+#   1. 不得出现优先级 / 批次 / 阶段 / 里程碑编号等过程性字眼
+#   2. 不得包含 AI 署名(Co-Authored-By 等)
+#
+# 规则是硬性的。确实需要豁免时用 `git commit --no-verify`,并确保理由充分。
+
+MSG_FILE="$1"
+MSG=$(cat "$MSG_FILE")
+
+# 跳过空提交信息(交给 git 自己报错)与 merge / revert 自动生成的信息
+if [ -z "$(echo "$MSG" | tr -d '[:space:]')" ]; then
+  exit 0
+fi
+if echo "$MSG" | head -1 | grep -qE '^(Merge|Revert|fixup!|squash!)'; then
+  exit 0
+fi
+
+fail=0
+
+# ── 1. 过程性字眼 ────────────────────────────────────────────
+# 只匹配独立出现的标记,避免误伤正常词汇:
+#   P0/P1/P2 需要词边界;M 编号要求后面不是字母(避免匹配 "M6.2" 之外的正常文本时也小心)
+PATTERNS=(
+  '\bP[0-3]\b'
+  '批次'
+  '\bBATCH[_ -]?[0-9A-Za-z]'
+  '阶段'
+  '\bPhase[ _-]?[0-9]'
+  '\bM[0-9]+(\.[0-9]+)?\b'
+)
+HIT=""
+for p in "${PATTERNS[@]}"; do
+  if echo "$MSG" | grep -qiE "$p"; then
+    HIT="$HIT\n  - 匹配到: $p"
+  fi
+done
+
+if [ -n "$HIT" ]; then
+  echo "❌ 提交信息包含过程性字眼(优先级 / 批次 / 阶段 / 里程碑编号):"
+  echo -e "$HIT"
+  fail=1
+fi
+
+# ── 2. AI 署名 ───────────────────────────────────────────────
+if echo "$MSG" | grep -qiE 'co-authored-by:.*(claude|anthropic|copilot|chatgpt|openai|codex|gemini)'; then
+  echo "❌ 提交信息包含 AI 合作者署名(Co-Authored-By)。"
+  fail=1
+fi
+
+if [ "$fail" -ne 0 ]; then
+  echo ""
+  echo "规则见 CLAUDE.md / AGENTS.md 的「Git 提交规则」:只描述改动本身,"
+  echo "格式建议 \`type(scope): 摘要\`(feat / fix / refactor / test / docs / chore)。"
+  echo ""
+  echo "当前提交信息:"
+  echo "---"
+  echo "$MSG" | sed 's/^/  /'
+  echo "---"
+  exit 1
+fi
+
+exit 0
