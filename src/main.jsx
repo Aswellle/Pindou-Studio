@@ -54,7 +54,11 @@ import './index.css'
 // 初始语言非 zh-CN 时先加载该语言包再挂载 React(避免非中文用户看到中文兜底闪烁;
 // 加载失败不阻塞,回退 zh-CN)。zh-CN 用户零等待直接走 microtask。
 i18nReady.then(() => {
-  ReactDOM.createRoot(document.getElementById('root')).render(
+  const rootEl = document.getElementById('root')
+  // 预渲染页在首帧前用 .js-booting 隐藏静态正文(见 scripts/generate-prerender-html.js)。
+  // createRoot().render() 会清空 #root,此时移除标记,让后续内容正常可见。
+  document.documentElement.classList.remove('js-booting')
+  ReactDOM.createRoot(rootEl).render(
     <React.StrictMode>
       <BrowserRouter>
         <HelmetProvider>

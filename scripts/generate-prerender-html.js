@@ -157,9 +157,22 @@ function injectRoot(html, inner) {
   // 会用应用替换掉它 —— 这是标准预渲染(SSG)行为,抓取端与用户看到的是同一份 HTML,
   // 不属于「隐藏文字/伪装内容」。
   //
+  // 为什么还要内联隐藏:JS 下载 + 解析 + React 首帧需要几百毫秒,这段时间用户会看到
+  // 一屏「纯文字」,然后突然被应用替换 —— 视觉上像加载错页。这里在 <head> 末尾放一段
+  // 同步脚本,在**首次绘制之前**给 <html> 加 .js-booting,由 CSS 把 #seo-static 隐藏;
+  // React 首帧挂载后移除该类,静态正文也就随 #root 一起被替换。
+  // 不执行 JS 的抓取端不会加这个类,因此仍然读得到正文。
+  //
   // 范围:仅内容页(/gallery、/tutorials)。首页是纯工具页,注入正文会在 JS 就绪前闪出
   // 一屏文字而后被应用替换(体验代价大于收益),故首页保持空壳,SEO 依靠 head 元信息与 JSON-LD。
-  return inner ? html.replace('<div id="root"></div>', `<div id="root">${inner}</div>`) : html
+  if (!inner) return html
+
+  const bootScript = '<script>document.documentElement.classList.add("js-booting")</script>'
+  const bootStyle = '<style>html.js-booting #seo-static{visibility:hidden}</style>'
+  const withGuard = html.includes('</head>')
+    ? html.replace('</head>', `${bootScript}${bootStyle}</head>`)
+    : html
+  return withGuard.replace('<div id="root"></div>', `<div id="root">${inner}</div>`)
 }
 
 // ── 子路由预渲染 SEO HTML ─────────────────────────────────
