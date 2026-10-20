@@ -69,6 +69,9 @@ describe('colorImport · 颜色导入', () => {
 
   it('空文件被拒绝', () => {
     expect(parseColorsCsv('').errors[0].code).toBe(IMPORT_ERRORS.EMPTY)
+    // 只有表头、没有数据行 → EMPTY;只有一行数据、看不出表头 → NO_HEADER
+    expect(parseColorsCsv('code,hex').errors[0].code).toBe(IMPORT_ERRORS.EMPTY)
+    expect(parseColorsCsv('A1,#FFFFFF').errors[0].code).toBe(IMPORT_ERRORS.NO_HEADER)
   })
 
   it('坏行被逐行报告,好行仍然产出(供预览)', () => {

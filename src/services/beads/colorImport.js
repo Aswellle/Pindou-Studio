@@ -11,7 +11,7 @@
  * 纯函数,不做文件 I/O。
  */
 
-import { normalizeColorInput, COLOR_SOURCES, normalizeColorSource } from './personalPalette'
+import { normalizeColorInput, COLOR_SOURCES } from './personalPalette'
 
 export const IMPORT_ERRORS = Object.freeze({
   EMPTY: 'empty',
@@ -104,6 +104,15 @@ function headerIndex(header) {
 export function parseColorsCsv(text, { existingColors = [] } = {}) {
   const rows = parseCsv(text)
   if (rows.length === 0) return { ok: false, errors: [{ code: IMPORT_ERRORS.EMPTY }] }
+  // 只有一行:要么是「只有表头没有数据」,要么是直接把颜色行粘进来。
+  // 用表头列判断,给出比「缺列」更准确的提示。
+  if (rows.length === 1) {
+    const only = headerIndex(rows[0])
+    return {
+      ok: false,
+      errors: [{ code: only.has('code') && only.has('hex') ? IMPORT_ERRORS.EMPTY : IMPORT_ERRORS.NO_HEADER }],
+    }
+  }
 
   const idx = headerIndex(rows[0])
   if (!idx.has('code') || !idx.has('hex')) {
@@ -186,9 +195,4 @@ export function parseColorImport(text, { filename = '', existingColors = [] } = 
     return parseColorsJson(text, { existingColors })
   }
   return parseColorsCsv(text, { existingColors })
-}
-
-/** 预览用的来源展示(未知值回退 factory,与写入一致) */
-export function draftSource(draft) {
-  return normalizeColorSource(draft?.source)
 }
