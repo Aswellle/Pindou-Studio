@@ -619,7 +619,14 @@
       "filterColorsAny": "Any",
       "filterColorsMax": "≤ {{n}} colors",
       "childThemes": "Sub-themes",
-      "relatedCollections": "Related collections"
+      "relatedCollections": "Related collections",
+      "factSize": "Size",
+      "factBeads": "Total beads",
+      "factColors": "Colors",
+      "factDifficulty": "Difficulty",
+      "factBrand": "Palette",
+      "colorList": "Color list",
+      "beadCount": "{{n}} beads"
     },
     "workSource": {
       "blank": "Blank",
@@ -627,7 +634,8 @@
       "chart-import": "Chart import",
       "native-file": "File import",
       "gallery-copy": "Gallery copy"
-    }
+    },
+    "cloudErrorTimeout": "The request timed out. Check your connection and try again."
   },
   "contact": {
     "title": "Contact Us",

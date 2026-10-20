@@ -619,7 +619,14 @@
       "filterColorsAny": "指定なし",
       "filterColorsMax": "{{n}} 色以下",
       "childThemes": "サブテーマ",
-      "relatedCollections": "関連コレクション"
+      "relatedCollections": "関連コレクション",
+      "factSize": "サイズ",
+      "factBeads": "ビーズ総数",
+      "factColors": "色数",
+      "factDifficulty": "難易度",
+      "factBrand": "パレット",
+      "colorList": "色リスト",
+      "beadCount": "{{n}} 個"
     },
     "workSource": {
       "blank": "新規作成",
@@ -627,7 +634,8 @@
       "chart-import": "図案取り込み",
       "native-file": "ファイル取り込み",
       "gallery-copy": "ギャラリーから複製"
-    }
+    },
+    "cloudErrorTimeout": "接続がタイムアウトしました。ネットワークを確認して再試行してください。"
   },
   "contact": {
     "title": "お問い合わせ",

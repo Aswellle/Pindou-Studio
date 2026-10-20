@@ -101,7 +101,9 @@ export default function useCloudTemplates() {
       setError('')
     } catch (e) {
       failedRef.current = true
-      setError(isAbortError(e) ? 'timeout' : (e.message || String(e)))
+      // 原始错误只进 console:界面上只显示可读文案,不暴露表名/URL/堆栈
+      console.error('云端模板加载失败:', e)
+      setError(isAbortError(e) ? 'timeout' : 'failed')
     } finally {
       setLoading(false)
     }
@@ -122,7 +124,8 @@ export default function useCloudTemplates() {
       setError('')
     } catch (e) {
       failedRef.current = true
-      setError(isAbortError(e) ? 'timeout' : (e.message || String(e)))
+      console.error('云端模板刷新失败:', e)
+      setError(isAbortError(e) ? 'timeout' : 'failed')
     }
   }, [fetchWithTimeout])
 

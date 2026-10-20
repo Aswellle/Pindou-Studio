@@ -389,9 +389,13 @@ export default function GalleryPage({ onLoadTemplate, onDeleteWork, onLoadWork, 
             <div className="cloud-offline-text">
               <strong>{t('gallery.cloudLoadError')}</strong>
               <span>{t('gallery.cloudFallbackNotice')}</span>
-              {cloudStore?.error && (
-                <code className="cloud-offline-reason">{String(cloudStore.error).slice(0, 160)}</code>
-              )}
+              {/* 只给可读的原因,不把底层错误文本(含表名/堆栈/URL)暴露到界面上。
+                  完整错误仍保留在 console 里供排查。 */}
+              <span className="cloud-offline-reason">
+                {cloudStore?.error === 'timeout'
+                  ? t('gallery.cloudErrorTimeout')
+                  : t('gallery.cloudLoadErrorHint')}
+              </span>
             </div>
             <button className="retry-btn" onClick={() => cloudStore.loadAll()}>
               {t('gallery.retry')}

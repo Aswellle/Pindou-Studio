@@ -619,7 +619,14 @@
       "filterColorsAny": "제한 없음",
       "filterColorsMax": "{{n}}색 이하",
       "childThemes": "하위 테마",
-      "relatedCollections": "관련 컬렉션"
+      "relatedCollections": "관련 컬렉션",
+      "factSize": "크기",
+      "factBeads": "전체 비즈",
+      "factColors": "색 수",
+      "factDifficulty": "난이도",
+      "factBrand": "팔레트",
+      "colorList": "색상 목록",
+      "beadCount": "{{n}}개"
     },
     "workSource": {
       "blank": "새로 만들기",
@@ -627,7 +634,8 @@
       "chart-import": "도안 가져오기",
       "native-file": "파일 가져오기",
       "gallery-copy": "갤러리 복사"
-    }
+    },
+    "cloudErrorTimeout": "연결 시간이 초과되었습니다. 네트워크를 확인한 후 다시 시도해 주세요."
   },
   "contact": {
     "title": "문의하기",

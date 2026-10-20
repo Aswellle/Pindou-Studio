@@ -619,7 +619,14 @@
       "filterColorsAny": "不限",
       "filterColorsMax": "≤ {{n}} 色",
       "childThemes": "子主题",
-      "relatedCollections": "相关合集"
+      "relatedCollections": "相关合集",
+      "factSize": "尺寸",
+      "factBeads": "豆子总数",
+      "factColors": "用色数",
+      "factDifficulty": "难度",
+      "factBrand": "色卡",
+      "colorList": "颜色清单",
+      "beadCount": "{{n}} 颗"
     },
     "workSource": {
       "blank": "空白创作",
@@ -627,7 +634,8 @@
       "chart-import": "图纸导入",
       "native-file": "文件导入",
       "gallery-copy": "图库复制"
-    }
+    },
+    "cloudErrorTimeout": "连接超时了，请检查网络后重试"
   },
   "contact": {
     "title": "联系我们",
