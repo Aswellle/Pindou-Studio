@@ -271,4 +271,13 @@ Conventions:
 
 ---
 
+## 📝 Changelog
+
+User-facing changes are recorded in [CHANGELOG.md](CHANGELOG.md).
+Most notable recently: **selection fill no longer fills empty cells by default** —
+to fill an entire selection including blanks, turn on the "Include empty" toggle
+in the selection action bar.
+
+---
+
 *From your first bead to your hundredth — may every placement be one you'd choose again.*
