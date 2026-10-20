@@ -119,6 +119,19 @@ async function main() {
       }, { onConflict: 'user_id,palette_key' })
     check('A 能写自己的库存', !iErr, iErr?.message)
 
+    // works 也在验证范围内(B2 清单):A 建一件作品
+    const { data: work, error: wErr } = await a
+      .from('works')
+      .insert({
+        user_id: aUser.id,
+        name: 'RLS test work',
+        canvas_data: [[null]],
+        grid_size: 1,
+      })
+      .select()
+      .single()
+    check('A 能写自己的作品', !wErr, wErr?.message)
+
     // ── B 读不到 A 的数据 ───────────────────────────────────
     const { data: bReadsPalettes, error: bReadErr } = await b
       .from('user_palettes')
@@ -168,21 +181,49 @@ async function main() {
       })
     check('B 不能把颜色挂到 A 的色卡下', Boolean(bInjectErr), bInjectErr?.message || '写入成功了(越权)')
 
+    // ── works:跨用户隔离 ───────────────────────────────────
+    const { data: bReadsWorks, error: bWorksErr } = await b.from('works').select('*')
+    check('B 读不到 A 的作品', !bWorksErr && (bReadsWorks || []).length === 0,
+      bWorksErr?.message || `返回 ${bReadsWorks?.length ?? 0} 行`)
+
+    const { data: bUpdatesWorks } = await b
+      .from('works')
+      .update({ name: 'hacked' })
+      .eq('id', work.id)
+      .select()
+    check('B 改不了 A 的作品', (bUpdatesWorks || []).length === 0)
+
+    const { data: bDeletesWorks } = await b
+      .from('works')
+      .delete()
+      .eq('id', work.id)
+      .select()
+    check('B 删不掉 A 的作品', (bDeletesWorks || []).length === 0)
+
     // ── 匿名读不到任何个人表 ────────────────────────────────
     const anonPalettes = await anon.from('user_palettes').select('*')
     const anonInventory = await anon.from('user_bead_inventory').select('*')
+    const anonWorks = await anon.from('works').select('*')
     check('匿名读不到 user_palettes',
       !anonPalettes.error && (anonPalettes.data || []).length === 0,
       anonPalettes.error?.message || `返回 ${anonPalettes.data?.length ?? 0} 行`)
     check('匿名读不到 user_bead_inventory',
       !anonInventory.error && (anonInventory.data || []).length === 0,
       anonInventory.error?.message || `返回 ${anonInventory.data?.length ?? 0} 行`)
+    check('匿名读不到 works',
+      !anonWorks.error && (anonWorks.data || []).length === 0,
+      anonWorks.error?.message || `返回 ${anonWorks.data?.length ?? 0} 行`)
 
     // ── 匿名不能写 ─────────────────────────────────────────
     const anonWrite = await anon
       .from('user_palettes')
       .insert({ user_id: aUser.id, name: 'anon' })
     check('匿名不能写 user_palettes', Boolean(anonWrite.error), anonWrite.error?.message || '写入成功了(越权)')
+
+    const anonWorksWrite = await anon
+      .from('works')
+      .insert({ user_id: aUser.id, name: 'anon', canvas_data: [[null]], grid_size: 1 })
+    check('匿名不能写 works', Boolean(anonWorksWrite.error), anonWorksWrite.error?.message || '写入成功了(越权)')
 
     // ── A 自己的数据仍然可读(正向对照,防「全被拒」假阳性)──
     const { data: aOwn, error: aOwnErr } = await a.from('user_palettes').select('*')
