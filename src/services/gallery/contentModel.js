@@ -296,3 +296,145 @@ export const HEALTH_ISSUE_KEYS = Object.freeze({
   missingTemplate: 'missingTemplate',
   emptyPublished: 'emptyPublished',
 })
+
+// ── 首页区块配置(0026)────────────────────────────────────────
+/**
+ * 区块类型。`theme` / `collection` 是「单个对象独立成区块」,
+ * 其余是聚合型区块(featured / popular / latest / themes / collections)。
+ */
+export const HOME_SECTION_KINDS = Object.freeze([
+  'featured', 'popular', 'latest', 'themes', 'collections', 'theme', 'collection',
+])
+
+/** 需要 source_id 的区块类型 */
+export const HOME_SECTION_SOURCE_KINDS = Object.freeze(['theme', 'collection'])
+
+export const HOME_SECTION_ERRORS = Object.freeze({
+  INVALID_KIND: 'invalidKind',
+  MISSING_SOURCE: 'missingSource',
+  UNEXPECTED_SOURCE: 'unexpectedSource',
+  INVALID_LIMIT: 'invalidLimit',
+  INVALID_SORT_ORDER: 'invalidSortOrder',
+})
+
+export const DEFAULT_SECTION_LIMIT = 12
+export const MAX_SECTION_LIMIT = 50
+
+/** 未配置时的默认区块顺序:与 0022 时代的首页行为一致 */
+export const DEFAULT_HOME_SECTIONS = Object.freeze([
+  { kind: 'featured', limitCount: DEFAULT_SECTION_LIMIT, isEnabled: true, sortOrder: 0 },
+  { kind: 'popular', limitCount: DEFAULT_SECTION_LIMIT, isEnabled: true, sortOrder: 1 },
+  { kind: 'latest', limitCount: DEFAULT_SECTION_LIMIT, isEnabled: true, sortOrder: 2 },
+  { kind: 'themes', limitCount: DEFAULT_SECTION_LIMIT, isEnabled: true, sortOrder: 3 },
+  { kind: 'collections', limitCount: DEFAULT_SECTION_LIMIT, isEnabled: true, sortOrder: 4 },
+])
+
+function optionalText(v, max) {
+  if (typeof v !== 'string') return null
+  const s = v.trim()
+  return s ? s.slice(0, max) : null
+}
+
+/**
+ * 规范化首页区块输入。
+ *
+ * @param {object} input
+ * @returns {{ok:true, section:object} | {ok:false, errors:Array<{code:string,detail?:string}>}}
+ */
+export function normalizeHomeSectionInput(input) {
+  if (!isPlainObject(input)) return { ok: false, errors: [{ code: CONTENT_ERRORS.NOT_OBJECT }] }
+  const errors = []
+
+  const kind = typeof input.kind === 'string' ? input.kind.trim() : ''
+  if (!HOME_SECTION_KINDS.includes(kind)) {
+    errors.push({ code: HOME_SECTION_ERRORS.INVALID_KIND, detail: kind })
+  }
+
+  const needsSource = HOME_SECTION_SOURCE_KINDS.includes(kind)
+  const sourceId = input.sourceId == null || input.sourceId === '' ? null : String(input.sourceId)
+  if (needsSource && !sourceId) errors.push({ code: HOME_SECTION_ERRORS.MISSING_SOURCE, detail: kind })
+  if (!needsSource && sourceId) errors.push({ code: HOME_SECTION_ERRORS.UNEXPECTED_SOURCE, detail: kind })
+
+  let limitCount = DEFAULT_SECTION_LIMIT
+  if (input.limitCount !== undefined && input.limitCount !== null && input.limitCount !== '') {
+    const n = Number(input.limitCount)
+    if (!Number.isFinite(n) || Math.trunc(n) < 1 || Math.trunc(n) > MAX_SECTION_LIMIT) {
+      errors.push({ code: HOME_SECTION_ERRORS.INVALID_LIMIT, detail: String(input.limitCount) })
+    } else {
+      limitCount = Math.trunc(n)
+    }
+  }
+
+  let sortOrder = 0
+  if (input.sortOrder !== undefined && input.sortOrder !== null && input.sortOrder !== '') {
+    const n = Number(input.sortOrder)
+    if (!Number.isFinite(n)) errors.push({ code: HOME_SECTION_ERRORS.INVALID_SORT_ORDER })
+    else sortOrder = Math.trunc(n)
+  }
+
+  if (errors.length > 0) return { ok: false, errors }
+
+  return {
+    ok: true,
+    section: {
+      kind,
+      sourceId,
+      title: optionalText(input.title, MAX_TITLE_LENGTH),
+      subtitle: optionalText(input.subtitle, MAX_DESCRIPTION_LENGTH),
+      limitCount,
+      isEnabled: input.isEnabled === undefined ? true : !!input.isEnabled,
+      sortOrder,
+    },
+  }
+}
+
+/** UI 对象 → 数据库行 */
+export function homeSectionToRow(section) {
+  return {
+    kind: section.kind,
+    source_id: section.sourceId || null,
+    title: section.title || null,
+    subtitle: section.subtitle || null,
+    limit_count: Number(section.limitCount) || DEFAULT_SECTION_LIMIT,
+    is_enabled: section.isEnabled !== false,
+    sort_order: Number(section.sortOrder) || 0,
+    updated_at: new Date().toISOString(),
+  }
+}
+
+/** 数据库行 → UI 对象 */
+export function rowToHomeSection(row) {
+  if (!row) return null
+  return {
+    id: row.id,
+    kind: row.kind,
+    sourceId: row.source_id || null,
+    title: row.title || '',
+    subtitle: row.subtitle || '',
+    limitCount: Number(row.limit_count) || DEFAULT_SECTION_LIMIT,
+    isEnabled: row.is_enabled !== false,
+    sortOrder: Number(row.sort_order) || 0,
+    createdAt: row.created_at,
+    updatedAt: row.updated_at,
+  }
+}
+
+/**
+ * 把配置行整理成「按 sort_order 排序、只含启用项」的区块列表。
+ * 无配置时返回 DEFAULT_HOME_SECTIONS 的副本 —— 保证未执行迁移的项目行为不变。
+ *
+ * 注意:这里不做「对象是否已发布」的判断(那是渲染层的事);
+ * 配置引用了草稿时,渲染层会得到空内容并跳过该区块。
+ *
+ * @param {Array} sections
+ * @returns {Array<{kind:string, sourceId:string|null, title:string, subtitle:string,
+ *                  limitCount:number, isEnabled:boolean, sortOrder:number}>}
+ */
+export function resolveHomeSections(sections) {
+  if (!Array.isArray(sections) || sections.length === 0) {
+    return DEFAULT_HOME_SECTIONS.map((s) => ({ ...s, sourceId: null, title: '', subtitle: '' }))
+  }
+  return [...sections]
+    .filter((s) => s && s.isEnabled !== false)
+    .sort((a, b) => (Number(a.sortOrder) || 0) - (Number(b.sortOrder) || 0))
+}

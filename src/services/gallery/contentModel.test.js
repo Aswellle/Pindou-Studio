@@ -10,6 +10,13 @@ import {
   localizedContentText,
   sortContent,
   checkContentHealth,
+  HOME_SECTION_KINDS,
+  HOME_SECTION_ERRORS,
+  DEFAULT_HOME_SECTIONS,
+  normalizeHomeSectionInput,
+  homeSectionToRow,
+  rowToHomeSection,
+  resolveHomeSections,
 } from './contentModel'
 
 describe('normalizeSlug', () => {
@@ -262,5 +269,75 @@ describe('checkContentHealth', () => {
       links: [],
     })
     expect(issues.map((i) => i.code)).not.toContain('emptyPublished')
+  })
+})
+
+describe('首页区块配置', () => {
+  it('聚合型区块不需要 sourceId', () => {
+    const res = normalizeHomeSectionInput({ kind: 'popular', limitCount: 8 })
+    expect(res.ok).toBe(true)
+    expect(res.section).toMatchObject({ kind: 'popular', sourceId: null, limitCount: 8, isEnabled: true })
+  })
+
+  it('theme/collection 缺少 sourceId 时拒绝', () => {
+    const res = normalizeHomeSectionInput({ kind: 'theme' })
+    expect(res.ok).toBe(false)
+    expect(res.errors[0].code).toBe(HOME_SECTION_ERRORS.MISSING_SOURCE)
+  })
+
+  it('聚合型区块带了 sourceId 时拒绝(避免写入无意义引用)', () => {
+    const res = normalizeHomeSectionInput({ kind: 'latest', sourceId: 'abc' })
+    expect(res.ok).toBe(false)
+    expect(res.errors[0].code).toBe(HOME_SECTION_ERRORS.UNEXPECTED_SOURCE)
+  })
+
+  it('未知 kind 被拒绝', () => {
+    const res = normalizeHomeSectionInput({ kind: 'nope' })
+    expect(res.ok).toBe(false)
+    expect(res.errors[0].code).toBe(HOME_SECTION_ERRORS.INVALID_KIND)
+  })
+
+  it('limitCount 超出 1–50 被拒绝', () => {
+    expect(normalizeHomeSectionInput({ kind: 'popular', limitCount: 0 }).errors[0].code)
+      .toBe(HOME_SECTION_ERRORS.INVALID_LIMIT)
+    expect(normalizeHomeSectionInput({ kind: 'popular', limitCount: 51 }).errors[0].code)
+      .toBe(HOME_SECTION_ERRORS.INVALID_LIMIT)
+  })
+
+  it('行映射往返保持字段', () => {
+    const row = homeSectionToRow({
+      kind: 'collection', sourceId: 'c1', title: '精选', subtitle: '说明',
+      limitCount: 6, isEnabled: false, sortOrder: 3,
+    })
+    expect(row).toMatchObject({
+      kind: 'collection', source_id: 'c1', title: '精选', subtitle: '说明',
+      limit_count: 6, is_enabled: false, sort_order: 3,
+    })
+    expect(rowToHomeSection({ id: 's1', ...row })).toMatchObject({
+      id: 's1', kind: 'collection', sourceId: 'c1', limitCount: 6, isEnabled: false, sortOrder: 3,
+    })
+  })
+
+  it('无配置时回退到默认区块(未执行迁移的项目行为不变)', () => {
+    expect(resolveHomeSections([]).map((s) => s.kind))
+      .toEqual(DEFAULT_HOME_SECTIONS.map((s) => s.kind))
+    expect(resolveHomeSections(null).length).toBe(DEFAULT_HOME_SECTIONS.length)
+  })
+
+  it('有配置时只保留启用项,并按 sortOrder 排序', () => {
+    const resolved = resolveHomeSections([
+      { kind: 'latest', sortOrder: 2, isEnabled: true },
+      { kind: 'popular', sortOrder: 1, isEnabled: true },
+      { kind: 'themes', sortOrder: 0, isEnabled: false },
+    ])
+    expect(resolved.map((s) => s.kind)).toEqual(['popular', 'latest'])
+  })
+
+  it('所有已知 kind 都有对应的规范化路径', () => {
+    for (const kind of HOME_SECTION_KINDS) {
+      const needsSource = kind === 'theme' || kind === 'collection'
+      const res = normalizeHomeSectionInput({ kind, sourceId: needsSource ? 'x' : null })
+      expect(res.ok).toBe(true)
+    }
   })
 })
