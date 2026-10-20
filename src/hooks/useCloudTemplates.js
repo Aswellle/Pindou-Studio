@@ -20,7 +20,7 @@ const isAbortError = (e) => e?.name === 'AbortError' || /abort/i.test(e?.message
 // 云端行 → UI 模板。宽高在读取时由 pattern 推导(不依赖 DB 列,零迁移):
 // templates 表只有单值 size,矩形信息只能从 pattern 恢复。
 // 若未来加了 grid_width/grid_height 列,这里会优先使用行上的显式值。
-const rowToTemplate = (row) => {
+export const rowToTemplate = (row) => {
   const derived = patternDimensions(row.pattern)
   const gridWidth = Number(row.grid_width) || derived.width
   const gridHeight = Number(row.grid_height) || derived.height
@@ -40,6 +40,8 @@ const rowToTemplate = (row) => {
     source: row.source,
     paletteId: row.palette_id || 'perler',
     downloadCount: row.download_count ?? 0,
+    // 发现页「最新」区块依赖可信创建时间;此前未映射,云端模板永远进不了该区块。
+    createdAt: row.created_at || null,
   }
 }
 
