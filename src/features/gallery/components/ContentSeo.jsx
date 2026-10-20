@@ -12,8 +12,10 @@
 import { Helmet } from 'react-helmet-async'
 
 const SITE_NAME = '拼豆Studio'
+// canonical 站点:OG 图片必须是绝对地址,社交平台不会解析相对路径
+const SITE = 'https://tangnotes.site'
 
-export default function ContentSeo({ title, description, noindex = false }) {
+export default function ContentSeo({ title, description, image, noindex = false }) {
   const fullTitle = title ? `${title} - ${SITE_NAME}` : null
   const robots = noindex
     ? 'noindex, nofollow'
@@ -26,6 +28,21 @@ export default function ContentSeo({ title, description, noindex = false }) {
       <meta name="robots" content={robots} />
       {fullTitle && <meta property="og:title" content={fullTitle} />}
       {description && <meta property="og:description" content={description} />}
+      {/* 社交卡片:有封面就用封面(必须是绝对地址),否则交给站点默认图 */}
+      {image && <meta property="og:image" content={absoluteUrl(image)} />}
+      {image && <meta name="twitter:image" content={absoluteUrl(image)} />}
+      {fullTitle && <meta name="twitter:title" content={fullTitle} />}
+      {description && <meta name="twitter:description" content={description} />}
     </Helmet>
   )
+}
+
+/**
+ * 站内相对路径补全为绝对地址;已是绝对地址则原样返回。
+ * 社交平台的抓取端不解析相对 URL,漏了这一步分享卡片会没有图。
+ */
+function absoluteUrl(url) {
+  if (typeof url !== 'string' || !url) return ''
+  if (/^https?:\/\//i.test(url)) return url
+  return `${SITE}${url.startsWith('/') ? '' : '/'}${url}`
 }

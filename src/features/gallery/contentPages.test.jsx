@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeAll, afterEach, vi } from 'vitest'
-import { render, screen, fireEvent, cleanup } from '@testing-library/react'
+import { render, screen, fireEvent, cleanup, waitFor } from '@testing-library/react'
 import ThemePage from './ThemePage'
 import CollectionPage from './CollectionPage'
 import PatternDetailPage from './PatternDetailPage'
@@ -131,6 +131,26 @@ describe('ThemePage', () => {
     renderAt(<ThemePage cloudStore={cloudStore([template('1')])} />, '/gallery/theme/draft-one', '/gallery/theme/:slug')
     expect(screen.getByText('内容不存在或尚未发布')).toBeTruthy()
     expect(screen.queryByText('主题draft-one')).toBeNull()
+  })
+
+  it('封面写入 og:image,相对路径补全为绝对地址', async () => {
+    contentState.themes = [theme('with-cover', { coverUrl: '/covers/a.png' })]
+    renderAt(<ThemePage cloudStore={cloudStore([])} />, '/gallery/theme/with-cover', '/gallery/theme/:slug')
+    // Helmet 在 effect 之后才写入 head,需等待
+    const meta = await waitFor(() => {
+      const el = document.querySelector('meta[property="og:image"]')
+      expect(el).toBeTruthy()
+      return el
+    })
+    expect(meta.getAttribute('content')).toBe('https://tangnotes.site/covers/a.png')
+  })
+
+  it('无封面时不输出 og:image(交给站点默认图)', async () => {
+    contentState.themes = [theme('no-cover', { coverUrl: '' })]
+    renderAt(<ThemePage cloudStore={cloudStore([])} />, '/gallery/theme/no-cover', '/gallery/theme/:slug')
+    // 等标题写入 head,确保 Helmet 已 flush 后再断言「没有 og:image」
+    await waitFor(() => expect(document.querySelector('title')).toBeTruthy())
+    expect(document.querySelector('meta[property="og:image"]')).toBeNull()
   })
 
 describe('CollectionPage', () => {
