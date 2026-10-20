@@ -95,3 +95,55 @@ describe('DiscoveryRails', () => {
     await i18n.changeLanguage('zh-CN')
   })
 })
+
+describe('DiscoveryRails · 交互细节', () => {
+  const sections = (over = {}) => ({
+    featuredTheme: null,
+    featuredCollection: null,
+    popular: [],
+    latest: [],
+    themes: [],
+    collections: [],
+    themePreview: () => null,
+    collectionPreview: () => null,
+    ...over,
+  })
+
+  it('「查看全部」按钮点击回调', () => {
+    const onViewAllThemes = vi.fn()
+    render(
+      <DiscoveryRails
+        sections={sections({ themes: [{ id: 't1', slug: 'a', title: 'T', status: 'published', translations: {} }] })}
+        onViewAllThemes={onViewAllThemes}
+      />
+    )
+    fireEvent.click(screen.getByText('查看全部'))
+    expect(onViewAllThemes).toHaveBeenCalledTimes(1)
+  })
+
+  it('滚轮在 rail 内部横向滚动,到边界时放行页面纵向滚动', () => {
+    render(
+      <DiscoveryRails
+        sections={sections({
+          popular: [{ id: 'p1', name: 'P', pattern: [['#FF0000']], size: 1, difficulty: 'easy' }],
+        })}
+      />
+    )
+    // 该用例渲染出的是带 onWheel 的 Rail(有 viewAll 时才是 .rail-track 内的轨道)
+    const track = document.querySelector('.rail-track')
+    // jsdom 无布局:手动给出溢出尺寸
+    Object.defineProperty(track, 'scrollWidth', { value: 1000, configurable: true })
+    Object.defineProperty(track, 'clientWidth', { value: 300, configurable: true })
+    track.scrollLeft = 100
+
+    // React 用原生 addEventListener 代理事件,必须用 fireEvent 触发才能走到 onWheel。
+    // 断言滚动位置而不是返回值:后者受 jsdom 对 preventDefault 的实现影响。
+    fireEvent.wheel(track, { deltaY: 50 })
+    expect(track.scrollLeft).toBe(150)
+
+    // 滚到最右再往下滚 → 不拦截(让页面继续纵向滚)
+    track.scrollLeft = 700
+    fireEvent.wheel(track, { deltaY: 50 })
+    expect(track.scrollLeft).toBe(700)
+  })
+})

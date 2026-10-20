@@ -25,6 +25,21 @@ function RailThumb({ template }) {
 }
 
 function Rail({ id, title, hint, viewAll, onViewAll, children }) {
+  // 桌面滚轮:横向 rail 默认只能拖滚动条或按 Shift+滚轮。
+  // 这里把纵向滚轮转成横向滚动,但不劫持「已经能横向滚」或「滚到边界」的情况 ——
+  // 否则用户会被卡在 rail 里滚不动页面。
+  const onWheel = (e) => {
+    const el = e.currentTarget
+    if (Math.abs(e.deltaY) <= Math.abs(e.deltaX)) return // 已是横向手势
+    const maxScroll = el.scrollWidth - el.clientWidth
+    if (!(maxScroll > 0)) return // 内容没溢出(jsdom 无布局时为 NaN)
+    const atStart = el.scrollLeft <= 0 && e.deltaY < 0
+    const atEnd = el.scrollLeft >= maxScroll - 1 && e.deltaY > 0
+    if (atStart || atEnd) return // 让页面继续纵向滚动
+    e.preventDefault()
+    el.scrollLeft += e.deltaY
+  }
+
   return (
     <section className="discovery-rail" aria-labelledby={`rail-${id}`}>
       <div className="rail-head">
@@ -37,7 +52,7 @@ function Rail({ id, title, hint, viewAll, onViewAll, children }) {
           </button>
         )}
       </div>
-      <div className="rail-track">{children}</div>
+      <div className="rail-track" onWheel={onWheel}>{children}</div>
     </section>
   )
 }
