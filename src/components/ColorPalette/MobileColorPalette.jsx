@@ -1,7 +1,7 @@
 import { useState, useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
 import { PALETTE_LIST } from '../../data/palettes'
-import { resolveToHex } from '../../services/colorUtils'
+import { calculateColorStats } from '../../services/export/PatternDocument'
 import './MobileColorPalette.css'
 
 export default function MobileColorPalette({
@@ -45,21 +45,17 @@ export default function MobileColorPalette({
     return entries.sort((a, b) => b.colors.length - a.colors.length)
   }, [palette])
 
-  // 珠子/颜色数统计 — 与桌面端 ColorStatsBar 同一算法，移动端用紧凑徽章展示
+  // 珠子/颜色数统计 — 与桌面端 ColorStatsBar、导出图例共用 calculateColorStats,
+  // 移动端用紧凑徽章展示;三处口径必须一致(按品牌色号归并,不是按原始 hex)
   const { totalBeads, colorCount } = useMemo(() => {
     if (!canvasData) return { totalBeads: 0, colorCount: 0 }
-    const seen = new Set()
-    let total = 0
-    for (const row of canvasData) {
-      for (const cell of row) {
-        const hex = resolveToHex(cell, palette)
-        if (hex) {
-          seen.add(hex)
-          total++
-        }
-      }
+    const rows = canvasData.length
+    const cols = rows > 0 ? canvasData[0].length : 0
+    const stats = calculateColorStats(canvasData, cols, rows, palette)
+    return {
+      totalBeads: stats.reduce((sum, s) => sum + s.count, 0),
+      colorCount: stats.length,
     }
-    return { totalBeads: total, colorCount: seen.size }
   }, [canvasData, palette])
 
   const handleColorSelect = (color) => {

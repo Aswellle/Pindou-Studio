@@ -10,7 +10,7 @@
 import { useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
 import { getPalette } from '../data/palettes'
-import { resolveToHex } from '../services/colorUtils'
+import { calculateColorStats } from '../services/export/PatternDocument'
 
 export default function ColorStatsBar({ canvasData, paletteId }) {
   const { t, i18n } = useTranslation()
@@ -20,27 +20,19 @@ export default function ColorStatsBar({ canvasData, paletteId }) {
     const palette = getPalette(paletteId || 'perler')
     // 颜色名走 i18n 键(palette.colorNames.<品牌>.<色号>),缺键回退到数据自带的 nameZh/name
     const colorName = (c) => c && t(`palette.colorNames.${palette.id}.${c.id}`, c.nameZh || c.name)
-    const counts = {}
-    let total = 0
     const rows = canvasData.length
     const cols = rows > 0 ? canvasData[0].length : 0
-    for (let y = 0; y < rows; y++) {
-      for (let x = 0; x < cols; x++) {
-        const hex = resolveToHex(canvasData[y]?.[x], palette)
-        if (hex) {
-          counts[hex] = (counts[hex] || 0) + 1
-          total++
-        }
-      }
-    }
-    const colorList = Object.entries(counts)
-      .sort((a, b) => b[1] - a[1])
-      .map(([hex, count]) => {
-        const pc = palette.colors.find(c => c.hex?.toLowerCase() === hex.toLowerCase())
-        return { hex, count, label: pc ? `${pc.id} ${colorName(pc)}` : hex }
-      })
+    // 与导出图例共用 calculateColorStats:按品牌色号归并(精确 hex → CIEDE2000 就近),
+    // 侧栏的颜色数/珠数必须和 PNG/SVG 图例、文本导出完全一致
+    const stats = calculateColorStats(canvasData, cols, rows, palette)
+    let total = 0
+    const colorList = stats.map(({ id, name, hex, count }) => {
+      total += count
+      const pc = palette.colors.find(c => c.id === id)
+      return { hex, count, label: pc ? `${pc.id} ${colorName(pc)}` : name }
+    })
     return { total, colorCount: colorList.length, colorList }
-  }, [canvasData, paletteId, i18n.language])
+  }, [canvasData, paletteId, i18n.language, t])
 
   if (!canvasData) {
     return (

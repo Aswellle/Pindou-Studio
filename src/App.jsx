@@ -96,6 +96,15 @@ export default function App() {
   // 撤销/重做前先丢弃活动笔画,避免笔画进行中 undo 后 mouseUp 时 commitStroke 重推快照回滚
   const handleUndo = useCallback(() => { canvasRef.current?.cancelStroke?.(); undo() }, [undo])
   const handleRedo = useCallback(() => { canvasRef.current?.cancelStroke?.(); redo() }, [redo])
+
+  // 规格 04 §3:切换网格 / 载入模板 / 载入作品 / 应用量化结果前,必须丢弃
+  // 进行中的笔画。否则旧矩阵的累加器会在下一次 pointerup 时被提交,
+  // 把刚载入的内容覆盖掉(Canvas 内也监听 cols/rows 变化,这里是同一份保护,
+  // 覆盖「尺寸不变但内容被整体替换」的情况)。
+  const replaceCanvas = useCallback((nextData) => {
+    canvasRef.current?.cancelStroke?.()
+    resetCanvas(nextData)
+  }, [resetCanvas])
   const { works: savedWorks, worksLoading, syncCount, cloudMirrorCount, saveState, markDirty, saveWork, deleteWork, ackSync } = useSavedWorks(user)
 
   // 画布内容变化 → 标记「未保存」。
@@ -196,6 +205,8 @@ export default function App() {
     const cols = gridWidth || gridSize
     // 清空后画布不再来自任何导入/复制,来源归零(否则会带着旧来源保存)
     setCanvasSource(null)
+    // 清空也是一次画布替换:先丢弃活动笔画,避免它随后把旧内容提交回来
+    canvasRef.current?.cancelStroke?.()
     setCanvas(Array(rows).fill(null).map(() => Array(cols).fill(null)))
   }
 
@@ -233,7 +244,7 @@ export default function App() {
     setGridHeight(null)
     // 换网格 = 一张新画布,旧的导入/复制来源不再适用
     setCanvasSource(null)
-    resetCanvas(Array(newSize).fill(null).map(() => Array(newSize).fill(null)))
+    replaceCanvas(Array(newSize).fill(null).map(() => Array(newSize).fill(null)))
   }
 
   const handleGridDimensionsChange = (width, height) => {
@@ -247,7 +258,7 @@ export default function App() {
       setGridHeight(height)
     }
     setCanvasSource(null)
-    resetCanvas(Array(height).fill(null).map(() => Array(width).fill(null)))
+    replaceCanvas(Array(height).fill(null).map(() => Array(width).fill(null)))
   }
 
   const handleLoadTemplate = (pattern, size, options = {}) => {
@@ -267,7 +278,7 @@ export default function App() {
     if (options.palette) setCurrentPalette(options.palette)
     // 公共图纸载入画布 = 图库复制语义(与 /gallery/pattern/:id 的复制一致)
     setCanvasSource('gallery-copy')
-    resetCanvas(pattern)
+    replaceCanvas(pattern)
     navigate('/')
   }
 
@@ -281,7 +292,7 @@ export default function App() {
     setCurrentPalette(work.paletteId || 'perler')
     // 来源随作品一起载入:再次保存时不会把「图库复制」退化成「手绘」
     setCanvasSource(work.sourceKind || null)
-    resetCanvas(work.canvasData)
+    replaceCanvas(work.canvasData)
     navigate('/')
   }
 
@@ -295,7 +306,7 @@ export default function App() {
     setGridHeight(isSquare ? null : grid.height)
     if (project.palette?.paletteId) setCurrentPalette(project.palette.paletteId)
     setCanvasSource(project.source?.kind || 'native-file')
-    resetCanvas(grid.cells.map(row => [...row]))
+    replaceCanvas(grid.cells.map(row => [...row]))
     navigate('/')
   }
 
@@ -335,7 +346,7 @@ export default function App() {
     const resolvedData = quantizedCanvasData.map(row =>
       row.map(cell => resolveToHexAllPalettes(cell, palette))
     )
-    resetCanvas(resolvedData)
+    replaceCanvas(resolvedData)
     // 画布内容来自照片量化(复用既有 Worker 管线),保存时如实记录来源
     setCanvasSource('photo-quantized')
     if (options.palette) setCurrentPalette(options.palette)
@@ -489,7 +500,9 @@ export default function App() {
       </aside>
 
       <main className="canvas-area">
-        <Canvas {...canvasProps} />
+        {/* ref 必须挂在桌面画布上:撤销/重做与「替换画布」都要先 cancelStroke,
+            此前只有移动端实例拿到 ref,桌面端的活动笔画无法被丢弃 */}
+        <Canvas {...canvasProps} ref={canvasRef} />
       </main>
 
       <aside className="sidebar right-sidebar">

@@ -2,7 +2,7 @@ import { useState, useMemo, useRef, useEffect } from 'react'
 import { createPortal } from 'react-dom'
 import { useTranslation } from 'react-i18next'
 import { getPalette } from '../data/palettes'
-import { createPatternDocument } from '../services/export/PatternDocument'
+import { createPatternDocument, calculateColorStats, createBrandColorResolver } from '../services/export/PatternDocument'
 import { renderPatternDocumentToPNG } from '../services/export/RasterRenderer'
 import { renderPatternDocumentToSVG, svgStringToBlob } from '../services/export/VectorRenderer'
 import { resolveToHex } from '../services/colorUtils'
@@ -61,18 +61,6 @@ export default function ExportPanel({ canvasData, gridSize, gridWidth, gridHeigh
   // Actual dimensions (support rectangular grids)
   const actualWidth = gridWidth || gridSize
   const actualHeight = gridHeight || gridSize
-
-  const { colorCounts, totalBeads } = useMemo(() => {
-    if (!canvasData) return { colorCounts: {}, totalBeads: 0 }
-    const counts = {}
-    for (let y = 0; y < actualHeight; y++) {
-      for (let x = 0; x < actualWidth; x++) {
-        const color = canvasData[y]?.[x]
-        if (color) counts[color] = (counts[color] || 0) + 1
-      }
-    }
-    return { colorCounts: counts, totalBeads: Object.values(counts).reduce((a, b) => a + b, 0) }
-  }, [canvasData, actualWidth, actualHeight])
 
   const handleExportImage = async () => {
     if (!canvasData || isExporting) return
@@ -188,21 +176,22 @@ export default function ExportPanel({ canvasData, gridSize, gridWidth, gridHeigh
   const handleExportText = () => {
     // 生成带颜色编号的文本图纸
     const today = new Date().toISOString().split('T')[0]
-    // 色号按当前调色板 hex→品牌 ID(P01/H01/C01)映射,支持全部品牌与自定义色
-    // (替代旧的 UI 硬编码 44 色表:量化/移动端/Hama/Artkal 颜色命中率基本为 0)
-    const codeByHex = new Map(palette.colors.map(c => [c.hex.toLowerCase(), c.id]))
+    // 色号解析与 PNG/SVG 图例共用同一解析器:精确 hex 命中 → CIEDE2000 就近,
+    // 否则不在色卡里的 hex 会输出 '--'/'??',而图例里却有对应品牌色号
+    const codeResolver = createBrandColorResolver(palette.colors)
 
     let text = `拼豆图纸\n`
     text += `${actualWidth} x ${actualHeight} 格子\n`
     text += `日期：${today}\n`
     text += `${'═'.repeat(Math.max(actualWidth, actualHeight) * 3 + 10)}\n\n`
 
-    // 颜色对照表（按使用频率排序）
-    const sortedColors = Object.entries(colorCounts).sort((a, b) => b[1] - a[1])
+    // 颜色对照表(按使用频率排序)。与图例同源:按品牌色号归并,
+    // 两个不同 hex 落到同一色号时合并成一行,颜色数与导出图例一致;
+    // 同时列出该色号对应的品牌色值,方便对着实物豆子核对
+    const sortedColors = calculateColorStats(canvasData, actualWidth, actualHeight, palette)
     text += `【颜色对照表】\n`
-    sortedColors.forEach(([color, count]) => {
-      const code = codeByHex.get(color.toLowerCase()) || '--'
-      text += `  [${code}] ${color} - ${count}颗\n`
+    sortedColors.forEach(({ id, hex, count }) => {
+      text += `  [${id}] ${hex} - ${count}颗\n`
     })
     text += '\n'
 
@@ -222,7 +211,7 @@ export default function ExportPanel({ canvasData, gridSize, gridWidth, gridHeigh
       for (let x = 0; x < actualWidth; x++) {
         const color = canvasData[y]?.[x]
         if (color) {
-          text += codeByHex.get(color.toLowerCase()) || '??'
+          text += codeResolver.codeFor(color) || '??'
         } else {
           text += '  '
         }

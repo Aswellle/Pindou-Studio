@@ -349,14 +349,16 @@ export async function generateBeadPatternSheet({
   ctx.fillText(i18n.t('export.date', { date: today }), PADDING, HEADER_HEIGHT / 2)
   ctx.fillText(i18n.t('export.palette', { palette: palette?.nameZh || paletteId }), PADDING, HEADER_HEIGHT / 2 + 18)
 
-  // 右侧信息
-  ctx.textAlign = 'right'
-  ctx.fillText(i18n.t('export.totalBeads', { n: canvasData.flat().filter(c => c).length }), sheetWidth - PADDING, HEADER_HEIGHT / 2)
-  ctx.fillText(i18n.t('export.usedColors', { n: [...new Set(canvasData.flat().filter(c => c))].length }), sheetWidth - PADDING, HEADER_HEIGHT / 2 + 18)
-
-  // ========== 2. 计算颜色统计 ==========
+  // 右侧信息:总珠数与用色数必须与颜色面板/图例同源。
+  // 用色数此前按原始 hex 去重,而面板按品牌色号归并 —— 两个 hex 落到同一色号时
+  // 表头会说「2 色」、面板只有 1 行。先算统计,再从统计里取。
   const colorStats = calculateColorStats(canvasData, rows, palette)
   const totalBeads = canvasData.flat().filter(c => c).length
+  ctx.textAlign = 'right'
+  ctx.fillText(i18n.t('export.totalBeads', { n: totalBeads }), sheetWidth - PADDING, HEADER_HEIGHT / 2)
+  ctx.fillText(i18n.t('export.usedColors', { n: colorStats.length }), sheetWidth - PADDING, HEADER_HEIGHT / 2 + 18)
+
+  // ========== 2. 颜色统计已在上方计算 ==========
   const groups = groupColorStats(colorStats, totalBeads)
 
   // ========== 3. 绘制颜色面板 ==========

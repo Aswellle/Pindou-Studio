@@ -276,3 +276,194 @@ describe('Canvas 选区与取色(M5)', () => {
     expect(mock.calls.setLineDash.length).toBeGreaterThan(0)
   })
 })
+
+/**
+ * 规格 04 §8:缩放 0.3× / 1× / 5× 下,点击与拖选必须落在同一网格单元。
+ *
+ * 浏览器的 getBoundingClientRect 已经把 CSS transform 的 scale 折算进
+ * 显示尺寸,所以「屏幕坐标 → 网格坐标」只需用 rect 宽高比换算。这里用
+ * 按 scale 缩放的 rect 模拟三种缩放级别,断言同一相对落点映射到同一格。
+ */
+describe('Canvas 缩放下的坐标正确性(规格 04 §8)', () => {
+  let mock
+  const CELL = 16
+  const COLS = 4
+  const ROWS = 3
+  const BASE_W = COLS * CELL // 64
+  const BASE_H = ROWS * CELL // 48
+
+  beforeEach(() => { mock = installCanvasMocks() })
+  afterEach(() => mock.restore())
+
+  /** 把 base canvas 的显示矩形设为「按 scale 缩放后的尺寸」 */
+  function installScaledRect(scale) {
+    HTMLCanvasElement.prototype.getBoundingClientRect = function () {
+      return {
+        left: 0, top: 0,
+        right: BASE_W * scale, bottom: BASE_H * scale,
+        width: BASE_W * scale, height: BASE_H * scale,
+        x: 0, y: 0, toJSON: () => ({}),
+      }
+    }
+  }
+
+  function renderAt(scale, overrides = {}) {
+    const onCanvasChange = vi.fn()
+    const onSelectionChange = vi.fn()
+    const onPickColor = vi.fn()
+    const view = render(
+      <Canvas
+        gridSize={COLS}
+        gridWidth={COLS}
+        gridHeight={ROWS}
+        selectedColor="#ff0000"
+        tool="pencil"
+        committedData={blankGrid(ROWS).map(() => Array(COLS).fill(null))}
+        onCanvasChange={onCanvasChange}
+        onSelectionChange={onSelectionChange}
+        onPickColor={onPickColor}
+        {...overrides}
+      />
+    )
+    return { ...view, onCanvasChange, onSelectionChange, onPickColor, scale }
+  }
+
+  /** 某格中心在屏幕上的坐标(按当前 scale 折算) */
+  const cellCenter = (x, y, scale) => ({
+    clientX: (x + 0.5) * CELL * scale,
+    clientY: (y + 0.5) * CELL * scale,
+  })
+
+  for (const scale of [0.3, 1, 5]) {
+    test(`${scale}× 下点击命中同一格`, () => {
+      installScaledRect(scale)
+      const { container, onCanvasChange } = renderAt(scale)
+      const c = container.querySelector('.canvas-container')
+
+      const { clientX, clientY } = cellCenter(2, 1, scale)
+      fireEvent.mouseDown(c, { clientX, clientY })
+      fireEvent.mouseUp(c, { clientX, clientY })
+
+      expect(onCanvasChange).toHaveBeenCalledTimes(1)
+      const committed = onCanvasChange.mock.calls[0][0]
+      expect(committed[1][2]).toBe('#ff0000')
+      // 只有目标格被改动
+      const painted = committed.flat().filter(Boolean)
+      expect(painted).toEqual(['#ff0000'])
+    })
+
+    test(`${scale}× 下拖选生成同一矩形`, () => {
+      installScaledRect(scale)
+      const { container, onSelectionChange } = renderAt(scale, { tool: 'select' })
+      const c = container.querySelector('.canvas-container')
+
+      // (3,2) → (1,0):反向拖动,结果应是 {x:1,y:0,w:3,h:3}
+      const from = cellCenter(3, 2, scale)
+      const to = cellCenter(1, 0, scale)
+      fireEvent.mouseDown(c, { clientX: from.clientX, clientY: from.clientY })
+      fireEvent.mouseMove(c, { clientX: to.clientX, clientY: to.clientY })
+      fireEvent.mouseUp(c, { clientX: to.clientX, clientY: to.clientY })
+
+      expect(onSelectionChange).toHaveBeenLastCalledWith({ x: 1, y: 0, w: 3, h: 3 })
+    })
+
+    test(`${scale}× 下取色器命中同一格`, () => {
+      installScaledRect(scale)
+      const data = Array.from({ length: ROWS }, () => Array(COLS).fill(null))
+      data[2][3] = '#123456'
+      const { container, onPickColor } = renderAt(scale, { tool: 'eyedropper', committedData: data })
+      const c = container.querySelector('.canvas-container')
+
+      const { clientX, clientY } = cellCenter(3, 2, scale)
+      fireEvent.mouseDown(c, { clientX, clientY })
+
+      expect(onPickColor).toHaveBeenCalledWith('#123456')
+    })
+  }
+
+  test('显示矩形尺寸为 0 时不会产生 NaN 坐标', () => {
+    HTMLCanvasElement.prototype.getBoundingClientRect = function () {
+      return { left: 0, top: 0, right: 0, bottom: 0, width: 0, height: 0, x: 0, y: 0, toJSON: () => ({}) }
+    }
+    const { container, onCanvasChange, onPickColor } = renderAt(1, { tool: 'eyedropper' })
+    const c = container.querySelector('.canvas-container')
+
+    fireEvent.mouseDown(c, { clientX: 0, clientY: 0 })
+    fireEvent.mouseUp(c, { clientX: 0, clientY: 0 })
+
+    expect(onPickColor).not.toHaveBeenCalled()
+    expect(onCanvasChange).not.toHaveBeenCalled()
+  })
+})
+
+/**
+ * 规格 04 §3:网格尺寸切换时必须丢弃进行中的笔画。
+ *
+ * 回归背景:笔画累加器在 mouseDown 时按旧尺寸快照,若切换网格后仍保留,
+ * 下一次 mouseUp 的 commitStroke 会把旧矩阵提交回新画布,覆盖用户刚载入的内容。
+ */
+describe('Canvas 切换网格时丢弃活动笔画(规格 04 §3)', () => {
+  let mock
+  beforeEach(() => { mock = installCanvasMocks() })
+  afterEach(() => mock.restore())
+
+  test('拖到一半切换网格尺寸,松手不再提交旧矩阵', () => {
+    const onCanvasChange = vi.fn()
+    const props = {
+      gridSize: 3,
+      gridWidth: null,
+      gridHeight: null,
+      selectedColor: '#ff0000',
+      tool: 'pencil',
+      committedData: blankGrid(3),
+      onCanvasChange,
+    }
+    const view = render(<Canvas {...props} />)
+    const c = view.container.querySelector('.canvas-container')
+
+    // 按下并拖动 → 笔画进行中(累加器已按 3×3 快照)
+    fireEvent.mouseDown(c, { clientX: 24, clientY: 24 })
+    fireEvent.mouseMove(c, { clientX: 40, clientY: 40 })
+    expect(onCanvasChange).not.toHaveBeenCalled()
+
+    // 切换到 4×4(真实场景:用户换模板 / 载入作品 / 改画布尺寸)
+    const bigger = blankGrid(4)
+    view.rerender(
+      <Canvas
+        {...props}
+        gridSize={4}
+        committedData={bigger}
+      />
+    )
+
+    // 松手:旧笔画必须已被丢弃,不得把 3×3 矩阵提交回 4×4 画布
+    fireEvent.mouseUp(c, { clientX: 40, clientY: 40 })
+    expect(onCanvasChange).not.toHaveBeenCalled()
+  })
+
+  test('拖选进行中切换网格,松手不再产出旧坐标选区', () => {
+    const onSelectionChange = vi.fn()
+    const props = {
+      gridSize: 3,
+      gridWidth: null,
+      gridHeight: null,
+      selectedColor: '#ff0000',
+      tool: 'select',
+      committedData: blankGrid(3),
+      onCanvasChange: vi.fn(),
+      onSelectionChange,
+    }
+    const view = render(<Canvas {...props} />)
+    const c = view.container.querySelector('.canvas-container')
+
+    fireEvent.mouseDown(c, { clientX: 8, clientY: 8 })
+    fireEvent.mouseMove(c, { clientX: 40, clientY: 40 })
+
+    const callsBefore = onSelectionChange.mock.calls.length
+    view.rerender(<Canvas {...props} gridSize={5} committedData={blankGrid(5)} />)
+    fireEvent.mouseUp(c, { clientX: 40, clientY: 40 })
+
+    // 切换后不得再产生任何选区回调(旧锚点已失效)
+    expect(onSelectionChange.mock.calls.length).toBe(callsBefore)
+  })
+})

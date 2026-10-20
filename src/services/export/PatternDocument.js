@@ -7,7 +7,116 @@
  * 版本: 2
  */
 
-import { findClosestColorCIEDE2000 } from '../../utils/colorDiff'
+import { rgbToLab, ciede2000 } from '../../utils/colorDiff'
+
+const HEX_RE = /^#[0-9a-fA-F]{6}$/
+
+/**
+ * 单元格 → 品牌色号的解析器(统计与导出共用的唯一口径)。
+ *
+ * 为什么需要它:
+ *   - 侧栏统计、移动端徽章、文本导出、PNG/SVG 图例必须给出同一个颜色数。
+ *     此前侧栏按原始 hex 计数、导出图例按品牌色号归并,内置模板这类
+ *     「不在色卡里的 hex」会让两边对不上。
+ *   - CIEDE2000 就近匹配是 O(色卡颜色数) 的,必须按单元格值缓存:
+ *     200×200 图纸逐格重算会卡住主线程。
+ *
+ * 缓存策略:
+ *   - resolver 按 `palette.colors` 数组身份缓存(WeakMap),色卡对象在
+ *     getPalette/PALETTE_LIST 中是稳定引用;
+ *   - 调色板 Lab 只算一次;
+ *   - 每个不同的单元格字符串只解析一次。
+ *
+ * @param {Array} brandColors - 品牌色卡颜色数组 [{ id, name, nameZh, hex, rgb }]
+ * @returns {{ resolve: (cell: string) => Object|null, codeFor: (cell: string) => string }}
+ */
+const resolverCache = new WeakMap()
+
+/** 最长行的列数;空/非数组返回 0(用于把声明尺寸钳制到真实数据形状) */
+function maxRowLength(canvasData) {
+  if (!Array.isArray(canvasData)) return 0
+  let max = 0
+  for (const row of canvasData) {
+    if (Array.isArray(row) && row.length > max) max = row.length
+  }
+  return max
+}
+
+function labOfColor(color) {
+  if (color?.rgb && Number.isFinite(color.rgb.r)) {
+    return rgbToLab(color.rgb.r, color.rgb.g, color.rgb.b)
+  }
+  if (typeof color?.hex === 'string' && HEX_RE.test(color.hex)) {
+    return rgbToLab(
+      parseInt(color.hex.slice(1, 3), 16),
+      parseInt(color.hex.slice(3, 5), 16),
+      parseInt(color.hex.slice(5, 7), 16)
+    )
+  }
+  return null
+}
+
+const EMPTY_RESOLVER = Object.freeze({
+  resolve: () => null,
+  codeFor: (cell) => (typeof cell === 'string' ? cell : ''),
+})
+
+export function createBrandColorResolver(brandColors) {
+  if (!Array.isArray(brandColors) || brandColors.length === 0) return EMPTY_RESOLVER
+  const cached = resolverCache.get(brandColors)
+  if (cached) return cached
+
+  const byId = new Map()
+  const byHex = new Map()
+  for (const color of brandColors) {
+    if (color?.id != null) byId.set(color.id, color)
+    if (typeof color?.hex === 'string') byHex.set(color.hex.toLowerCase(), color)
+  }
+  const labs = brandColors.map(labOfColor)
+  const cellCache = new Map()
+
+  const nearest = (r, g, b) => {
+    const target = rgbToLab(r, g, b)
+    let best = null
+    let bestDist = Infinity
+    for (let i = 0; i < brandColors.length; i++) {
+      const lab = labs[i]
+      if (!lab) continue
+      const dist = ciede2000(target, lab)
+      if (dist < bestDist) { bestDist = dist; best = brandColors[i] }
+    }
+    return best
+  }
+
+  const resolve = (cell) => {
+    if (typeof cell !== 'string' || cell.length === 0) return null
+    if (cellCache.has(cell)) return cellCache.get(cell)
+    let matched = null
+    if (cell.charCodeAt(0) === 35 /* '#' */) {
+      matched = byHex.get(cell.toLowerCase()) || null
+      if (!matched && HEX_RE.test(cell)) {
+        matched = nearest(
+          parseInt(cell.slice(1, 3), 16),
+          parseInt(cell.slice(3, 5), 16),
+          parseInt(cell.slice(5, 7), 16)
+        )
+      }
+    } else {
+      // 旧格式:单元格直接存品牌码
+      matched = byId.get(cell) || null
+    }
+    cellCache.set(cell, matched)
+    return matched
+  }
+
+  const resolver = {
+    resolve,
+    /** 单元格对应的品牌色号;无法解析时原样返回单元格文本 */
+    codeFor: (cell) => resolve(cell)?.id ?? (typeof cell === 'string' ? cell : ''),
+  }
+  resolverCache.set(brandColors, resolver)
+  return resolver
+}
 
 /**
  * @typedef {Object} PatternDocument
@@ -62,11 +171,15 @@ export function createPatternDocument({
 }) {
   const width = gridWidth || gridSize
   const height = gridHeight || gridSize
+  // 尺寸以数据实际形状为准:调用方传入的 gridWidth/gridHeight 可能大于矩阵
+  // (历史作品声明尺寸与数据不一致),按声明尺寸扫描会读到 undefined 行
+  const actualWidth = Math.min(width, maxRowLength(canvasData))
+  const actualHeight = Math.min(height, Array.isArray(canvasData) ? canvasData.length : 0)
 
   // 提取实际使用的颜色
-  const usedColors = extractUsedColors(canvasData, width, height, palette)
+  const usedColors = extractUsedColors(canvasData, actualWidth, actualHeight, palette)
   // 颜色用量统计(按品牌码归并)与四级分组
-  const colorStats = calculateColorStats(canvasData, width, height, palette)
+  const colorStats = calculateColorStats(canvasData, actualWidth, actualHeight, palette)
   const totalBeads = colorStats.reduce((sum, s) => sum + s.count, 0)
 
   return {
@@ -116,38 +229,32 @@ export function createPatternDocument({
  * 有品牌色卡时 hex 解析为品牌码(精确命中 → CIEDE2000 就近),
  * 无色卡时以原始 hex 为键。
  *
+ * **这是全应用唯一的颜色统计口径**:侧栏 ColorStatsBar、移动端徽章、
+ * 文本导出与 PNG/SVG 图例都走这里,避免各处按不同键计数导致颜色数不一致。
+ *
  * @returns {Array} [{ id, name, hex, count }]
  */
 export function calculateColorStats(canvasData, width, height, palette) {
-  const brandColors = palette?.colors || null
+  const resolver = createBrandColorResolver(palette?.colors)
   const stats = new Map()
   for (let y = 0; y < height; y++) {
     for (let x = 0; x < width; x++) {
       const cell = canvasData[y]?.[x]
-      if (!cell) continue
-      let id = cell
-      let name = cell
-      let hex = cell.startsWith('#') ? cell : '#888888'
-      if (brandColors) {
-        if (cell.startsWith('#')) {
-          const exact = brandColors.find(c => c.hex?.toLowerCase() === cell.toLowerCase())
-          const matched = exact || findClosestColorCIEDE2000(
-            { r: parseInt(cell.slice(1, 3), 16), g: parseInt(cell.slice(3, 5), 16), b: parseInt(cell.slice(5, 7), 16) },
-            brandColors
-          )
-          if (matched) {
-            id = matched.id
-            name = matched.nameZh || matched.name || matched.id
-            hex = matched.hex
-          }
-        } else {
-          // 旧格式:单元格存品牌码,直接按 id 查色卡
-          const matched = brandColors.find(c => c.id === cell)
-          if (matched) {
-            name = matched.nameZh || matched.name || matched.id
-            hex = matched.hex
-          }
-        }
+      // 非字符串(历史脏数据)直接跳过:旧实现会对它调用 startsWith 抛异常
+      if (typeof cell !== 'string' || cell.length === 0) continue
+      const matched = resolver.resolve(cell)
+      // 既不是合法 hex、也解析不到品牌色号的字符串是脏数据:计入会凭空造出
+      // 一个 '#888888' 的图例条目,采购数量就错了。直接忽略。
+      if (!matched && !HEX_RE.test(cell)) continue
+      let id, name, hex
+      if (matched) {
+        id = matched.id
+        name = matched.nameZh || matched.name || matched.id
+        hex = matched.hex || (cell.startsWith('#') ? cell : '#888888')
+      } else {
+        id = cell
+        name = cell
+        hex = cell.startsWith('#') ? cell : '#888888'
       }
       if (!stats.has(id)) {
         stats.set(id, { id, name, hex, count: 0 })
@@ -198,29 +305,21 @@ export function groupColorStats(colorStats, totalBeads) {
  * @returns {Array} 颜色列表 [{ id, name, hex, rgb: { r, g, b } }]
  */
 function extractUsedColors(canvasData, width, height, palette) {
-  const brandColors = palette?.colors || null
+  const resolver = createBrandColorResolver(palette?.colors)
+  const hasBrand = Array.isArray(palette?.colors) && palette.colors.length > 0
   const seen = new Map()
   for (let y = 0; y < height; y++) {
     for (let x = 0; x < width; x++) {
       const cell = canvasData[y]?.[x]
-      if (!cell) continue
+      if (!cell || typeof cell !== 'string') continue
       if (!seen.has(cell)) {
         const r = parseInt(cell.slice(1, 3), 16)
         const g = parseInt(cell.slice(3, 5), 16)
         const b = parseInt(cell.slice(5, 7), 16)
-        let id = cell
-        let name = cell
-        if (brandColors && cell.startsWith('#')) {
-          const exact = brandColors.find(c => c.hex?.toLowerCase() === cell.toLowerCase())
-          const matched = exact || findClosestColorCIEDE2000({ r, g, b }, brandColors)
-          if (matched) {
-            id = matched.id
-            name = matched.nameZh || matched.name || matched.id
-          }
-        }
+        const matched = hasBrand ? resolver.resolve(cell) : null
         seen.set(cell, {
-          id,
-          name,
+          id: matched?.id ?? cell,
+          name: matched ? (matched.nameZh || matched.name || matched.id) : cell,
           hex: cell,
           rgb: { r, g, b },
         })

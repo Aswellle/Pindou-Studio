@@ -179,7 +179,11 @@ const Canvas = forwardRef(function Canvas({
   const getGridPos = useCallback((clientX, clientY) => {
     const canvas = painter.baseRef.current
     if (!canvas) return null
+    // getBoundingClientRect 已经包含 CSS transform(scale)后的实际显示尺寸,
+    // 因此这里算出的比例把缩放折算掉了 —— 0.3× 与 5× 下同一屏坐标都落到同一格。
+    // (规格 04 §8:缩放后点击/拖选不得偏移;此函数是唯一坐标入口。)
     const rect = canvas.getBoundingClientRect()
+    if (!rect.width || !rect.height) return null
     const scaleX = canvas.width / rect.width
     const scaleY = canvas.height / rect.height
     const x = Math.floor((clientX - rect.left) * scaleX / CELL_SIZE)
@@ -279,6 +283,21 @@ const Canvas = forwardRef(function Canvas({
     strokeAccumRef.current = null
     painter.clearOverlay()
   }, [painter])
+
+  // 网格尺寸变化 / 换项目:丢弃进行中的笔画与拖选(规格 04 §3)。
+  // 若不做,旧尺寸的累加器会在下一次 pointerup 时被 commitStroke 提交,
+  // 把刚载入的新画布覆盖回旧矩阵;拖选锚点也还停在旧坐标系里。
+  // 只依赖 cols/rows —— committedData 每次提交/撤销都会换引用,不能作为切换信号。
+  useEffect(() => {
+    cancelStroke()
+    isDrawingRef.current = false
+    isPanningRef.current = false
+    panHasStartedRef.current = false
+    selDraggingRef.current = false
+    selAnchorRef.current = null
+    selFocusRef.current = null
+    setSelFocus(null)
+  }, [cols, rows, cancelStroke])
 
   // ─────────────────────────────────────────────────────────────────
   // 选区 / 取色 命令

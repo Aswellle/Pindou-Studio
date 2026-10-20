@@ -16,6 +16,7 @@
  */
 
 import { createScaledCanvas, createDPICanvas } from '../BeadPatternExporter'
+import { createBrandColorResolver } from './PatternDocument'
 import i18n from '../../i18n'
 import { BRAND_MARK_CELLS, BRAND_MARK_WHITE_STROKE, BRAND_MARK_CELL, BRAND_WORDMARK } from './brandMark'
 
@@ -284,7 +285,10 @@ export async function renderPatternDocumentToPNG(doc, options = {}) {
   // 'professional' : 方形填色 + 品牌色号标注(工艺施工用)
   const beadRadius = cellSize / 2 - 2
   const codeFontSize = Math.max(9, Math.floor(cellSize * 0.38))
-  const findCode = (hex) => palette.colors.find(c => c.hex === hex)?.id || ''
+  // 色号解析与图例统计共用同一解析器(大小写不敏感 + CIEDE2000 就近),
+  // 否则专业模式下非标准 hex 的格子没有色号,而图例里却有 —— 两处口径不一致
+  const codeResolver = createBrandColorResolver(palette.colors)
+  const findCode = (hex) => codeResolver.resolve(hex)?.id || ''
 
   const drawRealisticBead = (cx, cy, radius, hexColor) => {
     const r = parseInt(hexColor.slice(1, 3), 16)
