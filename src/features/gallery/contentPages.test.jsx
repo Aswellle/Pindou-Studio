@@ -22,6 +22,8 @@ const contentState = {
   collections: [],
   themeTemplateIds: new Map(),
   collectionTemplateIds: new Map(),
+  childThemeIds: new Map(),
+  themeCollectionIds: new Map(),
   enabled: true,
 }
 
@@ -69,6 +71,8 @@ afterEach(() => {
   contentState.collections = []
   contentState.themeTemplateIds = new Map()
   contentState.collectionTemplateIds = new Map()
+  contentState.childThemeIds = new Map()
+  contentState.themeCollectionIds = new Map()
 })
 
 const template = (id, over = {}) => ({
@@ -214,5 +218,56 @@ describe('PatternDetailPage', () => {
       '/gallery/pattern/:id',
     )
     expect(screen.getByText(/内容不存在或尚未发布/)).toBeTruthy()
+  })
+})
+
+describe('ThemePage · 子主题与相关合集', () => {
+  it('渲染子主题入口,点击跳转到对应主题', () => {
+    contentState.themes = [
+      theme('parent', { title: '父主题' }),
+      theme('child', { slug: 'child', title: '子主题A' }),
+    ]
+    contentState.childThemeIds = new Map([['parent', ['child']]])
+    renderAt(<ThemePage cloudStore={cloudStore([])} />, '/gallery/theme/parent', '/gallery/theme/:slug')
+
+    const section = document.querySelector('.content-related')
+    expect(section).toBeTruthy()
+    expect(section.textContent).toContain('子主题')
+    expect(section.textContent).toContain('子主题A')
+  })
+
+  it('未发布的子主题不显示(管理员可能拿到草稿)', () => {
+    contentState.themes = [
+      theme('parent', { title: '父主题' }),
+      theme('draft-child', { slug: 'draft-child', title: '草稿子主题', status: 'draft' }),
+    ]
+    contentState.childThemeIds = new Map([['parent', ['draft-child']]])
+    renderAt(<ThemePage cloudStore={cloudStore([])} />, '/gallery/theme/parent', '/gallery/theme/:slug')
+
+    expect(document.querySelector('.content-related')).toBeNull()
+    expect(screen.queryByText('草稿子主题')).toBeNull()
+  })
+
+  it('相关合集按关联顺序渲染,已删除的跳过', () => {
+    contentState.themes = [theme('parent', { title: '父主题' })]
+    contentState.collections = [
+      { id: 'c1', slug: 'c1', title: '合集一', status: 'published', translations: {} },
+      { id: 'c2', slug: 'c2', title: '合集二', status: 'published', translations: {} },
+    ]
+    // 顺序:c2 → 已删除的 c9 → c1
+    contentState.themeCollectionIds = new Map([['parent', ['c2', 'c9', 'c1']]])
+    renderAt(<ThemePage cloudStore={cloudStore([])} />, '/gallery/theme/parent', '/gallery/theme/:slug')
+
+    const sections = document.querySelectorAll('.content-related')
+    const collectionsSection = Array.from(sections).find((x) => x.textContent.includes('相关合集'))
+    expect(collectionsSection).toBeTruthy()
+    const names = Array.from(collectionsSection.querySelectorAll('.content-related-name')).map((x) => x.textContent)
+    expect(names).toEqual(['合集二', '合集一'])
+  })
+
+  it('没有子主题/合集时不渲染相关区块', () => {
+    contentState.themes = [theme('solo', { title: '独立主题' })]
+    renderAt(<ThemePage cloudStore={cloudStore([])} />, '/gallery/theme/solo', '/gallery/theme/:slug')
+    expect(document.querySelector('.content-related')).toBeNull()
   })
 })

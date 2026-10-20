@@ -41,6 +41,30 @@ export default function ThemePage({ cloudStore }) {
     return resolveTemplatesByIds(allTemplates, content.themeTemplateIds.get(theme.id) || []).templates
   }, [theme, allTemplates, content.themeTemplateIds])
 
+  // 子主题与相关合集(0027)。只认已发布对象 —— 管理员可能看到草稿,
+  // 但公开主题页不应把未发布内容暴露出去。
+  const publishedThemes = useMemo(
+    () => (content.themes || []).filter((t) => t.status === 'published'),
+    [content.themes]
+  )
+  const publishedCollections = useMemo(
+    () => (content.collections || []).filter((c) => c.status === 'published'),
+    [content.collections]
+  )
+  const childThemes = useMemo(() => {
+    if (!theme) return []
+    const ids = content.childThemeIds?.get(theme.id) || []
+    const byId = new Map(publishedThemes.map((t) => [String(t.id), t]))
+    return ids.map((id) => byId.get(String(id))).filter(Boolean)
+  }, [theme, content.childThemeIds, publishedThemes])
+
+  const relatedCollections = useMemo(() => {
+    if (!theme) return []
+    const ids = content.themeCollectionIds?.get(theme.id) || []
+    const byId = new Map(publishedCollections.map((c) => [String(c.id), c]))
+    return ids.map((id) => byId.get(String(id))).filter(Boolean)
+  }, [theme, content.themeCollectionIds, publishedCollections])
+
   const resolveName = useMemo(
     () => (template) => (
       template?.name
@@ -95,6 +119,56 @@ export default function ThemePage({ cloudStore }) {
           </>
         )}
       </div>
+
+      {/* 子主题:主题页的二级入口,点击进入对应主题 */}
+      {childThemes.length > 0 && (
+        <section className="content-related" aria-label={t('gallery.discovery.childThemes')}>
+          <h2 className="content-related-title">{t('gallery.discovery.childThemes')}</h2>
+          <div className="content-related-rail">
+            {childThemes.map((child) => {
+              const childText = localizedContentText(child, i18n.language)
+              return (
+                <button
+                  key={child.id}
+                  type="button"
+                  className="content-related-card"
+                  onClick={() => navigate(`/gallery/theme/${encodeURIComponent(child.slug)}`)}
+                >
+                  <span className="content-related-name">{childText.title}</span>
+                  {childText.description && (
+                    <span className="content-related-desc">{childText.description}</span>
+                  )}
+                </button>
+              )
+            })}
+          </div>
+        </section>
+      )}
+
+      {/* 相关合集:主题下的策展清单 */}
+      {relatedCollections.length > 0 && (
+        <section className="content-related" aria-label={t('gallery.discovery.relatedCollections')}>
+          <h2 className="content-related-title">{t('gallery.discovery.relatedCollections')}</h2>
+          <div className="content-related-rail">
+            {relatedCollections.map((collection) => {
+              const cText = localizedContentText(collection, i18n.language)
+              return (
+                <button
+                  key={collection.id}
+                  type="button"
+                  className="content-related-card"
+                  onClick={() => navigate(`/gallery/collection/${encodeURIComponent(collection.slug)}`)}
+                >
+                  <span className="content-related-name">{cText.title}</span>
+                  {cText.description && (
+                    <span className="content-related-desc">{cText.description}</span>
+                  )}
+                </button>
+              )
+            })}
+          </div>
+        </section>
+      )}
 
       {theme && (
         <div className="content-filters">

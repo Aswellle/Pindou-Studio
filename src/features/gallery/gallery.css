@@ -953,6 +953,59 @@
           scroll-snap-align: start;
           min-height: 44px;
         }
+        /* ── 主题页:子主题与相关合集 ───────────────────────── */
+        .content-related {
+          display: flex;
+          flex-direction: column;
+          gap: 8px;
+          margin: 4px 0;
+        }
+        .content-related-title {
+          font-size: var(--text-sm);
+          font-weight: var(--font-weight-semibold);
+          color: var(--text-secondary);
+        }
+        .content-related-rail {
+          display: flex;
+          gap: 10px;
+          overflow-x: auto;
+          padding-bottom: 4px;
+          -webkit-overflow-scrolling: touch;
+        }
+        .content-related-card {
+          flex: 0 0 auto;
+          display: flex;
+          flex-direction: column;
+          gap: 2px;
+          min-height: 44px;
+          padding: 8px 12px;
+          border: 1px solid var(--border-color);
+          border-radius: 10px;
+          background: var(--bg-secondary);
+          color: var(--text-primary);
+          font-family: inherit;
+          text-align: left;
+          cursor: pointer;
+        }
+        .content-related-card:hover { border-color: var(--accent); }
+        .content-related-card:focus-visible {
+          outline: 2px solid var(--accent);
+          outline-offset: 2px;
+        }
+        .content-related-name {
+          font-size: var(--text-sm);
+          font-weight: var(--font-weight-semibold);
+          white-space: nowrap;
+        }
+        .content-related-desc {
+          font-size: var(--text-xs);
+          color: var(--text-muted);
+          max-width: 220px;
+          overflow: hidden;
+          text-overflow: ellipsis;
+          white-space: nowrap;
+        }
+
         /* ── 主题/合集页:封面与筛选 ─────────────────────────── */
         .content-cover {
           width: 100%;
