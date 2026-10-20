@@ -501,6 +501,8 @@
     "selectionClearedToast": "{{n}} マスを消去しました",
     "selectionMirroredToast": "{{n}} マスを反転しました",
     "selectionRotatedToast": "{{n}} マスを回転しました",
+    "selectionMovedToast": "{{n}} マスを移動しました",
+    "selectionMoveHint": "選択範囲の内側をドラッグすると内容を移動できます",
     "pickedColorToast": "{{hex}} を取得しました"
   },
   "gallery": {
@@ -1210,6 +1212,17 @@
     "hits": "{{n}} 個を置換します",
     "apply": "置換する",
     "emptyCanvas": "キャンバスにまだ色がありません"
+  },
+  "brandSwitch": {
+    "title": "ビーズブランドを切り替え",
+    "hint": "変換するとキャンバスの色を対象ブランドの最も近い色に置き換えます（1回で元に戻せます）。色番号の表示だけを変える場合は現在の色値を保持します。",
+    "emptyCanvas": "キャンバスに色がありません。切り替えても色番号の表示だけが変わります。",
+    "summaryColors": "キャンバスに {{n}} 色",
+    "summaryChanged": "{{n}} 個のビーズが {{m}} 色に変わります",
+    "noChange": "すべての色が対象パレットに存在します。変換は不要です",
+    "mappingOnly": "色番号の表示のみ変更",
+    "convert": "色を変換して切り替え",
+    "convertedToast": "{{n}} 個のビーズを変換しました"
   },
   "myBeads": {
     "title": "マイパレットと在庫",

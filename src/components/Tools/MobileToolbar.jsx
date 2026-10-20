@@ -331,6 +331,8 @@ export default function MobileToolbar({
                 </svg>
               </button>
               <button className="selection-btn" onClick={onClearSelection}>{t('tools.clearSelectionBtn')}</button>
+              {/* 拖拽移动没有按钮,只能靠提示告知(规格 04 §2 要求移动有明确入口) */}
+              <span className="selection-move-hint">{t('tools.selectionMoveHint')}</span>
             </>
           ) : (
             <span className="selection-size-badge muted">{t('tools.selectionEmpty')}</span>

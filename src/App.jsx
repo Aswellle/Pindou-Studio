@@ -15,6 +15,7 @@ import Tools from './components/Tools'
 import ExportPanel from './components/ExportPanel'
 import ColorStatsBar from './components/ColorStatsBar'
 import ReplaceColorDialog from './components/ReplaceColorDialog'
+import BrandSwitchDialog from './components/BrandSwitchDialog'
 import MyBeadsPage from './components/MyBeadsPage'
 import { useToast } from './components/Toast'
 import {
@@ -23,6 +24,7 @@ import {
   mirrorSelection,
   rotateSelection,
   replaceColor,
+  moveSelection,
 } from './utils/selectionUtils'
 import { useAuth } from './hooks/useAuth'
 import { useResponsive } from './hooks/useResponsive'
@@ -30,6 +32,7 @@ import { useHistory } from './hooks/useHistory'
 import { useSavedWorks } from './hooks/useSavedWorks'
 import { useScrollLock } from './hooks/useScrollLock'
 import { canonicalPathFor } from './utils/seoPath'
+import { planBrandSwitch, applyBrandSwitch } from './utils/brandSwitch'
 import { canvasToLegacyWork, normalizeLegacyWork } from './services/project/adapters'
 import ImportPage from './components/ImportPage'
 import MobileToolbar from './components/Tools/MobileToolbar'
@@ -373,6 +376,15 @@ export default function App() {
     },
     selection,
     onSelectionChange: setSelection,
+    // M5.2 拖拽移动:画布只在松手时上报一次偏移,这里提交一条历史。
+    // 偏移已由画布按 clampMove 钳制,内容不会掉出画布。
+    onSelectionMove: ({ dx, dy, selection: base }) => {
+      const result = moveSelection(canvasData, base, dx, dy)
+      if (result.selection) setSelection(result.selection)
+      if (!result.data) return
+      setCanvas(result.data)
+      toast(t('tools.selectionMovedToast', { n: result.changed }), 'success')
+    },
   }
 
   // ── M5 选区命令 ─────────────────────────────────────────────
@@ -411,6 +423,44 @@ export default function App() {
   }, [selection, canvasData, selectedColor, setCanvas, toast, t])
 
   const handleClearSelection = useCallback(() => setSelection(null), [])
+
+  // ── 品牌切换(规格 04 §4)────────────────────────────────────
+  // 切色卡有两种语义,必须让用户选:
+  //   convert     — 把矩阵 HEX 真正换成目标品牌最近色(一条可撤销历史);
+  //   mappingOnly — 只改色号解析口径,矩阵不动(改造前的旧行为)。
+  // 空画布没有可转换内容,直接切口径,不弹框打断。
+  const [pendingPalette, setPendingPalette] = useState(null)
+
+  const handlePaletteChange = useCallback((nextPaletteId) => {
+    if (!nextPaletteId || nextPaletteId === currentPalette) return
+    const hasContent = Array.isArray(canvasData)
+      && canvasData.some(row => Array.isArray(row) && row.some(cell => typeof cell === 'string' && cell))
+    if (!hasContent) {
+      setCurrentPalette(nextPaletteId)
+      return
+    }
+    setPendingPalette(nextPaletteId)
+  }, [canvasData, currentPalette])
+
+  const handleBrandSwitchConvert = useCallback(() => {
+    if (!pendingPalette) return
+    const plan = planBrandSwitch(canvasData, pendingPalette)
+    const result = applyBrandSwitch(canvasData, plan.rows)
+    setPendingPalette(null)
+    // 先切色号口径:即使矩阵无变化(已经在目标品牌上),用户意图也是换色卡
+    setCurrentPalette(pendingPalette)
+    if (!result.data) return
+    // 一次 setCanvas = 一条历史,撤销即回到切换前的矩阵
+    canvasRef.current?.cancelStroke?.()
+    setCanvas(result.data)
+    toast(t('brandSwitch.convertedToast', { n: result.changed }), 'success')
+  }, [pendingPalette, canvasData, setCanvas, toast, t])
+
+  const handleBrandSwitchMappingOnly = useCallback(() => {
+    if (!pendingPalette) return
+    setCurrentPalette(pendingPalette)
+    setPendingPalette(null)
+  }, [pendingPalette])
 
   // 颜色替换:一次事务替换,命中数量在对话框内已确认
   const handleConfirmReplace = useCallback((from, to) => {
@@ -510,7 +560,7 @@ export default function App() {
           selectedColor={selectedColor}
           onColorSelect={setSelectedColor}
           currentPalette={currentPalette}
-          onPaletteChange={setCurrentPalette}
+          onPaletteChange={handlePaletteChange}
           collapsed={rightSidebarCollapsed}
           onToggleCollapse={() => setRightSidebarCollapsed(!rightSidebarCollapsed)}
         />
@@ -719,6 +769,17 @@ export default function App() {
         onConfirm={handleConfirmReplace}
       />
 
+      {/* 品牌切换预览(规格 04 §4):桌面/移动各一份,共享同一份状态 */}
+      <BrandSwitchDialog
+        open={Boolean(pendingPalette)}
+        canvasData={canvasData}
+        fromPaletteId={currentPalette}
+        toPaletteId={pendingPalette}
+        onClose={() => setPendingPalette(null)}
+        onConvert={handleBrandSwitchConvert}
+        onMappingOnly={handleBrandSwitchMappingOnly}
+      />
+
       <style>{`
         .left-sidebar {
           display: flex;
@@ -840,7 +901,7 @@ export default function App() {
               selectedColor={selectedColor}
               onColorSelect={setSelectedColor}
               currentPalette={currentPalette}
-              onPaletteChange={setCurrentPalette}
+              onPaletteChange={handlePaletteChange}
               canvasData={canvasData}
             />
 
@@ -1060,6 +1121,17 @@ export default function App() {
         initialFrom={selection ? canvasData?.[selection.y]?.[selection.x] : null}
         onClose={() => setShowReplace(false)}
         onConfirm={handleConfirmReplace}
+      />
+
+      {/* 品牌切换预览(规格 04 §4):桌面/移动各一份,共享同一份状态 */}
+      <BrandSwitchDialog
+        open={Boolean(pendingPalette)}
+        canvasData={canvasData}
+        fromPaletteId={currentPalette}
+        toPaletteId={pendingPalette}
+        onClose={() => setPendingPalette(null)}
+        onConvert={handleBrandSwitchConvert}
+        onMappingOnly={handleBrandSwitchMappingOnly}
       />
 
       <style>{`

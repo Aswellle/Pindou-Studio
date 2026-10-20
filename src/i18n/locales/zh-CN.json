@@ -501,6 +501,8 @@
     "selectionClearedToast": "已擦除 {{n}} 格",
     "selectionMirroredToast": "已镜像 {{n}} 格",
     "selectionRotatedToast": "已旋转 {{n}} 格",
+    "selectionMovedToast": "已移动 {{n}} 格",
+    "selectionMoveHint": "在选区内拖动即可移动内容",
     "pickedColorToast": "已取色 {{hex}}"
   },
   "gallery": {
@@ -1210,6 +1212,17 @@
     "hits": "将替换 {{n}} 颗",
     "apply": "确认替换",
     "emptyCanvas": "画布上还没有颜色，先画点什么吧"
+  },
+  "brandSwitch": {
+    "title": "切换品牌色卡",
+    "hint": "转换会把画布上的颜色真正换成目标品牌的最近色，可一次撤销；只改色号显示则保留原有颜色值。",
+    "emptyCanvas": "画布上还没有颜色，切换后只改色号显示。",
+    "summaryColors": "画布共 {{n}} 种颜色",
+    "summaryChanged": "{{n}} 颗珠子会被换成 {{m}} 种目标颜色",
+    "noChange": "所有颜色都已在目标色卡中，矩阵无需改动",
+    "mappingOnly": "只改色号显示",
+    "convert": "转换颜色并切换",
+    "convertedToast": "已转换 {{n}} 颗珠子"
   },
   "myBeads": {
     "title": "我的色卡与库存",

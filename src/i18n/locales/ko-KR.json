@@ -501,6 +501,8 @@
     "selectionClearedToast": "{{n}}칸을 지웠습니다",
     "selectionMirroredToast": "{{n}}칸을 반전했습니다",
     "selectionRotatedToast": "{{n}}칸을 회전했습니다",
+    "selectionMovedToast": "{{n}}칸을 이동했습니다",
+    "selectionMoveHint": "선택 영역 안에서 드래그하면 내용을 이동할 수 있습니다",
     "pickedColorToast": "{{hex}} 색을 선택했습니다"
   },
   "gallery": {
@@ -1210,6 +1212,17 @@
     "hits": "{{n}}개를 바꿉니다",
     "apply": "바꾸기",
     "emptyCanvas": "캔버스에 아직 색이 없습니다"
+  },
+  "brandSwitch": {
+    "title": "비즈 브랜드 전환",
+    "hint": "변환하면 캔버스 색상을 대상 브랜드의 가장 가까운 색으로 바꾸며 한 번에 되돌릴 수 있습니다. 색상 코드 표시만 바꾸면 현재 색상 값이 유지됩니다.",
+    "emptyCanvas": "캔버스에 색상이 없습니다. 전환하면 색상 코드 표시만 바뀝니다.",
+    "summaryColors": "캔버스에 {{n}}가지 색",
+    "summaryChanged": "비즈 {{n}}개가 {{m}}가지 색으로 바뀝니다",
+    "noChange": "모든 색상이 대상 팔레트에 이미 있습니다. 변환이 필요하지 않습니다",
+    "mappingOnly": "색상 코드 표시만 변경",
+    "convert": "색상 변환 후 전환",
+    "convertedToast": "비즈 {{n}}개를 변환했습니다"
   },
   "myBeads": {
     "title": "내 팔레트와 재고",

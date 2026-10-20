@@ -467,3 +467,162 @@ describe('Canvas 切换网格时丢弃活动笔画(规格 04 §3)', () => {
     expect(onSelectionChange.mock.calls.length).toBe(callsBefore)
   })
 })
+
+/**
+ * M5.2:拖拽移动选区内容(规格 04 §2)。
+ *
+ * 在已有选区内按下并拖动 = 移动内容,松手才提交;在选区外按下仍然是
+ * 重新拖选框。3×3 网格 / 16px 单元 / scale 1。
+ */
+describe('Canvas 拖拽移动选区(M5.2)', () => {
+  let mock
+  beforeEach(() => { mock = installCanvasMocks() })
+  afterEach(() => mock.restore())
+
+  function renderMove(overrides = {}) {
+    const onCanvasChange = vi.fn()
+    const onSelectionChange = vi.fn()
+    const onSelectionMove = vi.fn()
+    const data = blankGrid(3)
+    data[0][0] = '#E53935'
+    data[0][1] = '#43A047'
+    const props = {
+      gridSize: 3,
+      gridWidth: null,
+      gridHeight: null,
+      selectedColor: '#ff0000',
+      tool: 'select',
+      committedData: data,
+      selection: { x: 0, y: 0, w: 2, h: 1 },
+      onCanvasChange,
+      onSelectionChange,
+      onSelectionMove,
+      ...overrides,
+    }
+    const view = render(<Canvas {...props} />)
+    return { ...view, onCanvasChange, onSelectionChange, onSelectionMove }
+  }
+
+  test('在选区内拖动 → 松手提交一次偏移', () => {
+    const { container, onSelectionMove, onSelectionChange, onCanvasChange } = renderMove()
+    const c = container.querySelector('.canvas-container')
+
+    // 从 (0,0) 拖到 (1,1):dx=1, dy=1
+    fireEvent.mouseDown(c, { clientX: 8, clientY: 8 })
+    fireEvent.mouseMove(c, { clientX: 24, clientY: 24 })
+    // 拖动期间不提交
+    expect(onSelectionMove).not.toHaveBeenCalled()
+    fireEvent.mouseUp(c, { clientX: 24, clientY: 24 })
+
+    expect(onSelectionMove).toHaveBeenCalledTimes(1)
+    expect(onSelectionMove.mock.calls[0][0]).toEqual({
+      dx: 1, dy: 1, selection: { x: 0, y: 0, w: 2, h: 1 },
+    })
+    // 移动不经过「拖新选框」路径,也不直接写画布(App 负责提交)
+    expect(onSelectionChange).not.toHaveBeenCalled()
+    expect(onCanvasChange).not.toHaveBeenCalled()
+  })
+
+  test('拖动期间在 overlay 上画预览', () => {
+    const { container } = renderMove()
+    const c = container.querySelector('.canvas-container')
+    const before = mock.calls.fillRect.length
+
+    fireEvent.mouseDown(c, { clientX: 8, clientY: 8 })
+    fireEvent.mouseMove(c, { clientX: 24, clientY: 24 })
+
+    // 预览:两个珠子按偏移画在 (1,1) 与 (2,1)
+    const preview = mock.calls.fillRect.slice(before)
+    expect(preview).toContainEqual({ x: 16, y: 16, w: 16, h: 16 })
+    expect(preview).toContainEqual({ x: 32, y: 16, w: 16, h: 16 })
+  })
+
+  test('原地点击(偏移 0)不提交历史', () => {
+    const { container, onSelectionMove } = renderMove()
+    const c = container.querySelector('.canvas-container')
+
+    fireEvent.mouseDown(c, { clientX: 8, clientY: 8 })
+    fireEvent.mouseUp(c, { clientX: 8, clientY: 8 })
+
+    expect(onSelectionMove).not.toHaveBeenCalled()
+  })
+
+  test('越界拖动被钳制,预览与提交都不出画布', () => {
+    const { container, onSelectionMove } = renderMove()
+    const c = container.querySelector('.canvas-container')
+
+    // 选区 2×1 在 (0,0),向右最多 1 格、向下最多 2 格
+    fireEvent.mouseDown(c, { clientX: 8, clientY: 8 })
+    fireEvent.mouseMove(c, { clientX: 47, clientY: 47 })
+    fireEvent.mouseUp(c, { clientX: 47, clientY: 47 })
+
+    expect(onSelectionMove.mock.calls[0][0]).toEqual({
+      dx: 1, dy: 2, selection: { x: 0, y: 0, w: 2, h: 1 },
+    })
+  })
+
+  test('在选区外按下仍是重新拖选框', () => {
+    const { container, onSelectionMove, onSelectionChange } = renderMove()
+    const c = container.querySelector('.canvas-container')
+
+    // (2,2) 在选区 (0,0,2×1) 之外
+    fireEvent.mouseDown(c, { clientX: 40, clientY: 40 })
+    fireEvent.mouseMove(c, { clientX: 24, clientY: 24 })
+    fireEvent.mouseUp(c, { clientX: 24, clientY: 24 })
+
+    expect(onSelectionMove).not.toHaveBeenCalled()
+    expect(onSelectionChange).toHaveBeenLastCalledWith({ x: 1, y: 1, w: 2, h: 2 })
+  })
+
+  test('触屏在选区内拖动同样提交偏移,不触发填色', () => {
+    const { container, onSelectionMove, onCanvasChange } = renderMove()
+    const c = container.querySelector('.canvas-container')
+
+    fireEvent.touchStart(c, { touches: [{ clientX: 8, clientY: 8, identifier: 0 }] })
+    fireEvent.touchMove(c, { touches: [{ clientX: 24, clientY: 24, identifier: 0 }] })
+    fireEvent.touchEnd(c, { touches: [] })
+
+    expect(onSelectionMove).toHaveBeenCalledTimes(1)
+    expect(onSelectionMove.mock.calls[0][0]).toMatchObject({ dx: 1, dy: 1 })
+    expect(onCanvasChange).not.toHaveBeenCalled()
+  })
+})
+
+describe('Canvas 拖拽移动 · 手势互斥(M5.2)', () => {
+  let mock
+  beforeEach(() => { mock = installCanvasMocks() })
+  afterEach(() => mock.restore())
+
+  test('移动过程中第二根手指按下 → 丢弃预览,松手不提交', () => {
+    const onSelectionMove = vi.fn()
+    const data = blankGrid(3)
+    data[0][0] = '#E53935'
+    const props = {
+      gridSize: 3,
+      gridWidth: null,
+      gridHeight: null,
+      selectedColor: '#ff0000',
+      tool: 'select',
+      committedData: data,
+      selection: { x: 0, y: 0, w: 2, h: 1 },
+      onCanvasChange: vi.fn(),
+      onSelectionChange: vi.fn(),
+      onSelectionMove,
+    }
+    const view = render(<Canvas {...props} />)
+    const c = view.container.querySelector('.canvas-container')
+
+    fireEvent.touchStart(c, { touches: [{ clientX: 8, clientY: 8, identifier: 0 }] })
+    fireEvent.touchMove(c, { touches: [{ clientX: 24, clientY: 24, identifier: 0 }] })
+    // 第二根手指按下 → 进入 pinch,移动被丢弃
+    fireEvent.touchStart(c, {
+      touches: [
+        { clientX: 24, clientY: 24, identifier: 0 },
+        { clientX: 40, clientY: 40, identifier: 1 },
+      ],
+    })
+    fireEvent.touchEnd(c, { touches: [] })
+
+    expect(onSelectionMove).not.toHaveBeenCalled()
+  })
+})

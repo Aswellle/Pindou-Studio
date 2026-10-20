@@ -170,6 +170,8 @@ export default function Tools({
                     <X size={15} />{t('tools.clearSelectionBtn')}
                   </button>
                 </div>
+                {/* 拖拽移动没有按钮,只能靠提示告知(规格 04 §2 要求移动有明确入口) */}
+                <p className="selection-hint">{t('tools.selectionMoveHint')}</p>
               </>
             ) : (
               <p className="selection-hint">{t('tools.selectionEmpty')}</p>

@@ -259,3 +259,54 @@ export function stampBlock(data, block, x, y) {
   const changed = diffCount(data, next, rows, cols)
   return changed ? { data: next, changed } : { data: null, changed: 0 }
 }
+
+/**
+ * Clamp a move offset so the whole block stays inside the grid.
+ *
+ * Out-of-bounds rule for drag-to-move (规格 04 §2 requires an explicit rule):
+ * **clamp, never clip** — the block slides along the edge instead of losing
+ * beads off-canvas. Shared by the preview and the committed move so what the
+ * user sees during the drag is exactly what lands on mouseup.
+ */
+export function clampMove(sel, dx, dy, cols, rows) {
+  if (!sel || cols <= 0 || rows <= 0) return { dx: 0, dy: 0 }
+  const minDx = -sel.x
+  const maxDx = cols - sel.x - sel.w
+  const minDy = -sel.y
+  const maxDy = rows - sel.y - sel.h
+  return {
+    dx: Math.max(minDx, Math.min(maxDx, dx)),
+    dy: Math.max(minDy, Math.min(maxDy, dy)),
+  }
+}
+
+/**
+ * Move the selection contents by (dx, dy) in one transaction.
+ *
+ * The offset is clamped by `clampMove` so the block always stays inside the
+ * grid — moving never silently clips beads away. The clamped rectangle is
+ * returned as `selection`, so the marquee always ends up exactly where the
+ * content landed.
+ *
+ * `data` is null when nothing actually changed (empty region moved, or a block
+ * moved onto identical content) — callers must not push history then, but the
+ * new `selection` is still returned so the marquee follows the drag.
+ */
+export function moveSelection(data, sel, dx, dy) {
+  const { rows, cols } = gridSize(data)
+  if (!sel || rows === 0 || cols === 0) return { data: null, changed: 0, selection: sel }
+  if (!dx && !dy) return { data: null, changed: 0, selection: sel }
+
+  const offset = clampMove(sel, dx, dy, cols, rows)
+  const nx = sel.x + offset.dx
+  const ny = sel.y + offset.dy
+  const selection = { x: nx, y: ny, w: sel.w, h: sel.h }
+  if (nx === sel.x && ny === sel.y) return { data: null, changed: 0, selection: sel }
+
+  const lifted = liftSelection(data, sel)
+  if (!lifted.block) return { data: null, changed: 0, selection: sel }
+  const stamped = stampBlock(lifted.data, lifted.block, nx, ny)
+  const next = stamped.data || lifted.data
+  const changed = diffCount(data, next, rows, cols)
+  return changed ? { data: next, changed, selection } : { data: null, changed: 0, selection }
+}

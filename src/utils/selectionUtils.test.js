@@ -11,6 +11,8 @@ import {
   replaceColor,
   liftSelection,
   stampBlock,
+  clampMove,
+  moveSelection,
 } from './selectionUtils'
 
 const R = '#E53935'
@@ -240,5 +242,54 @@ describe('selectionUtils · 移动(剪切 + 盖印)', () => {
     const data = clone(grid())
     const { block } = liftSelection(data, { x: 2, y: 0, w: 2, h: 1 })
     expect(stampBlock(data, block, 2, 0).data).toBeNull()
+  })
+})
+
+describe('selectionUtils · 拖拽移动选区(M5.2)', () => {
+  it('clampMove 保证整块留在画布内(钳制而非裁剪)', () => {
+    const sel = { x: 1, y: 1, w: 2, h: 2 } // 4×3 网格
+    // 向右最多到 x=2(右边缘),向上不能出顶
+    expect(clampMove(sel, 99, 0, 4, 3)).toEqual({ dx: 1, dy: 0 })
+    expect(clampMove(sel, -99, 0, 4, 3)).toEqual({ dx: -1, dy: 0 })
+    expect(clampMove(sel, 0, -99, 4, 3)).toEqual({ dx: 0, dy: -1 })
+    expect(clampMove(sel, 0, 99, 4, 3)).toEqual({ dx: 0, dy: 0 })
+  })
+
+  it('moveSelection 移动内容并返回新选区', () => {
+    const res = moveSelection(grid(), { x: 0, y: 0, w: 2, h: 2 }, 2, 1)
+    expect(res.selection).toEqual({ x: 2, y: 1, w: 2, h: 2 })
+    expect(res.data[1].slice(2, 4)).toEqual([R, R])
+    expect(res.data[2].slice(2, 4)).toEqual([R, null])
+    // 原位置已清空(未与目标区域重叠的部分)
+    expect(res.data[0].slice(0, 2)).toEqual([null, null])
+  })
+
+  it('越界移动被钳制,整块内容完整落在画布内', () => {
+    const source = grid()
+    const res = moveSelection(source, { x: 0, y: 0, w: 2, h: 2 }, 99, 99)
+    // 钳制到右下角
+    expect(res.selection).toEqual({ x: 2, y: 1, w: 2, h: 2 })
+    // 块内容原样落在新位置(而不是被画布边缘裁掉一半)
+    expect(res.data[1].slice(2, 4)).toEqual([R, R])
+    expect(res.data[2].slice(2, 4)).toEqual([R, null])
+  })
+
+  it('偏移为 0 / 空选区 → data 为 null(不压栈)', () => {
+    expect(moveSelection(grid(), { x: 0, y: 0, w: 2, h: 2 }, 0, 0).data).toBeNull()
+    expect(moveSelection(grid(), null, 1, 1).data).toBeNull()
+  })
+
+  it('移动全空区域 → data 为 null,但选区跟随', () => {
+    const empty = [[null, null, null, null], [null, null, null, null], [null, null, null, null]]
+    const res = moveSelection(empty, { x: 0, y: 0, w: 2, h: 2 }, 1, 0)
+    expect(res.data).toBeNull()
+    expect(res.selection).toEqual({ x: 1, y: 0, w: 2, h: 2 })
+  })
+
+  it('不修改输入矩阵', () => {
+    const source = grid()
+    const snapshot = clone(source)
+    moveSelection(source, { x: 0, y: 0, w: 2, h: 2 }, 1, 1)
+    expect(source).toEqual(snapshot)
   })
 })

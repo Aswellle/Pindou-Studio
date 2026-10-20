@@ -501,6 +501,8 @@
     "selectionClearedToast": "Erased {{n}} cells",
     "selectionMirroredToast": "Mirrored {{n}} cells",
     "selectionRotatedToast": "Rotated {{n}} cells",
+    "selectionMovedToast": "Moved {{n}} cells",
+    "selectionMoveHint": "Drag inside the selection to move its contents",
     "pickedColorToast": "Picked {{hex}}"
   },
   "gallery": {
@@ -1210,6 +1212,17 @@
     "hits": "{{n}} beads will change",
     "apply": "Replace",
     "emptyCanvas": "The canvas has no colors yet — draw something first"
+  },
+  "brandSwitch": {
+    "title": "Switch bead brand",
+    "hint": "Converting replaces canvas colors with the nearest color in the target brand and can be undone in one step. Changing only the code display keeps the current color values.",
+    "emptyCanvas": "The canvas has no colors yet; switching only changes the code display.",
+    "summaryColors": "{{n}} colors on canvas",
+    "summaryChanged": "{{n}} beads will become {{m}} target colors",
+    "noChange": "Every color already exists in the target palette; nothing to convert",
+    "mappingOnly": "Change code display only",
+    "convert": "Convert colors and switch",
+    "convertedToast": "Converted {{n}} beads"
   },
   "myBeads": {
     "title": "My Palettes & Inventory",

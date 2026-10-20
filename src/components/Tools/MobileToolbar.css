@@ -65,6 +65,13 @@
   color: var(--text-muted);
   font-weight: var(--font-weight-regular);
 }
+.selection-move-hint {
+  flex-shrink: 0;
+  align-self: center;
+  font-size: var(--text-xs);
+  color: var(--text-muted);
+  white-space: nowrap;
+}
 .selection-btn {
   flex-shrink: 0;
   height: 32px;

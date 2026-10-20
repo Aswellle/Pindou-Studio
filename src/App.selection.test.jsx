@@ -150,3 +150,47 @@ describe('App · 选区命令的事务语义(M5)', () => {
     await waitFor(() => expect(getByTestId('sel').textContent).toBe('none'))
   })
 })
+
+/**
+ * M5.2:拖拽移动选区内容必须同样「一次撤销回到原矩阵」。
+ * Canvas 桩直接调用 onSelectionMove 模拟松手时的偏移上报。
+ */
+describe('App · 拖拽移动选区(M5.2)', () => {
+  it('移动只产生一条历史,一次撤销回到原矩阵', async () => {
+    const { getByTestId } = renderApp()
+
+    await waitFor(() => expect(canvasProps.current?.committedData).toBeTruthy())
+    // 先填一块内容:选区 2×2 填充
+    selectRegion({ x: 0, y: 0, w: 2, h: 2 })
+    await waitFor(() => expect(getByTestId('sel').textContent).toBe('2x2'))
+    fireEvent.click(getByTestId('fill'))
+    await waitFor(() => expect(canvasProps.current.committedData[0][0]).toBe('#E53935'))
+    const before = canvasProps.current.committedData.map(r => [...r])
+
+    // 松手时画布上报偏移:向右下移动 2 格
+    canvasProps.current.onSelectionMove({ dx: 2, dy: 2, selection: { x: 0, y: 0, w: 2, h: 2 } })
+
+    await waitFor(() => {
+      expect(canvasProps.current.committedData[2][2]).toBe('#E53935')
+      expect(canvasProps.current.committedData[0][0]).toBeNull()
+    })
+    // 选框跟随内容落到新位置
+    expect(getByTestId('sel').textContent).toBe('2x2')
+
+    fireEvent.keyDown(window, { key: 'z', ctrlKey: true })
+    await waitFor(() => {
+      expect(canvasProps.current.committedData).toEqual(before)
+    })
+  })
+
+  it('移动全空区域不产生历史(撤销栈不变)', async () => {
+    const { getByTestId } = renderApp()
+    await waitFor(() => expect(canvasProps.current?.committedData).toBeTruthy())
+    const before = canvasProps.current.committedData
+
+    canvasProps.current.onSelectionMove({ dx: 1, dy: 1, selection: { x: 0, y: 0, w: 2, h: 2 } })
+
+    await waitFor(() => expect(getByTestId('sel').textContent).toBe('2x2'))
+    expect(canvasProps.current.committedData).toBe(before)
+  })
+})
