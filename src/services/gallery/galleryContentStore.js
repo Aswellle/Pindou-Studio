@@ -17,12 +17,17 @@ import {
   normalizeContentInput,
   contentToRow,
   rowToContent,
+  normalizeHomeSectionInput,
+  homeSectionToRow,
+  rowToHomeSection,
 } from './contentModel'
 
 const TABLES = {
   theme: 'gallery_themes',
   collection: 'gallery_collections',
 }
+
+const HOME_SECTIONS_TABLE = 'gallery_home_sections'
 
 const LINK_TABLES = {
   theme: { table: 'gallery_theme_templates', parentColumn: 'theme_id' },
@@ -46,12 +51,13 @@ export function createGalleryContentStore(client = supabase) {
     return {
       enabled: false,
       async load() {
-        return { themes: [], collections: [], themeLinks: [], collectionLinks: [] }
+        return { themes: [], collections: [], themeLinks: [], collectionLinks: [], homeSections: [] }
       },
       async createContent() { return fail([{ code: 'cloudNotConfigured' }]) },
       async updateContent() { return fail([{ code: 'cloudNotConfigured' }]) },
       async deleteContent() { return fail([{ code: 'cloudNotConfigured' }]) },
       async setLinks() { return fail([{ code: 'cloudNotConfigured' }]) },
+      async saveHomeSections() { return fail([{ code: 'cloudNotConfigured' }]) },
     }
   }
 
@@ -65,6 +71,27 @@ export function createGalleryContentStore(client = supabase) {
       throw error
     }
     return data || []
+  }
+
+  /**
+   * 首页区块配置。表不存在(0026 未执行)时返回空数组而不是抛错 ——
+   * 首页仍按默认区块渲染,后台的区块标签页会提示「云端未配置」。
+   */
+  async function listHomeSections() {
+    const { data, error } = await client
+      .from(HOME_SECTIONS_TABLE)
+      .select('*')
+      .order('sort_order', { ascending: true })
+    if (error) {
+      // 42P01 = undefined_table;PostgREST 也返回 PGRST205
+      const missingTable = error.code === '42P01'
+        || error.code === 'PGRST205'
+        || /does not exist|schema cache/i.test(error.message || '')
+      if (missingTable) return []
+      remember({ code: 'cloud', detail: error.message })
+      throw error
+    }
+    return (data || []).map(rowToHomeSection)
   }
 
   return {
@@ -82,17 +109,21 @@ export function createGalleryContentStore(client = supabase) {
      * 「内容暂不可用」并继续使用旧图库 —— 不在这里静默吞掉。
      */
     async load() {
-      const [themes, collections, themeLinks, collectionLinks] = await Promise.all([
+      const [themes, collections, themeLinks, collectionLinks, homeSections] = await Promise.all([
         listOf(TABLES.theme, 'sort_order'),
         listOf(TABLES.collection, 'sort_order'),
         listOf(LINK_TABLES.theme.table, 'sort_order'),
         listOf(LINK_TABLES.collection.table, 'sort_order'),
+        // 区块配置表可能尚未创建(0026 未执行):此时不阻断整个图库,
+        // 返回空数组让前端回退到默认区块。
+        listHomeSections(),
       ])
       return {
         themes: themes.map((row) => rowToContent(row, 'theme')),
         collections: collections.map((row) => rowToContent(row, 'collection')),
         themeLinks,
         collectionLinks,
+        homeSections,
       }
     },
 
@@ -154,6 +185,34 @@ export function createGalleryContentStore(client = supabase) {
       const { data, error } = await client.from(table).insert(rows).select()
       if (error) { remember({ code: 'cloud', detail: error.message }); return fromDbError(error) }
       return { ok: true, links: data || [] }
+    },
+
+    /**
+     * 整组替换首页区块配置(后台保存)。
+     * 与 setLinks 同一策略:先删后插,任一步失败都返回错误,不做部分成功的假象。
+     */
+    async saveHomeSections(sections = []) {
+      const normalized = []
+      for (let i = 0; i < sections.length; i++) {
+        const res = normalizeHomeSectionInput(sections[i])
+        if (!res.ok) return { ok: false, errors: res.errors.map((e) => ({ ...e, index: i })) }
+        normalized.push({ ...res.section, sortOrder: i })
+      }
+
+      // PostgREST 要求 delete 必须带过滤条件;`not id is null` 等价于「删除全部」
+      const del = await client.from(HOME_SECTIONS_TABLE).delete().not('id', 'is', null)
+      if (del.error) {
+        remember({ code: 'cloud', detail: del.error.message })
+        return fromDbError(del.error)
+      }
+      if (normalized.length === 0) return { ok: true, sections: [] }
+
+      const { data, error } = await client
+        .from(HOME_SECTIONS_TABLE)
+        .insert(normalized.map(homeSectionToRow))
+        .select()
+      if (error) { remember({ code: 'cloud', detail: error.message }); return fromDbError(error) }
+      return { ok: true, sections: (data || []).map(rowToHomeSection) }
     },
   }
 }
