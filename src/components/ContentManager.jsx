@@ -17,6 +17,9 @@ import { useScrollLock } from '../hooks/useScrollLock'
 import {
   CONTENT_STATUS,
   TRANSLATION_LANGS,
+  HOME_SECTION_KINDS,
+  HOME_SECTION_SOURCE_KINDS,
+  DEFAULT_SECTION_LIMIT,
   checkContentHealth,
   localizedContentText,
 } from '../services/gallery/contentModel'
@@ -139,6 +142,199 @@ function HealthPanel({ themes, collections, templates, themeTemplateIds, collect
   )
 }
 
+
+/** 区块类型 → i18n 后缀(与 admin.content.kind* 对应) */
+const SECTION_KIND_LABEL = {
+  featured: 'kindFeatured',
+  popular: 'kindPopular',
+  latest: 'kindLatest',
+  themes: 'kindThemes',
+  collections: 'kindCollections',
+  theme: 'kindTheme',
+  collection: 'kindCollection',
+}
+
+/**
+ * 首页区块配置面板。
+ *
+ * 编辑在本地草稿里进行(增删改排序),点「保存」才整组提交 ——
+ * 与关联表编辑一致,避免每次点按都打一次数据库。
+ */
+function HomeSectionsPanel({ content, themes, collections }) {
+  const { t, i18n } = useTranslation()
+  const [draft, setDraft] = useState(null)
+  const [saving, setSaving] = useState(false)
+  const [error, setError] = useState('')
+
+  // 进入面板时把已保存配置复制成草稿;保存成功后重新同步
+  const sections = draft ?? content.homeSections ?? []
+
+  const update = (index, patch) => {
+    const next = sections.map((s, i) => (i === index ? { ...s, ...patch } : s))
+    setDraft(next)
+  }
+
+  const move = (index, delta) => {
+    const target = index + delta
+    if (target < 0 || target >= sections.length) return
+    const next = [...sections]
+    ;[next[index], next[target]] = [next[target], next[index]]
+    setDraft(next.map((s, i) => ({ ...s, sortOrder: i })))
+  }
+
+  const add = () => {
+    setDraft([
+      ...sections,
+      {
+        kind: 'popular',
+        sourceId: null,
+        title: '',
+        subtitle: '',
+        limitCount: DEFAULT_SECTION_LIMIT,
+        isEnabled: true,
+        sortOrder: sections.length,
+      },
+    ])
+  }
+
+  const remove = (index) => {
+    setDraft(sections.filter((_, i) => i !== index).map((s, i) => ({ ...s, sortOrder: i })))
+  }
+
+  const save = async () => {
+    setSaving(true)
+    setError('')
+    try {
+      const res = await content.saveHomeSections(sections)
+      if (!res.ok) {
+        const first = res.errors?.[0]
+        setError(first?.detail || t(`admin.content.errors.${first?.code}`, first?.code || 'unknown'))
+        return
+      }
+      setDraft(null)
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  const sourceOptions = (kind) => (kind === 'theme' ? themes : collections)
+
+  return (
+    <div className="admin-card content-sections">
+      <div className="admin-actions" style={{ justifyContent: 'space-between', flexWrap: 'wrap' }}>
+        <div>
+          <strong>{t('admin.content.homeSections')}</strong>
+          <p className="admin-hint">{t('admin.content.sectionHint')}</p>
+        </div>
+        <button className="admin-btn primary" onClick={add}>
+          <Plus size={14} aria-hidden="true" />
+          {t('admin.content.addSection')}
+        </button>
+      </div>
+
+      {sections.length === 0 ? (
+        <div className="admin-empty">{t('admin.content.sectionsEmpty')}</div>
+      ) : (
+        <ul className="content-section-list">
+          {sections.map((section, index) => {
+            const needsSource = HOME_SECTION_SOURCE_KINDS.includes(section.kind)
+            return (
+              <li key={section.id || `new-${index}`} className="content-section-row">
+                <div className="content-section-main">
+                  <label>
+                    <span>{t('admin.content.sectionKind')}</span>
+                    <select
+                      value={section.kind}
+                      onChange={(e) => update(index, {
+                        kind: e.target.value,
+                        // 切到聚合型时清掉 sourceId,避免违反 DB 约束
+                        sourceId: HOME_SECTION_SOURCE_KINDS.includes(e.target.value) ? section.sourceId : null,
+                      })}
+                    >
+                      {HOME_SECTION_KINDS.map((k) => (
+                        <option key={k} value={k}>{t(`admin.content.${SECTION_KIND_LABEL[k]}`)}</option>
+                      ))}
+                    </select>
+                  </label>
+
+                  {needsSource && (
+                    <label>
+                      <span>{t('admin.content.sectionSource')}</span>
+                      <select
+                        value={section.sourceId || ''}
+                        onChange={(e) => update(index, { sourceId: e.target.value || null })}
+                      >
+                        <option value="">—</option>
+                        {sourceOptions(section.kind).map((item) => (
+                          <option key={item.id} value={item.id}>
+                            {localizedContentText(item, i18n.language).title}
+                            {item.status !== CONTENT_STATUS.PUBLISHED ? ' (draft)' : ''}
+                          </option>
+                        ))}
+                      </select>
+                    </label>
+                  )}
+
+                  <label>
+                    <span>{t('admin.content.sectionTitle')}</span>
+                    <input
+                      className="admin-input"
+                      value={section.title || ''}
+                      placeholder={t('admin.content.sectionTitleHint')}
+                      onChange={(e) => update(index, { title: e.target.value })}
+                    />
+                  </label>
+
+                  <label>
+                    <span>{t('admin.content.sectionLimit')}</span>
+                    <input
+                      className="admin-input"
+                      type="number"
+                      min="1"
+                      max="50"
+                      value={section.limitCount}
+                      onChange={(e) => update(index, { limitCount: e.target.value })}
+                    />
+                  </label>
+
+                  <label className="content-section-check">
+                    <input
+                      type="checkbox"
+                      checked={section.isEnabled !== false}
+                      onChange={(e) => update(index, { isEnabled: e.target.checked })}
+                    />
+                    <span>{t('admin.content.sectionEnabled')}</span>
+                  </label>
+                </div>
+
+                <div className="content-section-actions">
+                  <button className="admin-btn secondary small" onClick={() => move(index, -1)} disabled={index === 0} aria-label={t('admin.content.moveUp')}>
+                    <ArrowUp size={14} />
+                  </button>
+                  <button className="admin-btn secondary small" onClick={() => move(index, 1)} disabled={index === sections.length - 1} aria-label={t('admin.content.moveDown')}>
+                    <ArrowDown size={14} />
+                  </button>
+                  <button className="admin-btn secondary small" onClick={() => remove(index)} aria-label={t('admin.content.removeSection')}>
+                    <Trash2 size={14} />
+                  </button>
+                </div>
+              </li>
+            )
+          })}
+        </ul>
+      )}
+
+      {error && <p className="content-section-error" role="alert">{error}</p>}
+
+      <div className="admin-actions" style={{ justifyContent: 'flex-end' }}>
+        <button className="admin-btn primary" onClick={save} disabled={saving || draft === null}>
+          {t('admin.content.saveSections')}
+        </button>
+      </div>
+    </div>
+  )
+}
+
 export default function ContentManager({ cloudStore }) {
   const { t, i18n } = useTranslation()
   const content = useGalleryContent()
@@ -216,6 +412,12 @@ export default function ContentManager({ cloudStore }) {
 
   return (
     <div>
+      <HomeSectionsPanel
+        content={content}
+        themes={content.themes}
+        collections={content.collections}
+      />
+
       <HealthPanel
         themes={content.themes}
         collections={content.collections}

@@ -18,10 +18,12 @@ const contentState = {
   collections: [],
   themeTemplateIds: new Map(),
   collectionTemplateIds: new Map(),
+  homeSections: [],
   createContent: vi.fn(),
   updateContent: vi.fn(),
   deleteContent: vi.fn(),
   setLinks: vi.fn(),
+  saveHomeSections: vi.fn(),
   reload: vi.fn(),
 }
 
@@ -40,6 +42,8 @@ afterEach(() => {
   contentState.collections = []
   contentState.themeTemplateIds = new Map()
   contentState.collectionTemplateIds = new Map()
+  contentState.homeSections = []
+  contentState.saveHomeSections = vi.fn()
 })
 
 const theme = (id, over = {}) => ({
@@ -136,5 +140,83 @@ describe('ContentManager', () => {
     const deleteButtons = screen.getAllByRole('button', { name: '删除' })
     fireEvent.click(deleteButtons[deleteButtons.length - 1])
     await waitFor(() => expect(contentState.deleteContent).toHaveBeenCalledWith('theme', 'a'))
+  })
+})
+
+describe('ContentManager · 首页区块配置', () => {
+  const section = (over = {}) => ({
+    kind: 'popular',
+    sourceId: null,
+    title: '',
+    subtitle: '',
+    limitCount: 12,
+    isEnabled: true,
+    sortOrder: 0,
+    ...over,
+  })
+
+  it('无配置时显示空态提示,并允许新增区块', async () => {
+    render(<ContentManager cloudStore={{ templates: [] }} />)
+    expect(screen.getByText('还没有配置区块,首页将使用默认顺序。')).toBeTruthy()
+
+    fireEvent.click(screen.getByText('新增区块'))
+    await waitFor(() => expect(document.querySelectorAll('.content-section-row')).toHaveLength(1))
+  })
+
+  it('保存时按当前顺序整组提交', async () => {
+    contentState.homeSections = [
+      section({ id: 's1', kind: 'popular', sortOrder: 0 }),
+      section({ id: 's2', kind: 'latest', sortOrder: 1 }),
+    ]
+    contentState.saveHomeSections = vi.fn().mockResolvedValue({ ok: true })
+    render(<ContentManager cloudStore={{ templates: [] }} />)
+
+    const rows = document.querySelectorAll('.content-section-row')
+    expect(rows).toHaveLength(2)
+
+    // 第二行上移 → 顺序变成 latest, popular
+    fireEvent.click(rows[1].querySelectorAll('.content-section-actions button')[0])
+    fireEvent.click(screen.getByText('保存区块配置'))
+
+    await waitFor(() => expect(contentState.saveHomeSections).toHaveBeenCalledTimes(1))
+    const sent = contentState.saveHomeSections.mock.calls[0][0]
+    expect(sent.map((x) => x.kind)).toEqual(['latest', 'popular'])
+    // sortOrder 按新顺序重排
+    expect(sent.map((x) => x.sortOrder)).toEqual([0, 1])
+  })
+
+  it('保存失败时显示错误,不清空草稿', async () => {
+    contentState.homeSections = [section({ id: 's1' })]
+    contentState.saveHomeSections = vi.fn().mockResolvedValue({
+      ok: false,
+      errors: [{ code: 'invalidLimit', detail: '0' }],
+    })
+    render(<ContentManager cloudStore={{ templates: [] }} />)
+
+    // 未改动时保存按钮是禁用的(避免无意义写入);先改一处再保存
+    fireEvent.change(document.querySelector('.content-section-row input[type="number"]'), {
+      target: { value: '6' },
+    })
+    fireEvent.click(screen.getByText('保存区块配置'))
+    // 错误详情展示在面板里(错误码未知时回退为 detail)
+    await waitFor(() => expect(document.querySelector('.content-sections .content-section-error')).toBeTruthy())
+    expect(document.querySelector('.content-sections .content-section-error').textContent).toContain('0')
+    // 行仍在(草稿没被丢弃)
+    expect(document.querySelectorAll('.content-section-row')).toHaveLength(1)
+  })
+
+  it('切换区块类型时清掉不适用的 sourceId', async () => {
+    contentState.homeSections = [section({ id: 's1', kind: 'theme', sourceId: 'theme-1' })]
+    render(<ContentManager cloudStore={{ templates: [] }} />)
+
+    const kindSelect = document.querySelector('.content-section-row select')
+    fireEvent.change(kindSelect, { target: { value: 'popular' } })
+
+    // 切到 popular 后不再显示「数据来源」下拉
+    await waitFor(() => {
+      const labels = Array.from(document.querySelectorAll('.content-section-row label'))
+        .map((l) => l.textContent)
+      expect(labels.some((x) => x.includes('数据来源'))).toBe(false)
+    })
   })
 })

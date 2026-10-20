@@ -524,6 +524,67 @@ export default function AdminPanel({ user, isAdmin, authLoading, onLogin, onLogo
         .admin-btn.danger:hover { background: var(--error); opacity: 0.9; }
         .admin-btn.small { height: 28px; padding: 0 10px; font-size: 12px; }
         .admin-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+        /* ── 首页区块配置 ─────────────────────────────────── */
+        .content-section-list {
+          list-style: none;
+          margin: 0;
+          padding: 0;
+          display: flex;
+          flex-direction: column;
+          gap: 10px;
+        }
+        .content-section-row {
+          display: flex;
+          flex-wrap: wrap;
+          gap: 10px;
+          align-items: flex-end;
+          padding: 10px;
+          border: 1px solid var(--border-color);
+          border-radius: 10px;
+          background: var(--bg-secondary);
+        }
+        .content-section-main {
+          flex: 1 1 480px;
+          display: flex;
+          flex-wrap: wrap;
+          gap: 8px;
+          align-items: flex-end;
+        }
+        .content-section-main label {
+          display: flex;
+          flex-direction: column;
+          gap: 4px;
+          font-size: var(--text-xs);
+          color: var(--text-secondary);
+        }
+        .content-section-main select,
+        .content-section-main input.admin-input {
+          min-height: 34px;
+          padding: 6px 8px;
+          border: 1px solid var(--border-color);
+          border-radius: 8px;
+          background: var(--bg-primary);
+          color: var(--text-primary);
+          font-family: inherit;
+          font-size: var(--text-sm);
+        }
+        .content-section-main input[type="number"] { width: 84px; }
+        .content-section-check {
+          flex-direction: row !important;
+          align-items: center;
+          gap: 6px !important;
+          min-height: 34px;
+        }
+        .content-section-actions {
+          display: flex;
+          gap: 4px;
+        }
+        .content-section-error {
+          margin: 8px 0 0;
+          color: var(--error);
+          font-size: var(--text-sm);
+        }
+
         .admin-errors {
           margin: 8px 0 0;
           padding: 10px 12px;
