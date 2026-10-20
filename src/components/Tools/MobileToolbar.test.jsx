@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeAll, beforeEach, afterEach, vi } from 'vitest'
 import { render, screen, fireEvent, cleanup, act } from '@testing-library/react'
-import i18n from '../../i18n'
+import i18n, { ensureLanguage } from '../../i18n'
 import MobileToolbar from './MobileToolbar'
 
 /**
@@ -68,23 +68,69 @@ describe('MobileToolbar · 选区操作条', () => {
     expect(bar.querySelectorAll('button')).toHaveLength(0)
   })
 
-  it('每个选区命令按钮都有可见文字,不是纯图标', () => {
+  it('每个选区命令按钮都有可见短标签,完整说明在 aria-label', () => {
     renderBar({ selection: { x: 0, y: 0, w: 2, h: 2 } })
     const buttons = [...$$('[data-testid="mobile-selection-bar"] button')]
+    // 可见文字用短标签(填充/擦除/左右翻转/…):一行放得下,长译文也不会把按钮撑破
     const expected = [
-      i18n.t('tools.fillSelection'),
-      i18n.t('tools.clearSelection'),
-      i18n.t('tools.mirrorH'),
-      i18n.t('tools.mirrorV'),
-      i18n.t('tools.rotateCw'),
-      i18n.t('tools.rotateCcw'),
-      i18n.t('tools.clearSelectionBtn'),
+      ['tools.selectionFillShort', 'tools.fillSelection'],
+      ['tools.selectionEraseShort', 'tools.clearSelection'],
+      ['tools.selectionFlipHShort', 'tools.mirrorH'],
+      ['tools.selectionFlipVShort', 'tools.mirrorV'],
+      ['tools.selectionRotateCwShort', 'tools.rotateCw'],
+      ['tools.selectionRotateCcwShort', 'tools.rotateCcw'],
+      ['tools.clearSelectionBtn', 'tools.clearSelectionBtn'],
     ]
     expect(buttons).toHaveLength(expected.length)
-    for (const label of expected) {
+    for (const [shortKey, fullKey] of expected) {
+      const label = i18n.t(shortKey)
       const btn = buttons.find(b => b.textContent.includes(label))
       expect(btn, `缺少带文字的按钮:${label}`).toBeTruthy()
+      // 文字必须包在可省略号的 span 里,而不是裸文本 —— 裸文本无法截断,
+      // 长译文(如日语「塗りつぶし」)会把按钮撑出屏幕。
+      const labelEl = btn.querySelector('.selection-btn-label')
+      expect(labelEl, `按钮缺少 label 容器:${label}`).toBeTruthy()
+      expect(labelEl.textContent).toBe(label)
+      // 完整语义不能丢:读屏与长按提示仍然给出全称
+      expect(btn.getAttribute('aria-label')).toBe(i18n.t(fullKey))
     }
+  })
+
+  it('短标签足够窄,按钮内的文字不会被迫折行(四种语言都检查)', async () => {
+    // 约束不是「字符数」而是「渲染宽度」:中日韩字符按 1em、拉丁字符按 0.55em 估算。
+    // 手机最窄 320px,工具栏左右各 12px 内边距 → 可用约 296px = 24.6em(12px 字号)。
+    // 预算 10em(约 120px)保证「图标 14px + 间距 + 内边距」之后仍远小于一行宽度,
+    // 超长译文会先被省略号截断(见 .selection-btn-label),绝不会把布局撑破。
+    const widthEm = (text) => [...text].reduce((sum, ch) => {
+      const cjk = /[぀-ヿ㐀-䶿一-鿿가-힯]/.test(ch)
+      return sum + (cjk ? 1 : 0.55)
+    }, 0)
+
+    const keys = [
+      'selectionFillShort', 'selectionEraseShort',
+      'selectionFlipHShort', 'selectionFlipVShort',
+      'selectionRotateCwShort', 'selectionRotateCcwShort',
+    ]
+    for (const lng of ['zh-CN', 'en-US', 'ja-JP', 'ko-KR']) {
+      await ensureLanguage(lng)
+      for (const key of keys) {
+        const text = i18n.getResourceBundle(lng, 'translation').tools[key]
+        expect(text, `${lng}.${key} 缺失`).toBeTruthy()
+        expect(widthEm(text), `${lng}.${key} 过宽(${widthEm(text).toFixed(1)}em):${text}`)
+          .toBeLessThanOrEqual(10)
+      }
+    }
+  })
+
+  it('按钮行允许换行,按钮本身不换行(文字不跨行、不溢出)', () => {
+    renderBar({ selection: { x: 0, y: 0, w: 2, h: 2 } })
+    const row = $('.selection-actions-row')
+    expect(row).toBeTruthy()
+    // 结构层面:flex-wrap 由 CSS 保证;这里锁定每个按钮都带 label 容器,
+    // 且「取消选区」与命令按钮分开放置(退出动作不混在编辑动作里)
+    const clearBtn = [...row.querySelectorAll('button')]
+      .find(b => b.textContent.includes(i18n.t('tools.clearSelectionBtn')))
+    expect(clearBtn.classList.contains('selection-clear')).toBe(true)
   })
 
   it('移动提示与选区尺寸同时可见', () => {
@@ -98,7 +144,8 @@ describe('MobileToolbar · 选区操作条', () => {
   it('点击命令按钮回调对应命令', () => {
     const { props } = renderBar({ selection: { x: 0, y: 0, w: 2, h: 2 } })
     const buttons = [...$$('[data-testid="mobile-selection-bar"] button')]
-    const mirrorH = buttons.find(b => b.textContent.includes(i18n.t('tools.mirrorH')))
+    // 用 aria-label 定位(按钮可见文字是短标签,完整命令名在 aria-label)
+    const mirrorH = buttons.find(b => b.getAttribute('aria-label') === i18n.t('tools.mirrorH'))
     fireEvent.click(mirrorH)
     expect(props.onSelectionCommand).toHaveBeenCalledWith('mirrorH')
   })

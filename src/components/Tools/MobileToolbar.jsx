@@ -129,6 +129,22 @@ const ReplaceIcon = () => (
 )
 
 // ── 选区变换图标:与桌面端同一套线条,移动端配可见文字标签 ──────────
+// 填充 / 擦除:与工具行同一套图标,缩小到与变换按钮一致(14px)
+const PaintBucketIcon = () => (
+  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M19 11l-8-8-8.5 8.5a5.5 5.5 0 0 0 7.78 7.78L19 11z" />
+    <path d="M20 23a2 2 0 0 0 2-2c0-1.5-2-2.5-2-4s2-2.5 2-4" />
+    <path d="M3 21l3-3" />
+  </svg>
+)
+
+const EraserIcon = () => (
+  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M20 20H7L3 16l9-9 8 8-4 4" />
+    <path d="M6.5 12.5l4 4" />
+  </svg>
+)
+
 const MirrorHIcon = () => (
   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
     <path d="M8 3H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h3" />
@@ -449,27 +465,58 @@ export default function MobileToolbar({
                   <MoveIcon />{t('tools.selectionMoveHint')}
                 </span>
               </div>
+              {/* 按钮文字用「短标签」(填充 / 左右翻转 / 顺时针 …):
+                  移动端一行能放下 3–4 个,不必为了塞下长句而折成四五行;
+                  完整说明放在 aria-label / title,读屏与长按提示仍然完整。 */}
               <div className="selection-actions-row">
-                <button className="selection-btn" onClick={() => onSelectionCommand?.('fill')}>
-                  {t('tools.fillSelection')}
+                <button
+                  className="selection-btn"
+                  aria-label={t('tools.fillSelection')} title={t('tools.fillSelection')}
+                  onClick={() => onSelectionCommand?.('fill')}
+                >
+                  <PaintBucketIcon /><span className="selection-btn-label">{t('tools.selectionFillShort')}</span>
                 </button>
-                <button className="selection-btn" onClick={() => onSelectionCommand?.('erase')}>
-                  {t('tools.clearSelection')}
+                <button
+                  className="selection-btn"
+                  aria-label={t('tools.clearSelection')} title={t('tools.clearSelection')}
+                  onClick={() => onSelectionCommand?.('erase')}
+                >
+                  <EraserIcon /><span className="selection-btn-label">{t('tools.selectionEraseShort')}</span>
                 </button>
-                <button className="selection-btn" onClick={() => onSelectionCommand?.('mirrorH')}>
-                  <MirrorHIcon />{t('tools.mirrorH')}
+                <button
+                  className="selection-btn"
+                  aria-label={t('tools.mirrorH')} title={t('tools.mirrorH')}
+                  onClick={() => onSelectionCommand?.('mirrorH')}
+                >
+                  <MirrorHIcon /><span className="selection-btn-label">{t('tools.selectionFlipHShort')}</span>
                 </button>
-                <button className="selection-btn" onClick={() => onSelectionCommand?.('mirrorV')}>
-                  <MirrorVIcon />{t('tools.mirrorV')}
+                <button
+                  className="selection-btn"
+                  aria-label={t('tools.mirrorV')} title={t('tools.mirrorV')}
+                  onClick={() => onSelectionCommand?.('mirrorV')}
+                >
+                  <MirrorVIcon /><span className="selection-btn-label">{t('tools.selectionFlipVShort')}</span>
                 </button>
-                <button className="selection-btn" onClick={() => onSelectionCommand?.('rotateCw')}>
-                  <RotateCwIcon />{t('tools.rotateCw')}
+                <button
+                  className="selection-btn"
+                  aria-label={t('tools.rotateCw')} title={t('tools.rotateCw')}
+                  onClick={() => onSelectionCommand?.('rotateCw')}
+                >
+                  <RotateCwIcon /><span className="selection-btn-label">{t('tools.selectionRotateCwShort')}</span>
                 </button>
-                <button className="selection-btn" onClick={() => onSelectionCommand?.('rotateCcw')}>
-                  <RotateCcwIcon />{t('tools.rotateCcw')}
+                <button
+                  className="selection-btn"
+                  aria-label={t('tools.rotateCcw')} title={t('tools.rotateCcw')}
+                  onClick={() => onSelectionCommand?.('rotateCcw')}
+                >
+                  <RotateCcwIcon /><span className="selection-btn-label">{t('tools.selectionRotateCcwShort')}</span>
                 </button>
-                <button className="selection-btn" onClick={onClearSelection}>
-                  {t('tools.clearSelectionBtn')}
+                <button
+                  className="selection-btn selection-clear"
+                  aria-label={t('tools.clearSelectionBtn')} title={t('tools.clearSelectionBtn')}
+                  onClick={onClearSelection}
+                >
+                  <span className="selection-btn-label">{t('tools.clearSelectionBtn')}</span>
                 </button>
               </div>
             </>

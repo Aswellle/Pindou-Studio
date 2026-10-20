@@ -505,6 +505,12 @@
     "selectionMoveHint": "選択範囲の内側をドラッグすると内容を移動できます",
     "selectionGuideStep1": "キャンバス上で長押ししながらドラッグして範囲を囲みます",
     "selectionGuideStep2": "選択完了:内側をドラッグすると内容を移動できます。下のボタンで塗りつぶし・消去・反転・回転ができます",
+    "selectionFillShort": "塗りつぶし",
+    "selectionEraseShort": "消去",
+    "selectionFlipHShort": "左右反転",
+    "selectionFlipVShort": "上下反転",
+    "selectionRotateCwShort": "時計回り",
+    "selectionRotateCcwShort": "反時計回り",
     "pickedColorToast": "{{hex}} を取得しました"
   },
   "gallery": {

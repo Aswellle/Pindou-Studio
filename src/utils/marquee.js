@@ -1,0 +1,74 @@
+/**
+ * Selection marquee rendering, shared by the PC and touch paths.
+ *
+ * The marquee lives on the overlay canvas and is redrawn:
+ *   - on every pointer move while the user is dragging a new rectangle,
+ *   - on every pointer move while the user drags the selection contents,
+ *   - by a slow animation tick after the rectangle is committed (marching ants),
+ *     so the finished selection reads as an active region rather than a static
+ *     rectangle that looks like part of the artwork.
+ *
+ * Line width, dash lengths and handle radius are divided by the canvas zoom
+ * (1 / scale) so the marquee keeps a constant on-screen weight: at 0.3× it is
+ * still visible, at 5× it does not turn into a thick band. The dash offset is
+ * scaled the same way so the ants crawl at the same visual speed at any zoom.
+ *
+ * Pure function (no React, no canvas element lookup) so it can be unit-tested
+ * with a recording 2d context.
+ */
+
+export const MARQUEE_DASH_PERIOD = 10 // dash + gap in canvas units at scale 1
+export const MARQUEE_STROKE = 'rgba(74, 155, 142, 0.95)'
+export const MARQUEE_FILL = 'rgba(74, 155, 142, 0.10)'
+const HANDLE_RADIUS = 5
+
+/**
+ * @param {CanvasRenderingContext2D} ctx
+ * @param {{x:number,y:number,w:number,h:number}} rect  selection in grid cells
+ * @param {object} [opts]
+ * @param {number} [opts.cellSize=16]   canvas px per grid cell
+ * @param {number} [opts.scale=1]       current canvas zoom (CSS transform)
+ * @param {number} [opts.dashOffset=0]  marching-ants phase
+ * @param {boolean} [opts.handles=false] draw corner handles (touch devices)
+ */
+export function drawMarquee(ctx, rect, {
+  cellSize = 16,
+  scale = 1,
+  dashOffset = 0,
+  handles = false,
+} = {}) {
+  if (!ctx || !rect) return
+  const zoom = scale > 0 ? scale : 1
+  const inv = 1 / zoom
+
+  const px = rect.x * cellSize
+  const py = rect.y * cellSize
+  const pw = rect.w * cellSize
+  const ph = rect.h * cellSize
+
+  ctx.save()
+  ctx.fillStyle = MARQUEE_FILL
+  ctx.fillRect(px, py, pw, ph)
+  ctx.setLineDash([6 * inv, 4 * inv])
+  ctx.lineDashOffset = dashOffset * inv
+  ctx.lineWidth = 2 * inv
+  ctx.strokeStyle = MARQUEE_STROKE
+  // 向内缩进半条线宽,避免描边压在选区外的格子上
+  ctx.strokeRect(px + inv, py + inv, pw - 2 * inv, ph - 2 * inv)
+  ctx.restore()
+
+  // 触摸设备没有 hover,用四角把手明确「这块区域可以按住拖动」。
+  if (handles) {
+    const r = HANDLE_RADIUS * inv
+    ctx.save()
+    ctx.fillStyle = MARQUEE_STROKE
+    for (const [hx, hy] of [
+      [px, py], [px + pw, py], [px, py + ph], [px + pw, py + ph],
+    ]) {
+      ctx.beginPath()
+      ctx.arc(hx, hy, r, 0, Math.PI * 2)
+      ctx.fill()
+    }
+    ctx.restore()
+  }
+}

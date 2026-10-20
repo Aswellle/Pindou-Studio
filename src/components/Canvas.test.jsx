@@ -24,13 +24,14 @@ vi.mock('react-i18next', () => ({
 // like a real 48×48 px canvas (3×3 grid, scale 1): a click at (24,24) maps to
 // cell (1,1).
 function installCanvasMocks(hooks = {}) {
-  const calls = { fillRect: [], stroke: 0, moveTo: [], lineTo: [], clearRect: [], setLineDash: [], arc: [] }
+  const calls = { fillRect: [], stroke: 0, moveTo: [], lineTo: [], clearRect: [], setLineDash: [], arc: [], strokeRect: [] }
   const ctx = {
     fillStyle: '#000000',
     strokeStyle: '#000000',
     lineWidth: 1,
+    lineDashOffset: 0,
     fillRect: (x, y, w, h) => calls.fillRect.push({ x, y, w, h }),
-    strokeRect: () => {},
+    strokeRect: (x, y, w, h) => calls.strokeRect.push({ x, y, w, h }),
     beginPath: () => {},
     closePath: () => {},
     moveTo: (x, y) => calls.moveTo.push({ x, y }),
@@ -627,6 +628,117 @@ describe('Canvas 拖拽移动 · 手势互斥(M5.2)', () => {
     fireEvent.touchEnd(c, { touches: [] })
 
     expect(onSelectionMove).not.toHaveBeenCalled()
+  })
+})
+
+/**
+ * 选框实时跟随预览:拖动期间虚线框必须逐帧跟手,而不是松手才出现。
+ * 这是「选不到预期范围」的主要来源 —— 用户看不到自己正在框哪里。
+ */
+describe('Canvas 选框实时跟随预览', () => {
+  let mock
+  beforeEach(() => { mock = installCanvasMocks() })
+  afterEach(() => mock.restore())
+
+  function renderSelect() {
+    const onSelectionChange = vi.fn()
+    const view = render(
+      <Canvas
+        gridSize={3}
+        gridWidth={null}
+        gridHeight={null}
+        selectedColor="#ff0000"
+        tool="select"
+        committedData={blankGrid(3)}
+        onCanvasChange={vi.fn()}
+        onSelectionChange={onSelectionChange}
+      />
+    )
+    return { ...view, onSelectionChange }
+  }
+
+  test('按下即画出 1×1 选框,不用等第一次移动', () => {
+    const { container } = renderSelect()
+    const c = container.querySelector('.canvas-container')
+    const before = mock.calls.strokeRect.length
+
+    fireEvent.mouseDown(c, { clientX: 24, clientY: 24 })
+
+    const drawn = mock.calls.strokeRect.slice(before)
+    // 单元 16px、1×1、线宽 2(scale 1)→ 内缩 1px 描边
+    expect(drawn).toContainEqual({ x: 17, y: 17, w: 14, h: 14 })
+  })
+
+  test('拖动过程中每一步都重画选框,范围与指针同步', () => {
+    const { container } = renderSelect()
+    const c = container.querySelector('.canvas-container')
+
+    fireEvent.mouseDown(c, { clientX: 8, clientY: 8 })
+    const afterDown = mock.calls.strokeRect.length
+
+    fireEvent.mouseMove(c, { clientX: 24, clientY: 8 })
+    const afterFirst = mock.calls.strokeRect.length
+    fireEvent.mouseMove(c, { clientX: 40, clientY: 40 })
+    const afterSecond = mock.calls.strokeRect.length
+
+    // 每次移动都产生新的选框描边
+    expect(afterFirst).toBeGreaterThan(afterDown)
+    expect(afterSecond).toBeGreaterThan(afterFirst)
+
+    // 最后一次选框 = (0,0) 到 (2,2) 的 3×3 区域
+    const last = mock.calls.strokeRect.at(-1)
+    expect(last).toEqual({ x: 1, y: 1, w: 46, h: 46 })
+  })
+
+  test('反向拖动时选框同样实时跟随(左上角随之翻转)', () => {
+    const { container } = renderSelect()
+    const c = container.querySelector('.canvas-container')
+
+    fireEvent.mouseDown(c, { clientX: 40, clientY: 40 })
+    fireEvent.mouseMove(c, { clientX: 8, clientY: 24 })
+
+    const last = mock.calls.strokeRect.at(-1)
+    // (0,1) → (2,2):x=0,y=16,w=48,h=32,内缩 1px
+    expect(last).toEqual({ x: 1, y: 17, w: 46, h: 30 })
+  })
+
+  test('触屏拖动同样逐帧重画选框', () => {
+    const { container } = renderSelect()
+    const c = container.querySelector('.canvas-container')
+
+    fireEvent.touchStart(c, { touches: [{ clientX: 8, clientY: 8, identifier: 0 }] })
+    const afterDown = mock.calls.strokeRect.length
+    fireEvent.touchMove(c, { touches: [{ clientX: 24, clientY: 24, identifier: 0 }] })
+    fireEvent.touchMove(c, { touches: [{ clientX: 40, clientY: 40, identifier: 0 }] })
+
+    expect(mock.calls.strokeRect.length).toBeGreaterThan(afterDown)
+    expect(mock.calls.strokeRect.at(-1)).toEqual({ x: 1, y: 1, w: 46, h: 46 })
+  })
+
+  test('拖拽移动选区时,选框跟随内容一起移动', () => {
+    const data = blankGrid(3)
+    data[0][0] = '#E53935'
+    const view = render(
+      <Canvas
+        gridSize={3}
+        gridWidth={null}
+        gridHeight={null}
+        selectedColor="#ff0000"
+        tool="select"
+        committedData={data}
+        selection={{ x: 0, y: 0, w: 2, h: 1 }}
+        onCanvasChange={vi.fn()}
+        onSelectionChange={vi.fn()}
+        onSelectionMove={vi.fn()}
+      />
+    )
+    const c = view.container.querySelector('.canvas-container')
+
+    fireEvent.mouseDown(c, { clientX: 8, clientY: 8 })
+    fireEvent.mouseMove(c, { clientX: 24, clientY: 24 })
+
+    // 偏移 (1,1):选框移到 x=16,y=16
+    expect(mock.calls.strokeRect.at(-1)).toEqual({ x: 17, y: 17, w: 30, h: 14 })
   })
 })
 

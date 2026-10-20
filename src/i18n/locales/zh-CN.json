@@ -505,6 +505,12 @@
     "selectionMoveHint": "在选区内拖动即可移动内容",
     "selectionGuideStep1": "先在画布上按住拖动，框出一块区域",
     "selectionGuideStep2": "选区已就绪：按住选区内部拖动可移动内容，下方按钮可填充、擦除、镜像或旋转",
+    "selectionFillShort": "填充",
+    "selectionEraseShort": "擦除",
+    "selectionFlipHShort": "左右翻转",
+    "selectionFlipVShort": "上下翻转",
+    "selectionRotateCwShort": "顺时针",
+    "selectionRotateCcwShort": "逆时针",
     "pickedColorToast": "已取色 {{hex}}"
   },
   "gallery": {

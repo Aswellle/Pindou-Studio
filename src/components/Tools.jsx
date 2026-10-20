@@ -138,7 +138,9 @@ export default function Tools({
           </div>
         </div>
 
-        {/* 选区命令:仅在选区工具且有选区时展开,不占常驻空间 */}
+        {/* 选区命令:仅在选区工具且有选区时展开,不占常驻空间。
+            按钮排成单列(图标 + 文字,左对齐):侧栏只有 200px,两列布局下
+            「顺时针旋转」这类标签会顶出按钮边界;单列保证任何语言都不换行、不溢出。 */}
         {tool === 'select' && (
           <div className="tool-group selection-group">
             <label className="tool-label">{t('tools.selection')}</label>
@@ -149,25 +151,25 @@ export default function Tools({
                 </div>
                 <div className="selection-actions">
                   <button className="action-btn" onClick={() => onSelectionCommand?.('fill')} title={t('tools.fillSelection')}>
-                    <PaintBucket size={15} />{t('tools.fillSelection')}
+                    <PaintBucket size={15} /><span className="action-btn-label">{t('tools.fillSelection')}</span>
                   </button>
                   <button className="action-btn" onClick={() => onSelectionCommand?.('erase')} title={t('tools.clearSelection')}>
-                    <Eraser size={15} />{t('tools.clearSelection')}
+                    <Eraser size={15} /><span className="action-btn-label">{t('tools.clearSelection')}</span>
                   </button>
-                  <button className="action-btn icon-only" onClick={() => onSelectionCommand?.('mirrorH')} title={t('tools.mirrorH')}>
-                    <FlipHorizontal2 size={16} />
+                  <button className="action-btn" onClick={() => onSelectionCommand?.('mirrorH')} title={t('tools.mirrorH')}>
+                    <FlipHorizontal2 size={15} /><span className="action-btn-label">{t('tools.mirrorH')}</span>
                   </button>
-                  <button className="action-btn icon-only" onClick={() => onSelectionCommand?.('mirrorV')} title={t('tools.mirrorV')}>
-                    <FlipVertical2 size={16} />
+                  <button className="action-btn" onClick={() => onSelectionCommand?.('mirrorV')} title={t('tools.mirrorV')}>
+                    <FlipVertical2 size={15} /><span className="action-btn-label">{t('tools.mirrorV')}</span>
                   </button>
-                  <button className="action-btn icon-only" onClick={() => onSelectionCommand?.('rotateCw')} title={t('tools.rotateCw')}>
-                    <RotateCw size={16} />
+                  <button className="action-btn" onClick={() => onSelectionCommand?.('rotateCw')} title={t('tools.rotateCw')}>
+                    <RotateCw size={15} /><span className="action-btn-label">{t('tools.rotateCw')}</span>
                   </button>
-                  <button className="action-btn icon-only" onClick={() => onSelectionCommand?.('rotateCcw')} title={t('tools.rotateCcw')}>
-                    <RotateCcw size={16} />
+                  <button className="action-btn" onClick={() => onSelectionCommand?.('rotateCcw')} title={t('tools.rotateCcw')}>
+                    <RotateCcw size={15} /><span className="action-btn-label">{t('tools.rotateCcw')}</span>
                   </button>
-                  <button className="action-btn wide" onClick={onClearSelection} title={t('tools.clearSelectionBtn')}>
-                    <X size={15} />{t('tools.clearSelectionBtn')}
+                  <button className="action-btn selection-clear" onClick={onClearSelection} title={t('tools.clearSelectionBtn')}>
+                    <X size={15} /><span className="action-btn-label">{t('tools.clearSelectionBtn')}</span>
                   </button>
                 </div>
                 {/* 拖拽移动没有按钮,只能靠提示告知(规格 04 §2 要求移动有明确入口) */}
@@ -370,19 +372,31 @@ export default function Tools({
         }
         .selection-actions {
           display: grid;
-          grid-template-columns: 1fr 1fr;
+          grid-template-columns: 1fr;
           gap: 4px;
         }
+        /* 按钮内「图标 + 文字」单行排列,文字允许省略号但不换行、不溢出:
+           侧栏 200px 减去内边距后可用宽度约 140px,四字中文标签(如「顺时针旋转」)
+           在 --text-xs(12px)下约 60px + 图标 15px + 间距,留有余量。 */
         .selection-actions .action-btn {
+          width: 100%;
+          min-width: 0;
           font-size: var(--text-xs);
-          padding: 6px 4px;
-          gap: 4px;
+          padding: 7px 8px;
+          gap: 6px;
+          justify-content: flex-start;
+          white-space: nowrap;
+          overflow: hidden;
         }
-        .selection-actions .action-btn.icon-only {
-          flex: none;
+        .selection-actions .action-btn svg { flex-shrink: 0; }
+        .action-btn-label {
+          min-width: 0;
+          overflow: hidden;
+          text-overflow: ellipsis;
         }
-        .selection-actions .action-btn.wide {
-          grid-column: 1 / -1;
+        .selection-actions .selection-clear {
+          margin-top: 2px;
+          color: var(--text-muted);
         }
         .selection-hint {
           font-size: var(--text-xs);

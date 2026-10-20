@@ -505,6 +505,12 @@
     "selectionMoveHint": "Drag inside the selection to move its contents",
     "selectionGuideStep1": "Press and drag on the canvas to outline an area",
     "selectionGuideStep2": "Selection ready: drag inside it to move the contents; the buttons below fill, erase, mirror or rotate",
+    "selectionFillShort": "Fill",
+    "selectionEraseShort": "Erase",
+    "selectionFlipHShort": "Flip H",
+    "selectionFlipVShort": "Flip V",
+    "selectionRotateCwShort": "Rotate CW",
+    "selectionRotateCcwShort": "Rotate CCW",
     "pickedColorToast": "Picked {{hex}}"
   },
   "gallery": {

@@ -2,6 +2,7 @@ import { useState, useRef, useEffect, useCallback, useImperativeHandle, forwardR
 import { useTranslation } from 'react-i18next'
 import { useCanvasPainter } from '../hooks/useCanvasPainter'
 import { normalizeSelection, pointInSelection, clampMove } from '../utils/selectionUtils'
+import { drawMarquee, MARQUEE_DASH_PERIOD } from '../utils/marquee'
 
 const CELL_SIZE = 16
 const MIN_SCALE = 0.3
@@ -9,6 +10,15 @@ const MAX_SCALE = 5
 const MOMENTUM_FRICTION = 0.88
 const MOMENTUM_THRESHOLD = 0.5
 const BOUNDS_BOOST = 200 // Extra space beyond visible area before bounce-back kicks in
+
+// 触屏判定:设备能力,不是视口宽度 —— 半屏桌面窗口不应被误判成触屏。
+function isCoarsePointer() {
+  return typeof window !== 'undefined' && !!window.matchMedia?.('(pointer: coarse)').matches
+}
+
+// 选框虚线的流动相位:落定后由 rAF 缓慢推进(marching ants),
+// 让选框始终「活着」,一眼能看出这是可操作区域而不是图案的一部分。
+const MARQUEE_TICK_MS = 60
 
 const Canvas = forwardRef(function Canvas({
   gridSize,
@@ -40,11 +50,11 @@ const Canvas = forwardRef(function Canvas({
   // 选区拖动状态(矩形选区工具专用,与笔画状态互斥):
   //   anchor — 按下时的格子;focus — 当前指针所在格子(实时更新选框)
   // 选区本身由父组件持有,画布只负责「拖出矩形」和「绘制选框」。
+  // 拖动中的选框直接画在 overlay 上(见 updateSelection),所以焦点只需 ref,
+  // 不需要 state —— 每帧重渲染反而会拖慢跟手速度。
   const selAnchorRef = useRef(null)
   const selDraggingRef = useRef(false)
-  // 最新焦点用 ref 保存:拖动回调需要读到它,但不希望它进入依赖数组
   const selFocusRef = useRef(null)
-  const [selFocus, setSelFocus] = useState(null)
 
   // 拖拽移动选区内容(M5.2):在选区内按下 → 拖动 → 松手提交。
   //   startPos — 按下时的格子(用于算偏移量)
@@ -54,9 +64,16 @@ const Canvas = forwardRef(function Canvas({
   const moveStartRef = useRef(null)
   const moveBaseSelRef = useRef(null)
   const moveOffsetRef = useRef({ dx: 0, dy: 0 })
-  // 移动结束后强制重画 overlay 选框:若本次移动没有实际变化(比如在边缘被钳住),
+  // 拖拽移动结束后强制重画 overlay 选框:若本次移动没有实际变化(比如在边缘被钳住),
   // selection prop 不会变,effect 不会重跑,选框会停留在被预览清空的状态。
   const [overlayTick, setOverlayTick] = useState(0)
+
+  // 选框虚线的流动相位(marching ants)。用 ref 而非 state:动画每 60ms 推进一次,
+  // 直接重画 overlay 即可,不应触发 React 重渲染。
+  const dashOffsetRef = useRef(0)
+  // 触屏能力在挂载时判定一次并缓存:动画 tick 发生在 render 之外,
+  // 若每帧重新 matchMedia,测试里 mock 被还原后把手会突然消失。
+  const coarsePointerRef = useRef(isCoarsePointer())
 
   // 缩放比例变化时通知父组件
   useEffect(() => {
@@ -166,43 +183,49 @@ const Canvas = forwardRef(function Canvas({
         ctx.strokeRect(hoverCell.x * CELL_SIZE, hoverCell.y * CELL_SIZE, CELL_SIZE, CELL_SIZE)
       }
     }
-    // 选区框画在 overlay 上:棋盘格虚线描边 + 内部淡色遮罩,
-    // 与 hover 高亮同一层,提交/取消时统一 clearOverlay 清掉。
+    // 选区框画在 overlay 上:虚线描边 + 内部淡色遮罩 + (触屏)四角把手。
+    // 线宽/虚线按 1/scale 补偿,缩放到 0.3× 或 5× 都保持同样的屏幕观感。
     if (tool === 'select' && selection) {
-      const ctx = painter.overlayRef.current?.getContext('2d')
-      if (ctx) {
-        const px = selection.x * CELL_SIZE
-        const py = selection.y * CELL_SIZE
-        const pw = selection.w * CELL_SIZE
-        const ph = selection.h * CELL_SIZE
-        ctx.save()
-        ctx.fillStyle = 'rgba(74, 155, 142, 0.10)'
-        ctx.fillRect(px, py, pw, ph)
-        ctx.setLineDash([6, 4])
-        ctx.lineWidth = 2
-        ctx.strokeStyle = 'rgba(74, 155, 142, 0.95)'
-        ctx.strokeRect(px + 1, py + 1, pw - 2, ph - 2)
-        ctx.restore()
-
-        // 触摸设备没有 hover 提示,用四角把手明确「这块区域可以按住拖动」。
-        // 把手画在选框四角,不遮挡内容,也不改变桌面端既有观感(仅在触屏显示)。
-        if (typeof window !== 'undefined' && window.matchMedia?.('(pointer: coarse)').matches) {
-          const HANDLE = 10
-          const r = HANDLE / 2
-          ctx.save()
-          ctx.fillStyle = 'rgba(74, 155, 142, 0.95)'
-          for (const [hx, hy] of [
-            [px, py], [px + pw, py], [px, py + ph], [px + pw, py + ph],
-          ]) {
-            ctx.beginPath()
-            ctx.arc(hx, hy, r, 0, Math.PI * 2)
-            ctx.fill()
-          }
-          ctx.restore()
-        }
-      }
+      drawMarquee(painter.overlayRef.current?.getContext('2d'), selection, {
+        cellSize: CELL_SIZE,
+        scale: transform.scale,
+        dashOffset: dashOffsetRef.current,
+        handles: coarsePointerRef.current,
+      })
     }
-  }, [hoverCell, tool, painter, selection, overlayTick])
+  }, [hoverCell, tool, painter, selection, overlayTick, transform.scale])
+
+  // ─────────────────────────────────────────────────────────────────
+  // Effect 2b: marching ants —— 选框落定后虚线缓慢流动。
+  // 只在「选区工具 + 有选区 + 没有进行中的拖动」时运行,60ms 推进一格相位;
+  // 直接重画 overlay,不进入 React state,因此不会引起重渲染或历史变化。
+  // ─────────────────────────────────────────────────────────────────
+  useEffect(() => {
+    if (tool !== 'select' || !selection) return undefined
+    let raf = 0
+    let last = 0
+    const step = (now) => {
+      if (selDraggingRef.current || moveDraggingRef.current) {
+        // 拖动中由各自的预览路径独占 overlay,这里让位,避免互相清屏闪烁
+        raf = requestAnimationFrame(step)
+        return
+      }
+      if (now - last >= MARQUEE_TICK_MS) {
+        last = now
+        dashOffsetRef.current = (dashOffsetRef.current + 1) % MARQUEE_DASH_PERIOD
+        painter.clearOverlay()
+        drawMarquee(painter.overlayRef.current?.getContext('2d'), selection, {
+          cellSize: CELL_SIZE,
+          scale: transform.scale,
+          dashOffset: dashOffsetRef.current,
+          handles: coarsePointerRef.current,
+        })
+      }
+      raf = requestAnimationFrame(step)
+    }
+    raf = requestAnimationFrame(step)
+    return () => cancelAnimationFrame(raf)
+  }, [tool, selection, painter, transform.scale])
 
   // ─────────────────────────────────────────────────────────────────
   // 坐标转换
@@ -332,7 +355,6 @@ const Canvas = forwardRef(function Canvas({
     selDraggingRef.current = false
     selAnchorRef.current = null
     selFocusRef.current = null
-    setSelFocus(null)
   }, [cols, rows, cancelStroke])
 
   // ─────────────────────────────────────────────────────────────────
@@ -346,22 +368,38 @@ const Canvas = forwardRef(function Canvas({
     }
   }, [committedData, onPickColor])
 
-  // 开始拖选:记录锚点并清掉旧选区(新选区随拖动实时生成)
+  // 开始拖选:记录锚点并清掉旧选区(新选区随拖动实时生成)。
+  // 立即画出 1×1 的选框:按下即有反馈,不用等第一次移动。
   const startSelection = useCallback((x, y) => {
     selAnchorRef.current = { x, y }
     selFocusRef.current = { x, y }
     selDraggingRef.current = true
-    setSelFocus({ x, y })
     onSelectionChange?.(null)
-  }, [onSelectionChange])
+    painter.clearOverlay()
+    drawMarquee(painter.overlayRef.current?.getContext('2d'), { x, y, w: 1, h: 1 }, {
+      cellSize: CELL_SIZE,
+      scale: transform.scale,
+      dashOffset: dashOffsetRef.current,
+      handles: coarsePointerRef.current,
+    })
+  }, [onSelectionChange, painter, transform.scale])
 
-  // 拖动中:把锚点与当前格规范成矩形同步给父组件
+  // 拖动中:把锚点与当前格规范成矩形,**直接画在 overlay 上**。
+  // 不依赖 React 渲染 —— 每一帧移动都立即跟手,虚线框随手指/光标实时变形,
+  // 松手前就能看清将要选中的范围(这是「实时跟随预览」的核心)。
   const updateSelection = useCallback((x, y) => {
     if (!selDraggingRef.current || !selAnchorRef.current) return
     selFocusRef.current = { x, y }
-    setSelFocus({ x, y })
-    onSelectionChange?.(normalizeSelection(selAnchorRef.current, { x, y }, cols, rows))
-  }, [onSelectionChange, cols, rows])
+    const rect = normalizeSelection(selAnchorRef.current, { x, y }, cols, rows)
+    painter.clearOverlay()
+    drawMarquee(painter.overlayRef.current?.getContext('2d'), rect, {
+      cellSize: CELL_SIZE,
+      scale: transform.scale,
+      dashOffset: dashOffsetRef.current,
+      handles: coarsePointerRef.current,
+    })
+    onSelectionChange?.(rect)
+  }, [onSelectionChange, cols, rows, painter, transform.scale])
 
   // 松开:确认选区。单击(锚点=焦点)视为「取消选区」,避免 1×1 选框常驻。
   const endSelection = useCallback(() => {
@@ -369,15 +407,25 @@ const Canvas = forwardRef(function Canvas({
     selDraggingRef.current = false
     const anchor = selAnchorRef.current
     selAnchorRef.current = null
-    setSelFocus(null)
     if (!anchor) return
     const focus = selFocusRef.current || anchor
     if (anchor.x === focus.x && anchor.y === focus.y) {
+      painter.clearOverlay()
       onSelectionChange?.(null)
       return
     }
-    onSelectionChange?.(normalizeSelection(anchor, focus, cols, rows))
-  }, [onSelectionChange, cols, rows])
+    // 提交后的选框交给 Effect 2 / marching-ants 动画接管;
+    // 这里先按最终矩形补画一次,避免松手瞬间闪空。
+    const rect = normalizeSelection(anchor, focus, cols, rows)
+    painter.clearOverlay()
+    drawMarquee(painter.overlayRef.current?.getContext('2d'), rect, {
+      cellSize: CELL_SIZE,
+      scale: transform.scale,
+      dashOffset: dashOffsetRef.current,
+      handles: coarsePointerRef.current,
+    })
+    onSelectionChange?.(rect)
+  }, [onSelectionChange, cols, rows, painter, transform.scale])
 
   // ─────────────────────────────────────────────────────────────────
   // 拖拽移动选区内容(M5.2,规格 04 §2)
@@ -398,7 +446,8 @@ const Canvas = forwardRef(function Canvas({
     const rawDy = y - moveStartRef.current.y
     const { dx, dy } = clampMove(moveBaseSelRef.current, rawDx, rawDy, cols, rows)
     moveOffsetRef.current = { dx, dy }
-    // 预览:清空 overlay 后把块按偏移画在半透明层上,原位置保持可见(移动意图更直观)
+    // 预览:清空 overlay 后把块按偏移画在半透明层上,原位置保持可见(移动意图更直观);
+    // 选框同时跟到新位置 —— 虚线框与珠子一起走,松手前就能确认落点。
     const base = moveBaseSelRef.current
     painter.clearOverlay()
     for (let r = 0; r < base.h; r++) {
@@ -411,7 +460,15 @@ const Canvas = forwardRef(function Canvas({
         painter.paintOverlayCell(tx, ty, hex)
       }
     }
-  }, [cols, rows, painter, committedData])
+    drawMarquee(painter.overlayRef.current?.getContext('2d'), {
+      x: base.x + dx, y: base.y + dy, w: base.w, h: base.h,
+    }, {
+      cellSize: CELL_SIZE,
+      scale: transform.scale,
+      dashOffset: dashOffsetRef.current,
+      handles: coarsePointerRef.current,
+    })
+  }, [cols, rows, painter, committedData, transform.scale])
 
   const endMove = useCallback(() => {
     if (!moveDraggingRef.current) return
@@ -970,7 +1027,7 @@ const Canvas = forwardRef(function Canvas({
       selDraggingRef.current = false
       selAnchorRef.current = null
       selFocusRef.current = null
-      setSelFocus(null)
+      painter.clearOverlay()
     }
     touchStartRef.current = null
     touchMovedRef.current = false
