@@ -22,7 +22,7 @@ import {
   convertTemplateToBrand,
   extractPatternColors,
 } from '../../data/templates'
-import { getPalette } from '../../data/palettes'
+import { getPalette, findClosestColor } from '../../data/palettes'
 import { exportAsPNG } from '../../services/BeadPatternExporter'
 import { templateToProject } from '../../services/project/adapters'
 import { projectToImportWork } from '../../services/project/importProject'
@@ -42,14 +42,33 @@ export default function PatternDetailPage({ cloudStore, onSaveProject, onLoadTem
 
   const template = useMemo(() => templateById(allTemplates, id), [allTemplates, id])
   const { width, height } = templateDimensions(template)
-  // 制作信息:豆子总数与用色数(规格 07 §3「显示预览和制作信息」)
+  // 制作信息:豆子总数、用色数,以及逐色清单(颗数降序)。
+  // 逐色清单是「照着买豆子」真正需要的信息,比只给一个总数有用得多。
   const makingInfo = useMemo(() => {
-    if (!template?.pattern) return { beads: 0, colors: 0 }
+    if (!template?.pattern) return { beads: 0, colors: 0, list: [] }
+    const counts = new Map()
     let beads = 0
     for (const row of template.pattern) {
-      for (const cell of row || []) if (cell) beads++
+      for (const cell of row || []) {
+        if (!cell) continue
+        beads++
+        counts.set(cell, (counts.get(cell) || 0) + 1)
+      }
     }
-    return { beads, colors: extractPatternColors(template.pattern).length }
+    const brand = template.paletteId || 'perler'
+    const list = [...counts.entries()]
+      .sort((a, b) => b[1] - a[1])
+      .map(([hex, count]) => {
+        // 色号解析:模板颜色与品牌色卡就近匹配(与导出图例同口径)
+        let code = ''
+        try {
+          code = findClosestColor(hex, brand)?.id || ''
+        } catch {
+          code = ''
+        }
+        return { hex, count, code }
+      })
+    return { beads, colors: list.length, list }
   }, [template])
   const name = template
     ? (template.name ? (template.nameZh || template.name) : t(`templates.names.${template.nameKey}`, template.nameKey))
@@ -109,7 +128,7 @@ export default function PatternDetailPage({ cloudStore, onSaveProject, onLoadTem
   }
 
   return (
-    <div className="content-page">
+    <div className="content-page detail-page">
       <ContentSeo
         title={name}
         description={template
@@ -117,6 +136,7 @@ export default function PatternDetailPage({ cloudStore, onSaveProject, onLoadTem
           : undefined}
         noindex={!template}
       />
+
       <div className="content-page-head">
         <button className="content-back" onClick={() => navigate('/gallery')}>
           <ArrowLeft size={16} aria-hidden="true" />
@@ -127,19 +147,53 @@ export default function PatternDetailPage({ cloudStore, onSaveProject, onLoadTem
             {cloudDown ? t('gallery.discovery.unavailable') : t('gallery.discovery.notFound')}
           </p>
         ) : (
-          <>
-            <h1 className="content-title">{name}</h1>
-            <div className="content-detail-meta">
-              <span>{width} × {height}</span>
-              <span>{t(`gallery.difficulties.${template.difficulty}`, template.difficulty)}</span>
-              <span>{t(`palette.brand.${template.paletteId || 'perler'}`)}</span>
-              <span>{t('gallery.discovery.beads', { n: makingInfo.beads })}</span>
-              <span>{t('gallery.discovery.colors', { n: makingInfo.colors })}</span>
+          <h1 className="content-title">{name}</h1>
+        )}
+      </div>
+
+      {template && (
+        <div className="detail-layout">
+          {/* 左:预览。画布按容器宽度自适应,不再用固定 8px/格 ——
+              170×170 的图纸按固定格宽会撑到 1360px,直接溢出视口。 */}
+          <div className="detail-preview-pane">
+            <div className="content-detail-preview">
+              <ThumbnailCanvas
+                pattern={template.pattern}
+                size={template.size}
+                gridWidth={width}
+                gridHeight={height}
+              />
             </div>
-            {/* 来源与许可:只用可信字段,不展示用户私有信息(规格 07 §3) */}
             <p className="content-detail-source">
               {t('gallery.discovery.sourceNote')} · {t('gallery.discovery.licenseNote')}
             </p>
+          </div>
+
+          {/* 右:信息与操作。窄屏时堆叠到预览下方。 */}
+          <aside className="detail-info-pane">
+            <dl className="detail-facts">
+              <div>
+                <dt>{t('gallery.discovery.factSize')}</dt>
+                <dd>{width} × {height}</dd>
+              </div>
+              <div>
+                <dt>{t('gallery.discovery.factBeads')}</dt>
+                <dd>{makingInfo.beads}</dd>
+              </div>
+              <div>
+                <dt>{t('gallery.discovery.factColors')}</dt>
+                <dd>{makingInfo.colors}</dd>
+              </div>
+              <div>
+                <dt>{t('gallery.discovery.factDifficulty')}</dt>
+                <dd>{t(`gallery.difficulties.${template.difficulty}`, template.difficulty)}</dd>
+              </div>
+              <div>
+                <dt>{t('gallery.discovery.factBrand')}</dt>
+                <dd>{t(`palette.brand.${template.paletteId || 'perler'}`)}</dd>
+              </div>
+            </dl>
+
             <div className="content-detail-actions">
               <button className="btn btn-primary" onClick={handleCopy} disabled={busy || !onSaveProject}>
                 <Copy size={16} aria-hidden="true" />
@@ -155,18 +209,24 @@ export default function PatternDetailPage({ cloudStore, onSaveProject, onLoadTem
               </button>
             </div>
             {saved && <span className="content-count" role="status">{t('gallery.discovery.copied')}</span>}
-          </>
-        )}
-      </div>
 
-      {template && (
-        <div className="content-detail-preview">
-          <ThumbnailCanvas
-            pattern={template.pattern}
-            size={template.size}
-            gridWidth={width}
-            gridHeight={height}
-          />
+            {/* 逐色清单:照着买豆子需要的核心信息 */}
+            <section className="detail-colors" aria-label={t('gallery.discovery.colorList')}>
+              <h2 className="detail-section-title">{t('gallery.discovery.colorList')}</h2>
+              <ul className="detail-color-list">
+                {makingInfo.list.map((c) => (
+                  <li key={c.hex} className="detail-color-row">
+                    <span className="detail-color-swatch" style={{ background: c.hex }} aria-hidden="true" />
+                    {c.code && <code className="detail-color-code">{c.code}</code>}
+                    <span className="detail-color-hex">{c.hex}</span>
+                    <span className="detail-color-count">
+                      {t('gallery.discovery.beadCount', { n: c.count })}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            </section>
+          </aside>
         </div>
       )}
     </div>

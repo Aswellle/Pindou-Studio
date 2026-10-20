@@ -271,3 +271,57 @@ describe('ThemePage · 子主题与相关合集', () => {
     expect(document.querySelector('.content-related')).toBeNull()
   })
 })
+
+describe('PatternDetailPage · 布局与信息密度', () => {
+  it('两栏布局:预览与信息栏同时存在', () => {
+    const { container } = renderAt(
+      <PatternDetailPage cloudStore={cloudStore([template('1')])} />,
+      '/gallery/pattern/1', '/gallery/pattern/:id',
+    )
+    expect(container.querySelector('.detail-layout')).toBeTruthy()
+    expect(container.querySelector('.detail-preview-pane')).toBeTruthy()
+    expect(container.querySelector('.detail-info-pane')).toBeTruthy()
+  })
+
+  it('事实表展示尺寸/豆子数/用色数/难度/色卡', () => {
+    renderAt(
+      <PatternDetailPage cloudStore={cloudStore([template('1')])} />,
+      '/gallery/pattern/1', '/gallery/pattern/:id',
+    )
+    const facts = document.querySelector('.detail-facts')
+    expect(facts).toBeTruthy()
+    const text = facts.textContent
+    expect(text).toContain('尺寸')
+    expect(text).toContain('豆子总数')
+    expect(text).toContain('用色数')
+    expect(text).toContain('难度')
+    expect(text).toContain('色卡')
+  })
+
+  it('颜色清单按颗数降序,并给出品牌色号', () => {
+    // 3 颗红、1 颗蓝 → 红在前
+    const tpl = template('1', {
+      pattern: [['#FF0000', '#FF0000'], ['#FF0000', '#0000FF']],
+    })
+    renderAt(
+      <PatternDetailPage cloudStore={cloudStore([tpl])} />,
+      '/gallery/pattern/1', '/gallery/pattern/:id',
+    )
+    const rows = document.querySelectorAll('.detail-color-row')
+    expect(rows).toHaveLength(2)
+    expect(rows[0].textContent).toContain('3')
+    expect(rows[1].textContent).toContain('1')
+    // 每行都有色号(Perler 就近匹配)
+    expect(rows[0].querySelector('.detail-color-code')?.textContent).toBeTruthy()
+  })
+
+  it('预览画布有高度约束类,避免大图纸溢出视口', () => {
+    const { container } = renderAt(
+      <PatternDetailPage cloudStore={cloudStore([template('1')])} />,
+      '/gallery/pattern/1', '/gallery/pattern/:id',
+    )
+    const preview = container.querySelector('.content-detail-preview')
+    expect(preview).toBeTruthy()
+    expect(preview.querySelector('canvas')).toBeTruthy()
+  })
+})
