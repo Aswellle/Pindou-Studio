@@ -375,6 +375,196 @@ describe('MyBeadsPage · 备份', () => {
   })
 })
 
+describe('MyBeadsPage · 批量颜色导入(CSV / JSON)', () => {
+  function seedPalette() {
+    localStorage.setItem('personal-beads-v1', JSON.stringify({
+      version: 1,
+      palettes: [{ id: 'pal-1', name: '导入目标', brandName: '', seriesName: '', beadSizeMm: null, notes: '' }],
+      colors: [{ id: 'c0', paletteId: 'pal-1', code: 'A1', name: '', hex: '#FFFFFF', notes: '', sortOrder: 0, source: 'factory' }],
+      inventory: [],
+    }))
+  }
+
+  function pickFile(container, name, text) {
+    const file = new File([text], name, { type: 'text/csv' })
+    file.text = () => Promise.resolve(text)
+    fireEvent.change(container.querySelector('.my-beads-color-file-input'), { target: { files: [file] } })
+  }
+
+  it('CSV 导入先预览,确认后才写入;整批一次提交', async () => {
+    seedPalette()
+    const { container } = setup()
+    await waitFor(() => expect(container.querySelector('.my-beads-color-row')).toBeTruthy())
+
+    pickFile(container, 'colors.csv', 'code,name,hex,notes,source\nB1,蓝色,#0000FF,,factory\nC1,绿色,#00FF00,自调,measured\n')
+
+    // 预览面板出现,但尚未写入
+    await waitFor(() => expect(container.querySelector('.my-beads-import-preview')).toBeTruthy())
+    expect(JSON.parse(localStorage.getItem('personal-beads-v1')).colors).toHaveLength(1)
+    expect(container.querySelectorAll('.my-beads-import-list li')).toHaveLength(2)
+
+    fireEvent.click(within(container.querySelector('.my-beads-import-preview')).getByText('导入 2 个颜色'))
+
+    await waitFor(() => {
+      const stored = JSON.parse(localStorage.getItem('personal-beads-v1'))
+      expect(stored.colors).toHaveLength(3)
+      expect(stored.colors.map((c) => c.code).sort()).toEqual(['A1', 'B1', 'C1'])
+      expect(stored.colors.find((c) => c.code === 'C1').source).toBe('measured')
+    })
+    // 成功后预览关闭
+    await waitFor(() => expect(container.querySelector('.my-beads-import-preview')).toBeNull())
+  })
+
+  it('取消预览不写入任何颜色', async () => {
+    seedPalette()
+    const { container } = setup()
+    await waitFor(() => expect(container.querySelector('.my-beads-color-row')).toBeTruthy())
+
+    pickFile(container, 'colors.csv', 'code,hex\nB1,#0000FF\n')
+    await waitFor(() => expect(container.querySelector('.my-beads-import-preview')).toBeTruthy())
+    fireEvent.click(within(container.querySelector('.my-beads-import-preview')).getByText('取消'))
+
+    await waitFor(() => expect(container.querySelector('.my-beads-import-preview')).toBeNull())
+    expect(JSON.parse(localStorage.getItem('personal-beads-v1')).colors).toHaveLength(1)
+  })
+
+  it('部分行非法:合法行可导入,错误行带行号列出', async () => {
+    seedPalette()
+    const { container } = setup()
+    await waitFor(() => expect(container.querySelector('.my-beads-color-row')).toBeTruthy())
+
+    // 第 2 行合法;第 3 行 HEX 非法;第 4 行与已有 A1 重码
+    pickFile(container, 'colors.csv', 'code,hex\nB1,#0000FF\nBAD,not-a-hex\nA1,#123456\n')
+    await waitFor(() => expect(container.querySelector('.my-beads-import-preview')).toBeTruthy())
+
+    const errors = container.querySelectorAll('.my-beads-import-errors li')
+    expect(errors).toHaveLength(2)
+    expect(errors[0].textContent).toContain('第 3 行')
+    expect(errors[1].textContent).toContain('第 4 行')
+
+    fireEvent.click(within(container.querySelector('.my-beads-import-preview')).getByText('导入 1 个颜色'))
+    await waitFor(() => {
+      const stored = JSON.parse(localStorage.getItem('personal-beads-v1'))
+      expect(stored.colors.map((c) => c.code).sort()).toEqual(['A1', 'B1'])
+    })
+  })
+
+  it('JSON 导入接受 { colors: [...] },缺少必需列时给出可读错误', async () => {
+    seedPalette()
+    const { container } = setup()
+    await waitFor(() => expect(container.querySelector('.my-beads-color-row')).toBeTruthy())
+
+    pickFile(container, 'colors.json', JSON.stringify({ colors: [{ code: 'J1', hex: '#112233' }] }))
+    await waitFor(() => expect(container.querySelector('.my-beads-import-list')).toBeTruthy())
+    fireEvent.click(within(container.querySelector('.my-beads-import-preview')).getByText('导入 1 个颜色'))
+    await waitFor(() => {
+      expect(JSON.parse(localStorage.getItem('personal-beads-v1')).colors.some((c) => c.code === 'J1')).toBe(true)
+    })
+
+    // 坏 JSON:整份拒绝,预览里只有错误、没有可导入项
+    pickFile(container, 'bad.json', '{ not json')
+    await waitFor(() => expect(container.querySelector('.my-beads-import-errors')).toBeTruthy())
+    expect(container.querySelector('.my-beads-import-list')).toBeNull()
+    const confirmBtn = container.querySelector('.my-beads-import-actions .my-beads-btn.primary')
+    expect(confirmBtn.disabled).toBe(true)
+    expect(confirmBtn.textContent).toContain('导入 0 个颜色')
+  })
+})
+
+describe('MyBeadsPage · 删除被引用色卡时重新指定', () => {
+  function seedTwoPalettes() {
+    localStorage.setItem('personal-beads-v1', JSON.stringify({
+      version: 1,
+      palettes: [
+        { id: 'pal-1', name: '旧色卡', brandName: '', seriesName: '', beadSizeMm: null, notes: '' },
+        { id: 'pal-2', name: '新色卡', brandName: '', seriesName: '', beadSizeMm: null, notes: '' },
+      ],
+      colors: [],
+      inventory: [],
+    }))
+  }
+
+  const WORKS = [
+    { id: 'w1', name: '作品一', paletteId: 'pal-1', canvasData: [[null]] },
+    { id: 'w2', name: '作品二', paletteId: 'pal-2', canvasData: [[null]] },
+  ]
+
+  it('有作品引用时,删除确认框列出数量与「重新指定」选项', async () => {
+    seedTwoPalettes()
+    const { container } = setup({ works: WORKS })
+    await waitFor(() => expect(container.querySelector('.my-beads-palette-card')).toBeTruthy())
+    fireEvent.click(within(container.querySelectorAll('.my-beads-palette-card')[0]).getByText('旧色卡'))
+    await waitFor(() => expect(container.querySelector('.my-beads-palette-detail')).toBeTruthy())
+
+    fireEvent.click(container.querySelector('.my-beads-palette-detail .my-beads-icon-btn.danger'))
+    // 确认框 portal 到 document.body,不在 container 内
+    await waitFor(() => expect(document.querySelector('.my-beads-reassign')).toBeTruthy())
+    expect(document.querySelector('.my-beads-reassign').textContent).toContain('1 件已保存作品')
+    // 默认「保留原 HEX」,不显示重新指定按钮
+    expect(within(document.querySelector('.my-beads-reassign')).queryByText(/重新指定到所选色卡/)).toBeNull()
+  })
+
+  it('选择目标色卡后:先改作品归属,再删除色卡', async () => {
+    seedTwoPalettes()
+    const onReassignWorkPalette = vi.fn().mockResolvedValue(true)
+    const { container } = setup({ works: WORKS, onReassignWorkPalette })
+    await waitFor(() => expect(container.querySelector('.my-beads-palette-card')).toBeTruthy())
+    fireEvent.click(within(container.querySelectorAll('.my-beads-palette-card')[0]).getByText('旧色卡'))
+    await waitFor(() => expect(container.querySelector('.my-beads-palette-detail')).toBeTruthy())
+    fireEvent.click(container.querySelector('.my-beads-palette-detail .my-beads-icon-btn.danger'))
+
+    const select = await waitFor(() => {
+      const el = document.querySelector('.my-beads-reassign select')
+      expect(el).toBeTruthy()
+      return el
+    })
+    fireEvent.change(select, { target: { value: 'pal-2' } })
+    fireEvent.click(within(document.querySelector('.my-beads-reassign')).getByText(/重新指定到所选色卡/))
+
+    await waitFor(() => expect(onReassignWorkPalette).toHaveBeenCalledTimes(1))
+    // 只改引用旧色卡的那件作品,目标为新色卡
+    expect(onReassignWorkPalette.mock.calls[0][0].id).toBe('w1')
+    expect(onReassignWorkPalette.mock.calls[0][1]).toBe('pal-2')
+
+    await waitFor(() => {
+      const stored = JSON.parse(localStorage.getItem('personal-beads-v1'))
+      expect(stored.palettes.map((p) => p.id)).toEqual(['pal-2'])
+    })
+  })
+
+  it('作品重新指定失败时不删除色卡,避免作品指向不存在的色卡', async () => {
+    seedTwoPalettes()
+    const onReassignWorkPalette = vi.fn().mockResolvedValue(false)
+    const { container } = setup({ works: WORKS, onReassignWorkPalette })
+    await waitFor(() => expect(container.querySelector('.my-beads-palette-card')).toBeTruthy())
+    fireEvent.click(within(container.querySelectorAll('.my-beads-palette-card')[0]).getByText('旧色卡'))
+    await waitFor(() => expect(container.querySelector('.my-beads-palette-detail')).toBeTruthy())
+    fireEvent.click(container.querySelector('.my-beads-palette-detail .my-beads-icon-btn.danger'))
+
+    const select = await waitFor(() => document.querySelector('.my-beads-reassign select'))
+    fireEvent.change(select, { target: { value: 'pal-2' } })
+    fireEvent.click(within(document.querySelector('.my-beads-reassign')).getByText(/重新指定到所选色卡/))
+
+    await waitFor(() => expect(onReassignWorkPalette).toHaveBeenCalled())
+    // 有作品没改成功 → 色卡保留
+    await new Promise((r) => setTimeout(r, 20))
+    const stored = JSON.parse(localStorage.getItem('personal-beads-v1'))
+    expect(stored.palettes.map((p) => p.id)).toEqual(['pal-1', 'pal-2'])
+  })
+
+  it('无作品引用时删除确认框不显示重新指定区块', async () => {
+    seedTwoPalettes()
+    const { container } = setup({ works: [] })
+    await waitFor(() => expect(container.querySelector('.my-beads-palette-card')).toBeTruthy())
+    fireEvent.click(within(container.querySelectorAll('.my-beads-palette-card')[0]).getByText('旧色卡'))
+    await waitFor(() => expect(container.querySelector('.my-beads-palette-detail')).toBeTruthy())
+    fireEvent.click(container.querySelector('.my-beads-palette-detail .my-beads-icon-btn.danger'))
+
+    await waitFor(() => expect(document.querySelector('.my-beads-modal.confirm')).toBeTruthy())
+    expect(document.querySelector('.my-beads-reassign')).toBeNull()
+  })
+})
+
 describe('MyBeadsPage · 图纸匹配', () => {
   // 预置一张个人色卡。红/蓝用「几乎相同但不等」的 HEX:
   // ΔE 极小 → close,且替换确实会改变矩阵(与源色完全相同则无需替换)。

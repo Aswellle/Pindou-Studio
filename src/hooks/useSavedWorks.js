@@ -299,8 +299,7 @@ export function useSavedWorks(user) {
   }, [])
 
   // 删除:云端删行;本机删仓储记录
-  const deleteWork = useCallback(async (work) => {
-    if (isCloud()) {
+  const deleteWork = useCallback(async (work) => {    if (isCloud()) {
       try {
         const { error } = await supabase.from('works').delete().eq('id', work.id)
         if (error) throw error
@@ -322,6 +321,56 @@ export function useSavedWorks(user) {
   // 同步 toast 已展示后调用,重置迁移计数
   const ackSync = useCallback(() => setSyncCount(null), [])
 
+  /**
+   * 更新已有作品(用于「导出后扣减库存」这类原地改写)。
+   *
+   * 与 saveWork 的区别:saveWork 只插入新行;这里按 id 覆盖同一件作品,
+   * 保留 id / savedAt / 名称,只替换 canvasData。云端按 id 更新,
+   * 本机按 id put(IndexedDB 主键即 id)。
+   *
+   * @returns {Promise<boolean>}
+   */
+  const updateWork = useCallback(async (work) => {
+    const normalized = normalizeLegacyWork(work)
+    if (!normalized || normalized.id == null) return false
+    setSaveState(SAVE_STATES.SAVING)
+    if (isCloud()) {
+      try {
+        const { data, error } = await supabase
+          .from('works')
+          .update({
+            canvas_data: normalized.canvasData,
+            grid_size: normalized.gridSize,
+            grid_width: normalized.gridWidth ?? null,
+            grid_height: normalized.gridHeight ?? null,
+            palette_id: normalized.paletteId || 'perler',
+            updated_at: new Date().toISOString(),
+          })
+          .eq('id', normalized.id)
+          .select()
+          .single()
+        if (error) throw error
+        setWorks((prev) => prev.map((w) => (w.id === normalized.id ? rowToWork(data) : w)))
+        setSaveState(SAVE_STATES.SAVED)
+        return true
+      } catch (e) {
+        console.error('云端更新作品失败:', e)
+        setSaveState(SAVE_STATES.FAILED)
+        toast(i18n.t('errors.saveFailed'), 'error')
+        return false
+      }
+    }
+    const result = await saveWorkRecord(normalized)
+    if (!result.ok) {
+      setSaveState(SAVE_STATES.FAILED)
+      toast(i18n.t('errors.storageFull'), 'error')
+      return false
+    }
+    setWorks((prev) => prev.map((w) => (w.id === normalized.id ? normalized : w)))
+    setSaveState(SAVE_STATES.SAVED)
+    return true
+  }, [isCloud, user, toast])
+
   return {
     works,
     worksLoading,
@@ -330,6 +379,7 @@ export function useSavedWorks(user) {
     saveState,
     markDirty,
     saveWork,
+    updateWork,
     deleteWork,
     ackSync,
   }

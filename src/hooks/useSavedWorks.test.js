@@ -212,6 +212,54 @@ describe('useSavedWorks · 本地模式写入归一', () => {
   })
 })
 
+describe('useSavedWorks · updateWork(重新指定色卡)', () => {
+  it('本地模式:只改 paletteId,画布数据与 id 不变,并落库', async () => {
+    const { result } = renderHook(() => useSavedWorks(null))
+    await waitForLoad(result)
+
+    const canvas = [[null, null], [null, null]]
+    await act(async () => {
+      await result.current.saveWork({
+        id: 'w-1',
+        name: '作品',
+        canvasData: canvas,
+        gridSize: 2,
+        paletteId: 'perler',
+        savedAt: '2026-10-20T00:00:00.000Z',
+      })
+    })
+
+    let ok = false
+    await act(async () => {
+      ok = await result.current.updateWork({
+        ...result.current.works[0],
+        paletteId: 'mard',
+      })
+    })
+    expect(ok).toBe(true)
+
+    const stored = await readStored()
+    expect(stored).toHaveLength(1)
+    expect(stored[0].id).toBe('w-1')
+    expect(stored[0].paletteId).toBe('mard')
+    expect(stored[0].canvasData).toEqual(canvas)
+    // hook 内存态同步更新,不需要刷新
+    expect(result.current.works[0].paletteId).toBe('mard')
+  })
+
+  it('没有 id 的作品直接返回 false,不写库', async () => {
+    const { result } = renderHook(() => useSavedWorks(null))
+    await waitForLoad(result)
+
+    let ok = true
+    await act(async () => {
+      ok = await result.current.updateWork({ name: '无 id', canvasData: blank(2, 2) })
+    })
+    expect(ok).toBe(false)
+    expect(await readStored()).toHaveLength(0)
+  })
+})
+
 describe('useSavedWorks · 旧 localStorage 数据迁移', () => {
   it('首次加载把 saved-works 搬进 IndexedDB,并清掉原键', async () => {
     localStorage.setItem(LEGACY_KEY, JSON.stringify([{

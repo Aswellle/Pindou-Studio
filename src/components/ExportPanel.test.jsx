@@ -135,6 +135,94 @@ describe('ExportPanel 导出路径回归(M0 / R1)', () => {
   })
 })
 
+describe('导出成功回调(库存扣减的触发点)', () => {
+  it('导出成功后才回调 onExportComplete,且只回调一次', async () => {
+    const onExportComplete = vi.fn()
+    render(
+      <ExportPanel
+        canvasData={CANVAS_DATA}
+        gridSize={2}
+        gridWidth={2}
+        gridHeight={2}
+        designName="测试图纸"
+        paletteId="perler"
+        deductInventory
+        onToggleDeductInventory={() => {}}
+        onExportComplete={onExportComplete}
+        onClose={() => {}}
+      />
+    )
+    requestQuickExport('PNG 图片')
+    await waitFor(() => expect(onExportComplete).toHaveBeenCalledTimes(1))
+    // 再等一拍,确认没有重复触发(确认框关闭/状态更新不会再回调)
+    await new Promise((r) => setTimeout(r, 20))
+    expect(onExportComplete).toHaveBeenCalledTimes(1)
+  })
+
+  it('取消确认框不触发回调(没导出就不记账)', async () => {
+    const onExportComplete = vi.fn()
+    render(
+      <ExportPanel
+        canvasData={CANVAS_DATA}
+        gridSize={2}
+        gridWidth={2}
+        gridHeight={2}
+        designName="测试图纸"
+        paletteId="perler"
+        deductInventory
+        onExportComplete={onExportComplete}
+        onClose={() => {}}
+      />
+    )
+    fireEvent.click(screen.getByText('PNG 图片'))
+    fireEvent.click(document.querySelector('.export-confirm-overlay'))
+    await new Promise((r) => setTimeout(r, 20))
+    expect(onExportComplete).not.toHaveBeenCalled()
+  })
+
+  it('空画布被拦截,不触发回调', async () => {
+    const onExportComplete = vi.fn()
+    render(
+      <ExportPanel
+        canvasData={[[null, null], [null, null]]}
+        gridSize={2}
+        gridWidth={2}
+        gridHeight={2}
+        designName="空图纸"
+        paletteId="perler"
+        deductInventory
+        onExportComplete={onExportComplete}
+        onClose={() => {}}
+      />
+    )
+    fireEvent.click(screen.getByText('PNG 图片'))
+    // 空画布走「empty」确认框,没有导出动作
+    await new Promise((r) => setTimeout(r, 20))
+    expect(onExportComplete).not.toHaveBeenCalled()
+  })
+
+  it('「导出后扣减库存」开关默认关闭,可切换', () => {
+    const onToggle = vi.fn()
+    render(
+      <ExportPanel
+        canvasData={CANVAS_DATA}
+        gridSize={2}
+        gridWidth={2}
+        gridHeight={2}
+        designName="测试图纸"
+        paletteId="perler"
+        deductInventory={false}
+        onToggleDeductInventory={onToggle}
+        onClose={() => {}}
+      />
+    )
+    const toggle = screen.getByLabelText(/导出成功后扣减库存/)
+    expect(toggle.checked).toBe(false)
+    fireEvent.click(toggle)
+    expect(onToggle).toHaveBeenCalledWith(true)
+  })
+})
+
 describe('导出确认框的关闭语义', () => {
   it('取消确认框只关确认框,不连带关闭导出面板', () => {
     const onClose = vi.fn()

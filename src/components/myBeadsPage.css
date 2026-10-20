@@ -361,6 +361,128 @@
 }
 .my-beads-color-search input { flex: 1; }
 
+/* ── 颜色工具栏(搜索 + 模板下载 + 批量导入)────────────────── */
+.my-beads-color-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+}
+/* 搜索独占一行,两个按钮在下一行也不挤 */
+.my-beads-color-toolbar .my-beads-color-search {
+  flex: 1 1 100%;
+}
+.my-beads-color-toolbar .my-beads-btn {
+  flex: 0 0 auto;
+}
+
+/* ── 导入预览 ─────────────────────────────────────────────── */
+.my-beads-import-preview {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  border: 1px solid var(--border-color);
+  background: var(--bg-secondary);
+}
+
+.my-beads-import-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+.my-beads-import-head strong {
+  font-size: var(--text-sm);
+  color: var(--text-primary);
+}
+.my-beads-import-head .my-beads-btn {
+  margin-left: auto;
+}
+
+.my-beads-import-list,
+.my-beads-import-errors {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  max-height: 220px;
+  overflow-y: auto;
+}
+
+.my-beads-import-list li {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: var(--text-xs);
+  color: var(--text-secondary);
+  min-width: 0;
+}
+.my-beads-import-list .swatch {
+  flex-shrink: 0;
+  width: 14px;
+  height: 14px;
+  border-radius: 4px;
+  border: 1px solid var(--border-color);
+}
+.my-beads-import-list code {
+  font-family: var(--font-mono);
+  color: var(--text-primary);
+}
+.my-beads-import-list .name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.my-beads-import-list .hex {
+  margin-left: auto;
+  font-family: var(--font-mono);
+  color: var(--text-muted);
+}
+
+.my-beads-import-errors li {
+  font-size: var(--text-xs);
+  color: var(--error);
+}
+
+.my-beads-import-actions {
+  display: flex;
+  justify-content: flex-end;
+}
+
+/* ── 删除被引用色卡时的重新指定 ───────────────────────────── */
+.my-beads-reassign {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  width: 100%;
+  padding: 10px 12px;
+  border-radius: 10px;
+  border: 1px solid var(--warning-border);
+  background: var(--warning-bg);
+  text-align: left;
+}
+.my-beads-reassign label {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: var(--text-xs);
+  color: var(--text-secondary);
+}
+.my-beads-reassign select {
+  width: 100%;
+  padding: 6px 8px;
+  border-radius: 8px;
+  border: 1px solid var(--border-color);
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  font-size: var(--text-sm);
+}
+
+
 /* ── 库存筛选 / 批量条 ───────────────────────────────────── */
 .my-beads-select-all {
   display: inline-flex;

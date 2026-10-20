@@ -11,7 +11,13 @@ import { canvasToLegacyWork } from '../services/project/adapters'
 import { legacyWorkToProject } from '../services/project/adapters'
 import { projectToFileText, projectFileName, downloadProjectFile } from '../services/project/exportProject'
 
-export default function ExportPanel({ canvasData, gridSize, gridWidth, gridHeight, designName, paletteId = 'perler', onClose }) {
+export default function ExportPanel({
+  canvasData, gridSize, gridWidth, gridHeight, designName, paletteId = 'perler', onClose,
+  // 规格 05 §3:只有用户主动开启「导出后记账」才扣减库存;默认关闭
+  deductInventory = false,
+  onToggleDeductInventory,
+  onExportComplete,
+}) {
   const { t } = useTranslation()
   const effectiveName = designName || t('export.defaultName')
   // Passing onClose signals this instance is the mobile modal entry point —
@@ -96,6 +102,7 @@ export default function ExportPanel({ canvasData, gridSize, gridWidth, gridHeigh
           link.href = url
           link.click()
           setTimeout(() => URL.revokeObjectURL(url), 1000)
+          markExportOk()
         } catch (err) {
           if (err?.name === 'AbortError') return // 组件卸载取消,非错误
           throw err
@@ -163,6 +170,7 @@ export default function ExportPanel({ canvasData, gridSize, gridWidth, gridHeigh
       link.href = url
       link.click()
       setTimeout(() => URL.revokeObjectURL(url), 1000)
+      markExportOk()
     } catch (err) {
       if (err?.name === 'AbortError') return // 组件卸载取消,非错误
       console.error('Export failed:', err)
@@ -225,6 +233,7 @@ export default function ExportPanel({ canvasData, gridSize, gridWidth, gridHeigh
     link.download = `bead-pattern-${actualWidth}x${actualHeight}.txt`
     link.href = URL.createObjectURL(blob)
     link.click()
+    markExportOk()
   }
 
   const handleExportSVG = () => {
@@ -250,6 +259,7 @@ export default function ExportPanel({ canvasData, gridSize, gridWidth, gridHeigh
       link.href = url
       link.click()
       setTimeout(() => URL.revokeObjectURL(url), 1000)
+      markExportOk()
       return
     }
 
@@ -311,6 +321,7 @@ export default function ExportPanel({ canvasData, gridSize, gridWidth, gridHeigh
     }
     downloadProjectFile(text, projectFileName(project, effectiveName))
     setExportInfo(t('export.projectFileSaved'))
+    markExportOk()
   }
 
   const handleExportPatternSheet = async () => {
@@ -330,6 +341,7 @@ export default function ExportPanel({ canvasData, gridSize, gridWidth, gridHeigh
         onProgress: (_phase, pct) => setExportProgress(Math.round(pct * 100)),
         onResolution: (w, h) => setExportInfo(`${w}×${h}`)
       })
+      markExportOk()
     } catch (err) {
       if (err?.name === 'AbortError') return // 组件卸载取消,非错误
       console.error('Export failed:', err)
@@ -344,10 +356,20 @@ export default function ExportPanel({ canvasData, gridSize, gridWidth, gridHeigh
   const handleExportPatternSheetSVG = () => {
     if (!canvasData) return
     exportAsSVG(canvasData, gridSize, paletteId, effectiveName, palette, gridWidth, gridHeight, beadStyle)
+    markExportOk()
   }
 
   // ── 导出确认流程:空画布拦截 + 有内容时确认 ──────────────
   const [confirmExport, setConfirmExport] = useState(null) // { type: 'empty' } | { type: 'confirm', label, handler }
+  // 导出成功后回调父组件(用于库存扣减);只有导出真正完成才触发
+  // 导出成功标记:各 handler 内部 catch 错误后正常返回,不能靠 promise 是否 resolve 判断
+  const exportOkRef = useRef(false)
+  const markExportOk = () => { exportOkRef.current = true }
+  const notifyExported = () => {
+    if (!exportOkRef.current) return
+    exportOkRef.current = false
+    onExportComplete?.()
+  }
   const hasPaintedCells = useMemo(() =>
     canvasData?.some(row => row.some(cell => cell)) || false,
     [canvasData]
@@ -475,10 +497,22 @@ export default function ExportPanel({ canvasData, gridSize, gridWidth, gridHeigh
                 />
                 <span>{t('export.useV2', '使用新导出引擎')}</span>
               </label>
-              <span className="setting-hint">
-                {t('export.v2Hint', '基于 PatternDocument 的统一渲染（实验性）')}
-              </span>
             </div>
+
+            {/* 规格 05 §3:只有用户主动开启才在导出后扣减库存,默认关闭 */}
+            {onToggleDeductInventory && (
+              <div className="export-style-group">
+                <label className="export-v2-toggle">
+                  <input
+                    type="checkbox"
+                    checked={Boolean(deductInventory)}
+                    onChange={e => onToggleDeductInventory(e.target.checked)}
+                  />
+                  <span>{t('export.deductInventory')}</span>
+                </label>
+                <span className="setting-hint">{t('export.deductInventoryHint')}</span>
+              </div>
+            )}
             <div className="export-buttons">
               <button onClick={() => requestExport(t('export.patternSheet'), beadStyle === 'professional' ? t('export.professionalDesc') : t('export.realisticDesc'), currentStyleName, handleExportPatternSheet)} className="btn btn-primary btn-pattern" disabled={isExporting}>
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -743,7 +777,8 @@ export default function ExportPanel({ canvasData, gridSize, gridWidth, gridHeigh
                 className="btn btn-primary"
                 onClick={() => {
                   setConfirmExport(null)
-                  confirmExport.handler()
+                  exportOkRef.current = false
+                  Promise.resolve(confirmExport.handler()).then(() => notifyExported())
                 }}
               >
                 {t('export.confirmBtn')}

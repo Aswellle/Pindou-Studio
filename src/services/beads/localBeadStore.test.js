@@ -142,6 +142,63 @@ describe('localBeadStore · 色卡与颜色 CRUD', () => {
   })
 })
 
+describe('localBeadStore · 批量添加颜色(addColors)', () => {
+  it('整批写入:一次 commit,排序号接着已有颜色', async () => {
+    const store = createLocalBeadStore()
+    const { palette } = await store.createPalette({ name: 'P' })
+    await store.addColor(palette.id, { code: 'A1', hex: '#FF0000' })
+
+    const res = await store.addColors(palette.id, [
+      { code: 'B1', hex: '#0000FF' },
+      { code: 'C1', hex: '#00FF00', source: 'measured' },
+    ])
+    expect(res.ok).toBe(true)
+    expect(res.colors).toHaveLength(2)
+    expect(res.colors.map((c) => c.sortOrder)).toEqual([1, 2])
+    expect(res.colors[1].source).toBe('measured')
+
+    const data = await store.load()
+    expect(data.colors).toHaveLength(3)
+  })
+
+  it('任何一行非法则整批拒绝,一个颜色都不写', async () => {
+    const store = createLocalBeadStore()
+    const { palette } = await store.createPalette({ name: 'P' })
+    await store.addColor(palette.id, { code: 'A1', hex: '#FF0000' })
+
+    const res = await store.addColors(palette.id, [
+      { code: 'B1', hex: '#0000FF' },
+      { code: 'B1', hex: '#00FF00' }, // 与批内前一行重码
+    ])
+    expect(res.ok).toBe(false)
+    expect(res.errors[0]).toMatchObject({ code: 'duplicateCode', index: 1 })
+
+    const data = await store.load()
+    expect(data.colors.map((c) => c.code)).toEqual(['A1'])
+  })
+
+  it('与已有颜色重码被拒绝;色卡不存在返回 notFound', async () => {
+    const store = createLocalBeadStore()
+    const { palette } = await store.createPalette({ name: 'P' })
+    await store.addColor(palette.id, { code: 'A1', hex: '#FF0000' })
+
+    const dup = await store.addColors(palette.id, [{ code: 'a1', hex: '#0000FF' }])
+    expect(dup.ok).toBe(false)
+    expect(dup.errors[0].code).toBe('duplicateCode')
+
+    const missing = await store.addColors('nope', [{ code: 'B1', hex: '#0000FF' }])
+    expect(missing.ok).toBe(false)
+    expect(missing.errors[0].code).toBe('notFound')
+  })
+
+  it('空数组是合法的空操作', async () => {
+    const store = createLocalBeadStore()
+    const { palette } = await store.createPalette({ name: 'P' })
+    const res = await store.addColors(palette.id, [])
+    expect(res).toEqual({ ok: true, colors: [] })
+  })
+})
+
 describe('localBeadStore · 库存', () => {
   it('quantity = null 表示未知,不是 0', async () => {
     const store = createLocalBeadStore()

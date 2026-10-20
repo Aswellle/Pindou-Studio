@@ -35,3 +35,24 @@ export function saveFillIncludeEmpty(value) {
     // 隐私模式 / 配额不足:偏好无法持久化,但本次会话内仍然生效
   }
 }
+
+/**
+ * 「导出后扣减库存」(规格 05 §3)。
+ * 默认 false —— 规格明文要求只有用户主动开启「完成一张作品后记账」才执行。
+ */
+export const DEFAULT_DEDUCT_INVENTORY = false
+
+export function loadDeductInventory() {
+  const value = readSettings().deductInventory
+  return typeof value === 'boolean' ? value : DEFAULT_DEDUCT_INVENTORY
+}
+
+export function saveDeductInventory(value) {
+  try {
+    const settings = readSettings()
+    settings.deductInventory = Boolean(value)
+    localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings))
+  } catch {
+    // 同上:偏好不落盘也不影响本次会话
+  }
+}

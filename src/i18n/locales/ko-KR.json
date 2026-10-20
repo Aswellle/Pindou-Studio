@@ -687,7 +687,12 @@
     "v2Hint": "기본 ON — 머리글·브랜드 마크·색 목록·눈금이 있는 전체 도안을 출력합니다. 끄면 이전 엔진으로 전환",
     "projectFile": "프로젝트 파일",
     "projectFileDesc": "다시 가져와 계속 편집할 수 있는 원본 파일(.pindou.json)",
-    "projectFileSaved": "프로젝트 파일을 내보냈습니다. \"도안 가져오기\"에서 다시 열 수 있습니다."
+    "projectFileSaved": "프로젝트 파일을 내보냈습니다. \"도안 가져오기\"에서 다시 열 수 있습니다.",
+    "deductInventory": "내보낸 후 재고 차감",
+    "deductInventoryHint": "수량이 기록된 색상만 차감합니다. 수량 미기록 색상은 그대로 둡니다.",
+    "deductDone": "재고 {{n}}개를 차감했습니다({{colors}}색)",
+    "deductPartial": "재고 차감: 성공 {{ok}}건, 실패 {{failed}}건",
+    "deductSkipped": "{{n}}색은 수량이 기록되지 않아 차감하지 않았습니다"
   },
   "quantizer": {
     "title": "이미지를 비드로",
@@ -1270,7 +1275,13 @@
       "beadSizePlaceholder": "모르면 비워 두세요",
       "notes": "메모",
       "deleteHint": "팔레트를 삭제하면 해당 색상과 재고 기록도 함께 삭제됩니다. 캔버스의 HEX 값은 영향을 받지 않습니다.",
-      "deleteTitle": "팔레트 삭제"
+      "deleteTitle": "팔레트 삭제",
+      "referencedBy": "저장된 작품 {{n}}개가 이 팔레트를 사용합니다.",
+      "reassignTo": "삭제 후 해당 작품의 참조 대상",
+      "keepHex": "기존 HEX 유지(권장, 캔버스 영향 없음)",
+      "reassignAndDelete": "선택한 팔레트로 변경 후 삭제({{n}}개)",
+      "reassignedDeleted": "작품 {{n}}개를 변경하고 팔레트를 삭제했습니다",
+      "reassignFailed": "{{failed}}개의 작품을 다시 지정하지 못해 팔레트를 유지했습니다. 잠시 후 다시 시도해 주세요."
     },
     "colors": {
       "new": "색상 추가",
@@ -1292,6 +1303,25 @@
         "factory": "제조사 값",
         "measured": "실측값",
         "estimated": "추정값"
+      },
+      "import": {
+        "button": "일괄 가져오기",
+        "template": "템플릿 다운로드",
+        "previewTitle": "가져오기 미리보기",
+        "summary": "{{ok}}색 가져오기 가능, {{bad}}행에 문제가 있습니다",
+        "more": "{{n}}색은 표시되지 않았습니다",
+        "rowError": "{{row}}행:",
+        "confirm": "{{n}}색 가져오기",
+        "imported": "{{n}}색을 가져왔습니다",
+        "errors": {
+          "empty": "가져올 색상이 없습니다",
+          "noHeader": "헤더 행이 없습니다",
+          "missingColumn": "필수 열 누락: code, hex",
+          "tooManyRows": "한 번에 최대 2000행까지 가져올 수 있습니다",
+          "badJson": "JSON 형식이 올바르지 않습니다",
+          "badShape": "JSON 구조가 올바르지 않습니다(배열 또는 { colors: [...] })",
+          "readFailed": "파일을 읽지 못했습니다"
+        }
       }
     },
     "builtin": {

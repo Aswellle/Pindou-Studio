@@ -26,7 +26,10 @@ import {
   replaceColor,
   moveSelection,
 } from './utils/selectionUtils'
-import { loadFillIncludeEmpty, saveFillIncludeEmpty } from './utils/editorPrefs'
+import { loadFillIncludeEmpty, saveFillIncludeEmpty, loadDeductInventory, saveDeductInventory } from './utils/editorPrefs'
+import { runInventoryDeduction } from './services/beads/inventoryDeduction'
+import { createBrandColorResolver } from './services/export/PatternDocument'
+import { useUserPalettes } from './hooks/useUserPalettes'
 import { useAuth } from './hooks/useAuth'
 import { useResponsive } from './hooks/useResponsive'
 import { useHistory } from './hooks/useHistory'
@@ -109,7 +112,7 @@ export default function App() {
     canvasRef.current?.cancelStroke?.()
     resetCanvas(nextData)
   }, [resetCanvas])
-  const { works: savedWorks, worksLoading, syncCount, cloudMirrorCount, saveState, markDirty, saveWork, deleteWork, ackSync } = useSavedWorks(user)
+  const { works: savedWorks, worksLoading, syncCount, cloudMirrorCount, saveState, markDirty, saveWork, updateWork, deleteWork, ackSync } = useSavedWorks(user)
 
   // 画布内容变化 → 标记「未保存」。
   // 只在 canvasData 真的换了一个矩阵对象时触发(useHistory 每次 PUSH/RESET
@@ -136,6 +139,15 @@ export default function App() {
     setFillIncludeEmpty(value)
     saveFillIncludeEmpty(value)
   }, [])
+
+  // 导出后扣减库存(规格 05 §3):默认关闭,偏好持久化在 bead_studio_settings
+  const [deductInventory, setDeductInventory] = useState(loadDeductInventory)
+  const handleToggleDeductInventory = useCallback((value) => {
+    setDeductInventory(value)
+    saveDeductInventory(value)
+  }, [])
+  // 导出面板需要读库存与色卡,与 /my/beads 共用同一份数据源
+  const beadStore = useUserPalettes(user)
   const [designName, setDesignName] = useState(() => t('export.defaultName'))
   // 语言切换时同步默认导出名(designName 只作默认值,用户自定义名走 saveInputName)
   useEffect(() => { setDesignName(t('export.defaultName')) }, [i18n.language, t])
@@ -492,6 +504,39 @@ export default function App() {
     setCanvas(nextData)
   }, [setCanvas])
 
+  // 删除个人色卡前,把引用它的作品重新指定到另一张色卡(只改 paletteId,不动 canvasData)
+  const handleReassignWorkPalette = useCallback(async (work, paletteId) => {
+    if (!work || !paletteId) return false
+    return updateWork({ ...work, paletteId })
+  }, [updateWork])
+
+  /**
+   * 导出成功后扣减库存(规格 05 §3)。
+   * - 只在用户开启「导出后记账」时执行;
+   * - 未知库存不扣;扣到 0 标记缺货;
+   * - 逐条写入,失败数如实提示,不静默丢弃。
+   */
+  const handleExportComplete = useCallback(async () => {
+    if (!canvasData) return
+    const resolver = createBrandColorResolver(getPalette(currentPalette).colors)
+    // 开关关闭时 runInventoryDeduction 直接返回 skipped,不会写任何库存
+    const result = await runInventoryDeduction({
+      enabled: deductInventory,
+      canvasData,
+      inventory: beadStore.inventoryByKey,
+      paletteId: currentPalette,
+      paletteKind: 'builtin',
+      resolveColor: (hex) => resolver.resolve(hex),
+    }, beadStore.setInventory)
+    if (result.skipped) return
+    if (result.entries.length === 0) {
+      if (result.skippedUnknown > 0) toast(t('export.deductSkipped', { n: result.skippedUnknown }), 'info')
+      return
+    }
+    if (result.failed > 0) toast(t('export.deductPartial', { ok: result.ok, failed: result.failed }), 'error')
+    else toast(t('export.deductDone', { n: result.totalDeducted, colors: result.ok }), 'success')
+  }, [deductInventory, canvasData, currentPalette, beadStore, toast, t])
+
   // 页面切换(通过路由)
   const handlePageChange = (page) => {
     if (page === 'canvas') navigate('/')
@@ -562,6 +607,9 @@ export default function App() {
             gridHeight={gridHeight}
             designName={designName}
             paletteId={currentPalette}
+            deductInventory={deductInventory}
+            onToggleDeductInventory={handleToggleDeductInventory}
+            onExportComplete={handleExportComplete}
           />
         </div>
       </aside>
@@ -674,6 +722,8 @@ export default function App() {
               user={user}
               canvasData={canvasData}
               onApplyMapping={handleApplyBeadMapping}
+              works={savedWorks}
+              onReassignWorkPalette={handleReassignWorkPalette}
             />
           } />
 
@@ -717,6 +767,9 @@ export default function App() {
           gridHeight={gridHeight}
           designName={designName}
           paletteId={currentPalette}
+          deductInventory={deductInventory}
+          onToggleDeductInventory={handleToggleDeductInventory}
+          onExportComplete={handleExportComplete}
           onClose={() => setShowExport(false)}
         />
       )}
@@ -1041,6 +1094,8 @@ export default function App() {
               user={user}
               canvasData={canvasData}
               onApplyMapping={handleApplyBeadMapping}
+              works={savedWorks}
+              onReassignWorkPalette={handleReassignWorkPalette}
             />
           </div>
         } />
@@ -1073,6 +1128,9 @@ export default function App() {
           gridHeight={gridHeight}
           designName={designName}
           paletteId={currentPalette}
+          deductInventory={deductInventory}
+          onToggleDeductInventory={handleToggleDeductInventory}
+          onExportComplete={handleExportComplete}
           onClose={() => setShowExport(false)}
         />
       )}

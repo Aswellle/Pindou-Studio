@@ -44,6 +44,11 @@ import {
   BACKUP_ERRORS,
 } from '../services/beads/backup'
 import {
+  buildCsvTemplate,
+  parseColorImport,
+  IMPORT_ERRORS,
+} from '../services/beads/colorImport'
+import {
   matchCanvasToInventory,
   applyColorMapping,
   buildShoppingList,
@@ -82,6 +87,12 @@ const PALETTE_ERROR_KEY = {
   [BACKUP_ERRORS.FUTURE_VERSION]: 'myBeads.backup.errors.futureVersion',
   [BACKUP_ERRORS.TOO_LARGE]: 'myBeads.backup.errors.tooLarge',
   [BACKUP_ERRORS.BAD_SHAPE]: 'myBeads.backup.errors.badShape',
+  [IMPORT_ERRORS.EMPTY]: 'myBeads.colors.import.errors.empty',
+  [IMPORT_ERRORS.NO_HEADER]: 'myBeads.colors.import.errors.noHeader',
+  [IMPORT_ERRORS.MISSING_COLUMN]: 'myBeads.colors.import.errors.missingColumn',
+  [IMPORT_ERRORS.TOO_MANY_ROWS]: 'myBeads.colors.import.errors.tooManyRows',
+  [IMPORT_ERRORS.BAD_JSON]: 'myBeads.colors.import.errors.badJson',
+  [IMPORT_ERRORS.BAD_SHAPE]: 'myBeads.colors.import.errors.badShape',
 }
 
 /** 颜色匹配状态 → 徽章样式与 i18n 键(库存单独展示,不混在色差徽章里) */
@@ -115,7 +126,7 @@ function statusBadges(item) {
   return badges
 }
 
-export default function MyBeadsPage({ user, canvasData, onApplyMapping }) {
+export default function MyBeadsPage({ user, canvasData, onApplyMapping, works = [], onReassignWorkPalette }) {
   const { t } = useTranslation()
   const navigate = useNavigate()
   const toast = useToast()
@@ -133,6 +144,10 @@ export default function MyBeadsPage({ user, canvasData, onApplyMapping }) {
   // 在 iOS 键盘弹起时把 fixed 浮层顶出可视区
   useScrollLock(!!(editingPalette || editingColor || confirmDelete))
   const [busy, setBusy] = useState(false)
+
+  const [colorImport, setColorImport] = useState(null) // { filename, drafts, errors, fatal }
+  // 删除被引用色卡时的重新指定目标('' = 保留作品里的 HEX,不改 paletteId)
+  const [reassignTargetId, setReassignTargetId] = useState('')
 
   // 匹配页状态
   const [targetKind, setTargetKind] = useState('builtin') // builtin | user
@@ -243,6 +258,14 @@ export default function MyBeadsPage({ user, canvasData, onApplyMapping }) {
     }
   }
 
+  // ── 删除色卡:若被作品引用,提供「保留 HEX / 重新指定色卡 / 取消」──
+  // 规格 05 §2:删除被引用的色卡不能破坏图纸网格。canvasData 只存 HEX,
+  // 所以「保留 HEX」永远是安全默认;「重新指定」只是把作品的 paletteId 改到另一张色卡。
+  const referencingWorks = useMemo(() => {
+    if (!confirmDelete || confirmDelete.kind !== 'palette') return []
+    return (works || []).filter((w) => w.paletteId === confirmDelete.id)
+  }, [confirmDelete, works])
+
   const doDeletePalette = async () => {
     if (!confirmDelete) return
     const target = confirmDelete
@@ -253,6 +276,39 @@ export default function MyBeadsPage({ user, canvasData, onApplyMapping }) {
       await run(() => store.deleteColor(target.id), 'myBeads.colorDeleted')
     }
   }
+
+  /** 删除前把引用该色卡的作品重新指定到目标色卡(保留 canvasData 不变) */
+  const deletePaletteWithReassign = async (targetPaletteId) => {
+    const target = confirmDelete
+    if (!target || target.kind !== 'palette') return
+    setConfirmDelete(null)
+    setBusy(true)
+    try {
+      let reassigned = 0
+      for (const w of referencingWorks) {
+        const ok = await onReassignWorkPalette?.(w, targetPaletteId)
+        if (ok) reassigned++
+      }
+      // 有任何一件没改成功就停下:否则作品会指向一张已被删除的色卡
+      if (reassigned < referencingWorks.length) {
+        toast(t('myBeads.palettes.reassignFailed', {
+          failed: referencingWorks.length - reassigned,
+        }), 'error')
+        return
+      }
+      const res = await store.deletePalette(target.id)
+      if (!res.ok) {
+        toast(errorText(res.errors?.[0]), 'error')
+        return
+      }
+      toast(t('myBeads.palettes.reassignedDeleted', { n: reassigned }), 'success')
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  // 打开删除确认时重置「重新指定」目标
+  useEffect(() => { setReassignTargetId('') }, [confirmDelete])
 
   // ── 颜色编辑 ───────────────────────────────────────────────
   const openNewColor = () => setEditingColor({
@@ -274,6 +330,61 @@ export default function MyBeadsPage({ user, canvasData, onApplyMapping }) {
       'myBeads.saved',
     )
     if (res?.ok) setEditingColor(null)
+  }
+
+  // ── 批量颜色导入(CSV / JSON,规格 05 §2 P1)─────────────────
+  const colorFileRef = useRef(null)
+
+  /** 下载 CSV 模板(带 BOM,Excel 直接打开不乱码) */
+  const downloadColorTemplate = () => {
+    const blob = new Blob([buildCsvTemplate()], { type: 'text/csv;charset=utf-8' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = 'pindou-colors-template.csv'
+    a.click()
+    URL.revokeObjectURL(url)
+  }
+
+  const onColorFilePicked = async (e) => {
+    const file = e.target.files?.[0]
+    e.target.value = ''
+    if (!file || !selectedPalette) return
+    let text = ''
+    try {
+      text = await file.text()
+    } catch {
+      toast(t('myBeads.colors.import.errors.readFailed'), 'error')
+      return
+    }
+    const siblings = store.colorsByPalette.get(selectedPalette.id) || []
+    const parsed = parseColorImport(text, { filename: file.name, existingColors: siblings })
+    // 预览:即使有错误行也先把可导入的部分展示出来,由用户确认
+    setColorImport({
+      filename: file.name,
+      drafts: parsed.ok ? parsed.drafts : [],
+      errors: parsed.errors || [],
+      fatal: !parsed.ok,
+    })
+  }
+
+  /** 用户确认后才写入:整批一次提交,失败则整体不写 */
+  const confirmColorImport = async () => {
+    if (!colorImport || !selectedPalette) return
+    const drafts = colorImport.drafts || []
+    if (drafts.length === 0) return
+    setBusy(true)
+    try {
+      const res = await store.addColors(selectedPalette.id, drafts)
+      if (!res.ok) {
+        toast(errorText(res.errors?.[0]), 'error')
+        return
+      }
+      toast(t('myBeads.colors.import.imported', { n: drafts.length }), 'success')
+      setColorImport(null)
+    } finally {
+      setBusy(false)
+    }
   }
 
   // ── 复制内置色卡 ───────────────────────────────────────────
@@ -745,15 +856,95 @@ export default function MyBeadsPage({ user, canvasData, onApplyMapping }) {
                 <p className="my-beads-hint small">{t('myBeads.palettes.deleteHint')}</p>
 
                 {/* 规格 05 §2 P0:颜色列表支持按色号/名称/HEX 搜索 */}
-                <label className="my-beads-search my-beads-color-search">
-                  <Search size={14} />
+                <div className="my-beads-color-toolbar">
+                  <label className="my-beads-search my-beads-color-search">
+                    <Search size={14} />
+                    <input
+                      value={colorSearch}
+                      onChange={(e) => setColorSearch(e.target.value)}
+                      placeholder={t('myBeads.colors.search')}
+                      aria-label={t('myBeads.colors.search')}
+                    />
+                  </label>
+                  {/* 批量导入(规格 05 §2 P1):模板下载 + 预览 + 确认后整批写入 */}
+                  <button type="button" className="my-beads-btn ghost" onClick={downloadColorTemplate}>
+                    <Download size={14} />{t('myBeads.colors.import.template')}
+                  </button>
+                  <button
+                    type="button"
+                    className="my-beads-btn ghost"
+                    disabled={busy}
+                    onClick={() => colorFileRef.current?.click()}
+                  >
+                    <Upload size={14} />{t('myBeads.colors.import.button')}
+                  </button>
                   <input
-                    value={colorSearch}
-                    onChange={(e) => setColorSearch(e.target.value)}
-                    placeholder={t('myBeads.colors.search')}
-                    aria-label={t('myBeads.colors.search')}
+                    ref={colorFileRef}
+                    type="file"
+                    accept=".csv,.json,text/csv,application/json"
+                    className="my-beads-file-input my-beads-color-file-input"
+                    onChange={onColorFilePicked}
                   />
-                </label>
+                </div>
+
+                {/* 导入预览:先看清要写入什么、哪些行有问题,再决定 */}
+                {colorImport && (
+                  <div className="my-beads-import-preview" role="region" aria-label={t('myBeads.colors.import.previewTitle')}>
+                    <div className="my-beads-import-head">
+                      <strong>{t('myBeads.colors.import.previewTitle')}</strong>
+                      <span className="my-beads-hint small">{colorImport.filename}</span>
+                      <button type="button" className="my-beads-btn ghost" onClick={() => setColorImport(null)}>
+                        {t('common.cancel')}
+                      </button>
+                    </div>
+                    <p className="my-beads-hint small">
+                      {t('myBeads.colors.import.summary', {
+                        ok: colorImport.drafts.length,
+                        bad: colorImport.errors.length,
+                      })}
+                    </p>
+                    {colorImport.drafts.length > 0 && (
+                      <ul className="my-beads-import-list">
+                        {colorImport.drafts.slice(0, 50).map((d) => (
+                          <li key={`${d.row}-${d.code}`}>
+                            <span className="swatch" style={{ background: d.hex }} />
+                            <code>{d.code}</code>
+                            <span className="name">{d.name || ''}</span>
+                            <span className="hex">{d.hex}</span>
+                            <span className={`source-tag ${d.source}`}>
+                              {t(`myBeads.colors.sources.${d.source}`)}
+                            </span>
+                          </li>
+                        ))}
+                      </ul>
+                    )}
+                    {colorImport.drafts.length > 50 && (
+                      <p className="my-beads-hint small">
+                        {t('myBeads.colors.import.more', { n: colorImport.drafts.length - 50 })}
+                      </p>
+                    )}
+                    {colorImport.errors.length > 0 && (
+                      <ul className="my-beads-import-errors">
+                        {colorImport.errors.slice(0, 20).map((e, i) => (
+                          <li key={i}>
+                            {e.row ? t('myBeads.colors.import.rowError', { row: e.row }) : ''}
+                            {errorText(e)}
+                          </li>
+                        ))}
+                      </ul>
+                    )}
+                    <div className="my-beads-import-actions">
+                      <button
+                        type="button"
+                        className="my-beads-btn primary"
+                        disabled={busy || colorImport.drafts.length === 0}
+                        onClick={confirmColorImport}
+                      >
+                        {t('myBeads.colors.import.confirm', { n: colorImport.drafts.length })}
+                      </button>
+                    </div>
+                  </div>
+                )}
 
                 <ColorList
                   colors={filteredColors}
@@ -1211,6 +1402,39 @@ export default function MyBeadsPage({ user, canvasData, onApplyMapping }) {
             <h3>{confirmDelete.kind === 'palette' ? t('myBeads.palettes.deleteTitle') : t('myBeads.colors.deleteTitle')}</h3>
             <p>{t('myBeads.deleteBody', { name: confirmDelete.name })}</p>
             <p className="my-beads-hint small">{t('myBeads.deleteKeepCanvas')}</p>
+
+            {/* 规格 05 §2:被作品引用的色卡删除时,给「保留 HEX / 重新指定 / 取消」三个明确选项 */}
+            {confirmDelete.kind === 'palette' && referencingWorks.length > 0 && (
+              <div className="my-beads-reassign">
+                <p className="my-beads-hint small">
+                  {t('myBeads.palettes.referencedBy', { n: referencingWorks.length })}
+                </p>
+                <label>
+                  <span>{t('myBeads.palettes.reassignTo')}</span>
+                  <select
+                    value={reassignTargetId}
+                    onChange={(e) => setReassignTargetId(e.target.value)}
+                    aria-label={t('myBeads.palettes.reassignTo')}
+                  >
+                    <option value="">{t('myBeads.palettes.keepHex')}</option>
+                    {palettes.filter((p) => p.id !== confirmDelete.id).map((p) => (
+                      <option key={p.id} value={p.id}>{p.name}</option>
+                    ))}
+                  </select>
+                </label>
+                {reassignTargetId && (
+                  <button
+                    type="button"
+                    className="my-beads-btn primary"
+                    disabled={busy}
+                    onClick={() => deletePaletteWithReassign(reassignTargetId)}
+                  >
+                    {t('myBeads.palettes.reassignAndDelete', { n: referencingWorks.length })}
+                  </button>
+                )}
+              </div>
+            )}
+
             <div className="my-beads-modal-actions">
               <button type="button" className="my-beads-btn ghost" onClick={() => setConfirmDelete(null)}>{t('common.cancel')}</button>
               <button type="button" className="my-beads-btn danger" onClick={doDeletePalette}>{t('common.delete')}</button>

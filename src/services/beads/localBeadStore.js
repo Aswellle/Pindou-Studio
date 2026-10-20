@@ -253,6 +253,33 @@ export function createLocalBeadStore(storage = globalThis.localStorage) {
       return w.ok ? { ok: true, color } : w
     },
 
+    /**
+     * 批量添加颜色(CSV/JSON 导入用)。全部校验通过才写入,任何一行不合法则整体拒绝,
+     * 与规格「不允许部分写入后无提示失败」一致。
+     */
+    async addColors(paletteId, inputs = []) {
+      const palette = state.palettes.find((p) => p.id === paletteId)
+      if (!palette) return { ok: false, errors: [{ code: STORE_ERRORS.NOT_FOUND }] }
+      const siblings = state.colors.filter((c) => c.paletteId === paletteId)
+      const accepted = [...siblings]
+      const colors = []
+      for (let i = 0; i < inputs.length; i++) {
+        const res = normalizeColorInput(inputs[i], { existingColors: accepted })
+        if (!res.ok) return { ok: false, errors: res.errors.map((e) => ({ ...e, index: i })) }
+        const color = {
+          id: createLocalId('col'),
+          paletteId,
+          ...res.color,
+          sortOrder: siblings.length + i,
+        }
+        colors.push(color)
+        accepted.push(color)
+      }
+      if (colors.length === 0) return { ok: true, colors: [] }
+      const w = commit({ ...state, colors: [...state.colors, ...colors] })
+      return w.ok ? { ok: true, colors } : w
+    },
+
     async updateColor(id, patch) {
       const existing = state.colors.find((c) => c.id === id)
       if (!existing) return { ok: false, errors: [{ code: STORE_ERRORS.NOT_FOUND }] }

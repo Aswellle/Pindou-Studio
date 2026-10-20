@@ -687,7 +687,12 @@
     "v2Hint": "デフォルトON。ヘッダー・署名・色リスト・目盛り付きの完全な図面を出力。オフで旧エンジンに戻る",
     "projectFile": "プロジェクトファイル",
     "projectFileDesc": "再インポートして編集を続けられるネイティブファイル（.pindou.json）",
-    "projectFileSaved": "プロジェクトファイルを書き出しました。「図案をインポート」から再度開けます。"
+    "projectFileSaved": "プロジェクトファイルを書き出しました。「図案をインポート」から再度開けます。",
+    "deductInventory": "書き出し後に在庫を減らす",
+    "deductInventoryHint": "数量が記録されている色のみ減らします。数量不明の色は変更しません。",
+    "deductDone": "在庫を {{n}} 個減らしました({{colors}} 色)",
+    "deductPartial": "在庫の減算:成功 {{ok}} 件、失敗 {{failed}} 件",
+    "deductSkipped": "{{n}} 色は数量が未記録のため減算していません"
   },
   "quantizer": {
     "title": "画像をビードに",
@@ -1270,7 +1275,13 @@
       "beadSizePlaceholder": "不明なら空欄",
       "notes": "メモ",
       "deleteHint": "パレットを削除すると、その色と在庫記録も削除されます。キャンバス上の HEX は影響を受けません。",
-      "deleteTitle": "パレットを削除"
+      "deleteTitle": "パレットを削除",
+      "referencedBy": "{{n}} 件の保存済み作品がこの色見本を使用しています。",
+      "reassignTo": "削除後、これらの作品の参照先",
+      "keepHex": "元の HEX を保持(推奨、キャンバスに影響なし)",
+      "reassignAndDelete": "選択した色見本に付け替えて削除({{n}} 件)",
+      "reassignedDeleted": "{{n}} 件の作品を付け替えて色見本を削除しました",
+      "reassignFailed": "{{failed}} 件の作品の再指定に失敗したため、パレットは削除していません。後でもう一度お試しください。"
     },
     "colors": {
       "new": "色を追加",
@@ -1292,6 +1303,25 @@
         "factory": "メーカー値",
         "measured": "実測値",
         "estimated": "推定値"
+      },
+      "import": {
+        "button": "一括インポート",
+        "template": "テンプレートをダウンロード",
+        "previewTitle": "インポートのプレビュー",
+        "summary": "{{ok}} 色をインポート可能、{{bad}} 行に問題があります",
+        "more": "残り {{n}} 色は表示されていません",
+        "rowError": "{{row}} 行目:",
+        "confirm": "{{n}} 色をインポート",
+        "imported": "{{n}} 色をインポートしました",
+        "errors": {
+          "empty": "インポートできる色がありません",
+          "noHeader": "ヘッダー行がありません",
+          "missingColumn": "必須列がありません:code と hex",
+          "tooManyRows": "1 回のインポートは最大 2000 行です",
+          "badJson": "JSON の形式が正しくありません",
+          "badShape": "JSON の構造が正しくありません(配列または { colors: [...] })",
+          "readFailed": "ファイルの読み込みに失敗しました"
+        }
       }
     },
     "builtin": {

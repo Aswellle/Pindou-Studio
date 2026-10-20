@@ -166,6 +166,18 @@ export function useUserPalettes(user) {
     return res
   }, [fail, state.colors])
 
+  /**
+   * 批量添加颜色(CSV/JSON 导入)。整批一次写入:任何一行不合法则整体拒绝,
+   * 不会出现「导入了一半」的状态。
+   */
+  const addColors = useCallback(async (paletteId, inputs) => {
+    const siblings = state.colors.filter((c) => c.paletteId === paletteId)
+    const res = await storeRef.current.addColors(paletteId, inputs, siblings)
+    if (!res.ok) return fail(res.errors)
+    setState((s) => ({ ...s, colors: [...s.colors, ...(res.colors || [])] }))
+    return res
+  }, [fail, state.colors])
+
   const updateColor = useCallback(async (id, patch) => {
     const existing = state.colors.find((c) => c.id === id)
     if (!existing) return fail([{ code: 'notFound' }])
@@ -320,6 +332,7 @@ export function useUserPalettes(user) {
     updatePalette,
     deletePalette,
     addColor,
+    addColors,
     updateColor,
     deleteColor,
     setInventory,

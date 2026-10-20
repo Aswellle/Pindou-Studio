@@ -65,6 +65,7 @@ export function createCloudBeadStore(client = supabase, userId = null) {
       async updatePalette() { return fail([{ code: 'cloudNotConfigured' }]) },
       async deletePalette() { return fail([{ code: 'cloudNotConfigured' }]) },
       async addColor() { return fail([{ code: 'cloudNotConfigured' }]) },
+      async addColors() { return fail([{ code: 'cloudNotConfigured' }]) },
       async updateColor() { return fail([{ code: 'cloudNotConfigured' }]) },
       async deleteColor() { return fail([{ code: 'cloudNotConfigured' }]) },
       async setInventory() { return fail([{ code: 'cloudNotConfigured' }]) },
@@ -168,6 +169,36 @@ export function createCloudBeadStore(client = supabase, userId = null) {
         .single()
       if (error) { remember({ code: 'cloud', detail: error.message }); return fromDbError(error) }
       return { ok: true, color: rowToColor(data) }
+    },
+
+    /**
+     * 批量添加颜色(CSV/JSON 导入用)。单次 insert,任何一行不合法则整体拒绝。
+     */
+    async addColors(paletteId, inputs = [], existingColors = []) {
+      const accepted = [...existingColors]
+      const colors = []
+      for (let i = 0; i < inputs.length; i++) {
+        const res = normalizeColorInput(inputs[i], { existingColors: accepted })
+        if (!res.ok) return { ok: false, errors: res.errors.map((e) => ({ ...e, index: i })) }
+        colors.push(res.color)
+        accepted.push({ id: `__draft_${i}`, code: res.color.code })
+      }
+      if (colors.length === 0) return { ok: true, colors: [] }
+      const { data, error } = await client
+        .from('user_palette_colors')
+        .insert(colors.map((c, i) => ({
+          user_id: userId,
+          palette_id: paletteId,
+          code: c.code,
+          name: c.name || null,
+          hex: c.hex,
+          notes: c.notes || null,
+          sort_order: existingColors.length + i,
+          source: c.source,
+        })))
+        .select()
+      if (error) { remember({ code: 'cloud', detail: error.message }); return fromDbError(error) }
+      return { ok: true, colors: (data || []).map(rowToColor) }
     },
 
     /**

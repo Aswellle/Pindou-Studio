@@ -111,6 +111,45 @@ describe('cloudBeadStore · 写入形状', () => {
     expect(loaded.colors[1].source).toBe('factory')
   })
 
+  it('addColors 单次 insert 多行,每行带 user_id/palette_id/source 与递增 sort_order', async () => {
+    const client = fakeClient({
+      data: [
+        { id: 'c1', palette_id: 'pal-1', code: 'B1', hex: '#0000FF', sort_order: 5, source: 'factory' },
+        { id: 'c2', palette_id: 'pal-1', code: 'C1', hex: '#00FF00', sort_order: 6, source: 'measured' },
+      ],
+    })
+    const store = createCloudBeadStore(client, USER_ID)
+    const res = await store.addColors('pal-1', [
+      { code: 'B1', hex: '#0000ff' },
+      { code: 'C1', hex: '#00ff00', source: 'measured' },
+    ], [{ id: 'x1' }, { id: 'x2' }, { id: 'x3' }, { id: 'x4' }, { id: 'x5' }])
+
+    expect(res.ok).toBe(true)
+    expect(client.calls).toHaveLength(1) // 整批一次写入
+    expect(client.calls[0].method).toBe('insert')
+    expect(client.calls[0].payload).toHaveLength(2)
+    for (const row of client.calls[0].payload) {
+      expect(row.user_id).toBe(USER_ID)
+      expect(row.palette_id).toBe('pal-1')
+    }
+    // sort_order 接着已有 5 个颜色
+    expect(client.calls[0].payload.map((r) => r.sort_order)).toEqual([5, 6])
+    expect(client.calls[0].payload[1].source).toBe('measured')
+  })
+
+  it('addColors 任何一行非法:整批不发出请求', async () => {
+    const client = fakeClient()
+    const store = createCloudBeadStore(client, USER_ID)
+    const res = await store.addColors('pal-1', [
+      { code: 'B1', hex: '#0000FF' },
+      { code: 'b1', hex: '#00FF00' }, // 批内重码
+    ], [])
+
+    expect(res.ok).toBe(false)
+    expect(res.errors[0]).toMatchObject({ code: 'duplicateCode', index: 1 })
+    expect(client.calls).toHaveLength(0)
+  })
+
   it('createPaletteWithColors 批量 insert 每行都带 user_id', async () => {
     const client = fakeClient({
       data: { id: 'pal-1', name: 'P', brand_name: null, series_name: null, bead_size_mm: null, notes: null },

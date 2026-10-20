@@ -4,6 +4,9 @@ import {
   DEFAULT_FILL_INCLUDE_EMPTY,
   loadFillIncludeEmpty,
   saveFillIncludeEmpty,
+  DEFAULT_DEDUCT_INVENTORY,
+  loadDeductInventory,
+  saveDeductInventory,
 } from './editorPrefs'
 
 /**
@@ -55,5 +58,25 @@ describe('editorPrefs · fillIncludeEmpty', () => {
     expect(loadFillIncludeEmpty()).toBe(false)
     localStorage.setItem(SETTINGS_KEY, JSON.stringify({ fillIncludeEmpty: 1 }))
     expect(loadFillIncludeEmpty()).toBe(false)
+  })
+})
+
+describe('editorPrefs · deductInventory(导出后扣减库存)', () => {
+  it('默认关闭(规格 05 §3:必须用户显式开启)', () => {
+    expect(DEFAULT_DEDUCT_INVENTORY).toBe(false)
+    expect(loadDeductInventory()).toBe(false)
+  })
+
+  it('保存后能读回,且不冲掉其他偏好', () => {
+    saveFillIncludeEmpty(true)
+    saveDeductInventory(true)
+    expect(loadDeductInventory()).toBe(true)
+    // 两个偏好互不覆盖
+    expect(loadFillIncludeEmpty()).toBe(true)
+  })
+
+  it('类型不对时回退默认值', () => {
+    localStorage.setItem(SETTINGS_KEY, JSON.stringify({ deductInventory: 'true' }))
+    expect(loadDeductInventory()).toBe(false)
   })
 })

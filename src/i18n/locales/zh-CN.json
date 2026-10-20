@@ -687,7 +687,12 @@
     "v2Hint": "默认开启,输出带表头/署名/颜色清单/双标尺的完整图纸。关闭后回退旧版导出",
     "projectFile": "工程文件",
     "projectFileDesc": "可重新导入继续编辑的原生图纸文件（.pindou.json）",
-    "projectFileSaved": "工程文件已导出，可通过「导入图纸」重新打开"
+    "projectFileSaved": "工程文件已导出，可通过「导入图纸」重新打开",
+    "deductInventory": "导出成功后扣减库存",
+    "deductInventoryHint": "只扣减已记录数量的颜色;数量未知的颜色不会被扣。",
+    "deductDone": "已扣减库存 {{n}} 颗({{colors}} 种颜色)",
+    "deductPartial": "库存扣减:成功 {{ok}} 条,失败 {{failed}} 条",
+    "deductSkipped": "{{n}} 种颜色未记录数量,未扣减库存"
   },
   "quantizer": {
     "title": "图片转拼豆",
@@ -1270,7 +1275,13 @@
       "beadSizePlaceholder": "未知可留空",
       "notes": "备注",
       "deleteHint": "删除色卡会同时删除它的颜色与库存记录；画布中的 HEX 不受影响。",
-      "deleteTitle": "删除色卡"
+      "deleteTitle": "删除色卡",
+      "referencedBy": "有 {{n}} 件已保存作品使用这张色卡。",
+      "reassignTo": "删除后这些作品指向",
+      "keepHex": "保留原 HEX(推荐,画布不受影响)",
+      "reassignAndDelete": "重新指定到所选色卡并删除({{n}} 件)",
+      "reassignedDeleted": "已重新指定 {{n}} 件作品并删除色卡",
+      "reassignFailed": "有 {{failed}} 件作品重新指定失败，已保留色卡。请稍后重试。"
     },
     "colors": {
       "new": "添加颜色",
@@ -1292,6 +1303,25 @@
         "factory": "原厂色值",
         "measured": "实测",
         "estimated": "估算"
+      },
+      "import": {
+        "button": "批量导入",
+        "template": "下载模板",
+        "previewTitle": "导入预览",
+        "summary": "可导入 {{ok}} 个颜色,{{bad}} 行有问题",
+        "more": "还有 {{n}} 个颜色未显示",
+        "rowError": "第 {{row}} 行:",
+        "confirm": "导入 {{n}} 个颜色",
+        "imported": "已导入 {{n}} 个颜色",
+        "errors": {
+          "empty": "文件里没有可导入的颜色",
+          "noHeader": "缺少表头",
+          "missingColumn": "缺少必需的列:code 与 hex",
+          "tooManyRows": "单次导入最多 2000 行",
+          "badJson": "JSON 格式不正确",
+          "badShape": "JSON 结构不正确,应为颜色数组或 { colors: [...] }",
+          "readFailed": "读取文件失败"
+        }
       }
     },
     "builtin": {

@@ -687,7 +687,12 @@
     "v2Hint": "On by default — renders the full sheet with header, brand mark, color panel and rulers. Turn off for the legacy exporter",
     "projectFile": "Project File",
     "projectFileDesc": "Native project file (.pindou.json) you can re-import to keep editing",
-    "projectFileSaved": "Project file exported. Reopen it via \"Import Pattern\"."
+    "projectFileSaved": "Project file exported. Reopen it via \"Import Pattern\".",
+    "deductInventory": "Deduct inventory after export",
+    "deductInventoryHint": "Only colors with a recorded quantity are deducted; unknown quantities are left untouched.",
+    "deductDone": "Deducted {{n}} beads ({{colors}} colors)",
+    "deductPartial": "Inventory deduction: {{ok}} succeeded, {{failed}} failed",
+    "deductSkipped": "{{n}} colors have no recorded quantity; nothing deducted"
   },
   "quantizer": {
     "title": "Image to Beads",
@@ -1270,7 +1275,13 @@
       "beadSizePlaceholder": "Leave blank if unknown",
       "notes": "Notes",
       "deleteHint": "Deleting a palette also removes its colors and inventory records; HEX values on the canvas are unaffected.",
-      "deleteTitle": "Delete palette"
+      "deleteTitle": "Delete palette",
+      "referencedBy": "{{n}} saved works use this palette.",
+      "reassignTo": "After deletion, those works point to",
+      "keepHex": "Keep existing HEX (recommended; canvas unaffected)",
+      "reassignAndDelete": "Reassign to selected palette and delete ({{n}} works)",
+      "reassignedDeleted": "Reassigned {{n}} works and deleted the palette",
+      "reassignFailed": "Failed to reassign {{failed}} work(s); the palette was kept. Please retry."
     },
     "colors": {
       "new": "Add color",
@@ -1292,6 +1303,25 @@
         "factory": "Factory",
         "measured": "Measured",
         "estimated": "Estimated"
+      },
+      "import": {
+        "button": "Bulk import",
+        "template": "Download template",
+        "previewTitle": "Import preview",
+        "summary": "{{ok}} colors ready, {{bad}} rows have problems",
+        "more": "{{n}} more colors not shown",
+        "rowError": "Row {{row}}:",
+        "confirm": "Import {{n}} colors",
+        "imported": "Imported {{n}} colors",
+        "errors": {
+          "empty": "No importable colors in the file",
+          "noHeader": "Missing header row",
+          "missingColumn": "Missing required columns: code and hex",
+          "tooManyRows": "At most 2000 rows per import",
+          "badJson": "Invalid JSON",
+          "badShape": "Invalid JSON shape; expected an array or { colors: [...] }",
+          "readFailed": "Failed to read the file"
+        }
       }
     },
     "builtin": {
