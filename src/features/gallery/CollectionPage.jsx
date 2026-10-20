@@ -25,7 +25,10 @@ export default function CollectionPage({ cloudStore }) {
   const content = useGalleryContent()
   const { allTemplates } = useGalleryTemplates(cloudStore)
 
-  const collection = content.getCollectionBySlug(slug)
+  // 公开路由只认已发布对象(理由同主题页;同样不能用 `??` 回退)
+  const collection = content.getPublishedCollectionBySlug
+    ? content.getPublishedCollectionBySlug(slug)
+    : content.getCollectionBySlug(slug)
   const text = collection ? localizedContentText(collection, i18n.language) : null
 
   const scopeTemplates = useMemo(() => {

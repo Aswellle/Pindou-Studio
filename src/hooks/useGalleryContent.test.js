@@ -127,7 +127,8 @@ describe('useGalleryContent', () => {
 
     rerender({ active: true })
     await waitFor(() => expect(result.current.themes).toHaveLength(1))
-    expect(calls).toBe(4)
+    // 5 张表:主题 / 合集 / 两张关联表 / 首页区块配置(0026)
+    expect(calls).toBe(5)
   })
 
   it('reload 重新拉取', async () => {

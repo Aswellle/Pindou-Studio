@@ -16,9 +16,16 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { supabase } from '../services/supabase'
 import { createGalleryContentStore } from '../services/gallery/galleryContentStore'
-import { sortContent } from '../services/gallery/contentModel'
+import {
+  CONTENT_STATUS,
+  sortContent,
+  resolveHomeSections,
+} from '../services/gallery/contentModel'
 
-const EMPTY = { themes: [], collections: [], themeLinks: [], collectionLinks: [] }
+/** 只保留已发布对象(公开路由用;与 discovery.publishedOnly 同一语义) */
+const publishedOnly = (list) => (list || []).filter((item) => item?.status === CONTENT_STATUS.PUBLISHED)
+
+const EMPTY = { themes: [], collections: [], themeLinks: [], collectionLinks: [], homeSections: [] }
 
 const CONTENT_TIMEOUT_MS = 15000
 
@@ -58,6 +65,7 @@ export function useGalleryContent({ active = true } = {}) {
         collections: Array.isArray(data.collections) ? data.collections : [],
         themeLinks: Array.isArray(data.themeLinks) ? data.themeLinks : [],
         collectionLinks: Array.isArray(data.collectionLinks) ? data.collectionLinks : [],
+        homeSections: Array.isArray(data.homeSections) ? data.homeSections : [],
       })
       setError('')
     } catch (e) {
@@ -124,6 +132,26 @@ export function useGalleryContent({ active = true } = {}) {
     return list.find((item) => String(item.slug || '').toLowerCase() === key) || null
   }, [])
 
+  // 首页区块:无配置时回退到默认顺序(未执行 0026 的项目行为不变)
+  const homeSections = useMemo(() => resolveHomeSections(state.homeSections), [state.homeSections])
+
+  /**
+   * 公开路由专用:只返回已发布对象。
+   *
+   * 管理员凭 RLS 会拿到草稿;若公开路由直接按 slug 查未过滤列表,
+   * 管理员访问 /gallery/theme/<草稿 slug> 会看到未发布内容 ——
+   * 与「草稿对公众不可见」的规则不一致(分享出去的链接也可能被误判为已上线)。
+   * 公开页一律走这里,后台编辑走 themes/collections 原始列表。
+   */
+  const getPublishedThemeBySlug = useCallback(
+    (slug) => findBySlug(publishedOnly(themes), slug),
+    [themes, findBySlug]
+  )
+  const getPublishedCollectionBySlug = useCallback(
+    (slug) => findBySlug(publishedOnly(collections), slug),
+    [collections, findBySlug]
+  )
+
   const getThemeBySlug = useCallback((slug) => findBySlug(themes, slug), [themes, findBySlug])
   const getCollectionBySlug = useCallback((slug) => findBySlug(collections, slug), [collections, findBySlug])
 
@@ -161,6 +189,13 @@ export function useGalleryContent({ active = true } = {}) {
     return res
   }, [store, load, fail])
 
+  const saveHomeSections = useCallback(async (sections) => {
+    const res = await store.saveHomeSections(sections)
+    if (!res.ok) return fail(res.errors)
+    await load()
+    return res
+  }, [store, load, fail])
+
   return {
     enabled: store.enabled,
     loading,
@@ -168,15 +203,19 @@ export function useGalleryContent({ active = true } = {}) {
     clearError: () => setError(''),
     themes,
     collections,
+    homeSections,
     themeTemplateIds,
     collectionTemplateIds,
     getThemeBySlug,
     getCollectionBySlug,
+    getPublishedThemeBySlug,
+    getPublishedCollectionBySlug,
     reload,
     createContent,
     updateContent,
     deleteContent,
     setLinks,
+    saveHomeSections,
   }
 }
 

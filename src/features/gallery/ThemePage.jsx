@@ -29,7 +29,11 @@ export default function ThemePage({ cloudStore }) {
   const content = useGalleryContent()
   const { allTemplates } = useGalleryTemplates(cloudStore)
 
-  const theme = content.getThemeBySlug(slug)
+  // 公开路由只认已发布对象:管理员凭 RLS 能拿到草稿,但公开页不应展示。
+  // 注意不能用 `??` 回退 —— null(未发布)会被未过滤查询重新捞回来。
+  const theme = content.getPublishedThemeBySlug
+    ? content.getPublishedThemeBySlug(slug)
+    : content.getThemeBySlug(slug)
   const text = theme ? localizedContentText(theme, i18n.language) : null
 
   const scopeTemplates = useMemo(() => {

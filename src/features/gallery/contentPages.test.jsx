@@ -30,6 +30,13 @@ vi.mock('../../hooks/useGalleryContent', () => ({
     ...contentState,
     getThemeBySlug: (slug) => contentState.themes.find((x) => x.slug === slug) || null,
     getCollectionBySlug: (slug) => contentState.collections.find((x) => x.slug === slug) || null,
+    // 公开路由专用:只认已发布(与真实 hook 一致)
+    getPublishedThemeBySlug: (slug) => contentState.themes.find(
+      (x) => x.slug === slug && x.status === 'published'
+    ) || null,
+    getPublishedCollectionBySlug: (slug) => contentState.collections.find(
+      (x) => x.slug === slug && x.status === 'published'
+    ) || null,
     reload: vi.fn(),
     createContent: vi.fn(),
     updateContent: vi.fn(),
@@ -117,6 +124,14 @@ describe('ThemePage', () => {
     expect(screen.getByText('共 1 张图纸')).toBeTruthy()
   })
 })
+
+  it('草稿主题在公开路由不可见(管理员凭 RLS 能拿到草稿)', () => {
+    contentState.themes = [theme('draft-one', { status: 'draft' })]
+    contentState.themeTemplateIds = new Map([['draft-one', ['1']]])
+    renderAt(<ThemePage cloudStore={cloudStore([template('1')])} />, '/gallery/theme/draft-one', '/gallery/theme/:slug')
+    expect(screen.getByText('内容不存在或尚未发布')).toBeTruthy()
+    expect(screen.queryByText('主题draft-one')).toBeNull()
+  })
 
 describe('CollectionPage', () => {
   it('展示策展说明与有序模板', () => {
