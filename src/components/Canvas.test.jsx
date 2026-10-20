@@ -632,6 +632,128 @@ describe('Canvas 拖拽移动 · 手势互斥(M5.2)', () => {
 })
 
 /**
+ * 规格 04 §8 测试矩阵:铅笔/橡皮/填充的手势与事务语义。
+ *
+ * 这些路径此前只有人工探测,没有自动化覆盖 —— 而它们正是「一次手势 = 一条历史」
+ * 契约的核心:拖动中每帧只画 overlay,松手才提交一次。
+ */
+describe('Canvas 基础工具事务语义(规格 04 §2 / §8)', () => {
+  let mock
+  beforeEach(() => { mock = installCanvasMocks() })
+  afterEach(() => mock.restore())
+
+  function renderTool(tool, data = blankGrid(3), overrides = {}) {
+    const onCanvasChange = vi.fn()
+    const view = render(
+      <Canvas
+        gridSize={3}
+        gridWidth={null}
+        gridHeight={null}
+        selectedColor="#ff0000"
+        tool={tool}
+        committedData={data}
+        onCanvasChange={onCanvasChange}
+        onSelectionChange={vi.fn()}
+        {...overrides}
+      />
+    )
+    return { ...view, onCanvasChange }
+  }
+
+  test('铅笔拖动连续上色,整段只提交一条历史', () => {
+    const { container, onCanvasChange } = renderTool('pencil')
+    const c = container.querySelector('.canvas-container')
+
+    fireEvent.mouseDown(c, { clientX: 8, clientY: 8 })
+    fireEvent.mouseMove(c, { clientX: 24, clientY: 8 })
+    fireEvent.mouseMove(c, { clientX: 40, clientY: 8 })
+    // 拖动期间不提交
+    expect(onCanvasChange).not.toHaveBeenCalled()
+    fireEvent.mouseUp(c, { clientX: 40, clientY: 8 })
+
+    expect(onCanvasChange).toHaveBeenCalledTimes(1)
+    expect(onCanvasChange.mock.calls[0][0][0]).toEqual(['#ff0000', '#ff0000', '#ff0000'])
+  })
+
+  test('橡皮拖动连续擦除,整段只提交一条历史', () => {
+    const data = blankGrid(3)
+    data[0] = ['#E53935', '#E53935', '#E53935']
+    const { container, onCanvasChange } = renderTool('eraser', data)
+    const c = container.querySelector('.canvas-container')
+
+    fireEvent.mouseDown(c, { clientX: 8, clientY: 8 })
+    fireEvent.mouseMove(c, { clientX: 24, clientY: 8 })
+    fireEvent.mouseMove(c, { clientX: 40, clientY: 8 })
+    fireEvent.mouseUp(c, { clientX: 40, clientY: 8 })
+
+    expect(onCanvasChange).toHaveBeenCalledTimes(1)
+    expect(onCanvasChange.mock.calls[0][0][0]).toEqual([null, null, null])
+  })
+
+  test('填充桶只填连通同色区域,不是整张画布', () => {
+    const data = blankGrid(3)
+    data[0][0] = '#111111'
+    data[0][1] = '#111111'
+    // 右下角同色但不连通
+    data[2][2] = '#111111'
+    const { container, onCanvasChange } = renderTool('fill', data)
+    const c = container.querySelector('.canvas-container')
+
+    fireEvent.mouseDown(c, { clientX: 8, clientY: 8 })
+    fireEvent.mouseUp(c, { clientX: 8, clientY: 8 })
+
+    const next = onCanvasChange.mock.calls[0][0]
+    expect(next[0]).toEqual(['#ff0000', '#ff0000', null])
+    // 不连通的同色格保持原样
+    expect(next[2][2]).toBe('#111111')
+  })
+
+  test('指针离开画布时提交一次,不丢笔画', () => {
+    const { container, onCanvasChange } = renderTool('pencil')
+    const c = container.querySelector('.canvas-container')
+
+    fireEvent.mouseDown(c, { clientX: 8, clientY: 8 })
+    fireEvent.mouseMove(c, { clientX: 24, clientY: 8 })
+    fireEvent.mouseLeave(c)
+
+    expect(onCanvasChange).toHaveBeenCalledTimes(1)
+    expect(onCanvasChange.mock.calls[0][0][0][0]).toBe('#ff0000')
+  })
+
+  test('触屏取消手势丢弃半成品选区,不提交任何画布变更', () => {
+    const onCanvasChange = vi.fn()
+    const onSelectionChange = vi.fn()
+    const { container } = render(
+      <Canvas
+        gridSize={3}
+        gridWidth={null}
+        gridHeight={null}
+        selectedColor="#ff0000"
+        tool="select"
+        committedData={blankGrid(3)}
+        onCanvasChange={onCanvasChange}
+        onSelectionChange={onSelectionChange}
+      />
+    )
+    const c = container.querySelector('.canvas-container')
+
+    fireEvent.touchStart(c, { touches: [{ clientX: 8, clientY: 8, identifier: 0 }] })
+    fireEvent.touchMove(c, { touches: [{ clientX: 24, clientY: 24, identifier: 0 }] })
+    const callsBeforeCancel = onSelectionChange.mock.calls.length
+
+    fireEvent.touchCancel(c, { touches: [] })
+
+    // 取消后不再产出选区,也不写画布
+    expect(onSelectionChange.mock.calls.length).toBe(callsBeforeCancel)
+    expect(onCanvasChange).not.toHaveBeenCalled()
+
+    // 随后到达的 touchEnd 不得把半成品选区补提交
+    fireEvent.touchEnd(c, { touches: [] })
+    expect(onSelectionChange.mock.calls.length).toBe(callsBeforeCancel)
+  })
+})
+
+/**
  * 选框实时跟随预览:拖动期间虚线框必须逐帧跟手,而不是松手才出现。
  * 这是「选不到预期范围」的主要来源 —— 用户看不到自己正在框哪里。
  */
