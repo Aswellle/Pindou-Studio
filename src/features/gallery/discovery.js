@@ -8,7 +8,11 @@
  *   - 所有区块都可能为空,由 UI 决定是否渲染。
  */
 
-import { CONTENT_STATUS } from '../../services/gallery/contentModel'
+import {
+  CONTENT_STATUS,
+  DEFAULT_HOME_SECTIONS,
+  DEFAULT_SECTION_LIMIT,
+} from '../../services/gallery/contentModel'
 
 export const RAIL_LIMIT = 12
 
@@ -98,18 +102,73 @@ export function buildDiscoverySections({
   collections = [],
   themeTemplateIds = new Map(),
   collectionTemplateIds = new Map(),
+  homeSections = null,
   limit = RAIL_LIMIT,
 } = {}) {
   const publishedThemes = publishedOnly(themes)
   const publishedCollections = publishedOnly(collections)
 
+  const featuredTheme = pickFeatured(publishedThemes)
+  const featuredCollection = pickFeatured(publishedCollections)
+  const popular = pickPopular(templates, downloadCountOf, limit)
+  const latest = pickLatest(templates, limit)
+
+  // 区块配置:无配置时用默认顺序(未执行 0026 的项目行为不变)
+  const configs = Array.isArray(homeSections) && homeSections.length > 0
+    ? homeSections
+    : DEFAULT_HOME_SECTIONS
+
+  const byId = (list, id) => list.find((item) => String(item.id) === String(id)) || null
+
+  /**
+   * 每种区块的「内容」。
+   * 返回 null 表示该区块当前无内容 —— 调用方据此整块跳过(不渲染空壳)。
+   */
+  const contentFor = (cfg) => {
+    const n = Number(cfg.limitCount) || DEFAULT_SECTION_LIMIT
+    switch (cfg.kind) {
+      case 'featured':
+        return (featuredTheme || featuredCollection) ? { featuredTheme, featuredCollection } : null
+      case 'popular':
+        return popular.length > 0 ? { templates: popular.slice(0, n) } : null
+      case 'latest':
+        return latest.length > 0 ? { templates: latest.slice(0, n) } : null
+      case 'themes':
+        return publishedThemes.length > 0 ? { themes: publishedThemes.slice(0, n) } : null
+      case 'collections':
+        return publishedCollections.length > 0 ? { collections: publishedCollections.slice(0, n) } : null
+      case 'theme': {
+        // 单个主题独立成区块:只认已发布的,配置指向草稿时不渲染
+        const theme = byId(publishedThemes, cfg.sourceId)
+        return theme ? { theme } : null
+      }
+      case 'collection': {
+        const collection = byId(publishedCollections, cfg.sourceId)
+        return collection ? { collection } : null
+      }
+      default:
+        return null
+    }
+  }
+
+  const blocks = []
+  for (const cfg of configs) {
+    if (!cfg || cfg.isEnabled === false) continue
+    const content = contentFor(cfg)
+    if (!content) continue
+    blocks.push({ ...cfg, content })
+  }
+
   return {
-    featuredTheme: pickFeatured(publishedThemes),
-    featuredCollection: pickFeatured(publishedCollections),
-    popular: pickPopular(templates, downloadCountOf, limit),
-    latest: pickLatest(templates, limit),
+    // 兼容字段(既有调用方/测试仍在用)
+    featuredTheme,
+    featuredCollection,
+    popular,
+    latest,
     themes: publishedThemes,
     collections: publishedCollections,
+    // 按后台配置排好序、已过滤空内容的区块列表
+    blocks,
     // 预览缩略图:主题/合集卡片用其首个可解析模板
     themePreview: (theme) => resolveTemplatesByIds(templates, themeTemplateIds.get(theme.id) || []).templates[0] || null,
     collectionPreview: (collection) => resolveTemplatesByIds(templates, collectionTemplateIds.get(collection.id) || []).templates[0] || null,

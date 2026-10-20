@@ -54,7 +54,7 @@ export default function GalleryPage({ onLoadTemplate, onDeleteWork, onLoadWork, 
   const toast = useToast()
   const navigate = useNavigate()
   // 搜索/分类/难度走 URL 状态(V2 核心差异),回退逻辑与 V1 一致
-  const { searchTerm, setSearchTerm, category, setCategory, difficulty, setDifficulty } = useGalleryQuery()
+  const { searchTerm, setSearchTerm, category, setCategory, difficulty, setDifficulty, setFilters } = useGalleryQuery()
   const [view, setView] = useState('all') // 'all' | 'favorites' | 'works'
 
   // 云端启用时,模板库完全来自云端(RLS 公开只读);未启用时回退本地模式
@@ -107,7 +107,8 @@ export default function GalleryPage({ onLoadTemplate, onDeleteWork, onLoadWork, 
     collections: galleryContent.collections,
     themeTemplateIds: galleryContent.themeTemplateIds,
     collectionTemplateIds: galleryContent.collectionTemplateIds,
-  }), [allTemplates, getDownloadCount, galleryContent.themes, galleryContent.collections, galleryContent.themeTemplateIds, galleryContent.collectionTemplateIds])
+    homeSections: galleryContent.homeSections,
+  }), [allTemplates, getDownloadCount, galleryContent.themes, galleryContent.collections, galleryContent.themeTemplateIds, galleryContent.collectionTemplateIds, galleryContent.homeSections])
   const discoveryEnabled = galleryContent.enabled && !cloudDown
   // 搜索/分类/难度任一激活时隐藏发现区块,避免「筛选了却还看到无关推荐」
   const filtersActive = !!searchTerm || category !== 'all' || difficulty !== 'all'
@@ -359,6 +360,9 @@ export default function GalleryPage({ onLoadTemplate, onDeleteWork, onLoadWork, 
             onOpenTheme={(theme) => navigate(`/gallery/theme/${encodeURIComponent(theme.slug)}`)}
             onOpenCollection={(collection) => navigate(`/gallery/collection/${encodeURIComponent(collection.slug)}`)}
             onOpenPattern={(template) => navigate(`/gallery/pattern/${encodeURIComponent(template.id)}`)}
+            // 「查看全部」:主题/合集没有独立索引页,回到图库并清空筛选
+            onViewAllThemes={() => { setFilters({ q: '', cat: 'all', diff: 'all' }) }}
+            onViewAllCollections={() => { setFilters({ q: '', cat: 'all', diff: 'all' }) }}
           />
         )}
         {/* 云端不可用:横幅说明 + 已回退本地/内置模板;网络恢复后自动重试(useCloudTemplates) */}

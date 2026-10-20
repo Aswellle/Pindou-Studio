@@ -7,6 +7,7 @@
  *   - 卡片只用真实模板缩略图,不使用装饰图冒充内容。
  */
 
+import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { ChevronRight } from 'lucide-react'
 import ThumbnailCanvas from '../../../components/ThumbnailCanvas'
@@ -23,15 +24,41 @@ function RailThumb({ template }) {
   )
 }
 
-function Rail({ id, title, hint, children }) {
+function Rail({ id, title, hint, viewAll, onViewAll, children }) {
   return (
     <section className="discovery-rail" aria-labelledby={`rail-${id}`}>
       <div className="rail-head">
         <h2 id={`rail-${id}`} className="rail-title">{title}</h2>
         {hint && <span className="rail-hint">{hint}</span>}
+        {viewAll && onViewAll && (
+          <button type="button" className="rail-view-all" onClick={onViewAll}>
+            {viewAll}
+            <ChevronRight size={14} aria-hidden="true" />
+          </button>
+        )}
       </div>
       <div className="rail-track">{children}</div>
     </section>
+  )
+}
+
+/**
+ * 封面图:coverUrl 存在时渲染真实封面,加载失败回退到调用方给的 fallback。
+ * 用 <img> 而非背景图,失败时能拿到 onError 事件。
+ */
+function CoverImage({ url, alt, className, fallback }) {
+  const [failed, setFailed] = useState(false)
+  if (!url || failed) return fallback
+  return (
+    <span className={className}>
+      <img
+        src={url}
+        alt={alt}
+        loading="lazy"
+        decoding="async"
+        onError={() => setFailed(true)}
+      />
+    </span>
   )
 }
 
@@ -57,8 +84,17 @@ function TemplateRailCard({ template, onOpen }) {
   )
 }
 
-function ContentRailCard({ item, preview, kind, language, onOpen }) {
+function ContentRailCard({ item, preview, kind, language, onOpen, coverAlt }) {
   const text = localizedContentText(item, language)
+  // 缩略图优先级:真实封面 > 首个关联模板 > 首字母占位。
+  // 封面加载失败时 CoverImage 会回退到这里传的 fallback。
+  const thumbFallback = preview ? (
+    <RailThumb template={preview} />
+  ) : (
+    <span className="rail-thumb">
+      <span className="rail-thumb-empty" aria-hidden="true">{text.title.slice(0, 1)}</span>
+    </span>
+  )
   return (
     <button
       className={`rail-card rail-card-${kind}`}
@@ -66,13 +102,12 @@ function ContentRailCard({ item, preview, kind, language, onOpen }) {
       aria-label={text.title}
       title={text.title}
     >
-      {preview ? (
-        <RailThumb template={preview} />
-      ) : (
-        <span className="rail-thumb">
-          <span className="rail-thumb-empty" aria-hidden="true">{text.title.slice(0, 1)}</span>
-        </span>
-      )}
+      <CoverImage
+        url={item.coverUrl}
+        alt={coverAlt || text.title}
+        className="rail-thumb rail-cover"
+        fallback={thumbFallback}
+      />
       <span className="rail-card-name">{text.title}</span>
       {text.description && <span className="rail-card-desc">{text.description}</span>}
     </button>
@@ -95,6 +130,8 @@ export default function DiscoveryRails({
   onOpenTheme,
   onOpenCollection,
   onOpenPattern,
+  onViewAllThemes,
+  onViewAllCollections,
 }) {
   const { t, i18n } = useTranslation()
   if (!sections) return null
@@ -102,9 +139,153 @@ export default function DiscoveryRails({
     return <div className="discovery-loading" role="status">{t('gallery.discovery.loading')}</div>
   }
 
-  const { featuredTheme, featuredCollection, popular, latest, themes, collections } = sections
+  const { featuredTheme, featuredCollection, popular, latest, themes, collections, blocks } = sections
   const featuredThemeText = featuredTheme ? localizedContentText(featuredTheme, i18n.language) : null
   const featuredCollectionText = featuredCollection ? localizedContentText(featuredCollection, i18n.language) : null
+
+  // 区块标题:管理员自定义优先,否则用 i18n 默认标题
+  const titleFor = (cfg, fallbackKey) => cfg.title || t(fallbackKey)
+  const hintFor = (cfg, fallbackKey) => cfg.subtitle || (fallbackKey ? t(fallbackKey) : '')
+
+  const renderTemplates = (list, cfg) => (list || [])
+    .slice(0, cfg.limitCount || list.length)
+    .map((template) => (
+      <TemplateRailCard key={template.id} template={template} onOpen={onOpenPattern} />
+    ))
+
+  const renderContentList = (list, cfg, kind) => (list || [])
+    .slice(0, cfg.limitCount || list.length)
+    .map((item) => (
+      <ContentRailCard
+        key={item.id}
+        item={item}
+        preview={kind === 'theme' ? sections.themePreview(item) : sections.collectionPreview(item)}
+        kind={kind}
+        language={i18n.language}
+        onOpen={kind === 'theme' ? onOpenTheme : onOpenCollection}
+        coverAlt={t('gallery.discovery.coverAlt', {
+          title: localizedContentText(item, i18n.language).title,
+        })}
+      />
+    ))
+
+  /**
+   * 按后台配置渲染区块。
+   * blocks 已在 discovery.buildDiscoverySections 里过滤掉「无内容」的项,
+   * 因此这里只负责把 kind 映射到具体组件。
+   */
+  const renderBlock = (block, index) => {
+    const key = block.id || `${block.kind}-${index}`
+    switch (block.kind) {
+      case 'featured':
+        return (
+          <section className="discovery-featured" key={key} aria-label={titleFor(block, 'gallery.discovery.featured')}>
+            {block.content.featuredTheme && (
+              <button className="featured-card" onClick={() => onOpenTheme?.(block.content.featuredTheme)}>
+                <span className="featured-kicker">{t('gallery.discovery.featuredTheme')}</span>
+                <span className="featured-title">
+                  {localizedContentText(block.content.featuredTheme, i18n.language).title}
+                </span>
+                {localizedContentText(block.content.featuredTheme, i18n.language).description && (
+                  <span className="featured-desc">
+                    {localizedContentText(block.content.featuredTheme, i18n.language).description}
+                  </span>
+                )}
+              </button>
+            )}
+            {block.content.featuredCollection && (
+              <button className="featured-card" onClick={() => onOpenCollection?.(block.content.featuredCollection)}>
+                <span className="featured-kicker">{t('gallery.discovery.featuredCollection')}</span>
+                <span className="featured-title">
+                  {localizedContentText(block.content.featuredCollection, i18n.language).title}
+                </span>
+                {localizedContentText(block.content.featuredCollection, i18n.language).description && (
+                  <span className="featured-desc">
+                    {localizedContentText(block.content.featuredCollection, i18n.language).description}
+                  </span>
+                )}
+              </button>
+            )}
+          </section>
+        )
+      case 'popular':
+        return (
+          <Rail
+            key={key}
+            id={`popular-${index}`}
+            title={titleFor(block, 'gallery.discovery.popular')}
+            hint={hintFor(block, 'gallery.discovery.popularHint')}
+          >
+            {renderTemplates(block.content.templates, block)}
+          </Rail>
+        )
+      case 'latest':
+        return (
+          <Rail
+            key={key}
+            id={`latest-${index}`}
+            title={titleFor(block, 'gallery.discovery.latest')}
+            hint={hintFor(block, null)}
+          >
+            {renderTemplates(block.content.templates, block)}
+          </Rail>
+        )
+      case 'themes':
+        return (
+          <Rail
+            key={key}
+            id={`themes-${index}`}
+            title={titleFor(block, 'gallery.discovery.themes')}
+            hint={hintFor(block, null)}
+            viewAll={t('gallery.discovery.viewAll')}
+            onViewAll={onViewAllThemes}
+          >
+            {renderContentList(block.content.themes, block, 'theme')}
+          </Rail>
+        )
+      case 'collections':
+        return (
+          <Rail
+            key={key}
+            id={`collections-${index}`}
+            title={titleFor(block, 'gallery.discovery.collections')}
+            hint={hintFor(block, null)}
+            viewAll={t('gallery.discovery.viewAll')}
+            onViewAll={onViewAllCollections}
+          >
+            {renderContentList(block.content.collections, block, 'collection')}
+          </Rail>
+        )
+      case 'theme': {
+        const text = localizedContentText(block.content.theme, i18n.language)
+        return (
+          <Rail key={key} id={`theme-${index}`} title={block.title || text.title} hint={block.subtitle || ''}>
+            {renderContentList([block.content.theme], { ...block, limitCount: 1 }, 'theme')}
+          </Rail>
+        )
+      }
+      case 'collection': {
+        const text = localizedContentText(block.content.collection, i18n.language)
+        return (
+          <Rail key={key} id={`collection-${index}`} title={block.title || text.title} hint={block.subtitle || ''}>
+            {renderContentList([block.content.collection], { ...block, limitCount: 1 }, 'collection')}
+          </Rail>
+        )
+      }
+      default:
+        return null
+    }
+  }
+
+  const hasBlocks = Array.isArray(blocks) && blocks.length > 0
+  // 兼容:调用方没传 blocks(旧测试/旧调用)时退回固定渲染顺序
+  const legacyBlocks = hasBlocks ? null : [
+    (featuredTheme || featuredCollection) && { kind: 'featured', content: { featuredTheme, featuredCollection } },
+    popular.length > 0 && { kind: 'popular', content: { templates: popular } },
+    latest.length > 0 && { kind: 'latest', content: { templates: latest } },
+    themes.length > 0 && { kind: 'themes', content: { themes } },
+    collections.length > 0 && { kind: 'collections', content: { collections } },
+  ].filter(Boolean)
 
   return (
     <div className="discovery">
@@ -113,75 +294,7 @@ export default function DiscoveryRails({
           {t('gallery.discovery.unavailable')}
         </div>
       )}
-
-      {(featuredTheme || featuredCollection) && (
-        <section className="discovery-featured" aria-label={t('gallery.discovery.featured')}>
-          {featuredTheme && (
-            <button className="featured-card" onClick={() => onOpenTheme?.(featuredTheme)}>
-              <span className="featured-kicker">{t('gallery.discovery.featuredTheme')}</span>
-              <span className="featured-title">{featuredThemeText.title}</span>
-              {featuredThemeText.description && (
-                <span className="featured-desc">{featuredThemeText.description}</span>
-              )}
-            </button>
-          )}
-          {featuredCollection && (
-            <button className="featured-card" onClick={() => onOpenCollection?.(featuredCollection)}>
-              <span className="featured-kicker">{t('gallery.discovery.featuredCollection')}</span>
-              <span className="featured-title">{featuredCollectionText.title}</span>
-              {featuredCollectionText.description && (
-                <span className="featured-desc">{featuredCollectionText.description}</span>
-              )}
-            </button>
-          )}
-        </section>
-      )}
-
-      {popular.length > 0 && (
-        <Rail id="popular" title={t('gallery.discovery.popular')} hint={t('gallery.discovery.popularHint')}>
-          {popular.map((template) => (
-            <TemplateRailCard key={template.id} template={template} onOpen={onOpenPattern} />
-          ))}
-        </Rail>
-      )}
-
-      {latest.length > 0 && (
-        <Rail id="latest" title={t('gallery.discovery.latest')}>
-          {latest.map((template) => (
-            <TemplateRailCard key={template.id} template={template} onOpen={onOpenPattern} />
-          ))}
-        </Rail>
-      )}
-
-      {themes.length > 0 && (
-        <Rail id="themes" title={t('gallery.discovery.themes')}>
-          {themes.map((theme) => (
-            <ContentRailCard
-              key={theme.id}
-              item={theme}
-              preview={sections.themePreview(theme)}
-              kind="theme"
-              language={i18n.language}
-              onOpen={onOpenTheme}
-            />
-          ))}
-        </Rail>
-      )}
-
-      {collections.length > 0 && (
-        <Rail id="collections" title={t('gallery.discovery.collections')}>
-          {collections.map((collection) => (
-            <ContentRailCard
-              key={collection.id}
-              item={collection}
-              preview={sections.collectionPreview(collection)}
-              kind="collection"
-              language={i18n.language}
-              onOpen={onOpenCollection}
-            />
-          ))}
-        </Rail>
-      )}
+      {(hasBlocks ? blocks : legacyBlocks).map(renderBlock)}
     </div>
   )
 }

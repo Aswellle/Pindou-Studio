@@ -134,3 +134,80 @@ describe('buildDiscoverySections', () => {
     expect(sections.themePreview(content('x'))).toBe(null)
   })
 })
+
+describe('buildDiscoverySections · 首页区块配置', () => {
+  const templates = [
+    tpl('1', { createdAt: '2026-10-02T00:00:00Z', downloadCount: 5 }),
+    tpl('2', { createdAt: '2026-10-01T00:00:00Z', downloadCount: 9 }),
+  ]
+  const themes = [content('t1', { slug: 'a', isFeatured: true })]
+  const collections = [content('c1', { slug: 'b' })]
+
+  const base = {
+    templates,
+    downloadCountOf: (x) => x.downloadCount || 0,
+    themes,
+    collections,
+  }
+
+  it('按配置顺序输出区块,并遵守 limitCount', () => {
+    const out = buildDiscoverySections({
+      ...base,
+      homeSections: [
+        { kind: 'latest', limitCount: 1, isEnabled: true, sortOrder: 0 },
+        { kind: 'popular', limitCount: 2, isEnabled: true, sortOrder: 1 },
+      ],
+    })
+    expect(out.blocks.map((b) => b.kind)).toEqual(['latest', 'popular'])
+    expect(out.blocks[0].content.templates).toHaveLength(1)
+    expect(out.blocks[1].content.templates).toHaveLength(2)
+  })
+
+  it('禁用的区块被跳过', () => {
+    const out = buildDiscoverySections({
+      ...base,
+      homeSections: [
+        { kind: 'popular', isEnabled: false, sortOrder: 0 },
+        { kind: 'latest', isEnabled: true, sortOrder: 1 },
+      ],
+    })
+    expect(out.blocks.map((b) => b.kind)).toEqual(['latest'])
+  })
+
+  it('无内容的区块整块跳过(不渲染空壳)', () => {
+    const out = buildDiscoverySections({
+      ...base,
+      templates: [], // 没有模板 → popular/latest 无内容
+      homeSections: [
+        { kind: 'popular', isEnabled: true, sortOrder: 0 },
+        { kind: 'themes', isEnabled: true, sortOrder: 1 },
+      ],
+    })
+    expect(out.blocks.map((b) => b.kind)).toEqual(['themes'])
+  })
+
+  it('单个主题区块只认已发布对象', () => {
+    const draft = content('t2', { slug: 'draft', status: 'draft' })
+    const out = buildDiscoverySections({
+      ...base,
+      themes: [...themes, draft],
+      homeSections: [
+        { kind: 'theme', sourceId: 't2', isEnabled: true, sortOrder: 0 },
+      ],
+    })
+    expect(out.blocks).toHaveLength(0)
+
+    const ok = buildDiscoverySections({
+      ...base,
+      homeSections: [{ kind: 'theme', sourceId: 't1', isEnabled: true, sortOrder: 0 }],
+    })
+    expect(ok.blocks[0].content.theme.id).toBe('t1')
+  })
+
+  it('无配置时行为与默认区块一致', () => {
+    const out = buildDiscoverySections(base)
+    expect(out.blocks.map((b) => b.kind)).toEqual(
+      ['featured', 'popular', 'latest', 'themes', 'collections']
+    )
+  })
+})
