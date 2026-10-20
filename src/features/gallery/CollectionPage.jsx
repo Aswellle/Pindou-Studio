@@ -12,6 +12,7 @@ import { ArrowLeft } from 'lucide-react'
 import { useGalleryContent } from '../../hooks/useGalleryContent'
 import { useGalleryTemplates } from './hooks/useGalleryTemplates'
 import { useFilteredTemplates } from './hooks/useFilteredTemplates'
+import { COLOR_COUNT_TIERS } from './hooks/useGalleryQuery'
 import { resolveTemplatesByIds } from './discovery'
 import { localizedContentText } from '../../services/gallery/contentModel'
 import TemplateGrid from './components/TemplateGrid'
@@ -134,7 +135,7 @@ export default function CollectionPage({ cloudStore }) {
               aria-label={t('gallery.discovery.filterColors')}
             >
               <option value="">{t('gallery.discovery.filterColorsAny')}</option>
-              {[4, 8, 12, 16, 24, 32].map((n) => (
+              {COLOR_COUNT_TIERS.map((n) => (
                 <option key={n} value={n}>{t('gallery.discovery.filterColorsMax', { n })}</option>
               ))}
             </select>

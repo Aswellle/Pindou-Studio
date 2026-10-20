@@ -80,7 +80,7 @@
           background: var(--bg-secondary);
           border-radius: 8px;
         }
-        .category-group, .difficulty-group {
+        .category-group, .difficulty-group, .colors-group {
           display: flex;
           align-items: flex-start;
           gap: 10px;
@@ -100,7 +100,7 @@
           flex: 1;
           min-width: 0;
         }
-        .category-btn, .difficulty-btn {
+        .category-btn, .difficulty-btn, .colors-btn {
           padding: 6px 12px;
           border: 1px solid var(--border-color);
           border-radius: 4px;
@@ -109,10 +109,10 @@
           color: var(--text-secondary);
           transition: all 0.2s;
         }
-        .category-btn:hover, .difficulty-btn:hover {
+        .category-btn:hover, .difficulty-btn:hover, .colors-btn:hover {
           border-color: var(--accent);
         }
-        .category-btn.active, .difficulty-btn.active {
+        .category-btn.active, .difficulty-btn.active, .colors-btn.active {
           background: var(--accent);
           border-color: var(--accent);
           color: white;
@@ -202,7 +202,7 @@
             gap: 14px;
             padding: 12px;
           }
-          .category-group, .difficulty-group {
+          .category-group, .difficulty-group, .colors-group {
             gap: 6px;
           }
           .filter-buttons {

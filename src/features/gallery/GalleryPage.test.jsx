@@ -186,3 +186,60 @@ describe('GalleryPage V2 — 矩形模板(M2 / R3)', () => {
     expect(screen.getByText(/\(4×2\)/)).toBeTruthy()
   })
 })
+
+describe('GalleryPage V2 — 用色数筛选', () => {
+  // 3 色模板:超过「≤ 2 色」档位应被筛掉
+  const threeColorStore = (overrides = {}) => ({
+    enabled: true, loading: false, error: null,
+    templates: [
+      { id: 'c-1', name: 'Two', nameZh: '两色', category: 'animal', difficulty: 'easy', size: 2,
+        pattern: [['#FF0000', '#00FF00'], [null, null]] },
+      { id: 'c-2', name: 'Five', nameZh: '五色', category: 'animal', difficulty: 'easy', size: 3,
+        pattern: [['#FF0000', '#00FF00', '#0000FF'], ['#FFFF00', '#FF00FF', null]] },
+    ],
+    categories: [], refresh: vi.fn(), loadAll: vi.fn(),
+    ...overrides,
+  })
+
+  it('筛选栏渲染档位按钮,默认「不限」为激活态', () => {
+    const { container } = setup({ savedWorks: [], cloudStore: threeColorStore() })
+    const buttons = [...container.querySelectorAll('.colors-btn')]
+    // 1 个「不限」+ COLOR_COUNT_TIERS.length 个上限档
+    expect(buttons.length).toBe(1 + 6)
+    expect(buttons[0].className).toContain('active')
+    expect(buttons[0].textContent).toBe('不限')
+  })
+
+  it('选择上限后按 pattern 唯一颜色数过滤', () => {
+    const { container } = setup({ savedWorks: [], cloudStore: threeColorStore() })
+    fireEvent.click(screen.getByText('≤ 4 色'))
+    expect(container.querySelectorAll('.template-card').length).toBe(1)
+    expect(screen.getByText('两色')).toBeTruthy()
+    expect(screen.queryByText('五色')).toBe(null)
+  })
+
+  it('筛选状态写进 URL(可分享/刷新恢复)', () => {
+    // setup 的 MemoryRouter 不暴露 location;改用带 initialEntries 的独立渲染
+    const { container } = render(
+      <MemoryRouter initialEntries={['/gallery?colors=4']}>
+        <GalleryPage onLoadTemplate={vi.fn()} savedWorks={[]} cloudStore={threeColorStore()} />
+      </MemoryRouter>
+    )
+    expect(container.querySelectorAll('.template-card').length).toBe(1)
+    expect(screen.getByText('≤ 4 色').className).toContain('active')
+  })
+
+  it('筛选无结果时提供一键清除,点击后恢复全部模板', () => {
+    // 搜索词与用色数叠加制造空结果
+    const { container } = render(
+      <MemoryRouter initialEntries={['/gallery?q=zzz&colors=4']}>
+        <GalleryPage onLoadTemplate={vi.fn()} savedWorks={[]} cloudStore={threeColorStore()} />
+      </MemoryRouter>
+    )
+    expect(container.querySelectorAll('.template-card').length).toBe(0)
+
+    fireEvent.click(screen.getByText('清除筛选'))
+    // 清除后 URL 参数一并清空 → 两个模板都回来
+    expect(container.querySelectorAll('.template-card').length).toBe(2)
+  })
+})

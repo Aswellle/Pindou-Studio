@@ -23,7 +23,7 @@ import { exportAsPNG } from '../../services/BeadPatternExporter'
 import { useToast } from '../../components/Toast'
 import ThumbnailCanvas from '../../components/ThumbnailCanvas'
 import ContactUsModal from '../../components/ContactUsModal'
-import { useGalleryQuery } from './hooks/useGalleryQuery'
+import { useGalleryQuery, COLOR_COUNT_TIERS } from './hooks/useGalleryQuery'
 import { useGalleryTemplates } from './hooks/useGalleryTemplates'
 import useDownloadCounts from './hooks/useDownloadCounts'
 import { useGalleryContent } from '../../hooks/useGalleryContent'
@@ -53,8 +53,14 @@ export default function GalleryPage({ onLoadTemplate, onDeleteWork, onLoadWork, 
   const { t } = useTranslation()
   const toast = useToast()
   const navigate = useNavigate()
-  // 搜索/分类/难度走 URL 状态(V2 核心差异),回退逻辑与 V1 一致
-  const { searchTerm, setSearchTerm, category, setCategory, difficulty, setDifficulty, setFilters } = useGalleryQuery()
+  // 搜索/分类/难度/用色数走 URL 状态(V2 核心差异),回退逻辑与 V1 一致
+  const {
+    searchTerm, setSearchTerm,
+    category, setCategory,
+    difficulty, setDifficulty,
+    maxColors, setMaxColors,
+    setFilters,
+  } = useGalleryQuery()
   const [view, setView] = useState('all') // 'all' | 'favorites' | 'works'
 
   // 云端启用时,模板库完全来自云端(RLS 公开只读);未启用时回退本地模式
@@ -110,8 +116,8 @@ export default function GalleryPage({ onLoadTemplate, onDeleteWork, onLoadWork, 
     homeSections: galleryContent.homeSections,
   }), [allTemplates, getDownloadCount, galleryContent.themes, galleryContent.collections, galleryContent.themeTemplateIds, galleryContent.collectionTemplateIds, galleryContent.homeSections])
   const discoveryEnabled = galleryContent.enabled && !cloudDown
-  // 搜索/分类/难度任一激活时隐藏发现区块,避免「筛选了却还看到无关推荐」
-  const filtersActive = !!searchTerm || category !== 'all' || difficulty !== 'all'
+  // 搜索/分类/难度/用色数任一激活时隐藏发现区块,避免「筛选了却还看到无关推荐」
+  const filtersActive = !!searchTerm || category !== 'all' || difficulty !== 'all' || !!maxColors
 
   // 模板生效品牌:优先用户覆盖,否则模板自带 paletteId(缺省 perler)
   const templateBrandId = (template) => brandOverride[template.id] || template.paletteId || 'perler'
@@ -204,8 +210,10 @@ export default function GalleryPage({ onLoadTemplate, onDeleteWork, onLoadWork, 
     const matchesCategory = category === 'all' || template.category === category
     const matchesDifficulty = difficulty === 'all' || template.difficulty === difficulty
     const matchesFavorite = view !== 'favorites' || favorites.some(f => String(f) === String(template.id))
-    return matchesSearch && matchesCategory && matchesDifficulty && matchesFavorite
-  }), [allTemplates, searchTerm, category, difficulty, view, favorites, t])
+    // 用色数上限:按 pattern 实际出现的唯一颜色数计算(与卡片色点、详情页口径一致)
+    const matchesColors = !maxColors || extractPatternColors(template.pattern).length <= maxColors
+    return matchesSearch && matchesCategory && matchesDifficulty && matchesFavorite && matchesColors
+  }), [allTemplates, searchTerm, category, difficulty, view, favorites, maxColors, t])
 
   const toggleFavorite = (id, e) => {
     e.stopPropagation()
@@ -365,6 +373,28 @@ export default function GalleryPage({ onLoadTemplate, onDeleteWork, onLoadWork, 
             ))}
           </div>
         </div>
+        {/* 用色数:新手最关心的「这图纸要买几种豆」,按上限分档。
+            档位与主题页/合集页共用 COLOR_COUNT_TIERS,同一链接到哪都筛出同样结果。 */}
+        <div className="colors-group">
+          <span className="category-label">{t('gallery.discovery.filterColors')}</span>
+          <div className="filter-buttons">
+            <button
+              className={`colors-btn ${!maxColors ? 'active' : ''}`}
+              onClick={() => setMaxColors('')}
+            >
+              {t('gallery.discovery.filterColorsAny')}
+            </button>
+            {COLOR_COUNT_TIERS.map(n => (
+              <button
+                key={n}
+                className={`colors-btn ${maxColors === n ? 'active' : ''}`}
+                onClick={() => setMaxColors(n)}
+              >
+                {t('gallery.discovery.filterColorsMax', { n })}
+              </button>
+            ))}
+          </div>
+        </div>
       </div>
 
       <div className="gallery-content">
@@ -379,8 +409,8 @@ export default function GalleryPage({ onLoadTemplate, onDeleteWork, onLoadWork, 
             onOpenCollection={(collection) => navigate(`/gallery/collection/${encodeURIComponent(collection.slug)}`)}
             onOpenPattern={(template) => navigate(`/gallery/pattern/${encodeURIComponent(template.id)}`)}
             // 「查看全部」:主题/合集没有独立索引页,回到图库并清空筛选
-            onViewAllThemes={() => { setFilters({ q: '', cat: 'all', diff: 'all' }) }}
-            onViewAllCollections={() => { setFilters({ q: '', cat: 'all', diff: 'all' }) }}
+            onViewAllThemes={() => { setFilters({ q: '', cat: 'all', diff: 'all', colors: '' }) }}
+            onViewAllCollections={() => { setFilters({ q: '', cat: 'all', diff: 'all', colors: '' }) }}
           />
         )}
         {/* 云端不可用:横幅说明 + 已回退本地/内置模板;网络恢复后自动重试(useCloudTemplates) */}
@@ -528,6 +558,15 @@ export default function GalleryPage({ onLoadTemplate, onDeleteWork, onLoadWork, 
             </svg>
             <p>{t('gallery.noResults')}</p>
             <span>{t('gallery.noResultsHint')}</span>
+            {/* 筛选条件(尤其新增的用色数)可能藏在下方不可见处,给一个一键清除 */}
+            {filtersActive && (
+              <button
+                className="btn btn-primary empty-login-btn"
+                onClick={() => setFilters({ q: '', cat: 'all', diff: 'all', colors: '' })}
+              >
+                {t('gallery.discovery.filterReset')}
+              </button>
+            )}
           </div>
         ) : (
           <div className="templates-grid">

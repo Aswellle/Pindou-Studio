@@ -13,6 +13,14 @@
 import { useSearchParams } from 'react-router-dom'
 
 /**
+ * 「用色数」筛选档位(上限,单位:色)。
+ *
+ * 图库、主题页、合集页共用同一组档位:三处的语义都是「最多用 N 色」,
+ * 档位不一致会让同一个链接在不同页面筛出不同结果,用户无法预期。
+ */
+export const COLOR_COUNT_TIERS = Object.freeze([4, 8, 12, 16, 24, 32])
+
+/**
  * @returns {{ searchTerm, category, difficulty, setSearchTerm, setCategory, setDifficulty }}
  */
 export function useGalleryQuery() {
