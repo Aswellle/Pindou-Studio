@@ -1246,13 +1246,23 @@
         }
 
         /* ── 主题 / 合集 / 图纸详情页 ─────────────────────────── */
+        /* 内容页外壳:自身是滚动容器(见 index.css 的 .content-page),
+           宽度限制与内边距放在内层,滚动条才能贴住视口右缘。 */
         .content-page {
-          max-width: 1200px;
-          margin: 0 auto;
           padding: 24px;
           display: flex;
           flex-direction: column;
           gap: 20px;
+        }
+        .content-page > * {
+          width: 100%;
+          max-width: 1200px;
+          margin-left: auto;
+          margin-right: auto;
+        }
+        /* 详情页用更宽的版心(PC 端信息密度优先) */
+        .content-page.detail-page > * {
+          max-width: 1440px;
         }
         .content-page-head {
           display: flex;
@@ -1333,10 +1343,6 @@
           margin: 0;
         }
         /* ── 图纸详情页:两栏布局 ───────────────────────────── */
-        /* PC 端信息密度优先:放宽到 1440px,预览与信息栏都能展开 */
-        .detail-page {
-          max-width: 1440px;
-        }
         .detail-layout {
           display: grid;
           grid-template-columns: minmax(0, 1fr) minmax(280px, 360px);
@@ -1346,6 +1352,7 @@
         @media (max-width: 1100px) {
           .detail-layout {
             grid-template-columns: minmax(0, 1fr);
+            gap: 16px;
           }
         }
         .detail-preview-pane {
@@ -1512,6 +1519,36 @@
           }
           .rail-thumb {
             height: 108px;
+          }
+          /* 详情页在手机上的信息密度:
+             - 预览区高度收紧,给下方信息留空间;
+             - 事实表退化为两列紧凑排布;
+             - 颜色清单最小列宽降到 150px,窄屏也能两列。 */
+          .content-detail-preview {
+            padding: 10px;
+            max-height: 50vh;
+          }
+          .content-detail-preview canvas {
+            max-height: 50vh;
+          }
+          .detail-facts {
+            gap: 10px 12px;
+            padding: 12px;
+          }
+          .detail-color-grid {
+            grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+            gap: 6px;
+          }
+          .detail-color-item {
+            padding: 6px 8px;
+            gap: 8px;
+          }
+          .detail-color-swatch {
+            width: 18px;
+            height: 18px;
+          }
+          .content-detail-actions .btn {
+            min-height: 44px;
           }
         }
 

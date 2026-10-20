@@ -522,11 +522,17 @@ body:has(.quantizer-zoom) .mobile-toolbar {
   border: 0;
 }
 
-/* Gallery & Tutorials Pages */
+/* Gallery & Tutorials Pages
+   这些是「整页滚动」的页面:外层 .app 固定 100vh + overflow:hidden,
+   页面本身必须自带滚动容器,否则超出视口的内容会被直接裁掉
+   (图纸详情页的颜色清单曾因此完全不可见)。 */
 .gallery-page,
-.tutorials-page {
+.tutorials-page,
+.content-page {
   flex: 1;
-  overflow: auto;
+  overflow-y: auto;
+  overflow-x: hidden;
+  min-height: 0;
 }
 
 /* Animations */
@@ -755,6 +761,12 @@ body:has(.quantizer-zoom) .mobile-toolbar {
   min-height: 0;
   overflow-y: auto;
   -webkit-overflow-scrolling: touch;
+}
+/* 移动端内容页已被 .mobile-page-area 包裹并滚动,
+   内层再滚动会形成「滚动套滚动」—— 手指在里面滑不动外层,体验很差。 */
+.mobile-page-area > .content-page {
+  overflow: visible;
+  flex: none;
 }
 
 /* ── /profile 个人资料独立页面 ───────────────────────────────
