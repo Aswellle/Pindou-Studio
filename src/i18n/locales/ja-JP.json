@@ -614,7 +614,10 @@
       "colors": "{{n}} 色",
       "sourceNote": "出典:公式テンプレートライブラリ",
       "licenseNote": "個人の創作目的に限ります",
-      "coverAlt": "{{title}} のカバー"
+      "coverAlt": "{{title}} のカバー",
+      "filterColors": "色数",
+      "filterColorsAny": "指定なし",
+      "filterColorsMax": "{{n}} 色以下"
     },
     "workSource": {
       "blank": "新規作成",

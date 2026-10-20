@@ -614,7 +614,10 @@
       "colors": "{{n}} colors",
       "sourceNote": "Source: official template library",
       "licenseNote": "For personal creative use",
-      "coverAlt": "{{title}} cover"
+      "coverAlt": "{{title}} cover",
+      "filterColors": "Colors",
+      "filterColorsAny": "Any",
+      "filterColorsMax": "≤ {{n}} colors"
     },
     "workSource": {
       "blank": "Blank",

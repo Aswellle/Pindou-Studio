@@ -614,7 +614,10 @@
       "colors": "{{n}}가지 색",
       "sourceNote": "출처: 공식 템플릿 라이브러리",
       "licenseNote": "개인 창작 용도로만 사용하세요",
-      "coverAlt": "{{title}} 커버"
+      "coverAlt": "{{title}} 커버",
+      "filterColors": "색 수",
+      "filterColorsAny": "제한 없음",
+      "filterColorsMax": "{{n}}색 이하"
     },
     "workSource": {
       "blank": "새로 만들기",

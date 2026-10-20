@@ -614,7 +614,10 @@
       "colors": "{{n}} 种颜色",
       "sourceNote": "来源:官方模板库",
       "licenseNote": "仅限个人创作使用",
-      "coverAlt": "{{title}} 封面"
+      "coverAlt": "{{title}} 封面",
+      "filterColors": "用色数",
+      "filterColorsAny": "不限",
+      "filterColorsMax": "≤ {{n}} 色"
     },
     "workSource": {
       "blank": "空白创作",
