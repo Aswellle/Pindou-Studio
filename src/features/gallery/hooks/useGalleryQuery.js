@@ -21,6 +21,9 @@ export function useGalleryQuery() {
   const searchTerm = searchParams.get('q') || ''
   const category = searchParams.get('cat') || 'all'
   const difficulty = searchParams.get('diff') || 'all'
+  // 用色数量上限:空 = 不限。只接受正整数,非法值当不限处理。
+  const rawColors = searchParams.get('colors') || ''
+  const maxColors = /^\d+$/.test(rawColors) && Number(rawColors) > 0 ? Number(rawColors) : null
 
   const setSearchTerm = (value) => {
     const params = new URLSearchParams(searchParams)
@@ -40,6 +43,14 @@ export function useGalleryQuery() {
     const params = new URLSearchParams(searchParams)
     if (value && value !== 'all') params.set('diff', value)
     else params.delete('diff')
+    setSearchParams(params, { replace: true })
+  }
+
+  const setMaxColors = (value) => {
+    const params = new URLSearchParams(searchParams)
+    const n = Number(value)
+    if (value && Number.isFinite(n) && n > 0) params.set('colors', String(Math.trunc(n)))
+    else params.delete('colors')
     setSearchParams(params, { replace: true })
   }
 
@@ -63,6 +74,11 @@ export function useGalleryQuery() {
       if (patch.diff && patch.diff !== 'all') params.set('diff', patch.diff)
       else params.delete('diff')
     }
+    if ('colors' in patch) {
+      const n = Number(patch.colors)
+      if (patch.colors && Number.isFinite(n) && n > 0) params.set('colors', String(Math.trunc(n)))
+      else params.delete('colors')
+    }
     setSearchParams(params, { replace: true })
   }
 
@@ -70,9 +86,11 @@ export function useGalleryQuery() {
     searchTerm,
     category,
     difficulty,
+    maxColors,
     setSearchTerm,
     setCategory,
     setDifficulty,
+    setMaxColors,
     setFilters,
   }
 }

@@ -49,8 +49,10 @@ export default function ThemePage({ cloudStore }) {
     ),
     [t]
   )
-  const { filtered, searchTerm, setSearchTerm, category, setCategory, difficulty, setDifficulty, resetFilters } =
-    useFilteredTemplates(scopeTemplates, resolveName)
+  const {
+    filtered, searchTerm, setSearchTerm, category, setCategory,
+    difficulty, setDifficulty, maxColors, setMaxColors, resetFilters,
+  } = useFilteredTemplates(scopeTemplates, resolveName)
 
   const loading = content.loading && !theme
 
@@ -59,6 +61,7 @@ export default function ThemePage({ cloudStore }) {
       <ContentSeo
         title={text?.title}
         description={text?.description}
+        image={theme?.coverUrl}
         noindex={!theme}
       />
       <div className="content-page-head">
@@ -123,7 +126,20 @@ export default function ThemePage({ cloudStore }) {
               ))}
             </select>
           </label>
-          {(searchTerm || category !== 'all' || difficulty !== 'all') && (
+          <label className="content-filter-select">
+            <span>{t('gallery.discovery.filterColors')}</span>
+            <select
+              value={maxColors ?? ''}
+              onChange={(e) => setMaxColors(e.target.value)}
+              aria-label={t('gallery.discovery.filterColors')}
+            >
+              <option value="">{t('gallery.discovery.filterColorsAny')}</option>
+              {[4, 8, 12, 16, 24, 32].map((n) => (
+                <option key={n} value={n}>{t('gallery.discovery.filterColorsMax', { n })}</option>
+              ))}
+            </select>
+          </label>
+          {(searchTerm || category !== 'all' || difficulty !== 'all' || maxColors) && (
             <button type="button" className="content-filter-reset" onClick={resetFilters}>
               {t('gallery.discovery.filterReset')}
             </button>

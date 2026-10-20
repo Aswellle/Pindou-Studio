@@ -1,5 +1,6 @@
 import { useCallback, useMemo } from 'react'
 import { useGalleryQuery } from './useGalleryQuery'
+import { extractPatternColors } from '../../../data/templates'
 
 /**
  * 在任意模板列表上复用图库的 URL 筛选(q/cat/diff)。
@@ -17,6 +18,7 @@ export function useFilteredTemplates(templates, resolveName) {
     searchTerm, setSearchTerm,
     category, setCategory,
     difficulty, setDifficulty,
+    maxColors, setMaxColors,
     setFilters,
   } = useGalleryQuery()
 
@@ -33,13 +35,16 @@ export function useFilteredTemplates(templates, resolveName) {
       }
       const matchesCategory = category === 'all' || template.category === category
       const matchesDifficulty = difficulty === 'all' || template.difficulty === difficulty
-      return matchesCategory && matchesDifficulty
+      // 用色数量:按 pattern 实际出现的唯一颜色数计算(与卡片展示口径一致)
+      const matchesColors = !maxColors
+        || extractPatternColors(template.pattern).length <= maxColors
+      return matchesCategory && matchesDifficulty && matchesColors
     })
-  }, [templates, searchTerm, category, difficulty, resolveName])
+  }, [templates, searchTerm, category, difficulty, maxColors, resolveName])
 
   const resetFilters = useCallback(() => {
     // 一次写入三项:连续调用单个 setter 会互相覆盖(见 useGalleryQuery.setFilters)
-    setFilters({ q: '', cat: 'all', diff: 'all' })
+    setFilters({ q: '', cat: 'all', diff: 'all', colors: '' })
   }, [setFilters])
 
   return {
@@ -47,9 +52,11 @@ export function useFilteredTemplates(templates, resolveName) {
     searchTerm,
     category,
     difficulty,
+    maxColors,
     setSearchTerm,
     setCategory,
     setDifficulty,
+    setMaxColors,
     resetFilters,
   }
 }

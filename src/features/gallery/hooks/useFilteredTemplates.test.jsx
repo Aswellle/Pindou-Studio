@@ -67,3 +67,48 @@ describe('useFilteredTemplates', () => {
     expect(result.current.filtered).toEqual([])
   })
 })
+
+describe('useFilteredTemplates · 用色数量筛选', () => {
+  const tpl = (id, colors) => ({
+    id,
+    name: id,
+    category: 'animal',
+    difficulty: 'easy',
+    pattern: [colors],
+  })
+
+  it('按 pattern 中唯一颜色数过滤(≤ 上限)', () => {
+    const list = [tpl('few', ['#FF0000', '#FF0000', null]), tpl('many', ['#FF0000', '#00FF00', '#0000FF'])]
+    const { result } = renderHook(() => useFilteredTemplates(list, (x) => x.name), {
+      wrapper: ({ children }) => (
+        <MemoryRouter initialEntries={['/?colors=2']}>{children}</MemoryRouter>
+      ),
+    })
+    expect(result.current.filtered.map((x) => x.id)).toEqual(['few'])
+    expect(result.current.maxColors).toBe(2)
+  })
+
+  it('非法 colors 参数当作不限', () => {
+    const list = [tpl('a', ['#FF0000', '#00FF00', '#0000FF'])]
+    const { result } = renderHook(() => useFilteredTemplates(list, (x) => x.name), {
+      wrapper: ({ children }) => (
+        <MemoryRouter initialEntries={['/?colors=abc']}>{children}</MemoryRouter>
+      ),
+    })
+    expect(result.current.maxColors).toBe(null)
+    expect(result.current.filtered).toHaveLength(1)
+  })
+
+  it('resetFilters 一并清掉 colors', () => {
+    const list = [tpl('a', ['#FF0000', '#00FF00', '#0000FF'])]
+    const { result } = renderHook(() => useFilteredTemplates(list, (x) => x.name), {
+      wrapper: ({ children }) => (
+        <MemoryRouter initialEntries={['/?colors=2&cat=animal']}>{children}</MemoryRouter>
+      ),
+    })
+    expect(result.current.filtered).toHaveLength(0)
+    act(() => result.current.resetFilters())
+    expect(result.current.maxColors).toBe(null)
+    expect(result.current.filtered).toHaveLength(1)
+  })
+})
