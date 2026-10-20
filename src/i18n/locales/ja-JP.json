@@ -511,6 +511,9 @@
     "selectionFlipVShort": "上下反転",
     "selectionRotateCwShort": "時計回り",
     "selectionRotateCcwShort": "反時計回り",
+    "fillIncludeEmpty": "塗りつぶし時に空白マスを含める",
+    "fillIncludeEmptyShort": "空白を含む",
+    "selectionFillNoBeads": "選択範囲に塗りつぶせるビーズがありません(空白マスはスキップ)",
     "pickedColorToast": "{{hex}} を取得しました"
   },
   "gallery": {

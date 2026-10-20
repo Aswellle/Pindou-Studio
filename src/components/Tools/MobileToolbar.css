@@ -124,6 +124,30 @@
   line-height: 1.4;
 }
 .selection-move-hint svg { flex-shrink: 0; }
+/* 「含空白格」开关:触屏没有 hover,做成常驻胶囊按钮并带按下态;
+   点击区域高度 24px + 信息行间距,足以避免误触邻近元素 */
+.selection-fill-toggle {
+  flex-shrink: 0;
+  margin-left: auto;
+  height: 24px;
+  padding: 0 8px;
+  border-radius: 999px;
+  border: 1px solid var(--border-color);
+  background: var(--bg-primary);
+  color: var(--text-muted);
+  font-family: inherit;
+  font-size: var(--text-xs);
+  font-weight: var(--font-weight-medium);
+  display: inline-flex;
+  align-items: center;
+  white-space: nowrap;
+  cursor: pointer;
+}
+.selection-fill-toggle.active {
+  border-color: var(--secondary-accent);
+  background: var(--secondary-accent);
+  color: #fff;
+}
 /* 选区引导气泡:复用 .quantize-guide 的视觉与三层箭头,箭头朝下指向操作条
    (left 由 JS 按操作条实际位置写入,箭头指向操作条中心) */
 .selection-guide .guide-arrow {

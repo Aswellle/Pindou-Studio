@@ -27,6 +27,9 @@ export default function Tools({
   onSelectionCommand,
   onClearSelection,
   onOpenReplace,
+  // 选区填充是否包含空白格(默认 false,规格 04 §2)
+  fillIncludeEmpty = false,
+  onToggleFillIncludeEmpty,
 }) {
   const { t } = useTranslation()
   const toast = useToast()
@@ -172,6 +175,15 @@ export default function Tools({
                     <X size={15} /><span className="action-btn-label">{t('tools.clearSelectionBtn')}</span>
                   </button>
                 </div>
+                {/* 规格 04 §2:默认只改已有珠子;需要连空白一起填时由这个开关显式打开 */}
+                <label className="selection-fill-toggle">
+                  <input
+                    type="checkbox"
+                    checked={Boolean(fillIncludeEmpty)}
+                    onChange={(e) => onToggleFillIncludeEmpty?.(e.target.checked)}
+                  />
+                  <span>{t('tools.fillIncludeEmpty')}</span>
+                </label>
                 {/* 拖拽移动没有按钮,只能靠提示告知(规格 04 §2 要求移动有明确入口) */}
                 <p className="selection-hint">{t('tools.selectionMoveHint')}</p>
               </>
@@ -397,6 +409,27 @@ export default function Tools({
         .selection-actions .selection-clear {
           margin-top: 2px;
           color: var(--text-muted);
+        }
+        /* 「含空白格」开关:一行 checkbox + 文字,窄侧栏下允许换行但不溢出 */
+        .selection-fill-toggle {
+          display: flex;
+          align-items: center;
+          gap: 6px;
+          margin-top: 6px;
+          font-size: var(--text-xs);
+          color: var(--text-secondary);
+          cursor: pointer;
+          line-height: 1.4;
+        }
+        .selection-fill-toggle input {
+          flex-shrink: 0;
+          width: 14px;
+          height: 14px;
+          accent-color: var(--accent);
+          cursor: pointer;
+        }
+        .selection-fill-toggle span {
+          min-width: 0;
         }
         .selection-hint {
           font-size: var(--text-xs);

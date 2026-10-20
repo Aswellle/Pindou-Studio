@@ -37,6 +37,8 @@ function renderTools(overrides = {}) {
     onSelectionCommand: vi.fn(),
     onClearSelection: vi.fn(),
     onOpenReplace: vi.fn(),
+    fillIncludeEmpty: false,
+    onToggleFillIncludeEmpty: vi.fn(),
     ...overrides,
   }
   const view = render(<Tools {...props} />)
@@ -90,5 +92,22 @@ describe('Tools · 桌面选区面板', () => {
     renderTools()
     expect($('.selection-size').textContent).toContain('2')
     expect(screen.getByText(i18n.t('tools.selectionMoveHint'))).toBeTruthy()
+  })
+
+  it('「含空白格」开关默认关闭,点击回调取反后的值', () => {
+    const { props } = renderTools({ fillIncludeEmpty: false })
+    const toggle = $('.selection-fill-toggle input')
+    expect(toggle).toBeTruthy()
+    expect(toggle.checked).toBe(false)
+    // 标签文案必须可见(桌面端是 checkbox + 文字,不是纯图标)
+    expect($('.selection-fill-toggle').textContent).toContain(i18n.t('tools.fillIncludeEmpty'))
+
+    fireEvent.click(toggle)
+    expect(props.onToggleFillIncludeEmpty).toHaveBeenCalledWith(true)
+  })
+
+  it('开关打开时 checkbox 呈选中态', () => {
+    renderTools({ fillIncludeEmpty: true })
+    expect($('.selection-fill-toggle input').checked).toBe(true)
   })
 })

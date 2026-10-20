@@ -63,19 +63,37 @@ describe('selectionUtils · pointInSelection', () => {
 })
 
 describe('selectionUtils · fill / clear', () => {
-  it('填充整个选区并返回变更格数', () => {
+  // 规格 04 §2:默认只改已有珠子,空白格保持空白。
+  it('默认只填充已有珠子,空白格保持空白', () => {
     const data = grid()
+    // 区域 (0,0)-(1,1) 内:(0,0)=R (1,0)=R (0,1)=R (1,1)=null
     const res = fillSelection(data, { x: 0, y: 0, w: 2, h: 2 }, B)
-    expect(res.changed).toBe(4)
+    expect(res.changed).toBe(3)
+    expect(res.skippedEmpty).toBe(1)
     expect(res.data[0]).toEqual([B, B, G, G])
-    expect(res.data[1]).toEqual([B, B, G, B])
+    expect(res.data[1][0]).toBe(B)
+    expect(res.data[1][1]).toBeNull() // 空白格没有被填上
     // 原矩阵未被修改
     expect(data[0]).toEqual([R, R, G, G])
   })
 
+  it('includeEmpty 打开时连空白格一起填(显式开关路径)', () => {
+    const res = fillSelection(grid(), { x: 0, y: 0, w: 2, h: 2 }, B, { includeEmpty: true })
+    expect(res.changed).toBe(4)
+    expect(res.skippedEmpty).toBe(0)
+    expect(res.data[1][1]).toBe(B)
+  })
+
+  it('全空选区默认不产生变更,并报告跳过数量(供 UI 提示)', () => {
+    const data = [[null, null], [null, null]]
+    const res = fillSelection(data, { x: 0, y: 0, w: 2, h: 2 }, B)
+    expect(res).toEqual({ data: null, changed: 0, skippedEmpty: 4 })
+  })
+
   it('已全是目标色 → data 为 null(调用方不应压栈)', () => {
     const data = [[B, B], [B, B]]
-    expect(fillSelection(data, { x: 0, y: 0, w: 2, h: 2 }, B)).toEqual({ data: null, changed: 0 })
+    expect(fillSelection(data, { x: 0, y: 0, w: 2, h: 2 }, B))
+      .toEqual({ data: null, changed: 0, skippedEmpty: 0 })
   })
 
   it('clearSelection 等同填充 null', () => {
@@ -85,7 +103,8 @@ describe('selectionUtils · fill / clear', () => {
   })
 
   it('越界选区被裁剪,不越界写入', () => {
-    const res = fillSelection(grid(), { x: 3, y: 2, w: 9, h: 9 }, B)
+    // 目标格 (3,2) 是空白格,需要显式打开 includeEmpty
+    const res = fillSelection(grid(), { x: 3, y: 2, w: 9, h: 9 }, B, { includeEmpty: true })
     expect(res.changed).toBe(1)
     expect(res.data[2][3]).toBe(B)
     expect(res.data).toHaveLength(3)

@@ -511,6 +511,9 @@
     "selectionFlipVShort": "上下翻转",
     "selectionRotateCwShort": "顺时针",
     "selectionRotateCcwShort": "逆时针",
+    "fillIncludeEmpty": "填充时包含空白格",
+    "fillIncludeEmptyShort": "含空白",
+    "selectionFillNoBeads": "选区内没有可填充的珠子,已跳过空白格",
     "pickedColorToast": "已取色 {{hex}}"
   },
   "gallery": {

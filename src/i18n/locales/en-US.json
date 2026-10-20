@@ -511,6 +511,9 @@
     "selectionFlipVShort": "Flip V",
     "selectionRotateCwShort": "Rotate CW",
     "selectionRotateCcwShort": "Rotate CCW",
+    "fillIncludeEmpty": "Include empty cells when filling",
+    "fillIncludeEmptyShort": "Include empty",
+    "selectionFillNoBeads": "No beads in the selection; empty cells were skipped",
     "pickedColorToast": "Picked {{hex}}"
   },
   "gallery": {

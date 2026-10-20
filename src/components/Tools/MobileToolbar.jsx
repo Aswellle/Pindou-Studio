@@ -222,6 +222,9 @@ export default function MobileToolbar({
   onSelectionCommand,
   onClearSelection,
   onOpenReplace,
+  // 选区填充是否包含空白格(默认 false,规格 04 §2)
+  fillIncludeEmpty = false,
+  onToggleFillIncludeEmpty,
 }) {
   const { t } = useTranslation()
   const toast = useToast()
@@ -464,6 +467,18 @@ export default function MobileToolbar({
                 <span className="selection-move-hint">
                   <MoveIcon />{t('tools.selectionMoveHint')}
                 </span>
+                {/* 规格 04 §2:默认只改已有珠子;开关打开才连空白一起填。
+                    触屏没有 hover,所以做成常驻可见的胶囊按钮(不是 checkbox),
+                    点击区域 ≥ 28px 高,避免误触。 */}
+                <button
+                  type="button"
+                  className={`selection-fill-toggle${fillIncludeEmpty ? ' active' : ''}`}
+                  aria-pressed={Boolean(fillIncludeEmpty)}
+                  title={t('tools.fillIncludeEmpty')}
+                  onClick={() => onToggleFillIncludeEmpty?.(!fillIncludeEmpty)}
+                >
+                  {fillIncludeEmpty ? '✓ ' : ''}{t('tools.fillIncludeEmptyShort')}
+                </button>
               </div>
               {/* 按钮文字用「短标签」(填充 / 左右翻转 / 顺时针 …):
                   移动端一行能放下 3–4 个,不必为了塞下长句而折成四五行;

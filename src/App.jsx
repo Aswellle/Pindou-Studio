@@ -26,6 +26,7 @@ import {
   replaceColor,
   moveSelection,
 } from './utils/selectionUtils'
+import { loadFillIncludeEmpty, saveFillIncludeEmpty } from './utils/editorPrefs'
 import { useAuth } from './hooks/useAuth'
 import { useResponsive } from './hooks/useResponsive'
 import { useHistory } from './hooks/useHistory'
@@ -128,6 +129,13 @@ export default function App() {
   const [rightSidebarCollapsed, setRightSidebarCollapsed] = useState(false)
   const [showExport, setShowExport] = useState(false)
   const [currentPalette, setCurrentPalette] = useState('perler')
+  // 选区填充是否连空白格一起填(规格 04 §2:默认不填空白)。偏好持久化在
+  // bead_studio_settings 里,与语言共用一份设置;切换后立即写回。
+  const [fillIncludeEmpty, setFillIncludeEmpty] = useState(loadFillIncludeEmpty)
+  const handleToggleFillIncludeEmpty = useCallback((value) => {
+    setFillIncludeEmpty(value)
+    saveFillIncludeEmpty(value)
+  }, [])
   const [designName, setDesignName] = useState(() => t('export.defaultName'))
   // 语言切换时同步默认导出名(designName 只作默认值,用户自定义名走 saveInputName)
   useEffect(() => { setDesignName(t('export.defaultName')) }, [i18n.language, t])
@@ -397,7 +405,7 @@ export default function App() {
       return
     }
     let result
-    if (command === 'fill') result = fillSelection(canvasData, selection, selectedColor)
+    if (command === 'fill') result = fillSelection(canvasData, selection, selectedColor, { includeEmpty: fillIncludeEmpty })
     else if (command === 'erase') result = clearSelectionRegion(canvasData, selection)
     else if (command === 'mirrorH') result = mirrorSelection(canvasData, selection, 'horizontal')
     else if (command === 'mirrorV') result = mirrorSelection(canvasData, selection, 'vertical')
@@ -408,6 +416,11 @@ export default function App() {
     if (!result.data) {
       // 内容本来就一样:不写历史,但旋转仍需把选框换成新的宽高
       if (result.selection) setSelection(result.selection)
+      // 填充时若整片选区都是空白格且开关关闭,必须给一句提示 ——
+      // 否则按钮看起来像坏了(默认不填空白后这是新的空操作来源)。
+      if (command === 'fill' && result.skippedEmpty > 0) {
+        toast(t('tools.selectionFillNoBeads'), 'info')
+      }
       return
     }
     setCanvas(result.data)
@@ -422,7 +435,7 @@ export default function App() {
       rotateCcw: 'tools.selectionRotatedToast',
     }[command]
     if (toastKey) toast(t(toastKey, { n: result.changed }), 'success')
-  }, [selection, canvasData, selectedColor, setCanvas, toast, t])
+  }, [selection, canvasData, selectedColor, fillIncludeEmpty, setCanvas, toast, t])
 
   const handleClearSelection = useCallback(() => setSelection(null), [])
 
@@ -532,6 +545,8 @@ export default function App() {
             onSelectionCommand={handleSelectionCommand}
             onClearSelection={handleClearSelection}
             onOpenReplace={() => setShowReplace(true)}
+            fillIncludeEmpty={fillIncludeEmpty}
+            onToggleFillIncludeEmpty={handleToggleFillIncludeEmpty}
           />
         </div>
         <div className="left-sidebar-bottom">
@@ -927,6 +942,8 @@ export default function App() {
               onSelectionCommand={handleSelectionCommand}
               onClearSelection={handleClearSelection}
               onOpenReplace={() => setShowReplace(true)}
+              fillIncludeEmpty={fillIncludeEmpty}
+              onToggleFillIncludeEmpty={handleToggleFillIncludeEmpty}
             />
           </>
         } />

@@ -68,21 +68,34 @@ function diffCount(a, b, rows, cols) {
 }
 
 /**
- * Fill every cell in the selection with `color` (null = erase).
- * Filling blanks is intentional here — the user explicitly selected the area.
+ * Fill the selection with `color` (null = erase).
+ *
+ * 规格 04 §2:默认**只改已有珠子**,空白格保持空白 —— 框选一片区域点「填充」
+ * 不应该无提示地把整片空白铺满。需要连空白一起填时,调用方显式传
+ * `{ includeEmpty: true }`(UI 上是一个常驻开关,状态会记住)。
+ *
+ * 返回值里的 `skippedEmpty` 让调用方能区分「本来就没有可填的珠子」和
+ * 「已经是目标色」两种无变化情形,前者需要给用户一句提示,否则按钮像坏了。
  */
-export function fillSelection(data, sel, color) {
+export function fillSelection(data, sel, color, { includeEmpty = false } = {}) {
   const { rows, cols } = gridSize(data)
-  if (!sel || rows === 0 || cols === 0) return { data: null, changed: 0 }
+  if (!sel || rows === 0 || cols === 0) return { data: null, changed: 0, skippedEmpty: 0 }
   const next = cloneMatrix(data)
   let changed = 0
+  let skippedEmpty = 0
   forEachSelected(sel, cols, rows, (x, y) => {
-    if (next[y][x] !== color) {
+    const current = next[y][x]
+    // 空白格(null/undefined)默认跳过:填色不该凭空多出珠子
+    if (!includeEmpty && (current === null || current === undefined)) {
+      skippedEmpty++
+      return
+    }
+    if (current !== color) {
       next[y][x] = color
       changed++
     }
   })
-  return changed ? { data: next, changed } : { data: null, changed: 0 }
+  return { data: changed ? next : null, changed, skippedEmpty }
 }
 
 /** Erase the selection (same as filling with null, named for readability). */

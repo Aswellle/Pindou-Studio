@@ -38,14 +38,16 @@ vi.mock('./components/Canvas', async () => {
 vi.mock('./components/Tools', async () => {
   const React = await import('react')
   return {
-    default: ({ selection, onSelectionCommand, onClearSelection, onGridSizeChange }) => React.createElement(
+    default: ({ selection, onSelectionCommand, onClearSelection, onGridSizeChange, onToggleFillIncludeEmpty }) => React.createElement(
       'div',
       null,
       React.createElement('span', { 'data-testid': 'sel' }, selection ? `${selection.w}x${selection.h}` : 'none'),
       React.createElement('button', { 'data-testid': 'fill', onClick: () => onSelectionCommand('fill') }, 'fill'),
       React.createElement('button', { 'data-testid': 'rotate', onClick: () => onSelectionCommand('rotateCw') }, 'rotate'),
       React.createElement('button', { 'data-testid': 'clear-sel', onClick: onClearSelection }, 'clear-sel'),
-      React.createElement('button', { 'data-testid': 'resize', onClick: () => onGridSizeChange(57) }, 'resize')
+      React.createElement('button', { 'data-testid': 'resize', onClick: () => onGridSizeChange(57) }, 'resize'),
+      // 规格 04 §2:填充默认跳过空白格,需要连空白一起填时由这个开关显式打开
+      React.createElement('button', { 'data-testid': 'toggle-empty', onClick: () => onToggleFillIncludeEmpty(true) }, 'include-empty')
     ),
   }
 })
@@ -91,6 +93,17 @@ function selectRegion(sel) {
   canvasProps.current.onSelectionChange(sel)
 }
 
+/**
+ * 打开「含空白格」开关。
+ *
+ * 规格 04 §2:选区填充默认只改已有珠子。这些用例的起点是空画布,
+ * 要让「填充」真的写入矩阵,必须先显式打开开关 —— 这本身就是对默认值的验证:
+ * 没打开时填充空选区不会产生任何变化。
+ */
+function enableIncludeEmpty(getByTestId) {
+  fireEvent.click(getByTestId('toggle-empty'))
+}
+
 describe('App · 选区命令的事务语义(M5)', () => {
   it('填充选区只产生一条历史,一次撤销回到原矩阵', async () => {
     const { getByTestId } = renderApp()
@@ -101,6 +114,8 @@ describe('App · 选区命令的事务语义(M5)', () => {
     selectRegion({ x: 0, y: 0, w: 2, h: 2 })
     await waitFor(() => expect(getByTestId('sel').textContent).toBe('2x2'))
 
+    // 空画布:默认不填空白格,需显式打开开关才能铺满整个选区
+    enableIncludeEmpty(getByTestId)
     fireEvent.click(getByTestId('fill'))
     await waitFor(() => {
       const after = canvasProps.current.committedData
@@ -113,6 +128,23 @@ describe('App · 选区命令的事务语义(M5)', () => {
     await waitFor(() => {
       expect(canvasProps.current.committedData).toEqual(before)
     })
+  })
+
+  it('默认(开关关闭)填充空选区不写画布', async () => {
+    const { getByTestId } = renderApp()
+
+    await waitFor(() => expect(canvasProps.current?.committedData).toBeTruthy())
+    const before = canvasProps.current.committedData
+
+    selectRegion({ x: 0, y: 0, w: 2, h: 2 })
+    await waitFor(() => expect(getByTestId('sel').textContent).toBe('2x2'))
+
+    // 不打开开关:整片选区都是空白格 → 没有任何可填的珠子
+    fireEvent.click(getByTestId('fill'))
+
+    // 画布引用不变(没有压栈),空白格保持空白
+    expect(canvasProps.current.committedData).toBe(before)
+    expect(canvasProps.current.committedData[0][0]).toBeNull()
   })
 
   it('旋转后选区宽高互换', async () => {
@@ -166,6 +198,7 @@ describe('App · 撤销/重做快捷键(规格 04 §2)', () => {
 
     selectRegion({ x: 0, y: 0, w: 2, h: 2 })
     await waitFor(() => expect(getByTestId('sel').textContent).toBe('2x2'))
+    enableIncludeEmpty(getByTestId)
     fireEvent.click(getByTestId('fill'))
     await waitFor(() => expect(canvasProps.current.committedData[0][0]).toBe('#E53935'))
     const filled = canvasProps.current.committedData.map(r => [...r])
@@ -184,6 +217,7 @@ describe('App · 撤销/重做快捷键(规格 04 §2)', () => {
 
     selectRegion({ x: 0, y: 0, w: 2, h: 2 })
     await waitFor(() => expect(getByTestId('sel').textContent).toBe('2x2'))
+    enableIncludeEmpty(getByTestId)
     fireEvent.click(getByTestId('fill'))
     await waitFor(() => expect(canvasProps.current.committedData[0][0]).toBe('#E53935'))
     const filled = canvasProps.current.committedData.map(r => [...r])
@@ -200,6 +234,7 @@ describe('App · 撤销/重做快捷键(规格 04 §2)', () => {
 
     selectRegion({ x: 0, y: 0, w: 2, h: 2 })
     await waitFor(() => expect(getByTestId('sel').textContent).toBe('2x2'))
+    enableIncludeEmpty(getByTestId)
     fireEvent.click(getByTestId('fill'))
     await waitFor(() => expect(canvasProps.current.committedData[0][0]).toBe('#E53935'))
     const filled = canvasProps.current.committedData
@@ -226,6 +261,7 @@ describe('App · 拖拽移动选区(M5.2)', () => {
     // 先填一块内容:选区 2×2 填充
     selectRegion({ x: 0, y: 0, w: 2, h: 2 })
     await waitFor(() => expect(getByTestId('sel').textContent).toBe('2x2'))
+    enableIncludeEmpty(getByTestId)
     fireEvent.click(getByTestId('fill'))
     await waitFor(() => expect(canvasProps.current.committedData[0][0]).toBe('#E53935'))
     const before = canvasProps.current.committedData.map(r => [...r])

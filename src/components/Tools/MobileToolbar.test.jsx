@@ -46,6 +46,8 @@ function renderBar(overrides = {}) {
     onSelectionCommand: vi.fn(),
     onClearSelection: vi.fn(),
     onOpenReplace: vi.fn(),
+    fillIncludeEmpty: false,
+    onToggleFillIncludeEmpty: vi.fn(),
     ...overrides,
   }
   const view = render(<MobileToolbar {...props} />)
@@ -70,7 +72,8 @@ describe('MobileToolbar · 选区操作条', () => {
 
   it('每个选区命令按钮都有可见短标签,完整说明在 aria-label', () => {
     renderBar({ selection: { x: 0, y: 0, w: 2, h: 2 } })
-    const buttons = [...$$('[data-testid="mobile-selection-bar"] button')]
+    // 只取命令按钮行 —— 信息行里的「含空白」开关也是 button,不属于命令集合
+    const buttons = [...$$('[data-testid="mobile-selection-bar"] .selection-actions-row button')]
     // 可见文字用短标签(填充/擦除/左右翻转/…):一行放得下,长译文也不会把按钮撑破
     const expected = [
       ['tools.selectionFillShort', 'tools.fillSelection'],
@@ -131,6 +134,24 @@ describe('MobileToolbar · 选区操作条', () => {
     const clearBtn = [...row.querySelectorAll('button')]
       .find(b => b.textContent.includes(i18n.t('tools.clearSelectionBtn')))
     expect(clearBtn.classList.contains('selection-clear')).toBe(true)
+  })
+
+  it('「含空白格」开关:默认关闭,点击回调取反值', () => {
+    const { props } = renderBar({ selection: { x: 0, y: 0, w: 2, h: 2 }, fillIncludeEmpty: false })
+    const toggle = $('.selection-fill-toggle')
+    expect(toggle).toBeTruthy()
+    expect(toggle.getAttribute('aria-pressed')).toBe('false')
+    expect(toggle.textContent).toContain(i18n.t('tools.fillIncludeEmptyShort'))
+
+    fireEvent.click(toggle)
+    expect(props.onToggleFillIncludeEmpty).toHaveBeenCalledWith(true)
+  })
+
+  it('「含空白格」打开时呈按下态', () => {
+    renderBar({ selection: { x: 0, y: 0, w: 2, h: 2 }, fillIncludeEmpty: true })
+    const toggle = $('.selection-fill-toggle')
+    expect(toggle.getAttribute('aria-pressed')).toBe('true')
+    expect(toggle.classList.contains('active')).toBe(true)
   })
 
   it('移动提示与选区尺寸同时可见', () => {
