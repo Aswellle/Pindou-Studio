@@ -45,14 +45,26 @@
   max-width: 100%;
 }
 
-/* ── 选区操作条:横向可滚动,不换行挤压工具行 ─────────────── */
+/* ── 选区操作条:两行布局(信息行 + 按钮行),按钮自动换行 ───────
+   移动端没有 hover,title 不可见,所以每个命令都带文字标签;
+   横向滚动会把后几个命令藏到屏幕外,改为 flex-wrap 全部平铺可见。 */
 .toolbar-selection {
-  gap: 6px;
-  overflow-x: auto;
-  scrollbar-width: none;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
   padding-bottom: 2px;
 }
-.toolbar-selection::-webkit-scrollbar { display: none; }
+.selection-info-line {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+.selection-actions-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
 .selection-size-badge {
   flex-shrink: 0;
   font-size: var(--text-xs);
@@ -64,13 +76,23 @@
 .selection-size-badge.muted {
   color: var(--text-muted);
   font-weight: var(--font-weight-regular);
+  white-space: normal;
+  line-height: 1.4;
 }
 .selection-move-hint {
-  flex-shrink: 0;
-  align-self: center;
+  min-width: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
   font-size: var(--text-xs);
   color: var(--text-muted);
-  white-space: nowrap;
+  line-height: 1.4;
+}
+.selection-move-hint svg { flex-shrink: 0; }
+/* 选区引导气泡:复用 .quantize-guide 的视觉与三层箭头,箭头朝下指向操作条
+   (left 由 JS 按操作条实际位置写入,箭头指向操作条中心) */
+.selection-guide .guide-arrow {
+  bottom: -7px;
 }
 .selection-btn {
   flex-shrink: 0;

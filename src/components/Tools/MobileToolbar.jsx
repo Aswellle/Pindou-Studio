@@ -128,6 +128,49 @@ const ReplaceIcon = () => (
   </svg>
 )
 
+// ── 选区变换图标:与桌面端同一套线条,移动端配可见文字标签 ──────────
+const MirrorHIcon = () => (
+  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M8 3H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h3" />
+    <path d="M16 3h3a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-3" />
+    <path d="M12 2v20" />
+  </svg>
+)
+
+const MirrorVIcon = () => (
+  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M3 8V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v3" />
+    <path d="M3 16v3a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-3" />
+    <path d="M2 12h20" />
+  </svg>
+)
+
+const RotateCwIcon = () => (
+  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M21 12a9 9 0 1 1-3-6.7" />
+    <polyline points="21,3 21,9 15,9" />
+  </svg>
+)
+
+const RotateCcwIcon = () => (
+  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M3 12a9 9 0 1 0 3-6.7" />
+    <polyline points="3,3 3,9 9,9" />
+  </svg>
+)
+
+// 四向箭头:提示「选区内可以拖动移动」
+const MoveIcon = () => (
+  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M5 9l-3 3 3 3" />
+    <path d="M9 5l3-3 3 3" />
+    <path d="M15 19l-3 3-3-3" />
+    <path d="M19 9l3 3-3 3" />
+    <path d="M2 12h20" />
+    <path d="M12 2v20" />
+  </svg>
+)
+
 // ── 引导 toast 的用户行为记录(localStorage)──────────────────────
 // 用途:判断「该用户需要图片转拼豆」或「该用户没发现该功能」。
 const BEHAVIOR_KEY = 'bead-studio-behavior'
@@ -172,6 +215,95 @@ export default function MobileToolbar({
   const guideTimerRef = useRef(null)
   const quantizeBtnRef = useRef(null)
   const guideRef = useRef(null)
+
+  // ── 选区工具的分步引导 ────────────────────────────────────────
+  // 移动端没有 hover,纯图标/静态提示不足以让用户发现「拖出选区 → 拖动移动」。
+  // 这里用与图片转拼豆一致的气泡样式,在关键节点各提示一次:
+  //   step1 — 首次切到选区工具:告诉用户先在画布上拖出区域;
+  //   step2 — 首次框出选区:告诉用户可拖动移动、下方按钮能做什么。
+  // 两步都看过即永久不再打扰(bead-studio-behavior.selectionGuideDone)。
+  const selectionBarRef = useRef(null)
+  const selGuideRef = useRef(null)
+  const [selGuide, setSelGuide] = useState(null) // 'step1' | 'step2' | null
+  const [selGuideStyle, setSelGuideStyle] = useState(null)
+  const selGuideTimerRef = useRef(null)
+
+  // 工具栏实际高度写进 CSS 变量:色卡条(.mobile-color-palette)以它为 bottom,
+  // 选区操作条出现/按钮换行时工具栏会变高,色卡条必须跟着抬高,否则被工具栏盖住。
+  const rootRef = useRef(null)
+  useLayoutEffect(() => {
+    const root = rootRef.current
+    if (!root) return undefined
+    const apply = () => {
+      document.documentElement.style.setProperty('--mobile-toolbar-h', `${root.offsetHeight}px`)
+    }
+    apply()
+    const cleanup = () => document.documentElement.style.removeProperty('--mobile-toolbar-h')
+    if (typeof ResizeObserver === 'undefined') return cleanup
+    const ro = new ResizeObserver(apply)
+    ro.observe(root)
+    return () => {
+      ro.disconnect()
+      cleanup()
+    }
+  }, [])
+
+  const hideSelGuide = useCallback(() => {
+    setSelGuide(null)
+    if (selGuideTimerRef.current) clearTimeout(selGuideTimerRef.current)
+  }, [])
+
+  useEffect(() => {
+    if (tool !== 'select') {
+      setSelGuide(null)
+      return
+    }
+    const b = getBehavior()
+    if (b.selectionGuideDone) return
+    if (selection) {
+      setSelGuide('step2')
+      saveBehavior({ ...getBehavior(), selectionGuideDone: true })
+    } else if (!b.selectionGuideStep1) {
+      setSelGuide('step1')
+      saveBehavior({ ...getBehavior(), selectionGuideStep1: true })
+    }
+  }, [tool, selection])
+
+  // 分步引导自动消失(与图片转拼豆引导同一时长);用户任何操作也会提前关掉
+  useEffect(() => {
+    if (!selGuide) return
+    selGuideTimerRef.current = setTimeout(hideSelGuide, GUIDE_DURATION)
+    return () => clearTimeout(selGuideTimerRef.current)
+  }, [selGuide, hideSelGuide])
+
+  // 气泡显示后按选区操作条的实际位置定位:水平居中并钳制在视口内,
+  // bottom 取「视口高 - 操作条顶边 + 间距」,箭头朝下指向操作条
+  useLayoutEffect(() => {
+    if (!selGuide) return
+    const bar = selectionBarRef.current
+    const bubble = selGuideRef.current
+    if (!bar || !bubble) return
+    const r = bar.getBoundingClientRect()
+    const bw = bubble.offsetWidth
+    const left = Math.max(12, Math.min(r.left + r.width / 2 - bw / 2, window.innerWidth - bw - 12))
+    setSelGuideStyle({
+      left,
+      bottom: Math.max(8, window.innerHeight - r.top + 10),
+      arrowLeft: r.left + r.width / 2 - left,
+    })
+  }, [selGuide])
+
+  // 气泡存续期间任何其他操作都让它消失,不打断用户
+  useEffect(() => {
+    if (!selGuide) return
+    const dismiss = () => hideSelGuide()
+    document.addEventListener('pointerdown', dismiss)
+    document.addEventListener('touchstart', dismiss)
+    return () => {
+      document.removeEventListener('pointerdown', dismiss)
+      document.removeEventListener('touchstart', dismiss)
+    }
+  }, [selGuide, hideSelGuide])
 
   const hideGuide = useCallback(() => {
     setGuideVisible(false)
@@ -286,7 +418,7 @@ export default function MobileToolbar({
   const getCurrentPreset = () => (isRectangular ? `${currentWidth}x${currentHeight}` : String(currentWidth))
 
   return (
-    <div className="mobile-toolbar">
+    <div className="mobile-toolbar" ref={rootRef}>
       <div className="toolbar-row toolbar-tools">
         {tools.map((t_item) => (
           <button
@@ -300,43 +432,78 @@ export default function MobileToolbar({
         ))}
       </div>
 
-      {/* 选区操作条:仅选区工具激活时出现,避免常驻占用底部空间 */}
+      {/* 选区操作条:仅选区工具激活时出现,避免常驻占用底部空间。
+          布局分两行:第一行是「尺寸 + 移动提示」,第二行是全部命令按钮。
+          按钮一律「图标 + 文字」并自动换行 —— 移动端没有 hover,title 不可见,
+          纯图标等于让用户猜;横向滚动则会把后几个命令藏到屏幕外。 */}
       {tool === 'select' && (
-        <div className="toolbar-row toolbar-selection" data-testid="mobile-selection-bar">
+        <div className="toolbar-selection" data-testid="mobile-selection-bar" ref={selectionBarRef}>
           {selection ? (
             <>
-              <span className="selection-size-badge">
-                {t('tools.selectionSize', { w: selection.w, h: selection.h })}
-              </span>
-              <button className="selection-btn" onClick={() => onSelectionCommand?.('fill')}>{t('tools.fillSelection')}</button>
-              <button className="selection-btn" onClick={() => onSelectionCommand?.('erase')}>{t('tools.clearSelection')}</button>
-              <button className="selection-btn icon" onClick={() => onSelectionCommand?.('mirrorH')} title={t('tools.mirrorH')} aria-label={t('tools.mirrorH')}>
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M8 3H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h3" /><path d="M16 3h3a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-3" /><path d="M12 2v20" />
-                </svg>
-              </button>
-              <button className="selection-btn icon" onClick={() => onSelectionCommand?.('mirrorV')} title={t('tools.mirrorV')} aria-label={t('tools.mirrorV')}>
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M3 8V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v3" /><path d="M3 16v3a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-3" /><path d="M2 12h20" />
-                </svg>
-              </button>
-              <button className="selection-btn icon" onClick={() => onSelectionCommand?.('rotateCw')} title={t('tools.rotateCw')} aria-label={t('tools.rotateCw')}>
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M21 12a9 9 0 1 1-3-6.7" /><polyline points="21,3 21,9 15,9" />
-                </svg>
-              </button>
-              <button className="selection-btn icon" onClick={() => onSelectionCommand?.('rotateCcw')} title={t('tools.rotateCcw')} aria-label={t('tools.rotateCcw')}>
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M3 12a9 9 0 1 0 3-6.7" /><polyline points="3,3 3,9 9,9" />
-                </svg>
-              </button>
-              <button className="selection-btn" onClick={onClearSelection}>{t('tools.clearSelectionBtn')}</button>
-              {/* 拖拽移动没有按钮,只能靠提示告知(规格 04 §2 要求移动有明确入口) */}
-              <span className="selection-move-hint">{t('tools.selectionMoveHint')}</span>
+              <div className="selection-info-line">
+                <span className="selection-size-badge">
+                  {t('tools.selectionSize', { w: selection.w, h: selection.h })}
+                </span>
+                {/* 拖拽移动没有按钮(它直接发生在画布上),这里用图标 + 文字持续提示 */}
+                <span className="selection-move-hint">
+                  <MoveIcon />{t('tools.selectionMoveHint')}
+                </span>
+              </div>
+              <div className="selection-actions-row">
+                <button className="selection-btn" onClick={() => onSelectionCommand?.('fill')}>
+                  {t('tools.fillSelection')}
+                </button>
+                <button className="selection-btn" onClick={() => onSelectionCommand?.('erase')}>
+                  {t('tools.clearSelection')}
+                </button>
+                <button className="selection-btn" onClick={() => onSelectionCommand?.('mirrorH')}>
+                  <MirrorHIcon />{t('tools.mirrorH')}
+                </button>
+                <button className="selection-btn" onClick={() => onSelectionCommand?.('mirrorV')}>
+                  <MirrorVIcon />{t('tools.mirrorV')}
+                </button>
+                <button className="selection-btn" onClick={() => onSelectionCommand?.('rotateCw')}>
+                  <RotateCwIcon />{t('tools.rotateCw')}
+                </button>
+                <button className="selection-btn" onClick={() => onSelectionCommand?.('rotateCcw')}>
+                  <RotateCcwIcon />{t('tools.rotateCcw')}
+                </button>
+                <button className="selection-btn" onClick={onClearSelection}>
+                  {t('tools.clearSelectionBtn')}
+                </button>
+              </div>
             </>
           ) : (
-            <span className="selection-size-badge muted">{t('tools.selectionEmpty')}</span>
+            <div className="selection-info-line">
+              <span className="selection-size-badge muted">{t('tools.selectionEmpty')}</span>
+            </div>
           )}
+        </div>
+      )}
+
+      {/* 选区工具分步引导气泡:与图片转拼豆引导同款样式,箭头朝下指向选区操作条 */}
+      {selGuide && (
+        <div
+          className="quantize-guide selection-guide"
+          role="tooltip"
+          ref={selGuideRef}
+          onClick={hideSelGuide}
+          style={selGuideStyle || undefined}
+        >
+          <span className="guide-text">
+            {selGuide === 'step1'
+              ? t('tools.selectionGuideStep1')
+              : t('tools.selectionGuideStep2')}
+          </span>
+          <span
+            className="guide-arrow"
+            style={selGuideStyle ? { left: selGuideStyle.arrowLeft } : undefined}
+            aria-hidden="true"
+          >
+            <i className="tri tri-1" />
+            <i className="tri tri-2" />
+            <i className="tri tri-3" />
+          </span>
         </div>
       )}
 

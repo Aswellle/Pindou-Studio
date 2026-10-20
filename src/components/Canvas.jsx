@@ -183,6 +183,23 @@ const Canvas = forwardRef(function Canvas({
         ctx.strokeStyle = 'rgba(74, 155, 142, 0.95)'
         ctx.strokeRect(px + 1, py + 1, pw - 2, ph - 2)
         ctx.restore()
+
+        // 触摸设备没有 hover 提示,用四角把手明确「这块区域可以按住拖动」。
+        // 把手画在选框四角,不遮挡内容,也不改变桌面端既有观感(仅在触屏显示)。
+        if (typeof window !== 'undefined' && window.matchMedia?.('(pointer: coarse)').matches) {
+          const HANDLE = 10
+          const r = HANDLE / 2
+          ctx.save()
+          ctx.fillStyle = 'rgba(74, 155, 142, 0.95)'
+          for (const [hx, hy] of [
+            [px, py], [px + pw, py], [px, py + ph], [px + pw, py + ph],
+          ]) {
+            ctx.beginPath()
+            ctx.arc(hx, hy, r, 0, Math.PI * 2)
+            ctx.fill()
+          }
+          ctx.restore()
+        }
       }
     }
   }, [hoverCell, tool, painter, selection, overlayTick])

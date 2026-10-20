@@ -23,8 +23,8 @@ vi.mock('react-i18next', () => ({
 // layout). Install a recording mock for both so a rendered <Canvas> behaves
 // like a real 48×48 px canvas (3×3 grid, scale 1): a click at (24,24) maps to
 // cell (1,1).
-function installCanvasMocks() {
-  const calls = { fillRect: [], stroke: 0, moveTo: [], lineTo: [], clearRect: [], setLineDash: [] }
+function installCanvasMocks(hooks = {}) {
+  const calls = { fillRect: [], stroke: 0, moveTo: [], lineTo: [], clearRect: [], setLineDash: [], arc: [] }
   const ctx = {
     fillStyle: '#000000',
     strokeStyle: '#000000',
@@ -41,6 +41,9 @@ function installCanvasMocks() {
     save: () => {},
     restore: () => {},
     setLineDash: (segments) => calls.setLineDash.push(segments),
+    // 触屏选区四角把手(pointer: coarse 时才调用)
+    arc: (x, y, r) => { calls.arc.push({ x, y, r }); hooks.arc?.(x, y, r) },
+    fill: () => { hooks.fill?.() },
   }
   const origGetContext = HTMLCanvasElement.prototype.getContext
   const origGetRect = HTMLCanvasElement.prototype.getBoundingClientRect
@@ -624,5 +627,52 @@ describe('Canvas 拖拽移动 · 手势互斥(M5.2)', () => {
     fireEvent.touchEnd(c, { touches: [] })
 
     expect(onSelectionMove).not.toHaveBeenCalled()
+  })
+})
+
+/**
+ * 触摸设备没有 hover:选区四角画把手,明确「可按住拖动移动」。
+ * 桌面端(pointer: fine)不画,保持既有观感。
+ */
+describe('Canvas 选区把手(触屏可发现性)', () => {
+  let mock
+  beforeEach(() => { mock = installCanvasMocks() })
+  afterEach(() => mock.restore())
+
+  function renderWith(pointerCoarse) {
+    const orig = window.matchMedia
+    window.matchMedia = (q) => ({
+      matches: q === '(pointer: coarse)' ? pointerCoarse : false,
+      media: q, onchange: null,
+      addListener: () => {}, removeListener: () => {},
+      addEventListener: () => {}, removeEventListener: () => {},
+      dispatchEvent: () => false,
+    })
+    const view = render(
+      <Canvas
+        gridSize={3}
+        gridWidth={null}
+        gridHeight={null}
+        selectedColor="#ff0000"
+        tool="select"
+        committedData={blankGrid(3)}
+        selection={{ x: 0, y: 0, w: 2, h: 2 }}
+        onCanvasChange={vi.fn()}
+        onSelectionChange={vi.fn()}
+      />
+    )
+    window.matchMedia = orig
+    return view
+  }
+
+  test('触屏设备绘制四角把手', () => {
+    // installCanvasMocks 已把 arc 调用记录在 mock.calls.arc
+    renderWith(true)
+    expect(mock.calls.arc.length).toBeGreaterThanOrEqual(4)
+  })
+
+  test('桌面指针设备不绘制把手', () => {
+    renderWith(false)
+    expect(mock.calls.arc.length).toBe(0)
   })
 })

@@ -727,7 +727,9 @@ body:has(.quantizer-zoom) .mobile-toolbar {
   }
 }
 
-/* 画布画面：底部为双行工具栏（约96px）+ 色卡收起条（约64px）留空间 */
+/* 画布画面：底部为工具栏 + 色卡收起条留空间。
+   工具栏高度由 MobileToolbar 实测写入 --mobile-toolbar-h(选区操作条出现时会变高),
+   画布底部留白跟随它 + 色卡条高度,避免操作条盖住画布下缘。 */
 .mobile-canvas-area {
   flex: 1;
   display: flex;
@@ -736,14 +738,14 @@ body:has(.quantizer-zoom) .mobile-toolbar {
   min-height: 0;
   overflow: auto;
   padding: 8px;
-  padding-bottom: calc(8px + 64px);
+  padding-bottom: calc(8px + 64px + max(0px, var(--mobile-toolbar-h, 100px) - 100px));
 }
 
 /* 平板(640–1023px)：底部工具栏更大、色卡条更高，为画布预留更大底部空间 */
 @media (min-width: 640px) and (max-width: 1023px) {
   .mobile-canvas-area {
     padding: 12px;
-    padding-bottom: calc(8px + 172px);
+    padding-bottom: calc(8px + 172px + max(0px, var(--mobile-toolbar-h, 124px) - 124px));
   }
 }
 
