@@ -257,6 +257,28 @@ CI (`.github/workflows/ci.yml`) runs on every push / PR to `main`: `test:run` �
    ```
 4. Push and open a Pull Request
 
+### Commit conventions (mandatory)
+
+**Commit in logical units.** Do not pile a whole session's work into one large commit. Each commit should
+tell one story — the message alone should say what changed without needing the diff. Splitting one change
+across several commits (e.g. "add parser" → "wire up UI" → "add tests") is expected, and follow-up commits
+that fix something you just introduced are fine; do not squash them at the end. Exception: purely mechanical
+sweeps (repo-wide renames, formatting) may be a single commit, since splitting them would break the build.
+
+**Message content.** Describe only the change itself — what changed, why, and what it affects. Prefer
+`type(scope): summary`, with `type` being `feat` / `fix` / `refactor` / `test` / `docs` / `chore`.
+
+- **No scheduling vocabulary**: priority labels (`P0`/`P1`/`P2`), batch/phase/milestone numbers
+  (`BATCH_`, `Phase N`, `M0`–`M99`) are internal planning artifacts and add no value to the history.
+- **No AI attribution**: no `Co-Authored-By: Claude` or similar; keep the author as yourself.
+- The same applies to Pull Request descriptions.
+
+A `commit-msg` hook enforces the above. Install it once:
+
+```bash
+bash scripts/install-git-hooks.sh
+```
+
 Conventions:
 - **New UI strings** must be added to all four locale files under `src/i18n/locales/` (`zh-CN` is the reference; `check-i18n` enforces identical keys and interpolation variables). **Admin-console copy** is hard-coded Chinese on purpose and needs no translation.
 - **New tutorials** must be maintained in all four data files (`src/data/tutorials.{zh,en,ja,ko}.js`)
