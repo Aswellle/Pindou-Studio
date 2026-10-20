@@ -81,6 +81,16 @@ describe('personalPalette · normalizeColorInput', () => {
     expect(res.color).toMatchObject({ code: 'A1', hex: '#FF0000', sortOrder: 0 })
   })
 
+  it('颜色来源:接受三个已知值,未知值回退 factory(不拒绝整条记录)', () => {
+    expect(normalizeColorInput({ ...base, source: 'measured' }).color.source).toBe('measured')
+    expect(normalizeColorInput({ ...base, source: 'estimated' }).color.source).toBe('estimated')
+    expect(normalizeColorInput({ ...base, source: 'factory' }).color.source).toBe('factory')
+    // 缺省 / 非法值 / 大小写不符 → factory
+    expect(normalizeColorInput(base).color.source).toBe('factory')
+    expect(normalizeColorInput({ ...base, source: 'MEASURED' }).color.source).toBe('factory')
+    expect(normalizeColorInput({ ...base, source: null }).color.source).toBe('factory')
+  })
+
   it('非法 HEX 被明确拒绝(不静默改成 #000000)', () => {
     expect(codes(normalizeColorInput({ code: 'A1', hex: '#f00' })))
       .toContain(PALETTE_ERRORS.INVALID_HEX)

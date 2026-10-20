@@ -327,6 +327,31 @@ export function createLocalBeadStore(storage = globalThis.localStorage) {
     async exportAll() {
       return { ...snapshot(), version: SCHEMA_VERSION }
     },
+
+    /**
+     * 合并导入备份(规格 05 §5)。传入的记录已经过 parseBeadBackup 校验,
+     * 这里只负责保留原 id 写入 + 单次持久化。
+     * 同 id / 同 paletteKey 的条目由 planMerge 提前过滤,这里不再去重。
+     */
+    async mergeBackup(plan) {
+      const next = {
+        ...state,
+        palettes: [...state.palettes, ...(plan?.palettes || [])],
+        colors: [...state.colors, ...(plan?.colors || [])],
+        inventory: [...state.inventory, ...(plan?.inventory || [])],
+      }
+      const w = commit(next)
+      return w.ok
+        ? {
+          ok: true,
+          imported: {
+            palettes: (plan?.palettes || []).length,
+            colors: (plan?.colors || []).length,
+            inventory: (plan?.inventory || []).length,
+          },
+        }
+        : w
+    },
   }
 }
 

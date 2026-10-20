@@ -13,13 +13,13 @@
  * 画布只存 HEX:删除个人色卡不会让已保存图纸变黑。
  */
 
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import {
   ArrowLeft, Plus, Trash2, Pencil, Copy, Search, Check, X, Package,
-  Palette as PaletteIcon, Layers, AlertTriangle, Sparkles,
+  Palette as PaletteIcon, Layers, AlertTriangle, Sparkles, Download, Upload, ClipboardCopy,
 } from 'lucide-react'
 import { useToast } from '../components/Toast'
 import ThumbnailCanvas from '../components/ThumbnailCanvas'
@@ -32,9 +32,17 @@ import {
   paletteKeyForBuiltin,
   paletteKeyForUser,
   PALETTE_ERRORS,
+  COLOR_SOURCES,
+  DEFAULT_COLOR_SOURCE,
   MAX_PALETTE_NAME,
   MAX_COLOR_CODE,
 } from '../services/beads/personalPalette'
+import {
+  buildBeadBackup,
+  parseBeadBackup,
+  planMerge,
+  BACKUP_ERRORS,
+} from '../services/beads/backup'
 import {
   matchCanvasToInventory,
   applyColorMapping,
@@ -68,6 +76,12 @@ const PALETTE_ERROR_KEY = {
   importFailed: 'myBeads.errors.importFailed',
   notFound: 'myBeads.errors.notFound',
   cloudNotConfigured: 'errors.cloudNotConfigured',
+  importLocalOnly: 'myBeads.backup.localOnly',
+  [BACKUP_ERRORS.NOT_JSON]: 'myBeads.backup.errors.notJson',
+  [BACKUP_ERRORS.NOT_BACKUP]: 'myBeads.backup.errors.notBackup',
+  [BACKUP_ERRORS.FUTURE_VERSION]: 'myBeads.backup.errors.futureVersion',
+  [BACKUP_ERRORS.TOO_LARGE]: 'myBeads.backup.errors.tooLarge',
+  [BACKUP_ERRORS.BAD_SHAPE]: 'myBeads.backup.errors.badShape',
 }
 
 /** 颜色匹配状态 → 徽章样式与 i18n 键(库存单独展示,不混在色差徽章里) */
@@ -110,6 +124,8 @@ export default function MyBeadsPage({ user, canvasData, onApplyMapping }) {
   const [tab, setTab] = useState(TAB_PALETTES)
   const [selectedPaletteId, setSelectedPaletteId] = useState(null)
   const [search, setSearch] = useState('')
+  // 色卡详情里的颜色搜索(规格 05 §2 P0:按色号/名称搜索)
+  const [colorSearch, setColorSearch] = useState('')
   const [editingPalette, setEditingPalette] = useState(null) // { id?, ...fields }
   const [editingColor, setEditingColor] = useState(null) // { id?, ...fields }
   const [confirmDelete, setConfirmDelete] = useState(null) // { kind:'palette'|'color', id, name }
@@ -130,6 +146,36 @@ export default function MyBeadsPage({ user, canvasData, onApplyMapping }) {
     () => palettes.find((p) => p.id === selectedPaletteId) || null,
     [palettes, selectedPaletteId],
   )
+
+  // 当前色卡的颜色(带搜索过滤);搜索只在选中色卡内生效
+  const filteredColors = useMemo(() => {
+    if (!selectedPalette) return []
+    const list = store.colorsByPalette.get(selectedPalette.id) || []
+    const q = colorSearch.trim().toLowerCase()
+    if (!q) return list
+    return list.filter((c) => (
+      String(c.code || '').toLowerCase().includes(q)
+      || String(c.name || '').toLowerCase().includes(q)
+      || String(c.hex || '').toLowerCase().includes(q)
+    ))
+  }, [selectedPalette, store.colorsByPalette, colorSearch])
+
+  // 切换色卡时清空颜色搜索,避免上一张色卡的查询词让新列表看起来是空的
+  useEffect(() => { setColorSearch('') }, [selectedPaletteId])
+
+  /** 复制 HEX(规格 05 §2 P0)。非安全上下文降级为 prompt 展示,不静默失败 */
+  const copyHex = useCallback(async (hex) => {
+    try {
+      if (navigator.clipboard?.writeText) {
+        await navigator.clipboard.writeText(hex)
+        toast(t('myBeads.colors.copiedHex', { hex }), 'success')
+        return
+      }
+    } catch {
+      // 权限被拒 / 非安全上下文:走下面的降级路径
+    }
+    window.prompt(t('myBeads.colors.copyManual'), hex)
+  }, [toast, t])
 
   // 首次加载后默认选中第一张个人色卡
   useEffect(() => {
@@ -209,7 +255,9 @@ export default function MyBeadsPage({ user, canvasData, onApplyMapping }) {
   }
 
   // ── 颜色编辑 ───────────────────────────────────────────────
-  const openNewColor = () => setEditingColor({ id: null, code: '', name: '', hex: '#E53935', notes: '' })
+  const openNewColor = () => setEditingColor({
+    id: null, code: '', name: '', hex: '#E53935', notes: '', source: DEFAULT_COLOR_SOURCE,
+  })
 
   const saveColor = async () => {
     if (!editingColor || !selectedPalette) return
@@ -244,6 +292,11 @@ export default function MyBeadsPage({ user, canvasData, onApplyMapping }) {
   // 库存视图:当前选中的是内置色卡还是个人色卡
   const [invKind, setInvKind] = useState('builtin')
   const [invPaletteId, setInvPaletteId] = useState('perler')
+  // 状态筛选(规格 05 §3:显示拥有、缺货、数量不足颜色)
+  const [stockFilter, setStockFilter] = useState('all')
+  // 批量编辑:选中的 paletteKey 集合
+  const [selectedKeys, setSelectedKeys] = useState(() => new Set())
+  const [batchQty, setBatchQty] = useState('')
 
   const invColors = useMemo(() => {
     if (invKind === 'builtin') {
@@ -265,11 +318,26 @@ export default function MyBeadsPage({ user, canvasData, onApplyMapping }) {
 
   const filteredInvColors = useMemo(() => {
     const q = search.trim().toLowerCase()
-    if (!q) return invColors
-    return invColors.filter((c) => (
-      String(c.code).toLowerCase().includes(q) || String(c.name || '').toLowerCase().includes(q)
-    ))
-  }, [invColors, search])
+    let list = invColors
+    if (q) {
+      list = list.filter((c) => (
+        String(c.code).toLowerCase().includes(q)
+        || String(c.name || '').toLowerCase().includes(q)
+        || String(c.hex || '').toLowerCase().includes(q)
+      ))
+    }
+    if (stockFilter === 'all') return list
+    return list.filter((c) => {
+      const rec = store.inventoryByKey.get(c.key)
+      switch (stockFilter) {
+        case 'owned': return !!rec && rec.status === 'owned' && rec.quantity !== 0
+        case 'low': return !!rec && rec.status === 'low'
+        case 'out': return !!rec && (rec.status === 'out_of_stock' || rec.quantity === 0)
+        case 'unknown': return !rec
+        default: return true
+      }
+    })
+  }, [invColors, search, stockFilter, store.inventoryByKey])
 
   const inventoryStats = useMemo(() => {
     let owned = 0
@@ -297,6 +365,157 @@ export default function MyBeadsPage({ user, canvasData, onApplyMapping }) {
       ...patch,
     })
     if (!res.ok && res.errors?.[0]) toast(errorText(res.errors[0]), 'error')
+    return res
+  }
+
+  // ── 批量库存编辑(规格 05 §3)────────────────────────────────
+  const toggleKey = (key) => {
+    setSelectedKeys((prev) => {
+      const next = new Set(prev)
+      if (next.has(key)) next.delete(key)
+      else next.add(key)
+      return next
+    })
+  }
+
+  const visibleKeys = useMemo(() => filteredInvColors.map((c) => c.key), [filteredInvColors])
+  const allVisibleSelected = visibleKeys.length > 0 && visibleKeys.every((k) => selectedKeys.has(k))
+
+  const toggleSelectAllVisible = () => {
+    setSelectedKeys((prev) => {
+      const next = new Set(prev)
+      if (allVisibleSelected) visibleKeys.forEach((k) => next.delete(k))
+      else visibleKeys.forEach((k) => next.add(k))
+      return next
+    })
+  }
+
+  // 切换色卡/视图时清空选择,避免把上一张色卡的键带到新列表
+  useEffect(() => { setSelectedKeys(new Set()); setBatchQty('') }, [invKind, invPaletteId])
+
+  /**
+   * 批量写入。逐条 await,统计成功/失败 —— 部分失败时如实报告,不假装全部成功。
+   * @param {(color, rec) => object} buildPatch
+   */
+  const runBatch = async (buildPatch, successKey) => {
+    const targets = filteredInvColors.filter((c) => selectedKeys.has(c.key))
+    if (targets.length === 0) {
+      toast(t('myBeads.inventory.batchEmpty'), 'error')
+      return
+    }
+    setBusy(true)
+    let ok = 0
+    let failed = 0
+    try {
+      for (const color of targets) {
+        const rec = store.inventoryByKey.get(color.key)
+        const patch = buildPatch(color, rec)
+        if (patch === null) { ok++; continue }
+        // 清除记录走 removeInventory,其余走 setInventory
+        if (patch.__remove) {
+          const res = await store.removeInventory(color.key)
+          if (res.ok) ok++
+          else failed++
+          continue
+        }
+        const res = await store.setInventory({
+          paletteKey: color.key,
+          paletteColorId: invKind === 'user' ? color.id : null,
+          quantity: rec ? rec.quantity : null,
+          status: rec ? rec.status : 'owned',
+          notes: rec?.notes || '',
+          ...patch,
+        })
+        if (res.ok) ok++
+        else failed++
+      }
+    } finally {
+      setBusy(false)
+    }
+    if (failed > 0) {
+      toast(t('myBeads.inventory.batchPartial', { ok, failed }), 'error')
+    } else {
+      toast(t(successKey, { n: ok }), 'success')
+    }
+    setSelectedKeys(new Set())
+    setBatchQty('')
+  }
+
+  const applyBatchQty = () => {
+    const raw = String(batchQty).trim()
+    if (raw === '') { toast(t('myBeads.errors.invalidQuantity'), 'error'); return }
+    const n = Number(raw)
+    if (!Number.isFinite(n) || n < 0) { toast(t('myBeads.errors.invalidQuantity'), 'error'); return }
+    const qty = Math.trunc(n)
+    runBatch(() => ({ quantity: qty, status: qty === 0 ? 'out_of_stock' : 'owned' }), 'myBeads.inventory.batchQtyDone')
+  }
+
+  // 批量改状态:标记缺货时数量归零;标记拥有/不足时保留已有数量(不能把用户填的数字抹掉)
+  const applyBatchStatus = (status) => runBatch(
+    () => (status === 'out_of_stock' ? { status, quantity: 0 } : { status }),
+    'myBeads.inventory.batchStatusDone',
+  )
+  const clearBatch = () => runBatch((color) => {
+    // 清除记录:没有记录时视为已完成(幂等)
+    if (!store.inventoryByKey.get(color.key)) return null
+    return { __remove: true }
+  }, 'myBeads.inventory.batchCleared')
+
+  // ── 备份导出 / 导入(规格 05 §5,仅本地模式)───────────────
+  const fileInputRef = useRef(null)
+
+  const exportBackupFile = () => {
+    const data = store.exportBackup()
+    const backup = buildBeadBackup(data)
+    const blob = new Blob([JSON.stringify(backup, null, 2)], { type: 'application/json' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    const stamp = new Date().toISOString().slice(0, 10)
+    a.href = url
+    a.download = `pindou-beads-${stamp}.json`
+    a.click()
+    URL.revokeObjectURL(url)
+    toast(t('myBeads.backup.exported'), 'success')
+  }
+
+  const onBackupFilePicked = async (e) => {
+    const file = e.target.files?.[0]
+    e.target.value = '' // 允许再次选择同一文件
+    if (!file) return
+    let text = ''
+    try {
+      text = await file.text()
+    } catch (err) {
+      toast(t('myBeads.backup.errors.readFailed'), 'error')
+      return
+    }
+    const parsed = parseBeadBackup(text)
+    if (!parsed.ok) {
+      toast(errorText(parsed.errors[0]), 'error')
+      return
+    }
+    const plan = planMerge(store.exportBackup(), parsed.backup)
+    const total = plan.palettes.length + plan.colors.length + plan.inventory.length
+    if (total === 0) {
+      toast(t('myBeads.backup.nothingNew'), 'info')
+      return
+    }
+    setBusy(true)
+    try {
+      const res = await store.importBackup(plan)
+      if (!res.ok) {
+        toast(errorText(res.errors?.[0]), 'error')
+        return
+      }
+      toast(t('myBeads.backup.imported', {
+        palettes: plan.palettes.length,
+        colors: plan.colors.length,
+        inventory: plan.inventory.length,
+        skipped: plan.skipped.palettes + plan.skipped.colors + plan.skipped.inventory,
+      }), 'success')
+    } finally {
+      setBusy(false)
+    }
   }
 
   // ── 匹配 ───────────────────────────────────────────────────
@@ -417,6 +636,32 @@ export default function MyBeadsPage({ user, canvasData, onApplyMapping }) {
           {store.mode === 'cloud' ? t('myBeads.modeCloud') : t('myBeads.modeLocal')}
         </p>
 
+        {/* 备份(规格 05 §5):本地模式可导出/导入;云端模式隐藏 ——
+            云端 id 由数据库生成,备份里的 id 无法原样恢复 */}
+        {store.mode === 'local' && (
+          <div className="my-beads-backup">
+            <button type="button" className="my-beads-btn ghost" onClick={exportBackupFile}>
+              <Download size={14} />{t('myBeads.backup.export')}
+            </button>
+            <button
+              type="button"
+              className="my-beads-btn ghost"
+              disabled={busy}
+              onClick={() => fileInputRef.current?.click()}
+            >
+              <Upload size={14} />{t('myBeads.backup.import')}
+            </button>
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="application/json,.json"
+              className="my-beads-file-input"
+              onChange={onBackupFilePicked}
+            />
+            <span className="my-beads-hint small">{t('myBeads.backup.hint')}</span>
+          </div>
+        )}
+
         {store.mode === 'cloud' && store.pendingLocal > 0 && (
           <div className="my-beads-banner">
             <span>{t('myBeads.pendingLocal', { n: store.pendingLocal })}</span>
@@ -499,11 +744,24 @@ export default function MyBeadsPage({ user, canvasData, onApplyMapping }) {
                 </div>
                 <p className="my-beads-hint small">{t('myBeads.palettes.deleteHint')}</p>
 
+                {/* 规格 05 §2 P0:颜色列表支持按色号/名称/HEX 搜索 */}
+                <label className="my-beads-search my-beads-color-search">
+                  <Search size={14} />
+                  <input
+                    value={colorSearch}
+                    onChange={(e) => setColorSearch(e.target.value)}
+                    placeholder={t('myBeads.colors.search')}
+                    aria-label={t('myBeads.colors.search')}
+                  />
+                </label>
+
                 <ColorList
-                  colors={store.colorsByPalette.get(selectedPalette.id) || []}
+                  colors={filteredColors}
+                  totalColors={(store.colorsByPalette.get(selectedPalette.id) || []).length}
                   inventoryByKey={store.inventoryByKey}
-                  onEdit={(c) => setEditingColor({ ...c })}
+                  onEdit={(c) => setEditingColor({ ...c, source: c.source || DEFAULT_COLOR_SOURCE })}
                   onDelete={(c) => setConfirmDelete({ kind: 'color', id: c.id, name: c.code })}
+                  onCopyHex={copyHex}
                   keyFor={(c) => paletteKeyForUser(selectedPalette.id, c.id)}
                   t={t}
                 />
@@ -552,6 +810,18 @@ export default function MyBeadsPage({ user, canvasData, onApplyMapping }) {
                 <Search size={14} />
                 <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder={t('myBeads.inventory.search')} />
               </label>
+              {/* 规格 05 §3:按拥有/不足/缺货/未记录筛选 */}
+              <select
+                value={stockFilter}
+                onChange={(e) => setStockFilter(e.target.value)}
+                aria-label={t('myBeads.inventory.filterLabel')}
+              >
+                <option value="all">{t('myBeads.inventory.filterAll')}</option>
+                <option value="owned">{t('myBeads.inventory.filterOwned')}</option>
+                <option value="low">{t('myBeads.inventory.filterLow')}</option>
+                <option value="out">{t('myBeads.inventory.filterOut')}</option>
+                <option value="unknown">{t('myBeads.inventory.filterUnknown')}</option>
+              </select>
             </div>
 
             <div className="my-beads-inv-stats">
@@ -561,53 +831,105 @@ export default function MyBeadsPage({ user, canvasData, onApplyMapping }) {
               <span>{t('myBeads.inventory.totalQty', { n: inventoryStats.totalQty })}</span>
             </div>
 
+            {/* 批量编辑(规格 05 §3):勾选行后出现,逐条写入并如实报告成功/失败数 */}
+            {selectedKeys.size > 0 && (
+              <div className="my-beads-batch" role="region" aria-label={t('myBeads.inventory.batchTitle')}>
+                <span className="my-beads-batch-count">
+                  {t('myBeads.inventory.batchSelected', { n: selectedKeys.size })}
+                </span>
+                <input
+                  type="number"
+                  min="0"
+                  step="1"
+                  className="qty-input"
+                  value={batchQty}
+                  onChange={(e) => setBatchQty(e.target.value)}
+                  placeholder={t('myBeads.inventory.batchQtyPlaceholder')}
+                  aria-label={t('myBeads.inventory.batchQtyPlaceholder')}
+                />
+                <button type="button" className="my-beads-btn secondary" disabled={busy} onClick={applyBatchQty}>
+                  {t('myBeads.inventory.batchSetQty')}
+                </button>
+                <button type="button" className="my-beads-btn ghost" disabled={busy} onClick={() => applyBatchStatus('owned')}>
+                  {t('myBeads.inventory.markOwned')}
+                </button>
+                <button type="button" className="my-beads-btn ghost" disabled={busy} onClick={() => applyBatchStatus('out_of_stock')}>
+                  {t('myBeads.inventory.markOut')}
+                </button>
+                <button type="button" className="my-beads-btn ghost" disabled={busy} onClick={clearBatch}>
+                  {t('myBeads.inventory.batchClear')}
+                </button>
+                <button type="button" className="my-beads-btn ghost" onClick={() => setSelectedKeys(new Set())}>
+                  {t('myBeads.inventory.batchCancel')}
+                </button>
+              </div>
+            )}
+
             {invColors.length === 0 ? (
               <p className="my-beads-hint">{t('myBeads.inventory.empty')}</p>
+            ) : filteredInvColors.length === 0 ? (
+              <p className="my-beads-hint">{t('myBeads.inventory.filterEmpty')}</p>
             ) : (
-              <ul className="my-beads-inv-list">
-                {filteredInvColors.map((c) => {
-                  const rec = store.inventoryByKey.get(c.key)
-                  const qty = rec?.quantity
-                  return (
-                    <li key={c.key} className="my-beads-inv-row">
-                      <span className="swatch" style={{ background: c.hex }} />
-                      <span className="code">{c.code}</span>
-                      <span className="name">{c.name || ''}</span>
-                      <span className="hex">{c.hex}</span>
-                      <div className="stock-controls">
-                        <button
-                          type="button"
-                          className={`stock-btn ${rec ? 'on' : ''}`}
-                          title={t('myBeads.inventory.markOwned')}
-                          onClick={() => updateStock(c, { status: 'owned' })}
-                        >
-                          <Check size={13} />
-                        </button>
-                        <button
-                          type="button"
-                          className={`stock-btn ${rec?.status === 'out_of_stock' ? 'out' : ''}`}
-                          title={t('myBeads.inventory.markOut')}
-                          onClick={() => updateStock(c, { status: 'out_of_stock' })}
-                        >
-                          <X size={13} />
-                        </button>
+              <>
+                <label className="my-beads-select-all">
+                  <input
+                    type="checkbox"
+                    checked={allVisibleSelected}
+                    onChange={toggleSelectAllVisible}
+                  />
+                  <span>{t('myBeads.inventory.selectAll')}</span>
+                </label>
+                <ul className="my-beads-inv-list">
+                  {filteredInvColors.map((c) => {
+                    const rec = store.inventoryByKey.get(c.key)
+                    const qty = rec?.quantity
+                    return (
+                      <li key={c.key} className={`my-beads-inv-row${selectedKeys.has(c.key) ? ' selected' : ''}`}>
                         <input
-                          type="number"
-                          min="0"
-                          step="1"
-                          className="qty-input"
-                          value={qty === null || qty === undefined ? '' : qty}
-                          placeholder={t('myBeads.inventory.qtyUnknown')}
-                          onChange={(e) => {
-                            const v = e.target.value
-                            updateStock(c, { quantity: v === '' ? null : Math.max(0, Math.trunc(Number(v) || 0)) })
-                          }}
+                          type="checkbox"
+                          checked={selectedKeys.has(c.key)}
+                          onChange={() => toggleKey(c.key)}
+                          aria-label={`${t('myBeads.inventory.selectRow')} ${c.code}`}
                         />
-                      </div>
-                    </li>
-                  )
-                })}
-              </ul>
+                        <span className="swatch" style={{ background: c.hex }} />
+                        <span className="code">{c.code}</span>
+                        <span className="name">{c.name || ''}</span>
+                        <span className="hex">{c.hex}</span>
+                        <div className="stock-controls">
+                          <button
+                            type="button"
+                            className={`stock-btn ${rec ? 'on' : ''}`}
+                            title={t('myBeads.inventory.markOwned')}
+                            onClick={() => updateStock(c, { status: 'owned' })}
+                          >
+                            <Check size={13} />
+                          </button>
+                          <button
+                            type="button"
+                            className={`stock-btn ${rec?.status === 'out_of_stock' ? 'out' : ''}`}
+                            title={t('myBeads.inventory.markOut')}
+                            onClick={() => updateStock(c, { status: 'out_of_stock' })}
+                          >
+                            <X size={13} />
+                          </button>
+                          <input
+                            type="number"
+                            min="0"
+                            step="1"
+                            className="qty-input"
+                            value={qty === null || qty === undefined ? '' : qty}
+                            placeholder={t('myBeads.inventory.qtyUnknown')}
+                            onChange={(e) => {
+                              const v = e.target.value
+                              updateStock(c, { quantity: v === '' ? null : Math.max(0, Math.trunc(Number(v) || 0)) })
+                            }}
+                          />
+                        </div>
+                      </li>
+                    )
+                  })}
+                </ul>
+              </>
             )}
           </section>
         )}
@@ -860,6 +1182,18 @@ export default function MyBeadsPage({ user, canvasData, onApplyMapping }) {
                 onChange={(e) => setEditingColor({ ...editingColor, notes: e.target.value })}
               />
             </label>
+            {/* 规格 05 §2 P0:来源/置信度(原厂色值 / 实测 / 估算) */}
+            <label>
+              <span>{t('myBeads.colors.source')}</span>
+              <select
+                value={editingColor.source || DEFAULT_COLOR_SOURCE}
+                onChange={(e) => setEditingColor({ ...editingColor, source: e.target.value })}
+              >
+                {Object.values(COLOR_SOURCES).map((s) => (
+                  <option key={s} value={s}>{t(`myBeads.colors.sources.${s}`)}</option>
+                ))}
+              </select>
+            </label>
             <div className="my-beads-modal-actions">
               <button type="button" className="my-beads-btn ghost" onClick={() => setEditingColor(null)}>{t('common.cancel')}</button>
               <button type="button" className="my-beads-btn primary" disabled={busy} onClick={saveColor}>{t('common.save')}</button>
@@ -889,21 +1223,31 @@ export default function MyBeadsPage({ user, canvasData, onApplyMapping }) {
   )
 }
 
-/** 颜色列表(色卡详情内复用;含库存标记与编辑/删除) */
-function ColorList({ colors, inventoryByKey, onEdit, onDelete, keyFor, t }) {
+/** 颜色列表(色卡详情内复用;含库存标记、来源徽章、复制 HEX 与编辑/删除) */
+function ColorList({ colors, totalColors, inventoryByKey, onEdit, onDelete, onCopyHex, keyFor, t }) {
   if (!colors || colors.length === 0) {
-    return <p className="my-beads-hint small">{t('myBeads.colors.empty')}</p>
+    // 区分「这张色卡本来就没有颜色」与「搜索无结果」—— 后者不能提示去添加颜色
+    const searched = (totalColors || 0) > 0
+    return (
+      <p className="my-beads-hint small">
+        {searched ? t('myBeads.colors.searchEmpty') : t('myBeads.colors.empty')}
+      </p>
+    )
   }
   return (
     <ul className="my-beads-color-list">
       {colors.map((c) => {
         const rec = inventoryByKey.get(keyFor(c))
+        const source = c.source || DEFAULT_COLOR_SOURCE
         return (
           <li key={c.id} className="my-beads-color-row">
             <span className="swatch" style={{ background: c.hex }} />
             <code>{c.code}</code>
             <span className="name">{c.name || ''}</span>
             <span className="hex">{c.hex}</span>
+            <span className={`source-tag ${source}`} title={t(`myBeads.colors.sources.${source}`)}>
+              {t(`myBeads.colors.sources.${source}`)}
+            </span>
             {rec && (
               <span className="inv-tag">
                 {rec.quantity === null || rec.quantity === undefined
@@ -912,6 +1256,15 @@ function ColorList({ colors, inventoryByKey, onEdit, onDelete, keyFor, t }) {
               </span>
             )}
             <div className="my-beads-row-actions">
+              <button
+                type="button"
+                className="my-beads-icon-btn"
+                title={t('myBeads.colors.copyHex')}
+                aria-label={`${t('myBeads.colors.copyHex')} ${c.hex}`}
+                onClick={() => onCopyHex?.(c.hex)}
+              >
+                <ClipboardCopy size={14} />
+              </button>
               <button type="button" className="my-beads-icon-btn" title={t('common.edit')} onClick={() => onEdit(c)}>
                 <Pencil size={14} />
               </button>

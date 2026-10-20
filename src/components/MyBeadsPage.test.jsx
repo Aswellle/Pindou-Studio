@@ -131,6 +131,75 @@ describe('MyBeadsPage · 色卡管理(本地模式)', () => {
       expect(JSON.parse(localStorage.getItem('personal-beads-v1')).palettes).toHaveLength(0)
     })
   })
+
+  it('颜色搜索:按色号/名称/HEX 过滤,无结果给空态', async () => {
+    localStorage.setItem('personal-beads-v1', JSON.stringify({
+      version: 1,
+      palettes: [{ id: 'pal-1', name: '测试色卡', brandName: '', seriesName: '', beadSizeMm: null, notes: '' }],
+      colors: [
+        { id: 'c1', paletteId: 'pal-1', code: 'A1', name: '白色', hex: '#FFFFFF', notes: '', sortOrder: 0, source: 'factory' },
+        { id: 'c2', paletteId: 'pal-1', code: 'B2', name: '黑色', hex: '#000000', notes: '', sortOrder: 1, source: 'factory' },
+      ],
+      inventory: [],
+    }))
+    const { container } = setup()
+    await waitFor(() => expect(container.querySelector('.my-beads-color-row')).toBeTruthy())
+    expect(container.querySelectorAll('.my-beads-color-row')).toHaveLength(2)
+
+    const search = container.querySelector('.my-beads-color-search input')
+    fireEvent.change(search, { target: { value: 'b2' } })
+    await waitFor(() => expect(container.querySelectorAll('.my-beads-color-row')).toHaveLength(1))
+    expect(container.querySelector('.my-beads-color-row').textContent).toContain('B2')
+
+    // 按 HEX 搜
+    fireEvent.change(search, { target: { value: '#ffffff' } })
+    await waitFor(() => expect(container.querySelector('.my-beads-color-row').textContent).toContain('A1'))
+
+    // 无结果:提示「没有匹配」而不是「还没有颜色」
+    fireEvent.change(search, { target: { value: 'zzz' } })
+    await waitFor(() => expect(screen.getByText('没有匹配的颜色。')).toBeTruthy())
+  })
+
+  it('颜色来源:新建时可选,保存后显示徽章', async () => {
+    const { container } = setup()
+    await waitFor(() => expect(container.querySelector('.my-beads-mode')).toBeTruthy())
+    fireEvent.click(screen.getByText('新建色卡'))
+    let dialog = document.querySelector('.my-beads-modal')
+    fireEvent.change(within(dialog).getByPlaceholderText('例如：我的 5mm 拼豆'), { target: { value: '来源测试' } })
+    fireEvent.click(within(dialog).getByText('保存'))
+    await waitFor(() => expect(container.querySelector('.my-beads-palette-detail')).toBeTruthy())
+
+    fireEvent.click(screen.getByText('添加颜色'))
+    dialog = document.querySelector('.my-beads-modal')
+    fireEvent.change(within(dialog).getByPlaceholderText('A1'), { target: { value: 'A1' } })
+    fireEvent.change(within(dialog).getByPlaceholderText('#RRGGBB'), { target: { value: '#123456' } })
+    // 来源下拉选「实测」
+    fireEvent.change(within(dialog).getByRole('combobox'), { target: { value: 'measured' } })
+    fireEvent.click(within(dialog).getByText('保存'))
+
+    await waitFor(() => {
+      const stored = JSON.parse(localStorage.getItem('personal-beads-v1'))
+      expect(stored.colors[0].source).toBe('measured')
+    })
+    expect(container.querySelector('.source-tag.measured')).toBeTruthy()
+  })
+
+  it('复制 HEX 写入剪贴板并提示', async () => {
+    const writeText = vi.fn().mockResolvedValue()
+    Object.assign(navigator, { clipboard: { writeText } })
+    localStorage.setItem('personal-beads-v1', JSON.stringify({
+      version: 1,
+      palettes: [{ id: 'pal-1', name: 'P', brandName: '', seriesName: '', beadSizeMm: null, notes: '' }],
+      colors: [{ id: 'c1', paletteId: 'pal-1', code: 'A1', name: '', hex: '#ABCDEF', notes: '', sortOrder: 0 }],
+      inventory: [],
+    }))
+    const { container } = setup()
+    await waitFor(() => expect(container.querySelector('.my-beads-color-row')).toBeTruthy())
+
+    const copyBtn = container.querySelector('.my-beads-color-row .my-beads-icon-btn')
+    fireEvent.click(copyBtn)
+    await waitFor(() => expect(writeText).toHaveBeenCalledWith('#ABCDEF'))
+  })
 })
 
 describe('MyBeadsPage · 库存', () => {
@@ -164,6 +233,144 @@ describe('MyBeadsPage · 库存', () => {
     await waitFor(() => {
       const stored = JSON.parse(localStorage.getItem('personal-beads-v1'))
       expect(stored.inventory[0].status).toBe('out_of_stock')
+    })
+  })
+
+  it('状态筛选:只看未记录 / 缺货', async () => {
+    localStorage.setItem('personal-beads-v1', JSON.stringify({
+      version: 1,
+      palettes: [],
+      colors: [],
+      // 只给第一个内置颜色记库存,其余保持未记录
+      inventory: [{ id: 'i1', paletteKey: 'builtin:perler:P01', paletteColorId: null, quantity: 100, status: 'owned', notes: '' }],
+    }))
+    const { container } = setup()
+    await waitFor(() => expect(container.querySelector('.my-beads-mode')).toBeTruthy())
+    fireEvent.click(screen.getByRole('tab', { name: /我的库存/ }))
+    await waitFor(() => expect(container.querySelector('.my-beads-inv-row')).toBeTruthy())
+
+    const filterSelect = container.querySelector('.my-beads-filters select[aria-label="库存筛选"]')
+    fireEvent.change(filterSelect, { target: { value: 'owned' } })
+    await waitFor(() => expect(container.querySelectorAll('.my-beads-inv-row')).toHaveLength(1))
+
+    fireEvent.change(filterSelect, { target: { value: 'unknown' } })
+    await waitFor(() => {
+      // Perler 80 色,1 条已记录 → 79 条未记录
+      expect(container.querySelectorAll('.my-beads-inv-row')).toHaveLength(79)
+    })
+
+    fireEvent.change(filterSelect, { target: { value: 'out' } })
+    await waitFor(() => expect(screen.getByText('当前筛选下没有颜色。')).toBeTruthy())
+  })
+
+  it('批量编辑:勾选两行设为同一数量', async () => {
+    const { container } = setup()
+    await waitFor(() => expect(container.querySelector('.my-beads-mode')).toBeTruthy())
+    fireEvent.click(screen.getByRole('tab', { name: /我的库存/ }))
+    await waitFor(() => expect(container.querySelector('.my-beads-inv-row')).toBeTruthy())
+
+    const boxes = container.querySelectorAll('.my-beads-inv-row > input[type="checkbox"]')
+    fireEvent.click(boxes[0])
+    fireEvent.click(boxes[1])
+    await waitFor(() => expect(container.querySelector('.my-beads-batch')).toBeTruthy())
+    expect(container.querySelector('.my-beads-batch').textContent).toContain('已选 2 种')
+
+    fireEvent.change(container.querySelector('.my-beads-batch .qty-input'), { target: { value: '42' } })
+    fireEvent.click(screen.getByText('设为该数量'))
+
+    await waitFor(() => {
+      const stored = JSON.parse(localStorage.getItem('personal-beads-v1'))
+      expect(stored.inventory).toHaveLength(2)
+      expect(stored.inventory.every((i) => i.quantity === 42)).toBe(true)
+    })
+    // 批量完成后清空选择
+    await waitFor(() => expect(container.querySelector('.my-beads-batch')).toBeNull())
+  })
+
+  it('批量清除记录:移除库存行但不删颜色', async () => {
+    localStorage.setItem('personal-beads-v1', JSON.stringify({
+      version: 1,
+      palettes: [],
+      colors: [],
+      inventory: [{ id: 'i1', paletteKey: 'builtin:perler:P01', paletteColorId: null, quantity: 5, status: 'owned', notes: '' }],
+    }))
+    const { container } = setup()
+    await waitFor(() => expect(container.querySelector('.my-beads-mode')).toBeTruthy())
+    fireEvent.click(screen.getByRole('tab', { name: /我的库存/ }))
+    await waitFor(() => expect(container.querySelector('.my-beads-inv-row')).toBeTruthy())
+
+    fireEvent.click(container.querySelector('.my-beads-inv-row > input[type="checkbox"]'))
+    fireEvent.click(screen.getByText('清除记录'))
+
+    await waitFor(() => {
+      const stored = JSON.parse(localStorage.getItem('personal-beads-v1'))
+      expect(stored.inventory).toHaveLength(0)
+    })
+  })
+})
+
+describe('MyBeadsPage · 备份', () => {
+  it('本地模式显示导出/导入按钮,云端模式不显示', async () => {
+    const { container } = setup()
+    await waitFor(() => expect(container.querySelector('.my-beads-mode.local')).toBeTruthy())
+    expect(container.querySelector('.my-beads-backup')).toBeTruthy()
+    expect(screen.getByText('导出备份')).toBeTruthy()
+    expect(screen.getByText('导入备份')).toBeTruthy()
+  })
+
+  it('导入备份合并数据,重复 id 被跳过', async () => {
+    // 现有 1 张色卡
+    localStorage.setItem('personal-beads-v1', JSON.stringify({
+      version: 1,
+      palettes: [{ id: 'pal-1', name: '原有', brandName: '', seriesName: '', beadSizeMm: null, notes: '' }],
+      colors: [],
+      inventory: [],
+    }))
+    const { container } = setup()
+    await waitFor(() => expect(container.querySelector('.my-beads-mode')).toBeTruthy())
+
+    const backup = {
+      kind: 'pindou-personal-beads',
+      version: 1,
+      palettes: [
+        { id: 'pal-1', name: '重复' },
+        { id: 'pal-2', name: '导入的' },
+      ],
+      colors: [{ id: 'col-9', paletteId: 'pal-2', code: 'Z9', name: '', hex: '#00FF00', notes: '', sortOrder: 0 }],
+      inventory: [],
+    }
+    const file = new File([JSON.stringify(backup)], 'backup.json', { type: 'application/json' })
+    // jsdom 的 File 没有 text():补一个
+    file.text = () => Promise.resolve(JSON.stringify(backup))
+    const input = container.querySelector('.my-beads-file-input')
+    fireEvent.change(input, { target: { files: [file] } })
+
+    await waitFor(() => {
+      const stored = JSON.parse(localStorage.getItem('personal-beads-v1'))
+      expect(stored.palettes.map((p) => p.id).sort()).toEqual(['pal-1', 'pal-2'])
+      expect(stored.palettes.find((p) => p.id === 'pal-1').name).toBe('原有')
+      expect(stored.colors).toHaveLength(1)
+    })
+  })
+
+  it('非法备份文件被拒绝,现有数据不变', async () => {
+    localStorage.setItem('personal-beads-v1', JSON.stringify({
+      version: 1,
+      palettes: [{ id: 'pal-1', name: '原有', brandName: '', seriesName: '', beadSizeMm: null, notes: '' }],
+      colors: [],
+      inventory: [],
+    }))
+    const { container } = setup()
+    await waitFor(() => expect(container.querySelector('.my-beads-mode')).toBeTruthy())
+
+    const file = new File(['not json'], 'bad.json', { type: 'application/json' })
+    file.text = () => Promise.resolve('not json')
+    fireEvent.change(container.querySelector('.my-beads-file-input'), { target: { files: [file] } })
+
+    await waitFor(() => {
+      const stored = JSON.parse(localStorage.getItem('personal-beads-v1'))
+      expect(stored.palettes).toHaveLength(1)
+      expect(stored.palettes[0].name).toBe('原有')
     })
   })
 })

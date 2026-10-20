@@ -19,6 +19,23 @@ export const MAX_NOTE = 500
 export const MIN_BEAD_SIZE_MM = 0.1
 export const MAX_BEAD_SIZE_MM = 20
 
+/**
+ * 颜色来源/置信度(规格 05 §2 P0)。
+ * 与迁移 0025 的 check 约束一一对应;未知值一律回退 factory,不拒绝写入 ——
+ * 来源是描述性元数据,不是正确性约束。
+ */
+export const COLOR_SOURCES = Object.freeze({
+  FACTORY: 'factory',     // 原厂色值
+  MEASURED: 'measured',   // 实测(色卡/取色器)
+  ESTIMATED: 'estimated', // 估算
+})
+export const DEFAULT_COLOR_SOURCE = COLOR_SOURCES.FACTORY
+
+/** 规范化来源:只接受三个已知值,其余(含空)回退默认 */
+export function normalizeColorSource(input) {
+  return Object.values(COLOR_SOURCES).includes(input) ? input : DEFAULT_COLOR_SOURCE
+}
+
 export const PALETTE_ERRORS = Object.freeze({
   NOT_OBJECT: 'notObject',
   NAME_REQUIRED: 'nameRequired',
@@ -147,6 +164,8 @@ export function normalizeColorInput(input, { existingColors = [], ignoreId = nul
       hex,
       notes,
       sortOrder,
+      // 来源是描述性元数据:非法值回退 factory 而不是拒绝整条记录
+      source: normalizeColorSource(input.source),
     },
   }
 }
@@ -175,6 +194,8 @@ export function buildPaletteFromBuiltin(builtin, { name } = {}) {
     hex: normalizeHex(c.hex) || '#000000',
     notes: '',
     sortOrder: index,
+    // 内置色卡的颜色来自官方数据,复制后默认标记为「原厂色值」
+    source: COLOR_SOURCES.FACTORY,
   }))
   return { palette, colors }
 }

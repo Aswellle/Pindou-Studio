@@ -83,6 +83,34 @@ describe('cloudBeadStore · 写入形状', () => {
     })
   })
 
+  it('addColor 写入颜色来源,默认 factory', async () => {
+    const client = fakeClient({
+      data: { id: 'col-1', palette_id: 'pal-1', code: 'A1', hex: '#FF0000', sort_order: 0, source: 'measured' },
+    })
+    const store = createCloudBeadStore(client, USER_ID)
+
+    await store.addColor('pal-1', { code: 'A1', hex: '#FF0000', source: 'measured' })
+    expect(client.calls[0].payload.source).toBe('measured')
+
+    // 未提供来源 → factory
+    const client2 = fakeClient({ data: { id: 'col-2', palette_id: 'pal-1', code: 'A2', hex: '#00FF00', sort_order: 0 } })
+    await createCloudBeadStore(client2, USER_ID).addColor('pal-1', { code: 'A2', hex: '#00FF00' })
+    expect(client2.calls[0].payload.source).toBe('factory')
+  })
+
+  it('load 把 source 列映射到 UI 字段,旧行缺失时回退 factory', async () => {
+    const client = fakeClient({
+      data: [
+        { id: 'col-1', palette_id: 'pal-1', code: 'A1', hex: '#FF0000', sort_order: 0, source: 'estimated' },
+        { id: 'col-2', palette_id: 'pal-1', code: 'A2', hex: '#00FF00', sort_order: 1 },
+      ],
+    })
+    const store = createCloudBeadStore(client, USER_ID)
+    const loaded = await store.load()
+    expect(loaded.colors[0].source).toBe('estimated')
+    expect(loaded.colors[1].source).toBe('factory')
+  })
+
   it('createPaletteWithColors 批量 insert 每行都带 user_id', async () => {
     const client = fakeClient({
       data: { id: 'pal-1', name: 'P', brand_name: null, series_name: null, bead_size_mm: null, notes: null },

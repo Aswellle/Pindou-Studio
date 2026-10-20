@@ -341,6 +341,86 @@
   font-size: 10px;
 }
 
+/* ── 颜色来源徽章(原厂 / 实测 / 估算)───────────────────── */
+.source-tag {
+  flex-shrink: 0;
+  padding: 1px 6px;
+  border-radius: 999px;
+  font-size: 10px;
+  border: 1px solid var(--border-color);
+  color: var(--text-muted);
+  white-space: nowrap;
+}
+.source-tag.measured { color: var(--secondary-accent); border-color: var(--secondary-accent); }
+.source-tag.estimated { color: var(--warning); border-color: var(--warning-border); background: var(--warning-bg); }
+
+/* 色卡详情里的颜色搜索:与库存搜索同宽,单独一行 */
+.my-beads-color-search {
+  width: 100%;
+  margin: 4px 0 6px;
+}
+.my-beads-color-search input { flex: 1; }
+
+/* ── 库存筛选 / 批量条 ───────────────────────────────────── */
+.my-beads-select-all {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: var(--text-xs);
+  color: var(--text-secondary);
+  cursor: pointer;
+  margin-bottom: 4px;
+}
+
+.my-beads-inv-row.selected {
+  background: var(--accent-soft);
+}
+
+.my-beads-inv-row > input[type="checkbox"] {
+  flex-shrink: 0;
+  width: 14px;
+  height: 14px;
+  accent-color: var(--accent);
+  cursor: pointer;
+}
+
+.my-beads-batch {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 10px;
+  border-radius: 10px;
+  border: 1px solid var(--accent);
+  background: var(--accent-soft);
+}
+
+.my-beads-batch-count {
+  font-size: var(--text-xs);
+  font-weight: var(--font-weight-semibold);
+  color: var(--accent-hover);
+  white-space: nowrap;
+}
+
+.my-beads-batch .qty-input { width: 84px; }
+
+/* ── 备份 ─────────────────────────────────────────────────── */
+.my-beads-backup {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.my-beads-file-input {
+  /* 原生 file input 不可直接样式化;用隐藏 + 按钮触发,保持与站点一致的观感 */
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+  pointer-events: none;
+}
+
 /* ── 内置色卡 ─────────────────────────────────────────────── */
 .my-beads-builtin {
   display: flex;

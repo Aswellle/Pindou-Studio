@@ -1281,7 +1281,18 @@
       "hex": "HEX 값",
       "notes": "메모",
       "empty": "이 팔레트에는 아직 색상이 없습니다.",
-      "deleteTitle": "색상 삭제"
+      "deleteTitle": "색상 삭제",
+      "search": "색상 코드, 이름 또는 HEX 검색",
+      "searchEmpty": "일치하는 색상이 없습니다.",
+      "source": "색상 출처",
+      "copyHex": "HEX 복사",
+      "copiedHex": "{{hex}} 복사됨",
+      "copyManual": "자동으로 복사할 수 없습니다. 아래 HEX를 직접 복사하세요:",
+      "sources": {
+        "factory": "제조사 값",
+        "measured": "실측값",
+        "estimated": "추정값"
+      }
     },
     "builtin": {
       "title": "기본 브랜드 팔레트",
@@ -1304,7 +1315,27 @@
       "markOut": "품절로 표시",
       "qtyUnknown": "알 수 없음",
       "ownedOnly": "보유(수량 미상)",
-      "qtyTag": "재고 {{n}}"
+      "qtyTag": "재고 {{n}}",
+      "filterLabel": "재고로 필터",
+      "filterAll": "전체",
+      "filterOwned": "보유",
+      "filterLow": "재고 부족",
+      "filterOut": "품절",
+      "filterUnknown": "미기록",
+      "filterEmpty": "이 필터에 맞는 색상이 없습니다.",
+      "selectAll": "표시된 항목 모두 선택",
+      "selectRow": "선택",
+      "batchTitle": "재고 일괄 편집",
+      "batchSelected": "{{n}}색 선택됨",
+      "batchQtyPlaceholder": "수량",
+      "batchSetQty": "이 수량으로 설정",
+      "batchClear": "기록 삭제",
+      "batchCancel": "선택 해제",
+      "batchEmpty": "선택된 색상이 없습니다",
+      "batchQtyDone": "{{n}}색의 수량을 업데이트했습니다",
+      "batchStatusDone": "{{n}}색의 상태를 업데이트했습니다",
+      "batchCleared": "재고 기록 {{n}}건을 삭제했습니다",
+      "batchPartial": "성공 {{ok}}건, 실패 {{failed}}건"
     },
     "match": {
       "title": "현재 도안을 팔레트에 맞추기",
@@ -1366,6 +1397,23 @@
       "importFailed": "이 기기 팔레트 가져오기에 실패했습니다",
       "notFound": "기록을 찾을 수 없습니다",
       "unknown": "작업에 실패했습니다"
+    },
+    "backup": {
+      "export": "백업 내보내기",
+      "import": "백업 가져오기",
+      "hint": "백업에는 이 기기의 팔레트와 재고만 포함되며 계정이나 작품은 포함되지 않습니다.",
+      "exported": "백업을 다운로드했습니다",
+      "imported": "팔레트 {{palettes}}개, 색상 {{colors}}개, 재고 {{inventory}}건을 가져왔습니다(중복 {{skipped}}건 건너뜀)",
+      "nothingNew": "백업에 새 기록이 없습니다(모두 이미 존재)",
+      "localOnly": "클라우드 모드에서는 백업 가져오기를 지원하지 않습니다",
+      "errors": {
+        "notJson": "파일이 올바른 JSON이 아닙니다",
+        "notBackup": "핀도우 스튜디오 백업 파일이 아닙니다",
+        "futureVersion": "더 새로운 버전의 백업입니다. 먼저 업그레이드하세요",
+        "tooLarge": "백업 파일이 너무 큽니다",
+        "badShape": "백업 구조가 올바르지 않습니다",
+        "readFailed": "파일을 읽지 못했습니다"
+      }
     }
   },
   "chartImport": {

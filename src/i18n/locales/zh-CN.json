@@ -1281,7 +1281,18 @@
       "hex": "HEX 色值",
       "notes": "备注",
       "empty": "这张色卡还没有颜色。",
-      "deleteTitle": "删除颜色"
+      "deleteTitle": "删除颜色",
+      "search": "搜索色号、名称或 HEX",
+      "searchEmpty": "没有匹配的颜色。",
+      "source": "颜色来源",
+      "copyHex": "复制 HEX",
+      "copiedHex": "已复制 {{hex}}",
+      "copyManual": "无法自动复制,请手动复制下面的 HEX:",
+      "sources": {
+        "factory": "原厂色值",
+        "measured": "实测",
+        "estimated": "估算"
+      }
     },
     "builtin": {
       "title": "内置品牌色卡",
@@ -1304,7 +1315,27 @@
       "markOut": "标记缺货",
       "qtyUnknown": "未知",
       "ownedOnly": "拥有（数量未知）",
-      "qtyTag": "库存 {{n}}"
+      "qtyTag": "库存 {{n}}",
+      "filterLabel": "库存筛选",
+      "filterAll": "全部",
+      "filterOwned": "拥有",
+      "filterLow": "数量不足",
+      "filterOut": "缺货",
+      "filterUnknown": "未记录",
+      "filterEmpty": "当前筛选下没有颜色。",
+      "selectAll": "全选当前列表",
+      "selectRow": "选择",
+      "batchTitle": "批量编辑库存",
+      "batchSelected": "已选 {{n}} 种",
+      "batchQtyPlaceholder": "数量",
+      "batchSetQty": "设为该数量",
+      "batchClear": "清除记录",
+      "batchCancel": "取消选择",
+      "batchEmpty": "还没有选中任何颜色",
+      "batchQtyDone": "已更新 {{n}} 种颜色的数量",
+      "batchStatusDone": "已更新 {{n}} 种颜色的状态",
+      "batchCleared": "已清除 {{n}} 条库存记录",
+      "batchPartial": "成功 {{ok}} 条,失败 {{failed}} 条"
     },
     "match": {
       "title": "把当前图纸匹配到色卡",
@@ -1366,6 +1397,23 @@
       "importFailed": "导入本机色卡失败",
       "notFound": "记录不存在",
       "unknown": "操作失败"
+    },
+    "backup": {
+      "export": "导出备份",
+      "import": "导入备份",
+      "hint": "备份只含本机色卡与库存,不含账号或作品。",
+      "exported": "备份已下载",
+      "imported": "已导入 {{palettes}} 张色卡、{{colors}} 个颜色、{{inventory}} 条库存(跳过 {{skipped}} 条重复)",
+      "nothingNew": "备份里没有新记录(全部已存在)",
+      "localOnly": "云端模式暂不支持导入备份",
+      "errors": {
+        "notJson": "文件不是合法的 JSON",
+        "notBackup": "不是拼豆 Studio 的备份文件",
+        "futureVersion": "备份来自更新版本,请升级后再导入",
+        "tooLarge": "备份文件过大",
+        "badShape": "备份内容结构不正确",
+        "readFailed": "读取文件失败"
+      }
     }
   },
   "chartImport": {

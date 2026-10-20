@@ -1281,7 +1281,18 @@
       "hex": "HEX value",
       "notes": "Notes",
       "empty": "This palette has no colors yet.",
-      "deleteTitle": "Delete color"
+      "deleteTitle": "Delete color",
+      "search": "Search code, name or HEX",
+      "searchEmpty": "No matching colors.",
+      "source": "Color source",
+      "copyHex": "Copy HEX",
+      "copiedHex": "Copied {{hex}}",
+      "copyManual": "Could not copy automatically. Copy the HEX below:",
+      "sources": {
+        "factory": "Factory",
+        "measured": "Measured",
+        "estimated": "Estimated"
+      }
     },
     "builtin": {
       "title": "Built-in brand palettes",
@@ -1304,7 +1315,27 @@
       "markOut": "Mark as out of stock",
       "qtyUnknown": "unknown",
       "ownedOnly": "Owned (qty unknown)",
-      "qtyTag": "Stock {{n}}"
+      "qtyTag": "Stock {{n}}",
+      "filterLabel": "Filter by stock",
+      "filterAll": "All",
+      "filterOwned": "Owned",
+      "filterLow": "Low stock",
+      "filterOut": "Out of stock",
+      "filterUnknown": "Not recorded",
+      "filterEmpty": "No colors match this filter.",
+      "selectAll": "Select all shown",
+      "selectRow": "Select",
+      "batchTitle": "Bulk edit inventory",
+      "batchSelected": "{{n}} selected",
+      "batchQtyPlaceholder": "Quantity",
+      "batchSetQty": "Set quantity",
+      "batchClear": "Clear records",
+      "batchCancel": "Clear selection",
+      "batchEmpty": "No colors selected yet",
+      "batchQtyDone": "Updated quantity for {{n}} colors",
+      "batchStatusDone": "Updated status for {{n}} colors",
+      "batchCleared": "Cleared {{n}} inventory records",
+      "batchPartial": "{{ok}} succeeded, {{failed}} failed"
     },
     "match": {
       "title": "Match the current pattern to a palette",
@@ -1366,6 +1397,23 @@
       "importFailed": "Failed to import local palettes",
       "notFound": "Record not found",
       "unknown": "Operation failed"
+    },
+    "backup": {
+      "export": "Export backup",
+      "import": "Import backup",
+      "hint": "The backup contains only local palettes and inventory — no account or works.",
+      "exported": "Backup downloaded",
+      "imported": "Imported {{palettes}} palettes, {{colors}} colors, {{inventory}} inventory records ({{skipped}} duplicates skipped)",
+      "nothingNew": "Nothing new in this backup (all records already exist)",
+      "localOnly": "Importing backups is not available in cloud mode",
+      "errors": {
+        "notJson": "The file is not valid JSON",
+        "notBackup": "This is not a Pindou Studio backup file",
+        "futureVersion": "This backup comes from a newer version; please upgrade first",
+        "tooLarge": "The backup file is too large",
+        "badShape": "The backup structure is invalid",
+        "readFailed": "Failed to read the file"
+      }
     }
   },
   "chartImport": {

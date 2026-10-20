@@ -36,6 +36,7 @@ const rowToColor = (row) => ({
   hex: row.hex,
   notes: row.notes || '',
   sortOrder: row.sort_order || 0,
+  source: row.source || 'factory',
 })
 
 const rowToInventory = (row) => ({
@@ -161,6 +162,7 @@ export function createCloudBeadStore(client = supabase, userId = null) {
           hex: res.color.hex,
           notes: res.color.notes || null,
           sort_order: res.color.sortOrder,
+          source: res.color.source,
         })
         .select()
         .single()
@@ -209,6 +211,7 @@ export function createCloudBeadStore(client = supabase, userId = null) {
           hex: c.hex,
           notes: c.notes || null,
           sort_order: Number.isFinite(Number(colorInputs[i].sortOrder)) ? Number(colorInputs[i].sortOrder) : i,
+          source: c.source,
         })))
         .select()
       if (cErr) {
@@ -235,6 +238,7 @@ export function createCloudBeadStore(client = supabase, userId = null) {
           hex: res.color.hex,
           notes: res.color.notes || null,
           sort_order: res.color.sortOrder,
+          source: res.color.source,
           updated_at: new Date().toISOString(),
         })
         .eq('id', id)

@@ -1281,7 +1281,18 @@
       "hex": "HEX 値",
       "notes": "メモ",
       "empty": "このパレットにはまだ色がありません。",
-      "deleteTitle": "色を削除"
+      "deleteTitle": "色を削除",
+      "search": "色番・名前・HEX で検索",
+      "searchEmpty": "一致する色がありません。",
+      "source": "色の出典",
+      "copyHex": "HEX をコピー",
+      "copiedHex": "{{hex}} をコピーしました",
+      "copyManual": "自動コピーできません。下の HEX を手動でコピーしてください:",
+      "sources": {
+        "factory": "メーカー値",
+        "measured": "実測値",
+        "estimated": "推定値"
+      }
     },
     "builtin": {
       "title": "内蔵ブランドパレット",
@@ -1304,7 +1315,27 @@
       "markOut": "欠品として記録",
       "qtyUnknown": "不明",
       "ownedOnly": "所持（数量不明）",
-      "qtyTag": "在庫 {{n}}"
+      "qtyTag": "在庫 {{n}}",
+      "filterLabel": "在庫で絞り込み",
+      "filterAll": "すべて",
+      "filterOwned": "所持",
+      "filterLow": "在庫少",
+      "filterOut": "在庫切れ",
+      "filterUnknown": "未記録",
+      "filterEmpty": "この条件に合う色はありません。",
+      "selectAll": "表示中をすべて選択",
+      "selectRow": "選択",
+      "batchTitle": "在庫の一括編集",
+      "batchSelected": "{{n}} 色を選択中",
+      "batchQtyPlaceholder": "数量",
+      "batchSetQty": "この数量に設定",
+      "batchClear": "記録を削除",
+      "batchCancel": "選択を解除",
+      "batchEmpty": "色が選択されていません",
+      "batchQtyDone": "{{n}} 色の数量を更新しました",
+      "batchStatusDone": "{{n}} 色の状態を更新しました",
+      "batchCleared": "{{n}} 件の在庫記録を削除しました",
+      "batchPartial": "成功 {{ok}} 件、失敗 {{failed}} 件"
     },
     "match": {
       "title": "現在の図案をパレットに合わせる",
@@ -1366,6 +1397,23 @@
       "importFailed": "端末のパレットのインポートに失敗しました",
       "notFound": "記録が見つかりません",
       "unknown": "操作に失敗しました"
+    },
+    "backup": {
+      "export": "バックアップを書き出す",
+      "import": "バックアップを読み込む",
+      "hint": "バックアップには端末内の色見本と在庫のみが含まれ、アカウントや作品は含まれません。",
+      "exported": "バックアップをダウンロードしました",
+      "imported": "色見本 {{palettes}} 件、色 {{colors}} 件、在庫 {{inventory}} 件を読み込みました(重複 {{skipped}} 件をスキップ)",
+      "nothingNew": "バックアップに新しい記録はありません(すべて既に存在)",
+      "localOnly": "クラウドモードではバックアップの読み込みに対応していません",
+      "errors": {
+        "notJson": "ファイルが正しい JSON ではありません",
+        "notBackup": "ピンドウスタジオのバックアップファイルではありません",
+        "futureVersion": "新しいバージョンのバックアップです。先にアップグレードしてください",
+        "tooLarge": "バックアップファイルが大きすぎます",
+        "badShape": "バックアップの構造が正しくありません",
+        "readFailed": "ファイルの読み込みに失敗しました"
+      }
     }
   },
   "chartImport": {

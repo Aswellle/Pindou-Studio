@@ -266,6 +266,26 @@ export function useUserPalettes(user) {
     }
   }, [isCloud, refresh])
 
+  // ── 备份导出 / 本地导入(规格 05 §5)─────────────────────────
+  /** 导出当前数据为备份对象(纯数据,不含账号信息) */
+  const exportBackup = useCallback(() => ({
+    palettes: state.palettes,
+    colors: state.colors,
+    inventory: state.inventory,
+  }), [state])
+
+  /**
+   * 合并导入备份。仅本地模式支持:云端模式下 id 由数据库生成,
+   * 无法保留备份里的 id,去重语义会变 —— 那需要另一套 remap 流程。
+   */
+  const importBackup = useCallback(async (plan) => {
+    if (isCloud) return { ok: false, errors: [{ code: 'importLocalOnly' }] }
+    const res = await storeRef.current.mergeBackup(plan)
+    if (!res.ok) return fail(res.errors)
+    await refresh()
+    return res
+  }, [isCloud, refresh, fail])
+
   // 库存按 paletteKey 索引,匹配页/库存页共用
   const inventoryByKey = useMemo(() => {
     const m = new Map()
@@ -305,5 +325,7 @@ export function useUserPalettes(user) {
     setInventory,
     removeInventory,
     importLocal,
+    exportBackup,
+    importBackup,
   }
 }
