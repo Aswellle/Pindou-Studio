@@ -152,6 +152,69 @@ describe('App · 选区命令的事务语义(M5)', () => {
 })
 
 /**
+ * 规格 04 §2:撤销/重做快捷键 `Ctrl/Cmd+Z` 与 `Ctrl/Cmd+Shift+Z` / `Ctrl/Cmd+Y`
+ * 必须在非输入框内生效。
+ *
+ * 回归背景:handler 原先只匹配小写 `e.key === 'z'`。真实浏览器里按住 Shift 时
+ * `e.key` 是大写 `'Z'`,`Ctrl+Shift+Z` 这条重做路径实际从未触发(测试里写小写
+ * `'z'` 恰好掩盖了它)。这里用浏览器真实键值锁定两条重做路径。
+ */
+describe('App · 撤销/重做快捷键(规格 04 §2)', () => {
+  it('Ctrl+Shift+Z(浏览器真实键值是大写 Z)重做生效', async () => {
+    const { getByTestId } = renderApp()
+    await waitFor(() => expect(canvasProps.current?.committedData).toBeTruthy())
+
+    selectRegion({ x: 0, y: 0, w: 2, h: 2 })
+    await waitFor(() => expect(getByTestId('sel').textContent).toBe('2x2'))
+    fireEvent.click(getByTestId('fill'))
+    await waitFor(() => expect(canvasProps.current.committedData[0][0]).toBe('#E53935'))
+    const filled = canvasProps.current.committedData.map(r => [...r])
+
+    fireEvent.keyDown(window, { key: 'z', ctrlKey: true })
+    await waitFor(() => expect(canvasProps.current.committedData[0][0]).toBeNull())
+
+    // 真实浏览器:Shift+Z → e.key === 'Z'(大写)
+    fireEvent.keyDown(window, { key: 'Z', ctrlKey: true, shiftKey: true })
+    await waitFor(() => expect(canvasProps.current.committedData).toEqual(filled))
+  })
+
+  it('Ctrl+Y 重做同样生效', async () => {
+    const { getByTestId } = renderApp()
+    await waitFor(() => expect(canvasProps.current?.committedData).toBeTruthy())
+
+    selectRegion({ x: 0, y: 0, w: 2, h: 2 })
+    await waitFor(() => expect(getByTestId('sel').textContent).toBe('2x2'))
+    fireEvent.click(getByTestId('fill'))
+    await waitFor(() => expect(canvasProps.current.committedData[0][0]).toBe('#E53935'))
+    const filled = canvasProps.current.committedData.map(r => [...r])
+
+    fireEvent.keyDown(window, { key: 'z', ctrlKey: true })
+    await waitFor(() => expect(canvasProps.current.committedData[0][0]).toBeNull())
+    fireEvent.keyDown(window, { key: 'y', ctrlKey: true })
+    await waitFor(() => expect(canvasProps.current.committedData).toEqual(filled))
+  })
+
+  it('输入框聚焦时不拦截系统文本撤销', async () => {
+    const { container, getByTestId } = renderApp()
+    await waitFor(() => expect(canvasProps.current?.committedData).toBeTruthy())
+
+    selectRegion({ x: 0, y: 0, w: 2, h: 2 })
+    await waitFor(() => expect(getByTestId('sel').textContent).toBe('2x2'))
+    fireEvent.click(getByTestId('fill'))
+    await waitFor(() => expect(canvasProps.current.committedData[0][0]).toBe('#E53935'))
+    const filled = canvasProps.current.committedData
+
+    // 造一个聚焦的输入框,键盘事件从它冒泡到 window
+    const input = document.createElement('input')
+    container.appendChild(input)
+    fireEvent.keyDown(input, { key: 'z', ctrlKey: true })
+
+    // 画布不得变化(撤销没有发生)
+    expect(canvasProps.current.committedData).toBe(filled)
+  })
+})
+
+/**
  * M5.2:拖拽移动选区内容必须同样「一次撤销回到原矩阵」。
  * Canvas 桩直接调用 onSelectionMove 模拟松手时的偏移上报。
  */

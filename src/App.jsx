@@ -190,8 +190,10 @@ export default function App() {
       if (t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA' || t.isContentEditable)) return
       const ctrl = e.ctrlKey || e.metaKey
       if (!ctrl) return
-      if (e.key === 'z' && !e.shiftKey) { e.preventDefault(); handleUndo() }
-      else if (e.key === 'y' || (e.key === 'z' && e.shiftKey)) { e.preventDefault(); handleRedo() }
+      // Shift+Z 在真实浏览器里 e.key 是大写 'Z'(测试里常写成小写 'z',会漏掉这条路径)
+      const key = e.key.toLowerCase()
+      if (key === 'z' && !e.shiftKey) { e.preventDefault(); handleUndo() }
+      else if (key === 'y' || (key === 'z' && e.shiftKey)) { e.preventDefault(); handleRedo() }
     }
     window.addEventListener('keydown', handler)
     return () => window.removeEventListener('keydown', handler)
