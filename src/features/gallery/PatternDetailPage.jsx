@@ -17,7 +17,11 @@ import { useTranslation } from 'react-i18next'
 import { ArrowLeft, Copy, Pencil, Download } from 'lucide-react'
 import { useToast } from '../../components/Toast'
 import ThumbnailCanvas from '../../components/ThumbnailCanvas'
-import { templateDimensions, convertTemplateToBrand } from '../../data/templates'
+import {
+  templateDimensions,
+  convertTemplateToBrand,
+  extractPatternColors,
+} from '../../data/templates'
 import { getPalette } from '../../data/palettes'
 import { exportAsPNG } from '../../services/BeadPatternExporter'
 import { templateToProject } from '../../services/project/adapters'
@@ -38,6 +42,15 @@ export default function PatternDetailPage({ cloudStore, onSaveProject, onLoadTem
 
   const template = useMemo(() => templateById(allTemplates, id), [allTemplates, id])
   const { width, height } = templateDimensions(template)
+  // 制作信息:豆子总数与用色数(规格 07 §3「显示预览和制作信息」)
+  const makingInfo = useMemo(() => {
+    if (!template?.pattern) return { beads: 0, colors: 0 }
+    let beads = 0
+    for (const row of template.pattern) {
+      for (const cell of row || []) if (cell) beads++
+    }
+    return { beads, colors: extractPatternColors(template.pattern).length }
+  }, [template])
   const name = template
     ? (template.name ? (template.nameZh || template.name) : t(`templates.names.${template.nameKey}`, template.nameKey))
     : ''
@@ -120,7 +133,13 @@ export default function PatternDetailPage({ cloudStore, onSaveProject, onLoadTem
               <span>{width} × {height}</span>
               <span>{t(`gallery.difficulties.${template.difficulty}`, template.difficulty)}</span>
               <span>{t(`palette.brand.${template.paletteId || 'perler'}`)}</span>
+              <span>{t('gallery.discovery.beads', { n: makingInfo.beads })}</span>
+              <span>{t('gallery.discovery.colors', { n: makingInfo.colors })}</span>
             </div>
+            {/* 来源与许可:只用可信字段,不展示用户私有信息(规格 07 §3) */}
+            <p className="content-detail-source">
+              {t('gallery.discovery.sourceNote')} · {t('gallery.discovery.licenseNote')}
+            </p>
             <div className="content-detail-actions">
               <button className="btn btn-primary" onClick={handleCopy} disabled={busy || !onSaveProject}>
                 <Copy size={16} aria-hidden="true" />

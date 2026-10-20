@@ -49,7 +49,8 @@ export default function ThemePage({ cloudStore }) {
     ),
     [t]
   )
-  const { filtered } = useFilteredTemplates(scopeTemplates, resolveName)
+  const { filtered, searchTerm, setSearchTerm, category, setCategory, difficulty, setDifficulty, resetFilters } =
+    useFilteredTemplates(scopeTemplates, resolveName)
 
   const loading = content.loading && !theme
 
@@ -72,6 +73,17 @@ export default function ThemePage({ cloudStore }) {
         ) : (
           <>
             <span className="content-kicker">{t('gallery.discovery.themePage')}</span>
+            {theme.coverUrl && (
+              <div className="content-cover">
+                <img
+                  src={theme.coverUrl}
+                  alt={t('gallery.discovery.coverAlt', { title: text.title })}
+                  loading="lazy"
+                  decoding="async"
+                  onError={(e) => { e.currentTarget.style.display = 'none' }}
+                />
+              </div>
+            )}
             <h1 className="content-title">{text.title}</h1>
             {text.description && <p className="content-desc">{text.description}</p>}
             <span className="content-count">
@@ -80,6 +92,44 @@ export default function ThemePage({ cloudStore }) {
           </>
         )}
       </div>
+
+      {theme && (
+        <div className="content-filters">
+          <label className="content-filter-search">
+            <span className="sr-only">{t('gallery.discovery.filterSearch')}</span>
+            <input
+              type="search"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              placeholder={t('gallery.discovery.filterSearch')}
+              aria-label={t('gallery.discovery.filterSearch')}
+            />
+          </label>
+          <label className="content-filter-select">
+            <span>{t('gallery.discovery.filterCategory')}</span>
+            <select value={category} onChange={(e) => setCategory(e.target.value)} aria-label={t('gallery.discovery.filterCategory')}>
+              <option value="all">{t('gallery.allTemplates')}</option>
+              {[...new Set(scopeTemplates.map((tpl) => tpl.category).filter(Boolean))].map((cat) => (
+                <option key={cat} value={cat}>{t(`gallery.categories.${cat}`, cat)}</option>
+              ))}
+            </select>
+          </label>
+          <label className="content-filter-select">
+            <span>{t('gallery.discovery.filterDifficulty')}</span>
+            <select value={difficulty} onChange={(e) => setDifficulty(e.target.value)} aria-label={t('gallery.discovery.filterDifficulty')}>
+              <option value="all">{t('gallery.allTemplates')}</option>
+              {[...new Set(scopeTemplates.map((tpl) => tpl.difficulty).filter(Boolean))].map((diff) => (
+                <option key={diff} value={diff}>{t(`gallery.difficulties.${diff}`, diff)}</option>
+              ))}
+            </select>
+          </label>
+          {(searchTerm || category !== 'all' || difficulty !== 'all') && (
+            <button type="button" className="content-filter-reset" onClick={resetFilters}>
+              {t('gallery.discovery.filterReset')}
+            </button>
+          )}
+        </div>
+      )}
 
       {theme && (
         <TemplateGrid
