@@ -8,7 +8,7 @@
   },
   "scripts": {
     "dev": "vite",
-    "build": "node scripts/generate-fonts-css.js && vite build && node scripts/generate-prerender-html.js",
+    "build": "node scripts/generate-fonts-css.js && vite build && node scripts/generate-prerender-html.js && node scripts/generate-og-snapshots.js",
     "preview": "vite preview",
     "test": "vitest",
     "test:run": "vitest run",
