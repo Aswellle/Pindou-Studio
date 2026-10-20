@@ -617,7 +617,9 @@
       "coverAlt": "{{title}} 封面",
       "filterColors": "用色数",
       "filterColorsAny": "不限",
-      "filterColorsMax": "≤ {{n}} 色"
+      "filterColorsMax": "≤ {{n}} 色",
+      "childThemes": "子主题",
+      "relatedCollections": "相关合集"
     },
     "workSource": {
       "blank": "空白创作",
@@ -1142,7 +1144,11 @@
       "kindCollection": "单个合集",
       "healthSectionMissingSource": "区块引用的主题/合集已不存在",
       "healthSectionDraftSource": "区块引用了未发布的主题/合集",
-      "healthSectionEmpty": "启用的区块当前没有内容"
+      "healthSectionEmpty": "启用的区块当前没有内容",
+      "manageChildThemes": "子主题",
+      "manageThemeCollections": "相关合集",
+      "childThemesHint": "子主题会显示在该主题页的二级入口里。只能两层:已经是别人子主题的主题不能再作为父主题。",
+      "themeCollectionsHint": "这些合集会显示在该主题页的「相关合集」区块。"
     }
   },
   "profile": {

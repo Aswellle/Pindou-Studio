@@ -617,7 +617,9 @@
       "coverAlt": "{{title}} 커버",
       "filterColors": "색 수",
       "filterColorsAny": "제한 없음",
-      "filterColorsMax": "{{n}}색 이하"
+      "filterColorsMax": "{{n}}색 이하",
+      "childThemes": "하위 테마",
+      "relatedCollections": "관련 컬렉션"
     },
     "workSource": {
       "blank": "새로 만들기",
@@ -1142,7 +1144,11 @@
       "kindCollection": "단일 컬렉션",
       "healthSectionMissingSource": "섹션이 참조하는 테마/컬렉션이 존재하지 않습니다",
       "healthSectionDraftSource": "섹션이 게시되지 않은 테마/컬렉션을 참조합니다",
-      "healthSectionEmpty": "활성화된 섹션에 내용이 없습니다"
+      "healthSectionEmpty": "활성화된 섹션에 내용이 없습니다",
+      "manageChildThemes": "하위 테마",
+      "manageThemeCollections": "관련 컬렉션",
+      "childThemesHint": "하위 테마는 이 테마 페이지의 보조 진입점으로 표시됩니다. 계층은 2단계까지만 허용되며, 이미 하위 테마인 테마는 상위가 될 수 없습니다.",
+      "themeCollectionsHint": "이 컬렉션은 이 테마 페이지의 \"관련 컬렉션\" 영역에 표시됩니다."
     }
   },
   "profile": {

@@ -617,7 +617,9 @@
       "coverAlt": "{{title}} のカバー",
       "filterColors": "色数",
       "filterColorsAny": "指定なし",
-      "filterColorsMax": "{{n}} 色以下"
+      "filterColorsMax": "{{n}} 色以下",
+      "childThemes": "サブテーマ",
+      "relatedCollections": "関連コレクション"
     },
     "workSource": {
       "blank": "新規作成",
@@ -1142,7 +1144,11 @@
       "kindCollection": "単一コレクション",
       "healthSectionMissingSource": "セクションが参照するテーマ/コレクションが存在しません",
       "healthSectionDraftSource": "セクションが未公開のテーマ/コレクションを参照しています",
-      "healthSectionEmpty": "有効なセクションに内容がありません"
+      "healthSectionEmpty": "有効なセクションに内容がありません",
+      "manageChildThemes": "サブテーマ",
+      "manageThemeCollections": "関連コレクション",
+      "childThemesHint": "サブテーマはこのテーマページの二次入口として表示されます。階層は 2 レベルまでです。すでにサブテーマであるテーマは親になれません。",
+      "themeCollectionsHint": "これらのコレクションはこのテーマページの「関連コレクション」に表示されます。"
     }
   },
   "profile": {

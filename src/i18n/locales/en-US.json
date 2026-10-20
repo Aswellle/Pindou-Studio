@@ -617,7 +617,9 @@
       "coverAlt": "{{title}} cover",
       "filterColors": "Colors",
       "filterColorsAny": "Any",
-      "filterColorsMax": "≤ {{n}} colors"
+      "filterColorsMax": "≤ {{n}} colors",
+      "childThemes": "Sub-themes",
+      "relatedCollections": "Related collections"
     },
     "workSource": {
       "blank": "Blank",
@@ -1142,7 +1144,11 @@
       "kindCollection": "Single collection",
       "healthSectionMissingSource": "A section references a theme/collection that no longer exists",
       "healthSectionDraftSource": "A section references an unpublished theme/collection",
-      "healthSectionEmpty": "An enabled section currently has no content"
+      "healthSectionEmpty": "An enabled section currently has no content",
+      "manageChildThemes": "Sub-themes",
+      "manageThemeCollections": "Related collections",
+      "childThemesHint": "Sub-themes appear as secondary entries on this theme page. Only two levels are allowed: a theme that is already a sub-theme cannot have children.",
+      "themeCollectionsHint": "These collections appear in the \"Related collections\" section of this theme page."
     }
   },
   "profile": {
