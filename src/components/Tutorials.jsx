@@ -146,6 +146,7 @@ export default function Tutorials() {
 
   // 数据就绪且无选中时默认选中第一个教程;
   // 切语言后保留旧选中(内容区按 id 重新解析当前语言版本),不重置
+  // biome-ignore lint/correctness/useExhaustiveDependencies: 只在数据就绪且无选中时默认选中第一个;切语言保留旧选中
   useEffect(() => {
     if (TUTORIALS && !selectedTutorial) {
       setSelectedTutorial(TUTORIALS[0].children[0])

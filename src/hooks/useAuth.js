@@ -54,6 +54,7 @@ export function useAuth() {
   }, [refreshProfile])
 
   // 会话恢复 + 实时监听登录态变化
+  // biome-ignore lint/correctness/useExhaustiveDependencies: 会话恢复只挂载一次;mergeBuildUser 是稳定函数
   useEffect(() => {
     if (!supabase) {
       setLoading(false)

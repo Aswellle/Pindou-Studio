@@ -96,6 +96,7 @@ export default function App() {
 
   // 切页 / 网格尺寸变化(换模板、载入作品、调整画布)后,旧选区坐标可能失效
   // → 清空。普通绘制不改变网格,选区矩形仍然有效,无需清空。
+  // biome-ignore lint/correctness/useExhaustiveDependencies: 切页/改网格尺寸时清空选区坐标,这些值只作触发信号
   useEffect(() => {
     setSelection(null)
   }, [location.pathname, gridSize, gridWidth, gridHeight])
@@ -150,6 +151,7 @@ export default function App() {
   const beadStore = useUserPalettes(user)
   const [designName, setDesignName] = useState(() => t('export.defaultName'))
   // 语言切换时同步默认导出名(designName 只作默认值,用户自定义名走 saveInputName)
+  // biome-ignore lint/correctness/useExhaustiveDependencies: 语言切换时同步默认导出名,i18n.language 只作触发信号
   useEffect(() => { setDesignName(t('export.defaultName')) }, [i18n.language, t])
   const [showSaveDialog, setShowSaveDialog] = useState(false)
   const [saveInputName, setSaveInputName] = useState('')
@@ -196,6 +198,7 @@ export default function App() {
   useScrollLock(showSaveDialog)
 
   // Initialize blank canvas on first render and when grid size changes with no data
+  // biome-ignore lint/correctness/useExhaustiveDependencies: 只在网格尺寸变化时初始化空画布;canvasData 变化不应触发重置(会覆盖用户绘制)
   useEffect(() => {
     if (!canvasData) {
       resetCanvas(Array(gridSize).fill(null).map(() => Array(gridSize).fill(null)))

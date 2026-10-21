@@ -15,6 +15,7 @@ import { calculateColorStats } from '../services/export/PatternDocument'
 export default function ColorStatsBar({ canvasData, paletteId }) {
   const { t, i18n } = useTranslation()
 
+  // biome-ignore lint/correctness/useExhaustiveDependencies: 语言切换时重算显示文案
   const { total, colorCount, colorList } = useMemo(() => {
     if (!canvasData) return { total: 0, colorCount: 0, colorList: [] }
     const palette = getPalette(paletteId || 'perler')

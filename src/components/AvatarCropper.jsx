@@ -87,6 +87,7 @@ const AvatarCropper = forwardRef(function AvatarCropper({ imageSrc, onConfirm, o
 
   // React 17+ 将 onWheel 注册为根节点 passive 监听,preventDefault 无效;
   // 改为原生绑定 passive:false,滚轮缩放不再连带滚动页面
+  // biome-ignore lint/correctness/useExhaustiveDependencies: 原生 wheel 监听只绑一次;clamp/zoomAround 是纯函数,首帧闭包即可
   useEffect(() => {
     const canvas = canvasRef.current
     if (!canvas) return
@@ -103,6 +104,7 @@ const AvatarCropper = forwardRef(function AvatarCropper({ imageSrc, onConfirm, o
     // eslint-disable-next-line react-hooks/exhaustive-deps -- clamp/zoomAround 为纯函数,首帧闭包即可
   }, [])
 
+  // biome-ignore lint/correctness/useExhaustiveDependencies: render 是稳定函数,state 变化时重绘即可
   useEffect(() => {
     render()
   }, [state, render])

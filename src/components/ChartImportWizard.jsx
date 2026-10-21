@@ -63,6 +63,7 @@ export default function ChartImportWizard({ onLoadProject, onSaveProject }) {
   // 只跟随 image 变化:拖动边界会更新 detection,不能因此清掉用户已改的格子。
   // 若这张图有历史会话,则用历史参数覆盖检测值 —— 用户上次调好的列数/行数
   // 与逐格修正都应原样回来。
+  // biome-ignore lint/correctness/useExhaustiveDependencies: 只跟随 image 变化同步网格参数;detection 变化(拖动边界)不能清掉用户已改的格子
   useEffect(() => {
     if (!detection) return
     if (Number.isInteger(detection.cols) && detection.cols > 0) setCols(detection.cols)

@@ -53,6 +53,7 @@ export function useUserPalettes(user) {
   useEffect(() => { storeRef.current = store }, [store])
 
   // 本机待导入数量(仅在云端模式下有意义)
+  // biome-ignore lint/correctness/useExhaustiveDependencies: reloadKey 只作强制重载的触发信号
   useEffect(() => {
     if (!isCloud) { setPendingLocal(0); return }
     const { state: local } = readLocalBeadState()
@@ -75,6 +76,7 @@ export function useUserPalettes(user) {
     }
   }, [])
 
+  // biome-ignore lint/correctness/useExhaustiveDependencies: store 通过 storeRef 读取,避免每次 store 换引用都重跑;reloadKey 作触发信号
   useEffect(() => {
     let cancelled = false
     const current = storeRef.current

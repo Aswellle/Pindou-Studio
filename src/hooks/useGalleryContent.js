@@ -83,6 +83,7 @@ export function useGalleryContent({ active = true } = {}) {
     }
   }, [store])
 
+  // biome-ignore lint/correctness/useExhaustiveDependencies: reloadKey 只作强制重载的触发信号
   useEffect(() => {
     if (!active) return
     load()

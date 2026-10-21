@@ -524,6 +524,7 @@ export default function ContentManager({ cloudStore }) {
     }
   }
 
+  // biome-ignore lint/correctness/useExhaustiveDependencies: templates 变化时才重算候选;linkSearch/linksFor 已包含在依赖中
   const linkCandidates = useMemo(() => {
     if (!linksFor) return []
     const chosen = new Set(linksFor.ids.map(String))

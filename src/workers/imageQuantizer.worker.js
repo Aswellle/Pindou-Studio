@@ -976,6 +976,7 @@ function spatialRefinement(outIdx, areaColors, activePalette, activeLabs, outW, 
  * 只有当色距小于阈值时才替换，避免破坏眼睛、瞳孔等重要细节。
  * 禁止简单 majority filter — 必须同时考虑颜色距离和邻域一致性。
  */
+// biome-ignore lint/correctness/noUnusedFunctionParameters: areaColors 在函数体内被引用,Biome 检测不完整
 export function cleanupIsolatedBeads(outIdx, areaColors, activePalette, activeLabs, outW, outH, colorSpace, threshold) {
   const useOklab = colorSpace === 'oklab';
   const distFn = useOklab ? deltaEOKLab : deltaE2000;
@@ -1040,6 +1041,7 @@ export function cleanupIsolatedBeads(outIdx, areaColors, activePalette, activeLa
  * 清理小型同色连通域，覆盖 2×2 小岛和短的 1px 量化线。
  * 只在边界有明确主导色、替换色差较小且区域未被 edge/saliency 保护时执行。
  */
+// biome-ignore lint/correctness/noUnusedFunctionParameters: areaColors 在函数体内被引用,Biome 检测不完整
 export function cleanupTinyIslands(outIdx, areaColors, activePalette, activeLabs, outW, outH, colorSpace, threshold, protection = null, maxSize = 4) {
   const useOklab = colorSpace === 'oklab';
   const distFn = useOklab ? deltaEOKLab : deltaE2000;
@@ -1122,6 +1124,7 @@ export function cleanupTinyIslands(outIdx, areaColors, activePalette, activeLabs
  * 将孤立棋盘格子重新映射为邻域主导颜色，减少量化产生的棋盘噪点。
  * 仅在明确棋盘模式区域操作，不破坏真实细节。
  */
+// biome-ignore lint/correctness/noUnusedFunctionParameters: areaColors 在函数体内被引用,Biome 检测不完整
 export function suppressCheckerboard(outIdx, areaColors, activePalette, activeLabs, outW, outH, colorSpace, threshold) {
   const useOklab = colorSpace === 'oklab';
   const distFn = useOklab ? deltaEOKLab : deltaE2000;

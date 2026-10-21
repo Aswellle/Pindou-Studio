@@ -635,7 +635,7 @@ export default function ImageQuantizer({ onApply, onClose }) {
                     {previewUrl ? (
                       <>{t('quantizer.actualSize')}: <strong>{gridWidth} × {gridHeight}</strong>（{t('quantizer.aspectRatio')} {imageAspectRatio.toFixed(3)}）</>
                     ) : (
-                      <>{t('quantizer.uploadFirst')}</>
+                      t('quantizer.uploadFirst')
                     )}
                   </div>
                 </div>

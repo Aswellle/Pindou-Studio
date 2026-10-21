@@ -95,6 +95,7 @@ export default function ContactUsModal({ onClose, user }) {
   const [captchaLoading, setCaptchaLoading] = useState(true)
 
   // 挂载时加载 Turnstile 脚本并渲染 widget
+  // biome-ignore lint/correctness/useExhaustiveDependencies: 只在挂载时初始化一次 Turnstile;t/toast 仅用于错误提示
   useEffect(() => {
     if (!captchaRequired || !turnstileRef.current) return undefined
     const render = () => {
@@ -152,6 +153,7 @@ export default function ContactUsModal({ onClose, user }) {
   }, [captchaRequired])
 
   // 新消息后聊天区滚到底部
+  // biome-ignore lint/correctness/useExhaustiveDependencies: thread/text 只作「有新内容」的触发信号
   useEffect(() => {
     const el = chatRef.current
     if (el) el.scrollTop = el.scrollHeight

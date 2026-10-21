@@ -176,6 +176,7 @@ export default function MyBeadsPage({ user, canvasData, onApplyMapping, works = 
   }, [selectedPalette, store.colorsByPalette, colorSearch])
 
   // 切换色卡时清空颜色搜索,避免上一张色卡的查询词让新列表看起来是空的
+  // biome-ignore lint/correctness/useExhaustiveDependencies: 切换色卡时清空颜色搜索,selectedPaletteId 只作触发信号
   useEffect(() => { setColorSearch('') }, [selectedPaletteId])
 
   /** 复制 HEX(规格 05 §2 P0)。非安全上下文降级为 prompt 展示,不静默失败 */
@@ -308,6 +309,7 @@ export default function MyBeadsPage({ user, canvasData, onApplyMapping, works = 
   }
 
   // 打开删除确认时重置「重新指定」目标
+  // biome-ignore lint/correctness/useExhaustiveDependencies: 打开删除确认时重置目标,confirmDelete 只作触发信号
   useEffect(() => { setReassignTargetId('') }, [confirmDelete])
 
   // ── 颜色编辑 ───────────────────────────────────────────────
@@ -502,6 +504,7 @@ export default function MyBeadsPage({ user, canvasData, onApplyMapping, works = 
   }
 
   // 切换色卡/视图时清空选择,避免把上一张色卡的键带到新列表
+  // biome-ignore lint/correctness/useExhaustiveDependencies: 切换色卡/视图时清空选择,两个值只作触发信号
   useEffect(() => { setSelectedKeys(new Set()); setBatchQty('') }, [invKind, invPaletteId])
 
   /**
@@ -689,6 +692,7 @@ export default function MyBeadsPage({ user, canvasData, onApplyMapping, works = 
   const shopping = useMemo(() => buildShoppingList(effectiveItems), [effectiveItems])
 
   const [accepted, setAccepted] = useState({}) // sourceHex -> true
+  // biome-ignore lint/correctness/useExhaustiveDependencies: 切换目标时清空人工修正,两个值只作触发信号
   useEffect(() => { setAccepted({}); setOverrides({}) }, [targetKind, targetId])
 
   const toggleAccept = (sourceHex) => {
