@@ -34,11 +34,18 @@ export function useGalleryTemplates(cloudStore) {
     [cloudEnabled, cloudDown, cloudStore, localTemplates]
   )
 
+  // 模板是否仍在首次加载。
+  // 云端已降级(cloudDown)时不算加载中 —— 此时用的是本地模板,可以立即渲染。
+  // 主题页/合集页/详情页需要它:模板未到时关联列表必然为空,
+  // 若直接按空处理,页面会先闪一下「没有匹配的图纸」再变成真实列表。
+  const templatesLoading = cloudEnabled && !cloudDown && !!cloudStore?.loading
+
   const customCategories = cloudEnabled ? (cloudStore?.categories || []) : localStore.categories
 
   return {
     cloudEnabled,
     cloudDown,
+    templatesLoading,
     localStore,
     allTemplates,
     customCategories,
