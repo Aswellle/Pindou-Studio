@@ -4,6 +4,30 @@ import ExportPanel from './ExportPanel'
 import i18n from '../i18n'
 
 /**
+ * 超采样降级的可控注入点。
+ *
+ * 为什么必须用 vi.mock 而不是 vi.spyOn:
+ * ESM 的命名导入在模块链接时绑定到本地绑定,同模块内部调用(如 BeadPatternExporter
+ * 的 exportAsPNG 调自己的 createScaledCanvas)不经过模块命名空间对象,spyOn 拦不住。
+ * 面积预算降级又依赖真实画布尺寸,jsdom 下永远走不到 —— 只能整体替换渲染器,
+ * 让它在转交真实实现之前先以「被预算降级」的形态回报 onScale。
+ */
+const rasterControl = vi.hoisted(() => ({ forcedScale: null }))
+vi.mock('../services/export/RasterRenderer', async (importOriginal) => {
+  const actual = await importOriginal()
+  return {
+    ...actual,
+    renderPatternDocumentToPNG: (doc, options = {}) => {
+      if (rasterControl.forcedScale == null) return actual.renderPatternDocumentToPNG(doc, options)
+      // 强制降级:只回报我们指定的倍率,丢弃真实渲染器的 onScale(否则会被覆盖回未降级)
+      const { onScale, ...rest } = options
+      onScale?.(rasterControl.forcedScale, 3)
+      return actual.renderPatternDocumentToPNG(doc, rest)
+    },
+  }
+})
+
+/**
  * ExportPanel 组件级回归测试。
  *
  * 背景(M0 / R1):ExportPanel 曾调用未 import 的 `resolveToHex`(旧导出路径)与
@@ -90,6 +114,7 @@ beforeEach(() => { mock = installExportMocks() })
 afterEach(() => {
   cleanup()
   mock.restore()
+  rasterControl.forcedScale = null
   localStorage.clear()
 })
 
@@ -250,5 +275,88 @@ describe('导出确认框的关闭语义', () => {
     expect(document.querySelector('.export-confirm-actions')).toBeNull()
     expect(onClose).not.toHaveBeenCalled()
     expect(screen.getByText('PNG 图片')).toBeTruthy()
+  })
+})
+
+describe('物理尺寸按品牌珠径计算(规格 09 §5)', () => {
+  // 29×29 Perler(5mm/颗)= 145mm;此前固定按 2.6mm 算成 75.4mm
+  const renderWithPalette = (paletteId) => render(
+    <ExportPanel
+      canvasData={CANVAS_DATA}
+      gridSize={29}
+      gridWidth={29}
+      gridHeight={29}
+      designName="物理尺寸测试"
+      paletteId={paletteId}
+      onClose={() => {}}
+    />
+  )
+
+  // 注意:传了 onClose 的实例是移动端 modal,会 portal 到 document.body,
+  // 不在 render() 返回的 container 里 —— 断言必须查 document.body。
+  it('Perler(5mm)显示 145mm,而不是按 2.6mm 算的 75.4mm', () => {
+    renderWithPalette('perler')
+    const text = document.body.textContent
+    expect(text).toContain('145×145mm')
+    expect(text).not.toContain('75.4×75.4mm')
+  })
+
+  it('Artkal(2.6mm)显示 75.4mm', () => {
+    renderWithPalette('artkal')
+    expect(document.body.textContent).toContain('75.4×75.4mm')
+  })
+
+  it('文案里标明所用珠径,避免用户误判', () => {
+    renderWithPalette('perler')
+    expect(document.body.textContent).toContain('5mm/')
+  })
+})
+
+describe('导出质量预设(规格 09 §2)', () => {
+  it('渲染三个预设:屏幕分享 / 高分辨率 / 打印', () => {
+    setup()
+    expect(screen.getByText('屏幕分享')).toBeTruthy()
+    expect(screen.getByText('高分辨率')).toBeTruthy()
+    expect(screen.getByText('打印 / 高 DPI')).toBeTruthy()
+  })
+
+  it('默认选屏幕分享', () => {
+    setup()
+    const selects = [...document.body.querySelectorAll('.style-select')]
+    expect(selects[selects.length - 1].value).toBe('screen')
+  })
+
+  it('切换预设会改变 select 值(状态生效)', () => {
+    setup()
+    const selects = [...document.body.querySelectorAll('.style-select')]
+    const qualitySelect = selects[selects.length - 1]
+    fireEvent.change(qualitySelect, { target: { value: 'print' } })
+    expect(qualitySelect.value).toBe('print')
+  })
+})
+
+describe('超采样降级反馈(规格 09 §4.3)', () => {
+  it('未降级时不显示降级提示', async () => {
+    setup()
+    requestQuickExport('PNG 图片')
+    await waitFor(() => expect(mock.createObjectURL).toHaveBeenCalled())
+    expect(document.body.textContent).not.toMatch(/已从 ×3 降级/)
+  })
+
+  it('降级时显示「实际 ×N(已从 ×3 降级)」而不是只给分辨率', async () => {
+    rasterControl.forcedScale = 1 // 等价于移动端大网格被面积预算降到 1×
+    setup()
+    requestQuickExport('PNG 图片')
+    await waitFor(() => expect(mock.createObjectURL).toHaveBeenCalled())
+    expect(document.body.textContent).toMatch(/已从 ×3 降级/)
+    expect(document.body.textContent).toMatch(/实际 ×1/)
+  })
+
+  it('降到 ×2 时同样报告,文案带上真实倍率', async () => {
+    rasterControl.forcedScale = 2
+    setup()
+    requestQuickExport('PNG 图片')
+    await waitFor(() => expect(mock.createObjectURL).toHaveBeenCalled())
+    expect(document.body.textContent).toMatch(/实际 ×2/)
   })
 })
