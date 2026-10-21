@@ -173,12 +173,15 @@
         }
         .templates-grid {
           display: grid;
-          grid-template-columns: repeat(4, 1fr);
+          /* minmax(0, 1fr) 而不是 1fr:1fr 等价于 minmax(auto, 1fr),
+             列宽会被卡片内容的 min-content 撑开 —— 含「MARD 291 拼豆」这类长徽章
+             的行,四列会比其他行更宽,缩略图尺寸随行变化(实测 232 / 245 交替)。 */
+          grid-template-columns: repeat(4, minmax(0, 1fr));
           gap: 20px;
         }
         @media (max-width: 1024px) {
           .templates-grid {
-            grid-template-columns: repeat(3, 1fr);
+            grid-template-columns: repeat(3, minmax(0, 1fr));
           }
         }
         @media (max-width: 640px) {
@@ -186,16 +189,17 @@
             padding: 12px;
           }
           .templates-grid {
-            grid-template-columns: repeat(2, 1fr);
+            grid-template-columns: repeat(2, minmax(0, 1fr));
             gap: 12px;
           }
-          /* 窄卡片下尺寸/品牌/难度徽章允许换行,避免横向溢出 */
+          /* 窄卡片下徽章仍不换行:品牌徽章压缩成省略号,尺寸与难度保持完整。
+             允许换行会让同排卡片高度不一致(移动端两列尤其明显)。 */
           .template-meta {
-            flex-wrap: wrap;
-            row-gap: 4px;
+            gap: 4px;
           }
           .template-brand {
-            max-width: 96px;
+            max-width: 88px;
+            min-width: 0;
           }
           /* 分类/难度筛选间距收紧 */
           .category-bar {
@@ -215,32 +219,53 @@
           border-radius: var(--radius-card);
           overflow: hidden;
           cursor: pointer;
-          transition: all 0.2s;
+          transition: border-color 0.2s, box-shadow 0.2s, transform 0.2s;
           z-index: 1;
+          /* 三段式纵向布局:预览 / 信息 / 页脚。
+             网格行高由最高的一张卡决定,所以每段的高度都必须是确定的 ——
+             任何一段跟着内容(图案宽高比、名称行数、色点数量)浮动,
+             都会把整行邻卡一起撑高。 */
+          display: flex;
+          flex-direction: column;
+          height: 100%;
         }
         .template-card:hover {
           border-color: var(--accent);
           transform: translateY(-4px);
           box-shadow: var(--shadow-card);
         }
+        .template-card:focus-visible {
+          outline: 2px solid var(--accent);
+          outline-offset: 3px;
+        }
         .template-thumbnail {
           position: relative;
           background: var(--bg-primary);
-          /* 顶部/左右内边距 8px 让预览图占据卡宽;底部预留 60px 作为下载徽章区,
-             徽章落在画布之下(不再遮挡图案),与右上收藏心形同右缘、竖直线对称 */
-          padding: 8px 8px 60px;
+          /* 预览区固定 1:1 —— 卡片高度只由版式决定,与图案宽高比无关。
+             此前画布是 width:100% + height:auto,11×37 的「感叹号」被拉成
+             253×851 的竖条,把整行(以及相邻卡片)一起撑到 1044px。
+             图案在框内按 contain 完整显示,不变形、不裁切。 */
+          aspect-ratio: 1 / 1;
+          flex: 0 0 auto;
+          padding: 12px;
           display: flex;
           justify-content: center;
           align-items: center;
-          min-height: 140px;
+          border-bottom: 1px solid var(--border-color);
         }
         .template-thumbnail canvas {
           image-rendering: pixelated;
-          /* 预览双向铺满:width:100% 让 29×29 的 232px 也放大到卡宽 ——
-             此前 max-width 只缩不放,小图(29×29)预览明显小于大图(57×57),
-             这是批次不一致的根因;height:auto 保持方形,配合 pixelated 放大不糊 */
-          width: 100%;
-          height: auto;
+          /* 绝对定位 + 显式 calc 尺寸:
+             - 百分比高度写在 flex 子项上会因父级 aspect-ratio 高度「循环依赖」退回 auto,
+               画布于是按位图比例撑开(11×37 → 245×824,整行卡高 985px);
+             - 只给 inset 不给尺寸时,替换元素会退回固有尺寸,图案溢出卡片。
+             两者都绕开后,画布是严格等于内边距框的定尺寸盒子,object-fit 才能等比缩放。 */
+          position: absolute;
+          top: 12px;
+          left: 12px;
+          width: calc(100% - 24px);
+          height: calc(100% - 24px);
+          object-fit: contain;
           display: block;
         }
         .favorite-btn {
@@ -262,44 +287,45 @@
           transform: scale(1.1);
         }
         .export-btn-wrap {
-          position: absolute;
-          bottom: 8px;
-          right: 8px;
           display: flex;
-          flex-direction: column;
           align-items: center;
-          gap: 2px;
+          gap: 4px;
+          flex-shrink: 0;
         }
         .export-btn {
-          width: 32px;
-          height: 32px;
+          width: 28px;
+          height: 28px;
           border-radius: 50%;
-          background: var(--bg-primary);
-          border: none;
+          background: var(--bg-secondary);
+          border: 1px solid var(--border-color);
           display: flex;
           align-items: center;
           justify-content: center;
-          box-shadow: 0 2px 8px rgba(43,36,32,0.12);
-          transition: transform 0.2s;
+          transition: transform 0.15s, border-color 0.15s, color 0.15s;
           cursor: pointer;
           color: var(--text-secondary);
+          flex-shrink: 0;
         }
         .export-btn:hover:not(:disabled) {
-          transform: scale(1.1);
+          transform: scale(1.08);
+          border-color: var(--accent);
+          color: var(--accent);
         }
         .export-btn:disabled {
           opacity: 0.6;
           cursor: default;
         }
-        /* 模板下载量:导出按钮下方小徽标,便于看出哪个模板更受欢迎 */
+        /* 模板下载量:导出按钮左侧的小徽标,便于看出哪个模板更受欢迎 */
         .download-count {
           font-size: 10px;
-          line-height: 1.3;
+          line-height: 1.4;
           color: var(--text-muted);
-          background: var(--bg-primary);
+          background: var(--bg-secondary);
+          border: 1px solid var(--border-color);
           border-radius: 8px;
-          padding: 0 5px;
-          box-shadow: 0 1px 3px rgba(43,36,32,0.1);
+          padding: 0 6px;
+          min-width: 22px;
+          text-align: center;
         }
         /* 导出菜单:portal 到 body,useLayoutEffect 按导出按钮位置贴近定位;
            遮罩仅拦截点击(透明),菜单为固定定位下拉框 */
@@ -393,19 +419,30 @@
           animation: spin 1s linear infinite;
         }
         .template-info {
-          padding: 12px 16px;
+          padding: 12px 14px 8px;
+          /* 占满剩余高度,让页脚始终贴在卡片底部;
+             名称超长时省略号截断,而不是换行把卡片撑高。 */
+          flex: 1 1 auto;
+          min-height: 0;
         }
         .template-name {
           font-size: var(--text-lg);
           font-weight: var(--font-weight-semibold);
-          margin-bottom: 4px;
-          min-height: 1.35em; /* 预留单行高度,名称长短不一也能让卡片信息区等高 */
+          margin: 0 0 6px;
+          /* 名称最多一行:换行会让同排卡片高度不一致 */
+          overflow: hidden;
+          text-overflow: ellipsis;
+          white-space: nowrap;
         }
         .template-meta {
           display: flex;
-          gap: 8px;
+          gap: 6px;
           align-items: center;
+          /* 不换行:徽章换行会让同一行的卡片高度不一致。
+             品牌徽章自己负责省略号,尺寸与难度都很短,放得下。 */
+          flex-wrap: nowrap;
           margin-bottom: 4px;
+          min-height: 20px; /* 预留徽章行高度,无徽章时也不塌陷 */
         }
         .template-size {
           font-size: var(--text-sm);
@@ -526,8 +563,12 @@
         }
         .load-confirm-preview canvas {
           image-rendering: pixelated;
-          width: 100%;   /* 双向铺满方形预览,29×29 也放大,与 57×57 视觉一致 */
-          height: 100%;
+          /* 双向 contain:方形预览区里,29×29 与 11×37 都完整显示、不变形 */
+          max-width: 100%;
+          max-height: 100%;
+          width: auto;
+          height: auto;
+          object-fit: contain;
           display: block;
         }
         .load-confirm-info {
@@ -599,8 +640,9 @@
             justify-content: stretch;
           }
           .load-confirm-preview canvas {
-            /* 预览区被压低时保持等比,不拉伸变形 */
+            /* 预览区被压低时保持等比,不拉伸变形(基础规则已是 contain,这里只需居中对齐) */
             object-fit: contain;
+            margin: auto;
           }
           .load-confirm-info {
             text-align: center;
@@ -612,13 +654,31 @@
           }
         }
         .template-category {
+          display: block;
           font-size: var(--text-xs);
           color: var(--text-muted);
+          overflow: hidden;
+          text-overflow: ellipsis;
+          white-space: nowrap;
+        }
+        /* 卡片页脚:色点(左)+ 导出与下载量(右)。
+           固定高度,色点数量多少都不改变卡片高度。 */
+        .template-footer {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          gap: 8px;
+          padding: 0 14px 12px;
+          min-height: 32px;
         }
         .template-colors {
           display: flex;
+          align-items: center;
           gap: 4px;
-          padding: 0 16px 12px;
+          min-width: 0;
+          /* 色点过多时裁切而不是换行(换行会撑高卡片) */
+          overflow: hidden;
+          flex-wrap: nowrap;
         }
         .color-dot {
           width: 12px;
