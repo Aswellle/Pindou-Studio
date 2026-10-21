@@ -103,7 +103,7 @@ function colorListHtml(stats) {
  * @param {object} template - 云端模板行(含 pattern)
  * @returns {{path:string,title:string,description:string,image:string,bodyHtml:string}|null}
  */
-export function buildPatternSnapshot(template, { site = SITE } = {}) {
+export function buildPatternSnapshot(template, { site: _site = SITE } = {}) {
   if (!template?.id || !template?.pattern) return null
   const name = templateDisplayName(template)
   if (!name) return null

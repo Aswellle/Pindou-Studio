@@ -348,7 +348,7 @@ function HomeSectionsPanel({ content, themes, collections }) {
  *     避免用户点了保存才看到数据库报错)。
  */
 function ContentRelationEditor({
-  title, hint, selectedIds, candidates, resolveLabel, onSave, onClose, busy,
+  title: _title, hint, selectedIds, candidates, resolveLabel, onSave, onClose, busy,
 }) {
   const { t } = useTranslation()
   const [ids, setIds] = useState(selectedIds)

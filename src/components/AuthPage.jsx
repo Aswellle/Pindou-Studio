@@ -18,15 +18,15 @@ const isEmailInput = (v) => EMAIL_RE.test(v || '')
 export default function AuthPage({
   initialMode = 'login',
   onLogin,
-  onRegister,
+  onRegister: _onRegister,
   loginByUsername,
   registerUsername,
   forgotPasswordCustom,
-  resetPassword,
+  resetPassword: _resetPassword,
   onSendOtp,
   onVerifyOtp,
   onSetPassword,
-  usernameExists,
+  usernameExists: _usernameExists,
   onUpdateProfile,
 }) {
   const { t } = useTranslation()

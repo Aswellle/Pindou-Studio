@@ -387,7 +387,7 @@ describe('useSavedWorks · 保存状态机', () => {
     let release
     const gate = new Promise((r) => { release = r })
     const store = await import('../services/project/worksStore')
-    const spy = vi.spyOn(store, 'saveWorkRecord').mockImplementation(async (w) => {
+    const spy = vi.spyOn(store, 'saveWorkRecord').mockImplementation(async (_w) => {
       await gate
       return { ok: true }
     })
@@ -441,7 +441,7 @@ describe('useSavedWorks · 保存状态机', () => {
     let releaseFirst
     const firstGate = new Promise((r) => { releaseFirst = r })
     let call = 0
-    const spy = vi.spyOn(store, 'saveWorkRecord').mockImplementation(async (w) => {
+    const spy = vi.spyOn(store, 'saveWorkRecord').mockImplementation(async (_w) => {
       call++
       if (call === 1) await firstGate
       return { ok: true }

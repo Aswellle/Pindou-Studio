@@ -26,7 +26,7 @@ import { BRAND_MARK_CELLS, BRAND_MARK_WHITE_STROKE, BRAND_MARK_CELL, BRAND_WORDM
  * @param {Object} [options]
  * @returns {string} SVG 字符串
  */
-export function renderPatternDocumentToSVG(doc, options = {}) {
+export function renderPatternDocumentToSVG(doc, _options = {}) {
   const { grid, palette, style, layout, stats } = doc
   const { width, height, cells } = grid
   const { cellSize, headerHeight, legendHeight, padding, rowLabelWidth, colLabelHeight, panelWidth } = layout

@@ -4,7 +4,7 @@ import { PenTool, LayoutGrid, BookOpen, Palette } from 'lucide-react'
 import LanguageSelector from './Header/LanguageSelector'
 import Avatar from './Avatar'
 
-export default function Header({ user, onLogin, onRegister, onLogout, onSave, currentPage, onPageChange, simplified, saveState }) {
+export default function Header({ user, onLogin, onRegister: _onRegister, onLogout: _onLogout, onSave, currentPage, onPageChange: _onPageChange, simplified, saveState }) {
   const { t } = useTranslation()
   const navigate = useNavigate()
 

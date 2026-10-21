@@ -686,7 +686,7 @@ function escapeSVG(str) {
 /**
  * 导出为 SVG (简化版，仅网格和珠子)
  */
-export function exportAsSVG(canvasData, gridSize, paletteId, designName, palette, gridWidth, gridHeight, beadStyle = 'realistic') {
+export function exportAsSVG(canvasData, gridSize, _paletteId, designName, palette, gridWidth, gridHeight, beadStyle = 'realistic') {
   const CELL_SIZE = 28
   const BEAD_RADIUS = CELL_SIZE / 2 - 2
   const HEADER_HEIGHT = 80

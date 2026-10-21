@@ -14,7 +14,7 @@ const OUT_SIZE = 240      // 输出头像边长
 const MIN_SCALE_FACTOR = 1
 const MAX_SCALE_FACTOR = 5
 
-const AvatarCropper = forwardRef(function AvatarCropper({ imageSrc, onConfirm, onCancel, busy }, ref) {
+const AvatarCropper = forwardRef(function AvatarCropper({ imageSrc, onConfirm, onCancel: _onCancel, busy: _busy }, ref) {
   const { t } = useTranslation()
   const canvasRef = useRef(null)
   const imgRef = useRef(null)
