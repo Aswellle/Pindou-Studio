@@ -613,7 +613,7 @@ export default function ImageQuantizer({ onApply, onClose }) {
                   const val = e.target.value
                   setGridPreset(val)
                   const preset = GRID_PRESETS.find(p => p.key === val)
-                  if (preset && preset.w) {
+                  if (preset?.w) {
                     setGridWidth(preset.w)
                     setGridHeight(preset.h)
                   }

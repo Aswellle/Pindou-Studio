@@ -500,7 +500,7 @@ export default function ContentManager({ cloudStore }) {
    * 深度限制是两层的 —— 已经是子主题的不能再当父主题。
    */
   const childThemeCandidates = useMemo(() => {
-    if (!nestingFor || nestingFor.mode !== 'children') return []
+    if (nestingFor?.mode !== 'children') return []
     const takenAsChild = new Set()
     for (const ids of content.childThemeIds?.values?.() || []) {
       for (const id of ids) takenAsChild.add(String(id))

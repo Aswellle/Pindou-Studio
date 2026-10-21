@@ -588,7 +588,7 @@ function kmeansSelectPalette(imageData, maxColors, palette, paletteLabs, bgMask,
   const samples = [];
   const weights = [];
   for (let i = 0; i < total; i += stride) {
-    if (bgMask && bgMask[i]) continue;
+    if (bgMask?.[i]) continue;
     const o = i * 4;
     samples.push(toColorSpace(data[o], data[o + 1], data[o + 2]));
     weights.push(sampleWeights ? sampleWeights[i] : 1);

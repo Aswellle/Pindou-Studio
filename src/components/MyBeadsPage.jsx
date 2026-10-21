@@ -262,7 +262,7 @@ export default function MyBeadsPage({ user, canvasData, onApplyMapping, works = 
   // 规格 05 §2:删除被引用的色卡不能破坏图纸网格。canvasData 只存 HEX,
   // 所以「保留 HEX」永远是安全默认;「重新指定」只是把作品的 paletteId 改到另一张色卡。
   const referencingWorks = useMemo(() => {
-    if (!confirmDelete || confirmDelete.kind !== 'palette') return []
+    if (confirmDelete?.kind !== 'palette') return []
     return (works || []).filter((w) => w.paletteId === confirmDelete.id)
   }, [confirmDelete, works])
 
@@ -280,7 +280,7 @@ export default function MyBeadsPage({ user, canvasData, onApplyMapping, works = 
   /** 删除前把引用该色卡的作品重新指定到目标色卡(保留 canvasData 不变) */
   const deletePaletteWithReassign = async (targetPaletteId) => {
     const target = confirmDelete
-    if (!target || target.kind !== 'palette') return
+    if (target?.kind !== 'palette') return
     setConfirmDelete(null)
     setBusy(true)
     try {

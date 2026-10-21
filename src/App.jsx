@@ -225,7 +225,7 @@ export default function App() {
   useScrollLock(anyModalOpen, { fixed: showExport })
 
   const handleClearCanvas = () => {
-    if (canvasData && canvasData.every(row => row.every(cell => cell === null))) return
+    if (canvasData?.every(row => row.every(cell => cell === null))) return
     const rows = gridHeight || gridSize
     const cols = gridWidth || gridSize
     // 清空后画布不再来自任何导入/复制,来源归零(否则会带着旧来源保存)

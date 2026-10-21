@@ -84,7 +84,7 @@ export default function AuthPage({
 
   const errMsg = (code) => {
     // 冻结账号:给出冻结期限(如 ACCOUNT_FROZEN:7)
-    if (code && code.startsWith('ACCOUNT_FROZEN:')) {
+    if (code?.startsWith('ACCOUNT_FROZEN:')) {
       const days = Number(code.split(':')[1]) || 7
       return t('errors.accountFrozen', { days })
     }

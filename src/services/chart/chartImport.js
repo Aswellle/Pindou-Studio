@@ -48,7 +48,7 @@ function isPositiveInt(v) {
  * @returns {ReturnType<typeof detectChartGrid>}
  */
 export function analyzeChart(imageData) {
-  if (!imageData || !imageData.data) {
+  if (!imageData?.data) {
     return { ok: false, status: 'failed', reason: 'invalidImage', confidence: 0 }
   }
   return detectChartGrid(imageData, {
@@ -92,7 +92,7 @@ export function buildChartProject({
   sampleRatio = 0.5,
   overrides = null,
 }) {
-  if (!imageData || !imageData.data || !bounds) {
+  if (!imageData?.data || !bounds) {
     return { ok: false, errors: [err(CHART_ERROR_CODES.INVALID_IMAGE)] }
   }
   if (!isPositiveInt(cols) || !isPositiveInt(rows)) {

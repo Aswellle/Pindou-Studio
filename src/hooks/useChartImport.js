@@ -139,7 +139,7 @@ export function useChartImport() {
   /** 用户手动改列数/行数:保留图片与边界,只改网格参数 */
   const applyManualGrid = useCallback((cols, rows) => {
     setDetection((prev) => {
-      if (!prev || !prev.bounds) return prev
+      if (!prev?.bounds) return prev
       return { ...prev, ok: true, status: 'manual', cols, rows, reason: undefined }
     })
   }, [])

@@ -104,7 +104,7 @@ function colorListHtml(stats) {
  * @returns {{path:string,title:string,description:string,image:string,bodyHtml:string}|null}
  */
 export function buildPatternSnapshot(template, { site = SITE } = {}) {
-  if (!template || !template.id || !template.pattern) return null
+  if (!template?.id || !template?.pattern) return null
   const name = templateDisplayName(template)
   if (!name) return null
 
@@ -141,7 +141,7 @@ export function buildPatternSnapshot(template, { site = SITE } = {}) {
  * 主题快照。patterns 为该主题下的模板(已按关联顺序解析)。
  */
 export function buildThemeSnapshot(theme, patterns = [], { site = SITE } = {}) {
-  if (!theme || !theme.slug) return null
+  if (!theme?.slug) return null
   const title = theme.title || ''
   if (!title) return null
 
@@ -167,7 +167,7 @@ export function buildThemeSnapshot(theme, patterns = [], { site = SITE } = {}) {
 
 /** 合集快照。 */
 export function buildCollectionSnapshot(collection, patterns = [], { site = SITE } = {}) {
-  if (!collection || !collection.slug) return null
+  if (!collection?.slug) return null
   const title = collection.title || ''
   if (!title) return null
 

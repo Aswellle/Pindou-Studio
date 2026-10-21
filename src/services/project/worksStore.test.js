@@ -128,7 +128,7 @@ describe('worksStore · localStorage 兼容与迁移', () => {
         const req = {}
         setTimeout(() => {
           req.result = fakeDb
-          req.onsuccess && req.onsuccess()
+          req.onsuccess?.()
         }, 0)
         return req
       },
