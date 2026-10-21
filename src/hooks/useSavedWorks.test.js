@@ -344,7 +344,7 @@ describe('useSavedWorks · 本地模式读取归一', () => {
     await waitForLoad(result)
 
     expect(result.current.works).toEqual([])
-    expect(localStorage.getItem(LEGACY_KEY + '-corrupt')).toBe('{not json')
+    expect(localStorage.getItem(`${LEGACY_KEY}-corrupt`)).toBe('{not json')
   })
 
   it('非数组的历史值不会让 hook 崩溃', async () => {

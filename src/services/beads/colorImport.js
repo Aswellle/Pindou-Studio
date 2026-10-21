@@ -40,7 +40,7 @@ export function buildCsvTemplate(sampleCode = 'A1') {
     'M1,我的混色,#7A5C3E,自己调的,estimated',
   ]
   // BOM:Excel 在没有 BOM 时按本地编码解析中文会乱码
-  return '﻿' + rows.join('\r\n') + '\r\n'
+  return `\uFEFF${rows.join('\r\n')}\r\n`
 }
 
 /** 去掉 BOM 并统一换行 */

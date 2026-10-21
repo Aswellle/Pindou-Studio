@@ -411,12 +411,12 @@ export default function MobileToolbar({
       const input = prompt(t('tools.customSizePrompt'), `${currentWidth}x${currentHeight}`)
       if (!input) return
       const parts = input.toLowerCase().split('x').map(s => parseInt(s.trim(), 10))
-      if (isNaN(parts[0]) || parts[0] < 9 || parts[0] > 200) {
+      if (Number.isNaN(parts[0]) || parts[0] < 9 || parts[0] > 200) {
         toast(t('tools.widthRange'), 'error')
         return
       }
       if (parts.length === 2) {
-        if (isNaN(parts[1]) || parts[1] < 9 || parts[1] > 200) {
+        if (Number.isNaN(parts[1]) || parts[1] < 9 || parts[1] > 200) {
           toast(t('tools.heightRange'), 'error')
           return
         }

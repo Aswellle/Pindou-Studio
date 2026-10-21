@@ -1301,7 +1301,7 @@ self.onmessage = (event) => {
         return {
           id: c.id || c.hex,   // 品牌色号优先（P18），回退到 hex
           name: c.name || c.id || c.hex,
-          hex: c.hex || '#' + [r, g, b].map(v => v.toString(16).padStart(2, '0').toUpperCase()).join(''),
+          hex: c.hex || `#${[r, g, b].map(v => v.toString(16).padStart(2, '0').toUpperCase()).join('')}`,
           rgb: { r, g, b }
         }
       })
@@ -1648,7 +1648,7 @@ self.onmessage = (event) => {
       );
 
     } catch (error) {
-      self.postMessage({ type: 'ERROR', error: error.message + '\n' + error.stack });
+      self.postMessage({ type: 'ERROR', error: `${error.message}\n${error.stack}` });
     }
   }
 };

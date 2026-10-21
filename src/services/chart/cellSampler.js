@@ -34,7 +34,7 @@ function median(arr) {
 }
 
 function toHex(r, g, b) {
-  return '#' + [r, g, b].map((v) => Math.round(v).toString(16).padStart(2, '0')).join('').toUpperCase()
+  return `#${[r, g, b].map((v) => Math.round(v).toString(16).padStart(2, '0')).join('').toUpperCase()}`
 }
 
 /**

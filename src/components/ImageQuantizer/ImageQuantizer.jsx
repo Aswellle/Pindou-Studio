@@ -137,12 +137,12 @@ export default function ImageQuantizer({ onApply, onClose }) {
     if (!v) return null
     if (typeof v === 'string' && v.startsWith('#')) {
       const test = parseInt(v.slice(1), 16)
-      return isNaN(test) ? null : v
+      return Number.isNaN(test) ? null : v
     }
     const resolved = resultColorMap[v]
     if (resolved && typeof resolved === 'string' && resolved.startsWith('#')) {
       const test = parseInt(resolved.slice(1), 16)
-      return isNaN(test) ? null : resolved
+      return Number.isNaN(test) ? null : resolved
     }
     return null
   }, [resultColorMap])
@@ -212,8 +212,8 @@ export default function ImageQuantizer({ onApply, onClose }) {
 
       canvas.width = cssW * dpr
       canvas.height = cssH * dpr
-      canvas.style.width = cssW + 'px'
-      canvas.style.height = cssH + 'px'
+      canvas.style.width = `${cssW}px`
+      canvas.style.height = `${cssH}px`
 
       const ctx = canvas.getContext('2d')
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0)
@@ -622,7 +622,7 @@ export default function ImageQuantizer({ onApply, onClose }) {
                 disabled={isProcessing}
               >
                 {GRID_PRESETS.map(p => (
-                  <option key={p.key} value={p.key}>{t('quantizer.presets.' + p.key)}</option>
+                  <option key={p.key} value={p.key}>{t(`quantizer.presets.${p.key}`)}</option>
                 ))}
               </select>
               {gridPreset === 'auto' && (

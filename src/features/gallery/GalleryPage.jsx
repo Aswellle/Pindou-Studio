@@ -499,7 +499,7 @@ export default function GalleryPage({ onLoadTemplate, onDeleteWork, onLoadWork, 
                 {savedWorks.map((work, index) => {
                   const w = work.gridWidth || work.gridSize
                   const h = work.gridHeight || work.gridSize
-                  const displayName = work.name || (t('gallery.workName') + ' ' + (index + 1))
+                  const displayName = work.name || `${t('gallery.workName')} ${index + 1}`
                   const displayDate = work.savedAt ? work.savedAt.slice(0, 10) : ''
                   return (
                     <div key={work.id ?? index} className="work-card">

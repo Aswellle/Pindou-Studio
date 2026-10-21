@@ -195,7 +195,7 @@ export async function renderPatternDocumentToPNG(doc, options = {}) {
     ctx.fillText(i18n.t('export.groupCount', { title: cfg.title, n: items.length }), panelX + 10, colorY)
     colorY += 16
 
-    ctx.strokeStyle = cfg.titleColor + '44'
+    ctx.strokeStyle = `${cfg.titleColor}44`
     ctx.lineWidth = 1
     ctx.beginPath()
     ctx.moveTo(panelX + 8, colorY - 4)
@@ -225,7 +225,7 @@ export async function renderPatternDocumentToPNG(doc, options = {}) {
       }
 
       const label = item.id !== item.name ? `${item.id} ${item.name}` : item.name
-      const truncated = label.length > 15 ? label.slice(0, 14) + '…' : label
+      const truncated = label.length > 15 ? `${label.slice(0, 14)}…` : label
       ctx.fillStyle = cfg.warn ? '#c33' : '#333333'
       ctx.font = '10px "Fira Code", "Microsoft YaHei", sans-serif'
       ctx.textAlign = 'left'

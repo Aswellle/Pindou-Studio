@@ -30,11 +30,11 @@ export function hexToRgb(hex) {
  * Convert RGB to hex color
  */
 export function rgbToHex(r, g, b) {
-  return '#' + [r, g, b].map(x => {
+  return `#${[r, g, b].map(x => {
     const clamped = Math.max(0, Math.min(255, Math.round(x))) // 越界分量钳制,防非法 hex
     const hex = clamped.toString(16)
-    return hex.length === 1 ? '0' + hex : hex
-  }).join('')
+    return hex.length === 1 ? `0${hex}` : hex
+  }).join('')}`
 }
 
 /**

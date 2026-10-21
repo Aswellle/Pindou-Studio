@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeAll, afterEach, beforeEach, vi } from 'vitest'
-import { render, screen, fireEvent, cleanup, waitFor, act } from '@testing-library/react'
+import { render, fireEvent, cleanup, waitFor, act } from '@testing-library/react'
 import { MemoryRouter } from 'react-router-dom'
 import i18n from '../i18n'
 

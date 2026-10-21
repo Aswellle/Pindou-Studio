@@ -139,7 +139,7 @@ export function renderPatternDocumentToSVG(doc, options = {}) {
       }
 
       const label = item.id !== item.name ? `${item.id} ${item.name}` : item.name
-      const truncated = label.length > 15 ? label.slice(0, 14) + '…' : label
+      const truncated = label.length > 15 ? `${label.slice(0, 14)}…` : label
       parts.push(`<text x="${panelX + 34}" y="${itemCY}" fill="${cfg.warn ? '#c33' : '#333333'}" font-size="10" text-anchor="start" dominant-baseline="middle">${escapeXml(truncated)}</text>`)
       parts.push(`<text x="${panelX + panelWidth - 10}" y="${itemCY}" fill="${cfg.warn ? '#c33' : '#555555'}" font-size="10" text-anchor="end" dominant-baseline="middle">${escapeXml(cfg.warn ? `${item.count}颗 ⚠` : `${item.count}颗`)}</text>`)
 

@@ -24,7 +24,7 @@ import ThumbnailCanvas from './ThumbnailCanvas'
 import useAdminOverview, { OVERVIEW_ERROR_TIMEOUT, OVERVIEW_ERROR_FORBIDDEN } from '../hooks/useAdminOverview'
 import { buildTrend, computeLibraryStats, checkContentHealth, TREND_WINDOW_DAYS } from '../utils/adminOverview'
 import { PALETTES } from '../data/palettes/index.js'
-import { CATEGORIES, templateDimensions } from '../data/templates'
+import { templateDimensions } from '../data/templates'
 
 const VALID_PALETTE_IDS = Object.keys(PALETTES)
 const TREND_DAYS = TREND_WINDOW_DAYS

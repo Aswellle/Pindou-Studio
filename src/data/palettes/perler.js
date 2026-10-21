@@ -3,7 +3,7 @@
 // 颜色名称对应 Perler 官方产品系列
 
 function hex(r, g, b) {
-  return '#' + [r, g, b].map(v => v.toString(16).padStart(2, '0').toUpperCase()).join('')
+  return `#${[r, g, b].map(v => v.toString(16).padStart(2, '0').toUpperCase()).join('')}`
 }
 function c(id, name, nameZh, r, g, b, category) {
   return { id, name, nameZh, hex: hex(r, g, b), rgb: { r, g, b }, category }

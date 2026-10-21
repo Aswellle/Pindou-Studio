@@ -243,7 +243,7 @@ export default function ExportPanel({
     text += '\n'
 
     for (let y = 0; y < actualHeight; y++) {
-      text += String(y + 1).padStart(3, ' ') + ' '
+      text += `${String(y + 1).padStart(3, ' ')} `
       for (let x = 0; x < actualWidth; x++) {
         const color = canvasData[y]?.[x]
         if (color) {

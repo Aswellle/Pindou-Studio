@@ -27,7 +27,7 @@ describe('normalizeSlug', () => {
 
   it('去掉首尾连字符,截断到 80 字符且不以连字符结尾', () => {
     expect(normalizeSlug('---hi---')).toBe('hi')
-    const long = normalizeSlug('a'.repeat(79) + ' b')
+    const long = normalizeSlug(`${'a'.repeat(79)} b`)
     expect(long.length).toBeLessThanOrEqual(80)
     expect(long.endsWith('-')).toBe(false)
   })

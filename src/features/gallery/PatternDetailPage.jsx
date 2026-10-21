@@ -20,7 +20,6 @@ import ThumbnailCanvas from '../../components/ThumbnailCanvas'
 import {
   templateDimensions,
   convertTemplateToBrand,
-  extractPatternColors,
 } from '../../data/templates'
 import { getPalette, findClosestColor } from '../../data/palettes'
 import { exportAsPNG } from '../../services/BeadPatternExporter'

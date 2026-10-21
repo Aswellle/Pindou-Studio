@@ -203,7 +203,7 @@ function findClosestPaletteColor(hex, palette) {
   const r = parseInt(hex.slice(1, 3), 16)
   const g = parseInt(hex.slice(3, 5), 16)
   const b = parseInt(hex.slice(5, 7), 16)
-  if ([r, g, b].some(v => isNaN(v))) return null
+  if ([r, g, b].some(v => Number.isNaN(v))) return null
 
   // CIEDE2000 感知均匀匹配(此前用 RGB 欧氏距离,蓝色系等视觉差异大的色域
   // 会匹配到错误珠子 —— 与量化管线的匹配标准保持一致)
@@ -419,7 +419,7 @@ export async function generateBeadPatternSheet({
     colorY += 16
 
     // 组内分隔线
-    ctx.strokeStyle = cfg.titleColor + '44'
+    ctx.strokeStyle = `${cfg.titleColor}44`
     ctx.lineWidth = 0.8
     ctx.beginPath()
     ctx.moveTo(colorPanelX + 8, colorY - 4)
@@ -450,7 +450,7 @@ export async function generateBeadPatternSheet({
 
       // 色号 + 名称
       const label = item.id !== item.name ? `${item.id} ${item.name}` : item.name
-      const truncated = label.length > 15 ? label.slice(0, 14) + '…' : label
+      const truncated = label.length > 15 ? `${label.slice(0, 14)}…` : label
       ctx.fillStyle = cfg.warn ? '#c33' : '#333'
       ctx.font = '10px "Fira Code", "Microsoft YaHei", sans-serif'
       ctx.textAlign = 'left'
@@ -794,7 +794,7 @@ export function exportAsSVG(canvasData, gridSize, paletteId, designName, palette
 
     for (const item of items) {
       const label = item.id !== item.name ? `${item.id} ${item.name}` : item.name
-      const truncated = label.length > 16 ? label.slice(0, 15) + '…' : label
+      const truncated = label.length > 16 ? `${label.slice(0, 15)}…` : label
       const countText = cfg.warn ? `${item.count}${i18n.t('export.beadsUnit')} ⚠` : `${item.count}${i18n.t('export.beadsUnit')}`
       const textColor = cfg.warn ? '#cc3333' : '#333333'
       const countColor = cfg.warn ? '#cc3333' : '#555555'
