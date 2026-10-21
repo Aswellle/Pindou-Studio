@@ -15,6 +15,10 @@
     "test:ui": "vitest --ui",
     "check-i18n": "node scripts/check-i18n.js",
     "check-migrations": "node scripts/check-migrations.js",
+    "lint": "biome lint src/",
+    "lint:fix": "biome lint --write src/",
+    "format": "biome format --write src/",
+    "format:check": "biome format src/",
     "indexnow": "node scripts/indexnow-submit.mjs",
     "favicon": "node scripts/generate-favicon.mjs",
     "verify:exports": "node scripts/verify-exports.mjs"
@@ -35,6 +39,7 @@
     "recharts": "^3.10.1"
   },
   "devDependencies": {
+    "@biomejs/biome": "^2.5.15",
     "@tailwindcss/postcss": "^4.2.2",
     "@testing-library/react": "^16.3.2",
     "@testing-library/user-event": "^14.6.1",
