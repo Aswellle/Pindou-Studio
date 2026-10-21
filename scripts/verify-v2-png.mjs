@@ -156,8 +156,11 @@ for (const beadStyle of ['professional', 'realistic']) {
     // 5. 专业模式:格子内部纯色(整数坐标 → 无混色)。点缀黄珠 (5,5)
     const px1 = pixelAt(ctx, gridStartX + 5 * 28 + 14, gridStartY + 5 * 28 + 14, scale)
     check('专业格内部纯色填充', closeTo(px1, hexToRgb(YELLOW), 8), `expect ${YELLOW}, got ${JSON.stringify(px1)}`)
-    // 边框珠 (0,0)
-    const px0 = pixelAt(ctx, gridStartX + 12, gridStartY + 12, scale)
+    // 边框珠 (0,0):取格子左上角的纯色区。
+    // 不能取 (12,12)/(14,14) —— 那里是色号文字的落点,专业模式每格都画色号,
+    // 采样点落在字形边缘会读到抗锯齿混色(实测 [174,122,109] vs 期望 [165,62,36]),
+    // 断言会误报为「边框珠不是纯色」。格子内部 (4,4) 才是真正的填充色。
+    const px0 = pixelAt(ctx, gridStartX + 4, gridStartY + 4, scale)
     check('边框珠纯色填充', closeTo(px0, hexToRgb(BLUE), 8), JSON.stringify(px0))
   } else {
     // 6. 拟真模式:中心孔暗区 vs 月牙高光亮区,差距必须显著(取边框蓝珠 (0,0))
