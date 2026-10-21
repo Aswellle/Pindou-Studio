@@ -20,6 +20,7 @@ import { COLOR_COUNT_TIERS } from './hooks/useGalleryQuery'
 import { resolveTemplatesByIds } from './discovery'
 import { localizedContentText } from '../../services/gallery/contentModel'
 import TemplateGrid from './components/TemplateGrid'
+import ContentPageSkeleton, { PageHeadSkeleton } from './components/ContentPageSkeleton'
 import ContentSeo from './components/ContentSeo'
 import './gallery.css'
 
@@ -28,7 +29,7 @@ export default function ThemePage({ cloudStore }) {
   const navigate = useNavigate()
   const { slug } = useParams()
   const content = useGalleryContent()
-  const { allTemplates } = useGalleryTemplates(cloudStore)
+  const { allTemplates, templatesLoading } = useGalleryTemplates(cloudStore)
 
   // 公开路由只认已发布对象:管理员凭 RLS 能拿到草稿,但公开页不应展示。
   // 注意不能用 `??` 回退 —— null(未发布)会被未过滤查询重新捞回来。
@@ -79,7 +80,14 @@ export default function ThemePage({ cloudStore }) {
     difficulty, setDifficulty, maxColors, setMaxColors, resetFilters,
   } = useFilteredTemplates(scopeTemplates, resolveName)
 
-  const loading = content.loading && !theme
+  // 加载中 = 主题元数据还没到,或模板库还没到。
+  // 两个条件缺一不可:主题先到、模板后到时,若只判断主题,
+  // 页面会先渲染出「共 0 张图纸 + 空网格」再跳成真实内容。
+  const loading = content.loading || templatesLoading
+
+  // 首屏加载(还没有主题可展示):整页用骨架,避免闪一屏「内容不存在」。
+  // 注意只判 !theme —— 已有 theme 但模板仍在加载时走下面的局部骨架。
+  const showPageSkeleton = loading && !theme
 
   return (
     <div className="content-page">
@@ -94,11 +102,13 @@ export default function ThemePage({ cloudStore }) {
           <ArrowLeft size={16} aria-hidden="true" />
           {t('gallery.discovery.backToGallery')}
         </button>
-        {loading ? (
-          <p className="content-desc">{t('gallery.discovery.loading')}</p>
-        ) : !theme ? (
+        {/* 返回按钮始终可见(加载中也能退出);标题区用占位块。
+            已确认不存在(!theme 且不在加载)才显示「内容不存在」。 */}
+        {showPageSkeleton && <PageHeadSkeleton kind="theme" />}
+        {!showPageSkeleton && !theme && (
           <p className="content-desc" role="status">{t('gallery.discovery.notFound')}</p>
-        ) : (
+        )}
+        {!showPageSkeleton && theme && (
           <>
             <span className="content-kicker">{t('gallery.discovery.themePage')}</span>
             {theme.coverUrl && (
@@ -120,6 +130,9 @@ export default function ThemePage({ cloudStore }) {
           </>
         )}
       </div>
+
+      {/* 首屏骨架:筛选栏 + 卡片网格(页头占位已在上面渲染) */}
+      {showPageSkeleton && <ContentPageSkeleton />}
 
       {/* 子主题:主题页的二级入口,点击进入对应主题 */}
       {childThemes.length > 0 && (
@@ -225,7 +238,8 @@ export default function ThemePage({ cloudStore }) {
       {theme && (
         <TemplateGrid
           templates={filtered}
-          emptyText={t('gallery.discovery.noMatch')}
+          // 模板库未到时不要断言「没有匹配」——那是语义错误(不是没有,是还没到)
+          emptyText={templatesLoading ? t('gallery.cloudLoading') : t('gallery.discovery.noMatch')}
           onOpen={(template) => navigate(`/gallery/pattern/${encodeURIComponent(template.id)}`)}
         />
       )}

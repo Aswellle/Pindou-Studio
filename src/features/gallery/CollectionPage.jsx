@@ -16,6 +16,7 @@ import { COLOR_COUNT_TIERS } from './hooks/useGalleryQuery'
 import { resolveTemplatesByIds } from './discovery'
 import { localizedContentText } from '../../services/gallery/contentModel'
 import TemplateGrid from './components/TemplateGrid'
+import ContentPageSkeleton, { PageHeadSkeleton } from './components/ContentPageSkeleton'
 import ContentSeo from './components/ContentSeo'
 import './gallery.css'
 
@@ -24,7 +25,7 @@ export default function CollectionPage({ cloudStore }) {
   const navigate = useNavigate()
   const { slug } = useParams()
   const content = useGalleryContent()
-  const { allTemplates } = useGalleryTemplates(cloudStore)
+  const { allTemplates, templatesLoading } = useGalleryTemplates(cloudStore)
 
   // 公开路由只认已发布对象(理由同主题页;同样不能用 `??` 回退)
   const collection = content.getPublishedCollectionBySlug
@@ -50,7 +51,9 @@ export default function CollectionPage({ cloudStore }) {
     difficulty, setDifficulty, maxColors, setMaxColors, resetFilters,
   } = useFilteredTemplates(scopeTemplates, resolveName)
 
-  const loading = content.loading && !collection
+  // 与主题页同一判定:元数据与模板库任一未到都算加载中
+  const loading = content.loading || templatesLoading
+  const showPageSkeleton = loading && !collection
 
   return (
     <div className="content-page">
@@ -65,11 +68,11 @@ export default function CollectionPage({ cloudStore }) {
           <ArrowLeft size={16} aria-hidden="true" />
           {t('gallery.discovery.backToGallery')}
         </button>
-        {loading ? (
-          <p className="content-desc">{t('gallery.discovery.loading')}</p>
-        ) : !collection ? (
+        {showPageSkeleton && <PageHeadSkeleton kind="collection" />}
+        {!showPageSkeleton && !collection && (
           <p className="content-desc" role="status">{t('gallery.discovery.notFound')}</p>
-        ) : (
+        )}
+        {!showPageSkeleton && collection && (
           <>
             <span className="content-kicker">{t('gallery.discovery.collectionPage')}</span>
             {collection.coverUrl && (
@@ -96,6 +99,9 @@ export default function CollectionPage({ cloudStore }) {
           </>
         )}
       </div>
+
+      {/* 首屏骨架:筛选栏 + 卡片网格(页头占位已在上面渲染) */}
+      {showPageSkeleton && <ContentPageSkeleton />}
 
       {collection && (
         <div className="content-filters">
@@ -151,7 +157,8 @@ export default function CollectionPage({ cloudStore }) {
       {collection && (
         <TemplateGrid
           templates={filtered}
-          emptyText={t('gallery.discovery.noMatch')}
+          // 模板库未到时不要说「没有匹配」——那是「还没到」,不是「没有」
+          emptyText={templatesLoading ? t('gallery.cloudLoading') : t('gallery.discovery.noMatch')}
           onOpen={(template) => navigate(`/gallery/pattern/${encodeURIComponent(template.id)}`)}
         />
       )}
