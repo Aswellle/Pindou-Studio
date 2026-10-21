@@ -28,11 +28,14 @@ import { BRAND_MARK_CELLS, BRAND_MARK_WHITE_STROKE, BRAND_MARK_CELL, BRAND_WORDM
  * @param {number} [options.dpi] - 输出 DPI（默认 300，传 300 走固定 3× 超采样）
  * @param {Function} [options.onProgress] - 进度回调(0–1)
  * @param {Function} [options.onResolution] - 分辨率回调(物理像素,供 UI 显示)
+ * @param {Function} [options.onScale] - 倍率回调 `(actualScale, requestedScale)`
+ *   面积预算或分配失败会静默降级 3→2→1;规格 09 §4.3 要求界面报告真实结果,
+ *   所以把「实际倍率」和「请求倍率」一起给出去,由 UI 决定是否提示降级。
  * @param {AbortSignal} [options.signal] - 取消信号(与 V1 同语义:分帧期间中止)
  * @returns {Promise<Blob>} PNG blob
  */
 export async function renderPatternDocumentToPNG(doc, options = {}) {
-  const { dpi = 300, onProgress = null, onResolution = null, signal = null } = options
+  const { dpi = 300, onProgress = null, onResolution = null, onScale = null, signal = null } = options
   const { grid, palette, style, layout, stats } = doc
   const { width, height, cells } = grid
   const { cellSize, headerHeight, legendHeight, padding, rowLabelWidth, colLabelHeight, panelWidth } = layout
@@ -47,6 +50,8 @@ export async function renderPatternDocumentToPNG(doc, options = {}) {
   const sheetHeight = gridPixelH + headerHeight + legendHeight + colLabelHeight + padding * 2
 
   // 超采样 canvas — DPI 策略或面积预算自动降级(V1 同套逻辑)
+  // requestedScale 只用于「有没有被降级」的比较;实际生效的是 actualScale。
+  const requestedScale = dpi && dpi !== 300 ? Math.max(1, Math.round(dpi / 72)) : 3
   let canvas, actualScale
   try {
     if (dpi && dpi !== 300) {
@@ -58,6 +63,7 @@ export async function renderPatternDocumentToPNG(doc, options = {}) {
     ;({ canvas, scale: actualScale } = createScaledCanvas(sheetWidth, sheetHeight))
   }
   onResolution?.(canvas.width, canvas.height)
+  onScale?.(actualScale, requestedScale)
 
   const ctx = canvas.getContext('2d')
   // ctx.scale 后所有绘制按逻辑像素操作。

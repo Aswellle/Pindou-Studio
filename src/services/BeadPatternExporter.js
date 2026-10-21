@@ -32,13 +32,18 @@ function isMobileDevice() {
  *   移动端物理像素面积预算 8000 万(≈320MB,toBlob 编码峰值可控),超预算降级。
  * 分配失败(低端设备)同样逐级降级,保证必能导出。
  *
+ * @param {number} [logicalW]
+ * @param {number} [logicalH]
+ * @param {number} [requestedScale=3] - 请求的初始超采样倍率。默认 3(现状不变);
+ *   DPI 预设(高分辨率/打印)会请求更高倍率,同样受面积预算与分配失败降级约束。
  * @returns {{ canvas: HTMLCanvasElement, scale: number }} 分配成功时返回
  * @throws 所有 scale 都失败时抛错
  */
-export function createScaledCanvas(logicalW, logicalH) {
+export function createScaledCanvas(logicalW, logicalH, requestedScale = 3) {
   // 移动端面积预算:8000 万物理像素(170 网格 scale 1 = 2500 万、140 网格 scale 2 = 6300 万)
   const MAX_AREA = isMobileDevice() ? 80_000_000 : 268_000_000
-  let scale = 3
+  let scale = Math.max(1, Math.floor(requestedScale) || 1)
+  const stepDown = (s) => (s > 2 ? Math.max(2, s - 1) : s === 2 ? 1 : 0)
 
   const tryCreate = (w, h) => {
     try {
@@ -59,27 +64,26 @@ export function createScaledCanvas(logicalW, logicalH) {
     const w = logicalW * scale
     const h = logicalH * scale
     if (w * h > MAX_AREA) {
-      scale = scale >= 3 ? 2 : scale >= 2 ? 1 : 0
+      scale = stepDown(scale)
       continue
     }
     canvas = tryCreate(w, h)
     if (canvas) break
-    scale = scale >= 3 ? 2 : scale >= 2 ? 1 : 0
+    scale = stepDown(scale)
   }
   if (!canvas) throw new Error('canvas allocation failed')
   return { canvas, scale }
 }
 
 /**
- * 基于物理尺寸和 DPI 创建 canvas
+ * 按 DPI 请求更高超采样倍率创建 canvas
  *
- * 拼豆物理直径约 2.6mm（COCO 2.6mm 规格），每格代表一颗豆子。
- * 输出分辨率 = 物理尺寸 × DPI。
+ * 倍率换算:72 DPI = 1×(基准),故 300 → 4×、432 → 6×、576 → 8×。
+ * 实际倍率仍受 createScaledCanvas 的面积预算与分配失败降级约束,
+ * 返回值里的 dpi 是**降级后**的真实值,调用方据此判断是否被降级。
  *
- * 预设:
- * - preview: 144 DPI（屏幕预览）
- * - high:    300 DPI（高质量打印）
- * - print:   600 DPI（专业打印）
+ * 注意:这里不涉及拼豆物理直径 —— 打印出来的实物尺寸由
+ * calculatePhysicalSize(按品牌珠径 2.6/5mm)决定,与 DPI 无关。
  *
  * @param {number} logicalW - 逻辑宽度（像素）
  * @param {number} logicalH - 逻辑高度（像素）
@@ -87,16 +91,12 @@ export function createScaledCanvas(logicalW, logicalH) {
  * @returns {{ canvas: HTMLCanvasElement, scale: number, dpi: number }}
  */
 export function createDPICanvas(logicalW, logicalH, dpi = 300) {
-  // 每格物理尺寸（mm）— COCO 2.6mm 规格
-  const BEAD_SIZE_MM = 2.6
-  // 每格物理尺寸（inch）
-  const BEAD_SIZE_INCH = BEAD_SIZE_MM / 25.4
-  // 基于 DPI 计算超采样倍率
-  const targetScale = dpi / 72  // 72 DPI = 1x
-  const scale = Math.max(1, Math.round(targetScale))
-
-  // 复用 createScaledCanvas 的面积预算和降级逻辑
-  const { canvas, scale: actualScale } = createScaledCanvas(logicalW, logicalH)
+  // 基于 DPI 计算超采样倍率(72 DPI = 1×,300 → 4×,432 → 6×,576 → 8×)。
+  // 注意:这里的「倍率」是相对逻辑像素的整数超采样,不是真实物理 DPI ——
+  // 实际打印物理尺寸由 calculatePhysicalSize(按品牌珠径)决定,见 ExportPanel。
+  const targetScale = Math.max(1, Math.round(dpi / 72))
+  // 复用 createScaledCanvas 的面积预算和降级逻辑(请求倍率作为起点,超预算逐级降)
+  const { canvas, scale: actualScale } = createScaledCanvas(logicalW, logicalH, targetScale)
   return { canvas, scale: actualScale, dpi: Math.round(actualScale * 72) }
 }
 
@@ -285,6 +285,7 @@ export async function generateBeadPatternSheet({
   designName, palette, onProgress = null,
   beadStyle = 'realistic',
   showCodes = null,
+  dpi = 300,              // 导出质量预设:300 走固定 3×,其他走 DPI 倍率
   signal = null           // AbortSignal:组件卸载/用户取消时中止分帧导出
 }) {
   // 支持矩形网格（Phase 3）
@@ -311,13 +312,24 @@ export async function generateBeadPatternSheet({
 
   // 创建 canvas — 物理像素按 scale 倍分辨率分配，
   // ctx.scale 后所有绘制代码仍按逻辑尺寸（sheetWidth/sheetHeight）操作，无需改动下方坐标计算。
-  // 超采样 scale 由 createScaledCanvas 按面积预算 + 分配失败降级自动决定(质量×性能平衡)。
+  // 超采样 scale 由画布工厂按面积预算 + 分配失败降级自动决定(质量×性能平衡)。
+  // dpi=300 走固定 3×(现状不变);其他值走 createDPICanvas 的 DPI 倍率路径。
   let canvas, scale
   try {
-    ;({ canvas, scale } = createScaledCanvas(sheetWidth, sheetHeight))
+    if (dpi && dpi !== 300) {
+      ;({ canvas, scale } = createDPICanvas(sheetWidth, sheetHeight, dpi))
+    } else {
+      ;({ canvas, scale } = createScaledCanvas(sheetWidth, sheetHeight))
+    }
   } catch (e) {
     throw new Error(i18n.t('export.canvasTooLarge'))
   }
+  // 把实际倍率与逻辑尺寸挂在 canvas 上:exportAsPNG 需要回报降级(规格 09 §4.3),
+  // 而 scale 是这里唯一的真值来源 —— 由 canvas.width / sheetWidth 反推会在
+  // 非整数边界上出错,不如直接带出来。
+  canvas.__exportScale = scale
+  canvas.__exportSheetWidth = sheetWidth
+  canvas.__exportRequestedScale = dpi && dpi !== 300 ? Math.max(1, Math.round(dpi / 72)) : 3
   const ctx = canvas.getContext('2d')
   ctx.scale(scale, scale)
 
@@ -638,10 +650,16 @@ export async function exportAsPNG(canvasData, gridSize, paletteId, designName, p
     paletteId, designName, palette,
     onProgress: options.onProgress,
     beadStyle: options.beadStyle,
+    dpi: options.dpi,
     signal: options.signal
   })
   // 回传实际导出分辨率(UI 显示,让用户确认超采样 scale 生效)
   if (options.onResolution) options.onResolution(canvas.width, canvas.height)
+  // 回传实际超采样倍率:面积预算/分配失败会静默降级 3→2→1,
+  // 规格 09 §4.3 要求界面报告真实结果而不是只显示分辨率。
+  if (options.onScale) {
+    options.onScale(canvas.__exportScale ?? 3, canvas.__exportRequestedScale ?? 3)
+  }
 
   // toBlob 替代 toDataURL:高 scale 大画布时 base64 会让内存峰值翻倍(1 亿像素 RGBA
   // + base64 ≈ 900MB),Blob 直接引用 backing store 且支持 PNG 压缩级别,更省内存
