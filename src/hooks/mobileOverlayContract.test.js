@@ -83,6 +83,42 @@ const contractOwner = (cls) => {
   return cls
 }
 
+// ── 浮层可访问性契约(规格 08 §5)───────────────────────────
+// 承载内容的浮层容器(遮罩本身不需要 dialog 语义)
+const DIALOG_CONTAINERS = new Set([
+  'export-modal-content', 'contact-modal', 'admin-modal', 'admin-gate-confirm',
+  'users-confirm', 'modal-content', 'load-confirm-modal', 'my-beads-modal',
+  'save-dialog', 'export-confirm-dialog', 'brand-switch-dialog', 'replace-dialog',
+  'quantizer-zoom',
+])
+
+/**
+ * 扫描所有 JSX,找出声明了浮层容器类名却没有 dialog 语义的元素。
+ *
+ * 类名取值有两种写法,都必须认:
+ *   className="admin-modal wide"
+ *   className={`admin-modal${wide ? ' wide' : ''}`}   ← AdminPanel 用的这种
+ * 所以不按空白切分,而是按类名字符集 [A-Za-z0-9_-] 提取 token ——
+ * 这样模板字符串里的插值表达式不会干扰,`my-beads-modal-actions`
+ * 也不会被误切成 `my-beads-modal`。
+ */
+function scanDialogContainers() {
+  const found = []
+  for (const file of walk(SRC)) {
+    const code = readFileSync(file, 'utf8')
+    for (const line of code.split(/\r?\n/)) {
+      const m = line.match(/className=(?:"([^"]*)"|\{`([^`]*)`\})/)
+      if (!m) continue
+      const raw = m[1] ?? m[2]
+      const tokens = raw.match(/[A-Za-z][A-Za-z0-9_-]*/g) || []
+      if (!tokens.some((tk) => DIALOG_CONTAINERS.has(tk))) continue
+      const hasDialog = /[Dd]ialogProps\}/.test(line) || /role="(?:dialog|alertdialog)"/.test(line)
+      found.push({ file: relative(SRC, file), line: line.trim().slice(0, 90), hasDialog })
+    }
+  }
+  return found
+}
+
 describe('移动端全屏浮层契约', () => {
   it('至少收集到已知的浮层类(防止正则失配导致空跑通过)', () => {
     expect(overlays).toEqual(expect.arrayContaining([
@@ -189,26 +225,17 @@ describe('移动端全屏浮层契约', () => {
   it('每个浮层容器都挂了 useDialogA11y(role/aria-modal/Escape/焦点)', () => {
     // 规格 08 §5。此前只有三个组件手写 role="dialog",Escape 全站缺失。
     // 现在统一走 hook:承载内容的容器必须展开 *DialogProps 或显式写 role。
-    // 用精确类名匹配而不是子串 —— `my-beads-modal-actions` 这类内部元素不属于浮层容器。
-    const DIALOG_CONTAINERS = new Set([
-      'export-modal-content', 'contact-modal', 'admin-modal', 'admin-gate-confirm',
-      'users-confirm', 'modal-content', 'load-confirm-modal', 'my-beads-modal',
-      'save-dialog', 'export-confirm-dialog', 'brand-switch-dialog', 'replace-dialog',
-      'quantizer-zoom',
-    ])
-    const offenders = []
-    for (const file of walk(SRC)) {
-      const code = readFileSync(file, 'utf8')
-      for (const line of code.split(/\r?\n/)) {
-        const m = line.match(/className="([^"]*)"/)
-        if (!m) continue
-        const tokens = m[1].split(/\s+/).filter(Boolean)
-        if (!tokens.some((tk) => DIALOG_CONTAINERS.has(tk))) continue
-        // 该行是 JSX 元素开标签:必须同时带 dialog props 展开或显式 role
-        if (/[Dd]ialogProps\}/.test(line) || /role="(?:dialog|alertdialog)"/.test(line)) continue
-        offenders.push(`${relative(SRC, file)}: ${line.trim().slice(0, 90)}`)
-      }
-    }
+    const offenders = scanDialogContainers()
+      .filter((hit) => !hit.hasDialog)
+      .map((hit) => `${hit.file}: ${hit.line}`)
     expect(offenders).toEqual([])
+  })
+
+  it('扫描器确实覆盖到模板字符串写法的容器(防止契约测试空跑)', () => {
+    // AdminPanel 的浮层写成 className={`admin-modal${wide ? ' wide' : ''}`},
+    // 早期版本只匹配 className="..." 双引号形式,把整个文件漏掉却照样通过。
+    // 这条自检保证扫描器永远至少命中它 —— 一旦正则退化,这里先红。
+    const files = scanDialogContainers().map((hit) => hit.file)
+    expect(files.some((f) => f.endsWith('AdminPanel.jsx'))).toBe(true)
   })
 })
