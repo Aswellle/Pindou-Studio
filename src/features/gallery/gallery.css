@@ -669,6 +669,8 @@
           justify-content: space-between;
           gap: 8px;
           padding: 0 14px 12px;
+          /* 32 是只有色点时的下限;图库首页页脚含 28px 导出按钮,
+             实际高度由内容撑到 40 —— 这里不能写死高度,否则两处不一致。 */
           min-height: 32px;
         }
         .template-colors {
@@ -1083,8 +1085,7 @@
         @media (prefers-reduced-motion: reduce) {
           .skeleton-bar,
           .skeleton-thumb { animation: none; }
-        }
-        .rail-card {
+        }        .rail-card {
           flex: 0 0 132px;
           display: flex;
           flex-direction: column;
@@ -1150,6 +1151,87 @@
           text-overflow: ellipsis;
           white-space: nowrap;
         }
+
+        /* ── 主题页 / 合集页首屏骨架 ──────────────────────────
+           骨架直接复用真实容器的类名(.content-page-head / .content-filters /
+           .templates-grid),间距与版式自动一致,内容到达时不跳动。
+           这里只定义占位块自身的尺寸。 */
+        /* 页头占位组:模拟 .content-page-head 的纵向 flex + gap 8 */
+        .skeleton-head-group {
+          display: flex;
+          flex-direction: column;
+          gap: 8px;
+        }
+        /* 骨架内部直接复用 .content-page-head / .content-filters 的真实布局,
+           这里只定义占位块自身的尺寸。
+           高度对齐真实元素(实测:kicker 17 / 标题 30 / 描述 22 / 计数 18),
+           内容到达时页头高度不变,下方网格不会往下跳。 */
+        .skeleton-back { width: 104px; height: 44px; border-radius: 8px; }
+        .skeleton-kicker { width: 48px; height: 17px; }
+        .skeleton-heading { width: 220px; height: 30px; }
+        .skeleton-desc-line { width: min(100%, 420px); height: 22px; }
+        .skeleton-note-block { width: min(100%, 560px); height: 48px; border-radius: 0 8px 8px 0; }
+        .skeleton-count { width: 90px; height: 18px; }
+        .skeleton-search { flex: 1 1 220px; height: 36px; border-radius: 8px; align-self: flex-end; }
+        /* 下拉占位:模拟「label + select」两行,与真实 .content-filter-select 同高(59) */
+        .skeleton-select-group {
+          display: flex;
+          flex-direction: column;
+          gap: 4px;
+          width: 110px;
+        }
+        .skeleton-select-label { width: 40px; height: 17px; }
+        .skeleton-select { width: 110px; height: 38px; border-radius: 8px; }
+        /* 占位卡片:独立类名,不复用 .template-card ——
+           否则任何按 .template-card 计数的测试/脚本都会把占位卡当成真实卡片。
+           与真实卡片使用完全相同的盒模型(见 .template-card):display:flex 纵向
+           三段 + height:100%,这样同行卡片被网格拉伸时,骨架与真实卡片一起变高,
+           内容到达前后高度一致。 */
+        .skeleton-card-template {
+          display: flex;
+          flex-direction: column;
+          height: 100%;
+          background: var(--bg-primary);
+          border: 2px solid var(--border-color);
+          border-radius: var(--radius-card);
+          overflow: hidden;
+          pointer-events: none;
+        }
+        .skeleton-thumb-square {
+          aspect-ratio: 1 / 1;
+          flex: 0 0 auto;
+          padding: 12px;
+          display: flex;
+          align-items: stretch;
+          justify-content: stretch;
+          border-bottom: 1px solid var(--border-color);
+        }
+        .skeleton-info {
+          padding: 12px 14px 8px;
+          /* 与 .template-info 一致:占据剩余高度、可收缩。
+             缺了 min-height:0 时 flex 子项的最小内容高度会把信息区撑开
+             (实测撑到 595px,整卡 900px)。 */
+          flex: 1 1 auto;
+          min-height: 0;
+        }
+        .skeleton-footer {
+          display: flex;
+          align-items: center;
+          gap: 4px;
+          padding: 0 14px 12px;
+          min-height: 32px;
+        }
+        .skeleton-fill {
+          width: 100%;
+          height: 100%;
+          border-radius: 8px;
+        }
+        /* 占位块高度对齐真实元素(名称 24 / 元信息 21 / 分类 17,间距 6 与 4),
+           内容到达时卡片高度不跳(实测 399 → 392 的 7px 差来自这里)。 */
+        .skeleton-title-line { width: 60%; height: 24px; margin-bottom: 6px; }
+        .skeleton-meta-line { width: 85%; height: 21px; margin-bottom: 4px; }
+        .skeleton-category-line { width: 40%; height: 17px; }
+        .skeleton-dot { width: 12px; height: 12px; border-radius: 50%; }
 
         /* ── 主题/合集页:封面与筛选 ─────────────────────────── */
         .content-cover {
@@ -1615,12 +1697,18 @@
         /* TemplateGrid 用 button 承载卡片:清掉浏览器默认按钮样式,
            视觉仍完全由 .template-card 决定 */
         .template-card-button {
-          display: block;
+          /* 不能写 display:block —— 那会覆盖 .template-card 的 flex 三段式布局,
+             信息区与页脚不再按 flex 分配高度,主题页/合集页的卡片比图库首页矮 13px。
+             这里只做「按钮」相关的重置,布局仍由 .template-card 决定。 */
+          display: flex;
+          flex-direction: column;
           width: 100%;
+          height: 100%;
           padding: 0;
           text-align: left;
           font-family: inherit;
           color: inherit;
+          cursor: pointer;
         }
 
         /* ── 后台内容运营(ContentManager) ───────────────────── */
