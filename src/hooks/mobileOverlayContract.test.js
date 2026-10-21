@@ -185,4 +185,30 @@ describe('移动端全屏浮层契约', () => {
     }
     expect(offenders).toEqual([])
   })
+
+  it('每个浮层容器都挂了 useDialogA11y(role/aria-modal/Escape/焦点)', () => {
+    // 规格 08 §5。此前只有三个组件手写 role="dialog",Escape 全站缺失。
+    // 现在统一走 hook:承载内容的容器必须展开 *DialogProps 或显式写 role。
+    // 用精确类名匹配而不是子串 —— `my-beads-modal-actions` 这类内部元素不属于浮层容器。
+    const DIALOG_CONTAINERS = new Set([
+      'export-modal-content', 'contact-modal', 'admin-modal', 'admin-gate-confirm',
+      'users-confirm', 'modal-content', 'load-confirm-modal', 'my-beads-modal',
+      'save-dialog', 'export-confirm-dialog', 'brand-switch-dialog', 'replace-dialog',
+      'quantizer-zoom',
+    ])
+    const offenders = []
+    for (const file of walk(SRC)) {
+      const code = readFileSync(file, 'utf8')
+      for (const line of code.split(/\r?\n/)) {
+        const m = line.match(/className="([^"]*)"/)
+        if (!m) continue
+        const tokens = m[1].split(/\s+/).filter(Boolean)
+        if (!tokens.some((tk) => DIALOG_CONTAINERS.has(tk))) continue
+        // 该行是 JSX 元素开标签:必须同时带 dialog props 展开或显式 role
+        if (/[Dd]ialogProps\}/.test(line) || /role="(?:dialog|alertdialog)"/.test(line)) continue
+        offenders.push(`${relative(SRC, file)}: ${line.trim().slice(0, 90)}`)
+      }
+    }
+    expect(offenders).toEqual([])
+  })
 })
