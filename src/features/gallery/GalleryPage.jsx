@@ -574,48 +574,31 @@ export default function GalleryPage({ onLoadTemplate, onDeleteWork, onLoadWork, 
               <div
                 key={template.id}
                 className="template-card"
+                role="button"
+                tabIndex={0}
                 onClick={() => setPendingLoad(template)}
+                onKeyDown={(e) => {
+                  // 键盘可达:卡片本身是 div(内部还有收藏/导出/品牌三个按钮),
+                  // 只在焦点落在卡片自身时才响应,避免 Enter 冒泡触发两次。
+                  if (e.target !== e.currentTarget) return
+                  if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault()
+                    setPendingLoad(template)
+                  }
+                }}
               >
                 <div className="template-thumbnail">
                   <ThumbnailCanvas pattern={template.pattern} size={template.size} gridWidth={templateDimensions(template).width} gridHeight={templateDimensions(template).height} />
                   <button
                     className={`favorite-btn ${favorites.some(f => String(f) === String(template.id)) ? 'active' : ''}`}
                     onClick={(e) => toggleFavorite(template.id, e)}
+                    aria-label={t('gallery.myFavorites')}
+                    aria-pressed={favorites.some(f => String(f) === String(template.id))}
                   >
                     <svg width="16" height="16" viewBox="0 0 24 24" fill={favorites.includes(template.id) ? 'var(--accent)' : 'none'} stroke="var(--accent)" strokeWidth="2">
                       <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
                     </svg>
                   </button>
-                  <div className="export-btn-wrap">
-                    <button
-                      className="export-btn"
-                      onClick={e => {
-                        e.stopPropagation()
-                        exportTriggerRect.current = e.currentTarget.getBoundingClientRect()
-                        exportTriggerEl.current = e.currentTarget
-                        setBrandMenuId(null)
-                        setExportMenuId(exportMenuId === template.id ? null : template.id)
-                      }}
-                      disabled={exportingId === template.id}
-                      title={t('export.title')}
-                      aria-expanded={exportMenuId === template.id}
-                      aria-haspopup="menu"
-                      aria-label={t('export.title')}
-                    >
-                      {exportingId === template.id ? (
-                        <svg className="spinning" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                          <path d="M21 12a9 9 0 1 1-6.219-8.56"/>
-                        </svg>
-                      ) : (
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                          <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
-                          <polyline points="7 10 12 15 17 10"/>
-                          <line x1="12" y1="15" x2="12" y2="3"/>
-                        </svg>
-                      )}
-                    </button>
-                    <span className="download-count" title={t('gallery.downloadCount')}>{getDownloadCount(template)}</span>
-                  </div>
 
                   {exportMenuId === template.id && createPortal(
                     // portal 到 document.body:彻底脱离模板卡片的 overflow:hidden 与
@@ -741,9 +724,43 @@ export default function GalleryPage({ onLoadTemplate, onDeleteWork, onLoadWork, 
                   </div>,
                   document.body
                 )}
-                {/* 珠子颜色圆点由系统从 pattern 自动识别(统一协议可省略 colors 字段) */}
-                <div className="template-colors">
-                  <ColorDots pattern={template.pattern} />
+                {/* 卡片页脚:颜色圆点 + 导出(含下载量)。
+                    导出原本浮在缩略图右下角,既压住图案,又让预览区必须留 40px 底边;
+                    放进页脚后预览区是干净的正方形,操作也有了明确的落点。 */}
+                <div className="template-footer">
+                  <div className="template-colors">
+                    <ColorDots pattern={template.pattern} />
+                  </div>
+                  <div className="export-btn-wrap">
+                    <button
+                      className="export-btn"
+                      onClick={e => {
+                        e.stopPropagation()
+                        exportTriggerRect.current = e.currentTarget.getBoundingClientRect()
+                        exportTriggerEl.current = e.currentTarget
+                        setBrandMenuId(null)
+                        setExportMenuId(exportMenuId === template.id ? null : template.id)
+                      }}
+                      disabled={exportingId === template.id}
+                      title={t('export.title')}
+                      aria-expanded={exportMenuId === template.id}
+                      aria-haspopup="menu"
+                      aria-label={t('export.title')}
+                    >
+                      {exportingId === template.id ? (
+                        <svg className="spinning" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                          <path d="M21 12a9 9 0 1 1-6.219-8.56"/>
+                        </svg>
+                      ) : (
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                          <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                          <polyline points="7 10 12 15 17 10"/>
+                          <line x1="12" y1="15" x2="12" y2="3"/>
+                        </svg>
+                      )}
+                    </button>
+                    <span className="download-count" title={t('gallery.downloadCount')}>{getDownloadCount(template)}</span>
+                  </div>
                 </div>
               </div>
             ))}
