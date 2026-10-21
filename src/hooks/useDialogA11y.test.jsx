@@ -70,6 +70,30 @@ describe('useDialogA11y', () => {
     expect(onClose).not.toHaveBeenCalled()
   })
 
+  it('输入法组合态下的 Escape 不关闭浮层(取消候选词,不是关窗)', () => {
+    // 中文拼音输入时 Esc 用于撤销候选词。浏览器在组合期间仍派发 keydown,
+    // 若不排除 isComposing,用户想取消输入却把整个浮层关掉。
+    const onClose = vi.fn()
+    render(<Dialog open onClose={onClose} />)
+    fireEvent.keyDown(document, { key: 'Escape', isComposing: true })
+    expect(onClose).not.toHaveBeenCalled()
+  })
+
+  it('keyCode 229(部分输入法的组合态信号)同样不关闭', () => {
+    const onClose = vi.fn()
+    render(<Dialog open onClose={onClose} />)
+    fireEvent.keyDown(document, { key: 'Escape', keyCode: 229 })
+    expect(onClose).not.toHaveBeenCalled()
+  })
+
+  it('组合结束后再按 Escape 恢复正常关闭', () => {
+    const onClose = vi.fn()
+    render(<Dialog open onClose={onClose} />)
+    fireEvent.keyDown(document, { key: 'Escape', isComposing: true })
+    fireEvent.keyDown(document, { key: 'Escape' })
+    expect(onClose).toHaveBeenCalledTimes(1)
+  })
+
   it('两层浮层叠加时只有栈顶响应 Escape', () => {
     const outerClose = vi.fn()
     const innerClose = vi.fn()

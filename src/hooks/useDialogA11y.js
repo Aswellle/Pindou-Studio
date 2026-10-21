@@ -16,6 +16,8 @@
  *
  * 不做焦点循环(trap):`aria-modal` 已让辅助技术忽略浮层外的内容;而 ExportPanel
  * 的确认框是外层遮罩的**兄弟节点**,硬 trap 反而会把键盘用户困在外层、进不去确认框。
+ * 已知限制:Tab 可以把焦点移到浮层之外的背景元素(`aria-modal` 只影响辅助技术,
+ * 不阻止焦点移动)。这是为「兄弟浮层可互相到达」付出的代价,不是遗漏。
  */
 
 import { useEffect, useRef } from 'react'
@@ -68,6 +70,11 @@ export function useDialogA11y({ open, onClose, label, disabled = false, role = '
     if (!open || disabled) return undefined
     const onKeyDown = (e) => {
       if (e.key !== 'Escape' || e.defaultPrevented) return
+      // 输入法组合态:中文/日文输入时 Esc 是「取消候选词」而不是「关闭浮层」。
+      // Chrome/Edge 在组合期间仍会派发 keydown(仅 isComposing=true),
+      // 不排除的话拼音用户按 Esc 想撤销候选,整个浮层会直接关掉。
+      // keyCode 229 是部分旧内核/输入法在组合态下的唯一信号。
+      if (e.isComposing || e.keyCode === 229) return
       if (stack[stack.length - 1] !== tokenRef.current) return
       e.preventDefault()
       onClose?.()
