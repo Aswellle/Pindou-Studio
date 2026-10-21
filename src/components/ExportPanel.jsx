@@ -11,6 +11,20 @@ import { canvasToLegacyWork } from '../services/project/adapters'
 import { legacyWorkToProject } from '../services/project/adapters'
 import { projectToFileText, projectFileName, downloadProjectFile } from '../services/project/exportProject'
 
+/**
+ * 导出质量预设(规格 09 §2「可提供屏幕分享 / 高分辨率 / 打印预设」)。
+ *
+ * dpi 语义:300 是现有固定 3× 超采样的哨兵值(RasterRenderer / 导出器内部据此分流);
+ * 其他值换算成更高倍率(432→6×、576→8×)。两条路径都受同一套面积预算约束,
+ * 超限时降级并通过 onScale 回报 —— 预设只是「请求值」,不是承诺。
+ */
+const QUALITY_PRESETS = {
+  screen: { dpi: 300, labelKey: 'export.qualityScreen' },
+  high: { dpi: 432, labelKey: 'export.qualityHigh' },
+  print: { dpi: 576, labelKey: 'export.qualityPrint' },
+}
+const QUALITY_ORDER = ['screen', 'high', 'print']
+
 export default function ExportPanel({
   canvasData, gridSize, gridWidth, gridHeight, designName, paletteId = 'perler', onClose,
   // 规格 05 §3:只有用户主动开启「导出后记账」才扣减库存;默认关闭
@@ -28,7 +42,13 @@ export default function ExportPanel({
   const [isExporting, setIsExporting] = useState(false)
   const [exportError, setExportError] = useState(null)
   const [exportInfo, setExportInfo] = useState('') // 导出后显示实际分辨率(验证超采样生效)
+  // 超采样降级:实际倍率低于请求倍率时置为 { actual, requested }。
+  // 规格 09 §4.3 要求「用户选择高质量但实际降级时,界面必须报告真实结果」。
+  const [scaleInfo, setScaleInfo] = useState(null)
   const [beadStyle, setBeadStyle] = useState('professional')
+  // 导出质量预设:screen 走现有 3× 超采样(默认),high/print 走 DPI 路径。
+  // 只影响 PNG 专业图纸;SVG 是矢量,不需要倍率。
+  const [quality, setQuality] = useState('screen')
   // 导出引擎:V2(PatternDocument 统一渲染,完整 sheet 版式)为默认,
   // 开关保留作为回退旧路径(BeadPatternExporter)的出口
   const [useExportV2, setUseExportV2] = useState(true)
@@ -72,6 +92,7 @@ export default function ExportPanel({
     if (!canvasData || isExporting) return
     setIsExporting(true)
     setExportError(null)
+    setScaleInfo(null) // 每次导出重置:上一次的降级提示不能留在这一次
     try {
 
       // V2 导出路径 (PatternDocument → RasterRenderer):分帧 + 可取消
@@ -91,9 +112,14 @@ export default function ExportPanel({
         exportAbortRef.current = abortCtrl
         try {
           const blob = await renderPatternDocumentToPNG(doc, {
+            // 质量预设 → DPI。screen 传 300 走固定 3×(现状不变);
+            // high/print 换算成更高倍率(432→6×、576→8×)。
+            dpi: QUALITY_PRESETS[quality]?.dpi ?? 300,
             onProgress: setExportProgress,
             // 与 V1 路径一致:回传实际导出分辨率,UI 显示确认超采样生效
             onResolution: (w, h) => setExportInfo(`${w}×${h}`),
+            // 面积预算降级时把实际倍率带回来(规格 09 §4.3:必须报告真实结果)
+            onScale: (actual, requested) => setScaleInfo(actual < requested ? { actual, requested } : null),
             signal: abortCtrl.signal,
           })
           const url = URL.createObjectURL(blob)
@@ -126,6 +152,8 @@ export default function ExportPanel({
         setExportError(t('export.canvasTooLarge'))
         return
       }
+      // 与 V2 路径同一套降级回报:createScaledCanvas 请求 3×,实际可能被预算降到 2×/1×
+      if (scale < 3) setScaleInfo({ actual: scale, requested: 3 })
       const ctx = canvas.getContext('2d')
       ctx.scale(scale, scale)
 
@@ -337,9 +365,12 @@ export default function ExportPanel({
         gridWidth,
         gridHeight,
         beadStyle,
+        // 质量预设同样作用于完整版式图纸 PNG(否则选了「打印」仍按 3× 出图)
+        dpi: QUALITY_PRESETS[quality]?.dpi ?? 300,
         signal: abortCtrl.signal,
         onProgress: (_phase, pct) => setExportProgress(Math.round(pct * 100)),
-        onResolution: (w, h) => setExportInfo(`${w}×${h}`)
+        onResolution: (w, h) => setExportInfo(`${w}×${h}`),
+        onScale: (actual, requested) => setScaleInfo(actual < requested ? { actual, requested } : null)
       })
       markExportOk()
     } catch (err) {
@@ -487,6 +518,23 @@ export default function ExportPanel({
               </span>
             </div>
 
+            {/* 输出质量预设(规格 09 §2):只影响 PNG。
+                预设是「请求值」,实际倍率仍受设备面积预算约束,
+                降级时下方会显示真实结果,不会假装达标。 */}
+            <div className="export-style-group">
+              <label className="style-label">{t('export.qualityLabel')}</label>
+              <select
+                value={quality}
+                onChange={e => setQuality(e.target.value)}
+                className="style-select"
+              >
+                {QUALITY_ORDER.map((key) => (
+                  <option key={key} value={key}>{t(QUALITY_PRESETS[key].labelKey)}</option>
+                ))}
+              </select>
+              <span className="setting-hint">{t('export.qualityHint')}</span>
+            </div>
+
             {/* Feature Flag: 新导出路径开关（默认关闭） */}
             <div className="export-style-group">
               <label className="export-v2-toggle">
@@ -537,15 +585,25 @@ export default function ExportPanel({
               {exportInfo && (
                 <div style={{ fontSize: 11, color: 'var(--secondary-accent)', padding: '4px 2px', lineHeight: 1.4 }}>
                   ✓ {t('export.resolution')}: {exportInfo}
+                  {scaleInfo && (
+                    /* 规格 09 §4.3:降级必须报告真实结果,不能只显示分辨率假装达标 */
+                    <span style={{ color: 'var(--warning)', marginLeft: 6 }}>
+                      · {t('export.scaleDegraded', { actual: scaleInfo.actual, requested: scaleInfo.requested })}
+                    </span>
+                  )}
                 </div>
               )}
 
-              {/* 物理尺寸信息 */}
+              {/* 物理尺寸信息:珠径按当前品牌色卡取值 ——
+                  COCO/Artkal 是 2.6mm,Perler/Hama/MARD 是 5mm。
+                  此前固定按 2.6mm 算,29×29 的 Perler 图纸显示 75.4mm(实际 145mm)。 */}
               {(() => {
-                const phys = calculatePhysicalSize(actualWidth, actualHeight)
+                const beadSizeMm = palette?.beadSize || 5
+                const phys = calculatePhysicalSize(actualWidth, actualHeight, beadSizeMm)
                 return (
                   <div style={{ fontSize: 11, color: 'var(--text-secondary)', padding: '4px 2px' }}>
                     ✓ {t('export.physicalSize', '物理尺寸')}: {phys.widthMm}×{phys.heightMm}mm ({phys.widthInch}×{phys.heightInch}in)
+                    <span style={{ color: 'var(--text-muted)' }}> · {beadSizeMm}mm/{t('export.beadUnit', '颗')}</span>
                   </div>
                 )
               })()}

@@ -717,7 +717,14 @@
     "deductInventoryHint": "Only colors with a recorded quantity are deducted; unknown quantities are left untouched.",
     "deductDone": "Deducted {{n}} beads ({{colors}} colors)",
     "deductPartial": "Inventory deduction: {{ok}} succeeded, {{failed}} failed",
-    "deductSkipped": "{{n}} colors have no recorded quantity; nothing deducted"
+    "deductSkipped": "{{n}} colors have no recorded quantity; nothing deducted",
+    "qualityLabel": "Output quality",
+    "qualityHint": "Screen: for sharing. High resolution: for zooming in. Print: for printing at physical size. Actual pixels depend on device limits; any downgrade is shown below.",
+    "qualityScreen": "Screen sharing",
+    "qualityHigh": "High resolution",
+    "qualityPrint": "Print / high DPI",
+    "scaleDegraded": "actual ×{{actual}} (downgraded from ×{{requested}})",
+    "beadUnit": "bead"
   },
   "quantizer": {
     "title": "Image to Beads",

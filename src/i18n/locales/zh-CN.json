@@ -717,7 +717,14 @@
     "deductInventoryHint": "只扣减已记录数量的颜色;数量未知的颜色不会被扣。",
     "deductDone": "已扣减库存 {{n}} 颗({{colors}} 种颜色)",
     "deductPartial": "库存扣减:成功 {{ok}} 条,失败 {{failed}} 条",
-    "deductSkipped": "{{n}} 种颜色未记录数量,未扣减库存"
+    "deductSkipped": "{{n}} 种颜色未记录数量,未扣减库存",
+    "qualityLabel": "输出质量",
+    "qualityHint": "屏幕：适合分享查看；高分辨率：适合放大查看；打印：适合按实物尺寸打印。实际像素受设备限制，若降级会在下方提示。",
+    "qualityScreen": "屏幕分享",
+    "qualityHigh": "高分辨率",
+    "qualityPrint": "打印 / 高 DPI",
+    "scaleDegraded": "实际 ×{{actual}}（已从 ×{{requested}} 降级）",
+    "beadUnit": "颗"
   },
   "quantizer": {
     "title": "图片转拼豆",

@@ -717,7 +717,14 @@
     "deductInventoryHint": "数量が記録されている色のみ減らします。数量不明の色は変更しません。",
     "deductDone": "在庫を {{n}} 個減らしました({{colors}} 色)",
     "deductPartial": "在庫の減算:成功 {{ok}} 件、失敗 {{failed}} 件",
-    "deductSkipped": "{{n}} 色は数量が未記録のため減算していません"
+    "deductSkipped": "{{n}} 色は数量が未記録のため減算していません",
+    "qualityLabel": "出力品質",
+    "qualityHint": "画面：共有向け。高解像度：拡大表示向け。印刷：実寸印刷向け。実際のピクセル数は端末の制限を受け、低下した場合は下に表示されます。",
+    "qualityScreen": "画面共有",
+    "qualityHigh": "高解像度",
+    "qualityPrint": "印刷 / 高 DPI",
+    "scaleDegraded": "実際 ×{{actual}}（×{{requested}} から低下）",
+    "beadUnit": "個"
   },
   "quantizer": {
     "title": "画像をビードに",

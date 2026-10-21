@@ -717,7 +717,14 @@
     "deductInventoryHint": "수량이 기록된 색상만 차감합니다. 수량 미기록 색상은 그대로 둡니다.",
     "deductDone": "재고 {{n}}개를 차감했습니다({{colors}}색)",
     "deductPartial": "재고 차감: 성공 {{ok}}건, 실패 {{failed}}건",
-    "deductSkipped": "{{n}}색은 수량이 기록되지 않아 차감하지 않았습니다"
+    "deductSkipped": "{{n}}색은 수량이 기록되지 않아 차감하지 않았습니다",
+    "qualityLabel": "출력 품질",
+    "qualityHint": "화면: 공유용. 고해상도: 확대 보기용. 인쇄: 실물 크기 인쇄용. 실제 픽셀은 기기 제한을 받으며, 저하된 경우 아래에 표시됩니다.",
+    "qualityScreen": "화면 공유",
+    "qualityHigh": "고해상도",
+    "qualityPrint": "인쇄 / 고 DPI",
+    "scaleDegraded": "실제 ×{{actual}} (×{{requested}}에서 저하됨)",
+    "beadUnit": "개"
   },
   "quantizer": {
     "title": "이미지를 비드로",
