@@ -24,7 +24,7 @@ function installMock2dContext() {
     getImageData: () => ({ data: new Uint8ClampedArray(4) }),
   }
   const orig = HTMLCanvasElement.prototype.getContext
-  HTMLCanvasElement.prototype.getContext = function () { return ctx }
+  HTMLCanvasElement.prototype.getContext = () => ctx
   return () => { HTMLCanvasElement.prototype.getContext = orig }
 }
 

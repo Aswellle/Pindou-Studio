@@ -61,7 +61,7 @@ beforeAll(async () => {
   const ctx = {
     fillStyle: '', fillRect: () => {}, clearRect: () => {},
   }
-  HTMLCanvasElement.prototype.getContext = function () { return ctx }
+  HTMLCanvasElement.prototype.getContext = () => ctx
 })
 
 afterEach(() => {

@@ -37,7 +37,7 @@ beforeAll(async () => {
     setTransform: () => {}, createRadialGradient: () => ({ addColorStop: () => {} }),
     getImageData: () => ({ data: new Uint8ClampedArray(4) }),
   }
-  HTMLCanvasElement.prototype.getContext = function () { return ctx }
+  HTMLCanvasElement.prototype.getContext = () => ctx
 })
 
 afterEach(() => {

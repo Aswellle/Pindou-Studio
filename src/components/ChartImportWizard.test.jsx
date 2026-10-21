@@ -45,15 +45,13 @@ const { saveSession, deleteSession } = await import('../services/project/chartIm
 
 beforeAll(async () => {
   await i18n.changeLanguage('zh-CN')
-  HTMLCanvasElement.prototype.getContext = function () {
-    return {
+  HTMLCanvasElement.prototype.getContext = () => ({
       fillStyle: '', strokeStyle: '', lineWidth: 1, imageSmoothingEnabled: true,
       fillRect: () => {}, clearRect: () => {}, strokeRect: () => {},
       beginPath: () => {}, moveTo: () => {}, lineTo: () => {}, stroke: () => {},
       putImageData: () => {}, drawImage: () => {}, setLineDash: () => {},
       setTransform: () => {}, save: () => {}, restore: () => {},
-    }
-  }
+    })
 })
 
 beforeEach(() => {

@@ -80,7 +80,7 @@ export default function ContactMessages() {
       .sort((a, b) => new Date(b.lastAt) - new Date(a.lastAt))
 
     // 批量查 profiles:命中的为注册用户(站内昵称/真实头像),未命中的为游客
-    let profileById = {}
+    const profileById = {}
     try {
       const ids = convs.map(c => c.participantId)
       const { data: pdata } = await supabase.from('profiles').select('id,nickname,avatar_url').in('id', ids)

@@ -22,7 +22,7 @@ function installMock2dContext() {
     clearRect: () => {},
   }
   const orig = HTMLCanvasElement.prototype.getContext
-  HTMLCanvasElement.prototype.getContext = function () { return ctx }
+  HTMLCanvasElement.prototype.getContext = () => ctx
   return { calls, restore: () => { HTMLCanvasElement.prototype.getContext = orig } }
 }
 

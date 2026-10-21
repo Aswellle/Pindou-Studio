@@ -7,12 +7,10 @@ import i18n from '../i18n'
 beforeAll(async () => {
   await i18n.changeLanguage('zh-CN')
   // jsdom 无 canvas:缩略图直绘不崩即可
-  HTMLCanvasElement.prototype.getContext = function () {
-    return {
+  HTMLCanvasElement.prototype.getContext = () => ({
       fillStyle: '', fillRect: () => {}, clearRect: () => {},
       setTransform: () => {}, save: () => {}, restore: () => {},
-    }
-  }
+    })
 })
 
 afterEach(() => cleanup())

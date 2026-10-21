@@ -28,7 +28,7 @@ beforeAll(async () => {
     setTransform: () => {}, createRadialGradient: () => ({ addColorStop: () => {} }),
     getImageData: () => ({ data: new Uint8ClampedArray(4) }),
   }
-  HTMLCanvasElement.prototype.getContext = function () { return ctx }
+  HTMLCanvasElement.prototype.getContext = () => ctx
 })
 
 afterEach(() => {
@@ -113,7 +113,7 @@ describe('MyBeadsPage · 色卡管理(本地模式)', () => {
     const { container } = setup()
     await waitFor(() => expect(container.querySelector('.my-beads-mode')).toBeTruthy())
     fireEvent.click(screen.getByText('新建色卡'))
-    let dialog = document.querySelector('.my-beads-modal')
+    const dialog = document.querySelector('.my-beads-modal')
     fireEvent.change(within(dialog).getByPlaceholderText('例如：我的 5mm 拼豆'), { target: { value: '待删' } })
     fireEvent.click(within(dialog).getByText('保存'))
     await waitFor(() => expect(container.querySelector('.my-beads-palette-detail')).toBeTruthy())

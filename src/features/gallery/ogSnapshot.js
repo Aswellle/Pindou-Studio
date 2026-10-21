@@ -329,9 +329,7 @@ export function renderSnapshotHtml(indexHtml, snap, canonicalUrl, { noindex = fa
     const href = lang === 'zh-CN' || lang === 'x-default' ? canonicalUrl : `${canonicalUrl}?lang=${lang}`
     return `  <link rel="alternate" hreflang="${lang}" href="${href}" />${EOL}`
   }).join('')
-  const existingHreflang = new RegExp(
-    `(?:  <link rel="alternate" hreflang="[^"]+" href="https:\\/\\/tangnotes\\.site[^"]*" \\/>\\r?\\n){5}`,
-  )
+  const existingHreflang = /(?: {2}<link rel="alternate" hreflang="[^"]+" href="https:\/\/tangnotes\.site[^"]*" \/>\r?\n){5}/
   out = out.replace(existingHreflang, hreflangBlock)
 
   // 首帧前隐藏静态正文(与 generate-prerender-html.js 同一机制):

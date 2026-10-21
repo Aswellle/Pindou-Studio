@@ -48,10 +48,8 @@ function installCanvasMocks(hooks = {}) {
   }
   const origGetContext = HTMLCanvasElement.prototype.getContext
   const origGetRect = HTMLCanvasElement.prototype.getBoundingClientRect
-  HTMLCanvasElement.prototype.getContext = function () { return ctx }
-  HTMLCanvasElement.prototype.getBoundingClientRect = function () {
-    return { left: 0, top: 0, right: 48, bottom: 48, width: 48, height: 48, x: 0, y: 0, toJSON: () => ({}) }
-  }
+  HTMLCanvasElement.prototype.getContext = () => ctx
+  HTMLCanvasElement.prototype.getBoundingClientRect = () => ({ left: 0, top: 0, right: 48, bottom: 48, width: 48, height: 48, x: 0, y: 0, toJSON: () => ({}) })
   return {
     calls,
     restore() {
@@ -301,14 +299,12 @@ describe('Canvas 缩放下的坐标正确性(规格 04 §8)', () => {
 
   /** 把 base canvas 的显示矩形设为「按 scale 缩放后的尺寸」 */
   function installScaledRect(scale) {
-    HTMLCanvasElement.prototype.getBoundingClientRect = function () {
-      return {
+    HTMLCanvasElement.prototype.getBoundingClientRect = () => ({
         left: 0, top: 0,
         right: BASE_W * scale, bottom: BASE_H * scale,
         width: BASE_W * scale, height: BASE_H * scale,
         x: 0, y: 0, toJSON: () => ({}),
-      }
-    }
+      })
   }
 
   function renderAt(scale, overrides = {}) {
@@ -386,9 +382,7 @@ describe('Canvas 缩放下的坐标正确性(规格 04 §8)', () => {
   }
 
   test('显示矩形尺寸为 0 时不会产生 NaN 坐标', () => {
-    HTMLCanvasElement.prototype.getBoundingClientRect = function () {
-      return { left: 0, top: 0, right: 0, bottom: 0, width: 0, height: 0, x: 0, y: 0, toJSON: () => ({}) }
-    }
+    HTMLCanvasElement.prototype.getBoundingClientRect = () => ({ left: 0, top: 0, right: 0, bottom: 0, width: 0, height: 0, x: 0, y: 0, toJSON: () => ({}) })
     const { container, onCanvasChange, onPickColor } = renderAt(1, { tool: 'eyedropper' })
     const c = container.querySelector('.canvas-container')
 

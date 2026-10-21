@@ -29,7 +29,7 @@ const missingError = (col) => ({
 /** 把待写入行按「已存在列」裁剪;缺列时返回错误 */
 function applyRow(row) {
   for (const col of cloud.missingColumns) {
-    if (Object.prototype.hasOwnProperty.call(row, col)) return { error: missingError(col) }
+    if (Object.hasOwn(row, col)) return { error: missingError(col) }
   }
   return { row: { id: `row-${cloud.rows.length + 1}`, ...row } }
 }

@@ -6,15 +6,13 @@ import i18n from '../i18n'
 
 beforeAll(async () => {
   await i18n.changeLanguage('zh-CN')
-  HTMLCanvasElement.prototype.getContext = function () {
-    return {
+  HTMLCanvasElement.prototype.getContext = () => ({
       fillStyle: '', strokeStyle: '', lineWidth: 1,
       fillRect: () => {}, clearRect: () => {}, strokeRect: () => {},
       beginPath: () => {}, moveTo: () => {}, lineTo: () => {}, stroke: () => {},
       putImageData: () => {}, drawImage: () => {}, setLineDash: () => {},
       setTransform: () => {}, save: () => {}, restore: () => {},
-    }
-  }
+    })
 })
 
 afterEach(() => cleanup())
