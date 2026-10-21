@@ -19,6 +19,7 @@ import { createPortal } from 'react-dom'
 import { Palette, X } from 'lucide-react'
 import { getPalette } from '../data/palettes'
 import { useScrollLock } from '../hooks/useScrollLock'
+import { useDialogA11y } from '../hooks/useDialogA11y'
 import { planBrandSwitch } from '../utils/brandSwitch'
 
 export default function BrandSwitchDialog({
@@ -40,6 +41,8 @@ export default function BrandSwitchDialog({
 
   // 弹层打开期间锁定背景滚动(必须在早退 return 之前调用,保持 hooks 顺序)
   useScrollLock(!!open)
+  // 可访问性(规格 08 §5):role/aria-modal/Escape/焦点归还统一由 hook 提供
+  const { ref, dialogProps } = useDialogA11y({ open: !!open, onClose, label: t('brandSwitch.title') })
 
   if (!open || !plan) return null
 
@@ -48,7 +51,7 @@ export default function BrandSwitchDialog({
 
   return createPortal(
     <div className="modal-overlay" onClick={onClose}>
-      <div className="brand-switch-dialog" onClick={e => e.stopPropagation()} role="dialog" aria-modal="true">
+      <div className="brand-switch-dialog" ref={ref} {...dialogProps} onClick={e => e.stopPropagation()}>
         <div className="brand-switch-head">
           <Palette size={18} />
           <h3>{t('brandSwitch.title')}</h3>

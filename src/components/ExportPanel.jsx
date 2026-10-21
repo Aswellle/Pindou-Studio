@@ -1,6 +1,7 @@
 import { useState, useMemo, useRef, useEffect } from 'react'
 import { createPortal } from 'react-dom'
 import { useTranslation } from 'react-i18next'
+import { useDialogA11y } from '../hooks/useDialogA11y'
 import { getPalette } from '../data/palettes'
 import { createPatternDocument, calculateColorStats, createBrandColorResolver } from '../services/export/PatternDocument'
 import { renderPatternDocumentToPNG } from '../services/export/RasterRenderer'
@@ -83,6 +84,17 @@ export default function ExportPanel({
   useEffect(() => {
     return () => exportAbortRef.current?.abort()
   }, [])
+
+  // 浮层可访问性(规格 08 §5):role/aria-modal/Escape/焦点归还。
+  // 移动端入口是模态,桌面端是侧栏抽屉 —— 只有模态才承担 dialog 语义。
+  // 导出进行中屏蔽 Escape:中止由卸载 cleanup 负责,提前关面板会让进度条消失
+  // 而任务仍在跑,用户无法判断是否完成。
+  const { ref: modalRef, dialogProps: modalDialogProps } = useDialogA11y({
+    open: isModal,
+    onClose,
+    label: t('export.title'),
+    disabled: isExporting,
+  })
 
   // Actual dimensions (support rectangular grids)
   const actualWidth = gridWidth || gridSize
@@ -392,6 +404,14 @@ export default function ExportPanel({
 
   // ── 导出确认流程:空画布拦截 + 有内容时确认 ──────────────
   const [confirmExport, setConfirmExport] = useState(null) // { type: 'empty' } | { type: 'confirm', label, handler }
+
+  // 确认框是独立浮层(外层遮罩的兄弟节点),单独入栈 —— 两层同时打开时
+  // Escape 只关确认框,不会连导出面板一起关掉。
+  const { ref: confirmRef, dialogProps: confirmDialogProps } = useDialogA11y({
+    open: !!confirmExport,
+    onClose: () => setConfirmExport(null),
+    label: confirmExport?.type === 'empty' ? t('export.emptyTitle') : t('export.confirmTitle'),
+  })
   // 导出成功后回调父组件(用于库存扣减);只有导出真正完成才触发
   // 导出成功标记:各 handler 内部 catch 错误后正常返回,不能靠 promise 是否 resolve 判断
   const exportOkRef = useRef(false)
@@ -799,7 +819,7 @@ export default function ExportPanel({
   // ── 导出确认 / 空画布提示 模态框(PC 与移动端共用) ─────────
   const confirmDialog = confirmExport && (
     <div className="modal-overlay export-confirm-overlay" onClick={() => setConfirmExport(null)}>
-      <div className="export-confirm-dialog" onClick={e => e.stopPropagation()}>
+      <div className="export-confirm-dialog" ref={confirmRef} {...confirmDialogProps} onClick={e => e.stopPropagation()}>
         {confirmExport.type === 'empty' ? (
           <>
             <div className="export-confirm-icon empty">✕</div>
@@ -937,7 +957,7 @@ export default function ExportPanel({
   return createPortal(
     <>
       <div className="modal-overlay" onClick={onClose}>
-        <div className="export-modal-content" onClick={(e) => e.stopPropagation()}>
+        <div className="export-modal-content" ref={modalRef} {...modalDialogProps} onClick={(e) => e.stopPropagation()}>
           {panel}
         </div>
       </div>

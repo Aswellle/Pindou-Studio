@@ -28,6 +28,7 @@ import { useGalleryTemplates } from './hooks/useGalleryTemplates'
 import useDownloadCounts from './hooks/useDownloadCounts'
 import { useGalleryContent } from '../../hooks/useGalleryContent'
 import { useScrollLock } from '../../hooks/useScrollLock'
+import { useDialogA11y } from '../../hooks/useDialogA11y'
 import { buildDiscoverySections } from './discovery'
 import DiscoveryRails from './components/DiscoveryRails'
 import WorkThumbnail from './components/WorkThumbnail'
@@ -96,6 +97,13 @@ export default function GalleryPage({ onLoadTemplate, onDeleteWork, onLoadWork, 
   const [showContact, setShowContact] = useState(false)
   // 载入确认与联系弹层打开时锁背景滚动(引用计数;联系弹层内部也持有同一把锁)
   useScrollLock(!!pendingLoad)
+
+  // 可访问性(规格 08 §5):载入确认浮层
+  const { ref: loadConfirmRef, dialogProps: loadConfirmDialogProps } = useDialogA11y({
+    open: !!pendingLoad,
+    onClose: () => setPendingLoad(null),
+    label: t('gallery.loadConfirmTitle'),
+  })
 
   // 下载量:本地计数(localStorage 持久)叠加云端模板 download_count(抽出的共享 hook)
   const { getDownloadCount, bumpDownload } = useDownloadCounts({
@@ -771,7 +779,7 @@ export default function GalleryPage({ onLoadTemplate, onDeleteWork, onLoadWork, 
       {/* 填充模板到画布:点击卡片后弹出确认,避免误触直接填充+跳转 */}
       {pendingLoad && createPortal(
         <div className="load-confirm-overlay" onClick={() => setPendingLoad(null)}>
-          <div className="load-confirm-modal" onClick={e => e.stopPropagation()}>
+          <div className="load-confirm-modal" ref={loadConfirmRef} {...loadConfirmDialogProps} onClick={e => e.stopPropagation()}>
             <div className="load-confirm-preview">
               <ThumbnailCanvas pattern={pendingLoad.pattern} size={pendingLoad.size} />
             </div>

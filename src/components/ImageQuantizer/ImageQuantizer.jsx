@@ -3,6 +3,7 @@ import { createPortal } from 'react-dom'
 import { useTranslation } from 'react-i18next'
 import { useImageQuantizer } from '../../hooks/useImageQuantizer'
 import { useScrollLock } from '../../hooks/useScrollLock'
+import { useDialogA11y } from '../../hooks/useDialogA11y'
 import { getPalette, PALETTE_LIST } from '../../data/palettes'
 import { recommendGridSize, suggestMaxColorsForGrid } from '../../utils/autoGrid'
 import { checkImageFile, checkImagePixels } from '../../utils/imageGuard'
@@ -180,6 +181,19 @@ export default function ImageQuantizer({ onApply, onClose }) {
   const pendingCloseRef = useRef(false)
   const resultPreviewRef = useRef(null)
   const resultCanvasRef = useRef(null)
+
+  // 浮层可访问性(规格 08 §5):本页自身是路由页面(不承担 dialog 语义),
+  // 但页内两个浮层需要 —— 未保存确认框与放大查看。
+  const { ref: unsavedRef, dialogProps: unsavedDialogProps } = useDialogA11y({
+    open: showUnsavedDialog,
+    onClose: () => { setShowUnsavedDialog(false); pendingCloseRef.current = false },
+    label: t('quantizer.unsavedTitle'),
+  })
+  const { ref: zoomRef, dialogProps: zoomDialogProps } = useDialogA11y({
+    open: !!zoomPreview,
+    onClose: () => setZoomPreview(false),
+    label: t('quantizer.zoomPreview'),
+  })
 
   // 结果预览画布：按可用容器尺寸自适应格子大小并重绘。
   // 桌面工作台里左栏高度由视口决定，固定 480px 长边会撑破栏宽/栏高，
@@ -936,8 +950,8 @@ export default function ImageQuantizer({ onApply, onClose }) {
 
         {/* 未保存更改对话框 —— portal 到 body(R5),避免 fixed 浮层嵌在页面滚动容器内 */}
         {showUnsavedDialog && createPortal(
-          <div className="modal-overlay" onClick={() => setShowUnsavedDialog(false)}>
-            <div className="modal-content unsaved-dialog" onClick={e => e.stopPropagation()}>
+          <div className="modal-overlay" onClick={() => { setShowUnsavedDialog(false); pendingCloseRef.current = false }}>
+            <div className="modal-content unsaved-dialog" ref={unsavedRef} {...unsavedDialogProps} onClick={e => e.stopPropagation()}>
               <h3>{t('quantizer.unsavedTitle')}</h3>
               <p>{t('quantizer.unsavedBody')}</p>
               <div className="unsaved-dialog-buttons">
@@ -964,7 +978,7 @@ export default function ImageQuantizer({ onApply, onClose }) {
 
         {/* 放大查看 overlay:大尺寸纯色方块,点击任意处关闭 —— 同样 portal 到 body */}
         {zoomPreview && result && createPortal(
-          <div className="quantizer-zoom" onClick={() => setZoomPreview(false)}>
+          <div className="quantizer-zoom" ref={zoomRef} {...zoomDialogProps} onClick={() => setZoomPreview(false)}>
             <button className="quantizer-zoom-close" onClick={() => setZoomPreview(false)} aria-label={t('common.close')}>×</button>
             <ZoomPreviewCanvas result={result} resolveHex={resolveHex} />
             <p className="quantizer-zoom-hint">{t('quantizer.zoomHint')}</p>

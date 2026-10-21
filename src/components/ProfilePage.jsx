@@ -19,6 +19,7 @@ import { supabase, SUPABASE_URL } from '../services/supabase'
 import { passwordWeakness } from '../utils/password'
 import { checkImageFile, checkImagePixels } from '../utils/imageGuard'
 import { useScrollLock } from '../hooks/useScrollLock'
+import { useDialogA11y } from '../hooks/useDialogA11y'
 import Avatar from './Avatar'
 import AvatarCropper from './AvatarCropper'
 import LoadingScreen from './LoadingScreen'
@@ -49,6 +50,14 @@ export default function ProfilePage({ user, authLoading, onLogout, onUpdateProfi
   const [confirmChangePw, setConfirmChangePw] = useState(false)
   // 确认浮层打开时锁背景滚动(必须在早退分支之前调用,保持 hooks 顺序稳定)
   useScrollLock(confirmLogout || confirmChangePw)
+
+  // 可访问性(规格 08 §5):两个确认框共用一个浮层,标题随触发源切换
+  const { ref: confirmRef, dialogProps: confirmDialogProps } = useDialogA11y({
+    open: confirmLogout || confirmChangePw,
+    onClose: () => { setConfirmLogout(false); setConfirmChangePw(false) },
+    label: confirmLogout ? t('profile.confirmLogoutTitle') : t('profile.confirmChangePwTitle'),
+    role: 'alertdialog',
+  })
 
   // 头像/昵称由 useAuth 异步补齐(refreshProfile),首帧 user 上可能还没有昵称:
   // 资料到达后把输入框同步过来;若用户已经动手编辑,则保留用户输入不覆盖
@@ -351,7 +360,7 @@ export default function ProfilePage({ user, authLoading, onLogout, onUpdateProfi
       {/* 退出登录 / 修改密码 确认对话框(防误触)—— portal 到 body(R5) */}
       {(confirmLogout || confirmChangePw) && createPortal(
         <div className="profile-confirm-overlay" onClick={() => { setConfirmLogout(false); setConfirmChangePw(false) }}>
-          <div className="modal-content confirm-box" onClick={(e) => e.stopPropagation()}>
+          <div className="modal-content confirm-box" ref={confirmRef} {...confirmDialogProps} onClick={(e) => e.stopPropagation()}>
             <h3>{confirmLogout ? t('profile.confirmLogoutTitle') : t('profile.confirmChangePwTitle')}</h3>
             <p>{confirmLogout ? t('profile.confirmLogoutBody') : t('profile.confirmChangePwBody')}</p>
             <div className="confirm-actions">

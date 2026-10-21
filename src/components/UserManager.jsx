@@ -6,6 +6,7 @@ import LoadingScreen from './LoadingScreen'
 import { useToast } from './Toast'
 import { useAuth } from '../hooks/useAuth'
 import { useScrollLock } from '../hooks/useScrollLock'
+import { useDialogA11y } from '../hooks/useDialogA11y'
 
 /**
  * 用户管理面板(管理员仪表盘)
@@ -36,6 +37,18 @@ export default function UserManager() {
   const [busy, setBusy] = useState(false)
   // 确认浮层打开时锁背景滚动(portal 后仍需防止下层页面跟随滚动)
   useScrollLock(!!confirm)
+
+  // 可访问性(规格 08 §5):破坏性账号操作,用 alertdialog 让读屏优先播报。
+  // 操作进行中屏蔽 Escape —— 与遮罩点击一致,避免关掉浮层但请求仍在飞。
+  const { ref: confirmRef, dialogProps: confirmDialogProps } = useDialogA11y({
+    open: !!confirm,
+    onClose: () => { if (!busy) setConfirm(null) },
+    disabled: busy,
+    label: confirm?.type === 'delete' ? t('admin.users.confirmDeleteTitle')
+      : confirm?.type === 'lock' ? t('admin.users.confirmLockTitle')
+        : t('admin.users.confirmUnlockTitle'),
+    role: 'alertdialog',
+  })
 
   const loadStats = useCallback(async () => {
     setStatsLoading(true)
@@ -312,7 +325,7 @@ export default function UserManager() {
           滚动容器内的 fixed 在键盘/滚动后错位 → 移到 body 下稳定相对视口。 */}
       {confirm && createPortal(
         <div className="users-confirm-overlay" onClick={() => !busy && setConfirm(null)}>
-          <div className="users-confirm" onClick={e => e.stopPropagation()}>
+          <div className="users-confirm" ref={confirmRef} {...confirmDialogProps} onClick={e => e.stopPropagation()}>
             <h3 className="users-confirm-title">
               {confirm.type === 'delete' ? t('admin.users.confirmDeleteTitle')
                 : confirm.type === 'lock' ? t('admin.users.confirmLockTitle')

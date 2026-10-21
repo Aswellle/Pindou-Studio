@@ -35,6 +35,7 @@ import { useResponsive } from './hooks/useResponsive'
 import { useHistory } from './hooks/useHistory'
 import { useSavedWorks } from './hooks/useSavedWorks'
 import { useScrollLock } from './hooks/useScrollLock'
+import { useDialogA11y } from './hooks/useDialogA11y'
 import { canonicalPathFor } from './utils/seoPath'
 import { planBrandSwitch, applyBrandSwitch } from './utils/brandSwitch'
 import { canvasToLegacyWork, normalizeLegacyWork } from './services/project/adapters'
@@ -196,6 +197,13 @@ export default function App() {
   // 保存作品弹层打开时锁定背景滚动(防 iOS 键盘 pop 起时 body 被顶开)
   // 由 useScrollLock 统一引用计数:与其他弹层叠加时不会互相清锁。
   useScrollLock(showSaveDialog)
+
+  // 可访问性(规格 08 §5):保存作品对话框(桌面 / 移动共用同一份状态)
+  const { ref: saveDialogRef, dialogProps: saveDialogProps } = useDialogA11y({
+    open: showSaveDialog,
+    onClose: () => setShowSaveDialog(false),
+    label: t('gallery.saveTitle'),
+  })
 
   // Initialize blank canvas on first render and when grid size changes with no data
   // biome-ignore lint/correctness/useExhaustiveDependencies: 只在网格尺寸变化时初始化空画布;canvasData 变化不应触发重置(会覆盖用户绘制)
@@ -779,7 +787,7 @@ export default function App() {
 
       {showSaveDialog && createPortal(
         <div className="modal-overlay" onClick={() => setShowSaveDialog(false)}>
-          <div className="save-dialog" onClick={e => e.stopPropagation()}>
+          <div className="save-dialog" ref={saveDialogRef} {...saveDialogProps} onClick={e => e.stopPropagation()}>
             <h3>{t('gallery.saveTitle')}</h3>
             <label>{t('gallery.saveNameLabel')}</label>
             {/* 移动端不自动聚焦(规格 08 §5):autoFocus 会立刻唤起键盘,
@@ -1140,7 +1148,7 @@ export default function App() {
 
       {showSaveDialog && createPortal(
         <div className="modal-overlay" onClick={() => setShowSaveDialog(false)}>
-          <div className="save-dialog" onClick={e => e.stopPropagation()}>
+          <div className="save-dialog" ref={saveDialogRef} {...saveDialogProps} onClick={e => e.stopPropagation()}>
             <h3>{t('gallery.saveTitle')}</h3>
             <label>{t('gallery.saveNameLabel')}</label>
             {/* 移动端不自动聚焦(规格 08 §5):autoFocus 会立刻唤起键盘,

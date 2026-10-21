@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { useToast } from './Toast'
 import { useScrollLock } from '../hooks/useScrollLock'
+import { useDialogA11y } from '../hooks/useDialogA11y'
 import { isIOSSafariLike } from '../utils/device'
 import { CATEGORIES, DIFFICULTIES, normalizeCustomTemplate, templateDimensions } from '../data/templates'
 import ThumbnailCanvas from './ThumbnailCanvas'
@@ -35,9 +36,11 @@ function categoryDisplayName(store, t, cat) {
 function AdminModal({ title, onClose, wide, children }) {
   // 后台模态框打开期间锁定背景滚动(引用计数,可与其他弹层叠加)
   useScrollLock(true)
+  // 可访问性(规格 08 §5):title 已是可读标题,直接作为 dialog 的可访问名称
+  const { ref, dialogProps } = useDialogA11y({ open: true, onClose, label: title })
   return createPortal(
     <div className="admin-modal-overlay" onClick={onClose}>
-      <div className={`admin-modal${wide ? ' wide' : ''}`} onClick={e => e.stopPropagation()}>
+      <div className={`admin-modal${wide ? ' wide' : ''}`} ref={ref} {...dialogProps} onClick={e => e.stopPropagation()}>
         <div className="admin-modal-header">
           <h3>{title}</h3>
           <button className="admin-modal-close" onClick={onClose} aria-label="close">

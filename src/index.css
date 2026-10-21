@@ -147,6 +147,14 @@ input:focus, textarea:focus, button:focus {
   outline-offset: -2px;
 }
 
+/* 浮层容器由 useDialogA11y 以 tabIndex=-1 程序化聚焦(键盘用户进入浮层的第一站,
+   读屏随即播报 aria-label)。焦点环画在整个浮层外框上没有信息量,还会在
+   打开瞬间闪一圈 —— 内部可交互元素各自保留自己的 focus 样式。 */
+[role="dialog"]:focus,
+[role="alertdialog"]:focus {
+  outline: none;
+}
+
 /* ── 全屏浮层统一基础设施(iOS 键盘 / 视觉视口 / safe-area)────────────────────
    · 高度跟随 visual viewport(--visible-vh,由 useKeyboardSafe 监听更新),
      键盘弹起时随 --visible-vh 收缩,聚焦输入框不被吞;

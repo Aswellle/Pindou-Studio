@@ -21,6 +21,7 @@ import { Replace, X } from 'lucide-react'
 import { getPalette } from '../data/palettes'
 import { collectColorStats, countColor } from '../utils/selectionUtils'
 import { useScrollLock } from '../hooks/useScrollLock'
+import { useDialogA11y } from '../hooks/useDialogA11y'
 
 export default function ReplaceColorDialog({
   open,
@@ -49,6 +50,8 @@ export default function ReplaceColorDialog({
 
   // 弹层打开期间锁定背景滚动(必须在早退 return 之前调用,保持 hooks 顺序)
   useScrollLock(!!open)
+  // 可访问性(规格 08 §5):role/aria-modal/Escape/焦点归还统一由 hook 提供
+  const { ref, dialogProps } = useDialogA11y({ open: !!open, onClose, label: t('replace.title') })
 
   if (!open) return null
 
@@ -67,7 +70,7 @@ export default function ReplaceColorDialog({
 
   return createPortal(
     <div className="modal-overlay" onClick={onClose}>
-      <div className="replace-dialog" onClick={e => e.stopPropagation()} role="dialog" aria-modal="true">
+      <div className="replace-dialog" ref={ref} {...dialogProps} onClick={e => e.stopPropagation()}>
         <div className="replace-head">
           <Replace size={18} />
           <h3>{t('replace.title')}</h3>

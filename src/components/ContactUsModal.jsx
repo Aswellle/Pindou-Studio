@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next'
 import { X, Send, User } from 'lucide-react'
 import { supabase } from '../services/supabase'
 import { useScrollLock } from '../hooks/useScrollLock'
+import { useDialogA11y } from '../hooks/useDialogA11y'
 import { useToast } from './Toast'
 
 // Cloudflare Turnstile 站点密钥(Vercel 环境变量 / 本地 .env.local)
@@ -72,6 +73,14 @@ export default function ContactUsModal({ onClose, user }) {
   // iOS Safari 键盘弹起时锁定背景滚动,避免 visual viewport 偏移把浮层推走
   // (统一滚动锁:与其他弹层叠加时按引用计数释放)
   useScrollLock(true)
+
+  // 浮层可访问性(规格 08 §5):role/aria-modal/Escape/焦点归还。
+  // 本组件只在打开时挂载,open 恒为 true。
+  const { ref: modalRef, dialogProps } = useDialogA11y({
+    open: true,
+    onClose,
+    label: t('contact.title'),
+  })
 
   // 拉取线程 + 每 5s 轮询(管理员回复即时可见;不依赖 Realtime/RLS 配置,稳)
   const loadThread = useCallback(async () => {
@@ -231,7 +240,7 @@ export default function ContactUsModal({ onClose, user }) {
   // iOS Safari 滚动容器内的 fixed 在键盘弹出/滚动后错位 → 移到 body 下稳定相对视口
   return createPortal(
     <div className="contact-overlay" onClick={onClose}>
-      <div className="contact-modal" onClick={e => e.stopPropagation()} role="dialog" aria-label={t('contact.title')}>
+      <div className="contact-modal" ref={modalRef} {...dialogProps} onClick={e => e.stopPropagation()}>
         <div className="contact-header">
           <h2 className="contact-title">{t('contact.title')}</h2>
           <button className="contact-close" onClick={onClose} aria-label={t('common.close')}>

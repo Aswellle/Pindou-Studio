@@ -24,6 +24,7 @@ import {
 import { useToast } from '../components/Toast'
 import ThumbnailCanvas from '../components/ThumbnailCanvas'
 import { useScrollLock } from '../hooks/useScrollLock'
+import { useDialogA11y } from '../hooks/useDialogA11y'
 import { PALETTE_LIST, getPalette } from '../data/palettes'
 import { useUserPalettes } from '../hooks/useUserPalettes'
 import {
@@ -144,6 +145,25 @@ export default function MyBeadsPage({ user, canvasData, onApplyMapping, works = 
   // 在 iOS 键盘弹起时把 fixed 浮层顶出可视区
   useScrollLock(!!(editingPalette || editingColor || confirmDelete))
   const [busy, setBusy] = useState(false)
+
+  // 可访问性(规格 08 §5):三个浮层各自独立入栈,Escape 只关最上面那层
+  const { ref: paletteDialogRef, dialogProps: paletteDialogProps } = useDialogA11y({
+    open: !!editingPalette,
+    onClose: () => setEditingPalette(null),
+    label: editingPalette?.id ? t('myBeads.palettes.editTitle') : t('myBeads.palettes.newTitle'),
+  })
+  const { ref: colorDialogRef, dialogProps: colorDialogProps } = useDialogA11y({
+    open: !!editingColor,
+    onClose: () => setEditingColor(null),
+    label: editingColor?.id ? t('myBeads.colors.editTitle') : t('myBeads.colors.newTitle'),
+  })
+  const { ref: deleteDialogRef, dialogProps: deleteDialogProps } = useDialogA11y({
+    open: !!confirmDelete,
+    onClose: () => { if (!busy) setConfirmDelete(null) },
+    disabled: busy,
+    label: confirmDelete?.kind === 'palette' ? t('myBeads.palettes.deleteTitle') : t('myBeads.colors.deleteTitle'),
+    role: 'alertdialog',
+  })
 
   const [colorImport, setColorImport] = useState(null) // { filename, drafts, errors, fatal }
   // 删除被引用色卡时的重新指定目标('' = 保留作品里的 HEX,不改 paletteId)
@@ -1282,7 +1302,7 @@ export default function MyBeadsPage({ user, canvasData, onApplyMapping, works = 
       {/* ── 色卡编辑弹层(portal 到 body) ─────────────────── */}
       {editingPalette && createPortal(
         <div className="my-beads-modal-overlay" onClick={() => setEditingPalette(null)}>
-          <div className="my-beads-modal" role="dialog" aria-modal="true" onClick={(e) => e.stopPropagation()}>
+          <div className="my-beads-modal" ref={paletteDialogRef} {...paletteDialogProps} onClick={(e) => e.stopPropagation()}>
             <h3>{editingPalette.id ? t('myBeads.palettes.editTitle') : t('myBeads.palettes.newTitle')}</h3>
             <label>
               <span>{t('myBeads.palettes.name')} *</span>
@@ -1341,7 +1361,7 @@ export default function MyBeadsPage({ user, canvasData, onApplyMapping, works = 
       {/* ── 颜色编辑弹层(portal 到 body) ─────────────────── */}
       {editingColor && createPortal(
         <div className="my-beads-modal-overlay" onClick={() => setEditingColor(null)}>
-          <div className="my-beads-modal" role="dialog" aria-modal="true" onClick={(e) => e.stopPropagation()}>
+          <div className="my-beads-modal" ref={colorDialogRef} {...colorDialogProps} onClick={(e) => e.stopPropagation()}>
             <h3>{editingColor.id ? t('myBeads.colors.editTitle') : t('myBeads.colors.newTitle')}</h3>
             <label>
               <span>{t('myBeads.colors.code')} *</span>
@@ -1401,7 +1421,7 @@ export default function MyBeadsPage({ user, canvasData, onApplyMapping, works = 
       {/* ── 删除确认(portal 到 body) ─────────────────────── */}
       {confirmDelete && createPortal(
         <div className="my-beads-modal-overlay" onClick={() => setConfirmDelete(null)}>
-          <div className="my-beads-modal confirm" role="alertdialog" aria-modal="true" onClick={(e) => e.stopPropagation()}>
+          <div className="my-beads-modal confirm" ref={deleteDialogRef} {...deleteDialogProps} onClick={(e) => e.stopPropagation()}>
             <AlertTriangle size={20} className="warn-icon" />
             <h3>{confirmDelete.kind === 'palette' ? t('myBeads.palettes.deleteTitle') : t('myBeads.colors.deleteTitle')}</h3>
             <p>{t('myBeads.deleteBody', { name: confirmDelete.name })}</p>

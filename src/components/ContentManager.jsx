@@ -14,6 +14,7 @@ import { useTranslation } from 'react-i18next'
 import { ArrowDown, ArrowUp, Plus, Trash2, X } from 'lucide-react'
 import { useGalleryContent } from '../hooks/useGalleryContent'
 import { useScrollLock } from '../hooks/useScrollLock'
+import { useDialogA11y } from '../hooks/useDialogA11y'
 import {
   CONTENT_STATUS,
   TRANSLATION_LANGS,
@@ -33,9 +34,10 @@ const LANGS = [
 function ContentModal({ title, onClose, children }) {
   // 与后台其他模态框一致:打开期间锁背景滚动(引用计数)
   useScrollLock(true)
+  const { ref, dialogProps } = useDialogA11y({ open: true, onClose, label: title })
   return createPortal(
     <div className="admin-modal-overlay" onClick={onClose}>
-      <div className="admin-modal wide" onClick={(e) => e.stopPropagation()}>
+      <div className="admin-modal wide" ref={ref} {...dialogProps} onClick={(e) => e.stopPropagation()}>
         <div className="admin-modal-header">
           <h3>{title}</h3>
           <button className="admin-modal-close" onClick={onClose} aria-label="close">
