@@ -328,3 +328,78 @@ describe('PatternDetailPage · 布局与信息密度', () => {
     expect(preview.querySelector('canvas')).toBeTruthy()
   })
 })
+
+describe('主题页 / 合集页骨架屏', () => {
+  // 加载中的 cloudStore:loading=true 且还没有模板
+  const loadingStore = () => ({ enabled: true, loading: true, error: null, templates: [], categories: [], refresh: vi.fn(), loadAll: vi.fn() })
+
+  it('主题页首屏加载显示骨架,而不是「内容不存在」', () => {
+    contentState.loading = true
+    const { container } = renderAt(
+      <ThemePage cloudStore={loadingStore()} />,
+      '/gallery/theme/spring', '/gallery/theme/:slug',
+    )
+    expect(container.querySelector('.skeleton-head-group')).toBeTruthy()
+    expect(container.querySelector('.skeleton-card-template')).toBeTruthy()
+    // 关键:加载中不能断言「不存在」——语义是「还没到」
+    expect(screen.queryByText(/内容不存在或尚未发布/)).toBeNull()
+  })
+
+  it('主题页骨架含卡片占位,尺寸与真实网格一致', () => {
+    contentState.loading = true
+    const { container } = renderAt(
+      <ThemePage cloudStore={loadingStore()} />,
+      '/gallery/theme/spring', '/gallery/theme/:slug',
+    )
+    // 占位卡片放在真实的 .templates-grid 里,列数与间距自动继承
+    expect(container.querySelector('.templates-grid .skeleton-card-template')).toBeTruthy()
+    expect(container.querySelectorAll('.skeleton-card-template').length).toBeGreaterThan(0)
+  })
+
+  it('主题页加载完成后骨架消失,显示真实内容', () => {
+    contentState.loading = false
+    contentState.themes = [theme('spring')]
+    contentState.themeTemplateIds = new Map([['spring', ['t1']]])
+    const { container } = renderAt(
+      <ThemePage cloudStore={cloudStore([template('t1')])} />,
+      '/gallery/theme/spring', '/gallery/theme/:slug',
+    )
+    expect(container.querySelector('.skeleton-head-group')).toBeNull()
+    expect(screen.getByText('主题spring')).toBeTruthy()
+    expect(container.querySelectorAll('.template-card')).toHaveLength(1)
+  })
+
+  it('主题元数据已到但模板库仍在加载 → 不说「没有匹配」', () => {
+    // 这是最容易闪错的时序:主题先回来,模板后回来
+    contentState.loading = false
+    contentState.themes = [theme('spring')]
+    contentState.themeTemplateIds = new Map([['spring', ['t1']]])
+    renderAt(
+      <ThemePage cloudStore={loadingStore()} />,
+      '/gallery/theme/spring', '/gallery/theme/:slug',
+    )
+    expect(screen.queryByText(/没有匹配的图纸/)).toBeNull()
+    expect(screen.getByText('正在加载云端模板库...')).toBeTruthy()
+  })
+
+  it('合集页首屏加载显示骨架,且比主题多一个策展说明占位', () => {
+    contentState.loading = true
+    const { container } = renderAt(
+      <CollectionPage cloudStore={loadingStore()} />,
+      '/gallery/collection/pets', '/gallery/collection/:slug',
+    )
+    expect(container.querySelector('.skeleton-head-group')).toBeTruthy()
+    expect(container.querySelector('.skeleton-note-block')).toBeTruthy()
+    expect(screen.queryByText(/内容不存在或尚未发布/)).toBeNull()
+  })
+
+  it('加载结束且确实不存在时才显示「内容不存在」', () => {
+    contentState.loading = false
+    const { container } = renderAt(
+      <CollectionPage cloudStore={cloudStore([])} />,
+      '/gallery/collection/nope', '/gallery/collection/:slug',
+    )
+    expect(container.querySelector('.skeleton-head-group')).toBeNull()
+    expect(screen.getByText(/内容不存在或尚未发布/)).toBeTruthy()
+  })
+})
