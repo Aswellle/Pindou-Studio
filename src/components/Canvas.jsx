@@ -168,6 +168,7 @@ const Canvas = forwardRef(function Canvas({
   // When not drawing, the overlay contains ONLY the hover cell and the
   // marquee, so clearing it fully on each change is safe and leaves no trail.
   // ─────────────────────────────────────────────────────────────────
+  // biome-ignore lint/correctness/useExhaustiveDependencies: overlayTick 是强制重绘触发器(见其声明处注释),故意不参与计算
   useEffect(() => {
     if (isDrawingRef.current || selDraggingRef.current || moveDraggingRef.current) return
     painter.clearOverlay()
@@ -345,6 +346,7 @@ const Canvas = forwardRef(function Canvas({
   // 若不做,旧尺寸的累加器会在下一次 pointerup 时被 commitStroke 提交,
   // 把刚载入的新画布覆盖回旧矩阵;拖选锚点也还停在旧坐标系里。
   // 只依赖 cols/rows —— committedData 每次提交/撤销都会换引用,不能作为切换信号。
+  // biome-ignore lint/correctness/useExhaustiveDependencies: 只在网格尺寸变化时重置笔画,committedData 换引用不代表换画布
   useEffect(() => {
     cancelStroke()
     isDrawingRef.current = false
@@ -498,6 +500,7 @@ const Canvas = forwardRef(function Canvas({
   }, [canvasWidth, canvasHeight])
 
   // 大网格自动适应屏幕
+  // biome-ignore lint/correctness/useExhaustiveDependencies: fitToScreen 是稳定函数,只按网格尺寸触发一次
   useEffect(() => {
     if (cols > 50 || rows > 50) {
       fitToScreen()
@@ -702,7 +705,7 @@ const Canvas = forwardRef(function Canvas({
       const clamped = softClamp(rawCX, rawCY, prev.scale)
       return { ...prev, cx: clamped.x, cy: clamped.y }
     })
-  }, [getGridPos, paintToStroke, applyFill, commitStroke, softClamp, tool, updateSelection, updateMove])
+  }, [getGridPos, paintToStroke, applyFill, commitStroke, softClamp, tool, updateSelection, updateMove, transform])
 
   const handleContainerMouseUp = useCallback(() => {
     if (moveDraggingRef.current) endMove()

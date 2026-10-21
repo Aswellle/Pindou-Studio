@@ -153,6 +153,7 @@ export function useSavedWorks(user) {
   }, [works, isCloud])
 
   // 登录态切换:cloud <-> local。登录时加载云端作品 + 一次性迁移本机作品。
+  // biome-ignore lint/correctness/useExhaustiveDependencies: 登录态切换只按 user?.id 触发,避免 profile 更新导致重复拉取
   useEffect(() => {
     let cancelled = false
     const cloud = !!user && !!supabase
@@ -284,7 +285,7 @@ export function useSavedWorks(user) {
       setSaveState(SAVE_STATES.SAVED)
     }
     return true
-  }, [isCloud, user])
+  }, [isCloud, user, toast])
 
   /**
    * 画布发生变化时调用:把状态标记为 dirty。
@@ -316,7 +317,7 @@ export function useSavedWorks(user) {
       return
     }
     setWorks((prev) => prev.filter((w) => w.id !== work.id))
-  }, [isCloud])
+  }, [isCloud, toast])
 
   // 同步 toast 已展示后调用,重置迁移计数
   const ackSync = useCallback(() => setSyncCount(null), [])
@@ -369,7 +370,7 @@ export function useSavedWorks(user) {
     setWorks((prev) => prev.map((w) => (w.id === normalized.id ? normalized : w)))
     setSaveState(SAVE_STATES.SAVED)
     return true
-  }, [isCloud, user, toast])
+  }, [isCloud, toast])
 
   return {
     works,
