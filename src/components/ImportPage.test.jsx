@@ -15,7 +15,6 @@ beforeAll(async () => {
 
 afterEach(() => cleanup())
 
-const SIZE = 9
 const rectCells = () => Array.from({ length: 10 }, () => Array.from({ length: 12 }, () => null))
 
 function projectJson(overrides = {}) {

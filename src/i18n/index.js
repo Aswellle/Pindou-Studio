@@ -95,7 +95,7 @@ function loadSavedLanguage() {
         return language
       }
     }
-  } catch (e) {
+  } catch {
     // ignore
   }
   return detectBrowserLanguage()
@@ -119,7 +119,7 @@ function urlLangParam() {
     const prefix = raw.split('-')[0]
     const byPrefix = LANGUAGES.find(l => l.code.split('-')[0].toLowerCase() === prefix)
     return byPrefix ? byPrefix.code : null
-  } catch (e) {
+  } catch {
     // ignore
   }
   return null
@@ -156,7 +156,7 @@ i18n.on('languageChanged', (lng) => {
     const settings = JSON.parse(localStorage.getItem('bead_studio_settings') || '{}')
     settings.language = lng
     localStorage.setItem('bead_studio_settings', JSON.stringify(settings))
-  } catch (e) {
+  } catch {
     // ignore
   }
   // 同步 <html lang>(index.html 里固定为 zh-CN):无障碍读屏软件据此选择发音,

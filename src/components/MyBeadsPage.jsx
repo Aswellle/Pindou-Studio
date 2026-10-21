@@ -596,7 +596,7 @@ export default function MyBeadsPage({ user, canvasData, onApplyMapping, works = 
     let text = ''
     try {
       text = await file.text()
-    } catch (err) {
+    } catch {
       toast(t('myBeads.backup.errors.readFailed'), 'error')
       return
     }

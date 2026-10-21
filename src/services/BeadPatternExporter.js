@@ -321,7 +321,7 @@ export async function generateBeadPatternSheet({
     } else {
       ;({ canvas, scale } = createScaledCanvas(sheetWidth, sheetHeight))
     }
-  } catch (e) {
+  } catch {
     throw new Error(i18n.t('export.canvasTooLarge'))
   }
   // 把实际倍率与逻辑尺寸挂在 canvas 上:exportAsPNG 需要回报降级(规格 09 §4.3),

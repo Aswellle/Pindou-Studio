@@ -38,8 +38,6 @@ const Canvas = forwardRef(function Canvas({
 }, ref) {
   const { t } = useTranslation()
   const containerRef = useRef(null)
-  // overlayRef still needed by the hover effect's direct strokeRect calls.
-  const overlayRef = useRef(null)
 
   const [hoverCell, setHoverCell] = useState(null)
   const [panActive, setPanActive] = useState(false)

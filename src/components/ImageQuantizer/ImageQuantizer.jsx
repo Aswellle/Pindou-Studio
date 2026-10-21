@@ -172,7 +172,6 @@ export default function ImageQuantizer({ onApply, onClose }) {
   }, [resetQuantizer])
   const [showUnsavedDialog, setShowUnsavedDialog] = useState(false)
   const [lastGeneratedSettings, setLastGeneratedSettings] = useState(null)
-  const [lastGeneratedResult, setLastGeneratedResult] = useState(null)
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false)
   const [resultGridSize, setResultGridSize] = useState(null)
   const [isDragActive, setIsDragActive] = useState(false)
@@ -296,7 +295,6 @@ export default function ImageQuantizer({ onApply, onClose }) {
   const handleDiscardChanges = useCallback(() => {
     setShowUnsavedDialog(false)
     setHasUnsavedChanges(false)
-    setLastGeneratedResult(null)
     setLastGeneratedSettings(null)
     setHasUserTouchedMaxColors(false)
     if (pendingCloseRef.current) {
@@ -310,7 +308,6 @@ export default function ImageQuantizer({ onApply, onClose }) {
     reset()
     setPreviewUrl(null)
     setHasUnsavedChanges(false)
-    setLastGeneratedResult(null)
     setLastGeneratedSettings(null)
     setResultGridSize(null)
     setAutoSuggest(null)
@@ -368,7 +365,6 @@ export default function ImageQuantizer({ onApply, onClose }) {
     loadImageMeta(url)
     reset()
     setHasUnsavedChanges(false)
-    setLastGeneratedResult(null)
     setLastGeneratedSettings(null)
   }, [t, loadImageMeta, reset])
 
@@ -395,16 +391,6 @@ export default function ImageQuantizer({ onApply, onClose }) {
     setIsDragActive(false)
   }, [])
 
-  const handlePaste = useCallback((e) => {
-    for (const item of e.clipboardData.items) {
-      if (item.type.startsWith('image/')) {
-        const file = item.getAsFile()
-        if (file) acceptFile(file)
-        break
-      }
-    }
-  }, [acceptFile])
-
   const handleGenerate = useCallback(async () => {
     if (!previewUrl) return
 
@@ -424,7 +410,7 @@ export default function ImageQuantizer({ onApply, onClose }) {
         imageMode
       }
 
-      const response = await quantize(
+      await quantize(
         await fetch(previewUrl).then(r => r.blob()),
         {
           gridWidth,
@@ -445,7 +431,6 @@ export default function ImageQuantizer({ onApply, onClose }) {
 
       // 保存生成结果
       setLastGeneratedSettings(currentSettings)
-      setLastGeneratedResult(response)
       setResultGridSize(Math.max(gridWidth, gridHeight))
       setHasUnsavedChanges(false)
     } catch (err) {
@@ -467,7 +452,6 @@ export default function ImageQuantizer({ onApply, onClose }) {
       })
       // 清除未保存状态
       setHasUnsavedChanges(false)
-      setLastGeneratedResult(null)
       setLastGeneratedSettings(null)
       onClose()
     }

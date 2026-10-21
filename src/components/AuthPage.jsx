@@ -11,7 +11,6 @@ import { useNavigate, Link } from 'react-router-dom'
 import { useToast } from './Toast'
 import { passwordWeakness } from '../utils/password'
 
-const USERNAME_RE = /^[a-zA-Z0-9_]{3,20}$/
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 const RESEND_COOLDOWN = 60
 const isEmailInput = (v) => EMAIL_RE.test(v || '')

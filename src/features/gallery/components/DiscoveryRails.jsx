@@ -179,8 +179,6 @@ export default function DiscoveryRails({
   }
 
   const { featuredTheme, featuredCollection, popular, latest, themes, collections, blocks } = sections
-  const featuredThemeText = featuredTheme ? localizedContentText(featuredTheme, i18n.language) : null
-  const featuredCollectionText = featuredCollection ? localizedContentText(featuredCollection, i18n.language) : null
 
   // 区块标题:管理员自定义优先,否则用 i18n 默认标题
   const titleFor = (cfg, fallbackKey) => cfg.title || t(fallbackKey)

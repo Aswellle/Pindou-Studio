@@ -250,9 +250,9 @@ export function useAuth() {
     // 会抛 "catch is not a function",致注册成功却报"操作失败"。改为 try/catch。
     if (data?.session) {
       const uid = data.session.user.id
-      try { await supabase.from('profiles').update({ nickname: nickname || uname }).eq('id', uid) } catch (e) { /* 非关键,忽略 */ }
+      try { await supabase.from('profiles').update({ nickname: nickname || uname }).eq('id', uid) } catch { /* 非关键,忽略 */ }
       if (securityKey) {
-        try { await supabase.rpc('set_security_key', { p_security_key: securityKey }) } catch (e) { /* 非关键,忽略 */ }
+        try { await supabase.rpc('set_security_key', { p_security_key: securityKey }) } catch { /* 非关键,忽略 */ }
       }
     }
     return data

@@ -82,7 +82,7 @@ export default function ContactUsModal({ onClose, user }) {
         p_limit: 60,
       })
       if (!error) setThread((data || []).map(threadToMsg))
-    } catch (e) { /* 静默:线程加载失败不阻塞输入发送 */ }
+    } catch { /* 静默:线程加载失败不阻塞输入发送 */ }
   }, [participantId])
 
   useEffect(() => {
@@ -130,7 +130,7 @@ export default function ContactUsModal({ onClose, user }) {
         }, 120)
         // 兜底:最长 6s 后无论是否检测到 iframe 都强制结束加载态,绝不残留
         setTimeout(() => { clearInterval(iv); setCaptchaLoading(false) }, 6000)
-      } catch (e) {
+      } catch {
         console.warn('[contact-us] Turnstile 渲染失败:', e)
         setCaptchaLoading(false)
       }
@@ -147,7 +147,7 @@ export default function ContactUsModal({ onClose, user }) {
       document.head.appendChild(s)
     }
     return () => {
-      try { if (widgetIdRef.current != null && window.turnstile) window.turnstile.remove(widgetIdRef.current) } catch (e) { /* 忽略 */ }
+      try { if (widgetIdRef.current != null && window.turnstile) window.turnstile.remove(widgetIdRef.current) } catch { /* 忽略 */ }
     }
   }, [captchaRequired])
 
@@ -196,7 +196,7 @@ export default function ContactUsModal({ onClose, user }) {
           toast(t('contact.captchaFirst'), 'error')
           // 需要重新验证:重置组件以获取新 token
           setEverVerified(false); setToken(null)
-          try { if (widgetIdRef.current != null && window.turnstile) window.turnstile.reset(widgetIdRef.current) } catch (e) { /* 忽略 */ }
+          try { if (widgetIdRef.current != null && window.turnstile) window.turnstile.reset(widgetIdRef.current) } catch { /* 忽略 */ }
           return
         }
         toast(t('contact.sendFailed'), 'error'); return
@@ -210,7 +210,7 @@ export default function ContactUsModal({ onClose, user }) {
       if (!email.trim()) {
         toast(t('contact.emailMissingWarn'), 'info', 6500)
       }
-    } catch (e) {
+    } catch {
       const em = String(e?.message || '').toLowerCase()
       toast(em.includes('captcha') ? t('contact.captchaFailed') : t('contact.sendFailed'), 'error')
     } finally {

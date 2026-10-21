@@ -77,7 +77,6 @@ const EXAMPLE_JSON = JSON.stringify({
 // · admin → 管理内容(云端模板库 CRUD,RLS 服务端强制 admin 权限)
 // ─────────────────────────────────────────────────────────────
 export default function AdminPanel({ user, isAdmin, authLoading, onLogin, onLogout, onChangePassword, cloudStore }) {
-  const toast = useToast()
   const { t } = useTranslation()
   const navigate = useNavigate()
   const [searchParams, setSearchParams] = useSearchParams()

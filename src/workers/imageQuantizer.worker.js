@@ -2,7 +2,6 @@
 // 包含: 背景检测, K-means++ 调色板选择, 边缘感知区域采样,
 //       Floyd-Steinberg/有序抖动, ICM 空间优化, Unsharp Mask 预处理
 // Phase 2: 支持 Transferable ArrayBuffer 输入, outW/outH 非正方形, highQuality/removeBackground 外部控制
-// Phase 6.2: 补充 labToRgb, nearestColorWithDist
 
 const paletteCache = new Map();
 const BLANK = 0xffff;
@@ -55,29 +54,6 @@ export function rgbToLab(r, g, b) {
   return [116 * fy - 16, 500 * (fx - fy), 200 * (fy - fz)];
 }
 
-// Lab → RGB 反转换（供 labToRgb 使用）
-function labToRgb(L, a, b) {
-  const fy = (L + 16) / 116;
-  const fx = a / 500 + fy;
-  const fz = fy - b / 200;
-
-  const xn = 0.95047, yn = 1.0, zn = 1.08883;
-  const labFInv = (t) => t > 6 / 29 ? t * t * t : 3 * (6 / 29) * (6 / 29) * (t - 4 / 29);
-
-  const x = xn * labFInv(fx);
-  const y = yn * labFInv(fy);
-  const z = zn * labFInv(fz);
-
-  const rl = 3.2406 * x - 1.5372 * y - 0.4986 * z;
-  const gl = -0.9689 * x + 1.8758 * y + 0.0415 * z;
-  const bl2 = 0.0557 * x - 0.2040 * y + 1.0570 * z;
-
-  return [
-    clamp(linearToSrgb(rl), 0, 255),
-    clamp(linearToSrgb(gl), 0, 255),
-    clamp(linearToSrgb(bl2), 0, 255)
-  ];
-}
 // ==================== OKLab 颜色空间 (Björn Ottosson) ====================
 
 // sRGB → Linear RGB → LMS（使用 OKLab 标准矩阵）
@@ -702,19 +678,6 @@ function nearestColor(workColor, palette, paletteLabs, colorSpace) {
   return best;
 }
 
-function nearestColorWithDist(workColor, palette, paletteLabs, colorSpace) {
-  const useOklab = colorSpace === 'oklab';
-  const labs = useOklab ? paletteLabs.oklabs : paletteLabs.labs;
-  const distFn = useOklab ? deltaEOKLab : deltaE2000;
-  const inputLab = workColor;
-  let best = 0, bestDist = Infinity;
-  for (let i = 0; i < palette.length; i += 1) {
-    const d = distFn(inputLab, labs[i]);
-    if (d < bestDist) { bestDist = d; best = i; }
-  }
-  return { index: best, dist: bestDist };
-}
-
 // ==================== 亮度/对比度调整 ====================
 
 function applyBrightnessContrastLinear(r, g, b, brightness, contrast) {
@@ -1016,7 +979,6 @@ function spatialRefinement(outIdx, areaColors, activePalette, activeLabs, outW, 
 export function cleanupIsolatedBeads(outIdx, areaColors, activePalette, activeLabs, outW, outH, colorSpace, threshold) {
   const useOklab = colorSpace === 'oklab';
   const distFn = useOklab ? deltaEOKLab : deltaE2000;
-  const total = outW * outH;
   const cleaned = new Uint16Array(outIdx); // 副本，避免原地修改影响邻居判断
   let cleanedCount = 0;
 
@@ -1163,7 +1125,6 @@ export function cleanupTinyIslands(outIdx, areaColors, activePalette, activeLabs
 export function suppressCheckerboard(outIdx, areaColors, activePalette, activeLabs, outW, outH, colorSpace, threshold) {
   const useOklab = colorSpace === 'oklab';
   const distFn = useOklab ? deltaEOKLab : deltaE2000;
-  const total = outW * outH;
   const suppressed = new Uint16Array(outIdx);
   let suppressedCount = 0;
 

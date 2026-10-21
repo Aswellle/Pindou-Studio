@@ -235,7 +235,7 @@ describe('ContentManager · 主题嵌套', () => {
 
   it('主题行显示子主题与相关合集入口,合集行不显示', async () => {
     contentState.themes = [th('a')]
-    const { rerender } = render(<ContentManager cloudStore={{ templates: [] }} />)
+    render(<ContentManager cloudStore={{ templates: [] }} />)
     expect(screen.getByText('子主题')).toBeTruthy()
     expect(screen.getByText('相关合集')).toBeTruthy()
 

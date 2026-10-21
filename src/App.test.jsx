@@ -64,7 +64,7 @@ describe('App smoke test', () => {
     const restore2d = installMock2dContext()
     const restoreMedia = installMockMatchMedia()
     try {
-      const { container, findByText } = render(
+      const { container } = render(
         <MemoryRouter initialEntries={['/create/image']}>
           <HelmetProvider>
             <App />

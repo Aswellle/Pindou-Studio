@@ -85,7 +85,7 @@ export default function ContactMessages() {
       const ids = convs.map(c => c.participantId)
       const { data: pdata } = await supabase.from('profiles').select('id,nickname,avatar_url').in('id', ids)
       for (const p of (pdata || [])) profileById[p.id] = p
-    } catch (e) { /* 忽略:游客按默认处理 */ }
+    } catch { /* 忽略:游客按默认处理 */ }
 
     // 游客昵称:调用服务端唯一分配 RPC(持久化 + 全局唯一检查,确保每个参与者独一无二)
     const nicknameById = {}
@@ -96,7 +96,7 @@ export default function ContactMessages() {
           try {
             const { data } = await supabase.rpc('ensure_contact_nickname', { p_participant_id: c.participantId })
             if (data) nicknameById[c.participantId] = data
-          } catch (e) { /* RPC 失败:渲染时用 anonFallback 兜底 */ }
+          } catch { /* RPC 失败:渲染时用 anonFallback 兜底 */ }
         })
     )
 
@@ -125,7 +125,7 @@ export default function ContactMessages() {
       toast(t('admin.contact.replySent'), 'success')
       setReplyState(prev => ({ ...prev, [conv.participantId]: { text: '', busy: false } }))
       await load()
-    } catch (e) {
+    } catch {
       toast(e?.message || t('admin.users.opFailed'), 'error')
       setReplyState(prev => ({ ...prev, [conv.participantId]: { ...prev[conv.participantId], busy: false } }))
     }

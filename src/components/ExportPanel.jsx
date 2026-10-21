@@ -148,7 +148,7 @@ export default function ExportPanel({
       let canvas, scale
       try {
         ;({ canvas, scale } = createScaledCanvas(canvasWidth, canvasHeight))
-      } catch (e) {
+      } catch {
         setExportError(t('export.canvasTooLarge'))
         return
       }
