@@ -10,7 +10,7 @@
 
 import { useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { Palette as PaletteIcon, ShoppingCart, AlertTriangle, ArrowLeft } from 'lucide-react'
+import { Palette as PaletteIcon, ShoppingCart, AlertTriangle, ArrowLeft, Copy, Plus } from 'lucide-react'
 import ThumbnailCanvas from '../../components/ThumbnailCanvas'
 import {
   COLOR_STATUS,
@@ -59,6 +59,8 @@ export default function MatchWorkspace({
   onBackToCanvas,
   onGoManageColors,
   onGoInventory,
+  onCopyBuiltin,
+  onNewPalette,
   onApply,
   busy,
 }) {
@@ -178,6 +180,9 @@ export default function MatchWorkspace({
 
   const hasCanvas = !!canvasData && canvasData.some((row) => row.some(Boolean))
   const targetHasNoColors = targetPalette && candidates.length === 0
+  // 切到「我的色卡」但一张都没有:这是「还没建色卡」,不是「色卡里没颜色」,
+  // 两者该给的下一步不同(复制/新建 vs 去管理颜色)。
+  const noUserPalettes = source === 'user' && userPalettes.length === 0
 
   // ── 空状态:没有可匹配的图纸 ──────────────────────────────
   if (!hasCanvas) {
@@ -331,7 +336,21 @@ export default function MatchWorkspace({
         )}
       </div>
 
-      {targetHasNoColors ? (
+      {noUserPalettes ? (
+        <div className="my-beads-empty-action">
+          <PaletteIcon size={20} aria-hidden="true" />
+          <h3>{t('myBeads.inventory.noPalettes')}</h3>
+          <p className="my-beads-hint small">{t('myBeads.inventory.noPalettesDesc')}</p>
+          <div className="empty-actions">
+            <button type="button" className="my-beads-btn primary" onClick={onCopyBuiltin}>
+              <Copy size={14} />{t('myBeads.gettingStarted.copyBuiltin')}
+            </button>
+            <button type="button" className="my-beads-btn secondary" onClick={onNewPalette}>
+              <Plus size={14} />{t('myBeads.gettingStarted.createCustom')}
+            </button>
+          </div>
+        </div>
+      ) : targetHasNoColors ? (
         <div className="my-beads-empty-action">
           <PaletteIcon size={20} aria-hidden="true" />
           <h3>{t('myBeads.match.targetEmpty')}</h3>

@@ -1042,4 +1042,23 @@ describe('MyBeadsPage · 图纸匹配', () => {
     expect(empty.textContent).toContain('你的色卡里还没有颜色')
     expect(within(empty).getByText('去管理这张色卡')).toBeTruthy()
   })
+
+  it('切到「我的色卡」但一张都没有时,给创建入口而不是「色卡没颜色」', async () => {
+    // 移动端常见路径:用户还没建过个人色卡,直接来匹配页点「我的色卡」。
+    // 此前会显示「你的色卡里还没有颜色」+「去管理这张色卡」,
+    // 但根本没有色卡可管理,下一步是死路。
+    const { container } = setup()
+    await waitFor(() => expect(container.querySelector('.my-beads-mode')).toBeTruthy())
+    fireEvent.click(screen.getByRole('tab', { name: /图纸匹配/ }))
+    fireEvent.click(within(container.querySelector('.match-config .segmented')).getByText('我的色卡'))
+
+    const empty = await waitFor(() => {
+      const el = container.querySelector('.my-beads-empty-action')
+      expect(el).toBeTruthy()
+      return el
+    })
+    expect(empty.textContent).toContain('你还没有个人色卡')
+    expect(within(empty).getByText('复制品牌色卡')).toBeTruthy()
+    expect(within(empty).getByText('新建自定义色卡')).toBeTruthy()
+  })
 })

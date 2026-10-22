@@ -886,6 +886,8 @@ export default function MyBeadsPage({ user, canvasData, onApplyMapping, works = 
               onBackToCanvas={() => navigate('/')}
               onGoManageColors={() => { setTab(TAB_PALETTES); setSelectedPaletteId(targetId) }}
               onGoInventory={() => { setInvKind('user'); setInvPaletteId(targetId); setTab(TAB_INVENTORY) }}
+              onCopyBuiltin={focusBuiltinDirectory}
+              onNewPalette={openNewPalette}
               onApply={applyMapping}
               busy={busy}
             />
