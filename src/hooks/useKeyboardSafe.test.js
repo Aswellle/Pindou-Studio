@@ -144,4 +144,99 @@ describe('useKeyboardSafe', () => {
     expect(scrollIntoView).not.toHaveBeenCalled()
     unmount()
   })
+
+  it('键盘关闭后 offsetTop 残留被归一化为 0(不把 stale offset 传给组件)', () => {
+    const { unmount } = renderHook(() => useKeyboardSafe())
+    const input = document.createElement('input')
+    document.body.appendChild(input)
+    input.focus()
+
+    // 键盘打开:iOS 26 会自动平移视觉视口
+    viewport.set(500, 20)
+    expect(cssVar('--visible-vh-top')).toBe('20px')
+    expect(cssVar('--keyboard-height')).toBe('280px')
+
+    // 键盘关闭,但 offsetTop 仍残留 20(WebKit 报告过的行为)
+    viewport.set(800, 20)
+    expect(cssVar('--visible-vh-top')).toBe('0px')
+    expect(cssVar('--keyboard-height')).toBe('0px')
+    expect(cssVar('--visible-vh')).toBe('800px')
+    expect(cssVar('--vh')).toBe('8px')
+    unmount()
+  })
+
+  it('地址栏动画级别的视口变化不算键盘(阈值以上才判键盘)', () => {
+    const { unmount } = renderHook(() => useKeyboardSafe())
+    const input = document.createElement('input')
+    document.body.appendChild(input)
+    input.focus()
+
+    // 只收缩 60px:地址栏/工具栏量级,低于 KEYBOARD_MIN_INSET(120)
+    viewport.set(740, 0)
+    expect(cssVar('--keyboard-height')).toBe('0px')
+    expect(cssVar('--visible-vh')).toBe('800px')
+
+    // 收缩到 300px:真实键盘
+    viewport.set(500, 0)
+    expect(cssVar('--keyboard-height')).toBe('300px')
+    unmount()
+  })
+
+  it('视觉视口 scroll 不再无条件滚动聚焦元素(只在焦点/键盘状态变化时修正)', () => {
+    const { unmount } = renderHook(() => useKeyboardSafe())
+    const scroller = document.createElement('div')
+    scroller.style.overflowY = 'auto'
+    Object.defineProperty(scroller, 'clientHeight', { value: 200, configurable: true })
+    Object.defineProperty(scroller, 'scrollHeight', { value: 600, configurable: true })
+    const input = document.createElement('input')
+    scroller.appendChild(input)
+    document.body.appendChild(scroller)
+    vi.spyOn(input, 'getBoundingClientRect').mockReturnValue({ top: 300, bottom: 340, height: 40 })
+    vi.spyOn(scroller, 'getBoundingClientRect').mockReturnValue({ top: 0, bottom: 200 })
+    input.focus()
+    const afterFocus = scroller.scrollTop
+    expect(afterFocus).toBeGreaterThan(0)
+
+    // 键盘已经打开、焦点不变:纯 vv.scroll 不应再改动滚动位置
+    scroller.scrollTop = afterFocus
+    for (let i = 0; i < 10; i++) viewport.dispatchEvent(new Event('scroll'))
+    expect(scroller.scrollTop).toBe(afterFocus)
+    unmount()
+  })
+
+  it('聚焦元素在可视区上方时向上修正(双向,不只是向下)', () => {
+    const { unmount } = renderHook(() => useKeyboardSafe())
+    const scroller = document.createElement('div')
+    scroller.style.overflowY = 'auto'
+    Object.defineProperty(scroller, 'clientHeight', { value: 200, configurable: true })
+    Object.defineProperty(scroller, 'scrollHeight', { value: 600, configurable: true })
+    const input = document.createElement('input')
+    scroller.appendChild(input)
+    document.body.appendChild(scroller)
+    // 输入框顶边在容器可视区上方 30px(被上方内容遮住)
+    vi.spyOn(input, 'getBoundingClientRect').mockReturnValue({ top: -30, bottom: 10, height: 40 })
+    vi.spyOn(scroller, 'getBoundingClientRect').mockReturnValue({ top: 0, bottom: 200 })
+    scroller.scrollTop = 100
+
+    input.focus()
+    // 向上滚:100 + (-30 - 10) = 60
+    expect(scroller.scrollTop).toBeLessThan(100)
+    unmount()
+  })
+
+  it('页面重新可见时重新测量(后台返回不会停留在旧值)', () => {
+    const { unmount } = renderHook(() => useKeyboardSafe())
+    const input = document.createElement('input')
+    document.body.appendChild(input)
+    input.focus()
+
+    viewport.set(500, 20)
+    expect(cssVar('--keyboard-height')).toBe('280px')
+
+    // 直接改值但不派发 resize:模拟「离开期间键盘高度已变,回来后没有任何事件」
+    viewport.height = 400
+    document.dispatchEvent(new Event('visibilitychange'))
+    expect(cssVar('--keyboard-height')).toBe('380px') // 800 - 400 - 20
+    unmount()
+  })
 })

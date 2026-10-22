@@ -36,9 +36,18 @@ function ruleBody(css, selector) {
 
 describe('整页滚动契约', () => {
   it('.app 固定视口高度并裁切溢出(所有整页内容必须自带滚动)', () => {
+    // 高度契约已上移到 #root:根壳用 max(--vh*100, offsetTop+--visible-vh) 覆盖到
+    // 视觉视口底部,子壳只继承 100%。这里同时锁住两件事:子壳不再自己按 --vh 定高
+    // (否则与根壳公式分歧就会互相裁切),并且仍然裁切溢出(整页内容必须自带滚动)。
     const app = ruleBody(INDEX_CSS, '.app {')
     expect(app).toContain('overflow: hidden')
-    expect(app).toMatch(/height:\s*calc\(var\(--vh/)
+    expect(app).toContain('height: 100%')
+    expect(app).not.toMatch(/height:\s*calc\(var\(--vh/)
+
+    const rootRule = ruleBody(INDEX_CSS, '#root {')
+    expect(rootRule).toMatch(/height:\s*max\(/)
+    expect(rootRule).toContain('var(--visible-vh-top')
+    expect(rootRule).toContain('overflow: hidden')
   })
 
   it('图库 / 教程 / 内容页共用同一条滚动规则', () => {
