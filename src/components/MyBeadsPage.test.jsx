@@ -52,7 +52,7 @@ describe('MyBeadsPage · 色卡管理(本地模式)', () => {
   it('未登录显示本地模式说明,且不冒充云端', async () => {
     const { container } = setup()
     await waitFor(() => expect(container.querySelector('.my-beads-mode.local')).toBeTruthy())
-    expect(screen.getByText(/只保存在本机浏览器/)).toBeTruthy()
+    expect(screen.getByText(/仅保存在此浏览器/)).toBeTruthy()
   })
 
   it('新建色卡:填写名称后出现在列表中', async () => {
@@ -92,20 +92,153 @@ describe('MyBeadsPage · 色卡管理(本地模式)', () => {
     expect(JSON.parse(localStorage.getItem('personal-beads-v1')).colors).toHaveLength(0)
   })
 
-  it('复制内置色卡得到个人副本,颜色随之复制', async () => {
+  it('复制内置色卡:走应用内对话框(不再用 window.prompt),颜色随之复制', async () => {
     const { container } = setup()
     await waitFor(() => expect(container.querySelector('.my-beads-mode')).toBeTruthy())
-    vi.spyOn(window, 'prompt').mockReturnValue('Perler 副本')
+    const promptSpy = vi.spyOn(window, 'prompt')
 
+    // PALETTE_LIST 第一项是 COCO
     const builtinGrid = container.querySelector('.my-beads-builtin-grid')
-    const perlerCard = within(builtinGrid).getAllByText('复制为我的色卡')[0]
-    fireEvent.click(perlerCard)
+    fireEvent.click(within(builtinGrid).getAllByText('复制为我的色卡')[0])
+
+    // 弹出复制对话框,展示说明与默认名称
+    const dialog = await waitFor(() => {
+      const el = document.querySelector('.my-beads-modal.copy-builtin')
+      expect(el).toBeTruthy()
+      return el
+    })
+    expect(dialog.textContent).toContain('不会更改内置品牌数据')
+    const nameInput = within(dialog).getByDisplayValue(/COCO 拼豆 副本/)
+    fireEvent.change(nameInput, { target: { value: '我的副本' } })
+    fireEvent.click(within(dialog).getByText('复制为我的色卡'))
 
     await waitFor(() => {
       const stored = JSON.parse(localStorage.getItem('personal-beads-v1'))
       expect(stored.palettes).toHaveLength(1)
-      expect(stored.palettes[0].name).toBe('Perler 副本')
+      expect(stored.palettes[0].name).toBe('我的副本')
       expect(stored.colors.length).toBeGreaterThan(0)
+    })
+    // 规格 §4.3:复制过程不得再调用 window.prompt
+    expect(promptSpy).not.toHaveBeenCalled()
+  })
+
+  it('复制成功后出现后续操作面板,可直达库存并自动选中副本', async () => {
+    const { container } = setup()
+    await waitFor(() => expect(container.querySelector('.my-beads-mode')).toBeTruthy())
+
+    fireEvent.click(within(container.querySelector('.my-beads-builtin-grid')).getAllByText('复制为我的色卡')[0])
+    const dialog = await waitFor(() => document.querySelector('.my-beads-modal.copy-builtin'))
+    fireEvent.click(within(dialog).getByText('复制为我的色卡'))
+
+    const panel = await waitFor(() => {
+      const el = container.querySelector('.my-beads-copy-result')
+      expect(el).toBeTruthy()
+      return el
+    })
+    expect(panel.textContent).toContain('已创建副本')
+
+    fireEvent.click(within(panel).getByText('录入库存'))
+    await waitFor(() => expect(container.querySelector('.my-beads-inv-list')).toBeTruthy())
+    // 库存页已切到「我的色卡」并选中新副本
+    expect(container.querySelector('.picker-palette select').value).toBe(
+      JSON.parse(localStorage.getItem('personal-beads-v1')).palettes[0].id,
+    )
+  })
+
+  it('复制取消不写任何数据', async () => {
+    const { container } = setup()
+    await waitFor(() => expect(container.querySelector('.my-beads-mode')).toBeTruthy())
+
+    fireEvent.click(within(container.querySelector('.my-beads-builtin-grid')).getAllByText('复制为我的色卡')[0])
+    const dialog = await waitFor(() => document.querySelector('.my-beads-modal.copy-builtin'))
+    fireEvent.click(within(dialog).getByText('取消'))
+
+    await waitFor(() => expect(document.querySelector('.my-beads-modal.copy-builtin')).toBeNull())
+    const raw = localStorage.getItem('personal-beads-v1')
+    expect(raw ? JSON.parse(raw).palettes : []).toHaveLength(0)
+  })
+
+  it('空状态给出两个明确入口', async () => {
+    const { container } = setup()
+    const gs = await waitFor(() => {
+      const el = container.querySelector('.my-beads-getting-started')
+      expect(el).toBeTruthy()
+      return el
+    })
+    expect(gs.textContent).toContain('先创建一张属于你的色卡')
+    expect(within(gs).getByText('复制品牌色卡')).toBeTruthy()
+    expect(within(gs).getByText('新建自定义色卡')).toBeTruthy()
+  })
+
+  it('编辑旧色卡时,不在预设里的品牌与豆径以自定义回显且不丢失', async () => {
+    localStorage.setItem('personal-beads-v1', JSON.stringify({
+      version: 1,
+      palettes: [{
+        id: 'pal-1', name: '旧色卡', brandName: '某小众牌子', seriesName: '手作系列',
+        beadSizeMm: 3.2, notes: '',
+      }],
+      colors: [],
+      inventory: [],
+    }))
+    const { container } = setup()
+    await waitFor(() => expect(container.querySelector('.my-beads-palette-card')).toBeTruthy())
+
+    fireEvent.click(screen.getByText('编辑资料'))
+    const dialog = await waitFor(() => document.querySelector('.my-beads-modal'))
+    // 自定义品牌展开文本框并回显原值
+    expect(within(dialog).getByDisplayValue('某小众牌子')).toBeTruthy()
+    // 3.2 因个人色卡自身用过而被纳入预设,下拉正确回显;另测一个纯自定义值
+    const selects = dialog.querySelectorAll('select')
+    expect(selects[2].value).toBe('3.2')
+
+    fireEvent.click(within(dialog).getByText('保存'))
+    await waitFor(() => {
+      const stored = JSON.parse(localStorage.getItem('personal-beads-v1'))
+      expect(stored.palettes[0].brandName).toBe('某小众牌子')
+      expect(stored.palettes[0].beadSizeMm).toBe(3.2)
+      expect(stored.palettes[0].seriesName).toBe('手作系列')
+    })
+  })
+
+  it('自定义豆径经新建保存后,再编辑仍完整回显', async () => {
+    const { container } = setup()
+    await waitFor(() => expect(container.querySelector('.my-beads-mode')).toBeTruthy())
+    fireEvent.click(screen.getByText('新建色卡'))
+    const dialog = document.querySelector('.my-beads-modal')
+    fireEvent.change(within(dialog).getByPlaceholderText('例如：我的 5mm 拼豆'), { target: { value: '怪尺寸' } })
+
+    const selects = dialog.querySelectorAll('select')
+    fireEvent.change(selects[2], { target: { value: '__custom__' } })
+    fireEvent.change(within(dialog).getByPlaceholderText('未知可留空'), { target: { value: '4.7' } })
+    fireEvent.click(within(dialog).getByText('保存'))
+
+    await waitFor(() => {
+      expect(JSON.parse(localStorage.getItem('personal-beads-v1')).palettes[0].beadSizeMm).toBe(4.7)
+    })
+
+    // 再次编辑:4.7 已由「用过的值」并入预设,回显不能丢
+    fireEvent.click(screen.getByText('编辑资料'))
+    const reopened = await waitFor(() => document.querySelector('.my-beads-modal'))
+    expect(reopened.querySelectorAll('select')[2].value).toBe('4.7')
+  })
+
+  it('选中内置品牌预设后回填品牌名与豆径', async () => {
+    const { container } = setup()
+    await waitFor(() => expect(container.querySelector('.my-beads-mode')).toBeTruthy())
+    fireEvent.click(screen.getByText('新建色卡'))
+    const dialog = document.querySelector('.my-beads-modal')
+    fireEvent.change(within(dialog).getByPlaceholderText('例如：我的 5mm 拼豆'), { target: { value: '预设测试' } })
+
+    // 品牌下拉选 Perler;豆径下拉选 5mm
+    const selects = dialog.querySelectorAll('select')
+    fireEvent.change(selects[0], { target: { value: 'perler' } })
+    fireEvent.change(selects[2], { target: { value: '5' } })
+    fireEvent.click(within(dialog).getByText('保存'))
+
+    await waitFor(() => {
+      const stored = JSON.parse(localStorage.getItem('personal-beads-v1'))
+      expect(stored.palettes[0].brandName).toBe('Perler 拼豆')
+      expect(stored.palettes[0].beadSizeMm).toBe(5)
     })
   })
 
@@ -132,7 +265,7 @@ describe('MyBeadsPage · 色卡管理(本地模式)', () => {
     })
   })
 
-  it('颜色搜索:按色号/名称/HEX 过滤,无结果给空态', async () => {
+  it('颜色搜索:按色号/名称/HEX 过滤,无结果给空态并可清空', async () => {
     localStorage.setItem('personal-beads-v1', JSON.stringify({
       version: 1,
       palettes: [{ id: 'pal-1', name: '测试色卡', brandName: '', seriesName: '', beadSizeMm: null, notes: '' }],
@@ -158,6 +291,26 @@ describe('MyBeadsPage · 色卡管理(本地模式)', () => {
     // 无结果:提示「没有匹配」而不是「还没有颜色」
     fireEvent.change(search, { target: { value: 'zzz' } })
     await waitFor(() => expect(screen.getByText('没有匹配的颜色。')).toBeTruthy())
+    // 清空搜索后颜色回来
+    fireEvent.click(screen.getByText('清空搜索'))
+    await waitFor(() => expect(container.querySelectorAll('.my-beads-color-row')).toHaveLength(2))
+  })
+
+  it('空色卡给「添加第一种颜色」与「批量导入」两个入口', async () => {
+    localStorage.setItem('personal-beads-v1', JSON.stringify({
+      version: 1,
+      palettes: [{ id: 'pal-1', name: '空色卡', brandName: '', seriesName: '', beadSizeMm: null, notes: '' }],
+      colors: [],
+      inventory: [],
+    }))
+    const { container } = setup()
+    const empty = await waitFor(() => {
+      const el = container.querySelector('.my-beads-empty-inline')
+      expect(el).toBeTruthy()
+      return el
+    })
+    expect(within(empty).getByText('添加第一种颜色')).toBeTruthy()
+    expect(within(empty).getByText('批量导入')).toBeTruthy()
   })
 
   it('颜色来源:新建时可选,保存后显示徽章', async () => {
@@ -203,18 +356,25 @@ describe('MyBeadsPage · 色卡管理(本地模式)', () => {
 })
 
 describe('MyBeadsPage · 库存', () => {
-  it('数量留空 = 未记录(不等于 0);填数量后统计更新', async () => {
-    const { container } = setup()
+  async function openInventory(container) {
     await waitFor(() => expect(container.querySelector('.my-beads-mode')).toBeTruthy())
-
     fireEvent.click(screen.getByRole('tab', { name: /我的库存/ }))
     await waitFor(() => expect(container.querySelector('.my-beads-inv-list')).toBeTruthy())
+  }
+
+  it('数量留空 = 未记录(不等于 0);提交后统计更新', async () => {
+    const { container } = setup()
+    await openInventory(container)
 
     // 默认 Perler:全部未记录
     expect(screen.getByText('未记录 80')).toBeTruthy()
 
     const firstQty = container.querySelector('.qty-input')
     fireEvent.change(firstQty, { target: { value: '25' } })
+    // 草稿阶段不写库(规格 §5.4)
+    expect(JSON.parse(localStorage.getItem('personal-beads-v1') || '{"inventory":[]}').inventory).toHaveLength(0)
+
+    fireEvent.blur(firstQty)
     await waitFor(() => {
       const stored = JSON.parse(localStorage.getItem('personal-beads-v1'))
       expect(stored.inventory).toHaveLength(1)
@@ -222,17 +382,86 @@ describe('MyBeadsPage · 库存', () => {
     })
   })
 
+  it('逐字符输入只写最终值,不产生中间值', async () => {
+    const { container } = setup()
+    await openInventory(container)
+
+    const qty = container.querySelector('.qty-input')
+    // 模拟把 25 改成 100 的逐字符过程:2 → 10 → 100
+    fireEvent.change(qty, { target: { value: '2' } })
+    fireEvent.change(qty, { target: { value: '10' } })
+    fireEvent.change(qty, { target: { value: '100' } })
+    const before = JSON.parse(localStorage.getItem('personal-beads-v1') || '{"inventory":[]}').inventory
+    expect(before).toHaveLength(0)
+
+    fireEvent.blur(qty)
+    await waitFor(() => {
+      const stored = JSON.parse(localStorage.getItem('personal-beads-v1'))
+      expect(stored.inventory).toHaveLength(1)
+      expect(stored.inventory[0].quantity).toBe(100)
+    })
+  })
+
+  it('输入 0 提交后状态变为缺货;清空输入保存为 null 而不是删除记录', async () => {
+    const { container } = setup()
+    await openInventory(container)
+    const qty = container.querySelector('.qty-input')
+
+    fireEvent.change(qty, { target: { value: '0' } })
+    fireEvent.blur(qty)
+    await waitFor(() => {
+      const rec = JSON.parse(localStorage.getItem('personal-beads-v1')).inventory[0]
+      expect(rec.quantity).toBe(0)
+      expect(rec.status).toBe('out_of_stock')
+    })
+
+    // 清空 → 数量未知,记录仍在
+    fireEvent.change(qty, { target: { value: '' } })
+    fireEvent.blur(qty)
+    await waitFor(() => {
+      const inv = JSON.parse(localStorage.getItem('personal-beads-v1')).inventory
+      expect(inv).toHaveLength(1)
+      expect(inv[0].quantity).toBe(null)
+    })
+  })
+
+  it('Esc 恢复上次保存的数量,不写库', async () => {
+    const { container } = setup()
+    await openInventory(container)
+    const qty = container.querySelector('.qty-input')
+
+    fireEvent.change(qty, { target: { value: '30' } })
+    fireEvent.blur(qty)
+    await waitFor(() => expect(qty.value).toBe('30'))
+
+    fireEvent.change(qty, { target: { value: '999' } })
+    fireEvent.keyDown(qty, { key: 'Escape' })
+    expect(qty.value).toBe('30')
+    expect(JSON.parse(localStorage.getItem('personal-beads-v1')).inventory[0].quantity).toBe(30)
+  })
+
   it('标记缺货写入 out_of_stock 状态', async () => {
     const { container } = setup()
-    await waitFor(() => expect(container.querySelector('.my-beads-mode')).toBeTruthy())
-    fireEvent.click(screen.getByRole('tab', { name: /我的库存/ }))
+    await openInventory(container)
     await waitFor(() => expect(container.querySelector('.my-beads-inv-row')).toBeTruthy())
 
-    const outBtn = container.querySelectorAll('.my-beads-inv-row .stock-btn')[1]
+    // 三个状态按钮:拥有 / 数量不足 / 缺货
+    const outBtn = container.querySelectorAll('.my-beads-inv-row .stock-btn')[2]
     fireEvent.click(outBtn)
     await waitFor(() => {
       const stored = JSON.parse(localStorage.getItem('personal-beads-v1'))
       expect(stored.inventory[0].status).toBe('out_of_stock')
+    })
+  })
+
+  it('数量不足可显式登记(不再只能筛选)', async () => {
+    const { container } = setup()
+    await openInventory(container)
+    const lowBtn = container.querySelectorAll('.my-beads-inv-row .stock-btn')[1]
+    fireEvent.click(lowBtn)
+    await waitFor(() => {
+      const stored = JSON.parse(localStorage.getItem('personal-beads-v1'))
+      expect(stored.inventory[0].status).toBe('low')
     })
   })
 
@@ -245,15 +474,13 @@ describe('MyBeadsPage · 库存', () => {
       inventory: [{ id: 'i1', paletteKey: 'builtin:perler:P01', paletteColorId: null, quantity: 100, status: 'owned', notes: '' }],
     }))
     const { container } = setup()
-    await waitFor(() => expect(container.querySelector('.my-beads-mode')).toBeTruthy())
-    fireEvent.click(screen.getByRole('tab', { name: /我的库存/ }))
-    await waitFor(() => expect(container.querySelector('.my-beads-inv-row')).toBeTruthy())
+    await openInventory(container)
 
-    const filterSelect = container.querySelector('.my-beads-filters select[aria-label="库存筛选"]')
+    const filterSelect = container.querySelector('.inventory-toolbar select[aria-label="库存筛选"]')
     fireEvent.change(filterSelect, { target: { value: 'owned' } })
     await waitFor(() => expect(container.querySelectorAll('.my-beads-inv-row')).toHaveLength(1))
 
-    fireEvent.change(filterSelect, { target: { value: 'unknown' } })
+    fireEvent.change(filterSelect, { target: { value: 'unrecorded' } })
     await waitFor(() => {
       // Perler 80 色,1 条已记录 → 79 条未记录
       expect(container.querySelectorAll('.my-beads-inv-row')).toHaveLength(79)
@@ -263,11 +490,21 @@ describe('MyBeadsPage · 库存', () => {
     await waitFor(() => expect(screen.getByText('当前筛选下没有颜色。')).toBeTruthy())
   })
 
+  it('摘要项可点击,点击后设置对应筛选', async () => {
+    const { container } = setup()
+    await openInventory(container)
+    const summary = container.querySelector('.inventory-summary')
+    fireEvent.click(within(summary).getByText('未记录 80'))
+    await waitFor(() => expect(container.querySelectorAll('.my-beads-inv-row')).toHaveLength(80))
+
+    // 再点一次取消筛选
+    fireEvent.click(within(summary).getByText('未记录 80'))
+    await waitFor(() => expect(container.querySelectorAll('.my-beads-inv-row')).toHaveLength(80))
+  })
+
   it('批量编辑:勾选两行设为同一数量', async () => {
     const { container } = setup()
-    await waitFor(() => expect(container.querySelector('.my-beads-mode')).toBeTruthy())
-    fireEvent.click(screen.getByRole('tab', { name: /我的库存/ }))
-    await waitFor(() => expect(container.querySelector('.my-beads-inv-row')).toBeTruthy())
+    await openInventory(container)
 
     const boxes = container.querySelectorAll('.my-beads-inv-row > input[type="checkbox"]')
     fireEvent.click(boxes[0])
@@ -295,9 +532,7 @@ describe('MyBeadsPage · 库存', () => {
       inventory: [{ id: 'i1', paletteKey: 'builtin:perler:P01', paletteColorId: null, quantity: 5, status: 'owned', notes: '' }],
     }))
     const { container } = setup()
-    await waitFor(() => expect(container.querySelector('.my-beads-mode')).toBeTruthy())
-    fireEvent.click(screen.getByRole('tab', { name: /我的库存/ }))
-    await waitFor(() => expect(container.querySelector('.my-beads-inv-row')).toBeTruthy())
+    await openInventory(container)
 
     fireEvent.click(container.querySelector('.my-beads-inv-row > input[type="checkbox"]'))
     fireEvent.click(screen.getByText('清除记录'))
@@ -306,6 +541,50 @@ describe('MyBeadsPage · 库存', () => {
       const stored = JSON.parse(localStorage.getItem('personal-beads-v1'))
       expect(stored.inventory).toHaveLength(0)
     })
+  })
+
+  it('单行「清除库存记录」走确认框,确认后才删除', async () => {
+    localStorage.setItem('personal-beads-v1', JSON.stringify({
+      version: 1,
+      palettes: [],
+      colors: [],
+      inventory: [{ id: 'i1', paletteKey: 'builtin:perler:P01', paletteColorId: null, quantity: 5, status: 'owned', notes: '' }],
+    }))
+    const { container } = setup()
+    await openInventory(container)
+
+    // 打开「更多操作」菜单
+    fireEvent.click(within(container.querySelector('.my-beads-inv-row')).getByLabelText(/更多操作/))
+    fireEvent.click(screen.getByText('清除库存记录'))
+
+    const confirm = await waitFor(() => {
+      const el = document.querySelector('.my-beads-modal.confirm')
+      expect(el).toBeTruthy()
+      return el
+    })
+    expect(confirm.textContent).toContain('颜色本身不会被删除')
+    // 还没确认,记录仍在
+    expect(JSON.parse(localStorage.getItem('personal-beads-v1')).inventory).toHaveLength(1)
+
+    fireEvent.click(within(confirm).getByText('清除记录'))
+    await waitFor(() => {
+      expect(JSON.parse(localStorage.getItem('personal-beads-v1')).inventory).toHaveLength(0)
+    })
+  })
+
+  it('选择「我的色卡」且没有个人色卡时给出创建/复制入口', async () => {
+    const { container } = setup()
+    await openInventory(container)
+
+    fireEvent.click(within(container.querySelector('.inventory-picker')).getByText('我的色卡'))
+    const empty = await waitFor(() => {
+      const el = container.querySelector('.my-beads-empty-action')
+      expect(el).toBeTruthy()
+      return el
+    })
+    expect(empty.textContent).toContain('你还没有个人色卡')
+    expect(within(empty).getByText('复制品牌色卡')).toBeTruthy()
+    expect(within(empty).getByText('新建自定义色卡')).toBeTruthy()
   })
 })
 
@@ -342,7 +621,7 @@ describe('MyBeadsPage · 备份', () => {
     const file = new File([JSON.stringify(backup)], 'backup.json', { type: 'application/json' })
     // jsdom 的 File 没有 text():补一个
     file.text = () => Promise.resolve(JSON.stringify(backup))
-    const input = container.querySelector('.my-beads-file-input')
+    const input = container.querySelector('.my-beads-backup-file-input')
     fireEvent.change(input, { target: { files: [file] } })
 
     await waitFor(() => {
@@ -365,7 +644,7 @@ describe('MyBeadsPage · 备份', () => {
 
     const file = new File(['not json'], 'bad.json', { type: 'application/json' })
     file.text = () => Promise.resolve('not json')
-    fireEvent.change(container.querySelector('.my-beads-file-input'), { target: { files: [file] } })
+    fireEvent.change(container.querySelector('.my-beads-backup-file-input'), { target: { files: [file] } })
 
     await waitFor(() => {
       const stored = JSON.parse(localStorage.getItem('personal-beads-v1'))
@@ -584,11 +863,10 @@ describe('MyBeadsPage · 图纸匹配', () => {
   async function openMatchWithPersonal(container) {
     await waitFor(() => expect(container.querySelector('.my-beads-mode')).toBeTruthy())
     fireEvent.click(screen.getByRole('tab', { name: /图纸匹配/ }))
-    await waitFor(() => expect(container.querySelector('.my-beads-match-table')).toBeTruthy())
+    await waitFor(() => expect(container.querySelector('.match-results')).toBeTruthy())
     // 目标切到「我的色卡」并选中预置色卡
-    const [kindSelect, paletteSelect] = container.querySelectorAll('.my-beads-filters select')
-    fireEvent.change(kindSelect, { target: { value: 'user' } })
-    await waitFor(() => expect(paletteSelect.value).toBe('pal-1'))
+    fireEvent.click(within(container.querySelector('.match-config .segmented')).getByText('我的色卡'))
+    await waitFor(() => expect(container.querySelector('.match-config .picker-palette select').value).toBe('pal-1'))
   }
 
   it('精确命中显示 exact,但同色无需替换 → 批量接受不勾选', async () => {
@@ -596,13 +874,13 @@ describe('MyBeadsPage · 图纸匹配', () => {
     const { container } = setup()
     await openMatchWithPersonal(container)
 
-    const rows = container.querySelectorAll('.my-beads-match-table tbody tr')
+    const rows = container.querySelectorAll('.match-results .match-card')
     expect(rows.length).toBe(2) // 红 + 蓝
     expect(screen.getAllByText('精确').length).toBe(2)
 
-    fireEvent.click(screen.getByText('仅自动接受精确/接近匹配'))
+    fireEvent.click(screen.getByText('勾选精确 / 接近匹配'))
     await waitFor(() => {
-      const checked = container.querySelectorAll('.my-beads-match-table tbody input[type="checkbox"]:checked')
+      const checked = container.querySelectorAll('.match-results input[type="checkbox"]:checked')
       // 目标 HEX 与源色相同:替换没有意义,不应产生可应用项
       expect(checked.length).toBe(0)
     })
@@ -614,9 +892,9 @@ describe('MyBeadsPage · 图纸匹配', () => {
     await openMatchWithPersonal(container)
 
     expect(screen.getAllByText('接近').length).toBe(2)
-    fireEvent.click(screen.getByText('仅自动接受精确/接近匹配'))
+    fireEvent.click(screen.getByText('勾选精确 / 接近匹配'))
     await waitFor(() => {
-      const checked = container.querySelectorAll('.my-beads-match-table tbody input[type="checkbox"]:checked')
+      const checked = container.querySelectorAll('.match-results input[type="checkbox"]:checked')
       expect(checked.length).toBe(2)
     })
   })
@@ -625,12 +903,12 @@ describe('MyBeadsPage · 图纸匹配', () => {
     const { container } = setup() // 默认内置 Perler:#FF0000 → P28 ΔE 8.65,较大色差
     await waitFor(() => expect(container.querySelector('.my-beads-mode')).toBeTruthy())
     fireEvent.click(screen.getByRole('tab', { name: /图纸匹配/ }))
-    await waitFor(() => expect(container.querySelector('.my-beads-match-table')).toBeTruthy())
+    await waitFor(() => expect(container.querySelector('.match-results')).toBeTruthy())
 
     expect(screen.getAllByText('色差较大').length).toBe(2)
-    fireEvent.click(screen.getByText('仅自动接受精确/接近匹配'))
+    fireEvent.click(screen.getByText('勾选精确 / 接近匹配'))
     await waitFor(() => {
-      const checked = container.querySelectorAll('.my-beads-match-table tbody input[type="checkbox"]:checked')
+      const checked = container.querySelectorAll('.match-results input[type="checkbox"]:checked')
       expect(checked.length).toBe(0)
     })
   })
@@ -641,13 +919,12 @@ describe('MyBeadsPage · 图纸匹配', () => {
     const { container } = setup({ onApplyMapping })
     await openMatchWithPersonal(container)
 
-    fireEvent.click(screen.getByText('仅自动接受精确/接近匹配'))
+    fireEvent.click(screen.getByText('勾选精确 / 接近匹配'))
     await waitFor(() => {
-      expect(container.querySelectorAll('.my-beads-match-table tbody input[type="checkbox"]:checked').length)
-        .toBe(2)
+      expect(container.querySelectorAll('.match-results input[type="checkbox"]:checked').length).toBe(2)
     })
 
-    fireEvent.click(screen.getByText(/应用替换/))
+    fireEvent.click(screen.getByText(/应用替换|应用 \d+ 种替色/))
 
     await waitFor(() => expect(onApplyMapping).toHaveBeenCalledTimes(1))
     const next = onApplyMapping.mock.calls[0][0]
@@ -663,20 +940,106 @@ describe('MyBeadsPage · 图纸匹配', () => {
     }
   })
 
+  it('勾选替色只更新临时预览,不修改真实画布', async () => {
+    seedPersonalPalette()
+    const onApplyMapping = vi.fn()
+    const { container } = setup({ onApplyMapping })
+    await openMatchWithPersonal(container)
+
+    fireEvent.click(screen.getByText('勾选精确 / 接近匹配'))
+    await waitFor(() => {
+      expect(container.querySelectorAll('.match-results input[type="checkbox"]:checked').length).toBe(2)
+    })
+    // 预览摘要出现,但真实画布未被回调
+    expect(container.querySelector('.match-preview-stats').textContent).toContain('预计修改')
+    expect(onApplyMapping).not.toHaveBeenCalled()
+  })
+
+  it('没有勾选任何替色时应用按钮禁用并说明原因', async () => {
+    seedPersonalPalette()
+    const { container } = setup()
+    await openMatchWithPersonal(container)
+
+    const applyBtn = container.querySelector('.my-beads-match-actions .my-beads-btn.primary')
+    expect(applyBtn.disabled).toBe(true)
+    expect(container.textContent).toContain('先勾选至少一种替色')
+  })
+
+  it('阈值 0 不回退到默认 6(全部判为色差较大)', async () => {
+    seedPersonalPalette()
+    const { container } = setup()
+    await openMatchWithPersonal(container)
+    // 默认阈值 6 时是「接近」
+    expect(screen.getAllByText('接近').length).toBe(2)
+
+    fireEvent.click(screen.getByText('高级设置'))
+    const thresholdSelect = await waitFor(() => {
+      const el = container.querySelector('.match-advanced select[aria-label="颜色接近程度"]')
+      expect(el).toBeTruthy()
+      return el
+    })
+    fireEvent.change(thresholdSelect, { target: { value: 'custom' } })
+    const numInput = container.querySelector('.match-advanced input[aria-label="颜色接近程度"]')
+    fireEvent.change(numInput, { target: { value: '0' } })
+
+    // ΔE 极小但非 0 的两色在阈值 0 下全部判为「色差较大」
+    await waitFor(() => expect(screen.getAllByText('色差较大').length).toBe(2))
+  })
+
   it('尺寸不兼容时整表标记,不给出目标色', async () => {
     const { container } = setup()
     await waitFor(() => expect(container.querySelector('.my-beads-mode')).toBeTruthy())
     fireEvent.click(screen.getByRole('tab', { name: /图纸匹配/ }))
-    await waitFor(() => expect(container.querySelector('.my-beads-match-table')).toBeTruthy())
+    await waitFor(() => expect(container.querySelector('.match-results')).toBeTruthy())
 
-    // 图纸豆径填 2.6,Perler 是 5mm → incompatible-size
-    const sizeInput = container.querySelector('.my-beads-size input')
-    fireEvent.change(sizeInput, { target: { value: '2.6' } })
+    // 高级设置里把图纸豆径填 2.6,Perler 是 5mm → incompatible-size
+    fireEvent.click(screen.getByText('高级设置'))
+    const sizeSelect = await waitFor(() => {
+      const el = container.querySelector('.match-advanced select[aria-label="你准备使用的豆子直径"]')
+      expect(el).toBeTruthy()
+      return el
+    })
+    fireEvent.change(sizeSelect, { target: { value: '2.6' } })
 
     await waitFor(() => {
       expect(screen.getAllByText('尺寸不兼容').length).toBe(2)
     })
-    const disabled = container.querySelectorAll('.my-beads-match-table tbody input[type="checkbox"][disabled]')
+    const disabled = container.querySelectorAll('.match-results input[type="checkbox"][disabled]')
     expect(disabled.length).toBe(2)
+  })
+
+  it('没有可匹配的图纸时给可行动空状态与返回画布入口', async () => {
+    const { container } = setup({ canvasData: [] })
+    await waitFor(() => expect(container.querySelector('.my-beads-mode')).toBeTruthy())
+    fireEvent.click(screen.getByRole('tab', { name: /图纸匹配/ }))
+
+    const empty = await waitFor(() => {
+      const el = container.querySelector('.my-beads-empty-action')
+      expect(el).toBeTruthy()
+      return el
+    })
+    expect(empty.textContent).toContain('当前没有可匹配的图纸')
+    expect(within(empty).getByText('返回画布')).toBeTruthy()
+  })
+
+  it('个人目标色卡没有颜色时给「去管理这张色卡」入口', async () => {
+    localStorage.setItem('personal-beads-v1', JSON.stringify({
+      version: 1,
+      palettes: [{ id: 'pal-empty', name: '空色卡', brandName: '', seriesName: '', beadSizeMm: null, notes: '' }],
+      colors: [],
+      inventory: [],
+    }))
+    const { container } = setup()
+    await waitFor(() => expect(container.querySelector('.my-beads-mode')).toBeTruthy())
+    fireEvent.click(screen.getByRole('tab', { name: /图纸匹配/ }))
+    fireEvent.click(within(container.querySelector('.match-config .segmented')).getByText('我的色卡'))
+
+    const empty = await waitFor(() => {
+      const el = container.querySelector('.my-beads-empty-action')
+      expect(el).toBeTruthy()
+      return el
+    })
+    expect(empty.textContent).toContain('你的色卡里还没有颜色')
+    expect(within(empty).getByText('去管理这张色卡')).toBeTruthy()
   })
 })
