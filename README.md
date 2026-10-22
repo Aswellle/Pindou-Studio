@@ -3,12 +3,12 @@
 > **把灵感一颗一颗烫进珠子里。** 专业的在线拼豆图纸设计工具 —— 从像素到实物,一站式创作。
 
 [![CI](https://github.com/Aswellle/Pindou-Studio/actions/workflows/ci.yml/badge.svg)](https://github.com/Aswellle/Pindou-Studio/actions/workflows/ci.yml)
+[![XERJ Corpus Hub contributor](https://hub.xerj.org/contributors/Aswellle/badge.svg)](https://hub.xerj.org/contributors/Aswellle)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![React](https://img.shields.io/badge/React-18-61DAFB?logo=react)](https://react.dev)
 [![Vite](https://img.shields.io/badge/Vite-6-646CFF?logo=vite)](https://vitejs.dev)
 [![Supabase](https://img.shields.io/badge/Supabase-BaaS-3ECF8E?logo=supabase&logoColor=white)](https://supabase.com)
 [![i18n](https://img.shields.io/badge/i18n-4%20Languages-4A9B8E)](https://www.i18next.com)
-[![XERJ Corpus Hub contributor](https://hub.xerj.org/contributors/Aswellle/badge.svg)](https://hub.xerj.org/contributors/Aswellle)
 
 **中文** · [English](README.en.md)
 
