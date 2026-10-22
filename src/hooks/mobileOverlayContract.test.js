@@ -270,4 +270,44 @@ describe('移动端全屏浮层契约', () => {
     const files = scanDialogContainers().map((hit) => hit.file)
     expect(files.some((f) => f.endsWith('AdminPanel.jsx'))).toBe(true)
   })
+
+  it('浮层不得用内联 style 覆盖定位与高度(共享组是唯一来源)', () => {
+    // 规格 §8.1 第 5 条:检查 top/height/padding-bottom 未被 inline style 意外覆盖。
+    // 内联 style 的优先级高于任何选择器 —— 一旦浮层根元素上写了 height/top,
+    // 共享组的 inset:0 + 100dvh 就静默失效,键盘补偿也跟着失效。
+    const offenders = []
+    for (const file of walk(SRC)) {
+      const code = readFileSync(file, 'utf8')
+      // 找所有含浮层类名的元素,看它同一行/紧随的 style={{...}} 里有没有危险属性
+      for (const m of code.matchAll(/className=(?:"([^"]*)"|\{`([^`]*)`\})[^>]*?style=\{\{([^}]*)\}\}/g)) {
+        const cls = m[1] ?? m[2] ?? ''
+        if (!SHARED_BASES.has(cls) && ![...SHARED_BASES].some((b) => cls.split(/\s+/).includes(b))) continue
+        const style = m[3]
+        for (const prop of ['height', 'top', 'bottom', 'position', 'paddingBottom']) {
+          if (new RegExp(`(^|[,{\\s])${prop}\\s*:`).test(style)) {
+            offenders.push(`${relative(SRC, file)} → ${cls}: ${prop}`)
+          }
+        }
+      }
+    }
+    expect(offenders).toEqual([])
+  })
+
+  it('浮层根元素不得被 style 属性直接赋值(绕过 CSS 变量体系)', () => {
+    // style={{ height: 'var(--visible-vh)' }} 这类写法虽然引用了正确变量,
+    // 但把「谁负责高度」拆成两处。浮层高度只应由 index.css 共享组决定。
+    const offenders = []
+    for (const file of walk(SRC)) {
+      const code = readFileSync(file, 'utf8')
+      for (const m of code.matchAll(/className=(?:"([^"]*)"|\{`([^`]*)`\})[^>]*?style=\{\{([^}]*)\}\}/g)) {
+        const cls = m[1] ?? m[2] ?? ''
+        const tokens = cls.match(/[A-Za-z][A-Za-z0-9_-]*/g) || []
+        if (!tokens.some((tk) => SHARED_BASES.has(tk))) continue
+        if (/--visible-vh|--keyboard-height|100dvh|100vh/.test(m[3])) {
+          offenders.push(`${relative(SRC, file)} → ${cls}`)
+        }
+      }
+    }
+    expect(offenders).toEqual([])
+  })
 })
