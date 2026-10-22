@@ -153,9 +153,13 @@ export default function GalleryPage({ onLoadTemplate, onDeleteWork, onLoadWork, 
     let left = r.left
     let top = r.bottom + 6
     if (left + mw > window.innerWidth - 8) left = Math.max(8, window.innerWidth - mw - 8)
-    // iOS 键盘弹起时 window.innerHeight 是布局视口(不收缩),用视觉视口高度才正确
-    const vh = window.visualViewport?.height ?? window.innerHeight
-    if (top + mh > vh - 8) top = Math.max(8, r.top - mh - 6)
+    // 菜单是 position:fixed,坐标系是视觉视口。键盘弹起时 window.innerHeight 仍是
+    // 布局视口(不收缩),必须用视觉视口的上下沿;且 iOS 会自动平移视觉视口
+    // (offsetTop > 0),只取 height 会把菜单摆到键盘上方偏高处。
+    const vv = window.visualViewport
+    const vTop = vv ? Math.max(0, vv.offsetTop) : 0
+    const vBottom = vv ? vv.offsetTop + vv.height : window.innerHeight
+    if (top + mh > vBottom - 8) top = Math.max(vTop + 8, r.top - mh - 6)
     menu.style.left = `${left}px`
     menu.style.top = `${top}px`
   }, [brandMenuId])
@@ -170,8 +174,11 @@ export default function GalleryPage({ onLoadTemplate, onDeleteWork, onLoadWork, 
     let top = r.top - mh - 6
     if (left < 8) left = 8
     if (top < 8) top = r.bottom + 6
-    const vh = window.visualViewport?.height ?? window.innerHeight
-    if (top + mh > vh - 8) top = Math.max(8, vh - mh - 8)
+    // 同 brandMenu:fixed 定位要用视觉视口的上下沿,offsetTop > 0 时不能只看 height
+    const vv = window.visualViewport
+    const vTop = vv ? Math.max(0, vv.offsetTop) : 0
+    const vBottom = vv ? vv.offsetTop + vv.height : window.innerHeight
+    if (top + mh > vBottom - 8) top = Math.max(vTop + 8, vBottom - mh - 8)
     menu.style.left = `${left}px`
     menu.style.top = `${top}px`
   }, [exportMenuId])
