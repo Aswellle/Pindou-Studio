@@ -95,7 +95,9 @@ export default function InventoryWorkspace({
   const resetSelection = () => { setSelectedKeys(new Set()); setBatchQty('') }
 
   const changeSource = (next) => { resetSelection(); setFilter('all'); setSearch(''); onSourceChange(next) }
-  const changePalette = (next) => { resetSelection(); onPaletteChange(next) }
+  // 换色卡与换来源同样要清空搜索与筛选:上一张色卡的色号/名称在新色卡里
+  // 通常不存在,留着查询会直接呈现空列表,看起来像"这张色卡没有颜色"。
+  const changePalette = (next) => { resetSelection(); setFilter('all'); setSearch(''); onPaletteChange(next) }
 
   const toggleKey = (key) => {
     setSelectedKeys((prev) => {
