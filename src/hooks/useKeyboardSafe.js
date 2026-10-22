@@ -143,12 +143,15 @@ export default function useKeyboardSafe() {
       return changed
     }
 
-    // 找到输入框最近的「可滚动」祖先(排除 html/body/不可滚动元素),仅内层滚动容器。
+    // 找到输入框最近的「可滚动」祖先(排除 html/body/不可滚动元素/浮层遮罩本身)。
     // 键盘弹出时让输入框在这个内层容器里可见 —— 不滚动 body/html(那会把整页内容
-    // 顶到屏幕上方 → 视觉视口看到容器之外 → 白板,已证实)。
+    // 顶到屏幕上方 → 视觉视口看到容器之外 → 白板,已证实),也不滚动浮层遮罩
+    // (它是 fixed + inset:0,滚它等于把整个 modal 顶出可视区)。
     const getScrollAncestor = (el) => {
       let node = el.parentElement
       while (node && node !== document.documentElement && node !== document.body) {
+        // 浮层遮罩本身不作为滚动目标:它承载的是 fixed 定位的整屏容器
+        if (node.matches?.(OVERLAY_SELECTOR)) return null
         const style = window.getComputedStyle(node)
         const oy = style.overflowY
         if ((oy === 'auto' || oy === 'scroll' || oy === 'overlay') && node.scrollHeight > node.clientHeight) {
@@ -159,7 +162,7 @@ export default function useKeyboardSafe() {
       return null
     }
 
-    // 确保聚焦的页面内输入框在可视区。
+    // 确保聚焦的输入框在可视区。
     //
     // 坐标系:getBoundingClientRect() 返回的是相对【布局视口】的坐标;而键盘弹起后
     // 用户真正看得见的窗口是视觉视口 [visualTop, visualTop + visualHeight]。
@@ -169,13 +172,21 @@ export default function useKeyboardSafe() {
     // 因此先取容器与视觉视口的交集作为有效可见带,再把元素修到带内。
     //
     // 上下两个方向都处理;单次、非平滑赋值,不与 iOS 原生滚动动画叠加。
+    //
+    // 浮层内输入框:浮层自身收缩(--visible-vh)解决"浮层被键盘盖住",但**不解决**
+    // 浮层内部 modal 的滚动 —— modal 有 max-height + overflow-y:auto,键盘弹起后
+    // 可用高度可能小于内容,最后一个字段/操作行会落在滚动区外。所以这里不整体跳过
+    // 浮层,只排除「滚动浮层自身」(overlay 是 fixed 定位的遮罩,滚它等于把整个
+    // modal 顶出视口,正是白板元凶),允许修正浮层内部的滚动容器。
     const ensureFocusedVisible = () => {
       const el = document.activeElement
       if (!isFocusableField(el)) return
-      if (el.closest(OVERLAY_SELECTOR)) return
+      const overlay = el.closest(OVERLAY_SELECTOR)
       const scroller = getScrollAncestor(el)
+      // 浮层内且没有内层滚动容器:交给浮层收缩机制,不做任何滚动
+      if (overlay && !scroller) return
+      // 页面内且无滚动容器:兜底 nearest(不会带动其它可滚动祖先)
       if (!scroller) {
-        // 没有内层滚动容器时才兜底:nearest 不会带动其它可滚动祖先
         try { el.scrollIntoView?.({ block: 'nearest', inline: 'nearest' }) } catch { /* 忽略 */ }
         return
       }
@@ -215,8 +226,12 @@ export default function useKeyboardSafe() {
     }
 
     const onFocusIn = (e) => {
-      // 页面内输入框:键盘展开后修正一次可见性;浮层内输入框由浮层收缩机制处理
-      if (isFocusableField(e.target) && !e.target.closest(OVERLAY_SELECTOR)) requestFocusCheck()
+      // 所有输入框聚焦都要做一次可见性修正:
+      //  - 页面内输入框 → 滚最近的页面滚动容器;
+      //  - 浮层内输入框 → 滚浮层内部 modal 的滚动容器(键盘已开时,浮层收缩不再
+      //    变化,若不主动修正,用户点到最后一个字段时它会停在 sticky 操作行底下)。
+      // 浮层遮罩自身被 getScrollAncestor 排除,不会把整个 modal 顶出视口。
+      if (isFocusableField(e.target)) requestFocusCheck()
       else scheduleMeasure()
     }
     // focusout 时 activeElement 立刻变 body,但键盘还在播放收起动画。
