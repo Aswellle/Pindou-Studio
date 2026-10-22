@@ -1319,13 +1319,11 @@
 
 .shopping-unknown strong { font-weight: var(--font-weight-semibold); }
 
-/* ── 弹层(定位/高度/滚动/居中/safe-area 由 index.css 全屏浮层基础设施统一提供)──
-   组件只保留自身差异(底色 / 层级 / 内边距)。 */
+/* ── 弹层(定位/高度/滚动/居中/safe-area/内边距由 index.css 全屏浮层基础设施统一提供)──
+   组件只保留自身差异(底色 / 层级)。此前这里重抄了 padding 与 padding-bottom 的
+   键盘补偿表达式,与共享组逐字重复 —— 共享组一改就会静默失效。 */
 .my-beads-modal-overlay {
   z-index: 1200;
-  padding: 16px;
-  /* 与共享组保持一致:底部让出键盘高度,弹层才不会被键盘盖住下半截 */
-  padding-bottom: max(16px, calc(var(--keyboard-height, 0px) + 16px), env(safe-area-inset-bottom, 0px));
   background: rgba(43, 36, 32, 0.45);
 }
 

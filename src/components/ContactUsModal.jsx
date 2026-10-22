@@ -344,17 +344,15 @@ export default function ContactUsModal({ onClose, user }) {
            底部必须同时让出键盘高度(--keyboard-height):overlay 在布局视口内居中,
            键盘弹起后布局视口不变(Safari 不支持 interactive-widget),只让出顶部会把
            modal 整体居中在键盘后方,输入行与发送按钮被键盘盖住。 */
+        /* 组件只保留自身差异:底色 / 层级 / 居中(本类不在 index.css 居中组内)/ 「overlay 不滚」
+           (聊天区 .contact-body 是唯一滚动容器)。定位、高度、内边距、safe-area 一律由
+           index.css 共享浮层组提供 —— 此前这里整套重抄了 padding,共享组一旦调整就会静默失效。 */
         .contact-overlay {
           background: rgba(43, 36, 32, 0.5);
           z-index: 1200;
           display: grid;
           place-items: center;
           overflow: hidden;
-          padding: 16px;
-          padding-top: max(16px, var(--visible-vh-top, 0px), env(safe-area-inset-top, 0px));
-          padding-right: max(16px, env(safe-area-inset-right, 0px));
-          padding-bottom: max(16px, calc(var(--keyboard-height, 0px) + 16px), env(safe-area-inset-bottom, 0px));
-          padding-left: max(16px, env(safe-area-inset-left, 0px));
         }
         .contact-modal {
           width: 100%;

@@ -433,11 +433,10 @@
   align-items: center;
   justify-content: center;
   gap: 14px;
-  padding: 20px;
-  padding-top: max(20px, env(safe-area-inset-top, 0px));
-  padding-right: max(20px, env(safe-area-inset-right, 0px));
-  padding-bottom: max(20px, env(safe-area-inset-bottom, 0px));
-  padding-left: max(20px, env(safe-area-inset-left, 0px));
+  /* 只调内边距基数:顶部偏移 / 键盘高度 / safe-area 的 max() 表达式由共享组统一提供。
+     此前这里整套重抄了四边 safe-area,却漏掉 --visible-vh-top 与 --keyboard-height ——
+     放大视图是纯展示层(无输入框),漏掉不影响键盘场景,但重复声明仍会随共享组调整而失配。 */
+  --overlay-pad: 20px;
 }
 
 .quantizer-zoom canvas {

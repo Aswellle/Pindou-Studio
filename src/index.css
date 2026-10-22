@@ -205,12 +205,16 @@ input:focus, textarea:focus, button:focus {
   overflow: hidden;
   z-index: 1000;
   backdrop-filter: blur(4px);
-  padding: 16px;
-  padding-top: max(16px, var(--visible-vh-top, 0px), env(safe-area-inset-top, 0px));
-  padding-right: max(16px, env(safe-area-inset-right, 0px));
-  /* 键盘高度补偿:见上方注释。max() 保证键盘收起/无 visualViewport 时仍是 16px */
-  padding-bottom: max(16px, calc(var(--keyboard-height, 0px) + 16px), env(safe-area-inset-bottom, 0px));
-  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  /* 内边距基数:组件可用 --overlay-pad 调整自己的留白(见 .quantizer-zoom),
+     但「让出视觉视口偏移 / 键盘高度 / safe-area」的表达式只在这里写一次 ——
+     组件重抄整套 max() 会与共享组产生隐式优先级,共享组调整时静默失效。
+     默认值走 var() 的 fallback 而不是在本组里声明,避免同权重声明靠源序决胜负。 */
+  padding: var(--overlay-pad, 16px);
+  padding-top: max(var(--overlay-pad, 16px), var(--visible-vh-top, 0px), env(safe-area-inset-top, 0px));
+  padding-right: max(var(--overlay-pad, 16px), env(safe-area-inset-right, 0px));
+  /* 键盘高度补偿:见上方注释。max() 保证键盘收起/无 visualViewport 时仍是基数 */
+  padding-bottom: max(var(--overlay-pad, 16px), calc(var(--keyboard-height, 0px) + var(--overlay-pad, 16px)), env(safe-area-inset-bottom, 0px));
+  padding-left: max(var(--overlay-pad, 16px), env(safe-area-inset-left, 0px));
   box-sizing: border-box;
   /* 阻止滚动穿透:模态框上滑动不带动下层页面 */
   overscroll-behavior: contain;
@@ -248,14 +252,21 @@ input:focus, textarea:focus, button:focus {
   -webkit-overflow-scrolling: touch;
   overscroll-behavior: contain;
   box-sizing: border-box;
-  padding: 16px;
+  padding: var(--overlay-pad, 16px);
   /* 与 .modal-overlay 同一套键盘补偿:顶部让出视觉视口偏移,底部让出键盘高度,
      居中组(确认框 / 后台模态)才会落在键盘上方的可见区,而不是被键盘盖住下半截 */
-  padding-top: max(16px, var(--visible-vh-top, 0px), env(safe-area-inset-top, 0px));
-  padding-right: max(16px, env(safe-area-inset-right, 0px));
-  padding-bottom: max(16px, calc(var(--keyboard-height, 0px) + 16px), env(safe-area-inset-bottom, 0px));
-  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-top: max(var(--overlay-pad, 16px), var(--visible-vh-top, 0px), env(safe-area-inset-top, 0px));
+  padding-right: max(var(--overlay-pad, 16px), env(safe-area-inset-right, 0px));
+  padding-bottom: max(var(--overlay-pad, 16px), calc(var(--keyboard-height, 0px) + var(--overlay-pad, 16px)), env(safe-area-inset-bottom, 0px));
+  padding-left: max(var(--overlay-pad, 16px), env(safe-area-inset-left, 0px));
 }
+/* 个人资料页的退出登录 / 修改密码确认框:此前只在 index.css 共享组里出现,
+   组件没有任何自己的规则,导致遮罩没有底色(背后页面不变暗)。这里补上遮罩色与层级。 */
+.profile-confirm-overlay {
+  background: rgba(43, 36, 32, 0.45);
+  z-index: 1200;
+}
+
 /* 居中组(确认框 / 后台模态):内容放得下居中、超高可滚到底 */
 .admin-modal-overlay,
 .users-confirm-overlay,
