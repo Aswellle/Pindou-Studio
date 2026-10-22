@@ -130,7 +130,7 @@ describe('useKeyboardSafe', () => {
     unmount()
   })
 
-  it('overlay 内输入框不做主动滚动', () => {
+  it('overlay 内输入框:没有内层滚动容器时不做主动滚动', () => {
     const { unmount } = renderHook(() => useKeyboardSafe())
     const overlay = document.createElement('div')
     overlay.className = 'modal-overlay'
@@ -142,6 +142,46 @@ describe('useKeyboardSafe', () => {
 
     input.dispatchEvent(new Event('focusin', { bubbles: true }))
     expect(scrollIntoView).not.toHaveBeenCalled()
+    unmount()
+  })
+
+  it('overlay 内输入框:有内层滚动容器时修正到可见带内', () => {
+    // 键盘弹起后浮层可用高度可能小于表单内容(实测 390×844 可见带仅 350px,
+    // 色卡表单 436px)。浮层收缩只保证浮层本身在键盘上方,不保证 modal 内部
+    // 滚动容器的末尾可见 —— 用户点到最后一个字段时会停在操作行底下。
+    const { unmount } = renderHook(() => useKeyboardSafe())
+    const overlay = document.createElement('div')
+    overlay.className = 'my-beads-modal-overlay'
+    overlay.style.overflowY = 'auto'
+    Object.defineProperty(overlay, 'clientHeight', { value: 800, configurable: true })
+    Object.defineProperty(overlay, 'scrollHeight', { value: 800, configurable: true })
+
+    const modal = document.createElement('div')
+    modal.className = 'my-beads-modal'
+    modal.style.overflowY = 'auto'
+    Object.defineProperty(modal, 'clientHeight', { value: 400, configurable: true })
+    Object.defineProperty(modal, 'scrollHeight', { value: 600, configurable: true })
+    const input = document.createElement('input')
+    modal.appendChild(input)
+    overlay.appendChild(modal)
+    document.body.appendChild(overlay)
+
+    // 输入框在容器内 380–420,但键盘打开后可见带只到 300
+    vi.spyOn(input, 'getBoundingClientRect').mockReturnValue({ top: 380, bottom: 420, height: 40 })
+    vi.spyOn(modal, 'getBoundingClientRect').mockReturnValue({ top: 0, bottom: 400 })
+    modal.scrollTop = 0
+
+    // 输入框在 modal 可视区(0–400)之外的下沿 380–420:聚焦时就应被修正。
+    // 这验证的是「浮层内输入框也会滚内层容器」—— 旧实现直接 return,这里会是 0。
+    input.focus()
+    expect(modal.scrollTop).toBe(30) // 420 - 400 + FOCUS_PAD(10)
+    expect(overlay.scrollTop).toBe(0) // 绝不滚遮罩自身
+
+    // 键盘再打开(可见带收窄到 0–300)时再修正一次
+    modal.scrollTop = 0
+    viewport.set(300, 0) // inset = 800 - 300 = 500 ≥ 120,键盘打开
+    expect(modal.scrollTop).toBeGreaterThan(30)
+    expect(overlay.scrollTop).toBe(0)
     unmount()
   })
 
