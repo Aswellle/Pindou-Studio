@@ -47,6 +47,26 @@ const TONE = {
   [COLOR_STATUS.MISSING]: 'missing',
 }
 
+/**
+ * 「什么时候用得上」—— 三句话说明使用场景。
+ *
+ * 这个页面原来的标题是「把当前图纸匹配到色卡」,只在描述操作,
+ * 没说清楚它在什么情境下有用,新用户进来只会看到一堆阈值/替色控件。
+ * 场景说明放在标题下方(以及无图纸的空状态里),先回答「我为什么要用它」。
+ */
+function WhenToUse({ t }) {
+  return (
+    <div className="match-when">
+      <h3>{t('myBeads.match.whenTitle')}</h3>
+      <ul>
+        <li>{t('myBeads.match.when1')}</li>
+        <li>{t('myBeads.match.when2')}</li>
+        <li>{t('myBeads.match.when3')}</li>
+      </ul>
+    </div>
+  )
+}
+
 export default function MatchWorkspace({
   canvasData,
   builtinPalettes,
@@ -189,6 +209,12 @@ export default function MatchWorkspace({
     return (
       <section className="my-beads-section match-workspace">
         <div className="my-beads-section-head"><h2>{t('myBeads.match.title')}</h2></div>
+        <p className="my-beads-hint small">{t('myBeads.match.intro')}</p>
+
+        {/* 空状态下更要说清「这个页面是干什么的」:用户很可能就是在这里
+            第一次见到这个功能,只给「去画画」等于把人推走。 */}
+        <WhenToUse t={t} />
+
         <div className="my-beads-empty-action">
           <PaletteIcon size={20} aria-hidden="true" />
           <h3>{t('myBeads.match.noCanvasTitle')}</h3>
@@ -205,6 +231,8 @@ export default function MatchWorkspace({
     <section className="my-beads-section match-workspace">
       <div className="my-beads-section-head"><h2>{t('myBeads.match.title')}</h2></div>
       <p className="my-beads-hint small">{t('myBeads.match.intro')}</p>
+
+      <WhenToUse t={t} />
 
       {/* 三步说明(不是强制向导) */}
       <ol className="match-steps">

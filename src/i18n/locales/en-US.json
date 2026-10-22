@@ -1320,7 +1320,7 @@
     "tabs": {
       "palettes": "My Palettes",
       "inventory": "My Inventory",
-      "match": "Pattern Match"
+      "match": "Color swap"
     },
     "palettes": {
       "title": "My Palettes",
@@ -1535,17 +1535,17 @@
       "stockSufficient": "In stock",
       "stockShortage": "Not enough",
       "stockOut": "Out of stock",
-      "intro": "Convert the colors used in the current pattern into the brand palette you will actually use. Closest colors are suggested, and your inventory estimates what you are missing. Preview before applying — only the items you confirm change the canvas.",
-      "step1": "Choose target palette",
-      "step2": "Check matches and stock",
-      "step3": "Preview and apply",
+      "intro": "Your beads are a different brand from the pattern? This page swaps every color in the pattern for the closest one in your palette, then works out how many you're short.",
+      "step1": "Pick a palette you actually own",
+      "step2": "See what each color becomes and what you lack",
+      "step3": "Tick what to swap, apply, and return to the canvas",
       "targetSource": "Palette source",
       "targetPalette": "Target palette",
       "targetEmpty": "Your palette has no colors yet",
       "targetEmptyDesc": "Add colors to this palette before matching the pattern.",
       "targetManage": "Manage this palette",
-      "noCanvasTitle": "No pattern to match",
-      "noCanvasDesc": "The canvas has no colors yet. Draw something or load a template first.",
+      "noCanvasTitle": "Draw a pattern first, then come back",
+      "noCanvasDesc": "This page converts an existing pattern to your palette. The canvas has no colors yet, so there is nothing to convert.",
       "backToCanvas": "Back to canvas",
       "sizeLabel": "Bead size you plan to use",
       "sizeHelp": "Only used to check whether the target palette has a compatible bead size. It does not change the grid size.",
@@ -1575,7 +1575,11 @@
       "shoppingUnknownTitle": "Stock unknown",
       "shoppingUnknownDesc": "These colors have no recorded quantity yet, so it is not possible to tell whether they are enough.",
       "shoppingNone": "Stock is sufficient — nothing to buy.",
-      "stepHint": "Results recalculate when the target palette, bead size, threshold or inventory changes."
+      "stepHint": "Results recalculate when the target palette, bead size, threshold or inventory changes.",
+      "whenTitle": "When to use this",
+      "when1": "Following a pattern found online, but you use another brand",
+      "when2": "You can't buy every color in the pattern and want close substitutes",
+      "when3": "You want to know how many beads of each color to buy before starting"
     },
     "errors": {
       "notObject": "Invalid input format",
@@ -1637,7 +1641,7 @@
     "tabHints": {
       "palettes": "Create your own palette, or copy a brand palette and adjust it. Built-in palettes are never modified.",
       "inventory": "Pick a palette first, then record each color’s stock status and quantity.",
-      "match": "Convert the current pattern to the brand palette you will use, preview, then apply."
+      "match": "Convert pattern colors to your palette and see how many beads you are short."
     }
   },
   "chartImport": {

@@ -848,7 +848,7 @@ describe('MyBeadsPage · 删除被引用色卡时重新指定', () => {
   })
 })
 
-describe('MyBeadsPage · 图纸匹配', () => {
+describe('MyBeadsPage · 颜色换算', () => {
   // 预置一张个人色卡。红/蓝用「几乎相同但不等」的 HEX:
   // ΔE 极小 → close,且替换确实会改变矩阵(与源色完全相同则无需替换)。
   function seedPersonalPalette({ exact = false } = {}) {
@@ -865,8 +865,8 @@ describe('MyBeadsPage · 图纸匹配', () => {
   }
 
   async function openMatchWithPersonal(container) {
-    await waitFor(() => expect(container.querySelector('.my-beads-mode')).toBeTruthy())
-    fireEvent.click(screen.getByRole('tab', { name: /图纸匹配/ }))
+    await waitFor(() => expect(container.querySelector('.my-beads-inner')).toBeTruthy())
+    fireEvent.click(screen.getByRole('tab', { name: /颜色换算/ }))
     await waitFor(() => expect(container.querySelector('.match-results')).toBeTruthy())
     // 目标切到「我的色卡」并选中预置色卡
     fireEvent.click(within(container.querySelector('.match-config .segmented')).getByText('我的色卡'))
@@ -905,8 +905,8 @@ describe('MyBeadsPage · 图纸匹配', () => {
 
   it('较大色差(poor-match)不会被批量接受', async () => {
     const { container } = setup() // 默认内置 Perler:#FF0000 → P28 ΔE 8.65,较大色差
-    await waitFor(() => expect(container.querySelector('.my-beads-mode')).toBeTruthy())
-    fireEvent.click(screen.getByRole('tab', { name: /图纸匹配/ }))
+    await waitFor(() => expect(container.querySelector('.my-beads-inner')).toBeTruthy())
+    fireEvent.click(screen.getByRole('tab', { name: /颜色换算/ }))
     await waitFor(() => expect(container.querySelector('.match-results')).toBeTruthy())
 
     expect(screen.getAllByText('色差较大').length).toBe(2)
@@ -992,8 +992,8 @@ describe('MyBeadsPage · 图纸匹配', () => {
 
   it('尺寸不兼容时整表标记,不给出目标色', async () => {
     const { container } = setup()
-    await waitFor(() => expect(container.querySelector('.my-beads-mode')).toBeTruthy())
-    fireEvent.click(screen.getByRole('tab', { name: /图纸匹配/ }))
+    await waitFor(() => expect(container.querySelector('.my-beads-inner')).toBeTruthy())
+    fireEvent.click(screen.getByRole('tab', { name: /颜色换算/ }))
     await waitFor(() => expect(container.querySelector('.match-results')).toBeTruthy())
 
     // 高级设置里把图纸豆径填 2.6,Perler 是 5mm → incompatible-size
@@ -1014,15 +1014,18 @@ describe('MyBeadsPage · 图纸匹配', () => {
 
   it('没有可匹配的图纸时给可行动空状态与返回画布入口', async () => {
     const { container } = setup({ canvasData: [] })
-    await waitFor(() => expect(container.querySelector('.my-beads-mode')).toBeTruthy())
-    fireEvent.click(screen.getByRole('tab', { name: /图纸匹配/ }))
+    await waitFor(() => expect(container.querySelector('.my-beads-inner')).toBeTruthy())
+    fireEvent.click(screen.getByRole('tab', { name: /颜色换算/ }))
 
     const empty = await waitFor(() => {
       const el = container.querySelector('.my-beads-empty-action')
       expect(el).toBeTruthy()
       return el
     })
-    expect(empty.textContent).toContain('当前没有可匹配的图纸')
+    expect(empty.textContent).toContain('先画一张图纸，再回来换算')
+    // 空状态也要解释「这页什么时候用得上」,否则第一次进来的用户无从下手
+    const section = container.querySelector('.match-workspace')
+    expect(section.textContent).toContain('什么时候用得上')
     expect(within(empty).getByText('返回画布')).toBeTruthy()
   })
 
@@ -1034,8 +1037,8 @@ describe('MyBeadsPage · 图纸匹配', () => {
       inventory: [],
     }))
     const { container } = setup()
-    await waitFor(() => expect(container.querySelector('.my-beads-mode')).toBeTruthy())
-    fireEvent.click(screen.getByRole('tab', { name: /图纸匹配/ }))
+    await waitFor(() => expect(container.querySelector('.my-beads-inner')).toBeTruthy())
+    fireEvent.click(screen.getByRole('tab', { name: /颜色换算/ }))
     fireEvent.click(within(container.querySelector('.match-config .segmented')).getByText('我的色卡'))
 
     const empty = await waitFor(() => {
@@ -1052,8 +1055,8 @@ describe('MyBeadsPage · 图纸匹配', () => {
     // 此前会显示「你的色卡里还没有颜色」+「去管理这张色卡」,
     // 但根本没有色卡可管理,下一步是死路。
     const { container } = setup()
-    await waitFor(() => expect(container.querySelector('.my-beads-mode')).toBeTruthy())
-    fireEvent.click(screen.getByRole('tab', { name: /图纸匹配/ }))
+    await waitFor(() => expect(container.querySelector('.my-beads-inner')).toBeTruthy())
+    fireEvent.click(screen.getByRole('tab', { name: /颜色换算/ }))
     fireEvent.click(within(container.querySelector('.match-config .segmented')).getByText('我的色卡'))
 
     const empty = await waitFor(() => {
