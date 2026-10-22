@@ -38,7 +38,10 @@ function apply() {
     body.style.width = width
     body.style.top = top
     saved = null
-    if (fixedApplied && scrollY) window.scrollTo(0, scrollY)
+    // 只要固定过 body 就要显式回滚,包括 scrollY === 0。
+    // 用真值守卫跳过 0 的写法在多数浏览器上恰好无害,但 iOS 在解除
+    // position:fixed 的瞬间可能已经改过滚动位置,显式写 0 才是确定的终态。
+    if (fixedApplied) window.scrollTo(0, scrollY)
     return
   }
 
@@ -61,12 +64,13 @@ function apply() {
     body.style.width = '100%'
     body.style.top = `-${saved.scrollY}px`
   } else if (!wantFixed && saved.fixedApplied) {
-    // fixed 锁先释放、仍有普通锁:降级为 overflow 锁并恢复滚动位置
+    // fixed 锁先释放、仍有普通锁:降级为 overflow 锁并恢复滚动位置。
+    // 先取出「刚才是否固定过」再清标志,否则下面的回滚条件永远为假。
     saved.fixedApplied = false
     body.style.position = saved.position
     body.style.width = saved.width
     body.style.top = saved.top
-    if (saved.scrollY) window.scrollTo(0, saved.scrollY)
+    window.scrollTo(0, saved.scrollY)
   }
 }
 
