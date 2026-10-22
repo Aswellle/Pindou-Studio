@@ -126,6 +126,15 @@
   font-weight: var(--font-weight-semibold);
 }
 
+.my-beads-tab-hint {
+  margin: -4px 0 0;
+  font-size: var(--text-xs);
+  color: var(--text-muted);
+  line-height: 1.6;
+}
+
+.my-beads-panel { display: contents; }
+
 /* ── 区块 ─────────────────────────────────────────────────── */
 .my-beads-section {
   display: flex;
@@ -160,6 +169,19 @@
 }
 
 .my-beads-hint.small { font-size: var(--text-xs); }
+
+/* 仅屏幕阅读器可见(输入框的可见 label 已由布局承担) */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
 
 /* ── 按钮 ─────────────────────────────────────────────────── */
 .my-beads-btn {
@@ -221,12 +243,95 @@
 }
 .my-beads-icon-btn:hover { background: var(--bg-secondary); }
 .my-beads-icon-btn.danger { color: var(--error); border-color: var(--error-border); }
+.my-beads-icon-btn.small { width: 26px; height: 26px; }
+.my-beads-icon-btn:disabled { opacity: 0.45; cursor: not-allowed; }
 
 .my-beads-row-actions {
   display: inline-flex;
   align-items: center;
   gap: 6px;
   margin-left: auto;
+}
+
+/* ── 空状态 / 起步状态 ───────────────────────────────────── */
+.my-beads-getting-started,
+.my-beads-empty-action {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  padding: 28px 18px;
+  text-align: center;
+  border: 1px dashed var(--border-color);
+  border-radius: 12px;
+  background: var(--bg-secondary);
+}
+
+.my-beads-getting-started h3,
+.my-beads-empty-action h3 {
+  margin: 0;
+  font-size: var(--text-md);
+  color: var(--text-primary);
+}
+
+.my-beads-getting-started p,
+.my-beads-empty-action p {
+  margin: 0;
+  max-width: 46ch;
+  font-size: var(--text-sm);
+  color: var(--text-secondary);
+  line-height: 1.7;
+}
+
+.my-beads-getting-started .gs-icon,
+.my-beads-empty-action svg { color: var(--accent); }
+
+.gs-actions,
+.empty-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 8px;
+}
+
+.my-beads-empty-inline {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 16px;
+  border: 1px dashed var(--border-color);
+  border-radius: 10px;
+  background: var(--bg-secondary);
+}
+
+/* ── 复制结果后续操作面板 ─────────────────────────────────── */
+.my-beads-copy-result {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px;
+  border-radius: 10px;
+  border: 1px solid var(--secondary-accent);
+  background: var(--bg-secondary);
+}
+
+.copy-result-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.copy-result-head strong {
+  flex: 1;
+  font-size: var(--text-sm);
+  color: var(--text-primary);
+}
+
+.copy-result-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
 }
 
 /* ── 色卡列表 ─────────────────────────────────────────────── */
@@ -257,6 +362,16 @@
   background: var(--accent-soft);
 }
 
+/* 键盘焦点必须可见(规格 §4.4) */
+.my-beads-palette-card:focus-visible,
+.my-beads-btn:focus-visible,
+.my-beads-icon-btn:focus-visible,
+.stock-btn:focus-visible,
+.my-beads-tabs button:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
 .my-beads-palette-card .name { font-weight: var(--font-weight-medium); }
 .my-beads-palette-card .meta { font-size: var(--text-xs); color: var(--text-muted); }
 
@@ -268,6 +383,31 @@
   border-radius: 10px;
   background: var(--bg-secondary);
   border: 1px solid var(--border-color);
+}
+
+.palette-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 18px;
+  margin: 0;
+}
+
+.palette-meta div {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.palette-meta dt {
+  font-size: 10px;
+  color: var(--text-muted);
+  letter-spacing: 0.04em;
+}
+
+.palette-meta dd {
+  margin: 0;
+  font-size: var(--text-xs);
+  color: var(--text-primary);
 }
 
 /* ── 颜色 / 库存行 ────────────────────────────────────────── */
@@ -368,7 +508,6 @@
   align-items: center;
   gap: 6px;
 }
-/* 搜索独占一行,两个按钮在下一行也不挤 */
 .my-beads-color-toolbar .my-beads-color-search {
   flex: 1 1 100%;
 }
@@ -479,11 +618,125 @@
   border: 1px solid var(--border-color);
   background: var(--bg-primary);
   color: var(--text-primary);
-  font-size: var(--text-sm);
+  font-size: var(--text-md);
 }
 
+/* ── 库存:来源 / 色卡选择 ────────────────────────────────── */
+.inventory-picker {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 12px;
+}
 
-/* ── 库存筛选 / 批量条 ───────────────────────────────────── */
+.picker-source {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin: 0;
+  padding: 0;
+  border: none;
+  min-width: 0;
+}
+
+.picker-source legend {
+  padding: 0;
+  margin-bottom: 4px;
+  font-size: var(--text-xs);
+  color: var(--text-secondary);
+}
+
+.segmented {
+  display: inline-flex;
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  overflow: hidden;
+  background: var(--bg-secondary);
+}
+
+.segmented button {
+  padding: 0 12px;
+  height: 32px;
+  border: none;
+  background: transparent;
+  color: var(--text-secondary);
+  font-family: inherit;
+  font-size: var(--text-xs);
+  cursor: pointer;
+}
+
+.segmented button + button { border-left: 1px solid var(--border-color); }
+
+.segmented button.active {
+  background: var(--accent);
+  color: #fff;
+  font-weight: var(--font-weight-medium);
+}
+
+.picker-palette {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: var(--text-xs);
+  color: var(--text-secondary);
+  min-width: 160px;
+  flex: 1 1 200px;
+}
+
+.picker-palette select,
+.inventory-toolbar select {
+  height: 32px;
+  padding: 0 8px;
+  border-radius: 8px;
+  border: 1px solid var(--border-color);
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  font-family: inherit;
+  font-size: var(--text-xs);
+}
+
+/* ── 库存摘要 ─────────────────────────────────────────────── */
+.inventory-summary {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  align-items: center;
+}
+
+.summary-chip {
+  padding: 4px 10px;
+  border-radius: 999px;
+  border: 1px solid var(--border-color);
+  background: var(--bg-secondary);
+  color: var(--text-secondary);
+  font-family: inherit;
+  font-size: var(--text-xs);
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.summary-chip.active {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+  color: var(--accent-hover);
+  font-weight: var(--font-weight-medium);
+}
+
+.summary-total {
+  margin-left: auto;
+  font-size: var(--text-xs);
+  color: var(--text-muted);
+  white-space: nowrap;
+}
+
+/* ── 库存工具栏 / 批量条 ─────────────────────────────────── */
+.inventory-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+}
+
 .my-beads-select-all {
   display: inline-flex;
   align-items: center;
@@ -526,12 +779,147 @@
 
 .my-beads-batch .qty-input { width: 84px; }
 
-/* ── 备份 ─────────────────────────────────────────────────── */
+/* ── 库存状态标签(文字优先,颜色辅助)──────────────────── */
+.stock-state-tag {
+  flex-shrink: 0;
+  padding: 1px 8px;
+  border-radius: 999px;
+  font-size: 10px;
+  white-space: nowrap;
+  border: 1px solid var(--border-color);
+  background: var(--bg-tertiary);
+  color: var(--text-secondary);
+}
+
+.stock-state-tag.owned {
+  border-color: var(--secondary-accent);
+  color: var(--secondary-accent);
+  background: var(--bg-primary);
+}
+
+.stock-state-tag.low {
+  border-color: var(--warning-border);
+  color: var(--warning);
+  background: var(--warning-bg);
+}
+
+.stock-state-tag.out {
+  border-color: var(--error-border);
+  color: var(--error);
+  background: var(--error-bg);
+}
+
+.stock-state-tag.unrecorded {
+  color: var(--text-muted);
+  border-style: dashed;
+  background: transparent;
+}
+
+/* ── 库存行操作 ───────────────────────────────────────────── */
+.stock-controls {
+  margin-left: auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  flex-wrap: wrap;
+}
+
+.stock-btn {
+  width: 26px;
+  height: 26px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 6px;
+  border: 1px solid var(--border-color);
+  background: var(--bg-primary);
+  color: var(--text-muted);
+  cursor: pointer;
+}
+
+.stock-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+.stock-btn.on { color: var(--success); border-color: var(--success); }
+.stock-btn.low { color: var(--warning); border-color: var(--warning); }
+.stock-btn.out { color: var(--error); border-color: var(--error); }
+
+.qty-field {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+}
+
+.qty-unit {
+  font-size: 10px;
+  color: var(--text-muted);
+}
+
+.qty-input {
+  width: 64px;
+  height: 26px;
+  padding: 0 6px;
+  border-radius: 6px;
+  border: 1px solid var(--border-color);
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+}
+
+.qty-input.invalid {
+  border-color: var(--error);
+  background: var(--error-bg);
+}
+
+.row-error {
+  flex-basis: 100%;
+  margin: 2px 0 0 22px;
+  font-size: 10px;
+  color: var(--error);
+}
+
+/* 行内「更多操作」菜单 */
+.row-menu { position: relative; }
+
+.row-menu-pop {
+  position: absolute;
+  right: 0;
+  top: calc(100% + 4px);
+  z-index: 10;
+  min-width: 140px;
+  padding: 4px;
+  border-radius: 8px;
+  border: 1px solid var(--border-color);
+  background: var(--bg-primary);
+  box-shadow: 0 8px 24px rgba(43, 36, 32, 0.14);
+}
+
+.row-menu-pop button {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  width: 100%;
+  padding: 6px 8px;
+  border: none;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--text-secondary);
+  font-family: inherit;
+  font-size: var(--text-xs);
+  text-align: left;
+  cursor: pointer;
+}
+
+.row-menu-pop button.danger { color: var(--error); }
+.row-menu-pop button:hover { background: var(--bg-secondary); }
+
+/* ── 备份(层级低于核心任务)──────────────────────────────── */
 .my-beads-backup {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
   gap: 8px;
+  padding-top: 10px;
+  border-top: 1px dashed var(--border-color);
 }
 
 .my-beads-file-input {
@@ -550,6 +938,14 @@
   gap: 8px;
   border-top: 1px dashed var(--border-color);
   padding-top: 12px;
+  border-radius: 10px;
+  transition: background 0.3s;
+}
+
+.my-beads-builtin.highlighted {
+  background: var(--accent-soft);
+  outline: 2px solid var(--accent);
+  outline-offset: 4px;
 }
 
 .my-beads-builtin h3 {
@@ -604,7 +1000,6 @@
   color: var(--text-primary);
   font-family: inherit;
   font-size: var(--text-xs);
-  /* 移动端输入框 ≥16px 防止 iOS 自动缩放 */
   min-width: 120px;
 }
 
@@ -627,62 +1022,77 @@
 
 .my-beads-size input { width: 84px; min-width: 0; }
 
-.my-beads-inv-stats {
+/* ── 匹配 ─────────────────────────────────────────────────── */
+.match-steps {
   display: flex;
-  gap: 14px;
   flex-wrap: wrap;
+  gap: 8px 18px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
   font-size: var(--text-xs);
   color: var(--text-secondary);
 }
 
-.my-beads-inv-stats span {
-  padding: 3px 9px;
-  border-radius: 999px;
-  background: var(--bg-secondary);
-  border: 1px solid var(--border-color);
-}
-
-.stock-controls {
-  margin-left: auto;
+.match-steps li {
   display: inline-flex;
   align-items: center;
-  gap: 4px;
+  gap: 6px;
 }
 
-.stock-btn {
-  width: 26px;
-  height: 26px;
+.match-steps li span {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  border-radius: 6px;
-  border: 1px solid var(--border-color);
-  background: var(--bg-primary);
-  color: var(--text-muted);
-  cursor: pointer;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: var(--accent-soft);
+  color: var(--accent-hover);
+  font-size: 10px;
+  font-weight: var(--font-weight-semibold);
 }
 
-.stock-btn.on { color: var(--success); border-color: var(--success); }
-.stock-btn.out { color: var(--error); border-color: var(--error); }
-
-.qty-input {
-  width: 64px;
-  height: 26px;
-  padding: 0 6px;
-  border-radius: 6px;
-  border: 1px solid var(--border-color);
-  background: var(--bg-primary);
-  color: var(--text-primary);
-  font-family: var(--font-mono);
-  font-size: var(--text-xs);
-}
-
-/* ── 匹配 ─────────────────────────────────────────────────── */
-.my-beads-match-preview {
+.match-config {
   display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 12px;
+}
+
+.advanced-toggle { margin-left: auto; }
+
+.match-advanced {
+  flex: 1 1 100%;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 10px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  border: 1px solid var(--border-color);
+  background: var(--bg-secondary);
+}
+
+.match-advanced .my-beads-hint { flex: 1 1 100%; }
+
+.match-previews {
+  display: flex;
+  flex-wrap: wrap;
   gap: 14px;
   align-items: flex-start;
-  flex-wrap: wrap;
+}
+
+.match-preview-figure {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin: 0;
+}
+
+.match-preview-figure figcaption {
+  font-size: var(--text-xs);
+  color: var(--text-secondary);
 }
 
 .my-beads-thumb {
@@ -697,7 +1107,7 @@
 
 .my-beads-thumb canvas { width: 100% !important; height: 100% !important; }
 
-.my-beads-match-summary {
+.match-preview-stats {
   display: flex;
   flex-direction: column;
   gap: 4px;
@@ -705,47 +1115,74 @@
   color: var(--text-secondary);
 }
 
+.match-previews .my-beads-hint { flex: 1 1 100%; }
+
 .my-beads-match-actions {
   display: flex;
   gap: 8px;
   flex-wrap: wrap;
+  align-items: center;
 }
 
-.my-beads-table-wrap {
-  overflow-x: auto;
+/* 结果列表:桌面为一行一条,移动端为卡片(见媒体查询) */
+.match-results {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
   border: 1px solid var(--border-color);
   border-radius: 10px;
+  overflow: hidden;
 }
 
-.my-beads-match-table {
-  width: 100%;
-  border-collapse: collapse;
+.match-card {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 10px;
   font-size: var(--text-xs);
-  min-width: 640px;
-}
-
-.my-beads-match-table th {
-  text-align: left;
-  padding: 8px;
-  background: var(--bg-secondary);
   color: var(--text-secondary);
-  font-weight: var(--font-weight-medium);
-  white-space: nowrap;
+  background: var(--bg-primary);
 }
 
-.my-beads-match-table td {
-  padding: 6px 8px;
-  border-top: 1px solid var(--border-color);
-  color: var(--text-secondary);
-  white-space: nowrap;
+.match-card:nth-child(even) { background: var(--bg-secondary); }
+.match-card.accepted { background: var(--accent-soft); }
+
+.match-accept input {
+  width: 15px;
+  height: 15px;
+  accent-color: var(--accent);
+  cursor: pointer;
 }
 
-.my-beads-match-table tr.accepted td { background: var(--accent-soft); }
+.match-col {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  min-width: 0;
+}
 
-.my-beads-match-table td code { margin-left: 4px; }
+.match-col code {
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  color: var(--text-primary);
+}
+
+/* 桌面端:标签隐藏,列标题由表头承担 */
+.match-label { display: none; }
+
+.match-source { min-width: 96px; }
+.match-target { min-width: 150px; }
+.match-delta { min-width: 56px; }
+.match-needed { min-width: 48px; }
+.match-stock { min-width: 48px; }
+.match-shortage { min-width: 48px; }
+.match-badges { flex-wrap: wrap; gap: 4px; margin-left: auto; }
 
 .override-select {
-  margin-left: 6px;
+  margin-left: 4px;
   height: 24px;
   border-radius: 6px;
   border: 1px solid var(--border-color);
@@ -768,7 +1205,11 @@
 .status-badge.missing { background: var(--error-bg); color: var(--error); }
 .status-badge.size { background: var(--error-bg); color: var(--error); }
 .status-badge.unknown { background: var(--bg-tertiary); color: var(--text-secondary); }
-.status-badge.manual { background: var(--accent-soft); color: var(--accent); margin-left: 4px; }
+.status-badge.manual { background: var(--accent-soft); color: var(--accent); }
+.status-badge.stock-unknown { background: var(--bg-tertiary); color: var(--text-secondary); }
+.status-badge.stock-sufficient { background: #e6f4f1; color: var(--secondary-accent); }
+.status-badge.stock-shortage { background: var(--warning-bg); color: var(--warning); }
+.status-badge.stock-out-of-stock { background: var(--error-bg); color: var(--error); }
 
 .my-beads-shopping {
   display: flex;
@@ -781,6 +1222,9 @@
 }
 
 .my-beads-shopping h3 {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
   margin: 0;
   font-size: var(--text-sm);
   color: var(--text-primary);
@@ -808,10 +1252,27 @@
   color: var(--text-primary);
 }
 
+.shopping-unknown {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  padding-top: 6px;
+  border-top: 1px dashed var(--border-color);
+}
+
+.shopping-unknown p {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  flex: 1 1 240px;
+  color: var(--warning);
+}
+
+.shopping-unknown strong { font-weight: var(--font-weight-semibold); }
+
 /* ── 弹层(定位/高度/滚动/居中/safe-area 由 index.css 全屏浮层基础设施统一提供)──
-   此前这里自带 top:var(--visible-vh-top) + height:var(--visible-vh):iOS 键盘弹出
-   自动滚动视觉视口时,浮层边界会随 offsetTop 移动,和共享组(inset:0 盖满布局视口)
-   相互打架。现统一交给共享组,组件只保留自身差异(底色 / 层级 / 内边距)。 */
+   组件只保留自身差异(底色 / 层级 / 内边距)。 */
 .my-beads-modal-overlay {
   z-index: 1200;
   padding: 16px;
@@ -854,6 +1315,7 @@
 }
 
 .my-beads-modal label input,
+.my-beads-modal label select,
 .my-beads-modal label textarea {
   width: 100%;
   padding: 8px 10px;
@@ -864,6 +1326,11 @@
   font-family: inherit;
   font-size: var(--text-md);
   resize: vertical;
+}
+
+.my-beads-modal .note-toggle {
+  align-self: flex-start;
+  border-style: dashed;
 }
 
 .my-beads-hex-row {
@@ -881,19 +1348,139 @@
   margin-top: 4px;
 }
 
-/* ── 移动端 ───────────────────────────────────────────────── */
+/* ── 复制内置色卡弹层 ─────────────────────────────────────── */
+.copy-builtin-meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 8px;
+  font-size: var(--text-xs);
+  color: var(--text-muted);
+}
+
+.copy-builtin-meta strong {
+  font-size: var(--text-md);
+  color: var(--text-primary);
+}
+
+.copy-builtin-swatches {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(22px, 1fr));
+  gap: 3px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.copy-builtin-swatches li {
+  aspect-ratio: 1;
+  border-radius: 4px;
+  border: 1px solid rgba(43, 36, 32, 0.12);
+}
+
+/* ── 平板(641–1023px)────────────────────────────────────── */
+@media (min-width: 641px) and (max-width: 1023px) {
+  .my-beads-inner { max-width: 100%; }
+  .my-beads-builtin-grid { grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); }
+  .match-previews { flex-wrap: wrap; }
+  .match-card { flex-wrap: wrap; }
+  .match-badges { margin-left: 0; flex-basis: 100%; }
+}
+
+/* ── 移动端(≤640px)──────────────────────────────────────── */
 @media (max-width: 640px) {
-  .my-beads-page { padding: 16px 12px 96px; }
+  .my-beads-page { padding: 16px 12px calc(96px + env(safe-area-inset-bottom, 0px)); }
   .my-beads-section { padding: 12px; }
+
+  /* 16px 防止 iOS 聚焦时自动缩放 */
   .my-beads-filters select,
   .my-beads-search input,
   .my-beads-size input,
+  .picker-palette select,
+  .inventory-toolbar select,
   .my-beads-modal label input,
-  .my-beads-modal label textarea {
-    font-size: 16px; /* iOS 聚焦不缩放 */
+  .my-beads-modal label select,
+  .my-beads-modal label textarea,
+  .qty-input {
+    font-size: 16px;
   }
-  .my-beads-match-preview { flex-direction: column; }
+
+  /* 触控目标 ≥44px */
+  .my-beads-btn { height: 40px; padding: 0 14px; }
+  .my-beads-tabs button { min-height: 44px; padding: 10px 12px; }
+  .stock-btn { width: 40px; height: 40px; }
+  .my-beads-icon-btn { width: 40px; height: 40px; }
+  .my-beads-icon-btn.small { width: 36px; height: 36px; }
+  .summary-chip { padding: 8px 12px; }
+  .segmented button { height: 40px; }
+
+  .my-beads-tabs { overflow-x: auto; scrollbar-width: none; }
+  .my-beads-tabs::-webkit-scrollbar { display: none; }
+  .my-beads-tabs button { flex: 1 0 auto; justify-content: center; }
+
+  /* 表单全宽 */
+  .inventory-picker,
+  .match-config { flex-direction: column; align-items: stretch; }
+  .picker-palette { min-width: 0; }
+  .segmented { width: 100%; }
+  .segmented button { flex: 1; }
+  .advanced-toggle { margin-left: 0; align-self: flex-start; }
+  .match-advanced { flex-direction: column; align-items: stretch; }
+
+  .my-beads-match-actions { flex-direction: column; align-items: stretch; }
+  .my-beads-match-actions .my-beads-btn { justify-content: center; }
+
+  /* 匹配预览上下排列 */
+  .match-previews { flex-direction: column; }
   .my-beads-thumb { width: 100%; height: 160px; }
+
   .my-beads-color-row .hex,
   .my-beads-inv-row .hex { display: none; }
+
+  /* 库存行 → 卡片:关键字段不横向滚动即可读 */
+  .my-beads-inv-row {
+    flex-wrap: wrap;
+    padding: 10px;
+    border-radius: 10px;
+    border: 1px solid var(--border-color);
+    background: var(--bg-primary) !important;
+  }
+
+  .my-beads-inv-row .name { flex: 1 1 100%; order: 3; }
+  .stock-state-tag { order: 2; }
+  .stock-controls {
+    order: 4;
+    flex-basis: 100%;
+    margin-left: 0;
+    justify-content: space-between;
+  }
+  .qty-field { flex: 1; }
+  .qty-input { flex: 1; width: auto; height: 36px; }
+
+  /* 匹配结果 → 垂直卡片 */
+  .match-results { border: none; gap: 8px; overflow: visible; }
+  .match-card {
+    flex-wrap: wrap;
+    gap: 6px 10px;
+    padding: 10px;
+    border: 1px solid var(--border-color);
+    border-radius: 10px;
+    background: var(--bg-primary) !important;
+  }
+  .match-card.accepted { border-color: var(--accent); background: var(--accent-soft) !important; }
+  .match-label { display: inline; font-size: 10px; color: var(--text-muted); }
+  .match-source { flex: 1 1 100%; }
+  .match-target { flex: 1 1 100%; }
+  .match-delta,
+  .match-needed,
+  .match-stock,
+  .match-shortage { flex: 1 1 40%; flex-direction: column; align-items: flex-start; gap: 0; }
+  .match-badges { flex-basis: 100%; margin-left: 0; }
+  .match-accept { align-self: flex-start; }
+  .match-accept input { width: 20px; height: 20px; }
+
+  .my-beads-batch { position: sticky; bottom: 0; }
+  .summary-total { margin-left: 0; flex-basis: 100%; }
+
+  .palette-meta { gap: 6px 14px; }
 }
