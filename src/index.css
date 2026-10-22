@@ -90,7 +90,19 @@ body {
 }
 
 #root {
+  /* 回退:不支持 max()/var() 的旧浏览器,等同改造前行为 */
   height: calc(var(--vh, 1svh) * 100);
+  /* 全站唯一的根壳补偿。取「布局视口高」与「视觉视口底部」的较大值:
+       · 键盘关闭:--visible-vh-top 归 0,--visible-vh = 布局视口高 → 与改造前逐像素一致;
+       · 键盘打开:iOS 会自动平移视觉视口(offsetTop > 0),只按 --vh 定高会让根壳
+         停在视觉视口底之上,子壳(含 .mobile-page-area 滚动容器)的最后 offsetTop
+         像素被本元素的 overflow:hidden 裁掉 —— 表现为页面底部空白带/滚不到底。
+     offsetTop + visualHeight 恒 ≤ 布局视口高,因此根壳永远不超过 body,不会被反向裁切。
+     子壳(.app / .mobile-layout)只继承 100%,不再各自叠加补偿。 */
+  height: max(
+    calc(var(--vh, 1svh) * 100),
+    calc(var(--visible-vh-top, 0px) + var(--visible-vh, 100svh))
+  );
   display: flex;
   flex-direction: column;
   overflow: hidden;
@@ -563,7 +575,10 @@ body:has(.quantizer-zoom) .mobile-toolbar {
 /* ==================== Layout Styles ==================== */
 
 .app {
-  height: calc(var(--vh, 1vh) * 100);
+  /* 根壳(#root)已经按「覆盖到视觉视口底部」定高,子壳只需继承。
+     此前这里也写 calc(var(--vh) * 100),与 #root 用同一个值重复定高,
+     一旦两者公式出现任何分歧就会互相裁切。 */
+  height: 100%;
   display: flex;
   flex-direction: column;
   overflow: hidden;
@@ -684,20 +699,12 @@ body:has(.quantizer-zoom) .mobile-toolbar {
 }
 
 .mobile-layout {
-  /* 用 svh（小视口）而非 100vh/dvh：iOS Safari 上 100vh 等于「大视口」
-     （URL 栏收起时的全屏高度），比可见区域高出一个 URL 栏，页面在 body 层
-     可滚动，后台标签页恢复时整页被上推、导航栏顶到状态栏后面。
-     svh 恒等于 URL 栏展开时的可见高度，布局永不溢出，不会上推。
-     旧浏览器回退 100vh；--vh 由 App.jsx 按 svh 语义实时测量（小视口），
-     并覆盖键盘弹起等动态场景。 */
-  height: 100vh;
+  /* 高度由 #root 统一决定(见 #root 注释):根壳已用 max() 覆盖到视觉视口底部,
+     这里只继承。此前在此叠加的 min-height: --visible-vh-top + --visible-vh 会被
+     #root 的 overflow:hidden 裁掉,等于从未生效,只是把父子尺寸矛盾藏进了裁切。
+     100svh 回退保留给不支持 --vh 的场景(JS 未执行时)。 */
   height: 100svh;
-  height: calc(var(--vh, 1svh) * 100);
-  /* 页面容器不是 overlay(无法 inset:0 盖满布局视口),高度只到 --vh(视觉视口高)。
-     iOS 26 键盘弹出自动滚动视觉视口(offsetTop>0)时,视觉视口底 = offsetTop+视觉视口高
-     超出容器底 → 露白板(后台联系消息卡片等复现)。min-height = 视觉视口顶偏移 + 视觉
-     视口高 = 恰好覆盖视觉视口底部;offsetTop=0 时等于原 --vh 高度,无副作用。 */
-  min-height: calc(var(--visible-vh-top, 0px) + var(--visible-vh, 100vh));
+  height: 100%;
   display: flex;
   flex-direction: column;
   overflow: hidden;
