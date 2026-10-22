@@ -13,6 +13,14 @@
   overflow-y: auto;
 }
 
+/* 移动端:外层 .mobile-page-area 已经是滚动容器,页面自身再滚会形成
+   「滚动套滚动」—— 手指在内层滑不动外层,且页面底部会多出一段死白。
+   这里交出滚动权,只保留背景与内边距。 */
+.mobile-page-area > .my-beads-page {
+  overflow: visible;
+  min-height: 0;
+}
+
 .my-beads-inner {
   max-width: 960px;
   margin: 0 auto;
@@ -1389,7 +1397,9 @@
 
 /* ── 移动端(≤640px)──────────────────────────────────────── */
 @media (max-width: 640px) {
-  .my-beads-page { padding: 16px 12px calc(96px + env(safe-area-inset-bottom, 0px)); }
+  /* /my/beads 不渲染 MobileToolbar(它只挂在画布路由下),因此不预留工具栏高度;
+     只留安全区,避免底部出现一大片空白色块。 */
+  .my-beads-page { padding: 16px 12px calc(24px + env(safe-area-inset-bottom, 0px)); }
   .my-beads-section { padding: 12px; }
 
   /* 16px 防止 iOS 聚焦时自动缩放 */
@@ -1436,6 +1446,13 @@
 
   .my-beads-color-row .hex,
   .my-beads-inv-row .hex { display: none; }
+
+  /* 移动端列表不再内嵌滚动:交给外层页面滚,避免「滚动套滚动」 */
+  .my-beads-inv-list,
+  .my-beads-color-list {
+    max-height: none;
+    overflow: visible;
+  }
 
   /* 库存行 → 卡片:关键字段不横向滚动即可读 */
   .my-beads-inv-row {
