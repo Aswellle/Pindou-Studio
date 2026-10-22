@@ -1471,8 +1471,10 @@
     margin-left: 0;
     justify-content: space-between;
   }
-  .qty-field { flex: 1; }
-  .qty-input { flex: 1; width: auto; height: 36px; }
+  .qty-field { flex: 1; min-width: 0; }
+  .qty-input { flex: 1; width: auto; height: 40px; }
+  /* 行内保存按钮与「更多操作」也要够大,否则手指点不中 */
+  .my-beads-inv-row .my-beads-icon-btn.small { width: 40px; height: 40px; }
 
   /* 匹配结果 → 垂直卡片 */
   .match-results { border: none; gap: 8px; overflow: visible; }
@@ -1496,7 +1498,30 @@
   .match-accept { align-self: flex-start; }
   .match-accept input { width: 20px; height: 20px; }
 
-  .my-beads-batch { position: sticky; bottom: 0; }
+  /* 数字输入框去掉步进箭头:触屏用数字键盘输入,箭头既点不中又挤占行内空间 */
+  .qty-input::-webkit-outer-spin-button,
+  .qty-input::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+  }
+  .qty-input { -moz-appearance: textfield; appearance: textfield; }
+
+  /* 行内菜单在窄屏上向左展开,并保证不被屏幕右缘裁掉 */
+  .row-menu-pop {
+    right: 0;
+    min-width: 160px;
+  }
+  .row-menu-pop button { padding: 10px 12px; min-height: 44px; }
+
+  /* 批量条吸底:抬高 z-index 避免被固定工具栏/色卡条盖住,
+     并让出底部安全区,否则最后一排按钮压在 Home 指示条下。 */
+  .my-beads-batch {
+    position: sticky;
+    bottom: 0;
+    z-index: 20;
+    padding-bottom: calc(8px + env(safe-area-inset-bottom, 0px));
+    box-shadow: 0 -6px 16px rgba(43, 36, 32, 0.12);
+  }
   .summary-total { margin-left: 0; flex-basis: 100%; }
 
   .palette-meta { gap: 6px 14px; }

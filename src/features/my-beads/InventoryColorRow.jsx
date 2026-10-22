@@ -36,6 +36,25 @@ export default function InventoryColorRow({
   const [invalid, setInvalid] = useState(false)
   const [menuOpen, setMenuOpen] = useState(false)
   const inputRef = useRef(null)
+  const menuRef = useRef(null)
+
+  // 「更多操作」菜单:点外部或按 Escape 关闭。
+  // 移动端菜单浮在行内,不关会让下一次点击落空(先关菜单、没点到目标)。
+  useEffect(() => {
+    if (!menuOpen) return undefined
+    const onPointerDown = (e) => {
+      if (menuRef.current && !menuRef.current.contains(e.target)) setMenuOpen(false)
+    }
+    const onKeyDown = (e) => {
+      if (e.key === 'Escape') setMenuOpen(false)
+    }
+    document.addEventListener('pointerdown', onPointerDown)
+    document.addEventListener('keydown', onKeyDown)
+    return () => {
+      document.removeEventListener('pointerdown', onPointerDown)
+      document.removeEventListener('keydown', onKeyDown)
+    }
+  }, [menuOpen])
 
   // 记录被外部改写(批量操作 / 切换色卡 / 云端刷新)时同步草稿。
   // 依赖 savedQty 而不是 record 对象:同一数量下不打断用户正在输入的内容。
@@ -159,7 +178,7 @@ export default function InventoryColorRow({
           {saving ? '…' : <Check size={12} />}
         </button>
 
-        <div className="row-menu">
+        <div className="row-menu" ref={menuRef}>
           <button
             type="button"
             className="my-beads-icon-btn small"
