@@ -1340,6 +1340,10 @@
   background: var(--bg-primary);
   border: 1px solid var(--border-color);
   box-shadow: 0 12px 40px rgba(43, 36, 32, 0.22);
+  /* 键盘弹起时可用高度可能远小于内容(390×844 + 中文键盘实测:可见带仅 350px,
+     表单内容 436px)。操作行在内容流末尾,靠 useKeyboardSafe 的焦点可见性修正
+     把聚焦字段滚入带内;打开时若操作行已在带外,由组件侧主动滚一次。 */
+  scroll-padding-bottom: 18px;
 }
 
 .my-beads-modal h3 {
