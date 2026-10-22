@@ -592,11 +592,6 @@ export default function MyBeadsPage({ user, canvasData, onApplyMapping, works = 
           </div>
         </header>
 
-        {/* 存储模式如实说明:云端 / 仅本机 */}
-        <p className={`my-beads-mode ${store.mode}`}>
-          {store.mode === 'cloud' ? t('myBeads.modeCloud') : t('myBeads.modeLocal')}
-        </p>
-
         {store.mode === 'cloud' && store.pendingLocal > 0 && (
           <div className="my-beads-banner">
             <span>{t('myBeads.pendingLocal', { n: store.pendingLocal })}</span>

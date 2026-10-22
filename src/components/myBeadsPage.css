@@ -71,27 +71,7 @@
   font-family: var(--font-mono);
 }
 
-/* ── 模式说明 ─────────────────────────────────────────────── */
-.my-beads-mode {
-  margin: 0;
-  padding: 8px 12px;
-  border-radius: 10px;
-  font-size: var(--text-xs);
-  line-height: 1.6;
-}
-
-.my-beads-mode.cloud {
-  background: var(--bg-primary);
-  border: 1px solid var(--border-color);
-  color: var(--secondary-accent);
-}
-
-.my-beads-mode.local {
-  background: var(--warning-bg);
-  border: 1px solid var(--warning-border);
-  color: var(--warning);
-}
-
+/* ── 待导入本机数据提示(云端模式)────────────────────────── */
 .my-beads-banner {
   display: flex;
   align-items: center;

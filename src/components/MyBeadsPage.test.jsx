@@ -49,15 +49,19 @@ const setup = (props = {}) => render(
 )
 
 describe('MyBeadsPage · 色卡管理(本地模式)', () => {
-  it('未登录显示本地模式说明,且不冒充云端', async () => {
+  it('未登录也能正常渲染,且不冒充云端', async () => {
     const { container } = setup()
-    await waitFor(() => expect(container.querySelector('.my-beads-mode.local')).toBeTruthy())
-    expect(screen.getByText(/仅保存在此浏览器/)).toBeTruthy()
+    await waitFor(() => expect(container.querySelector('.my-beads-inner')).toBeTruthy())
+    // 存储模式说明已移除(用户反馈是冗余文案);页面不应再出现任何
+    // 「保存在云端 / 仅本人可访问」这类与当前模式不符的表述。
+    expect(container.textContent).not.toMatch(/云端|仅本人可访问/)
+    // 「我的色卡」既是页签也是页面标题,按标题角色断言,避免多元素命中
+    expect(screen.getByRole('heading', { name: '我的色卡' })).toBeTruthy()
   })
 
   it('新建色卡:填写名称后出现在列表中', async () => {
     const { container } = setup()
-    await waitFor(() => expect(container.querySelector('.my-beads-mode')).toBeTruthy())
+    await waitFor(() => expect(container.querySelector('.my-beads-inner')).toBeTruthy())
 
     fireEvent.click(screen.getByText('新建色卡'))
     const dialog = document.querySelector('.my-beads-modal')
@@ -74,7 +78,7 @@ describe('MyBeadsPage · 色卡管理(本地模式)', () => {
 
   it('非法 HEX 被拒绝,颜色不写入', async () => {
     const { container } = setup()
-    await waitFor(() => expect(container.querySelector('.my-beads-mode')).toBeTruthy())
+    await waitFor(() => expect(container.querySelector('.my-beads-inner')).toBeTruthy())
     fireEvent.click(screen.getByText('新建色卡'))
     let dialog = document.querySelector('.my-beads-modal')
     fireEvent.change(within(dialog).getByPlaceholderText('例如：我的 5mm 拼豆'), { target: { value: 'P' } })
@@ -94,7 +98,7 @@ describe('MyBeadsPage · 色卡管理(本地模式)', () => {
 
   it('复制内置色卡:走应用内对话框(不再用 window.prompt),颜色随之复制', async () => {
     const { container } = setup()
-    await waitFor(() => expect(container.querySelector('.my-beads-mode')).toBeTruthy())
+    await waitFor(() => expect(container.querySelector('.my-beads-inner')).toBeTruthy())
     const promptSpy = vi.spyOn(window, 'prompt')
 
     // PALETTE_LIST 第一项是 COCO
@@ -124,7 +128,7 @@ describe('MyBeadsPage · 色卡管理(本地模式)', () => {
 
   it('复制成功后出现后续操作面板,可直达库存并自动选中副本', async () => {
     const { container } = setup()
-    await waitFor(() => expect(container.querySelector('.my-beads-mode')).toBeTruthy())
+    await waitFor(() => expect(container.querySelector('.my-beads-inner')).toBeTruthy())
 
     fireEvent.click(within(container.querySelector('.my-beads-builtin-grid')).getAllByText('复制为我的色卡')[0])
     const dialog = await waitFor(() => document.querySelector('.my-beads-modal.copy-builtin'))
@@ -147,7 +151,7 @@ describe('MyBeadsPage · 色卡管理(本地模式)', () => {
 
   it('复制取消不写任何数据', async () => {
     const { container } = setup()
-    await waitFor(() => expect(container.querySelector('.my-beads-mode')).toBeTruthy())
+    await waitFor(() => expect(container.querySelector('.my-beads-inner')).toBeTruthy())
 
     fireEvent.click(within(container.querySelector('.my-beads-builtin-grid')).getAllByText('复制为我的色卡')[0])
     const dialog = await waitFor(() => document.querySelector('.my-beads-modal.copy-builtin'))
@@ -202,7 +206,7 @@ describe('MyBeadsPage · 色卡管理(本地模式)', () => {
 
   it('自定义豆径经新建保存后,再编辑仍完整回显', async () => {
     const { container } = setup()
-    await waitFor(() => expect(container.querySelector('.my-beads-mode')).toBeTruthy())
+    await waitFor(() => expect(container.querySelector('.my-beads-inner')).toBeTruthy())
     fireEvent.click(screen.getByText('新建色卡'))
     const dialog = document.querySelector('.my-beads-modal')
     fireEvent.change(within(dialog).getByPlaceholderText('例如：我的 5mm 拼豆'), { target: { value: '怪尺寸' } })
@@ -224,7 +228,7 @@ describe('MyBeadsPage · 色卡管理(本地模式)', () => {
 
   it('选中内置品牌预设后回填品牌名与豆径', async () => {
     const { container } = setup()
-    await waitFor(() => expect(container.querySelector('.my-beads-mode')).toBeTruthy())
+    await waitFor(() => expect(container.querySelector('.my-beads-inner')).toBeTruthy())
     fireEvent.click(screen.getByText('新建色卡'))
     const dialog = document.querySelector('.my-beads-modal')
     fireEvent.change(within(dialog).getByPlaceholderText('例如：我的 5mm 拼豆'), { target: { value: '预设测试' } })
@@ -244,7 +248,7 @@ describe('MyBeadsPage · 色卡管理(本地模式)', () => {
 
   it('删除色卡需要确认,确认后色卡与颜色一起消失', async () => {
     const { container } = setup()
-    await waitFor(() => expect(container.querySelector('.my-beads-mode')).toBeTruthy())
+    await waitFor(() => expect(container.querySelector('.my-beads-inner')).toBeTruthy())
     fireEvent.click(screen.getByText('新建色卡'))
     const dialog = document.querySelector('.my-beads-modal')
     fireEvent.change(within(dialog).getByPlaceholderText('例如：我的 5mm 拼豆'), { target: { value: '待删' } })
@@ -315,7 +319,7 @@ describe('MyBeadsPage · 色卡管理(本地模式)', () => {
 
   it('颜色来源:新建时可选,保存后显示徽章', async () => {
     const { container } = setup()
-    await waitFor(() => expect(container.querySelector('.my-beads-mode')).toBeTruthy())
+    await waitFor(() => expect(container.querySelector('.my-beads-inner')).toBeTruthy())
     fireEvent.click(screen.getByText('新建色卡'))
     let dialog = document.querySelector('.my-beads-modal')
     fireEvent.change(within(dialog).getByPlaceholderText('例如：我的 5mm 拼豆'), { target: { value: '来源测试' } })
@@ -357,7 +361,7 @@ describe('MyBeadsPage · 色卡管理(本地模式)', () => {
 
 describe('MyBeadsPage · 库存', () => {
   async function openInventory(container) {
-    await waitFor(() => expect(container.querySelector('.my-beads-mode')).toBeTruthy())
+    await waitFor(() => expect(container.querySelector('.my-beads-inner')).toBeTruthy())
     fireEvent.click(screen.getByRole('tab', { name: /我的库存/ }))
     await waitFor(() => expect(container.querySelector('.my-beads-inv-list')).toBeTruthy())
   }
@@ -591,7 +595,7 @@ describe('MyBeadsPage · 库存', () => {
 describe('MyBeadsPage · 备份', () => {
   it('本地模式显示导出/导入按钮,云端模式不显示', async () => {
     const { container } = setup()
-    await waitFor(() => expect(container.querySelector('.my-beads-mode.local')).toBeTruthy())
+    await waitFor(() => expect(container.querySelector('.my-beads-inner')).toBeTruthy())
     expect(container.querySelector('.my-beads-backup')).toBeTruthy()
     expect(screen.getByText('导出备份')).toBeTruthy()
     expect(screen.getByText('导入备份')).toBeTruthy()
@@ -606,7 +610,7 @@ describe('MyBeadsPage · 备份', () => {
       inventory: [],
     }))
     const { container } = setup()
-    await waitFor(() => expect(container.querySelector('.my-beads-mode')).toBeTruthy())
+    await waitFor(() => expect(container.querySelector('.my-beads-inner')).toBeTruthy())
 
     const backup = {
       kind: 'pindou-personal-beads',
@@ -640,7 +644,7 @@ describe('MyBeadsPage · 备份', () => {
       inventory: [],
     }))
     const { container } = setup()
-    await waitFor(() => expect(container.querySelector('.my-beads-mode')).toBeTruthy())
+    await waitFor(() => expect(container.querySelector('.my-beads-inner')).toBeTruthy())
 
     const file = new File(['not json'], 'bad.json', { type: 'application/json' })
     file.text = () => Promise.resolve('not json')

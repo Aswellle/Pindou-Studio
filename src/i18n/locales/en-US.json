@@ -1306,8 +1306,6 @@
   "myBeads": {
     "title": "My Palettes & Inventory",
     "subtitle": "Manage your own bead palettes, record stock for every color, and check what the current pattern needs before you start.",
-    "modeCloud": "Signed in. Data is stored in the cloud and only you can access it.",
-    "modeLocal": "Saved in this browser only. Export a backup or sign in to sync before switching devices.",
     "pendingLocal": "{{n}} local palette(s) have not been synced to the cloud yet.",
     "importLocal": "Import local palettes",
     "imported": "Local palettes imported",
