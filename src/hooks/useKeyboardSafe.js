@@ -1,4 +1,5 @@
 import { useEffect } from 'react'
+import { computeViewport, focusScrollDelta } from './viewportGeometry'
 
 // 全屏浮层类:聚焦这些容器内的输入框由 overlay 收缩机制处理(--visible-vh),
 // 不做主动滚动;页面内输入框(后台表单、联系消息回复、登录页等)用内层滚动容器修正。
@@ -17,9 +18,9 @@ const OVERLAY_SELECTOR = [
 // 本 hook 负责写入的 CSS 变量(卸载时逐一清理)
 const VARS = ['--visible-vh', '--visible-vh-top', '--visual-offset-left', '--keyboard-height', '--vh']
 
-// 键盘最小遮挡高度:软键盘 ≥200px,地址栏/工具栏动画 <80px,120px 落在两者中间。
-// 低于该值一律视为「浏览器 UI 变化」而不是键盘,避免地址栏收起时把页面当成键盘打开。
-const KEYBOARD_MIN_INSET = 120
+// 键盘最小遮挡高度与焦点留白定义在 viewportGeometry(纯函数模块),
+// 这里 re-export 保持既有引用路径可用。
+export { KEYBOARD_MIN_INSET } from './viewportGeometry'
 
 // 焦点可见性留白(输入框与滚动容器边缘之间)
 const FOCUS_PAD = 10
@@ -88,6 +89,7 @@ export default function useKeyboardSafe() {
     const set = (k, v) => root.style.setProperty(k, v)
 
     // 采样一组几何值并写入变量;返回键盘状态是否发生变化。
+    // 判定逻辑在 viewportGeometry(纯函数,可穷举测试);这里只负责读 DOM、写变量。
     // 同一帧内只读取一次布局视口高,避免「先读新高度、后读旧偏移」的不一致。
     // 用 window.innerHeight 而不是 documentElement.clientHeight:前者是既有实现
     // 一直在用的量,键盘关闭时与 visualViewport.height 相等;clientHeight 在 iOS 上
@@ -95,52 +97,31 @@ export default function useKeyboardSafe() {
     const measure = () => {
       const layoutHeight = window.innerHeight || document.documentElement.clientHeight || 0
 
-      if (!vv) {
-        // 无 visualViewport 的旧浏览器:退化用布局视口,键盘高度不可测得 → 0(估算)
-        set('--visible-vh', `${layoutHeight}px`)
-        set('--visible-vh-top', '0px')
-        set('--visual-offset-left', '0px')
-        set('--keyboard-height', '0px')
-        set('--vh', `${layoutHeight * 0.01}px`)
-        visualTop = 0
-        visualHeight = layoutHeight
-        const changed = lastKeyboardOpen
-        lastKeyboardOpen = false
-        keyboardLatched = false
-        return changed
-      }
+      const next = computeViewport({
+        layoutHeight,
+        visualHeight: vv ? vv.height : null,
+        offsetTop: vv ? vv.offsetTop : 0,
+        offsetLeft: vv ? vv.offsetLeft : 0,
+        scale: vv ? vv.scale : 1,
+        textFocused: isTextInput(document.activeElement),
+        latched: keyboardLatched,
+        wasKeyboardOpen: lastKeyboardOpen,
+      })
 
-      const scale = vv.scale || 1
-      const zoomed = Math.abs(scale - 1) > 0.01
-      const inset = Math.max(0, layoutHeight - vv.height - vv.offsetTop)
-
-      // 焦点闩锁:缩放状态下绝不判键盘(否则放大页面会把差值当成键盘高度,
-      // 浮层内容被压到屏幕顶部);文本控件聚焦才置真,几何回到阈值以下才解除。
-      if (zoomed) keyboardLatched = false
-      else if (isTextInput(document.activeElement)) keyboardLatched = true
-      else if (inset < KEYBOARD_MIN_INSET) keyboardLatched = false
-
-      const keyboardOpen = !zoomed && keyboardLatched && inset >= KEYBOARD_MIN_INSET
-
-      const visualHeightNow = keyboardOpen ? vv.height : layoutHeight
-      const visualTopNow = keyboardOpen ? Math.max(0, vv.offsetTop) : 0
-      const keyboardHeight = keyboardOpen ? inset : 0
-
-      set('--visible-vh', `${visualHeightNow}px`)
-      set('--visible-vh-top', `${visualTopNow}px`)
-      set('--visual-offset-left', `${keyboardOpen ? vv.offsetLeft : 0}px`)
-      set('--keyboard-height', `${keyboardHeight}px`)
+      set('--visible-vh', `${next.visibleHeight}px`)
+      set('--visible-vh-top', `${next.visibleTop}px`)
+      set('--visual-offset-left', `${next.visibleLeft}px`)
+      set('--keyboard-height', `${next.keyboardHeight}px`)
       // 根壳基准:键盘打开时取视觉视口高(根壳再由 max() 补上 offsetTop),
       // 其余情况恒为布局视口高 —— 缩放与地址栏动画都不再改变整棵树的高度。
-      set('--vh', `${visualHeightNow * 0.01}px`)
+      set('--vh', `${next.visibleHeight * 0.01}px`)
 
       // 供 ensureFocusedVisible 使用:视觉视口在布局视口坐标系里的窗口
-      visualTop = visualTopNow
-      visualHeight = visualHeightNow
-
-      const changed = keyboardOpen !== lastKeyboardOpen
-      lastKeyboardOpen = keyboardOpen
-      return changed
+      visualTop = next.visibleTop
+      visualHeight = next.visibleHeight
+      keyboardLatched = next.latched
+      lastKeyboardOpen = next.keyboardOpen
+      return next.changed
     }
 
     // 找到输入框最近的「可滚动」祖先(排除 html/body/不可滚动元素/浮层遮罩本身)。
@@ -193,20 +174,17 @@ export default function useKeyboardSafe() {
       const elRect = el.getBoundingClientRect()
       const scRect = scroller.getBoundingClientRect()
 
-      // 有效可见带(布局视口坐标):容器可视区 ∩ 视觉视口
-      const bandTop = Math.max(scRect.top, visualTop)
-      const bandBottom = Math.min(scRect.top + scroller.clientHeight, visualTop + visualHeight)
-
-      const top = elRect.top - bandTop
-      const bottom = elRect.bottom - bandTop
-      const bandHeight = bandBottom - bandTop
-      if (bandHeight <= 0) return // 容器完全在可视区外:交给 iOS 原生滚动处理
-
-      if (top < FOCUS_PAD) {
-        scroller.scrollTop += top - FOCUS_PAD
-      } else if (bottom > bandHeight - FOCUS_PAD) {
-        scroller.scrollTop += bottom - bandHeight + FOCUS_PAD
-      }
+      // 有效可见带(布局视口坐标)= 容器可视区 ∩ 视觉视口;算术在纯函数里,可单测。
+      const delta = focusScrollDelta({
+        elementTop: elRect.top,
+        elementBottom: elRect.bottom,
+        scrollerTop: scRect.top,
+        scrollerHeight: scroller.clientHeight,
+        visualTop,
+        visualHeight,
+        pad: FOCUS_PAD,
+      })
+      if (delta !== 0) scroller.scrollTop += delta
     }
 
     // 高频事件(键盘动画 / 滚动)合并到单次 rAF,只做测量;
