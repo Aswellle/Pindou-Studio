@@ -87,13 +87,13 @@ export default function ExportPanel({
 
   // 浮层可访问性(规格 08 §5):role/aria-modal/Escape/焦点归还。
   // 移动端入口是模态,桌面端是侧栏抽屉 —— 只有模态才承担 dialog 语义。
-  // 导出进行中屏蔽 Escape:中止由卸载 cleanup 负责,提前关面板会让进度条消失
-  // 而任务仍在跑,用户无法判断是否完成。
+  // 导出进行中也允许关闭:Escape / 点遮罩 / 点关闭按钮三条路径必须一致,
+  // 单独屏蔽 Escape 会让键盘用户被困在一个「点了没反应」的面板里。
+  // 中止由卸载 cleanup 负责(exportAbortRef.abort),不会留下后台跑完的任务。
   const { ref: modalRef, dialogProps: modalDialogProps } = useDialogA11y({
     open: isModal,
     onClose,
     label: t('export.title'),
-    disabled: isExporting,
   })
 
   // Actual dimensions (support rectangular grids)

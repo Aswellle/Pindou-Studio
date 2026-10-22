@@ -12,12 +12,14 @@ import i18n from '../i18n'
  * 面积预算降级又依赖真实画布尺寸,jsdom 下永远走不到 —— 只能整体替换渲染器,
  * 让它在转交真实实现之前先以「被预算降级」的形态回报 onScale。
  */
-const rasterControl = vi.hoisted(() => ({ forcedScale: null }))
+const rasterControl = vi.hoisted(() => ({ forcedScale: null, hang: false }))
 vi.mock('../services/export/RasterRenderer', async (importOriginal) => {
   const actual = await importOriginal()
   return {
     ...actual,
     renderPatternDocumentToPNG: (doc, options = {}) => {
+      // hang:让 V2 PNG 导出停在「进行中」,用于验证导出期间仍可关闭面板
+      if (rasterControl.hang) return new Promise(() => {})
       if (rasterControl.forcedScale == null) return actual.renderPatternDocumentToPNG(doc, options)
       // 强制降级:只回报我们指定的倍率,丢弃真实渲染器的 onScale(否则会被覆盖回未降级)
       const { onScale, ...rest } = options
@@ -115,6 +117,7 @@ afterEach(() => {
   cleanup()
   mock.restore()
   rasterControl.forcedScale = null
+  rasterControl.hang = false
   localStorage.clear()
 })
 
@@ -275,6 +278,33 @@ describe('导出确认框的关闭语义', () => {
     expect(document.querySelector('.export-confirm-actions')).toBeNull()
     expect(onClose).not.toHaveBeenCalled()
     expect(screen.getByText('PNG 图片')).toBeTruthy()
+  })
+
+  it('导出进行中 Escape 仍可关闭面板(与点遮罩/关闭按钮一致)', async () => {
+    // 方案 A:Escape 不再被 isExporting 屏蔽。三条关闭路径必须一致,
+    // 否则键盘用户会卡在一个「按了没反应」的面板里。
+    const onClose = vi.fn()
+    render(
+      <ExportPanel
+        canvasData={CANVAS_DATA}
+        gridSize={2}
+        gridWidth={2}
+        gridHeight={2}
+        designName="测试图纸"
+        paletteId="perler"
+        onClose={onClose}
+      />
+    )
+
+    // 让导出停在「进行中」:jsdom 里真实导出瞬间完成,不挂起就测不到 isExporting
+    rasterControl.hang = true
+    fireEvent.click(screen.getByText('PNG 图片'))
+    fireEvent.click(document.querySelector('.export-confirm-actions .btn-primary'))
+    // 按钮禁用 = isExporting 已为 true
+    await waitFor(() => expect(screen.getByText('PNG 图片').closest('button').disabled).toBe(true))
+
+    fireEvent.keyDown(document, { key: 'Escape' })
+    expect(onClose).toHaveBeenCalled()
   })
 })
 
