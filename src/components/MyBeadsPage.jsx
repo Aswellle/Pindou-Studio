@@ -1,13 +1,15 @@
 /**
  * MyBeadsPage — /my/beads 个人色卡与库存
  *
- * 规格:docs/agent-spec/05_个人色卡与库存规格.md
+ * 规格:docs/implementation/Pindou-Studio-my-beads-ui-ux-refactor.md
  *
- * 三层分离(页面按此组织):
- *   1. 内置色卡目录 —— 只读,可「复制为我的色卡」,不修改内置数据;
- *   2. 我的色卡 —— 名称/品牌/系列/豆径 + 颜色 CRUD(色号唯一、HEX 规范);
- *   3. 我的库存 —— 拥有/缺货/数量(数量空 = 未知,不等于 0);
- *      并把当前图纸的颜色与目标色卡/库存做匹配,预览替代色后一次性改矩阵。
+ * 本文件只做**编排**:持有跨 Tab 的状态与数据访问,把三个工作区交给
+ * features/my-beads/ 下的子组件渲染。子组件不重复调用 useUserPalettes。
+ *
+ * 三个工作区:
+ *   1. 我的色卡 —— 创建 / 复制内置色卡 / 颜色 CRUD;
+ *   2. 我的库存 —— 逐色登记拥有状态与数量(草稿 + 提交);
+ *   3. 图纸匹配 —— 目标色卡、匹配结果、临时预览、明确应用。
  *
  * 数据访问全部经 useUserPalettes(登录 → Supabase + RLS;未登录 → localStorage)。
  * 画布只存 HEX:删除个人色卡不会让已保存图纸变黑。
@@ -18,24 +20,21 @@ import { createPortal } from 'react-dom'
 import { useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import {
-  ArrowLeft, Plus, Trash2, Pencil, Copy, Search, Check, X, Package,
-  Palette as PaletteIcon, Layers, AlertTriangle, Sparkles, Download, Upload, ClipboardCopy,
+  ArrowLeft, Plus, Trash2, Pencil, Copy, Search, AlertTriangle,
+  Palette as PaletteIcon, Layers, Package, Sparkles, Download, Upload, ClipboardCopy,
 } from 'lucide-react'
 import { useToast } from '../components/Toast'
-import ThumbnailCanvas from '../components/ThumbnailCanvas'
 import { useScrollLock } from '../hooks/useScrollLock'
 import { useDialogA11y } from '../hooks/useDialogA11y'
-import { PALETTE_LIST, getPalette } from '../data/palettes'
+import { PALETTE_LIST } from '../data/palettes'
 import { useUserPalettes } from '../hooks/useUserPalettes'
 import {
   normalizePaletteInput,
   normalizeColorInput,
-  paletteKeyForBuiltin,
   paletteKeyForUser,
   PALETTE_ERRORS,
   COLOR_SOURCES,
   DEFAULT_COLOR_SOURCE,
-  MAX_PALETTE_NAME,
   MAX_COLOR_CODE,
 } from '../services/beads/personalPalette'
 import {
@@ -49,20 +48,23 @@ import {
   parseColorImport,
   IMPORT_ERRORS,
 } from '../services/beads/colorImport'
-import {
-  matchCanvasToInventory,
-  applyColorMapping,
-  buildShoppingList,
-  MAPPING_STATUS,
-  COLOR_STATUS,
-  STOCK_STATUS,
-  DEFAULT_CLOSE_THRESHOLD,
-} from '../services/beads/inventoryMatch'
+import { applyColorMapping } from '../services/beads/inventoryMatch'
+import PaletteSetupDialog from '../features/my-beads/PaletteSetupDialog'
+import CopyBuiltinPaletteDialog from '../features/my-beads/CopyBuiltinPaletteDialog'
+import { PaletteEmptyState, CopyResultPanel } from '../features/my-beads/PaletteGettingStarted'
+import InventoryWorkspace from '../features/my-beads/InventoryWorkspace'
+import MatchWorkspace from '../features/my-beads/MatchWorkspace'
 import './myBeadsPage.css'
 
 const TAB_PALETTES = 'palettes'
 const TAB_INVENTORY = 'inventory'
 const TAB_MATCH = 'match'
+
+const TABS = [
+  { id: TAB_PALETTES, icon: Layers, labelKey: 'myBeads.tabs.palettes', hintKey: 'myBeads.tabHints.palettes' },
+  { id: TAB_INVENTORY, icon: Package, labelKey: 'myBeads.tabs.inventory', hintKey: 'myBeads.tabHints.inventory' },
+  { id: TAB_MATCH, icon: Sparkles, labelKey: 'myBeads.tabs.match', hintKey: 'myBeads.tabHints.match' },
+]
 
 /** 色卡错误码 → i18n 键 */
 const PALETTE_ERROR_KEY = {
@@ -96,37 +98,6 @@ const PALETTE_ERROR_KEY = {
   [IMPORT_ERRORS.BAD_SHAPE]: 'myBeads.colors.import.errors.badShape',
 }
 
-/** 颜色匹配状态 → 徽章样式与 i18n 键(库存单独展示,不混在色差徽章里) */
-const COLOR_STATUS_META = {
-  [COLOR_STATUS.EXACT]: { cls: 'exact', key: 'myBeads.match.status.exact' },
-  [COLOR_STATUS.CLOSE]: { cls: 'close', key: 'myBeads.match.status.close' },
-  [COLOR_STATUS.POOR]: { cls: 'poor', key: 'myBeads.match.status.poor' },
-  [COLOR_STATUS.MISSING]: { cls: 'missing', key: 'myBeads.match.status.missing' },
-}
-
-/** 库存状态徽章(未知 ≠ 缺货,分开展示) */
-const STOCK_STATUS_META = {
-  [STOCK_STATUS.UNKNOWN]: { cls: 'unknown', key: 'myBeads.match.status.unknownInventory' },
-  [STOCK_STATUS.SUFFICIENT]: { cls: 'exact', key: 'myBeads.match.stockSufficient' },
-  [STOCK_STATUS.SHORTAGE]: { cls: 'poor', key: 'myBeads.match.stockShortage' },
-  [STOCK_STATUS.OUT_OF_STOCK]: { cls: 'missing', key: 'myBeads.match.stockOut' },
-}
-
-/** 一行可能同时展示「色差徽章」与「库存徽章」;尺寸不兼容优先 */
-function statusBadges(item) {
-  if (item.mappingStatus === MAPPING_STATUS.INCOMPATIBLE_SIZE) {
-    return [{ cls: 'size', key: 'myBeads.match.status.incompatibleSize' }]
-  }
-  const badges = []
-  const color = COLOR_STATUS_META[item.colorStatus]
-  if (color) badges.push(color)
-  if (item.colorStatus !== COLOR_STATUS.MISSING) {
-    const stock = STOCK_STATUS_META[item.stockStatus]
-    if (stock) badges.push(stock)
-  }
-  return badges
-}
-
 export default function MyBeadsPage({ user, canvasData, onApplyMapping, works = [], onReassignWorkPalette }) {
   const { t } = useTranslation()
   const navigate = useNavigate()
@@ -135,18 +106,25 @@ export default function MyBeadsPage({ user, canvasData, onApplyMapping, works = 
 
   const [tab, setTab] = useState(TAB_PALETTES)
   const [selectedPaletteId, setSelectedPaletteId] = useState(null)
-  const [search, setSearch] = useState('')
-  // 色卡详情里的颜色搜索(规格 05 §2 P0:按色号/名称搜索)
   const [colorSearch, setColorSearch] = useState('')
   const [editingPalette, setEditingPalette] = useState(null) // { id?, ...fields }
   const [editingColor, setEditingColor] = useState(null) // { id?, ...fields }
-  const [confirmDelete, setConfirmDelete] = useState(null) // { kind:'palette'|'color', id, name }
-  // 三个编辑/确认浮层共享一把滚动锁;浮层全部 portal 到 body,避免页面滚动容器
-  // 在 iOS 键盘弹起时把 fixed 浮层顶出可视区
-  useScrollLock(!!(editingPalette || editingColor || confirmDelete))
+  const [confirmDelete, setConfirmDelete] = useState(null) // { kind, id?, key?, name/code }
+  const [copyTarget, setCopyTarget] = useState(null) // 待复制的内置色卡
+  const [copyResult, setCopyResult] = useState(null) // { paletteId, name, colorCount }
+  const [colorImport, setColorImport] = useState(null) // { filename, drafts, errors, fatal }
+  // 删除被引用色卡时的重新指定目标('' = 保留作品里的 HEX,不改 paletteId)
+  const [reassignTargetId, setReassignTargetId] = useState('')
   const [busy, setBusy] = useState(false)
+  const [highlightBuiltin, setHighlightBuiltin] = useState(false)
 
-  // 可访问性(规格 08 §5):三个浮层各自独立入栈,Escape 只关最上面那层
+  const detailRef = useRef(null)
+  const builtinRef = useRef(null)
+
+  // 浮层共享一把滚动锁;全部 portal 到 body
+  useScrollLock(!!(editingPalette || editingColor || confirmDelete || copyTarget))
+
+  // 可访问性(规格 08 §5):四个浮层各自独立入栈,Escape 只关最上面那层
   const { ref: paletteDialogRef, dialogProps: paletteDialogProps } = useDialogA11y({
     open: !!editingPalette,
     onClose: () => setEditingPalette(null),
@@ -164,22 +142,21 @@ export default function MyBeadsPage({ user, canvasData, onApplyMapping, works = 
     label: confirmDelete?.kind === 'palette' ? t('myBeads.palettes.deleteTitle') : t('myBeads.colors.deleteTitle'),
     role: 'alertdialog',
   })
-
-  const [colorImport, setColorImport] = useState(null) // { filename, drafts, errors, fatal }
-  // 删除被引用色卡时的重新指定目标('' = 保留作品里的 HEX,不改 paletteId)
-  const [reassignTargetId, setReassignTargetId] = useState('')
-
-  // 匹配页状态
-  const [targetKind, setTargetKind] = useState('builtin') // builtin | user
-  const [targetId, setTargetId] = useState('perler')
-  const [requiredSize, setRequiredSize] = useState('')
-  const [closeThreshold, setCloseThreshold] = useState(DEFAULT_CLOSE_THRESHOLD)
-  const [overrides, setOverrides] = useState({}) // sourceHex -> 目标色 id(手动选择)
+  const { ref: copyDialogRef, dialogProps: copyDialogProps } = useDialogA11y({
+    open: !!copyTarget,
+    onClose: () => setCopyTarget(null),
+    label: t('myBeads.copy.title'),
+  })
 
   const palettes = store.palettes
   const selectedPalette = useMemo(
     () => palettes.find((p) => p.id === selectedPaletteId) || null,
     [palettes, selectedPaletteId],
+  )
+
+  const hasCanvas = useMemo(
+    () => !!canvasData && canvasData.some((row) => Array.isArray(row) && row.some(Boolean)),
+    [canvasData],
   )
 
   // 当前色卡的颜色(带搜索过滤);搜索只在选中色卡内生效
@@ -249,6 +226,13 @@ export default function MyBeadsPage({ user, canvasData, onApplyMapping, works = 
     }
   }, [errorText, toast, t])
 
+  const scrollToDetail = () => {
+    // jsdom 没有布局,scrollIntoView 也不一定存在
+    if (typeof detailRef.current?.scrollIntoView === 'function') {
+      detailRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' })
+    }
+  }
+
   // ── 色卡编辑 ───────────────────────────────────────────────
   const openNewPalette = () => setEditingPalette({
     id: null, name: '', brandName: '', seriesName: '', beadSizeMm: '', notes: '',
@@ -275,26 +259,30 @@ export default function MyBeadsPage({ user, canvasData, onApplyMapping, works = 
     )
     if (res?.ok) {
       setEditingPalette(null)
-      if (!editingPalette.id) setSelectedPaletteId(res.palette.id)
+      if (!editingPalette.id) {
+        setSelectedPaletteId(res.palette.id)
+        // 新建后滚到详情区,让用户看到「添加颜色」入口
+        setTimeout(scrollToDetail, 0)
+      }
     }
   }
 
   // ── 删除色卡:若被作品引用,提供「保留 HEX / 重新指定色卡 / 取消」──
-  // 规格 05 §2:删除被引用的色卡不能破坏图纸网格。canvasData 只存 HEX,
-  // 所以「保留 HEX」永远是安全默认;「重新指定」只是把作品的 paletteId 改到另一张色卡。
   const referencingWorks = useMemo(() => {
     if (confirmDelete?.kind !== 'palette') return []
     return (works || []).filter((w) => w.paletteId === confirmDelete.id)
   }, [confirmDelete, works])
 
-  const doDeletePalette = async () => {
+  const doDelete = async () => {
     if (!confirmDelete) return
     const target = confirmDelete
     setConfirmDelete(null)
     if (target.kind === 'palette') {
       await run(() => store.deletePalette(target.id), 'myBeads.paletteDeleted')
-    } else {
+    } else if (target.kind === 'color') {
       await run(() => store.deleteColor(target.id), 'myBeads.colorDeleted')
+    } else if (target.kind === 'inventory') {
+      await run(() => store.removeInventory(target.key), 'myBeads.inventory.batchCleared', { n: 1 })
     }
   }
 
@@ -354,7 +342,7 @@ export default function MyBeadsPage({ user, canvasData, onApplyMapping, works = 
     if (res?.ok) setEditingColor(null)
   }
 
-  // ── 批量颜色导入(CSV / JSON,规格 05 §2 P1)─────────────────
+  // ── 批量颜色导入(CSV / JSON)─────────────────────────────
   const colorFileRef = useRef(null)
 
   /** 下载 CSV 模板(带 BOM,Excel 直接打开不乱码) */
@@ -409,193 +397,104 @@ export default function MyBeadsPage({ user, canvasData, onApplyMapping, works = 
     }
   }
 
-  // ── 复制内置色卡 ───────────────────────────────────────────
-  const copyBuiltin = async (builtin) => {
-    const defaultName = `${t(`palette.brand.${builtin.id}`, builtin.nameZh || builtin.name)} ${t('myBeads.copySuffix')}`
-    const name = window.prompt(t('myBeads.copyPrompt'), defaultName)
-    if (name === null) return
+  // ── 复制内置色卡(替换 window.prompt)──────────────────────
+  const openCopyBuiltin = (builtin) => setCopyTarget(builtin)
+
+  const confirmCopyBuiltin = async (name) => {
+    const builtin = copyTarget
+    if (!builtin) return
     const res = await run(
-      () => store.copyBuiltinPalette(builtin, name.trim() || defaultName),
+      () => store.copyBuiltinPalette(builtin, name),
       'myBeads.copied',
     )
-    if (res?.ok) setSelectedPaletteId(res.palette.id)
+    if (!res?.ok) return // 失败时保持弹层打开,输入不丢
+    setCopyTarget(null)
+    setTab(TAB_PALETTES)
+    setSelectedPaletteId(res.palette.id)
+    setCopyResult({
+      paletteId: res.palette.id,
+      name: res.palette.name,
+      colorCount: (res.colors || []).length,
+    })
+    setTimeout(scrollToDetail, 0)
+  }
+
+  /** 空状态里的「复制品牌色卡」:滚动并高亮内置目录 */
+  const focusBuiltinDirectory = () => {
+    setHighlightBuiltin(true)
+    if (typeof builtinRef.current?.scrollIntoView === 'function') {
+      builtinRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' })
+    }
+    setTimeout(() => setHighlightBuiltin(false), 2400)
   }
 
   // ── 库存 ───────────────────────────────────────────────────
-  // 库存视图:当前选中的是内置色卡还是个人色卡
   const [invKind, setInvKind] = useState('builtin')
   const [invPaletteId, setInvPaletteId] = useState('perler')
-  // 状态筛选(规格 05 §3:显示拥有、缺货、数量不足颜色)
-  const [stockFilter, setStockFilter] = useState('all')
-  // 批量编辑:选中的 paletteKey 集合
-  const [selectedKeys, setSelectedKeys] = useState(() => new Set())
-  const [batchQty, setBatchQty] = useState('')
 
-  const invColors = useMemo(() => {
-    if (invKind === 'builtin') {
-      return getPalette(invPaletteId).colors.map((c) => ({
-        id: c.id,
-        code: c.id,
-        name: c.nameZh || c.name,
-        hex: c.hex,
-        key: paletteKeyForBuiltin(invPaletteId, c.id),
-        beadSizeMm: getPalette(invPaletteId).beadSize,
-      }))
+  // 个人色卡增删后修正库存目标,避免指向已删除的色卡
+  useEffect(() => {
+    if (invKind !== 'user') return
+    if (!palettes.some((p) => p.id === invPaletteId)) {
+      setInvPaletteId(palettes[0]?.id || '')
     }
-    const list = store.colorsByPalette.get(invPaletteId) || []
-    return list.map((c) => ({
-      ...c,
-      key: paletteKeyForUser(invPaletteId, c.id),
-    }))
-  }, [invKind, invPaletteId, store.colorsByPalette])
+  }, [invKind, invPaletteId, palettes])
 
-  const filteredInvColors = useMemo(() => {
-    const q = search.trim().toLowerCase()
-    let list = invColors
-    if (q) {
-      list = list.filter((c) => (
-        String(c.code).toLowerCase().includes(q)
-        || String(c.name || '').toLowerCase().includes(q)
-        || String(c.hex || '').toLowerCase().includes(q)
-      ))
-    }
-    if (stockFilter === 'all') return list
-    return list.filter((c) => {
-      const rec = store.inventoryByKey.get(c.key)
-      switch (stockFilter) {
-        case 'owned': return !!rec && rec.status === 'owned' && rec.quantity !== 0
-        case 'low': return !!rec && rec.status === 'low'
-        case 'out': return !!rec && (rec.status === 'out_of_stock' || rec.quantity === 0)
-        case 'unknown': return !rec
-        default: return true
-      }
-    })
-  }, [invColors, search, stockFilter, store.inventoryByKey])
+  const changeInvSource = (next) => {
+    setInvKind(next)
+    setInvPaletteId(next === 'builtin' ? 'perler' : (palettes[0]?.id || ''))
+  }
 
-  const inventoryStats = useMemo(() => {
-    let owned = 0
-    let out = 0
-    let unknown = 0
-    let totalQty = 0
-    for (const c of invColors) {
-      const rec = store.inventoryByKey.get(c.key)
-      if (!rec) { unknown++; continue }
-      if (rec.status === 'out_of_stock' || rec.quantity === 0) { out++; continue }
-      owned++
-      if (rec.quantity !== null && rec.quantity !== undefined) totalQty += rec.quantity
-    }
-    return { owned, out, unknown, totalQty, total: invColors.length }
-  }, [invColors, store.inventoryByKey])
-
-  const updateStock = async (color, patch) => {
+  const commitQuantity = useCallback(async (color, quantity, status, opts = {}) => {
     const existing = store.inventoryByKey.get(color.key)
     const res = await store.setInventory({
       paletteKey: color.key,
       paletteColorId: invKind === 'user' ? color.id : null,
-      quantity: existing ? existing.quantity : null,
-      status: existing ? existing.status : 'owned',
+      quantity,
+      status,
       notes: existing?.notes || '',
-      ...patch,
     })
-    if (!res.ok && res.errors?.[0]) toast(errorText(res.errors[0]), 'error')
+    if (!res.ok && !opts.silent && res.errors?.[0]) toast(errorText(res.errors[0]), 'error')
     return res
-  }
+  }, [store, invKind, toast, errorText])
 
-  // ── 批量库存编辑(规格 05 §3)────────────────────────────────
-  const toggleKey = (key) => {
-    setSelectedKeys((prev) => {
-      const next = new Set(prev)
-      if (next.has(key)) next.delete(key)
-      else next.add(key)
-      return next
-    })
-  }
+  const clearInventory = useCallback(async (color, opts = {}) => {
+    const res = await store.removeInventory(color.key)
+    if (!res.ok && !opts.silent && res.errors?.[0]) toast(errorText(res.errors[0]), 'error')
+    return res
+  }, [store, toast, errorText])
 
-  const visibleKeys = useMemo(() => filteredInvColors.map((c) => c.key), [filteredInvColors])
-  const allVisibleSelected = visibleKeys.length > 0 && visibleKeys.every((k) => selectedKeys.has(k))
+  const onBatchDone = useCallback(({ ok, failed, successKey }) => {
+    if (failed > 0) toast(t('myBeads.inventory.batchPartial', { ok, failed }), 'error')
+    else toast(t(successKey, { n: ok }), 'success')
+  }, [toast, t])
 
-  const toggleSelectAllVisible = () => {
-    setSelectedKeys((prev) => {
-      const next = new Set(prev)
-      if (allVisibleSelected) visibleKeys.forEach((k) => next.delete(k))
-      else visibleKeys.forEach((k) => next.add(k))
-      return next
-    })
-  }
+  // ── 匹配 ───────────────────────────────────────────────────
+  const [targetKind, setTargetKind] = useState('builtin')
+  const [targetId, setTargetId] = useState('perler')
 
-  // 切换色卡/视图时清空选择,避免把上一张色卡的键带到新列表
-  // biome-ignore lint/correctness/useExhaustiveDependencies: 切换色卡/视图时清空选择,两个值只作触发信号
-  useEffect(() => { setSelectedKeys(new Set()); setBatchQty('') }, [invKind, invPaletteId])
-
-  /**
-   * 批量写入。逐条 await,统计成功/失败 —— 部分失败时如实报告,不假装全部成功。
-   * @param {(color, rec) => object} buildPatch
-   */
-  const runBatch = async (buildPatch, successKey) => {
-    const targets = filteredInvColors.filter((c) => selectedKeys.has(c.key))
-    if (targets.length === 0) {
-      toast(t('myBeads.inventory.batchEmpty'), 'error')
-      return
+  // 个人色卡增删后修正匹配目标
+  useEffect(() => {
+    if (targetKind !== 'user') return
+    if (!palettes.some((p) => p.id === targetId)) {
+      setTargetId(palettes[0]?.id || '')
     }
-    setBusy(true)
-    let ok = 0
-    let failed = 0
-    try {
-      for (const color of targets) {
-        const rec = store.inventoryByKey.get(color.key)
-        const patch = buildPatch(color, rec)
-        if (patch === null) { ok++; continue }
-        // 清除记录走 removeInventory,其余走 setInventory
-        if (patch.__remove) {
-          const res = await store.removeInventory(color.key)
-          if (res.ok) ok++
-          else failed++
-          continue
-        }
-        const res = await store.setInventory({
-          paletteKey: color.key,
-          paletteColorId: invKind === 'user' ? color.id : null,
-          quantity: rec ? rec.quantity : null,
-          status: rec ? rec.status : 'owned',
-          notes: rec?.notes || '',
-          ...patch,
-        })
-        if (res.ok) ok++
-        else failed++
-      }
-    } finally {
-      setBusy(false)
-    }
-    if (failed > 0) {
-      toast(t('myBeads.inventory.batchPartial', { ok, failed }), 'error')
-    } else {
-      toast(t(successKey, { n: ok }), 'success')
-    }
-    setSelectedKeys(new Set())
-    setBatchQty('')
+  }, [targetKind, targetId, palettes])
+
+  const changeMatchTarget = (nextKind, nextId) => {
+    setTargetKind(nextKind)
+    setTargetId(nextId)
   }
 
-  const applyBatchQty = () => {
-    const raw = String(batchQty).trim()
-    if (raw === '') { toast(t('myBeads.errors.invalidQuantity'), 'error'); return }
-    const n = Number(raw)
-    if (!Number.isFinite(n) || n < 0) { toast(t('myBeads.errors.invalidQuantity'), 'error'); return }
-    const qty = Math.trunc(n)
-    runBatch(() => ({ quantity: qty, status: qty === 0 ? 'out_of_stock' : 'owned' }), 'myBeads.inventory.batchQtyDone')
+  const applyMapping = (entries) => {
+    const res = applyColorMapping(canvasData, entries)
+    if (!res.data) { toast(t('myBeads.match.noChange'), 'info'); return }
+    onApplyMapping?.(res.data)
+    toast(t('myBeads.match.applied', { n: res.changed }), 'success')
+    navigate('/')
   }
 
-  // 批量改状态:标记缺货时数量归零;标记拥有/不足时保留已有数量(不能把用户填的数字抹掉)
-  const applyBatchStatus = (status) => runBatch(
-    () => (status === 'out_of_stock' ? { status, quantity: 0 } : { status }),
-    'myBeads.inventory.batchStatusDone',
-  )
-  const clearBatch = () => runBatch((color) => {
-    // 清除记录:没有记录时视为已完成(幂等)
-    if (!store.inventoryByKey.get(color.key)) return null
-    return { __remove: true }
-  }, 'myBeads.inventory.batchCleared')
-
-  // ── 备份导出 / 导入(规格 05 §5,仅本地模式)───────────────
+  // ── 备份导出 / 导入(仅本地模式)───────────────────────────
   const fileInputRef = useRef(null)
 
   const exportBackupFile = () => {
@@ -629,8 +528,8 @@ export default function MyBeadsPage({ user, canvasData, onApplyMapping, works = 
       return
     }
     const plan = planMerge(store.exportBackup(), parsed.backup)
-    const total = plan.palettes.length + plan.colors.length + plan.inventory.length
-    if (total === 0) {
+    const planTotal = plan.palettes.length + plan.colors.length + plan.inventory.length
+    if (planTotal === 0) {
       toast(t('myBeads.backup.nothingNew'), 'info')
       return
     }
@@ -652,104 +551,31 @@ export default function MyBeadsPage({ user, canvasData, onApplyMapping, works = 
     }
   }
 
-  // ── 匹配 ───────────────────────────────────────────────────
-  const targetCandidates = useMemo(() => {
-    if (targetKind === 'builtin') {
-      const p = getPalette(targetId)
-      return p.colors.map((c) => ({
-        id: c.id, code: c.id, name: c.nameZh || c.name, hex: c.hex, beadSizeMm: p.beadSize,
-      }))
-    }
-    const list = store.colorsByPalette.get(targetId) || []
-    const palette = palettes.find((p) => p.id === targetId)
-    return list.map((c) => ({
-      id: c.id, code: c.code, name: c.name, hex: c.hex,
-      beadSizeMm: palette?.beadSizeMm ?? null,
-    }))
-  }, [targetKind, targetId, store.colorsByPalette, palettes])
-
-  const targetInventory = useMemo(() => {
-    const m = new Map()
-    for (const c of targetCandidates) {
-      const key = targetKind === 'builtin'
-        ? paletteKeyForBuiltin(targetId, c.id)
-        : paletteKeyForUser(targetId, c.id)
-      const rec = store.inventoryByKey.get(key)
-      if (rec) m.set(c.id, { quantity: rec.quantity, status: rec.status })
-    }
-    return m
-  }, [targetCandidates, targetKind, targetId, store.inventoryByKey])
-
-  const matchResult = useMemo(() => {
-    if (!canvasData) return { items: [], summary: null }
-    return matchCanvasToInventory({
-      canvasData,
-      candidates: targetCandidates,
-      inventory: targetInventory,
-      requiredBeadSizeMm: requiredSize ? Number(requiredSize) : null,
-      closeThreshold: Number(closeThreshold) || DEFAULT_CLOSE_THRESHOLD,
-    })
-  }, [canvasData, targetCandidates, targetInventory, requiredSize, closeThreshold])
-
-  // 用户手动指定的替代色优先于算法结果
-  const effectiveItems = useMemo(() => {
-    if (Object.keys(overrides).length === 0) return matchResult.items
-    return matchResult.items.map((item) => {
-      const overrideId = overrides[item.sourceHex]
-      if (!overrideId) return item
-      const target = targetCandidates.find((c) => c.id === overrideId)
-      if (!target) return item
-      return {
-        ...item,
-        targetColor: target,
-        deltaE00: null,
-        autoApplicable: true,
-        manual: true,
-      }
-    })
-  }, [matchResult.items, overrides, targetCandidates])
-
-  const shopping = useMemo(() => buildShoppingList(effectiveItems), [effectiveItems])
-
-  const [accepted, setAccepted] = useState({}) // sourceHex -> true
-  // biome-ignore lint/correctness/useExhaustiveDependencies: 切换目标时清空人工修正,两个值只作触发信号
-  useEffect(() => { setAccepted({}); setOverrides({}) }, [targetKind, targetId])
-
-  const toggleAccept = (sourceHex) => {
-    setAccepted((prev) => {
-      const next = { ...prev }
-      if (next[sourceHex]) delete next[sourceHex]
-      else next[sourceHex] = true
-      return next
-    })
+  // ── 复制结果的后续跳转(规格 §4.3)──────────────────────────
+  const goInventoryFromCopy = () => {
+    if (!copyResult) return
+    setInvKind('user')
+    setInvPaletteId(copyResult.paletteId)
+    setTab(TAB_INVENTORY)
   }
 
-  const acceptAuto = () => {
-    const next = {}
-    for (const item of effectiveItems) {
-      if (item.autoApplicable && item.targetColor && item.targetColor.hex !== item.sourceHex) {
-        next[item.sourceHex] = true
-      }
-    }
-    setAccepted(next)
-    toast(t('myBeads.match.autoAccepted', { n: Object.keys(next).length }), 'success')
+  const goMatchFromCopy = () => {
+    if (!copyResult) return
+    setTargetKind('user')
+    setTargetId(copyResult.paletteId)
+    setTab(TAB_MATCH)
   }
 
-  const applyAccepted = () => {
-    const entries = effectiveItems
-      .filter((item) => accepted[item.sourceHex] && item.targetColor)
-      .map((item) => ({ from: item.sourceHex, to: item.targetColor.hex }))
-    if (entries.length === 0) { toast(t('myBeads.match.nothingAccepted'), 'error'); return }
-    const res = applyColorMapping(canvasData, entries)
-    if (!res.data) { toast(t('myBeads.match.noChange'), 'info'); return }
-    onApplyMapping?.(res.data)
-    setAccepted({})
-    toast(t('myBeads.match.applied', { n: res.changed }), 'success')
-    navigate('/')
+  const goColorsFromCopy = () => {
+    if (!copyResult) return
+    setTab(TAB_PALETTES)
+    setSelectedPaletteId(copyResult.paletteId)
+    setTimeout(scrollToDetail, 0)
   }
 
-  // 画布缩略图数据(只用于预览当前图纸)
-  const previewPattern = useMemo(() => canvasData || [], [canvasData])
+  const paletteColorCount = selectedPalette
+    ? (store.colorsByPalette.get(selectedPalette.id) || []).length
+    : 0
 
   return (
     <div className="my-beads-page">
@@ -771,8 +597,302 @@ export default function MyBeadsPage({ user, canvasData, onApplyMapping, works = 
           {store.mode === 'cloud' ? t('myBeads.modeCloud') : t('myBeads.modeLocal')}
         </p>
 
-        {/* 备份(规格 05 §5):本地模式可导出/导入;云端模式隐藏 ——
-            云端 id 由数据库生成,备份里的 id 无法原样恢复 */}
+        {store.mode === 'cloud' && store.pendingLocal > 0 && (
+          <div className="my-beads-banner">
+            <span>{t('myBeads.pendingLocal', { n: store.pendingLocal })}</span>
+            <button type="button" className="my-beads-btn secondary" disabled={busy} onClick={() => run(() => store.importLocal(), 'myBeads.imported')}>
+              {t('myBeads.importLocal')}
+            </button>
+          </div>
+        )}
+
+        <nav className="my-beads-tabs" role="tablist" aria-label={t('myBeads.title')}>
+          {TABS.map(({ id, icon: Icon, labelKey }) => (
+            <button
+              key={id}
+              type="button"
+              role="tab"
+              id={`my-beads-tab-${id}`}
+              aria-selected={tab === id}
+              aria-controls={`my-beads-panel-${id}`}
+              className={tab === id ? 'active' : ''}
+              onClick={() => setTab(id)}
+            >
+              <Icon size={15} />{t(labelKey)}
+            </button>
+          ))}
+        </nav>
+        <p className="my-beads-tab-hint">
+          {t(TABS.find((x) => x.id === tab)?.hintKey || 'myBeads.tabHints.palettes')}
+        </p>
+
+        {/* ═══ 我的色卡 ═══════════════════════════════════════ */}
+        {tab === TAB_PALETTES && (
+          <div role="tabpanel" id={`my-beads-panel-${TAB_PALETTES}`} aria-labelledby={`my-beads-tab-${TAB_PALETTES}`} className="my-beads-panel">
+            <section className="my-beads-section">
+              <div className="my-beads-section-head">
+                <h2>{t('myBeads.palettes.title')}</h2>
+                <button type="button" className="my-beads-btn primary" onClick={openNewPalette}>
+                  <Plus size={15} />{t('myBeads.palettes.new')}
+                </button>
+              </div>
+
+              {store.loading ? (
+                <p className="my-beads-hint">{t('common.loading')}</p>
+              ) : palettes.length === 0 ? (
+                <PaletteEmptyState
+                  onCopyBuiltin={focusBuiltinDirectory}
+                  onNewPalette={openNewPalette}
+                  hasCanvas={hasCanvas}
+                />
+              ) : (
+                <div className="my-beads-palette-list">
+                  {palettes.map((p) => {
+                    const count = (store.colorsByPalette.get(p.id) || []).length
+                    return (
+                      <button
+                        key={p.id}
+                        type="button"
+                        aria-pressed={selectedPaletteId === p.id}
+                        className={`my-beads-palette-card ${selectedPaletteId === p.id ? 'active' : ''}`}
+                        onClick={() => setSelectedPaletteId(p.id)}
+                      >
+                        <PaletteIcon size={16} />
+                        <span className="name">{p.name}</span>
+                        <span className="meta">
+                          {p.brandName || t('myBeads.unknown')}
+                          {p.beadSizeMm ? ` · ${p.beadSizeMm}mm` : ''}
+                          {` · ${t('myBeads.palettes.colorCount', { n: count })}`}
+                        </span>
+                      </button>
+                    )
+                  })}
+                </div>
+              )}
+
+              {copyResult && (
+                <CopyResultPanel
+                  paletteName={copyResult.name}
+                  colorCount={copyResult.colorCount}
+                  hasCanvas={hasCanvas}
+                  onDismiss={() => setCopyResult(null)}
+                  onGoColors={goColorsFromCopy}
+                  onGoInventory={goInventoryFromCopy}
+                  onGoMatch={goMatchFromCopy}
+                  onGoCanvas={() => navigate('/')}
+                />
+              )}
+
+              {selectedPalette && (
+                <div className="my-beads-palette-detail" ref={detailRef}>
+                  <div className="my-beads-section-head">
+                    <h3>{selectedPalette.name}</h3>
+                    <div className="my-beads-row-actions">
+                      <button type="button" className="my-beads-btn secondary" onClick={() => openEditPalette(selectedPalette)}>
+                        <Pencil size={14} />{t('myBeads.palettes.editInfo')}
+                      </button>
+                      <button
+                        type="button"
+                        className="my-beads-icon-btn danger"
+                        title={t('common.delete')}
+                        aria-label={t('common.delete')}
+                        onClick={() => setConfirmDelete({ kind: 'palette', id: selectedPalette.id, name: selectedPalette.name })}
+                      >
+                        <Trash2 size={15} />
+                      </button>
+                    </div>
+                  </div>
+
+                  <dl className="palette-meta">
+                    <div><dt>{t('myBeads.palettes.brandName')}</dt><dd>{selectedPalette.brandName || t('myBeads.unknown')}</dd></div>
+                    <div><dt>{t('myBeads.palettes.seriesName')}</dt><dd>{selectedPalette.seriesName || t('myBeads.unknown')}</dd></div>
+                    <div><dt>{t('myBeads.palettes.beadSize')}</dt><dd>{selectedPalette.beadSizeMm ? `${selectedPalette.beadSizeMm} mm` : t('myBeads.unknown')}</dd></div>
+                    <div><dt>{t('myBeads.colors.code')}</dt><dd>{t('myBeads.palettes.colorCount', { n: paletteColorCount })}</dd></div>
+                  </dl>
+
+                  {/* 颜色列表支持按色号/名称/HEX 搜索 */}
+                  <div className="my-beads-color-toolbar">
+                    <label className="my-beads-search my-beads-color-search">
+                      <Search size={14} />
+                      <input
+                        value={colorSearch}
+                        onChange={(e) => setColorSearch(e.target.value)}
+                        placeholder={t('myBeads.colors.search')}
+                        aria-label={t('myBeads.colors.search')}
+                      />
+                    </label>
+                    <button type="button" className="my-beads-btn ghost" onClick={downloadColorTemplate}>
+                      <Download size={14} />{t('myBeads.colors.import.template')}
+                    </button>
+                    <button
+                      type="button"
+                      className="my-beads-btn ghost"
+                      disabled={busy}
+                      onClick={() => colorFileRef.current?.click()}
+                    >
+                      <Upload size={14} />{t('myBeads.colors.import.button')}
+                    </button>
+                    <button type="button" className="my-beads-btn primary" onClick={openNewColor}>
+                      <Plus size={14} />{t('myBeads.colors.new')}
+                    </button>
+                    <input
+                      ref={colorFileRef}
+                      type="file"
+                      accept=".csv,.json,text/csv,application/json"
+                      className="my-beads-file-input my-beads-color-file-input"
+                      onChange={onColorFilePicked}
+                    />
+                  </div>
+
+                  {/* 导入预览:先看清要写入什么、哪些行有问题,再决定 */}
+                  {colorImport && (
+                    <div className="my-beads-import-preview" role="region" aria-label={t('myBeads.colors.import.previewTitle')}>
+                      <div className="my-beads-import-head">
+                        <strong>{t('myBeads.colors.import.previewTitle')}</strong>
+                        <span className="my-beads-hint small">{colorImport.filename}</span>
+                        <button type="button" className="my-beads-btn ghost" onClick={() => setColorImport(null)}>
+                          {t('common.cancel')}
+                        </button>
+                      </div>
+                      <p className="my-beads-hint small">
+                        {t('myBeads.colors.import.summary', {
+                          ok: colorImport.drafts.length,
+                          bad: colorImport.errors.length,
+                        })}
+                      </p>
+                      {colorImport.drafts.length > 0 && (
+                        <ul className="my-beads-import-list">
+                          {colorImport.drafts.slice(0, 50).map((d) => (
+                            <li key={`${d.row}-${d.code}`}>
+                              <span className="swatch" style={{ background: d.hex }} />
+                              <code>{d.code}</code>
+                              <span className="name">{d.name || ''}</span>
+                              <span className="hex">{d.hex}</span>
+                              <span className={`source-tag ${d.source}`}>
+                                {t(`myBeads.colors.sources.${d.source}`)}
+                              </span>
+                            </li>
+                          ))}
+                        </ul>
+                      )}
+                      {colorImport.drafts.length > 50 && (
+                        <p className="my-beads-hint small">
+                          {t('myBeads.colors.import.more', { n: colorImport.drafts.length - 50 })}
+                        </p>
+                      )}
+                      {colorImport.errors.length > 0 && (
+                        <ul className="my-beads-import-errors">
+                          {colorImport.errors.slice(0, 20).map((e, i) => (
+                            <li key={i}>
+                              {e.row ? t('myBeads.colors.import.rowError', { row: e.row }) : ''}
+                              {errorText(e)}
+                            </li>
+                          ))}
+                        </ul>
+                      )}
+                      <div className="my-beads-import-actions">
+                        <button
+                          type="button"
+                          className="my-beads-btn primary"
+                          disabled={busy || colorImport.drafts.length === 0}
+                          onClick={confirmColorImport}
+                        >
+                          {t('myBeads.colors.import.confirm', { n: colorImport.drafts.length })}
+                        </button>
+                      </div>
+                    </div>
+                  )}
+
+                  <ColorList
+                    colors={filteredColors}
+                    totalColors={paletteColorCount}
+                    inventoryByKey={store.inventoryByKey}
+                    onEdit={(c) => setEditingColor({ ...c, source: c.source || DEFAULT_COLOR_SOURCE })}
+                    onDelete={(c) => setConfirmDelete({ kind: 'color', id: c.id, name: c.code })}
+                    onCopyHex={copyHex}
+                    onAddFirst={openNewColor}
+                    onImport={() => colorFileRef.current?.click()}
+                    onClearSearch={() => setColorSearch('')}
+                    keyFor={(c) => paletteKeyForUser(selectedPalette.id, c.id)}
+                    t={t}
+                  />
+                </div>
+              )}
+
+              {/* 内置色卡目录:明确的第二入口 */}
+              <div className={`my-beads-builtin${highlightBuiltin ? ' highlighted' : ''}`} ref={builtinRef}>
+                <h3>{t('myBeads.builtin.title')}</h3>
+                <p className="my-beads-hint small">{t('myBeads.builtin.hint')}</p>
+                <div className="my-beads-builtin-grid">
+                  {PALETTE_LIST.map((p) => (
+                    <div key={p.id} className="my-beads-builtin-card">
+                      <div>
+                        <strong>{t(`palette.brand.${p.id}`)}</strong>
+                        <span>
+                          {t('myBeads.builtin.colorCount', { n: p.colors.length })}
+                          {p.beadSize ? ` · ${p.beadSize}mm` : ''}
+                        </span>
+                      </div>
+                      <button type="button" className="my-beads-btn ghost" onClick={() => openCopyBuiltin(p)}>
+                        <Copy size={14} />{t('myBeads.builtin.copy')}
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </section>
+          </div>
+        )}
+
+        {/* ═══ 我的库存 ═══════════════════════════════════════ */}
+        {tab === TAB_INVENTORY && (
+          <div role="tabpanel" id={`my-beads-panel-${TAB_INVENTORY}`} aria-labelledby={`my-beads-tab-${TAB_INVENTORY}`} className="my-beads-panel">
+            <InventoryWorkspace
+              palettes={{ builtin: PALETTE_LIST, user: palettes }}
+              colorsByPalette={store.colorsByPalette}
+              inventoryByKey={store.inventoryByKey}
+              source={invKind}
+              paletteId={invPaletteId}
+              onSourceChange={changeInvSource}
+              onPaletteChange={setInvPaletteId}
+              onCopyBuiltin={focusBuiltinDirectory}
+              onNewPalette={openNewPalette}
+              onGoPaletteColors={() => { setTab(TAB_PALETTES); setSelectedPaletteId(invPaletteId) }}
+              onCommitQuantity={commitQuantity}
+              onClearRecord={(color, opts) => {
+                // 批量清除逐条静默执行;单行清除走确认框(与「缺货」明确区分)
+                if (opts?.silent) return clearInventory(color, opts)
+                setConfirmDelete({ kind: 'inventory', key: color.key, name: color.code })
+                return Promise.resolve({ ok: true, pending: true })
+              }}
+              onBatchDone={onBatchDone}
+              busy={busy}
+            />
+          </div>
+        )}
+
+        {/* ═══ 图纸匹配 ═══════════════════════════════════════ */}
+        {tab === TAB_MATCH && (
+          <div role="tabpanel" id={`my-beads-panel-${TAB_MATCH}`} aria-labelledby={`my-beads-tab-${TAB_MATCH}`} className="my-beads-panel">
+            <MatchWorkspace
+              canvasData={canvasData}
+              builtinPalettes={PALETTE_LIST}
+              userPalettes={palettes}
+              colorsByPalette={store.colorsByPalette}
+              inventoryByKey={store.inventoryByKey}
+              source={targetKind}
+              targetId={targetId}
+              onSourceChange={changeMatchTarget}
+              onBackToCanvas={() => navigate('/')}
+              onGoManageColors={() => { setTab(TAB_PALETTES); setSelectedPaletteId(targetId) }}
+              onGoInventory={() => { setInvKind('user'); setInvPaletteId(targetId); setTab(TAB_INVENTORY) }}
+              onApply={applyMapping}
+              busy={busy}
+            />
+          </div>
+        )}
+
+        {/* 备份:层级低于核心任务(规格 §3.1) */}
         {store.mode === 'local' && (
           <div className="my-beads-backup">
             <button type="button" className="my-beads-btn ghost" onClick={exportBackupFile}>
@@ -790,575 +910,43 @@ export default function MyBeadsPage({ user, canvasData, onApplyMapping, works = 
               ref={fileInputRef}
               type="file"
               accept="application/json,.json"
-              className="my-beads-file-input"
+              className="my-beads-file-input my-beads-backup-file-input"
               onChange={onBackupFilePicked}
             />
             <span className="my-beads-hint small">{t('myBeads.backup.hint')}</span>
           </div>
         )}
-
-        {store.mode === 'cloud' && store.pendingLocal > 0 && (
-          <div className="my-beads-banner">
-            <span>{t('myBeads.pendingLocal', { n: store.pendingLocal })}</span>
-            <button type="button" className="my-beads-btn secondary" disabled={busy} onClick={() => run(() => store.importLocal(), 'myBeads.imported')}>
-              {t('myBeads.importLocal')}
-            </button>
-          </div>
-        )}
-
-        <nav className="my-beads-tabs" role="tablist">
-          <button role="tab" aria-selected={tab === TAB_PALETTES} className={tab === TAB_PALETTES ? 'active' : ''} onClick={() => setTab(TAB_PALETTES)}>
-            <Layers size={15} />{t('myBeads.tabs.palettes')}
-          </button>
-          <button role="tab" aria-selected={tab === TAB_INVENTORY} className={tab === TAB_INVENTORY ? 'active' : ''} onClick={() => setTab(TAB_INVENTORY)}>
-            <Package size={15} />{t('myBeads.tabs.inventory')}
-          </button>
-          <button role="tab" aria-selected={tab === TAB_MATCH} className={tab === TAB_MATCH ? 'active' : ''} onClick={() => setTab(TAB_MATCH)}>
-            <Sparkles size={15} />{t('myBeads.tabs.match')}
-          </button>
-        </nav>
-
-        {/* ═══ 我的色卡 ═══════════════════════════════════════ */}
-        {tab === TAB_PALETTES && (
-          <section className="my-beads-section">
-            <div className="my-beads-section-head">
-              <h2>{t('myBeads.palettes.title')}</h2>
-              <button type="button" className="my-beads-btn primary" onClick={openNewPalette}>
-                <Plus size={15} />{t('myBeads.palettes.new')}
-              </button>
-            </div>
-
-            {store.loading ? (
-              <p className="my-beads-hint">{t('common.loading')}</p>
-            ) : palettes.length === 0 ? (
-              <p className="my-beads-hint">{t('myBeads.palettes.empty')}</p>
-            ) : (
-              <div className="my-beads-palette-list">
-                {palettes.map((p) => {
-                  const count = (store.colorsByPalette.get(p.id) || []).length
-                  return (
-                    <button
-                      key={p.id}
-                      type="button"
-                      className={`my-beads-palette-card ${selectedPaletteId === p.id ? 'active' : ''}`}
-                      onClick={() => setSelectedPaletteId(p.id)}
-                    >
-                      <PaletteIcon size={16} />
-                      <span className="name">{p.name}</span>
-                      <span className="meta">
-                        {p.brandName || '—'}
-                        {p.beadSizeMm ? ` · ${p.beadSizeMm}mm` : ''}
-                        {` · ${count}`}
-                      </span>
-                    </button>
-                  )
-                })}
-              </div>
-            )}
-
-            {selectedPalette && (
-              <div className="my-beads-palette-detail">
-                <div className="my-beads-section-head">
-                  <h3>{selectedPalette.name}</h3>
-                  <div className="my-beads-row-actions">
-                    <button type="button" className="my-beads-icon-btn" title={t('common.edit')} onClick={() => openEditPalette(selectedPalette)}>
-                      <Pencil size={15} />
-                    </button>
-                    <button
-                      type="button"
-                      className="my-beads-icon-btn danger"
-                      title={t('common.delete')}
-                      onClick={() => setConfirmDelete({ kind: 'palette', id: selectedPalette.id, name: selectedPalette.name })}
-                    >
-                      <Trash2 size={15} />
-                    </button>
-                    <button type="button" className="my-beads-btn secondary" onClick={openNewColor}>
-                      <Plus size={14} />{t('myBeads.colors.new')}
-                    </button>
-                  </div>
-                </div>
-                <p className="my-beads-hint small">{t('myBeads.palettes.deleteHint')}</p>
-
-                {/* 规格 05 §2 P0:颜色列表支持按色号/名称/HEX 搜索 */}
-                <div className="my-beads-color-toolbar">
-                  <label className="my-beads-search my-beads-color-search">
-                    <Search size={14} />
-                    <input
-                      value={colorSearch}
-                      onChange={(e) => setColorSearch(e.target.value)}
-                      placeholder={t('myBeads.colors.search')}
-                      aria-label={t('myBeads.colors.search')}
-                    />
-                  </label>
-                  {/* 批量导入(规格 05 §2 P1):模板下载 + 预览 + 确认后整批写入 */}
-                  <button type="button" className="my-beads-btn ghost" onClick={downloadColorTemplate}>
-                    <Download size={14} />{t('myBeads.colors.import.template')}
-                  </button>
-                  <button
-                    type="button"
-                    className="my-beads-btn ghost"
-                    disabled={busy}
-                    onClick={() => colorFileRef.current?.click()}
-                  >
-                    <Upload size={14} />{t('myBeads.colors.import.button')}
-                  </button>
-                  <input
-                    ref={colorFileRef}
-                    type="file"
-                    accept=".csv,.json,text/csv,application/json"
-                    className="my-beads-file-input my-beads-color-file-input"
-                    onChange={onColorFilePicked}
-                  />
-                </div>
-
-                {/* 导入预览:先看清要写入什么、哪些行有问题,再决定 */}
-                {colorImport && (
-                  <div className="my-beads-import-preview" role="region" aria-label={t('myBeads.colors.import.previewTitle')}>
-                    <div className="my-beads-import-head">
-                      <strong>{t('myBeads.colors.import.previewTitle')}</strong>
-                      <span className="my-beads-hint small">{colorImport.filename}</span>
-                      <button type="button" className="my-beads-btn ghost" onClick={() => setColorImport(null)}>
-                        {t('common.cancel')}
-                      </button>
-                    </div>
-                    <p className="my-beads-hint small">
-                      {t('myBeads.colors.import.summary', {
-                        ok: colorImport.drafts.length,
-                        bad: colorImport.errors.length,
-                      })}
-                    </p>
-                    {colorImport.drafts.length > 0 && (
-                      <ul className="my-beads-import-list">
-                        {colorImport.drafts.slice(0, 50).map((d) => (
-                          <li key={`${d.row}-${d.code}`}>
-                            <span className="swatch" style={{ background: d.hex }} />
-                            <code>{d.code}</code>
-                            <span className="name">{d.name || ''}</span>
-                            <span className="hex">{d.hex}</span>
-                            <span className={`source-tag ${d.source}`}>
-                              {t(`myBeads.colors.sources.${d.source}`)}
-                            </span>
-                          </li>
-                        ))}
-                      </ul>
-                    )}
-                    {colorImport.drafts.length > 50 && (
-                      <p className="my-beads-hint small">
-                        {t('myBeads.colors.import.more', { n: colorImport.drafts.length - 50 })}
-                      </p>
-                    )}
-                    {colorImport.errors.length > 0 && (
-                      <ul className="my-beads-import-errors">
-                        {colorImport.errors.slice(0, 20).map((e, i) => (
-                          <li key={i}>
-                            {e.row ? t('myBeads.colors.import.rowError', { row: e.row }) : ''}
-                            {errorText(e)}
-                          </li>
-                        ))}
-                      </ul>
-                    )}
-                    <div className="my-beads-import-actions">
-                      <button
-                        type="button"
-                        className="my-beads-btn primary"
-                        disabled={busy || colorImport.drafts.length === 0}
-                        onClick={confirmColorImport}
-                      >
-                        {t('myBeads.colors.import.confirm', { n: colorImport.drafts.length })}
-                      </button>
-                    </div>
-                  </div>
-                )}
-
-                <ColorList
-                  colors={filteredColors}
-                  totalColors={(store.colorsByPalette.get(selectedPalette.id) || []).length}
-                  inventoryByKey={store.inventoryByKey}
-                  onEdit={(c) => setEditingColor({ ...c, source: c.source || DEFAULT_COLOR_SOURCE })}
-                  onDelete={(c) => setConfirmDelete({ kind: 'color', id: c.id, name: c.code })}
-                  onCopyHex={copyHex}
-                  keyFor={(c) => paletteKeyForUser(selectedPalette.id, c.id)}
-                  t={t}
-                />
-              </div>
-            )}
-
-            <div className="my-beads-builtin">
-              <h3>{t('myBeads.builtin.title')}</h3>
-              <p className="my-beads-hint small">{t('myBeads.builtin.hint')}</p>
-              <div className="my-beads-builtin-grid">
-                {PALETTE_LIST.map((p) => (
-                  <div key={p.id} className="my-beads-builtin-card">
-                    <div>
-                      <strong>{t(`palette.brand.${p.id}`)}</strong>
-                      <span>{t('myBeads.builtin.colorCount', { n: p.colors.length })}</span>
-                    </div>
-                    <button type="button" className="my-beads-btn ghost" onClick={() => copyBuiltin(p)}>
-                      <Copy size={14} />{t('myBeads.builtin.copy')}
-                    </button>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </section>
-        )}
-
-        {/* ═══ 我的库存 ═══════════════════════════════════════ */}
-        {tab === TAB_INVENTORY && (
-          <section className="my-beads-section">
-            <div className="my-beads-section-head">
-              <h2>{t('myBeads.inventory.title')}</h2>
-            </div>
-            <p className="my-beads-hint small">{t('myBeads.inventory.hint')}</p>
-
-            <div className="my-beads-filters">
-              <select value={invKind} onChange={(e) => { setInvKind(e.target.value); setInvPaletteId(e.target.value === 'builtin' ? 'perler' : (palettes[0]?.id || '')) }}>
-                <option value="builtin">{t('myBeads.inventory.builtin')}</option>
-                <option value="user">{t('myBeads.inventory.personal')}</option>
-              </select>
-              <select value={invPaletteId} onChange={(e) => setInvPaletteId(e.target.value)}>
-                {invKind === 'builtin'
-                  ? PALETTE_LIST.map((p) => <option key={p.id} value={p.id}>{t(`palette.brand.${p.id}`)}</option>)
-                  : palettes.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
-              </select>
-              <label className="my-beads-search">
-                <Search size={14} />
-                <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder={t('myBeads.inventory.search')} />
-              </label>
-              {/* 规格 05 §3:按拥有/不足/缺货/未记录筛选 */}
-              <select
-                value={stockFilter}
-                onChange={(e) => setStockFilter(e.target.value)}
-                aria-label={t('myBeads.inventory.filterLabel')}
-              >
-                <option value="all">{t('myBeads.inventory.filterAll')}</option>
-                <option value="owned">{t('myBeads.inventory.filterOwned')}</option>
-                <option value="low">{t('myBeads.inventory.filterLow')}</option>
-                <option value="out">{t('myBeads.inventory.filterOut')}</option>
-                <option value="unknown">{t('myBeads.inventory.filterUnknown')}</option>
-              </select>
-            </div>
-
-            <div className="my-beads-inv-stats">
-              <span>{t('myBeads.inventory.ownedCount', { n: inventoryStats.owned })}</span>
-              <span>{t('myBeads.inventory.outCount', { n: inventoryStats.out })}</span>
-              <span>{t('myBeads.inventory.unknownCount', { n: inventoryStats.unknown })}</span>
-              <span>{t('myBeads.inventory.totalQty', { n: inventoryStats.totalQty })}</span>
-            </div>
-
-            {/* 批量编辑(规格 05 §3):勾选行后出现,逐条写入并如实报告成功/失败数 */}
-            {selectedKeys.size > 0 && (
-              <div className="my-beads-batch" role="region" aria-label={t('myBeads.inventory.batchTitle')}>
-                <span className="my-beads-batch-count">
-                  {t('myBeads.inventory.batchSelected', { n: selectedKeys.size })}
-                </span>
-                <input
-                  type="number"
-                  min="0"
-                  step="1"
-                  className="qty-input"
-                  value={batchQty}
-                  onChange={(e) => setBatchQty(e.target.value)}
-                  placeholder={t('myBeads.inventory.batchQtyPlaceholder')}
-                  aria-label={t('myBeads.inventory.batchQtyPlaceholder')}
-                />
-                <button type="button" className="my-beads-btn secondary" disabled={busy} onClick={applyBatchQty}>
-                  {t('myBeads.inventory.batchSetQty')}
-                </button>
-                <button type="button" className="my-beads-btn ghost" disabled={busy} onClick={() => applyBatchStatus('owned')}>
-                  {t('myBeads.inventory.markOwned')}
-                </button>
-                <button type="button" className="my-beads-btn ghost" disabled={busy} onClick={() => applyBatchStatus('out_of_stock')}>
-                  {t('myBeads.inventory.markOut')}
-                </button>
-                <button type="button" className="my-beads-btn ghost" disabled={busy} onClick={clearBatch}>
-                  {t('myBeads.inventory.batchClear')}
-                </button>
-                <button type="button" className="my-beads-btn ghost" onClick={() => setSelectedKeys(new Set())}>
-                  {t('myBeads.inventory.batchCancel')}
-                </button>
-              </div>
-            )}
-
-            {invColors.length === 0 ? (
-              <p className="my-beads-hint">{t('myBeads.inventory.empty')}</p>
-            ) : filteredInvColors.length === 0 ? (
-              <p className="my-beads-hint">{t('myBeads.inventory.filterEmpty')}</p>
-            ) : (
-              <>
-                <label className="my-beads-select-all">
-                  <input
-                    type="checkbox"
-                    checked={allVisibleSelected}
-                    onChange={toggleSelectAllVisible}
-                  />
-                  <span>{t('myBeads.inventory.selectAll')}</span>
-                </label>
-                <ul className="my-beads-inv-list">
-                  {filteredInvColors.map((c) => {
-                    const rec = store.inventoryByKey.get(c.key)
-                    const qty = rec?.quantity
-                    return (
-                      <li key={c.key} className={`my-beads-inv-row${selectedKeys.has(c.key) ? ' selected' : ''}`}>
-                        <input
-                          type="checkbox"
-                          checked={selectedKeys.has(c.key)}
-                          onChange={() => toggleKey(c.key)}
-                          aria-label={`${t('myBeads.inventory.selectRow')} ${c.code}`}
-                        />
-                        <span className="swatch" style={{ background: c.hex }} />
-                        <span className="code">{c.code}</span>
-                        <span className="name">{c.name || ''}</span>
-                        <span className="hex">{c.hex}</span>
-                        <div className="stock-controls">
-                          <button
-                            type="button"
-                            className={`stock-btn ${rec ? 'on' : ''}`}
-                            title={t('myBeads.inventory.markOwned')}
-                            onClick={() => updateStock(c, { status: 'owned' })}
-                          >
-                            <Check size={13} />
-                          </button>
-                          <button
-                            type="button"
-                            className={`stock-btn ${rec?.status === 'out_of_stock' ? 'out' : ''}`}
-                            title={t('myBeads.inventory.markOut')}
-                            onClick={() => updateStock(c, { status: 'out_of_stock' })}
-                          >
-                            <X size={13} />
-                          </button>
-                          <input
-                            type="number"
-                            min="0"
-                            step="1"
-                            className="qty-input"
-                            value={qty === null || qty === undefined ? '' : qty}
-                            placeholder={t('myBeads.inventory.qtyUnknown')}
-                            onChange={(e) => {
-                              const v = e.target.value
-                              updateStock(c, { quantity: v === '' ? null : Math.max(0, Math.trunc(Number(v) || 0)) })
-                            }}
-                          />
-                        </div>
-                      </li>
-                    )
-                  })}
-                </ul>
-              </>
-            )}
-          </section>
-        )}
-
-        {/* ═══ 图纸匹配 ═══════════════════════════════════════ */}
-        {tab === TAB_MATCH && (
-          <section className="my-beads-section">
-            <div className="my-beads-section-head">
-              <h2>{t('myBeads.match.title')}</h2>
-            </div>
-            <p className="my-beads-hint small">{t('myBeads.match.hint')}</p>
-
-            <div className="my-beads-filters">
-              <select value={targetKind} onChange={(e) => { setTargetKind(e.target.value); setTargetId(e.target.value === 'builtin' ? 'perler' : (palettes[0]?.id || '')) }}>
-                <option value="builtin">{t('myBeads.match.targetBuiltin')}</option>
-                <option value="user">{t('myBeads.match.targetPersonal')}</option>
-              </select>
-              <select value={targetId} onChange={(e) => setTargetId(e.target.value)}>
-                {targetKind === 'builtin'
-                  ? PALETTE_LIST.map((p) => <option key={p.id} value={p.id}>{t(`palette.brand.${p.id}`)}</option>)
-                  : palettes.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
-              </select>
-              <label className="my-beads-size">
-                <span>{t('myBeads.match.requiredSize')}</span>
-                <input type="number" min="0.1" max="20" step="0.1" value={requiredSize} onChange={(e) => setRequiredSize(e.target.value)} placeholder={t('myBeads.match.sizeUnknown')} />
-              </label>
-              <label className="my-beads-size">
-                <span>{t('myBeads.match.threshold')}</span>
-                <input type="number" min="0" max="30" step="0.5" value={closeThreshold} onChange={(e) => setCloseThreshold(e.target.value)} />
-              </label>
-            </div>
-
-            {previewPattern.length === 0 ? (
-              <p className="my-beads-hint">{t('myBeads.match.emptyCanvas')}</p>
-            ) : (
-              <>
-                <div className="my-beads-match-preview">
-                  <div className="my-beads-thumb">
-                    <ThumbnailCanvas
-                      pattern={previewPattern}
-                      gridWidth={previewPattern[0]?.length || 0}
-                      gridHeight={previewPattern.length}
-                    />
-                  </div>
-                  <div className="my-beads-match-summary">
-                    <span>{t('myBeads.match.summaryColors', { n: matchResult.summary?.colorCount ?? 0 })}</span>
-                    <span>{t('myBeads.match.summaryBeads', { n: matchResult.summary?.requiredBeads ?? 0 })}</span>
-                    <span>{t('myBeads.match.summaryShortage', { n: matchResult.summary?.shortageBeads ?? 0 })}</span>
-                  </div>
-                </div>
-
-                <div className="my-beads-match-actions">
-                  <button type="button" className="my-beads-btn secondary" onClick={acceptAuto}>
-                    {t('myBeads.match.acceptAuto')}
-                  </button>
-                  <button type="button" className="my-beads-btn primary" disabled={busy} onClick={applyAccepted}>
-                    {t('myBeads.match.apply', { n: Object.keys(accepted).length })}
-                  </button>
-                </div>
-
-                <div className="my-beads-table-wrap">
-                  <table className="my-beads-match-table">
-                    <thead>
-                      <tr>
-                        <th aria-label={t('myBeads.match.accept')}></th>
-                        <th>{t('myBeads.match.source')}</th>
-                        <th>{t('myBeads.match.target')}</th>
-                        <th>ΔE00</th>
-                        <th>{t('myBeads.match.required')}</th>
-                        <th>{t('myBeads.match.stock')}</th>
-                        <th>{t('myBeads.match.shortage')}</th>
-                        <th>{t('myBeads.match.statusLabel')}</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {effectiveItems.map((item) => {
-                        const checked = !!accepted[item.sourceHex]
-                        return (
-                          <tr key={item.sourceHex} className={checked ? 'accepted' : ''}>
-                            <td>
-                              <input
-                                type="checkbox"
-                                checked={checked}
-                                disabled={!item.targetColor}
-                                aria-label={`${t('myBeads.match.accept')} ${item.sourceHex}`}
-                                onChange={() => toggleAccept(item.sourceHex)}
-                              />
-                            </td>
-                            <td>
-                              <span className="swatch" style={{ background: item.sourceHex }} />
-                              <code>{item.sourceHex}</code>
-                            </td>
-                            <td>
-                              {item.targetColor ? (
-                                <>
-                                  <span className="swatch" style={{ background: item.targetColor.hex }} />
-                                  <code>{item.targetColor.code}</code>
-                                  <select
-                                    className="override-select"
-                                    aria-label={t('myBeads.match.manualPick')}
-                                    value={overrides[item.sourceHex] || item.targetColor.id}
-                                    onChange={(e) => setOverrides((prev) => ({ ...prev, [item.sourceHex]: e.target.value }))}
-                                  >
-                                    {targetCandidates.map((c) => (
-                                      <option key={c.id} value={c.id}>{c.code}</option>
-                                    ))}
-                                  </select>
-                                </>
-                              ) : '—'}
-                            </td>
-                            <td>{item.deltaE00 === null ? '—' : item.deltaE00.toFixed(2)}</td>
-                            <td>{item.requiredCount}</td>
-                            <td>{item.stockCount === null ? t('myBeads.match.unknown') : item.stockCount}</td>
-                            <td>{item.shortageCount === null ? '—' : item.shortageCount}</td>
-                            <td>
-                              {statusBadges(item).map((badge) => (
-                                <span key={badge.key} className={`status-badge ${badge.cls}`}>{t(badge.key)}</span>
-                              ))}
-                              {item.manual && <span className="status-badge manual">{t('myBeads.match.manual')}</span>}
-                            </td>
-                          </tr>
-                        )
-                      })}
-                    </tbody>
-                  </table>
-                </div>
-
-                <div className="my-beads-shopping">
-                  <h3>{t('myBeads.match.shoppingTitle')}</h3>
-                  {shopping.need.length === 0 ? (
-                    <p className="my-beads-hint small">{t('myBeads.match.shoppingEmpty')}</p>
-                  ) : (
-                    <ul>
-                      {shopping.need.map((item) => (
-                        <li key={item.targetColor.id}>
-                          <span className="swatch" style={{ background: item.targetColor.hex }} />
-                          <code>{item.targetColor.code}</code>
-                          <span>{t('myBeads.match.buy', { n: item.shortageCount })}</span>
-                        </li>
-                      ))}
-                    </ul>
-                  )}
-                  {shopping.unknown.length > 0 && (
-                    <p className="my-beads-hint small">
-                      {t('myBeads.match.shoppingUnknown', { n: shopping.unknown.length })}
-                    </p>
-                  )}
-                </div>
-              </>
-            )}
-          </section>
-        )}
       </div>
 
-      {/* ── 色卡编辑弹层(portal 到 body) ─────────────────── */}
+      {/* ── 色卡新建 / 编辑 ───────────────────────────────── */}
       {editingPalette && createPortal(
-        <div className="my-beads-modal-overlay" onClick={() => setEditingPalette(null)}>
-          <div className="my-beads-modal" ref={paletteDialogRef} {...paletteDialogProps} onClick={(e) => e.stopPropagation()}>
-            <h3>{editingPalette.id ? t('myBeads.palettes.editTitle') : t('myBeads.palettes.newTitle')}</h3>
-            <label>
-              <span>{t('myBeads.palettes.name')} *</span>
-              <input
-                value={editingPalette.name}
-                maxLength={MAX_PALETTE_NAME}
-                onChange={(e) => setEditingPalette({ ...editingPalette, name: e.target.value })}
-                placeholder={t('myBeads.palettes.namePlaceholder')}
-              />
-            </label>
-            <label>
-              <span>{t('myBeads.palettes.brandName')}</span>
-              <input
-                value={editingPalette.brandName}
-                maxLength={MAX_PALETTE_NAME}
-                onChange={(e) => setEditingPalette({ ...editingPalette, brandName: e.target.value })}
-              />
-            </label>
-            <label>
-              <span>{t('myBeads.palettes.seriesName')}</span>
-              <input
-                value={editingPalette.seriesName}
-                maxLength={MAX_PALETTE_NAME}
-                onChange={(e) => setEditingPalette({ ...editingPalette, seriesName: e.target.value })}
-              />
-            </label>
-            <label>
-              <span>{t('myBeads.palettes.beadSize')}</span>
-              <input
-                type="number"
-                min="0.1"
-                max="20"
-                step="0.1"
-                value={editingPalette.beadSizeMm}
-                onChange={(e) => setEditingPalette({ ...editingPalette, beadSizeMm: e.target.value })}
-                placeholder={t('myBeads.palettes.beadSizePlaceholder')}
-              />
-            </label>
-            <label>
-              <span>{t('myBeads.palettes.notes')}</span>
-              <textarea
-                rows={2}
-                value={editingPalette.notes}
-                onChange={(e) => setEditingPalette({ ...editingPalette, notes: e.target.value })}
-              />
-            </label>
-            <div className="my-beads-modal-actions">
-              <button type="button" className="my-beads-btn ghost" onClick={() => setEditingPalette(null)}>{t('common.cancel')}</button>
-              <button type="button" className="my-beads-btn primary" disabled={busy} onClick={savePalette}>{t('common.save')}</button>
-            </div>
-          </div>
-        </div>,
+        <PaletteSetupDialog
+          value={editingPalette}
+          palettes={palettes}
+          busy={busy}
+          dialogRef={paletteDialogRef}
+          dialogProps={paletteDialogProps}
+          onChange={setEditingPalette}
+          onCancel={() => setEditingPalette(null)}
+          onSave={savePalette}
+        />,
         document.body,
       )}
 
-      {/* ── 颜色编辑弹层(portal 到 body) ─────────────────── */}
+      {/* ── 复制内置色卡 ──────────────────────────────────── */}
+      {copyTarget && createPortal(
+        <CopyBuiltinPaletteDialog
+          builtin={copyTarget}
+          busy={busy}
+          dialogRef={copyDialogRef}
+          dialogProps={copyDialogProps}
+          onCancel={() => setCopyTarget(null)}
+          onConfirm={confirmCopyBuiltin}
+        />,
+        document.body,
+      )}
+
+      {/* ── 颜色编辑 ─────────────────────────────────────── */}
       {editingColor && createPortal(
         <div className="my-beads-modal-overlay" onClick={() => setEditingColor(null)}>
           <div className="my-beads-modal" ref={colorDialogRef} {...colorDialogProps} onClick={(e) => e.stopPropagation()}>
@@ -1397,7 +985,6 @@ export default function MyBeadsPage({ user, canvasData, onApplyMapping, works = 
                 onChange={(e) => setEditingColor({ ...editingColor, notes: e.target.value })}
               />
             </label>
-            {/* 规格 05 §2 P0:来源/置信度(原厂色值 / 实测 / 估算) */}
             <label>
               <span>{t('myBeads.colors.source')}</span>
               <select
@@ -1418,16 +1005,25 @@ export default function MyBeadsPage({ user, canvasData, onApplyMapping, works = 
         document.body,
       )}
 
-      {/* ── 删除确认(portal 到 body) ─────────────────────── */}
+      {/* ── 删除确认(色卡 / 颜色 / 库存记录)───────────────── */}
       {confirmDelete && createPortal(
         <div className="my-beads-modal-overlay" onClick={() => setConfirmDelete(null)}>
           <div className="my-beads-modal confirm" ref={deleteDialogRef} {...deleteDialogProps} onClick={(e) => e.stopPropagation()}>
             <AlertTriangle size={20} className="warn-icon" />
-            <h3>{confirmDelete.kind === 'palette' ? t('myBeads.palettes.deleteTitle') : t('myBeads.colors.deleteTitle')}</h3>
-            <p>{t('myBeads.deleteBody', { name: confirmDelete.name })}</p>
-            <p className="my-beads-hint small">{t('myBeads.deleteKeepCanvas')}</p>
+            <h3>
+              {confirmDelete.kind === 'palette' ? t('myBeads.palettes.deleteTitle')
+                : confirmDelete.kind === 'color' ? t('myBeads.colors.deleteTitle')
+                  : t('myBeads.inventory.clearRecord')}
+            </h3>
+            <p>
+              {confirmDelete.kind === 'inventory'
+                ? t('myBeads.inventory.clearConfirm', { code: confirmDelete.name })
+                : t('myBeads.deleteBody', { name: confirmDelete.name })}
+            </p>
+            {confirmDelete.kind !== 'inventory' && (
+              <p className="my-beads-hint small">{t('myBeads.deleteKeepCanvas')}</p>
+            )}
 
-            {/* 规格 05 §2:被作品引用的色卡删除时,给「保留 HEX / 重新指定 / 取消」三个明确选项 */}
             {confirmDelete.kind === 'palette' && referencingWorks.length > 0 && (
               <div className="my-beads-reassign">
                 <p className="my-beads-hint small">
@@ -1461,7 +1057,9 @@ export default function MyBeadsPage({ user, canvasData, onApplyMapping, works = 
 
             <div className="my-beads-modal-actions">
               <button type="button" className="my-beads-btn ghost" onClick={() => setConfirmDelete(null)}>{t('common.cancel')}</button>
-              <button type="button" className="my-beads-btn danger" onClick={doDeletePalette}>{t('common.delete')}</button>
+              <button type="button" className="my-beads-btn danger" onClick={doDelete}>
+                {confirmDelete.kind === 'inventory' ? t('myBeads.inventory.clearConfirmYes') : t('common.delete')}
+              </button>
             </div>
           </div>
         </div>,
@@ -1472,14 +1070,35 @@ export default function MyBeadsPage({ user, canvasData, onApplyMapping, works = 
 }
 
 /** 颜色列表(色卡详情内复用;含库存标记、来源徽章、复制 HEX 与编辑/删除) */
-function ColorList({ colors, totalColors, inventoryByKey, onEdit, onDelete, onCopyHex, keyFor, t }) {
+function ColorList({
+  colors, totalColors, inventoryByKey, onEdit, onDelete, onCopyHex,
+  onAddFirst, onImport, onClearSearch, keyFor, t,
+}) {
   if (!colors || colors.length === 0) {
     // 区分「这张色卡本来就没有颜色」与「搜索无结果」—— 后者不能提示去添加颜色
     const searched = (totalColors || 0) > 0
+    if (searched) {
+      return (
+        <div className="my-beads-empty-inline">
+          <p className="my-beads-hint small">{t('myBeads.colors.searchEmpty')}</p>
+          <button type="button" className="my-beads-btn ghost" onClick={onClearSearch}>
+            {t('myBeads.palettes.searchClear')}
+          </button>
+        </div>
+      )
+    }
     return (
-      <p className="my-beads-hint small">
-        {searched ? t('myBeads.colors.searchEmpty') : t('myBeads.colors.empty')}
-      </p>
+      <div className="my-beads-empty-inline">
+        <p className="my-beads-hint small">{t('myBeads.colors.empty')}</p>
+        <div className="empty-actions">
+          <button type="button" className="my-beads-btn primary" onClick={onAddFirst}>
+            <Plus size={14} />{t('myBeads.palettes.addColorFirst')}
+          </button>
+          <button type="button" className="my-beads-btn secondary" onClick={onImport}>
+            <Upload size={14} />{t('myBeads.palettes.importColors')}
+          </button>
+        </div>
+      </div>
     )
   }
   return (
@@ -1513,10 +1132,10 @@ function ColorList({ colors, totalColors, inventoryByKey, onEdit, onDelete, onCo
               >
                 <ClipboardCopy size={14} />
               </button>
-              <button type="button" className="my-beads-icon-btn" title={t('common.edit')} onClick={() => onEdit(c)}>
+              <button type="button" className="my-beads-icon-btn" title={t('common.edit')} aria-label={t('common.edit')} onClick={() => onEdit(c)}>
                 <Pencil size={14} />
               </button>
-              <button type="button" className="my-beads-icon-btn danger" title={t('common.delete')} onClick={() => onDelete(c)}>
+              <button type="button" className="my-beads-icon-btn danger" title={t('common.delete')} aria-label={t('common.delete')} onClick={() => onDelete(c)}>
                 <Trash2 size={14} />
               </button>
             </div>
