@@ -1069,3 +1069,86 @@ describe('MyBeadsPage · 颜色换算', () => {
     expect(within(empty).getByText('新建自定义色卡')).toBeTruthy()
   })
 })
+
+describe('MyBeadsPage · 库存搜索(键盘回归)', () => {
+  // jsdom 不模拟 iOS 键盘,这里锁的是「搜索框本身的交互契约」:
+  // 输入即时过滤、清空恢复、筛选与搜索正交、切换来源时清空。
+  // 视觉层面的键盘遮挡由 useKeyboardSafe / viewportGeometry 的单测与真机矩阵覆盖。
+  async function openInventory(container) {
+    await waitFor(() => expect(container.querySelector('.my-beads-inner')).toBeTruthy())
+    fireEvent.click(screen.getByRole('tab', { name: /我的库存/ }))
+    await waitFor(() => expect(container.querySelector('.my-beads-inv-list')).toBeTruthy())
+  }
+
+  const searchInput = (container) => container.querySelector('.inventory-toolbar .my-beads-search input')
+  const rowCodes = (container) => [...container.querySelectorAll('.my-beads-inv-row .code')].map((el) => el.textContent)
+
+  it('按色号搜索即时过滤,清空后恢复全量', async () => {
+    const { container } = setup()
+    await openInventory(container)
+    const total = rowCodes(container).length
+    expect(total).toBeGreaterThan(1)
+
+    fireEvent.change(searchInput(container), { target: { value: 'P01' } })
+    await waitFor(() => expect(rowCodes(container)).toEqual(['P01']))
+
+    fireEvent.change(searchInput(container), { target: { value: '' } })
+    await waitFor(() => expect(rowCodes(container).length).toBe(total))
+  })
+
+  it('搜索值在筛选变化后保留(两者正交)', async () => {
+    const { container } = setup()
+    await openInventory(container)
+
+    fireEvent.change(searchInput(container), { target: { value: 'P0' } })
+    await waitFor(() => expect(rowCodes(container).length).toBeGreaterThan(1))
+    const filtered = rowCodes(container).length
+
+    // 切换库存筛选不应清空搜索框
+    const filterSelect = container.querySelector('.inventory-toolbar select')
+    fireEvent.change(filterSelect, { target: { value: 'unrecorded' } })
+    expect(searchInput(container).value).toBe('P0')
+    // 全部未记录 → 筛选后行数不变
+    await waitFor(() => expect(rowCodes(container).length).toBe(filtered))
+  })
+
+  it('切换色卡时清空搜索框(不把上一张色卡的查询带过来)', async () => {
+    // 先建两张个人色卡:切来源到「我的色卡」后库存区才不是空态,
+    // 搜索框才会渲染 —— 空态下没有搜索框,测不到清空行为。
+    localStorage.setItem('personal-beads-v1', JSON.stringify({
+      version: 1,
+      palettes: [
+        { id: 'pal-1', name: '色卡一', brandName: '', seriesName: '', beadSizeMm: 5, notes: '' },
+        { id: 'pal-2', name: '色卡二', brandName: '', seriesName: '', beadSizeMm: 5, notes: '' },
+      ],
+      colors: [
+        { id: 'c1', paletteId: 'pal-1', code: 'X1', name: '红', hex: '#FF0000', notes: '', sortOrder: 0, source: 'factory' },
+        { id: 'c2', paletteId: 'pal-2', code: 'Y1', name: '蓝', hex: '#0000FF', notes: '', sortOrder: 0, source: 'factory' },
+      ],
+      inventory: [],
+    }))
+    const { container } = setup()
+    await openInventory(container)
+
+    // 切到「我的色卡」来源
+    const sourceButtons = container.querySelectorAll('.picker-source .segmented button')
+    fireEvent.click(sourceButtons[1])
+    await waitFor(() => expect(searchInput(container)).toBeTruthy())
+
+    fireEvent.change(searchInput(container), { target: { value: 'X1' } })
+    await waitFor(() => expect(searchInput(container).value).toBe('X1'))
+
+    // 换色卡
+    const paletteSelect = container.querySelector('.picker-palette select')
+    fireEvent.change(paletteSelect, { target: { value: 'pal-2' } })
+    await waitFor(() => expect(searchInput(container).value).toBe(''))
+  })
+
+  it('搜索不匹配时显示空结果,而不是保留旧行', async () => {
+    const { container } = setup()
+    await openInventory(container)
+
+    fireEvent.change(searchInput(container), { target: { value: 'ZZZZZZ' } })
+    await waitFor(() => expect(rowCodes(container)).toEqual([]))
+  })
+})
