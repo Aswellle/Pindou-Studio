@@ -5,9 +5,12 @@
   <link rel="preconnect" href="https://gccrwnepwtpcsiqowzro.supabase.co" crossorigin />
   <link rel="dns-prefetch" href="https://gccrwnepwtpcsiqowzro.supabase.co" />
   <meta charset="UTF-8" />
-  <!-- interactive-widget=resizes-content:iOS 16.4+ 键盘弹出时布局视口自动收缩到键盘上方,
-       所有 fixed/100vh/dvh 浮层(联系我们弹层等)自动正确,不再被键盘盖住/白板。
-       旧系统由 --visible-vh(JS 监听 visualViewport)兜底。 -->
+  <!-- interactive-widget=resizes-content:让【支持该参数的浏览器】(Chromium 系)在键盘
+       弹出时收缩布局视口,浮层自动落在键盘上方。Safari / iOS Safari 至今不支持它
+       (见 caniuse 该条目与 w3c/editing#549),所以 iOS 完全走 JS/CSS 路径:
+       useKeyboardSafe 监听 visualViewport 写 --visible-vh / --visible-vh-top /
+       --keyboard-height,根壳与全屏浮层据此定位。两种浏览器都能得到正确结果,
+       且支持该参数的浏览器会因为布局视口已收缩而自然得到 0 键盘内边距,不会双重补偿。 -->
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, interactive-widget=resizes-content" />
 
   <!-- ── 基础 SEO ────────────────────────────────────────────── -->
