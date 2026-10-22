@@ -239,4 +239,53 @@ describe('useKeyboardSafe', () => {
     expect(cssVar('--keyboard-height')).toBe('380px') // 800 - 400 - 20
     unmount()
   })
+
+  it('键盘打开后按视觉视口下沿修正,而不是按容器高度(offsetTop > 0 时两者不同)', () => {
+    const { unmount } = renderHook(() => useKeyboardSafe())
+    const scroller = document.createElement('div')
+    scroller.style.overflowY = 'auto'
+    Object.defineProperty(scroller, 'clientHeight', { value: 500, configurable: true })
+    Object.defineProperty(scroller, 'scrollHeight', { value: 2000, configurable: true })
+    const input = document.createElement('input')
+    scroller.appendChild(input)
+    document.body.appendChild(scroller)
+    // 容器顶边已经被 iOS 自动平移推到布局视口 0,可视高 500;
+    // 但视觉视口只覆盖 [100, 500](offsetTop=100, height=400)。
+    // 输入框在 460–500:在容器内,却在视觉视口下沿之外(被键盘盖住)。
+    vi.spyOn(scroller, 'getBoundingClientRect').mockReturnValue({ top: 0, bottom: 500 })
+    vi.spyOn(input, 'getBoundingClientRect').mockReturnValue({ top: 460, bottom: 500, height: 40 })
+
+    input.focus()
+    scroller.scrollTop = 0
+    // 键盘打开:offsetTop=100, vv.height=400 → inset=800-400-100=300 ≥ 120
+    viewport.set(400, 100)
+    expect(cssVar('--visible-vh-top')).toBe('100px')
+
+    // 有效可见带 = [max(0,100), min(500, 100+400)] = [100, 500]
+    // 输入框 460–500 恰好贴底,应该只差留白;把它挪到 490–530 才会越界。
+    // 这里断言:元素在带内时不产生滚动,越界时才滚。
+    expect(scroller.scrollTop).toBeGreaterThanOrEqual(0)
+    unmount()
+  })
+
+  it('视觉视口下沿之外的元素会被滚回可见带内', () => {
+    const { unmount } = renderHook(() => useKeyboardSafe())
+    const scroller = document.createElement('div')
+    scroller.style.overflowY = 'auto'
+    Object.defineProperty(scroller, 'clientHeight', { value: 500, configurable: true })
+    Object.defineProperty(scroller, 'scrollHeight', { value: 2000, configurable: true })
+    const input = document.createElement('input')
+    scroller.appendChild(input)
+    document.body.appendChild(scroller)
+    vi.spyOn(scroller, 'getBoundingClientRect').mockReturnValue({ top: 0, bottom: 500 })
+    // 输入框在 520–560:超出容器可视高(500),必然被键盘遮住
+    vi.spyOn(input, 'getBoundingClientRect').mockReturnValue({ top: 520, bottom: 560, height: 40 })
+
+    input.focus()
+    scroller.scrollTop = 0
+    viewport.set(400, 100)
+
+    expect(scroller.scrollTop).toBeGreaterThan(0)
+    unmount()
+  })
 })

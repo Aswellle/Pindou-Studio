@@ -82,6 +82,9 @@ export default function useKeyboardSafe() {
     let keyboardLatched = false
     // 上一帧的键盘状态,用于识别「刚打开 / 刚关闭」并补一次焦点修正
     let lastKeyboardOpen = false
+    // 最近一次测量得到的视觉视口窗口(布局视口坐标),供焦点可见性修正使用
+    let visualTop = 0
+    let visualHeight = 0
     const set = (k, v) => root.style.setProperty(k, v)
 
     // 采样一组几何值并写入变量;返回键盘状态是否发生变化。
@@ -99,6 +102,8 @@ export default function useKeyboardSafe() {
         set('--visual-offset-left', '0px')
         set('--keyboard-height', '0px')
         set('--vh', `${layoutHeight * 0.01}px`)
+        visualTop = 0
+        visualHeight = layoutHeight
         const changed = lastKeyboardOpen
         lastKeyboardOpen = false
         keyboardLatched = false
@@ -117,17 +122,21 @@ export default function useKeyboardSafe() {
 
       const keyboardOpen = !zoomed && keyboardLatched && inset >= KEYBOARD_MIN_INSET
 
-      const visualHeight = keyboardOpen ? vv.height : layoutHeight
-      const visualTop = keyboardOpen ? Math.max(0, vv.offsetTop) : 0
+      const visualHeightNow = keyboardOpen ? vv.height : layoutHeight
+      const visualTopNow = keyboardOpen ? Math.max(0, vv.offsetTop) : 0
       const keyboardHeight = keyboardOpen ? inset : 0
 
-      set('--visible-vh', `${visualHeight}px`)
-      set('--visible-vh-top', `${visualTop}px`)
+      set('--visible-vh', `${visualHeightNow}px`)
+      set('--visible-vh-top', `${visualTopNow}px`)
       set('--visual-offset-left', `${keyboardOpen ? vv.offsetLeft : 0}px`)
       set('--keyboard-height', `${keyboardHeight}px`)
       // 根壳基准:键盘打开时取视觉视口高(根壳再由 max() 补上 offsetTop),
       // 其余情况恒为布局视口高 —— 缩放与地址栏动画都不再改变整棵树的高度。
-      set('--vh', `${visualHeight * 0.01}px`)
+      set('--vh', `${visualHeightNow * 0.01}px`)
+
+      // 供 ensureFocusedVisible 使用:视觉视口在布局视口坐标系里的窗口
+      visualTop = visualTopNow
+      visualHeight = visualHeightNow
 
       const changed = keyboardOpen !== lastKeyboardOpen
       lastKeyboardOpen = keyboardOpen
@@ -151,9 +160,14 @@ export default function useKeyboardSafe() {
     }
 
     // 确保聚焦的页面内输入框在可视区。
-    // 全程在同一坐标系内计算:输入框相对滚动容器可视区顶部的偏移,与 clientHeight 比较。
-    // (旧实现用「视口相对偏移 − clientHeight」与 scrollTop 比较,量纲不一致:
-    //  页面一旦滚动过,判据恒为假,长列表里的行内输入框再也不会被修正。)
+    //
+    // 坐标系:getBoundingClientRect() 返回的是相对【布局视口】的坐标;而键盘弹起后
+    // 用户真正看得见的窗口是视觉视口 [visualTop, visualTop + visualHeight]。
+    // 只和滚动容器的 clientHeight 比较是不够的 —— 容器高度已经随 --visible-vh 收缩,
+    // 元素"在容器内"不等于"在键盘上方":iOS 会自动平移视觉视口(offsetTop > 0),
+    // 此时容器的顶边已经跑到可视区之上,按容器高度算出来的下沿落在键盘后面。
+    // 因此先取容器与视觉视口的交集作为有效可见带,再把元素修到带内。
+    //
     // 上下两个方向都处理;单次、非平滑赋值,不与 iOS 原生滚动动画叠加。
     const ensureFocusedVisible = () => {
       const el = document.activeElement
@@ -167,13 +181,20 @@ export default function useKeyboardSafe() {
       }
       const elRect = el.getBoundingClientRect()
       const scRect = scroller.getBoundingClientRect()
-      const top = elRect.top - scRect.top
-      const bottom = elRect.bottom - scRect.top
-      const viewHeight = scroller.clientHeight
+
+      // 有效可见带(布局视口坐标):容器可视区 ∩ 视觉视口
+      const bandTop = Math.max(scRect.top, visualTop)
+      const bandBottom = Math.min(scRect.top + scroller.clientHeight, visualTop + visualHeight)
+
+      const top = elRect.top - bandTop
+      const bottom = elRect.bottom - bandTop
+      const bandHeight = bandBottom - bandTop
+      if (bandHeight <= 0) return // 容器完全在可视区外:交给 iOS 原生滚动处理
+
       if (top < FOCUS_PAD) {
         scroller.scrollTop += top - FOCUS_PAD
-      } else if (bottom > viewHeight - FOCUS_PAD) {
-        scroller.scrollTop += bottom - viewHeight + FOCUS_PAD
+      } else if (bottom > bandHeight - FOCUS_PAD) {
+        scroller.scrollTop += bottom - bandHeight + FOCUS_PAD
       }
     }
 
