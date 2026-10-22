@@ -1,0 +1,290 @@
+import { describe, it, expect } from 'vitest'
+import { computeViewport, focusScrollDelta, KEYBOARD_MIN_INSET } from './viewportGeometry'
+
+/**
+ * 视口几何判定的穷举测试(规格 §8.1 第 1 条)。
+ *
+ * 这些用例不渲染组件、不模拟浏览器 —— 只喂几何数字,断言判定结果。
+ * 覆盖:无键盘 / 软键盘 / 硬件键盘 / 双指缩放 / 地址栏动画 / stale offset /
+ * 无 visualViewport / 焦点闩锁的建立与解除。
+ *
+ * 真机行为仍需按 M5 的设备矩阵手工验收;这里锁的是「同样的输入永远得到同样的判定」,
+ * 防止后续调整阈值时无意改变某类场景的语义。
+ */
+
+const LAYOUT = 844 // iPhone 14 Pro 竖屏布局视口高
+
+/** 构造一次判定的便捷入口,默认「无键盘、无焦点」 */
+const run = (over = {}) => computeViewport({ layoutHeight: LAYOUT, visualHeight: LAYOUT, ...over })
+
+describe('computeViewport · 键盘开合判定', () => {
+  it('无键盘:全部归一化为布局视口', () => {
+    const r = run()
+    expect(r.keyboardOpen).toBe(false)
+    expect(r.keyboardHeight).toBe(0)
+    expect(r.visibleHeight).toBe(LAYOUT)
+    expect(r.visibleTop).toBe(0)
+    expect(r.changed).toBe(false)
+  })
+
+  it('软键盘 + 文本焦点:判定为打开,高度为几何差值', () => {
+    const r = run({ visualHeight: 500, offsetTop: 0, textFocused: true })
+    expect(r.keyboardOpen).toBe(true)
+    expect(r.keyboardHeight).toBe(344) // 844 - 500 - 0
+    expect(r.visibleHeight).toBe(500)
+    expect(r.visibleTop).toBe(0)
+  })
+
+  it('软键盘 + offsetTop > 0:iOS 自动平移时差值要减掉偏移', () => {
+    // 视觉视口覆盖 [20, 520]:高度 500、偏移 20 → 键盘高 = 844-500-20 = 324
+    const r = run({ visualHeight: 500, offsetTop: 20, textFocused: true })
+    expect(r.keyboardOpen).toBe(true)
+    expect(r.keyboardHeight).toBe(324)
+    expect(r.visibleTop).toBe(20)
+  })
+
+  it('硬件键盘(有焦点但视口不收缩):不判键盘', () => {
+    // 外接键盘不占屏幕,visualViewport.height 不变 → inset 0 < 阈值
+    const r = run({ visualHeight: LAYOUT, offsetTop: 0, textFocused: true })
+    expect(r.keyboardOpen).toBe(false)
+    expect(r.keyboardHeight).toBe(0)
+    expect(r.visibleHeight).toBe(LAYOUT)
+  })
+
+  it('地址栏动画(收缩 < 阈值):不判键盘', () => {
+    const r = run({ visualHeight: LAYOUT - 60, textFocused: true })
+    expect(KEYBOARD_MIN_INSET).toBe(120)
+    expect(r.keyboardOpen).toBe(false)
+    expect(r.visibleHeight).toBe(LAYOUT)
+  })
+
+  it('恰好等于阈值:判为键盘(边界含等号)', () => {
+    const r = run({ visualHeight: LAYOUT - KEYBOARD_MIN_INSET, textFocused: true })
+    expect(r.keyboardOpen).toBe(true)
+    expect(r.keyboardHeight).toBe(KEYBOARD_MIN_INSET)
+  })
+
+  it('低于阈值 1px:不判键盘', () => {
+    const r = run({ visualHeight: LAYOUT - KEYBOARD_MIN_INSET + 1, textFocused: true })
+    expect(r.keyboardOpen).toBe(false)
+  })
+
+  it('无文本焦点时即使视口大幅收缩也不判键盘(旋转 / 切后台)', () => {
+    const r = run({ visualHeight: 400, offsetTop: 0, textFocused: false })
+    expect(r.keyboardOpen).toBe(false)
+    expect(r.keyboardHeight).toBe(0)
+    expect(r.visibleHeight).toBe(LAYOUT)
+  })
+})
+
+describe('computeViewport · 双指缩放', () => {
+  it('scale ≠ 1 时绝不判键盘', () => {
+    // 放大 2 倍:visualViewport.height 会变成约 422,几何上像键盘,但实际是缩放
+    const r = run({ visualHeight: 422, offsetTop: 0, scale: 2, textFocused: true })
+    expect(r.keyboardOpen).toBe(false)
+    expect(r.keyboardHeight).toBe(0)
+    expect(r.visibleHeight).toBe(LAYOUT)
+  })
+
+  it('缩放到 1.5 倍也解除已有闩锁', () => {
+    const r = run({ visualHeight: 400, scale: 1.5, textFocused: true, latched: true, wasKeyboardOpen: true })
+    expect(r.keyboardOpen).toBe(false)
+    expect(r.latched).toBe(false)
+    expect(r.changed).toBe(true) // 从开到关
+  })
+
+  it('scale 的浮点噪声(0.005)不算缩放', () => {
+    const r = run({ visualHeight: 500, scale: 1.005, textFocused: true })
+    expect(r.keyboardOpen).toBe(true)
+  })
+
+  it('scale 从 1 恢复到 1 后,焦点仍在时可重新判键盘', () => {
+    const r = run({ visualHeight: 500, scale: 1, textFocused: true, latched: false, wasKeyboardOpen: false })
+    expect(r.keyboardOpen).toBe(true)
+  })
+})
+
+describe('computeViewport · 焦点闩锁', () => {
+  it('焦点离开但几何尚未恢复:闩锁保持,不中途跳回全高', () => {
+    // focusout 后键盘还在播放收起动画:焦点没了,但 inset 仍 ≥ 阈值
+    const r = run({ visualHeight: 500, textFocused: false, latched: true, wasKeyboardOpen: true })
+    expect(r.latched).toBe(true)
+    expect(r.keyboardOpen).toBe(true)
+    expect(r.visibleHeight).toBe(500)
+    expect(r.changed).toBe(false) // 状态没翻转,页面不抖
+  })
+
+  it('几何真正恢复后闩锁解除', () => {
+    const r = run({ visualHeight: LAYOUT, textFocused: false, latched: true, wasKeyboardOpen: true })
+    expect(r.latched).toBe(false)
+    expect(r.keyboardOpen).toBe(false)
+    expect(r.changed).toBe(true) // 刚收起 → 调用方补一次焦点修正
+  })
+
+  it('stale offsetTop 在键盘关闭时被归一化为 0', () => {
+    // iOS 26 报告过:键盘收起后 offsetTop 仍残留 20
+    const r = run({ visualHeight: LAYOUT, offsetTop: 20, textFocused: false, latched: false })
+    expect(r.keyboardOpen).toBe(false)
+    expect(r.visibleTop).toBe(0)
+    expect(r.visibleHeight).toBe(LAYOUT)
+  })
+
+  it('stale offsetTop 在键盘打开时正常参与差值计算', () => {
+    const r = run({ visualHeight: 500, offsetTop: 20, textFocused: true })
+    expect(r.visibleTop).toBe(20)
+    expect(r.keyboardHeight).toBe(324)
+  })
+
+  it('负的 offsetTop 被夹到 0(视觉视口不可能在布局视口上方)', () => {
+    const r = run({ visualHeight: 500, offsetTop: -10, textFocused: true })
+    expect(r.visibleTop).toBe(0)
+  })
+})
+
+describe('computeViewport · 无 visualViewport', () => {
+  it('visualHeight 为 null 时退化到布局视口', () => {
+    const r = run({ visualHeight: null, textFocused: true })
+    expect(r.keyboardOpen).toBe(false)
+    expect(r.keyboardHeight).toBe(0)
+    expect(r.visibleHeight).toBe(LAYOUT)
+    expect(r.visibleTop).toBe(0)
+    expect(r.latched).toBe(false)
+  })
+
+  it('从「键盘开」退化到「不支持」时报告 changed', () => {
+    const r = run({ visualHeight: null, wasKeyboardOpen: true })
+    expect(r.changed).toBe(true)
+  })
+})
+
+describe('computeViewport · changed 语义', () => {
+  it('打开方向翻转', () => {
+    const r = run({ visualHeight: 500, textFocused: true, wasKeyboardOpen: false })
+    expect(r.changed).toBe(true)
+  })
+
+  it('保持打开不翻转', () => {
+    const r = run({ visualHeight: 500, textFocused: true, wasKeyboardOpen: true })
+    expect(r.changed).toBe(false)
+  })
+
+  it('保持关闭不翻转', () => {
+    const r = run({ visualHeight: 600, textFocused: false, wasKeyboardOpen: false })
+    expect(r.changed).toBe(false)
+  })
+})
+
+describe('computeViewport · 乱序事件后最终稳定', () => {
+  it('键盘开 → 收起动画中途 → 真正恢复:每步判定单调', () => {
+    // 1. 聚焦 + 键盘弹出
+    let s = { latched: false, wasKeyboardOpen: false }
+    let r = run({
+      visualHeight: 500,
+      textFocused: true,
+      latched: s.latched,
+      wasKeyboardOpen: s.wasKeyboardOpen,
+    })
+    expect(r.keyboardOpen).toBe(true)
+    s = { latched: r.latched, wasKeyboardOpen: r.keyboardOpen }
+
+    // 2. focusout,但视觉视口还没恢复(收起动画中途)
+    r = run({ visualHeight: 620, textFocused: false, latched: s.latched, wasKeyboardOpen: s.wasKeyboardOpen })
+    expect(r.keyboardOpen).toBe(true) // 仍在动画中,保持打开
+    s = { latched: r.latched, wasKeyboardOpen: r.keyboardOpen }
+
+    // 3. 动画结束,视觉视口恢复
+    r = run({
+      visualHeight: LAYOUT,
+      textFocused: false,
+      latched: s.latched,
+      wasKeyboardOpen: s.wasKeyboardOpen,
+    })
+    expect(r.keyboardOpen).toBe(false)
+    expect(r.latched).toBe(false)
+    expect(r.visibleHeight).toBe(LAYOUT)
+  })
+})
+
+describe('focusScrollDelta · 焦点可见性修正', () => {
+  const base = {
+    scrollerTop: 0,
+    scrollerHeight: 500,
+    visualTop: 0,
+    visualHeight: 500,
+    pad: 10,
+  }
+
+  it('元素完全在带内:不滚', () => {
+    expect(focusScrollDelta({ ...base, elementTop: 200, elementBottom: 240 })).toBe(0)
+  })
+
+  it('元素在带上方:向上滚(负增量)', () => {
+    // 顶边 -30,留白 10 → 需要上移 40
+    expect(focusScrollDelta({ ...base, elementTop: -30, elementBottom: 10 })).toBe(-40)
+  })
+
+  it('元素在带下方:向下滚(正增量)', () => {
+    // 底边 520,带高 500,留白 10 → 需要下移 30
+    expect(focusScrollDelta({ ...base, elementTop: 480, elementBottom: 520 })).toBe(30)
+  })
+
+  it('恰好贴底(底边 = 带高 - 留白):不滚', () => {
+    expect(focusScrollDelta({ ...base, elementTop: 450, elementBottom: 490 })).toBe(0)
+  })
+
+  it('offsetTop > 0 时按视觉视口下沿判定,而不是容器下沿', () => {
+    // 容器 [0,500],视觉视口 [100,500](offsetTop=100, height=400) → 带 [100,500],带高 400
+    // 元素 460–500:在容器内,底边也恰在带底,但留白 10 → 需下移 10
+    // 若错误地按容器下沿(500)判定,这里会算出 0(不滚),元素就贴在键盘边缘。
+    const delta = focusScrollDelta({
+      ...base,
+      scrollerHeight: 500,
+      visualTop: 100,
+      visualHeight: 400,
+      elementTop: 460,
+      elementBottom: 500,
+    })
+    expect(delta).toBe(10) // 400 - (400 - 10)
+  })
+
+  it('容器完全在可视区外:返回 0,交给原生滚动', () => {
+    // 视觉视口在容器下方,交集为空
+    const delta = focusScrollDelta({
+      ...base,
+      scrollerTop: 0,
+      scrollerHeight: 500,
+      visualTop: 600,
+      visualHeight: 200,
+      elementTop: 100,
+      elementBottom: 140,
+    })
+    expect(delta).toBe(0)
+  })
+
+  it('容器比视觉视口高:有效带取交集', () => {
+    // 容器 [0,800],视觉视口 [0,300] → 带 [0,300]
+    const delta = focusScrollDelta({
+      ...base,
+      scrollerHeight: 800,
+      visualTop: 0,
+      visualHeight: 300,
+      elementTop: 320,
+      elementBottom: 360,
+    })
+    expect(delta).toBe(70) // 360 - 300 + 10
+  })
+
+  it('容器顶边低于视觉视口顶:带顶取容器顶', () => {
+    // 容器 [200,700],视觉视口 [0,844] → 带 [200,700]
+    const delta = focusScrollDelta({
+      ...base,
+      scrollerTop: 200,
+      scrollerHeight: 500,
+      visualTop: 0,
+      visualHeight: 844,
+      elementTop: 150,
+      elementBottom: 190,
+    })
+    expect(delta).toBe(-60) // (150-200) - 10
+  })
+})
