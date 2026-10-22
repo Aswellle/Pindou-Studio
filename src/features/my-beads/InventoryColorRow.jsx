@@ -27,6 +27,7 @@ export default function InventoryColorRow({
   onSetStatus,
   onCommitQuantity,
   onClearRecord,
+  onFeedback,
   saving,
 }) {
   const { t } = useTranslation()
@@ -75,7 +76,17 @@ export default function InventoryColorRow({
     const nextStatus = statusForQuantity(parsed.quantity, currentStatus)
     // 与已保存值完全一致时不重复写库
     if (record && parsed.quantity === savedQty && nextStatus === currentStatus) return
-    await onCommitQuantity(parsed.quantity, nextStatus)
+    // 操作反馈:移动端行内控件小,没有回执时用户无法判断是否生效
+    const res = await onCommitQuantity(parsed.quantity, nextStatus)
+    if (res?.ok) onFeedback?.('saved', color, parsed.quantity)
+    else onFeedback?.('failed', color)
+  }
+
+  /** 状态按钮点击:带上操作类型,让父级能给出对应的回执文案 */
+  const setStatus = async (status) => {
+    const res = await onSetStatus(status)
+    if (res?.ok) onFeedback?.(status, color)
+    else onFeedback?.('failed', color)
   }
 
   const onKeyDown = (e) => {
@@ -114,93 +125,102 @@ export default function InventoryColorRow({
       <StockStateTag state={state} quantity={savedQty} />
 
       <div className="stock-controls">
-        <button
-          type="button"
-          className={`stock-btn${state === STOCK_STATE.OWNED_UNKNOWN || state === STOCK_STATE.OWNED_QTY ? ' on' : ''}`}
-          title={t('myBeads.inventory.markOwned')}
-          aria-label={`${t('myBeads.inventory.markOwned')} ${color.code}`}
-          aria-pressed={state === STOCK_STATE.OWNED_UNKNOWN || state === STOCK_STATE.OWNED_QTY}
-          disabled={saving}
-          onClick={() => onSetStatus('owned')}
-        >
-          <Check size={13} />
-        </button>
-        <button
-          type="button"
-          className={`stock-btn${state === STOCK_STATE.LOW ? ' low' : ''}`}
-          title={t('myBeads.inventory.markLow')}
-          aria-label={`${t('myBeads.inventory.markLow')} ${color.code}`}
-          aria-pressed={state === STOCK_STATE.LOW}
-          disabled={saving}
-          onClick={() => onSetStatus('low')}
-        >
-          <AlertTriangle size={13} />
-        </button>
-        <button
-          type="button"
-          className={`stock-btn${state === STOCK_STATE.OUT ? ' out' : ''}`}
-          title={t('myBeads.inventory.markOut')}
-          aria-label={`${t('myBeads.inventory.markOut')} ${color.code}`}
-          aria-pressed={state === STOCK_STATE.OUT}
-          disabled={saving}
-          onClick={() => onSetStatus('out_of_stock')}
-        >
-          <X size={13} />
-        </button>
-
-        <label className="qty-field">
-          <span className="sr-only">{`${t('myBeads.inventory.qtyLabel')} ${color.code}`}</span>
-          <input
-            ref={inputRef}
-            type="number"
-            inputMode="numeric"
-            min="0"
-            step="1"
-            className={`qty-input${invalid ? ' invalid' : ''}`}
-            value={draft}
-            placeholder={t('myBeads.inventory.qtyUnknown')}
+        {/* 状态三选一:桌面端是三个独立按钮,移动端由 CSS 收成一段分段控件
+            (三个 40px 按钮 + 数量 + 保存 + 更多 = 354px,超出 390px 视口的可用宽度) */}
+        <div className="stock-status-group" role="group" aria-label={t('myBeads.inventory.statusGroup')}>
+          <button
+            type="button"
+            className={`stock-btn${state === STOCK_STATE.OWNED_UNKNOWN || state === STOCK_STATE.OWNED_QTY ? ' on' : ''}`}
+            title={t('myBeads.inventory.markOwned')}
+            aria-label={`${t('myBeads.inventory.markOwned')} ${color.code}`}
+            aria-pressed={state === STOCK_STATE.OWNED_UNKNOWN || state === STOCK_STATE.OWNED_QTY}
             disabled={saving}
-            onChange={(e) => { setDraft(e.target.value); setInvalid(false) }}
-            onBlur={commit}
-            onKeyDown={onKeyDown}
-          />
-          <span className="qty-unit">{t('myBeads.inventory.qtyUnit')}</span>
-        </label>
+            onClick={() => setStatus('owned')}
+          >
+            <Check size={13} />
+            <span className="stock-btn-label">{t('myBeads.inventory.shortOwned')}</span>
+          </button>
+          <button
+            type="button"
+            className={`stock-btn${state === STOCK_STATE.LOW ? ' low' : ''}`}
+            title={t('myBeads.inventory.markLow')}
+            aria-label={`${t('myBeads.inventory.markLow')} ${color.code}`}
+            aria-pressed={state === STOCK_STATE.LOW}
+            disabled={saving}
+            onClick={() => setStatus('low')}
+          >
+            <AlertTriangle size={13} />
+            <span className="stock-btn-label">{t('myBeads.inventory.shortLow')}</span>
+          </button>
+          <button
+            type="button"
+            className={`stock-btn${state === STOCK_STATE.OUT ? ' out' : ''}`}
+            title={t('myBeads.inventory.markOut')}
+            aria-label={`${t('myBeads.inventory.markOut')} ${color.code}`}
+            aria-pressed={state === STOCK_STATE.OUT}
+            disabled={saving}
+            onClick={() => setStatus('out_of_stock')}
+          >
+            <X size={13} />
+            <span className="stock-btn-label">{t('myBeads.inventory.shortOut')}</span>
+          </button>
+        </div>
 
-        <button
-          type="button"
-          className="my-beads-icon-btn small"
-          disabled={saving || !dirty}
-          title={t('myBeads.inventory.save')}
-          aria-label={`${t('myBeads.inventory.save')} ${color.code}`}
-          onClick={commit}
-        >
-          {saving ? '…' : <Check size={12} />}
-        </button>
+        <div className="qty-save-group">
+          <label className="qty-field">
+            <span className="sr-only">{`${t('myBeads.inventory.qtyLabel')} ${color.code}`}</span>
+            <input
+              ref={inputRef}
+              type="number"
+              inputMode="numeric"
+              min="0"
+              step="1"
+              className={`qty-input${invalid ? ' invalid' : ''}`}
+              value={draft}
+              placeholder={t('myBeads.inventory.qtyUnknown')}
+              disabled={saving}
+              onChange={(e) => { setDraft(e.target.value); setInvalid(false) }}
+              onBlur={commit}
+              onKeyDown={onKeyDown}
+            />
+            <span className="qty-unit">{t('myBeads.inventory.qtyUnit')}</span>
+          </label>
 
-        <div className="row-menu" ref={menuRef}>
           <button
             type="button"
             className="my-beads-icon-btn small"
-            aria-label={`${t('myBeads.inventory.moreActions')} ${color.code}`}
-            aria-expanded={menuOpen}
-            disabled={!record}
-            onClick={() => setMenuOpen((v) => !v)}
+            disabled={saving || !dirty}
+            title={t('myBeads.inventory.save')}
+            aria-label={`${t('myBeads.inventory.save')} ${color.code}`}
+            onClick={commit}
           >
-            <MoreHorizontal size={14} />
+            {saving ? '…' : <Check size={12} />}
           </button>
-          {menuOpen && record && (
-            <div className="row-menu-pop" role="menu">
-              <button
-                type="button"
-                role="menuitem"
-                className="danger"
-                onClick={() => { setMenuOpen(false); onClearRecord() }}
-              >
-                <Trash2 size={13} />{t('myBeads.inventory.clearRecord')}
-              </button>
-            </div>
-          )}
+
+          <div className="row-menu" ref={menuRef}>
+            <button
+              type="button"
+              className="my-beads-icon-btn small"
+              aria-label={`${t('myBeads.inventory.moreActions')} ${color.code}`}
+              aria-expanded={menuOpen}
+              disabled={!record}
+              onClick={() => setMenuOpen((v) => !v)}
+            >
+              <MoreHorizontal size={14} />
+            </button>
+            {menuOpen && record && (
+              <div className="row-menu-pop" role="menu">
+                <button
+                  type="button"
+                  role="menuitem"
+                  className="danger"
+                  onClick={() => { setMenuOpen(false); onClearRecord() }}
+                >
+                  <Trash2 size={13} />{t('myBeads.inventory.clearRecord')}
+                </button>
+              </div>
+            )}
+          </div>
         </div>
       </div>
 

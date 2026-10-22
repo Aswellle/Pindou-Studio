@@ -469,6 +469,25 @@ export default function MyBeadsPage({ user, canvasData, onApplyMapping, works = 
     else toast(t(successKey, { n: ok }), 'success')
   }, [toast, t])
 
+  /**
+   * 单行库存操作的即时回执。
+   * 行内控件密集且小,没有回执时用户分不清「已保存」和「没点上」;
+   * 移动端尤其明显(手指点击后界面除了小标签变化没有任何反馈)。
+   */
+  const onInventoryFeedback = useCallback((kind, color, quantity) => {
+    if (kind === 'failed') {
+      toast(t('myBeads.inventory.feedback.failed'), 'error')
+      return
+    }
+    const key = kind === 'saved'
+      ? 'myBeads.inventory.feedback.saved'
+      : `myBeads.inventory.feedback.${kind}`
+    const params = kind === 'saved'
+      ? { code: color.code, n: quantity ?? 0 }
+      : { code: color.code }
+    toast(t(key, params), 'success')
+  }, [toast, t])
+
   // ── 匹配 ───────────────────────────────────────────────────
   const [targetKind, setTargetKind] = useState('builtin')
   const [targetId, setTargetId] = useState('perler')
@@ -861,6 +880,7 @@ export default function MyBeadsPage({ user, canvasData, onApplyMapping, works = 
                 return Promise.resolve({ ok: true, pending: true })
               }}
               onBatchDone={onBatchDone}
+              onFeedback={onInventoryFeedback}
               busy={busy}
             />
           </div>

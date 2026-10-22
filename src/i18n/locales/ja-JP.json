@@ -1479,10 +1479,21 @@
       "clearConfirm": "「{{code}}」の在庫記録を削除しますか？色自体は残ります。",
       "clearConfirmYes": "記録を削除",
       "selectAllHint": "現在の絞り込み結果のみ選択（{{n}} 色）",
-      "qtyDraftInvalid": "数量は 0 以上の整数で入力してください"
+      "qtyDraftInvalid": "数量は 0 以上の整数で入力してください",
+      "statusGroup": "在庫状態",
+      "shortOwned": "あり",
+      "shortLow": "不足",
+      "shortOut": "なし",
+      "feedback": {
+        "saved": "{{code}} の数量を保存しました",
+        "owned": "{{code}} を在庫ありにしました",
+        "low": "{{code}} を数量不足にしました",
+        "out_of_stock": "{{code}} を在庫なしにしました",
+        "failed": "保存に失敗しました。再試行してください"
+      }
     },
     "match": {
-      "title": "現在の図案をパレットに合わせる",
+      "title": "図案を手持ちのビーズに変換",
       "hint": "CIEDE2000 で最も近い色を探します。色差が大きい場合は自動置換せず、1 件ずつ確認が必要です。",
       "targetBuiltin": "対象：内蔵パレット",
       "targetPersonal": "対象：マイパレット",

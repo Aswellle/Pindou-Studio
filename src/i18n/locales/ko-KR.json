@@ -1479,10 +1479,21 @@
       "clearConfirm": "“{{code}}”의 재고 기록을 삭제할까요? 색상 자체는 유지됩니다.",
       "clearConfirmYes": "기록 삭제",
       "selectAllHint": "현재 필터 결과만 선택({{n}}색)",
-      "qtyDraftInvalid": "수량은 0 이상의 정수여야 합니다"
+      "qtyDraftInvalid": "수량은 0 이상의 정수여야 합니다",
+      "statusGroup": "재고 상태",
+      "shortOwned": "있음",
+      "shortLow": "부족",
+      "shortOut": "없음",
+      "feedback": {
+        "saved": "{{code}} 수량을 저장했습니다",
+        "owned": "{{code}} 재고 있음으로 표시했습니다",
+        "low": "{{code}} 수량 부족으로 표시했습니다",
+        "out_of_stock": "{{code}} 재고 없음으로 표시했습니다",
+        "failed": "저장하지 못했습니다. 다시 시도하세요"
+      }
     },
     "match": {
-      "title": "현재 도안을 팔레트에 맞추기",
+      "title": "도안을 보유한 비즈로 변환",
       "hint": "CIEDE2000으로 가장 가까운 색을 찾습니다. 색차가 크면 자동으로 바꾸지 않고 항목별로 확인해야 합니다.",
       "targetBuiltin": "대상: 기본 팔레트",
       "targetPersonal": "대상: 내 팔레트",

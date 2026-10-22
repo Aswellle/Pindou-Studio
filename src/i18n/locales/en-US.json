@@ -1479,10 +1479,21 @@
       "clearConfirm": "Clear the inventory record for “{{code}}”? The color itself is kept.",
       "clearConfirmYes": "Clear record",
       "selectAllHint": "Selects the current filter only ({{n}} colors)",
-      "qtyDraftInvalid": "Quantity must be a non-negative integer"
+      "qtyDraftInvalid": "Quantity must be a non-negative integer",
+      "statusGroup": "Stock status",
+      "shortOwned": "In stock",
+      "shortLow": "Low",
+      "shortOut": "Out",
+      "feedback": {
+        "saved": "Saved quantity for {{code}}",
+        "owned": "{{code}} marked as in stock",
+        "low": "{{code}} marked as low",
+        "out_of_stock": "{{code}} marked as out of stock",
+        "failed": "Save failed, please retry"
+      }
     },
     "match": {
-      "title": "Match the current pattern to a palette",
+      "title": "Convert a pattern to the beads you own",
       "hint": "Nearest colors are found with CIEDE2000. Large color differences are never replaced automatically — you confirm each one.",
       "targetBuiltin": "Target: built-in",
       "targetPersonal": "Target: my palette",

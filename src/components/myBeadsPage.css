@@ -828,6 +828,22 @@
   flex-wrap: wrap;
 }
 
+/* 状态三选一的分组:桌面端是三个独立小按钮,移动端收成一段分段控件 */
+.stock-status-group {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+/* 按钮内文字只在移动端出现(桌面端空间足够,图标 + title 更紧凑) */
+.stock-btn-label { display: none; }
+
+.qty-save-group {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
 .stock-btn {
   width: 26px;
   height: 26px;
@@ -1481,9 +1497,53 @@
     order: 4;
     flex-basis: 100%;
     margin-left: 0;
-    justify-content: flex-start;
+    /* 关键:允许换行 + 不允许子项撑出容器。
+       此前 3×40 + 数量 + 保存 + 更多 = 354px,超出 390px 视口的 318px 可用宽度,
+       内容溢出到视口外,把整页拖出横向滚动条。 */
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    min-width: 0;
+  }
+
+  /* 状态按钮收成一段分段控件:图标 + 短文字,三格等宽 */
+  .stock-status-group {
+    display: flex;
+    flex: 1 1 100%;
+    min-width: 0;
+    border: 1px solid var(--border-color);
+    border-radius: 10px;
+    overflow: hidden;
+    background: var(--bg-secondary);
+  }
+  .stock-status-group .stock-btn {
+    flex: 1 1 0;
+    min-width: 0;
+    width: auto;
+    height: 44px;
+    gap: 4px;
+    border: none;
+    border-radius: 0;
+    background: transparent;
+  }
+  .stock-status-group .stock-btn + .stock-btn {
+    border-left: 1px solid var(--border-color);
+  }
+  .stock-btn-label {
+    display: inline;
+    font-size: 11px;
+    line-height: 1;
+    white-space: nowrap;
+  }
+
+  /* 数量 + 保存占满剩余宽度,不再把按钮挤出容器 */
+  .qty-save-group {
+    display: flex;
+    flex: 1 1 100%;
+    min-width: 0;
     gap: 6px;
   }
+  .qty-save-group .my-beads-icon-btn.small { flex: 0 0 auto; }
   .qty-field { flex: 1; min-width: 0; }
   .qty-input { flex: 1; width: auto; height: 40px; }
   /* 行内保存按钮与「更多操作」也要够大,否则手指点不中 */

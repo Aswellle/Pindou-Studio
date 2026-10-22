@@ -1479,10 +1479,21 @@
       "clearConfirm": "确定清除「{{code}}」的库存记录吗？颜色本身不会被删除。",
       "clearConfirmYes": "清除记录",
       "selectAllHint": "只选择当前筛选结果（{{n}} 种）",
-      "qtyDraftInvalid": "数量必须是非负整数"
+      "qtyDraftInvalid": "数量必须是非负整数",
+      "statusGroup": "库存状态",
+      "shortOwned": "有货",
+      "shortLow": "不足",
+      "shortOut": "缺货",
+      "feedback": {
+        "saved": "已保存 {{code}} 的数量",
+        "owned": "{{code}} 已标记为有货",
+        "low": "{{code}} 已标记为数量不足",
+        "out_of_stock": "{{code}} 已标记为缺货",
+        "failed": "保存失败，请重试"
+      }
     },
     "match": {
-      "title": "把当前图纸匹配到色卡",
+      "title": "把图纸换算成手里的豆子",
       "hint": "按 CIEDE2000 找最近色；较大色差不会自动替换，需要你逐项确认。",
       "targetBuiltin": "目标：内置色卡",
       "targetPersonal": "目标：我的色卡",

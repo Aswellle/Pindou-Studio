@@ -45,6 +45,7 @@ export default function InventoryWorkspace({
   onCommitQuantity,
   onClearRecord,
   onBatchDone,
+  onFeedback,
   busy,
 }) {
   const { t } = useTranslation()
@@ -356,6 +357,7 @@ export default function InventoryWorkspace({
                     }}
                     onCommitQuantity={(quantity, status) => commitRow(color, quantity, status)}
                     onClearRecord={() => onClearRecord(color)}
+                    onFeedback={onFeedback}
                   />
                 ))}
               </ul>
