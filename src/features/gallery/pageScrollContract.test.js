@@ -101,3 +101,32 @@ describe('移动端整页滚动', () => {
     expect(inner).not.toContain('overflow-y: auto')
   })
 })
+
+describe('根层级高度契约(计划 §6.1)', () => {
+  // body 是唯一同时声明 height 与 min-height 的层。min-height 在 CSS 中胜过
+  // height,所以 body 的实际高度由 min-height 决定 —— 一旦它改用 vh/dvh,
+  // body 就会比 iOS 可见区高,#root 的 overflow:hidden 开始裁切子壳。
+  // svh 恒等于 URL 栏展开时的可见高度,是唯一安全的选择。
+  it('body 的 min-height 只用 svh,不用 vh/dvh', () => {
+    const idx = INDEX_CSS.indexOf('\nbody {')
+    expect(idx).toBeGreaterThan(-1)
+    const body = ruleBody(INDEX_CSS.slice(idx), 'body {')
+    expect(body).toContain('min-height: 100svh')
+    // 允许 `min-height: 100vh` 作为旧浏览器回退(在 svh 之前),但不得出现 dvh
+    expect(body).not.toContain('100dvh')
+    const vhLine = body.match(/min-height:\s*100vh;?/g) || []
+    const svhLine = body.match(/min-height:\s*100svh;?/g) || []
+    expect(vhLine.length).toBeLessThanOrEqual(1) // 至多一行回退
+    expect(svhLine.length).toBe(1)
+  })
+
+  it('子壳只继承高度,不再叠加视口补偿', () => {
+    // .mobile-layout 曾写 min-height: calc(--visible-vh-top + --visible-vh),
+    // 被 #root 的 overflow:hidden 裁掉,等于从未生效,只是把父子矛盾藏进裁切。
+    // 只检查声明(注释里会提到这两个变量,是说明而非用法)。
+    const layout = ruleBody(INDEX_CSS, '.mobile-layout {').replace(/\/\*[\s\S]*?\*\//g, '')
+    expect(layout).toContain('height: 100%')
+    expect(layout).not.toContain('--visible-vh-top')
+    expect(layout).not.toContain('--visible-vh')
+  })
+})

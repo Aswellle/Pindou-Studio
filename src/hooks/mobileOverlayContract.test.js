@@ -222,6 +222,38 @@ describe('移动端全屏浮层契约', () => {
     expect(offenders).toEqual([])
   })
 
+  it('组件不再重抄共享浮层的键盘补偿表达式', () => {
+    // 计划 §6.2:「禁止直接保留『共享 CSS 负责一半、组件内联 CSS 再定义 height/padding/
+    // overflow』的隐式优先级。」共享组已经用 --overlay-pad 参数化了内边距基数,
+    // 组件若要调整留白只应设 --overlay-pad,不得自己重写 max(..., var(--keyboard-height) ...)
+    // 或 max(..., var(--visible-vh-top) ...) —— 那样共享组调整时组件会静默失配。
+    // index.css 自身除外(它就是共享组的定义处)。
+    const offenders = []
+    const check = (file, code) => {
+      const lines = code.split(/\r?\n/)
+      lines.forEach((line, i) => {
+        if (!/var\(--(?:keyboard-height|visible-vh-top)/.test(line)) return
+        // 注释行不算
+        const trimmed = line.trim()
+        if (trimmed.startsWith('/*') || trimmed.startsWith('*') || trimmed.startsWith('//')) return
+        // 只允许以 --overlay-pad 表达内边距(不直接引用补偿变量)
+        offenders.push(`${relative(SRC, file)}:${i + 1} ${trimmed.slice(0, 70)}`)
+      })
+    }
+    for (const file of walk(SRC)) check(file, readFileSync(file, 'utf8'))
+    const collectCss = (dir) => {
+      for (const name of readdirSync(dir)) {
+        const full = join(dir, name)
+        if (statSync(full).isDirectory()) collectCss(full)
+        else if (name.endsWith('.css') && full !== join(SRC, 'index.css')) {
+          check(full, readFileSync(full, 'utf8'))
+        }
+      }
+    }
+    collectCss(SRC)
+    expect(offenders).toEqual([])
+  })
+
   it('每个浮层容器都挂了 useDialogA11y(role/aria-modal/Escape/焦点)', () => {
     // 规格 08 §5。此前只有三个组件手写 role="dialog",Escape 全站缺失。
     // 现在统一走 hook:承载内容的容器必须展开 *DialogProps 或显式写 role。
