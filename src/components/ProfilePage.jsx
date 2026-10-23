@@ -1,75 +1,104 @@
 /**
- * ProfilePage — /profile 个人资料独立页面
+ * ProfilePage — /profile 个人中心独立页面
  *
- * 页面定位:账号自助管理(头像 / 昵称 / 密码 / 退出登录)。
+ * 定位:账号自助管理 + 个人资产总览的统一入口。
+ *
  * 形态约束:
  *   · 不继承站点导航 —— App 已把 /profile 归入独立页(隐藏 Header 与画布工具栏),
  *     本页自带返回与标题,页面内不出现图库/画布/登录等其他页面的控件;
- *   · 未登录不做「本页登录」按钮:个人资料页没有可管理的内容,直接回独立登录页;
- *   · PC 端为双栏(左:身份卡;右:基本资料 / 账号安全),<900px 自动收成单栏。
+ *   · 未登录不做「本页登录」按钮:个人中心没有可管理的内容,直接回独立登录页;
+ *   · 桌面端为「左身份/分区导航 + 右主内容」两列,≤900px 收成单栏。
  *
- * 原 ProfileMenu 组件已并入本页(此前仅此页使用,单独一层已无意义)。
+ * 数据来源:
+ *   · 身份 —— useAuth 的标准化 user(见 utils/normalizeAuthUser);
+ *   · 作品 —— App 传入的 useSavedWorks 结果(不在此新建实例);
+ *   · 拼豆资产 —— App 传入的 useUserPalettes 结果(同上)。
+ *
+ * 本文件只做编排:分区状态、登录门禁、消息条、退出确认。具体区块在
+ * components/profile/ 下,每个分区消费同一份 summary。
  */
 
-import { useState, useRef, useEffect } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { Navigate, useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
-import { supabase, SUPABASE_URL } from '../services/supabase'
-import { passwordWeakness } from '../utils/password'
-import { checkImageFile, checkImagePixels } from '../utils/imageGuard'
+import {
+  LayoutDashboard, UserRound, ShieldCheck, Boxes, Settings2,
+} from 'lucide-react'
 import { useScrollLock } from '../hooks/useScrollLock'
 import { useDialogA11y } from '../hooks/useDialogA11y'
-import Avatar from './Avatar'
-import AvatarCropper from './AvatarCropper'
+import { buildProfileSummary } from './profile/profileSummary'
+import ProfileOverview from './profile/ProfileOverview'
+import ProfileInfoSection from './profile/ProfileInfoSection'
+import ProfileSecuritySection from './profile/ProfileSecuritySection'
+import ProfileAssetsSection from './profile/ProfileAssetsSection'
+import ProfilePreferencesSection from './profile/ProfilePreferencesSection'
 import LoadingScreen from './LoadingScreen'
+import './profile/ProfilePage.css'
 
-export default function ProfilePage({ user, authLoading, onLogout, onUpdateProfile, onChangePassword }) {
+const SECTIONS = [
+  { id: 'overview', icon: LayoutDashboard, labelKey: 'profile.center.sectionOverview' },
+  { id: 'info', icon: UserRound, labelKey: 'profile.center.sectionInfo' },
+  { id: 'security', icon: ShieldCheck, labelKey: 'profile.center.sectionSecurity' },
+  { id: 'assets', icon: Boxes, labelKey: 'profile.center.sectionAssets' },
+  { id: 'preferences', icon: Settings2, labelKey: 'profile.center.sectionPreferences' },
+]
+
+export default function ProfilePage({
+  user,
+  authLoading,
+  onLogout,
+  onUpdateProfile,
+  onChangePassword,
+  // 资产(App 持有的同一份实例)
+  works,
+  worksLoading,
+  worksError,
+  beadStore,
+  onRetryWorks,
+  onRetryBeads,
+  // 账号安全扩展能力
+  onSendOtp,
+  onSetPasswordWithOtp,
+  onChangeEmail,
+  onVerifyPassword,
+  onSetSecurityKey,
+}) {
   const { t } = useTranslation()
   const navigate = useNavigate()
 
-  const [nickname, setNickname] = useState(user?.nickname || '')
-  const [nickSaved, setNickSaved] = useState(false)
-  const [busy, setBusy] = useState(false)
-  const [avatarSrc, setAvatarSrc] = useState(null) // 待裁剪的图片 dataURL
-  const [message, setMessage] = useState('')
-  const fileRef = useRef(null)
-  const cropperRef = useRef(null)
-
-  // 修改密码(旧密码验证)状态
-  const [showChangePw, setShowChangePw] = useState(false)
-  const [oldPw, setOldPw] = useState('')
-  const [newPw, setNewPw] = useState('')
-  const [newPw2, setNewPw2] = useState('')
-  const [pwError, setPwError] = useState('')
-  const [pwBusy, setPwBusy] = useState(false)
-  const [pwSaved, setPwSaved] = useState(false)
-
-  // 确认对话框:退出登录 / 修改密码(防误触)
+  const [section, setSection] = useState('overview')
+  const [message, setMessage] = useState(null) // { text, tone: 'success' | 'error' }
   const [confirmLogout, setConfirmLogout] = useState(false)
-  const [confirmChangePw, setConfirmChangePw] = useState(false)
-  // 确认浮层打开时锁背景滚动(必须在早退分支之前调用,保持 hooks 顺序稳定)
-  useScrollLock(confirmLogout || confirmChangePw)
 
-  // 可访问性(规格 08 §5):两个确认框共用一个浮层,标题随触发源切换
+  useScrollLock(confirmLogout)
+
   const { ref: confirmRef, dialogProps: confirmDialogProps } = useDialogA11y({
-    open: confirmLogout || confirmChangePw,
-    onClose: () => { setConfirmLogout(false); setConfirmChangePw(false) },
-    label: confirmLogout ? t('profile.confirmLogoutTitle') : t('profile.confirmChangePwTitle'),
+    open: confirmLogout,
+    onClose: () => setConfirmLogout(false),
+    label: t('profile.confirmLogoutTitle'),
     role: 'alertdialog',
   })
 
-  // 头像/昵称由 useAuth 异步补齐(refreshProfile),首帧 user 上可能还没有昵称:
-  // 资料到达后把输入框同步过来;若用户已经动手编辑,则保留用户输入不覆盖
-  const lastSyncedRef = useRef(user?.nickname || '')
+  // 消息条 4 秒后自动收起;出错时保留更久,避免用户还没读完就消失
   useEffect(() => {
-    // 注意:先取快照再改 ref —— setNickname 的更新函数在下次渲染才执行,
-    // 若提前覆盖 ref,函数里比较的基准会变成新值,导致「永远认为用户已编辑」而不同步
-    const prev = lastSyncedRef.current
-    const next = user?.nickname || ''
-    lastSyncedRef.current = next
-    setNickname((current) => (current === prev ? next : current))
-  }, [user?.nickname])
+    if (!message) return undefined
+    const timer = setTimeout(() => setMessage(null), message.tone === 'error' ? 6000 : 3500)
+    return () => clearTimeout(timer)
+  }, [message])
+
+  // 切换分区时把页面滚回顶部 —— 否则从长表单切到概览会停在半空
+  // biome-ignore lint/correctness/useExhaustiveDependencies: section 只作为「切换」信号,不参与计算
+  useEffect(() => {
+    document.querySelector('.profile-page')?.scrollTo?.({ top: 0 })
+  }, [section])
+
+  const summary = useMemo(
+    () => buildProfileSummary({ works, worksLoading, worksError, beadStore }),
+    [works, worksLoading, worksError, beadStore],
+  )
+
+  const pushMessage = (text, tone = 'success') => setMessage({ text, tone })
 
   // 会话解析中:此时 user 仍为 null,不能据此判定未登录(否则已登录用户会被踢到登录页)
   if (authLoading) {
@@ -89,103 +118,13 @@ export default function ProfilePage({ user, authLoading, onLogout, onUpdateProfi
     else navigate('/')
   }
 
-  // 昵称只有真的改动过才允许保存(避免无意义写入)
-  const nicknameDirty = nickname.trim() !== (user.nickname || '').trim()
-
-  const saveNickname = async () => {
-    const trimmed = nickname.trim()
-    if (!trimmed) {
-      setMessage(t('profile.nicknameRequired'))
-      return
-    }
-    setBusy(true)
-    setMessage('')
-    try {
-      await onUpdateProfile({ nickname: trimmed })
-      setNickSaved(true)
-      setTimeout(() => setNickSaved(false), 1500)
-    } catch {
-      setMessage(t('profile.saveFailed'))
-    } finally {
-      setBusy(false)
-    }
+  const sectionProps = {
+    user,
+    summary,
+    onMessage: pushMessage,
+    onRetryWorks,
+    onRetryBeads,
   }
-
-  const handleFile = async (e) => {
-    const file = e.target.files?.[0]
-    if (!file) return
-    // 类型/字节/像素三重门控:头像虽经裁剪器缩到 240px,但裁剪前会按**原始分辨率**
-    // 整张解码 —— 「文件很小、像素极多」的图片会在这里撑爆移动端内存,复用与
-    // 图片转拼豆同一套 imageGuard 门(仅字节上限按头像收紧到 5MB)。
-    const fileErr = checkImageFile(file, { maxBytes: 5 * 1024 * 1024 })
-    if (fileErr) { setMessage(t(fileErr === 'notImage' ? 'profile.avatarInvalid' : 'profile.avatarTooLarge')); return }
-    const head = await file.slice(0, 65536).arrayBuffer()
-    if (checkImagePixels(head)) { setMessage(t('quantizer.errors.tooManyPixels')); return }
-    const reader = new FileReader()
-    reader.onload = () => setAvatarSrc(reader.result)
-    reader.readAsDataURL(file)
-    e.target.value = '' // 允许重复选择同一文件
-  }
-
-  // 裁剪器输出 blob → 上传 storage → 更新 profile(先更新成功再清理旧图,避免旧头像丢失)
-  const confirmAvatar = async (blob) => {
-    setBusy(true)
-    setMessage('')
-    let uploadedPath = null
-    try {
-      const path = `${user.id}/${Date.now()}.webp`
-      const { error: upErr } = await supabase.storage
-        .from('avatars')
-        .upload(path, blob, { contentType: 'image/webp' })
-      if (upErr) throw upErr
-      uploadedPath = path
-
-      const url = `${SUPABASE_URL}/storage/v1/object/public/avatars/${path}`
-      await onUpdateProfile({ avatarUrl: url })
-      if (user?.avatarUrl?.includes('/avatars/')) {
-        const oldPath = user.avatarUrl.split('/avatars/')[1]
-        await supabase.storage.from('avatars').remove([oldPath]).catch(() => {})
-      }
-      setAvatarSrc(null)
-      setMessage(t('profile.avatarUpdated'))
-    } catch {
-      // 清理已上传的新文件,避免存储孤儿累积
-      if (uploadedPath) supabase.storage.from('avatars').remove([uploadedPath]).catch(() => {})
-      setMessage(t('profile.avatarFailed'))
-    } finally {
-      setBusy(false)
-    }
-  }
-
-  const handleChangePassword = () => {
-    if (!oldPw) { setPwError(t('profile.oldPasswordRequired')); return }
-    const weak = passwordWeakness(newPw)
-    if (weak) { setPwError(t(weak)); return }
-    if (newPw !== newPw2) { setPwError(t('errors.passwordMismatch')); return }
-    setPwError('')
-    setConfirmChangePw(true)
-  }
-
-  const doChangePassword = async () => {
-    setConfirmChangePw(false)
-    setPwBusy(true)
-    try {
-      await onChangePassword(user.email, oldPw, newPw)
-      setPwSaved(true)
-      setTimeout(() => setPwSaved(false), 2000)
-      setOldPw('')
-      setNewPw('')
-      setNewPw2('')
-      setShowChangePw(false)
-    } catch {
-      setPwError(t('profile.wrongPassword'))
-    } finally {
-      setPwBusy(false)
-    }
-  }
-
-  const displayName = user.nickname || user.name || user.email || ''
-  const accountLabel = user.username || user.email || ''
 
   return (
     <div className="profile-page">
@@ -195,177 +134,116 @@ export default function ProfilePage({ user, authLoading, onLogout, onUpdateProfi
             type="button"
             className="profile-back"
             onClick={handleBack}
-            aria-label={t('common.back', '返回')}
-            title={t('common.back', '返回')}
+            aria-label={t('common.back')}
+            title={t('common.back')}
           >
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
               <path d="M15 18l-6-6 6-6" />
             </svg>
-            <span className="profile-back-label">{t('common.back', '返回')}</span>
+            <span className="profile-back-label">{t('common.back')}</span>
           </button>
           <div className="profile-page-title">
-            <h1>{t('profile.title', '个人资料')}</h1>
-            <p>{t('profile.subtitle', '管理你的账号信息与安全设置')}</p>
+            <h1>{t('profile.center.title')}</h1>
+            <p>{t('profile.center.subtitle')}</p>
           </div>
+          <button
+            type="button"
+            className="profile-create-btn"
+            onClick={() => navigate('/')}
+          >
+            {t('profile.center.backToCreate')}
+          </button>
         </header>
 
         {message ? (
-          <div className="profile-toast" role="status">
-            <span>{message}</span>
-            <button type="button" className="profile-toast-close" onClick={() => setMessage('')} aria-label={t('common.close', '关闭')}>×</button>
+          <div
+            className={`profile-toast tone-${message.tone}`}
+            role={message.tone === 'error' ? 'alert' : 'status'}
+          >
+            <span>{message.text}</span>
+            <button
+              type="button"
+              className="profile-toast-close"
+              onClick={() => setMessage(null)}
+              aria-label={t('common.close')}
+            >
+              ×
+            </button>
           </div>
         ) : null}
 
-        <div className="profile-layout">
-          {/* ── 左:身份卡 ─────────────────────────────────── */}
-          <aside className="profile-card profile-identity">
-            <div className="profile-avatar-wrap">
-              <Avatar user={user} size={96} />
-            </div>
-            <h2 className="profile-name" title={displayName}>{displayName}</h2>
-            <p className="profile-account" title={accountLabel}>{accountLabel}</p>
-            <span className="profile-account-kind">
-              {user.username ? t('profile.accountUsername', '用户名账号') : t('profile.accountEmail', '邮箱账号')}
-            </span>
-
-            {avatarSrc ? (
-              <div className="profile-crop">
-                <AvatarCropper
-                  ref={cropperRef}
-                  imageSrc={avatarSrc}
-                  onConfirm={confirmAvatar}
-                  onCancel={() => setAvatarSrc(null)}
-                  busy={busy}
-                />
-                <p className="profile-hint">{t('profile.cropHint')}</p>
-                <div className="profile-crop-actions">
-                  <button type="button" className="profile-btn primary" disabled={busy} onClick={() => cropperRef.current?.output()}>
-                    {t('profile.confirmCrop')}
-                  </button>
-                  <button type="button" className="profile-btn ghost" disabled={busy} onClick={() => setAvatarSrc(null)}>
-                    {t('profile.cancelCrop')}
-                  </button>
-                </div>
-              </div>
-            ) : (
-              <div className="profile-identity-actions">
-                <input ref={fileRef} type="file" accept="image/*" hidden onChange={handleFile} />
-                <button type="button" className="profile-btn secondary block" onClick={() => fileRef.current?.click()} disabled={busy}>
-                  {t('profile.uploadAvatar')}
+        <div className="pf-layout">
+          {/* ── 左:身份摘要 + 分区导航 ─────────────────────── */}
+          <aside className="pf-rail">
+            <nav className="pf-nav" aria-label={t('profile.center.navLabel')}>
+              {SECTIONS.map(({ id, icon: Icon, labelKey }) => (
+                <button
+                  key={id}
+                  type="button"
+                  className={`pf-nav-item${section === id ? ' active' : ''}`}
+                  aria-current={section === id ? 'page' : undefined}
+                  onClick={() => setSection(id)}
+                >
+                  <Icon size={16} aria-hidden="true" />
+                  <span>{t(labelKey)}</span>
                 </button>
-              </div>
-            )}
+              ))}
+            </nav>
 
-            <div className="profile-identity-footer">
-              <button type="button" className="profile-btn danger block" onClick={() => setConfirmLogout(true)}>
-                {t('auth.logout', '退出登录')}
+            <div className="pf-rail-footer">
+              <button
+                type="button"
+                className="pf-btn danger block"
+                onClick={() => setConfirmLogout(true)}
+              >
+                {t('auth.logout')}
               </button>
             </div>
           </aside>
 
-          {/* ── 右:基本资料 / 账号安全 ─────────────────────── */}
-          <div className="profile-main">
-            <section className="profile-card">
-              <div className="profile-card-head">
-                <h3>{t('profile.sectionAccount', '基本信息')}</h3>
-              </div>
-              <label className="profile-field" htmlFor="profile-nickname">
-                <span>{t('profile.nickname', '昵称')}</span>
-                <div className="profile-field-row">
-                  <input
-                    id="profile-nickname"
-                    type="text"
-                    className="profile-input"
-                    value={nickname}
-                    onChange={(e) => setNickname(e.target.value)}
-                    onKeyDown={(e) => { if (e.key === 'Enter' && nicknameDirty && !busy) saveNickname() }}
-                    placeholder={t('profile.nicknamePlaceholder', '给自己起个昵称')}
-                    maxLength={24}
-                  />
-                  <button type="button" className="profile-btn primary" disabled={busy || !nicknameDirty} onClick={saveNickname}>
-                    {t('common.save', '保存')}
-                  </button>
-                </div>
-                {nickSaved ? <span className="profile-success">{t('profile.saved', '已保存')}</span> : null}
-              </label>
-            </section>
-
-            <section className="profile-card">
-              <div className="profile-card-head">
-                <h3>{t('profile.sectionSecurity', '账号安全')}</h3>
-                {!showChangePw ? (
-                  <button type="button" className="profile-link" onClick={() => { setShowChangePw(true); setPwError('') }}>
-                    {t('profile.changePassword', '修改密码')}
-                  </button>
-                ) : null}
-              </div>
-
-              {showChangePw ? (
-                <div className="profile-pw-form">
-                  <label className="profile-field" htmlFor="profile-old-pw">
-                    <span>{t('profile.oldPassword', '当前密码')}</span>
-                    <input
-                      id="profile-old-pw"
-                      type="password"
-                      className="profile-input"
-                      value={oldPw}
-                      onChange={(e) => { setOldPw(e.target.value); setPwError('') }}
-                      placeholder="••••••••"
-                      autoComplete="current-password"
-                    />
-                  </label>
-                  <label className="profile-field" htmlFor="profile-new-pw">
-                    <span>{t('profile.newPassword', '新密码')}</span>
-                    <input
-                      id="profile-new-pw"
-                      type="password"
-                      className="profile-input"
-                      value={newPw}
-                      onChange={(e) => { setNewPw(e.target.value); setPwError('') }}
-                      placeholder="••••••••"
-                      autoComplete="new-password"
-                    />
-                  </label>
-                  <label className="profile-field" htmlFor="profile-new-pw2">
-                    <span>{t('profile.confirmNewPassword', '确认新密码')}</span>
-                    <input
-                      id="profile-new-pw2"
-                      type="password"
-                      className="profile-input"
-                      value={newPw2}
-                      onChange={(e) => { setNewPw2(e.target.value); setPwError('') }}
-                      placeholder="••••••••"
-                      autoComplete="new-password"
-                    />
-                  </label>
-                  {pwError ? <p className="profile-error">{pwError}</p> : null}
-                  {pwSaved ? <p className="profile-success">{t('profile.passwordUpdated', '密码已更新')}</p> : null}
-                  <div className="profile-crop-actions">
-                    <button type="button" className="profile-btn primary" disabled={pwBusy} onClick={handleChangePassword}>
-                      {pwBusy ? t('auth.processing', '处理中...') : t('common.save', '保存')}
-                    </button>
-                    <button type="button" className="profile-btn ghost" disabled={pwBusy} onClick={() => { setShowChangePw(false); setPwError('') }}>
-                      {t('common.cancel', '取消')}
-                    </button>
-                  </div>
-                </div>
-              ) : (
-                <p className="profile-hint">{t('profile.securityHint', '定期更换密码可以提升账号安全性')}</p>
-              )}
-            </section>
-          </div>
+          {/* ── 右:分区内容 ─────────────────────────────────── */}
+          <main className="pf-main">
+            {section === 'overview' ? <ProfileOverview {...sectionProps} /> : null}
+            {section === 'info' ? (
+              <ProfileInfoSection
+                user={user}
+                onUpdateProfile={onUpdateProfile}
+                onMessage={pushMessage}
+              />
+            ) : null}
+            {section === 'security' ? (
+              <ProfileSecuritySection
+                user={user}
+                onChangePassword={onChangePassword}
+                onSendOtp={onSendOtp}
+                onSetPassword={onSetPasswordWithOtp}
+                onChangeEmail={onChangeEmail}
+                onVerifyPassword={onVerifyPassword}
+                onSetSecurityKey={onSetSecurityKey}
+                onMessage={pushMessage}
+              />
+            ) : null}
+            {section === 'assets' ? (
+              <ProfileAssetsSection summary={summary} onRetryWorks={onRetryWorks} onRetryBeads={onRetryBeads} />
+            ) : null}
+            {section === 'preferences' ? <ProfilePreferencesSection /> : null}
+          </main>
         </div>
       </div>
 
-      {/* 退出登录 / 修改密码 确认对话框(防误触)—— portal 到 body(R5) */}
-      {(confirmLogout || confirmChangePw) && createPortal(
-        <div className="profile-confirm-overlay" onClick={() => { setConfirmLogout(false); setConfirmChangePw(false) }}>
+      {/* 退出登录确认(防误触)—— portal 到 body,复用共享浮层契约 */}
+      {confirmLogout && createPortal(
+        <div className="profile-confirm-overlay" onClick={() => setConfirmLogout(false)}>
           <div className="modal-content confirm-box" ref={confirmRef} {...confirmDialogProps} onClick={(e) => e.stopPropagation()}>
-            <h3>{confirmLogout ? t('profile.confirmLogoutTitle') : t('profile.confirmChangePwTitle')}</h3>
-            <p>{confirmLogout ? t('profile.confirmLogoutBody') : t('profile.confirmChangePwBody')}</p>
+            <h3>{t('profile.confirmLogoutTitle')}</h3>
+            <p>{t('profile.confirmLogoutBody')}</p>
             <div className="confirm-actions">
-              <button type="button" className="profile-btn ghost" onClick={() => { setConfirmLogout(false); setConfirmChangePw(false) }}>{t('common.cancel')}</button>
-              <button type="button" className="profile-btn danger" onClick={confirmLogout ? () => { setConfirmLogout(false); onLogout() } : doChangePassword}>{t('common.confirm')}</button>
+              <button type="button" className="pf-btn ghost" onClick={() => setConfirmLogout(false)}>
+                {t('common.cancel')}
+              </button>
+              <button type="button" className="pf-btn danger" onClick={() => { setConfirmLogout(false); onLogout() }}>
+                {t('common.confirm')}
+              </button>
             </div>
           </div>
         </div>,

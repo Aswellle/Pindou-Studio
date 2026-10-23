@@ -77,7 +77,8 @@ export default function App() {
   // 同时更新 --vh 与 --visible-vh),此处不再重复注册。
 
   const { user, isAdmin, loading: authLoading, login, register, resetPassword, logout, updateProfile,
-    sendOtp, verifyOtp, setPassword, changePassword, registerUsername, loginByUsername, forgotPasswordCustom, usernameExists } = useAuth()
+    sendOtp, verifyOtp, setPassword, setPasswordWithOtp, changeEmail, verifyPassword, setSecurityKey,
+    changePassword, registerUsername, loginByUsername, forgotPasswordCustom, usernameExists } = useAuth()
   const cloudStore = useCloudTemplates()
   const { isMobile, isTablet } = useResponsive()
   const canvasRef = useRef(null)
@@ -114,7 +115,7 @@ export default function App() {
     canvasRef.current?.cancelStroke?.()
     resetCanvas(nextData)
   }, [resetCanvas])
-  const { works: savedWorks, worksLoading, syncCount, cloudMirrorCount, saveState, markDirty, saveWork, updateWork, deleteWork, ackSync } = useSavedWorks(user)
+  const { works: savedWorks, worksLoading, worksError, syncCount, cloudMirrorCount, saveState, markDirty, saveWork, updateWork, deleteWork, ackSync, reload: reloadWorks } = useSavedWorks(user)
 
   // 画布内容变化 → 标记「未保存」。
   // 只在 canvasData 真的换了一个矩阵对象时触发(useHistory 每次 PUSH/RESET
@@ -712,6 +713,17 @@ export default function App() {
               onLogout={logout}
               onUpdateProfile={updateProfile}
               onChangePassword={changePassword}
+              works={savedWorks}
+              worksLoading={worksLoading}
+              worksError={worksError}
+              beadStore={beadStore}
+              onRetryWorks={reloadWorks}
+              onRetryBeads={beadStore.reload}
+              onSendOtp={sendOtp}
+              onSetPasswordWithOtp={setPasswordWithOtp}
+              onChangeEmail={changeEmail}
+              onVerifyPassword={verifyPassword}
+              onSetSecurityKey={setSecurityKey}
             />
           } />
 
@@ -1069,6 +1081,17 @@ export default function App() {
               onLogout={logout}
               onUpdateProfile={updateProfile}
               onChangePassword={changePassword}
+              works={savedWorks}
+              worksLoading={worksLoading}
+              worksError={worksError}
+              beadStore={beadStore}
+              onRetryWorks={reloadWorks}
+              onRetryBeads={beadStore.reload}
+              onSendOtp={sendOtp}
+              onSetPasswordWithOtp={setPasswordWithOtp}
+              onChangeEmail={changeEmail}
+              onVerifyPassword={verifyPassword}
+              onSetSecurityKey={setSecurityKey}
             />
           </div>
         } />
