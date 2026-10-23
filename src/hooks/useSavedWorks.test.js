@@ -254,6 +254,197 @@ describe('useSavedWorks · updateWork(重新指定色卡)', () => {
   })
 })
 
+describe('useSavedWorks · 版本时间线(C2)', () => {
+  const R = '#E53935'
+  const G = '#43A047'
+
+  const saveOnce = async (result, overrides = {}) => {
+    await act(async () => {
+      await result.current.saveWork({
+        id: 'w-v',
+        name: '版本作品',
+        canvasData: [[R]],
+        gridSize: 1,
+        paletteId: 'perler',
+        savedAt: '2026-10-20T00:00:00.000Z',
+        ...overrides,
+      })
+    })
+  }
+
+  it('首次保存记录一个版本', async () => {
+    const { result } = renderHook(() => useSavedWorks(null))
+    await waitForLoad(result)
+    await saveOnce(result)
+
+    let loaded
+    await act(async () => {
+      loaded = await result.current.loadVersions('w-v')
+    })
+    expect(loaded.versions).toHaveLength(1)
+    expect(loaded.versions[0].canvasData).toEqual([[R]])
+    expect(loaded.bytes).toBeGreaterThan(0)
+  })
+
+  it('内容不变的重复保存不产生新版本(连点两次保存不会刷屏)', async () => {
+    const { result } = renderHook(() => useSavedWorks(null))
+    await waitForLoad(result)
+    await saveOnce(result)
+    await saveOnce(result, { savedAt: '2026-10-20T00:00:05.000Z' })
+
+    let loaded
+    await act(async () => {
+      loaded = await result.current.loadVersions('w-v')
+    })
+    expect(loaded.versions).toHaveLength(1)
+  })
+
+  it('内容变化时追加版本,新的在前', async () => {
+    const { result } = renderHook(() => useSavedWorks(null))
+    await waitForLoad(result)
+    await saveOnce(result)
+    await saveOnce(result, {
+      canvasData: [[R, G]],
+      gridSize: 2,
+      savedAt: '2026-10-20T00:00:05.000Z',
+    })
+
+    let loaded
+    await act(async () => {
+      loaded = await result.current.loadVersions('w-v')
+    })
+    expect(loaded.versions).toHaveLength(2)
+    expect(loaded.versions[0].canvasData).toEqual([[R, G]])
+    expect(loaded.versions[1].canvasData).toEqual([[R]])
+  })
+
+  it('回滚写回作品本体,并且回滚本身也产生一条历史', async () => {
+    const { result } = renderHook(() => useSavedWorks(null))
+    await waitForLoad(result)
+    await saveOnce(result)
+    await saveOnce(result, {
+      canvasData: [[R, G]],
+      gridSize: 2,
+      savedAt: '2026-10-20T00:00:05.000Z',
+    })
+
+    // 回滚到最早那一版([[R]])
+    let versions
+    await act(async () => {
+      versions = (await result.current.loadVersions('w-v')).versions
+    })
+    const earliest = versions[versions.length - 1]
+
+    let restored
+    await act(async () => {
+      restored = await result.current.rollbackToVersion(result.current.works[0], earliest)
+    })
+    expect(restored).not.toBeNull()
+
+    // 作品本体已经回到 [[R]]
+    const stored = await readStored()
+    expect(stored[0].canvasData).toEqual([[R]])
+
+    // 时间线里多了一条「回滚后」的记录,内容同样是 [[R]]
+    let after
+    await act(async () => {
+      after = (await result.current.loadVersions('w-v')).versions
+    })
+    expect(after).toHaveLength(3)
+    expect(after[0].canvasData).toEqual([[R]])
+  })
+
+  it('回滚后再回滚能回到回滚前的内容(可再撤销)', async () => {
+    const { result } = renderHook(() => useSavedWorks(null))
+    await waitForLoad(result)
+    await saveOnce(result)
+    await saveOnce(result, {
+      canvasData: [[R, G]],
+      gridSize: 2,
+      savedAt: '2026-10-20T00:00:05.000Z',
+    })
+
+    let versions
+    await act(async () => {
+      versions = (await result.current.loadVersions('w-v')).versions
+    })
+    const earliest = versions[versions.length - 1]
+
+    await act(async () => {
+      await result.current.rollbackToVersion(result.current.works[0], earliest)
+    })
+
+    // 现在时间线最新一条是回滚后的 [[R]],它前面那条是 [[R, G]]
+    let afterRollback
+    await act(async () => {
+      afterRollback = (await result.current.loadVersions('w-v')).versions
+    })
+    const beforeRollback = afterRollback[1]
+    expect(beforeRollback.canvasData).toEqual([[R, G]])
+
+    // 再回滚到「回滚前」那一版,内容应当恢复成 [[R, G]]
+    await act(async () => {
+      await result.current.rollbackToVersion(result.current.works[0], beforeRollback)
+    })
+    const final = await readStored()
+    expect(final[0].canvasData).toEqual([[R, G]])
+  })
+
+  it('删除作品时连带清掉它的版本', async () => {
+    const { result } = renderHook(() => useSavedWorks(null))
+    await waitForLoad(result)
+    await saveOnce(result)
+
+    await act(async () => {
+      await result.current.deleteWork({ id: 'w-v' })
+    })
+
+    let loaded
+    await act(async () => {
+      loaded = await result.current.loadVersions('w-v')
+    })
+    expect(loaded.versions).toHaveLength(0)
+    expect(await readStored()).toHaveLength(0)
+  })
+
+  it('版本数超过上限时只留最近的 N 个', async () => {
+    const { result } = renderHook(() => useSavedWorks(null))
+    await waitForLoad(result)
+
+    // 逐次改一格,每次内容都不同 → 每次都会记一个版本
+    const { MAX_VERSIONS_PER_WORK } = await import('../services/project/workVersions')
+    const total = MAX_VERSIONS_PER_WORK + 3
+    for (let i = 0; i < total; i++) {
+      await saveOnce(result, {
+        canvasData: [Array.from({ length: i + 1 }, () => R)],
+        gridSize: i + 1,
+        savedAt: `2026-10-20T00:00:${String(i).padStart(2, '0')}.000Z`,
+      })
+    }
+
+    let loaded
+    await act(async () => {
+      loaded = await result.current.loadVersions('w-v')
+    })
+    expect(loaded.versions).toHaveLength(MAX_VERSIONS_PER_WORK)
+    // 留下的是最新的:第一行的珠子数最多
+    expect(loaded.versions[0].canvasData[0]).toHaveLength(total)
+  })
+
+  it('回滚到非法版本时返回 null,不动作品', async () => {
+    const { result } = renderHook(() => useSavedWorks(null))
+    await waitForLoad(result)
+    await saveOnce(result)
+
+    let restored = 'untouched'
+    await act(async () => {
+      restored = await result.current.rollbackToVersion(result.current.works[0], { canvasData: null })
+    })
+    expect(restored).toBeNull()
+    expect((await readStored())[0].canvasData).toEqual([[R]])
+  })
+})
+
 describe('useSavedWorks · 旧 localStorage 数据迁移', () => {
   it('首次加载把 saved-works 搬进 IndexedDB,并清掉原键', async () => {
     localStorage.setItem(LEGACY_KEY, JSON.stringify([{

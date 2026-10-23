@@ -11,7 +11,12 @@ import {
   clearWorks,
   migrateLegacyWorks,
   estimateBytes,
+  listVersions,
+  appendVersion,
+  clearVersions,
+  estimateVersionBytes,
 } from '../services/project/worksStore'
+import { MAX_VERSIONS_PER_WORK, shouldRecordVersion } from '../services/project/workVersions'
 
 /**
  * 保存状态机(规格 03 §7)。
@@ -247,6 +252,35 @@ export function useSavedWorks(user) {
   // 并发保护:保存请求可能重叠(用户连点两次、或自动保存与手动保存撞车)。
   // 用单调递增的请求序号 + 只让最新一次写回 state,避免较早的响应后到
   // 把新列表覆盖成旧列表。落库本身按 id 覆盖,不会产生重复行。
+  /**
+   * 把一次保存记进版本时间线。
+   *
+   * 「什么算一个版本」的判定在 workVersions.shouldRecordVersion:内容与上一版
+   * 完全一致时不记 —— 连点两次保存不该在时间线里留两条一模一样的条目。
+   *
+   * 失败一律吞掉:版本是增强功能,不能因为它让保存看起来失败。
+   * IndexedDB 不可用时 listVersions/appendVersion 都静默返回空/false。
+   */
+  const recordVersion = useCallback(async (work) => {
+    if (!work || work.id == null) return
+    try {
+      const existing = await listVersions(work.id, { limit: 1 })
+      if (!shouldRecordVersion(existing[0] || null, work)) return
+      await appendVersion({
+        workId: work.id,
+        name: work.name || '',
+        canvasData: work.canvasData,
+        gridSize: work.gridSize,
+        gridWidth: work.gridWidth ?? null,
+        gridHeight: work.gridHeight ?? null,
+        paletteId: work.paletteId || 'perler',
+        savedAt: work.savedAt || new Date().toISOString(),
+      }, { keep: MAX_VERSIONS_PER_WORK })
+    } catch {
+      // 版本记录失败不影响保存结果
+    }
+  }, [])
+
   const saveSeqRef = useRef(0)
   const saveWork = useCallback(async (work) => {
     const normalized = normalizeLegacyWork(work)
@@ -277,7 +311,6 @@ export function useSavedWorks(user) {
         return false
       }
     }
-
     const updated = [...worksRef.current, normalized]
     // 配额提示只在接近上限时出现;IndexedDB 的实际配额远大于此,
     // 但仍按同一阈值提醒,避免用户攒到无法导出时才被发现
@@ -296,12 +329,16 @@ export function useSavedWorks(user) {
       toast(i18n.t('errors.storageFull'), 'error')
       return false
     }
+    // 版本时间线只在本地模式下记录(云端只留里程碑版本,由后续云端方案处理)。
+    // 记录失败不影响保存本身 —— 作品已经安全落库,历史是增强功能,不能反过来
+    // 让用户看到「保存失败」。
+    await recordVersion(normalized)
     if (seq === saveSeqRef.current) {
       setWorks(updated)
       setSaveState(SAVE_STATES.SAVED)
     }
     return true
-  }, [isCloud, user, toast])
+  }, [isCloud, user, toast, recordVersion])
 
   /**
    * 画布发生变化时调用:把状态标记为 dirty。
@@ -332,6 +369,9 @@ export function useSavedWorks(user) {
       toast(i18n.t('errors.deleteFailed'), 'error')
       return
     }
+    // 作品删了,它的版本必须一起删 —— 否则历史条目会变成永久占空间的孤儿,
+    // 而且没有任何入口能再看到或清理它们。
+    await clearVersions(work.id)
     setWorks((prev) => prev.filter((w) => w.id !== work.id))
   }, [isCloud, toast])
 
@@ -388,6 +428,50 @@ export function useSavedWorks(user) {
     return true
   }, [isCloud, toast])
 
+  /**
+   * 读取一件作品的版本时间线(新的在前),并附带占用估算。
+   *
+   * 只读本地 IndexedDB:云端版本策略未定(「只保留里程碑版本」需要先定义
+   * 里程碑),在定清楚之前不做云端版本,避免产生两套不一致的语义。
+   *
+   * @returns {Promise<{ versions: Array, bytes: number }>}
+   */
+  const loadVersions = useCallback(async (workId) => {
+    const versions = await listVersions(workId)
+    return { versions, bytes: estimateVersionBytes(versions) }
+  }, [])
+
+  /**
+   * 回滚到某个历史版本。
+   *
+   * 回滚本身也是一次显式保存 —— 它写回作品本体,并**追加一条新版本**记录
+   * 回滚后的内容。验收要求「回滚本身也产生一条历史(可再撤销)」:如果不追加,
+   * 用户回滚错了就再也回不去,而且时间线里「当前」与作品本体也会对不上。
+   *
+   * @param {Object} work - 当前作品(提供 id 等身份字段)
+   * @param {Object} version - 要回滚到的版本
+   * @returns {Promise<Object|null>} 回滚后的作品;失败返回 null
+   */
+  const rollbackToVersion = useCallback(async (work, version) => {
+    if (!work || work.id == null || !version || !Array.isArray(version.canvasData)) return null
+    const restored = normalizeLegacyWork({
+      ...work,
+      canvasData: version.canvasData,
+      gridSize: version.gridSize,
+      gridWidth: version.gridWidth ?? null,
+      gridHeight: version.gridHeight ?? null,
+      paletteId: version.paletteId || work.paletteId || 'perler',
+      // savedAt 用当前时间:回滚产生的是「现在」的一条新记录,不是穿越回过去。
+      // 保留旧 savedAt 会让作品列表按时间排序时把它排到很后面,看起来像丢了。
+      savedAt: new Date().toISOString(),
+    })
+    const ok = await updateWork(restored)
+    if (!ok) return null
+    // 追加回滚后的内容作为新版本,时间线才完整可逆
+    await recordVersion(restored)
+    return restored
+  }, [updateWork, recordVersion])
+
   return {
     works,
     worksLoading,
@@ -401,5 +485,7 @@ export function useSavedWorks(user) {
     updateWork,
     deleteWork,
     ackSync,
+    loadVersions,
+    rollbackToVersion,
   }
 }
