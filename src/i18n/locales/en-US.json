@@ -1804,5 +1804,20 @@
     "restoredHistory": "Restored {{n}} manual correction(s) from last time (source image and corrections stay on this device).",
     "historyHint": "Recognition settings and cell corrections are remembered on this device; reselect the same image to continue editing.",
     "storageHint": "Recognition and correction run locally. Saving works like any other work: written to your cloud library when signed in (visible only to you), otherwise kept in this browser."
+  },
+  "autosave": {
+    "restoreTitle": "Restore unsaved changes",
+    "restoreBody": "You left a {{w}} × {{h}} draft on the canvas that was never saved.",
+    "restoreBodyWithTime": "A {{w}} × {{h}} draft was auto-saved at {{time}} and never saved as a work.",
+    "restoreHint": "Drafts stay in this browser only and are never uploaded. Choosing Discard stops the prompt.",
+    "restore": "Restore draft",
+    "discard": "Discard",
+    "statusSaving": "Auto-saving…",
+    "statusSaved": "Auto-saved",
+    "statusPending": "Unsaved changes",
+    "statusFailed": "Auto-save unavailable",
+    "statusFailedHint": "This browser blocks local storage (private mode?). Please save manually.",
+    "toggleLabel": "Auto-save drafts",
+    "toggleHint": "Saves a copy to this device every 2 seconds so you can recover it after closing the page. Local only, never uploaded."
   }
 }

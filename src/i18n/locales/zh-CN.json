@@ -1804,5 +1804,20 @@
     "restoredHistory": "已恢复上次的 {{n}} 处人工修正（原图与修正记录只保存在本机）",
     "historyHint": "识别参数与逐格修正会自动记在本机；重新选择同一张图片可继续修改。",
     "storageHint": "识别与校正都在本机完成；保存后与其他作品一样：登录时写入你的云端作品库（仅本人可读写），未登录时只保存在本机浏览器。"
+  },
+  "autosave": {
+    "restoreTitle": "恢复上次未保存的修改",
+    "restoreBody": "上次离开时画布上还有一张 {{w}} × {{h}} 的草稿没有保存。",
+    "restoreBodyWithTime": "{{time}} 自动保存了一张 {{w}} × {{h}} 的草稿,当时还没有正式保存。",
+    "restoreHint": "草稿只存在这台设备的浏览器里,不会上传云端。选择「丢弃」后不会再提示。",
+    "restore": "恢复草稿",
+    "discard": "丢弃",
+    "statusSaving": "正在自动保存…",
+    "statusSaved": "已自动保存",
+    "statusPending": "有改动待自动保存",
+    "statusFailed": "自动保存不可用",
+    "statusFailedHint": "浏览器不允许本地存储(可能是隐私模式),请及时手动保存",
+    "toggleLabel": "自动保存草稿",
+    "toggleHint": "每 2 秒把画布存一份到本机,关闭页面后可恢复。只存本机,不上传云端。"
   }
 }
