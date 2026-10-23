@@ -1778,7 +1778,7 @@
   },
   "chartImport": {
     "chooseImage": "Choose a chart image",
-    "dropHint": "Screenshots or photos work; recognition runs locally and the image is never uploaded",
+    "dropHint": "Screenshots, photos, and SVG vector charts work; recognition runs locally and the image is never uploaded",
     "detecting": "Detecting grid…",
     "decodeFailed": "Could not read the image. Please try another file.",
     "detectFailed": "No stable grid was detected. Drag a box over the chart area on the left, then set columns and rows manually.",
