@@ -3,6 +3,9 @@ import { useTranslation } from 'react-i18next'
 import { useCanvasPainter } from '../hooks/useCanvasPainter'
 import { normalizeSelection, pointInSelection, clampMove } from '../utils/selectionUtils'
 import { drawMarquee, MARQUEE_DASH_PERIOD } from '../utils/marquee'
+import {
+  HANDLE_CURSORS, HANDLE_HIT_PX, hitTestHandle, resizeSelection,
+} from '../utils/selectionHandles'
 
 const CELL_SIZE = 16
 const MIN_SCALE = 0.3
@@ -62,6 +65,16 @@ const Canvas = forwardRef(function Canvas({
   const moveStartRef = useRef(null)
   const moveBaseSelRef = useRef(null)
   const moveOffsetRef = useRef({ dx: 0, dy: 0 })
+
+  // 选区 resize 手柄(A1):按住手柄拖动改尺寸,对角锚点不动。
+  //   handle — 正在拖的手柄 id(nw/n/ne/e/se/s/sw/w)
+  //   base   — 按下时的选区,每次移动都从它重算(避免累积误差)
+  const resizeHandleRef = useRef(null)
+  const resizeBaseRef = useRef(null)
+  // 桌面 hover 到手柄时换光标。用 state 而不是直接改 style:
+  // 光标在 canvas 与 container 两层都要生效,直接改 DOM 会被下一次渲染覆盖。
+  const [hoverHandle, setHoverHandle] = useState(null)
+
   // 拖拽移动结束后强制重画 overlay 选框:若本次移动没有实际变化(比如在边缘被钳住),
   // selection prop 不会变,effect 不会重跑,选框会停留在被预览清空的状态。
   const [overlayTick, setOverlayTick] = useState(0)
@@ -182,7 +195,7 @@ const Canvas = forwardRef(function Canvas({
         ctx.strokeRect(hoverCell.x * CELL_SIZE, hoverCell.y * CELL_SIZE, CELL_SIZE, CELL_SIZE)
       }
     }
-    // 选区框画在 overlay 上:虚线描边 + 内部淡色遮罩 + (触屏)四角把手。
+    // 选区框画在 overlay 上:虚线描边 + 内部淡色遮罩 + (触屏)四角把手 + resize 方块。
     // 线宽/虚线按 1/scale 补偿,缩放到 0.3× 或 5× 都保持同样的屏幕观感。
     if (tool === 'select' && selection) {
       drawMarquee(painter.overlayRef.current?.getContext('2d'), selection, {
@@ -190,6 +203,7 @@ const Canvas = forwardRef(function Canvas({
         scale: transform.scale,
         dashOffset: dashOffsetRef.current,
         handles: coarsePointerRef.current,
+        resizeHandles: true,
       })
     }
   }, [hoverCell, tool, painter, selection, overlayTick, transform.scale])
@@ -218,6 +232,7 @@ const Canvas = forwardRef(function Canvas({
           scale: transform.scale,
           dashOffset: dashOffsetRef.current,
           handles: coarsePointerRef.current,
+          resizeHandles: true,
         })
       }
       raf = requestAnimationFrame(step)
@@ -255,6 +270,40 @@ const Canvas = forwardRef(function Canvas({
       clientY >= rect.top && clientY <= rect.bottom
     )
   }, [painter])
+
+  // 连续网格坐标(不取整、不限制在网格内)。
+  //
+  // resize 手柄长在**格边界**上,而 getGridPos 只返回格索引且出界即 null ——
+  // 拖到画布外时手柄会直接失联。这个函数保留小数部分,越界坐标也照样返回,
+  // 由 resizeSelection 统一钳制。
+  const getGridPoint = useCallback((clientX, clientY) => {
+    const canvas = painter.baseRef.current
+    if (!canvas) return null
+    const rect = canvas.getBoundingClientRect()
+    if (!rect.width || !rect.height) return null
+    const scaleX = canvas.width / rect.width
+    const scaleY = canvas.height / rect.height
+    return {
+      x: (clientX - rect.left) * scaleX / CELL_SIZE,
+      y: (clientY - rect.top) * scaleY / CELL_SIZE,
+    }
+  }, [painter])
+
+  /**
+   * 指针是否按在某个 resize 手柄上(命中返回手柄 id,否则 null)。
+   *
+   * 命中半径按屏幕像素给,再折算回网格单位 —— 否则 0.3× 时手柄屏幕只有 3px
+   * 宽、5× 时却有 40px,同一个手势在两种缩放下表现完全不同。
+   * 触屏 24px、鼠标 10px(见 HANDLE_HIT_PX)。
+   */
+  const handleAtPoint = useCallback((clientX, clientY) => {
+    if (tool !== 'select' || !selection) return null
+    const point = getGridPoint(clientX, clientY)
+    if (!point) return null
+    const px = coarsePointerRef.current ? HANDLE_HIT_PX.coarse : HANDLE_HIT_PX.fine
+    const radius = (px / 2) / (CELL_SIZE * transform.scale)
+    return hitTestHandle(selection, point, { radius })
+  }, [tool, selection, getGridPoint, transform.scale])
 
   // ─────────────────────────────────────────────────────────────────
   // 填色逻辑
@@ -486,6 +535,46 @@ const Canvas = forwardRef(function Canvas({
   }, [painter, onSelectionMove])
 
   // ─────────────────────────────────────────────────────────────────
+  // 选区 resize(A1):按住手柄拖动改尺寸
+  // ─────────────────────────────────────────────────────────────────
+  // 与「拖拽移动」共用一套预览机制,但**不产生历史**:选区本身不在撤销栈里,
+  // resize 只改矩形,不动矩阵。因此这里全程只调 onSelectionChange。
+  const startResize = useCallback((handleId) => {
+    if (!selection || !handleId) return
+    resizeHandleRef.current = handleId
+    resizeBaseRef.current = { ...selection }
+    painter.clearOverlay()
+  }, [selection, painter])
+
+  const updateResize = useCallback((clientX, clientY) => {
+    const handleId = resizeHandleRef.current
+    const base = resizeBaseRef.current
+    if (!handleId || !base) return
+    const point = getGridPoint(clientX, clientY)
+    if (!point) return
+    // 从按下时的矩形重算,而不是从上一次结果累加:指针回到起点时选区
+    // 也必须回到原样,累加式更新会因为钳制产生单向漂移。
+    const next = resizeSelection(base, handleId, point, cols, rows)
+    painter.clearOverlay()
+    drawMarquee(painter.overlayRef.current?.getContext('2d'), next, {
+      cellSize: CELL_SIZE,
+      scale: transform.scale,
+      dashOffset: dashOffsetRef.current,
+      handles: coarsePointerRef.current,
+      resizeHandles: true,
+    })
+    onSelectionChange?.(next)
+  }, [cols, rows, painter, transform.scale, onSelectionChange, getGridPoint])
+
+  const endResize = useCallback(() => {
+    if (!resizeHandleRef.current) return
+    resizeHandleRef.current = null
+    resizeBaseRef.current = null
+    // 松手后让 Effect 2 / marching ants 接管选框重绘
+    setOverlayTick(n => n + 1)
+  }, [])
+
+  // ─────────────────────────────────────────────────────────────────
   // 适应屏幕
   // ─────────────────────────────────────────────────────────────────
   const fitToScreen = useCallback(() => {
@@ -603,8 +692,12 @@ const Canvas = forwardRef(function Canvas({
         }
         if (tool === 'select') {
           e.preventDefault()
-          // 在已有选区内按下 = 拖拽移动内容;在选区外按下 = 重新拖选框
-          if (pointInSelection(selection, pos)) startMove(pos.x, pos.y)
+          // 手势优先级:**手柄 > 选区内部移动 > 外部新框**。
+          // 手柄命中区可能压在选区边缘的格子上,若不先判手柄,
+          // 边缘那几格就永远拖不出 resize,只能移动内容。
+          const handleId = handleAtPoint(e.clientX, e.clientY)
+          if (handleId) startResize(handleId)
+          else if (pointInSelection(selection, pos)) startMove(pos.x, pos.y)
           else startSelection(pos.x, pos.y)
           return
         }
@@ -628,7 +721,7 @@ const Canvas = forwardRef(function Canvas({
     isDrawingRef.current = false
     panCursorStartRef.current = { x: cursorX, y: cursorY }
     panStartRef.current = { x: transform.cx, y: transform.cy }
-  }, [isOverCanvas, getGridPos, startStroke, paintToStroke, applyFill, transform, tool, pickColorAt, startSelection, startMove, selection])
+  }, [isOverCanvas, getGridPos, startStroke, paintToStroke, applyFill, transform, tool, pickColorAt, startSelection, startMove, selection, handleAtPoint, startResize])
 
   const handleContainerMouseMove = useCallback((e) => {
     const rect = containerRef.current?.getBoundingClientRect()
@@ -643,11 +736,26 @@ const Canvas = forwardRef(function Canvas({
       return
     }
 
+    // 选区 resize:只改矩形,不动矩阵
+    if (resizeHandleRef.current) {
+      updateResize(e.clientX, e.clientY)
+      return
+    }
+
     // 选区拖动:更新矩形,不参与笔画/平移判定
     if (selDraggingRef.current) {
       const pos = getGridPos(e.clientX, e.clientY)
       if (pos) updateSelection(pos.x, pos.y)
       return
+    }
+
+    // 光标提示:悬停到 resize 手柄时换成对应方向的 resize 光标。
+    // 放在 container 级而不是 canvas 的 onMouseMove:手柄长在格边界上,
+    // 最外圈手柄有一半在 canvas 之外,绑在 canvas 上会让边缘手柄没有提示。
+    // 拖动期间不更新 —— 指针滑出手柄时该保持住当前光标。
+    if (!resizeHandleRef.current) {
+      const nextHandle = handleAtPoint(e.clientX, e.clientY)
+      setHoverHandle(prev => (prev === nextHandle ? prev : nextHandle))
     }
 
     // Drawing mode: only draw if actually on a cell AND haven't exceeded pan threshold
@@ -705,9 +813,10 @@ const Canvas = forwardRef(function Canvas({
       const clamped = softClamp(rawCX, rawCY, prev.scale)
       return { ...prev, cx: clamped.x, cy: clamped.y }
     })
-  }, [getGridPos, paintToStroke, applyFill, commitStroke, softClamp, tool, updateSelection, updateMove, transform])
+  }, [getGridPos, paintToStroke, applyFill, commitStroke, softClamp, tool, updateSelection, updateMove, transform, updateResize, handleAtPoint])
 
   const handleContainerMouseUp = useCallback(() => {
+    if (resizeHandleRef.current) endResize()
     if (moveDraggingRef.current) endMove()
     if (selDraggingRef.current) endSelection()
     if (isDrawingRef.current) commitStroke()
@@ -715,9 +824,10 @@ const Canvas = forwardRef(function Canvas({
     isPanningRef.current = false
     panHasStartedRef.current = false
     setPanActive(false)
-  }, [commitStroke, endSelection, endMove])
+  }, [commitStroke, endSelection, endMove, endResize])
 
   const handleContainerMouseLeave = useCallback(() => {
+    if (resizeHandleRef.current) endResize()
     if (moveDraggingRef.current) endMove()
     if (selDraggingRef.current) endSelection()
     if (isDrawingRef.current) commitStroke()
@@ -725,7 +835,8 @@ const Canvas = forwardRef(function Canvas({
     isPanningRef.current = false
     setPanActive(false)
     setHoverCell(null)
-  }, [commitStroke, endSelection, endMove])
+    setHoverHandle(null)
+  }, [commitStroke, endSelection, endMove, endResize])
 
   // PC hover
   const handleMouseMove = useCallback((e) => {
@@ -735,6 +846,7 @@ const Canvas = forwardRef(function Canvas({
 
   const handleMouseLeave = useCallback(() => {
     setHoverCell(null)
+    setHoverHandle(null)
   }, [])
 
   // ─────────────────────────────────────────────────────────────────
@@ -822,8 +934,10 @@ const Canvas = forwardRef(function Canvas({
 
       // 矩形选区:在格子上按下即开始拖选(不用等 10px 阈值,选框需要即时反馈)
       if (tool === 'select' && gridPos) {
-        // 在已有选区内按下 = 拖拽移动内容;在选区外按下 = 重新拖选框
-        if (pointInSelection(selection, gridPos)) startMove(gridPos.x, gridPos.y)
+        // 手势优先级:手柄 > 选区内部移动 > 外部新框
+        const handleId = handleAtPoint(t.clientX, t.clientY)
+        if (handleId) startResize(handleId)
+        else if (pointInSelection(selection, gridPos)) startMove(gridPos.x, gridPos.y)
         else startSelection(gridPos.x, gridPos.y)
         return
       }
@@ -834,7 +948,7 @@ const Canvas = forwardRef(function Canvas({
         touchPanCanvasStartRef.current = { x: transform.cx, y: transform.cy }
       }
     }
-  }, [stopMomentum, getGridPos, transform, tool, startSelection, startMove, selection, painter])
+  }, [stopMomentum, getGridPos, transform, tool, startSelection, startMove, selection, painter, handleAtPoint, startResize])
 
   const handleTouchMove = useCallback((e) => {
     e.preventDefault()
@@ -888,6 +1002,12 @@ const Canvas = forwardRef(function Canvas({
         return
       }
 
+      // 选区 resize:只改矩形,不动矩阵
+      if (resizeHandleRef.current) {
+        updateResize(t.clientX, t.clientY)
+        return
+      }
+
       // 选区拖动:只更新选框,不平移、不填色
       if (selDraggingRef.current) {
         const pos = getGridPos(t.clientX, t.clientY)
@@ -935,13 +1055,23 @@ const Canvas = forwardRef(function Canvas({
         }
       }
     }
-  }, [getGridPos, transform, softClamp, updateSelection, updateMove])
+  }, [getGridPos, transform, softClamp, updateSelection, updateMove, updateResize])
 
   const handleTouchEnd = useCallback((e) => {
     e.preventDefault()
 
     if (e.touches.length === 0) {
       pinchRef.current = null
+
+      // 选区 resize 结束:只改矩形,不产生历史
+      if (resizeHandleRef.current) {
+        endResize()
+        touchStartRef.current = null
+        touchMovedRef.current = false
+        wasPinchingRef.current = false
+        setHoverCell(null)
+        return
+      }
 
       // 拖拽移动结束:提交偏移(单指点按 = 原地不动,不产生历史)
       if (moveDraggingRef.current) {
@@ -1011,10 +1141,17 @@ const Canvas = forwardRef(function Canvas({
         }
       }
     }
-  }, [startStroke, paintToStroke, applyFill, commitStroke, getGridPos, transform, startMomentum, tool, pickColorAt, endSelection, endMove, onSelectionChange])
+  }, [startStroke, paintToStroke, applyFill, commitStroke, getGridPos, transform, startMomentum, tool, pickColorAt, endSelection, endMove, onSelectionChange, endResize])
 
   const handleTouchCancel = useCallback(() => {
     stopMomentum()
+    if (resizeHandleRef.current) {
+      // 取消手势:矩形已通过 onSelectionChange 逐个上报,无法回滚到原尺寸;
+      // 这里只结束手势,让 marching ants 接管重绘(选区是视图状态,不写历史)
+      resizeHandleRef.current = null
+      resizeBaseRef.current = null
+      painter.clearOverlay()
+    }
     if (moveDraggingRef.current) {
       // 取消手势:丢弃移动预览,保留原选区与原矩阵
       moveDraggingRef.current = false
@@ -1035,6 +1172,7 @@ const Canvas = forwardRef(function Canvas({
     pinchRef.current = null
     wasPinchingRef.current = false
     setHoverCell(null)
+    setOverlayTick(n => n + 1)
   }, [stopMomentum, painter])
 
   // 双击重置(仅鼠标语义):触屏快速连点(移动端连续填珠)会由浏览器合成 dblclick,不触发重置
@@ -1052,10 +1190,15 @@ const Canvas = forwardRef(function Canvas({
     willChange: 'transform',
   }
 
-  // 选区工具与取色器沿用 crosshair(与画笔一致),抓手工具用抓取光标
-  const canvasCursor = tool === 'hand'
-    ? (panActive ? 'grabbing' : 'grab')
-    : (panActive ? 'grabbing' : 'crosshair')
+  // 选区工具与取色器沿用 crosshair(与画笔一致),抓手工具用抓取光标。
+  // 悬停到 resize 手柄时优先显示对应方向的 resize 光标(拖错方向要立刻手感不对);
+  // 拖动中锁定该光标,指针滑出手柄也不闪回十字。
+  const resizeCursor = resizeHandleRef.current
+    ? HANDLE_CURSORS[resizeHandleRef.current]
+    : (hoverHandle ? HANDLE_CURSORS[hoverHandle] : null)
+  const canvasCursor = panActive
+    ? 'grabbing'
+    : resizeCursor || (tool === 'hand' ? 'grab' : 'crosshair')
 
   return (
     <div className="canvas-wrapper">

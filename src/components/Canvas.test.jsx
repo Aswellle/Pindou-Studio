@@ -24,7 +24,7 @@ vi.mock('react-i18next', () => ({
 // like a real 48×48 px canvas (3×3 grid, scale 1): a click at (24,24) maps to
 // cell (1,1).
 function installCanvasMocks(hooks = {}) {
-  const calls = { fillRect: [], stroke: 0, moveTo: [], lineTo: [], clearRect: [], setLineDash: [], arc: [], strokeRect: [] }
+  const calls = { fillRect: [], stroke: 0, moveTo: [], lineTo: [], clearRect: [], setLineDash: [], arc: [], strokeRect: [], rect: [] }
   const ctx = {
     fillStyle: '#000000',
     strokeStyle: '#000000',
@@ -32,6 +32,8 @@ function installCanvasMocks(hooks = {}) {
     lineDashOffset: 0,
     fillRect: (x, y, w, h) => calls.fillRect.push({ x, y, w, h }),
     strokeRect: (x, y, w, h) => calls.strokeRect.push({ x, y, w, h }),
+    // resize 手柄画成方块(A1)
+    rect: (x, y, w, h) => calls.rect.push({ x, y, w, h }),
     beginPath: () => {},
     closePath: () => {},
     moveTo: (x, y) => calls.moveTo.push({ x, y }),
@@ -902,5 +904,162 @@ describe('Canvas 选区把手(触屏可发现性)', () => {
   test('桌面指针设备不绘制把手', () => {
     renderWith(false)
     expect(mock.calls.arc.length).toBe(0)
+  })
+})
+
+/**
+ * A1:选区 resize 手柄。
+ *
+ * 3×3 网格 / 16px 单元 / scale 1 → 屏幕坐标 0..48 对应格 0..2。
+ * 手势优先级:**手柄 > 选区内部移动 > 外部新框**,三者的边界必须钉死,
+ * 否则边缘那几格要么拖不动 resize,要么一按就变成移动内容。
+ */
+describe('Canvas 选区 resize 手柄(A1)', () => {
+  let mock
+  beforeEach(() => { mock = installCanvasMocks() })
+  afterEach(() => mock.restore())
+
+  /** 3×3 画布,选区 (0,0) 2×2(覆盖 x/y 0..1,右/下边界在 32) */
+  function renderResize(overrides = {}) {
+    const onSelectionChange = vi.fn()
+    const onSelectionMove = vi.fn()
+    const onCanvasChange = vi.fn()
+    const view = render(
+      <Canvas
+        gridSize={3}
+        gridWidth={null}
+        gridHeight={null}
+        selectedColor="#ff0000"
+        tool="select"
+        committedData={blankGrid(3)}
+        selection={{ x: 0, y: 0, w: 2, h: 2 }}
+        onCanvasChange={onCanvasChange}
+        onSelectionChange={onSelectionChange}
+        onSelectionMove={onSelectionMove}
+        {...overrides}
+      />
+    )
+    return { ...view, onSelectionChange, onSelectionMove, onCanvasChange }
+  }
+
+  test('拖动右下角手柄改尺寸,左上角不动', () => {
+    const { container, onSelectionChange, onSelectionMove, onCanvasChange } = renderResize()
+    const c = container.querySelector('.canvas-container')
+
+    // 手柄在格边界 (32,32);拖到格 (2,2) 中心 → 覆盖到 2,右/下边界 = 3
+    fireEvent.mouseDown(c, { clientX: 32, clientY: 32 })
+    fireEvent.mouseMove(c, { clientX: 40, clientY: 40 })
+    fireEvent.mouseUp(c, { clientX: 40, clientY: 40 })
+
+    expect(onSelectionChange).toHaveBeenLastCalledWith({ x: 0, y: 0, w: 3, h: 3 })
+    // resize 只改矩形:不移动内容、不写画布、不产生历史
+    expect(onSelectionMove).not.toHaveBeenCalled()
+    expect(onCanvasChange).not.toHaveBeenCalled()
+  })
+
+  test('拖左上角手柄时右下角不动', () => {
+    const { container, onSelectionChange } = renderResize({
+      selection: { x: 1, y: 1, w: 2, h: 2 },
+    })
+    const c = container.querySelector('.canvas-container')
+
+    // 左上角手柄在格边界 (16,16);拖到 (0,0)
+    fireEvent.mouseDown(c, { clientX: 16, clientY: 16 })
+    fireEvent.mouseMove(c, { clientX: 4, clientY: 4 })
+    fireEvent.mouseUp(c, { clientX: 4, clientY: 4 })
+
+    expect(onSelectionChange).toHaveBeenLastCalledWith({ x: 0, y: 0, w: 3, h: 3 })
+  })
+
+  test('拖右边手柄只改宽度', () => {
+    const { container, onSelectionChange } = renderResize()
+    const c = container.querySelector('.canvas-container')
+
+    // 右边中点在 (32,16)
+    fireEvent.mouseDown(c, { clientX: 32, clientY: 16 })
+    fireEvent.mouseMove(c, { clientX: 8, clientY: 40 })
+    fireEvent.mouseUp(c, { clientX: 8, clientY: 40 })
+
+    const last = onSelectionChange.mock.calls.at(-1)[0]
+    expect(last.y).toBe(0)
+    expect(last.h).toBe(2)
+    expect(last.x).toBe(0)
+  })
+
+  test('手柄命中优先于选区内部移动', () => {
+    // 选区右下角的手柄压在格子 (1,1) 的边界上 —— 若先判 pointInSelection,
+    // 这一按会变成「移动内容」,手柄永远拖不动。
+    const { container, onSelectionMove, onSelectionChange } = renderResize()
+    const c = container.querySelector('.canvas-container')
+
+    fireEvent.mouseDown(c, { clientX: 32, clientY: 32 })
+    fireEvent.mouseMove(c, { clientX: 40, clientY: 40 })
+    fireEvent.mouseUp(c, { clientX: 40, clientY: 40 })
+
+    expect(onSelectionMove).not.toHaveBeenCalled()
+    expect(onSelectionChange).toHaveBeenCalled()
+  })
+
+  test('选区中心仍然是移动内容,不是 resize', () => {
+    const { container, onSelectionMove, onSelectionChange } = renderResize()
+    const c = container.querySelector('.canvas-container')
+
+    // (0.5,0.5) 格的中心,离八个手柄都远
+    fireEvent.mouseDown(c, { clientX: 8, clientY: 8 })
+    fireEvent.mouseMove(c, { clientX: 24, clientY: 8 })
+    fireEvent.mouseUp(c, { clientX: 24, clientY: 8 })
+
+    expect(onSelectionMove).toHaveBeenCalledTimes(1)
+    expect(onSelectionChange).not.toHaveBeenCalled()
+  })
+
+  test('越界拖动被钳制在网格内', () => {
+    const { container, onSelectionChange } = renderResize()
+    const c = container.querySelector('.canvas-container')
+
+    fireEvent.mouseDown(c, { clientX: 32, clientY: 32 })
+    fireEvent.mouseMove(c, { clientX: 200, clientY: 200 })
+    fireEvent.mouseUp(c, { clientX: 200, clientY: 200 })
+
+    const last = onSelectionChange.mock.calls.at(-1)[0]
+    expect(last.x + last.w).toBe(3)
+    expect(last.y + last.h).toBe(3)
+  })
+
+  test('悬停到手柄时光标变成对应方向的 resize 光标', () => {
+    const { container } = renderResize()
+    const c = container.querySelector('.canvas-container')
+
+    fireEvent.mouseMove(c, { clientX: 32, clientY: 32 })
+    expect(c.style.cursor).toBe('nwse-resize')
+
+    // 移开后回到十字
+    fireEvent.mouseMove(c, { clientX: 8, clientY: 8 })
+    expect(c.style.cursor).toBe('crosshair')
+  })
+
+  test('触屏拖手柄同样改尺寸,不触发填色', () => {
+    const { container, onSelectionChange, onCanvasChange } = renderResize()
+    const c = container.querySelector('.canvas-container')
+
+    fireEvent.touchStart(c, { touches: [{ clientX: 32, clientY: 32, identifier: 0 }] })
+    fireEvent.touchMove(c, { touches: [{ clientX: 40, clientY: 40, identifier: 0 }] })
+    fireEvent.touchEnd(c, { touches: [] })
+
+    expect(onSelectionChange).toHaveBeenLastCalledWith({ x: 0, y: 0, w: 3, h: 3 })
+    expect(onCanvasChange).not.toHaveBeenCalled()
+  })
+
+  test('没有选区时按下不会误判为手柄', () => {
+    const { container, onSelectionChange } = renderResize({ selection: null })
+    const c = container.querySelector('.canvas-container')
+
+    // 从 (0,0) 拖到 (1,1)
+    fireEvent.mouseDown(c, { clientX: 8, clientY: 8 })
+    fireEvent.mouseMove(c, { clientX: 24, clientY: 24 })
+    fireEvent.mouseUp(c, { clientX: 24, clientY: 24 })
+
+    // 走的是「拖新选框」路径
+    expect(onSelectionChange).toHaveBeenLastCalledWith({ x: 0, y: 0, w: 2, h: 2 })
   })
 })
