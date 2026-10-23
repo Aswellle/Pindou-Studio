@@ -33,6 +33,9 @@ export default function Tools({
   onToggleFillIncludeEmpty,
   // 剪贴板里有没有内容:只用于禁用「粘贴」按钮,内容本身留在 App 层
   canPaste = false,
+  // A2:复制拖动开关(拖动选区内部 = 复制一份,而不是搬走原件)
+  copyDrag = false,
+  onToggleCopyDrag,
 }) {
   const { t } = useTranslation()
   const toast = useToast()
@@ -199,6 +202,16 @@ export default function Tools({
                     onChange={(e) => onToggleFillIncludeEmpty?.(e.target.checked)}
                   />
                   <span>{t('tools.fillIncludeEmpty')}</span>
+                </label>
+                {/* A2:桌面端也留一个开关。Alt/Option 拖动是快捷方式,但按住修饰键
+                    拖动的手势没有任何视觉提示,只靠它等于要求用户猜。 */}
+                <label className="selection-fill-toggle">
+                  <input
+                    type="checkbox"
+                    checked={Boolean(copyDrag)}
+                    onChange={(e) => onToggleCopyDrag?.(e.target.checked)}
+                  />
+                  <span>{t('tools.copyDragHint')}</span>
                 </label>
                 {/* 拖拽移动没有按钮,只能靠提示告知(规格 04 §2 要求移动有明确入口) */}
                 <p className="selection-hint">{t('tools.selectionMoveHint')}</p>

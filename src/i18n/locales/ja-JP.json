@@ -523,7 +523,10 @@
     "selectionCopiedToast": "{{w}} × {{h}} の選択範囲をコピーしました",
     "selectionPasteNoChange": "貼り付け先に同じ内容があるため変更はありません",
     "selectionPastedToast": "{{n}} マスを貼り付けました",
-    "pickedColorToast": "{{hex}} を取得しました"
+    "pickedColorToast": "{{hex}} を取得しました",
+    "copyDragHint": "ドラッグで複製(元は残す)",
+    "copyDragShort": "ドラッグ複製",
+    "copiedDragToast": "{{n}} 個複製しました"
   },
   "gallery": {
     "title": "テンプレートギャラリー",

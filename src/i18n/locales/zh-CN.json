@@ -523,7 +523,10 @@
     "selectionCopiedToast": "已复制 {{w}} × {{h}} 选区",
     "selectionPasteNoChange": "粘贴位置已有相同内容,未做改动",
     "selectionPastedToast": "已粘贴 {{n}} 格",
-    "pickedColorToast": "已取色 {{hex}}"
+    "pickedColorToast": "已取色 {{hex}}",
+    "copyDragHint": "拖动时复制一份(不搬走原件)",
+    "copyDragShort": "拖动复制",
+    "copiedDragToast": "已复制 {{n}} 颗珠子"
   },
   "gallery": {
     "title": "图库",

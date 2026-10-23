@@ -245,6 +245,9 @@ export default function MobileToolbar({
   onToggleFillIncludeEmpty,
   // 剪贴板里有没有内容:只用于禁用「粘贴」按钮,内容本身留在 App 层
   canPaste = false,
+  // A2:复制拖动开关(触屏没有 Alt/Option,只能给显式入口)
+  copyDrag = false,
+  onToggleCopyDrag,
 }) {
   const { t } = useTranslation()
   const toast = useToast()
@@ -498,6 +501,18 @@ export default function MobileToolbar({
                   onClick={() => onToggleFillIncludeEmpty?.(!fillIncludeEmpty)}
                 >
                   {fillIncludeEmpty ? '✓ ' : ''}{t('tools.fillIncludeEmptyShort')}
+                </button>
+                {/* A2:复制拖动开关。触屏没有 Alt/Option,只能给可见入口 ——
+                    打开后拖动选区内部 = 复制一份,原件留在原处。
+                    与「填充空白」一样做成常驻胶囊:隐藏手势在触屏上等于不存在。 */}
+                <button
+                  type="button"
+                  className={`selection-fill-toggle${copyDrag ? ' active' : ''}`}
+                  aria-pressed={Boolean(copyDrag)}
+                  title={t('tools.copyDragHint')}
+                  onClick={() => onToggleCopyDrag?.(!copyDrag)}
+                >
+                  {copyDrag ? '✓ ' : ''}{t('tools.copyDragShort')}
                 </button>
               </div>
               {/* 按钮文字用「短标签」(填充 / 左右翻转 / 顺时针 …):

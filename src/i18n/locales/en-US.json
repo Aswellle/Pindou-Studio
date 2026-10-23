@@ -523,7 +523,10 @@
     "selectionCopiedToast": "Copied {{w}} × {{h}} selection",
     "selectionPasteNoChange": "The paste target already has the same content",
     "selectionPastedToast": "Pasted {{n}} cells",
-    "pickedColorToast": "Picked {{hex}}"
+    "pickedColorToast": "Picked {{hex}}",
+    "copyDragHint": "Drag to duplicate (original stays)",
+    "copyDragShort": "Drag copy",
+    "copiedDragToast": "Duplicated {{n}} beads"
   },
   "gallery": {
     "title": "Gallery",
