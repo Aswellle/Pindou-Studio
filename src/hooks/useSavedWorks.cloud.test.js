@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
-import { renderHook, act, cleanup } from '@testing-library/react'
+import { renderHook, act, cleanup, waitFor } from '@testing-library/react'
 
 /**
  * useSavedWorks · 云端模式(迁移 0024 元数据列)。
@@ -18,6 +18,7 @@ const cloud = {
   inserted: [],   // 每次 insert 调用(含失败重试),用于断言重试确实发生
   upserted: [],
   failNext: null, // 强制下一次写入返回该错误(模拟真实业务失败)
+  failSelect: null, // 强制作品列表查询失败(模拟云端读取失败 → 降级本机)
 }
 
 const missingError = (col) => ({
@@ -36,7 +37,10 @@ function applyRow(row) {
 
 function makeBuilder(kind, payload) {
   const resolve = () => {
-    if (kind === 'select') return { data: cloud.rows, error: null }
+    if (kind === 'select') {
+      if (cloud.failSelect) return { data: null, error: cloud.failSelect }
+      return { data: cloud.rows, error: null }
+    }
     if (kind === 'insert') {
       cloud.inserted.push(payload)
       if (cloud.failNext) return { data: null, error: cloud.failNext }
@@ -96,6 +100,7 @@ beforeEach(() => {
   cloud.inserted = []
   cloud.upserted = []
   cloud.failNext = null
+  cloud.failSelect = null
   localStorage.clear()
 })
 
@@ -216,5 +221,55 @@ describe('useSavedWorks · 云端元数据列(迁移 0024)', () => {
     // 迁移成功后才清空本机(失败时保留)
     expect(localStorage.getItem('saved-works')).toBeNull()
     expect(result.current.syncCount).toBe(1)
+  })
+})
+
+describe('useSavedWorks · 云端读取失败的对外状态', () => {
+  it('读取失败时置位 worksError,同时仍回退到本机作品', async () => {
+    cloud.failSelect = { message: 'network unreachable' }
+    localStorage.setItem('saved-works', JSON.stringify([{
+      id: 9,
+      name: '本机作品',
+      canvasData: blank(9, 9),
+      gridSize: 9,
+      paletteId: 'perler',
+      savedAt: '2026-10-19T00:00:00.000Z',
+    }]))
+
+    const spy = vi.spyOn(console, 'error').mockImplementation(() => {})
+    const { result } = renderHook(() => useSavedWorks(USER))
+
+    await waitFor(() => expect(result.current.worksLoading).toBe(false))
+
+    // 失败事实被暴露出来 —— 个人中心据此显示「当前为本机数据」而不是「你没有作品」
+    expect(result.current.worksError).toEqual(
+      expect.objectContaining({ code: 'loadFailed' })
+    )
+    // 但数据没有丢:仍是本机那份
+    expect(result.current.works).toHaveLength(1)
+    expect(result.current.works[0].name).toBe('本机作品')
+    spy.mockRestore()
+  })
+
+  it('读取成功后 worksError 为 null(失败后重试恢复)', async () => {
+    const spy = vi.spyOn(console, 'error').mockImplementation(() => {})
+    cloud.failSelect = { message: 'temporary' }
+    const { result } = renderHook(() => useSavedWorks(USER))
+    await waitFor(() => expect(result.current.worksError).not.toBeNull())
+
+    // 模拟网络恢复:重新挂载(等价于用户刷新页面)
+    cleanup()
+    cloud.failSelect = null
+    cloud.rows = [{
+      id: 'row-1', name: '云端作品', canvas_data: blank(9, 9),
+      grid_size: 9, grid_width: null, grid_height: null,
+      palette_id: 'perler', saved_at: '2026-10-20T00:00:00.000Z',
+    }]
+    const second = renderHook(() => useSavedWorks(USER))
+    await waitFor(() => expect(second.result.current.worksLoading).toBe(false))
+
+    expect(second.result.current.worksError).toBeNull()
+    expect(second.result.current.works[0].name).toBe('云端作品')
+    spy.mockRestore()
   })
 })

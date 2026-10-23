@@ -60,9 +60,9 @@ export default function GalleryPage({ onLoadTemplate, onDeleteWork, onLoadWork, 
     category, setCategory,
     difficulty, setDifficulty,
     maxColors, setMaxColors,
+    view, setView,
     setFilters,
   } = useGalleryQuery()
-  const [view, setView] = useState('all') // 'all' | 'favorites' | 'works'
 
   // 云端启用时,模板库完全来自云端(RLS 公开只读);未启用时回退本地模式
   // (内置模板 + localStorage 自定义模板,自定义在前)

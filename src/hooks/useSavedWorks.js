@@ -115,6 +115,14 @@ export function useSavedWorks(user) {
   const toast = useToast()
   const [works, setWorks] = useState([])
   const [worksLoading, setWorksLoading] = useState(true)
+  // 云端读取失败:保留既有「回退本机作品」行为,同时把这个事实暴露给 UI。
+  // 个人中心需要区分「云端失败、当前显示本机」与「确实一件作品都没有」——
+  // 没有这个状态,两种情形在页面上长得一模一样。
+  const [worksError, setWorksError] = useState(null)
+  // 手动重试信号:云端读取失败后,个人中心提供「重试」。
+  // 递增它即可让下面的登录态 effect 重跑,不必把加载逻辑抽成独立函数
+  // (抽出去会与首屏本地加载的时序纠缠)。
+  const [reloadToken, setReloadToken] = useState(0)
   const [syncCount, setSyncCount] = useState(null)
   const [cloudMirrorCount, setCloudMirrorCount] = useState(() => readMirror().count)
   const [saveState, setSaveState] = useState(SAVE_STATES.IDLE)
@@ -159,6 +167,7 @@ export function useSavedWorks(user) {
     const cloud = !!user && !!supabase
     if (cloud) {
       setWorksLoading(true)
+      setWorksError(null)
       ;(async () => {
         try {
           const { data, error } = await supabase
@@ -209,7 +218,10 @@ export function useSavedWorks(user) {
         } catch (e) {
           // 云端拉取/迁移失败:回退到本机作品,保证「我的作品」不空、不丢数据
           console.error('云端作品加载失败,回退到本机作品:', e)
-          if (!cancelled) setWorks((await listWorks()).map(normalizeLegacyWork))
+          if (!cancelled) {
+            setWorks((await listWorks()).map(normalizeLegacyWork))
+            setWorksError({ code: 'loadFailed', detail: e?.message || String(e) })
+          }
         } finally {
           if (!cancelled) setWorksLoading(false)
         }
@@ -219,10 +231,14 @@ export function useSavedWorks(user) {
       // 这里只把 loading 收掉,不再重复读库 —— 重复读会在两个 effect
       // 并发时互相覆盖。
       setWorksLoading(false)
+      setWorksError(null)
     }
     return () => { cancelled = true }
     // 依赖 user?.id:昵称/头像等资料刷新(refreshProfile 生成新对象)不触发重拉
-  }, [user?.id])
+    // reloadToken:仅由 reloadWorks() 递增,用于失败后手动重试
+  }, [user?.id, reloadToken])
+
+  const reload = useCallback(() => setReloadToken((n) => n + 1), [])
 
   // 保存:云端直接落库;本机写 IndexedDB(不可用时降级 localStorage)。
   // 落库前统一走 normalizeLegacyWork:尺寸以 canvasData 实际形状为准,
@@ -375,6 +391,8 @@ export function useSavedWorks(user) {
   return {
     works,
     worksLoading,
+    worksError,
+    reload,
     syncCount,
     cloudMirrorCount,
     saveState,

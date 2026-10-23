@@ -21,6 +21,13 @@ import { useSearchParams } from 'react-router-dom'
 export const COLOR_COUNT_TIERS = Object.freeze([4, 8, 12, 16, 24, 32])
 
 /**
+ * 视图页签(全部 / 收藏 / 我的作品)。
+ * 只有个人中心的「管理我的作品」需要深链直达,所以这里只暴露这一个键,
+ * 不把收藏页签也做成可分享链接 —— 收藏是个人状态,深链没有意义。
+ */
+export const GALLERY_VIEWS = Object.freeze(['all', 'favorites', 'works'])
+
+/**
  * @returns {{ searchTerm, category, difficulty, setSearchTerm, setCategory, setDifficulty }}
  */
 export function useGalleryQuery() {
@@ -32,6 +39,9 @@ export function useGalleryQuery() {
   // 用色数量上限:空 = 不限。只接受正整数,非法值当不限处理。
   const rawColors = searchParams.get('colors') || ''
   const maxColors = /^\d+$/.test(rawColors) && Number(rawColors) > 0 ? Number(rawColors) : null
+  // 视图页签:非法值一律回落到 'all',避免 URL 拼错把页面顶成空白
+  const rawView = searchParams.get('view') || ''
+  const view = GALLERY_VIEWS.includes(rawView) ? rawView : 'all'
 
   const setSearchTerm = (value) => {
     const params = new URLSearchParams(searchParams)
@@ -62,6 +72,13 @@ export function useGalleryQuery() {
     setSearchParams(params, { replace: true })
   }
 
+  const setView = (value) => {
+    const params = new URLSearchParams(searchParams)
+    if (value && value !== 'all') params.set('view', value)
+    else params.delete('view')
+    setSearchParams(params, { replace: true })
+  }
+
   /**
    * 一次写入多个筛选值。
    * 连续调用单个 setter 时,每个 setter 都从「当前渲染的 searchParams」构造,
@@ -87,6 +104,10 @@ export function useGalleryQuery() {
       if (patch.colors && Number.isFinite(n) && n > 0) params.set('colors', String(Math.trunc(n)))
       else params.delete('colors')
     }
+    if ('view' in patch) {
+      if (patch.view && patch.view !== 'all') params.set('view', patch.view)
+      else params.delete('view')
+    }
     setSearchParams(params, { replace: true })
   }
 
@@ -95,10 +116,12 @@ export function useGalleryQuery() {
     category,
     difficulty,
     maxColors,
+    view,
     setSearchTerm,
     setCategory,
     setDifficulty,
     setMaxColors,
+    setView,
     setFilters,
   }
 }

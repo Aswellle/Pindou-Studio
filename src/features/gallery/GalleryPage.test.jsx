@@ -25,8 +25,8 @@ afterEach(() => {
   localStorage.clear()
 })
 
-const setup = (props = {}) => render(
-  <MemoryRouter initialEntries={['/gallery']}>
+const setup = (props = {}, initialEntries = ['/gallery']) => render(
+  <MemoryRouter initialEntries={initialEntries}>
     <GalleryPage
       onLoadTemplate={vi.fn()}
       onDeleteWork={vi.fn()}
@@ -88,6 +88,26 @@ describe('GalleryPage V2 — 本地模式', () => {
     expect(badges).toHaveLength(1)
     expect(badges[0].textContent).toBe('图纸导入')
     expect(badges[0].className).toContain('source-chart-import')
+  })
+
+  it('?view=works 深链接直达我的作品页签(个人中心快捷入口依赖它)', () => {
+    const { container } = setup({
+      savedWorks: [{ id: 'w1', name: '深链接作品', canvasData: [[null, '#FFD700']], gridSize: 2, gridWidth: 2, gridHeight: 1, savedAt: '2026-10-01T00:00:00Z' }],
+    }, ['/gallery?view=works'])
+
+    // 无需点击任何页签,作品卡已直接渲染
+    expect(container.querySelectorAll('.work-card').length).toBe(1)
+    expect(screen.getByText('深链接作品')).toBeTruthy()
+    // 页签自身也要处于选中态,否则用户会以为还在「全部模板」
+    const activeTab = container.querySelector('.filter-tab.active')
+    expect(activeTab.textContent).toContain('我的作品')
+  })
+
+  it('?view= 非法值时回落到全部模板,不出现空白页', () => {
+    const { container } = setup({ savedWorks: [] }, ['/gallery?view=不存在的页签'])
+
+    expect(container.querySelectorAll('.template-card').length).toBe(TEMPLATES.length)
+    expect(container.querySelector('.filter-tab.active').textContent).toContain('全部')
   })
 
   it('点击卡片弹出填充确认弹窗,确认后回调携带模板 pattern', () => {
