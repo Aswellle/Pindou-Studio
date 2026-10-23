@@ -13,6 +13,11 @@ import {
   loadDraft,
   clearDraft,
   DRAFT_SLOT,
+  listVersions,
+  appendVersion,
+  pruneVersions,
+  clearVersions,
+  estimateVersionBytes,
   __resetForTests,
 } from './worksStore'
 
@@ -260,5 +265,104 @@ describe('worksStore · 自动保存草稿', () => {
     expect(res.ok).toBe(false)
     expect(res.reason).toBe('unavailable')
     expect(await loadDraft()).toBeNull()
+  })
+})
+
+describe('worksStore · 历史版本(C2)', () => {
+  const version = (workId, extra = {}) => ({
+    workId,
+    canvasData: [[R]],
+    savedAt: `2026-10-19T00:00:00.000Z`,
+    ...extra,
+  })
+
+  it('追加后能按时间倒序列出', async () => {
+    await appendVersion(version(1, { canvasData: [[R]], savedAt: '2026-10-19T00:00:01.000Z' }))
+    await appendVersion(version(1, { canvasData: [[R, R]], savedAt: '2026-10-19T00:00:02.000Z' }))
+
+    const list = await listVersions(1)
+    expect(list).toHaveLength(2)
+    expect(list[0].savedAt).toBe('2026-10-19T00:00:02.000Z')
+    expect(list[1].savedAt).toBe('2026-10-19T00:00:01.000Z')
+  })
+
+  it('同一毫秒的两次保存不会互相覆盖(自增主键,不是时间戳)', async () => {
+    const stamp = '2026-10-19T00:00:00.000Z'
+    await appendVersion(version(1, { canvasData: [[R]], savedAt: stamp }))
+    await appendVersion(version(1, { canvasData: [[R, R]], savedAt: stamp }))
+
+    const list = await listVersions(1)
+    expect(list).toHaveLength(2)
+    // 同毫秒时按自增 id 倒序:后写入的在前
+    expect(list[0].versionId).toBeGreaterThan(list[1].versionId)
+  })
+
+  it('不同作品的版本互不干扰', async () => {
+    await appendVersion(version(1))
+    await appendVersion(version(2))
+    await appendVersion(version(2))
+
+    expect(await listVersions(1)).toHaveLength(1)
+    expect(await listVersions(2)).toHaveLength(2)
+    expect(await listVersions(3)).toHaveLength(0)
+  })
+
+  it('超过保留上限时淘汰最旧的', async () => {
+    for (let i = 0; i < 5; i++) {
+      await appendVersion(
+        version(1, { canvasData: [[R]], savedAt: `2026-10-19T00:00:0${i}.000Z` }),
+        { keep: 3 }
+      )
+    }
+    const list = await listVersions(1)
+    expect(list).toHaveLength(3)
+    // 留下的是最新的三条
+    expect(list.map((v) => v.savedAt)).toEqual([
+      '2026-10-19T00:00:04.000Z',
+      '2026-10-19T00:00:03.000Z',
+      '2026-10-19T00:00:02.000Z',
+    ])
+  })
+
+  it('pruneVersions 在未超限时什么都不删', async () => {
+    await appendVersion(version(1))
+    expect(await pruneVersions(1, 5)).toBe(0)
+    expect(await listVersions(1)).toHaveLength(1)
+  })
+
+  it('删除作品时清掉它的全部版本', async () => {
+    await appendVersion(version(1))
+    await appendVersion(version(1))
+    await appendVersion(version(2))
+
+    expect(await clearVersions(1)).toBe(true)
+    expect(await listVersions(1)).toHaveLength(0)
+    expect(await listVersions(2)).toHaveLength(1) // 其他作品不受影响
+  })
+
+  it('非法版本(缺 workId 或 canvasData)被拒绝,不写库', async () => {
+    expect((await appendVersion({ canvasData: [[R]] })).ok).toBe(false)
+    expect((await appendVersion({ workId: 1 })).ok).toBe(false)
+    expect((await appendVersion(null)).ok).toBe(false)
+    expect(await listVersions(1)).toHaveLength(0)
+  })
+
+  it('IndexedDB 不可用时静默降级为空历史,不抛异常', async () => {
+    globalThis.indexedDB = undefined
+    __resetForTests()
+
+    expect((await appendVersion(version(1))).ok).toBe(false)
+    expect(await listVersions(1)).toEqual([])
+    expect(await clearVersions(1)).toBe(false)
+  })
+
+  it('estimateVersionBytes 按 JSON 长度累加', async () => {
+    const list = [
+      { workId: 1, canvasData: [[R]] },
+      { workId: 1, canvasData: [[R, R]] },
+    ]
+    const expected = list.reduce((n, v) => n + JSON.stringify(v).length, 0)
+    expect(estimateVersionBytes(list)).toBe(expected)
+    expect(estimateVersionBytes(null)).toBe(0)
   })
 })

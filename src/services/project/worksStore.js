@@ -22,11 +22,12 @@
  */
 
 const DB_NAME = 'pindou-works'
-// v2 增加草稿槽(drafts)。升级处理器对新旧库都只补缺失的 store,
-// 因此从 v1 升级和全新安装走同一条路径。
-const DB_VERSION = 2
+// v2 增加草稿槽(drafts),v3 增加历史版本仓(versions)。
+// 升级处理器对新旧库都只补缺失的 store,因此从任意旧版本升级和全新安装走同一条路径。
+const DB_VERSION = 3
 const STORE = 'works'
 const DRAFT_STORE = 'drafts'
+const VERSION_STORE = 'versions'
 const LEGACY_KEY = 'saved-works'
 const LEGACY_BACKUP_KEY = 'saved-works-migrated'
 const LEGACY_CORRUPT_KEY = 'saved-works-corrupt'
@@ -67,6 +68,13 @@ function openDb() {
       // 不做多草稿 —— 自动保存的语义是「保住正在做的这一张」,不是版本库(C2 才做时间线)。
       if (!db.objectStoreNames.contains(DRAFT_STORE)) {
         db.createObjectStore(DRAFT_STORE, { keyPath: 'slot' })
+      }
+      // 历史版本仓:按 workId 建索引,主键自增(同一件作品可以有很多版本)。
+      // 存的是**快照**而非 diff —— 版本要能独立还原,而拼豆图纸的 diff
+      // 本身并不比快照小多少(改一格就要记一次),快照的还原路径最不容易出错。
+      if (!db.objectStoreNames.contains(VERSION_STORE)) {
+        const versions = db.createObjectStore(VERSION_STORE, { keyPath: 'versionId', autoIncrement: true })
+        versions.createIndex('workId', 'workId')
       }
     }
     req.onsuccess = () => resolve(req.result)
@@ -362,4 +370,105 @@ export async function clearDraft() {
 /** 仅供测试:重置连接缓存 */
 export function __resetForTests() {
   dbPromise = null
+}
+
+/* ── 作品历史版本(C2 版本时间线)────────────────────────── */
+
+/**
+ * 列出一件作品的版本(新的在前)。
+ *
+ * IndexedDB 不可用时返回空数组而不是抛错:版本时间线是增强功能,
+ * 存储不可用时应静默降级为「没有历史」,不能让作品本身打不开。
+ *
+ * @param {number|string} workId
+ * @param {{ limit?: number }} [options]
+ * @returns {Promise<Array>}
+ */
+export async function listVersions(workId, { limit = 0 } = {}) {
+  if (workId == null) return []
+  const db = await openDb()
+  if (!db) return []
+  const items = await run(db, 'readonly', (store) => store.index('workId').getAll(workId), VERSION_STORE)
+  if (!Array.isArray(items)) return []
+  // savedAt 是 ISO 字符串,字典序即时间序;versionId 自增作为同毫秒的次序兜底
+  const sorted = items.slice().sort((a, b) => {
+    const t = String(b.savedAt || '').localeCompare(String(a.savedAt || ''))
+    return t !== 0 ? t : (b.versionId || 0) - (a.versionId || 0)
+  })
+  return limit > 0 ? sorted.slice(0, limit) : sorted
+}
+
+/**
+ * 追加一个版本,并按上限淘汰最旧的。
+ *
+ * @param {Object} version - 至少含 workId 与 canvasData
+ * @param {{ keep?: number }} [options]
+ * @returns {Promise<{ ok: boolean, versionId?: number }>}
+ */
+export async function appendVersion(version, { keep = 20 } = {}) {
+  if (!version || version.workId == null || !Array.isArray(version.canvasData)) {
+    return { ok: false }
+  }
+  const db = await openDb()
+  if (!db) return { ok: false }
+
+  const record = {
+    ...version,
+    savedAt: version.savedAt || new Date().toISOString(),
+  }
+  // 不传 versionId:交给 autoIncrement,同一毫秒的两次保存也不会互相覆盖
+  delete record.versionId
+
+  const written = await run(db, 'readwrite', (store) => store.add(record), VERSION_STORE)
+  if (written === null || written === undefined) return { ok: false }
+
+  if (keep > 0) await pruneVersions(version.workId, keep)
+  return { ok: true, versionId: written }
+}
+
+/**
+ * 只保留最近 `keep` 个版本,更早的删除。
+ * @returns {Promise<number>} 删除条数
+ */
+export async function pruneVersions(workId, keep) {
+  if (workId == null || !(keep > 0)) return 0
+  const all = await listVersions(workId)
+  if (all.length <= keep) return 0
+  const db = await openDb()
+  if (!db) return 0
+  const stale = all.slice(keep)
+  let removed = 0
+  for (const item of stale) {
+    const res = await run(db, 'readwrite', (store) => store.delete(item.versionId), VERSION_STORE)
+    if (res !== null) removed++
+  }
+  return removed
+}
+
+/** 删除某件作品的全部版本(作品本身被删除时调用,避免孤儿版本占空间) */
+export async function clearVersions(workId) {
+  if (workId == null) return false
+  const db = await openDb()
+  if (!db) return false
+  const all = await listVersions(workId)
+  if (all.length === 0) return true
+  for (const item of all) {
+    const res = await run(db, 'readwrite', (store) => store.delete(item.versionId), VERSION_STORE)
+    if (res === null) return false
+  }
+  return true
+}
+
+/** 统计全部版本的占用字节数(配额提示用) */
+export function estimateVersionBytes(versions) {
+  if (!Array.isArray(versions)) return 0
+  let total = 0
+  for (const v of versions) {
+    try {
+      total += JSON.stringify(v).length
+    } catch {
+      // 循环引用等异常值跳过,估算失败不该打断版本列表渲染
+    }
+  }
+  return total
 }
