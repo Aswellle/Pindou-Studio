@@ -376,3 +376,35 @@ export function moveSelection(data, sel, dx, dy) {
   const changed = diffCount(data, next, rows, cols)
   return changed ? { data: next, changed, selection } : { data: null, changed: 0, selection }
 }
+
+/**
+ * Copy the selection contents to (dx, dy) away, leaving the original in place.
+ *
+ * This is the Alt/Option-drag variant of `moveSelection` (A2): the user is
+ * duplicating a block, not relocating it. Same offset rule (clamped, so the
+ * copy always stays inside the grid) but the source region is never emptied.
+ *
+ * `data` is null when nothing actually changed — the copy landed exactly on
+ * identical content. Callers must not push history then, but still adopt the
+ * returned `selection` so the marquee follows the copy.
+ */
+export function copyMoveSelection(data, sel, dx, dy) {
+  const { rows, cols } = gridSize(data)
+  if (!sel || rows === 0 || cols === 0) return { data: null, changed: 0, selection: sel }
+  if (!dx && !dy) return { data: null, changed: 0, selection: sel }
+
+  const offset = clampMove(sel, dx, dy, cols, rows)
+  const nx = sel.x + offset.dx
+  const ny = sel.y + offset.dy
+  const selection = { x: nx, y: ny, w: sel.w, h: sel.h }
+  if (nx === sel.x && ny === sel.y) return { data: null, changed: 0, selection: sel }
+
+  const { block } = copySelection(data, sel)
+  // 整块空白:复制一份空白等于什么都没做,不必压一条空历史 ——
+  // 但选区照样跟到落点,与 moveSelection 一致(松手后选框不该跳回原处)
+  if (!block) return { data: null, changed: 0, selection }
+
+  const stamped = stampBlock(data, block, nx, ny)
+  if (!stamped.data) return { data: null, changed: 0, selection }
+  return { data: stamped.data, changed: stamped.changed, selection }
+}

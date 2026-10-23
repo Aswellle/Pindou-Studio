@@ -13,6 +13,7 @@ import {
   stampBlock,
   clampMove,
   moveSelection,
+  copyMoveSelection,
   copySelection,
   pasteBlock,
 } from './selectionUtils'
@@ -311,6 +312,56 @@ describe('selectionUtils · 拖拽移动选区(M5.2)', () => {
     const source = grid()
     const snapshot = clone(source)
     moveSelection(source, { x: 0, y: 0, w: 2, h: 2 }, 1, 1)
+    expect(source).toEqual(snapshot)
+  })
+})
+
+describe('selectionUtils · 复制拖动(A2)', () => {
+  it('复制到新位置,原位置内容保持不变', () => {
+    // 与 moveSelection 的关键区别:原件必须还在。用户按 Alt 拖动是「再要一份」,
+    // 不是「搬到别处」—— 若原件被清空,这个手势就只是换了名字的移动。
+    const res = copyMoveSelection(grid(), { x: 0, y: 0, w: 2, h: 2 }, 2, 1)
+
+    expect(res.selection).toEqual({ x: 2, y: 1, w: 2, h: 2 })
+    // 副本
+    expect(res.data[1].slice(2, 4)).toEqual([R, R])
+    expect(res.data[2].slice(2, 4)).toEqual([R, null])
+    // 原件仍在原处
+    expect(res.data[0].slice(0, 2)).toEqual([R, R])
+    expect(res.data[1].slice(0, 2)).toEqual([R, null])
+  })
+
+  it('越界同样钳制,副本完整落在画布内', () => {
+    const res = copyMoveSelection(grid(), { x: 0, y: 0, w: 2, h: 2 }, 99, 99)
+    expect(res.selection).toEqual({ x: 2, y: 1, w: 2, h: 2 })
+    expect(res.data[1].slice(2, 4)).toEqual([R, R])
+    expect(res.data[2].slice(2, 4)).toEqual([R, null])
+    // 原件不动
+    expect(res.data[0][0]).toBe(R)
+  })
+
+  it('偏移为 0 → data 为 null(不压栈)', () => {
+    expect(copyMoveSelection(grid(), { x: 0, y: 0, w: 2, h: 2 }, 0, 0).data).toBeNull()
+  })
+
+  it('复制全空区域 → data 为 null,选区仍跟随', () => {
+    // 复制一份空白等于什么都没做,不该压一条空历史
+    const empty = Array.from({ length: 3 }, () => Array(4).fill(null))
+    const res = copyMoveSelection(empty, { x: 0, y: 0, w: 2, h: 2 }, 1, 0)
+    expect(res.data).toBeNull()
+    expect(res.selection).toEqual({ x: 1, y: 0, w: 2, h: 2 })
+  })
+
+  it('副本盖在相同内容上 → data 为 null(没有实际变化)', () => {
+    // 整块同色:复制到另一处同色区域,矩阵不变,不该产生一条空历史
+    const same = Array.from({ length: 3 }, () => Array(4).fill(R))
+    expect(copyMoveSelection(same, { x: 0, y: 0, w: 2, h: 2 }, 2, 0).data).toBeNull()
+  })
+
+  it('不修改输入矩阵', () => {
+    const source = grid()
+    const snapshot = clone(source)
+    copyMoveSelection(source, { x: 0, y: 0, w: 2, h: 2 }, 1, 1)
     expect(source).toEqual(snapshot)
   })
 })
