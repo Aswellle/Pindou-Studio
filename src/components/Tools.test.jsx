@@ -54,6 +54,7 @@ describe('Tools · 桌面选区面板', () => {
     const buttons = $$('.selection-actions button')
     const expected = [
       'tools.fillSelection', 'tools.clearSelection',
+      'tools.copySelection', 'tools.pasteSelection',
       'tools.mirrorH', 'tools.mirrorV',
       'tools.rotateCw', 'tools.rotateCcw',
       'tools.clearSelectionBtn',
@@ -109,5 +110,25 @@ describe('Tools · 桌面选区面板', () => {
   it('开关打开时 checkbox 呈选中态', () => {
     renderTools({ fillIncludeEmpty: true })
     expect($('.selection-fill-toggle input').checked).toBe(true)
+  })
+
+  it('空剪贴板时「粘贴」禁用,有内容时可用', () => {
+    const { unmount } = renderTools({ canPaste: false })
+    const pasteOf = () => $$('.selection-actions button')
+      .find(b => b.textContent.includes(i18n.t('tools.pasteSelection')))
+    expect(pasteOf().disabled).toBe(true)
+    unmount()
+
+    renderTools({ canPaste: true })
+    expect(pasteOf().disabled).toBe(false)
+  })
+
+  it('复制按钮始终可点(复制不依赖剪贴板)', () => {
+    const { props } = renderTools({ canPaste: false })
+    const copyBtn = $$('.selection-actions button')
+      .find(b => b.textContent.includes(i18n.t('tools.copySelection')))
+    expect(copyBtn.disabled).toBe(false)
+    fireEvent.click(copyBtn)
+    expect(props.onSelectionCommand).toHaveBeenCalledWith('copy')
   })
 })

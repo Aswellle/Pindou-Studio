@@ -175,6 +175,24 @@ const RotateCcwIcon = () => (
   </svg>
 )
 
+// 复制 / 粘贴:与桌面端 lucide 同款线条(两个重叠方块 / 剪贴板 + 插入箭头)
+const CopyIcon = () => (
+  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <rect x="8" y="8" width="13" height="13" rx="2" />
+    <path d="M4 16a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2" />
+  </svg>
+)
+
+const PasteIcon = () => (
+  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M15 4h2a2 2 0 0 1 2 2v3" />
+    <path d="M9 4H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h5" />
+    <rect x="9" y="2" width="6" height="4" rx="1" />
+    <path d="M19 14v7" />
+    <polyline points="16,18 19,21 22,18" />
+  </svg>
+)
+
 // 四向箭头:提示「选区内可以拖动移动」
 const MoveIcon = () => (
   <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -225,6 +243,8 @@ export default function MobileToolbar({
   // 选区填充是否包含空白格(默认 false,规格 04 §2)
   fillIncludeEmpty = false,
   onToggleFillIncludeEmpty,
+  // 剪贴板里有没有内容:只用于禁用「粘贴」按钮,内容本身留在 App 层
+  canPaste = false,
 }) {
   const { t } = useTranslation()
   const toast = useToast()
@@ -497,6 +517,22 @@ export default function MobileToolbar({
                   onClick={() => onSelectionCommand?.('erase')}
                 >
                   <EraserIcon /><span className="selection-btn-label">{t('tools.selectionEraseShort')}</span>
+                </button>
+                {/* 复制 / 粘贴:纯内存剪贴板;粘贴以选区左上角为落点,越界裁剪 */}
+                <button
+                  className="selection-btn"
+                  aria-label={t('tools.copySelection')} title={t('tools.copySelection')}
+                  onClick={() => onSelectionCommand?.('copy')}
+                >
+                  <CopyIcon /><span className="selection-btn-label">{t('tools.selectionCopyShort')}</span>
+                </button>
+                <button
+                  className="selection-btn"
+                  aria-label={t('tools.pasteSelection')} title={t('tools.pasteSelection')}
+                  onClick={() => onSelectionCommand?.('paste')}
+                  disabled={!canPaste}
+                >
+                  <PasteIcon /><span className="selection-btn-label">{t('tools.selectionPasteShort')}</span>
                 </button>
                 <button
                   className="selection-btn"

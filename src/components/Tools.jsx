@@ -3,6 +3,7 @@ import { useToast } from './Toast'
 import {
   Pencil, Eraser, PaintBucket, Hand, Undo2, Redo2, Trash2, ChevronLeft, ChevronRight, FileJson,
   Pipette, SquareDashed, Replace, FlipHorizontal2, FlipVertical2, RotateCw, RotateCcw, X,
+  Copy, ClipboardPaste,
 } from 'lucide-react'
 
 export default function Tools({
@@ -30,6 +31,8 @@ export default function Tools({
   // 选区填充是否包含空白格(默认 false,规格 04 §2)
   fillIncludeEmpty = false,
   onToggleFillIncludeEmpty,
+  // 剪贴板里有没有内容:只用于禁用「粘贴」按钮,内容本身留在 App 层
+  canPaste = false,
 }) {
   const { t } = useTranslation()
   const toast = useToast()
@@ -158,6 +161,19 @@ export default function Tools({
                   </button>
                   <button className="action-btn" onClick={() => onSelectionCommand?.('erase')} title={t('tools.clearSelection')}>
                     <Eraser size={15} /><span className="action-btn-label">{t('tools.clearSelection')}</span>
+                  </button>
+                  {/* 复制 / 粘贴:纯内存剪贴板,不碰系统剪贴板。
+                      粘贴以当前选区左上角为落点(无选区时贴到画布左上角),越界裁剪。 */}
+                  <button className="action-btn" onClick={() => onSelectionCommand?.('copy')} title={t('tools.copySelection')}>
+                    <Copy size={15} /><span className="action-btn-label">{t('tools.copySelection')}</span>
+                  </button>
+                  <button
+                    className="action-btn"
+                    onClick={() => onSelectionCommand?.('paste')}
+                    disabled={!canPaste}
+                    title={t('tools.pasteSelection')}
+                  >
+                    <ClipboardPaste size={15} /><span className="action-btn-label">{t('tools.pasteSelection')}</span>
                   </button>
                   <button className="action-btn" onClick={() => onSelectionCommand?.('mirrorH')} title={t('tools.mirrorH')}>
                     <FlipHorizontal2 size={15} /><span className="action-btn-label">{t('tools.mirrorH')}</span>

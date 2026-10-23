@@ -95,6 +95,13 @@
   white-space: nowrap;
 }
 .selection-btn:hover { background: var(--bg-secondary); }
+/* 空剪贴板时「粘贴」置灰:保留在操作条里(位置固定,用户知道它存在),
+   但不可点 —— 与桌面端 action-btn:disabled 保持同一套观感 */
+.selection-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+.selection-btn:disabled:hover { background: var(--bg-primary); }
 /* 「取消选区」是退出动作而不是编辑动作:与命令按钮拉开一点距离,视觉上降级 */
 .selection-btn.selection-clear {
   margin-left: auto;

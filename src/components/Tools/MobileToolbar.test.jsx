@@ -78,6 +78,8 @@ describe('MobileToolbar · 选区操作条', () => {
     const expected = [
       ['tools.selectionFillShort', 'tools.fillSelection'],
       ['tools.selectionEraseShort', 'tools.clearSelection'],
+      ['tools.selectionCopyShort', 'tools.copySelection'],
+      ['tools.selectionPasteShort', 'tools.pasteSelection'],
       ['tools.selectionFlipHShort', 'tools.mirrorH'],
       ['tools.selectionFlipVShort', 'tools.mirrorV'],
       ['tools.selectionRotateCwShort', 'tools.rotateCw'],
@@ -111,6 +113,7 @@ describe('MobileToolbar · 选区操作条', () => {
 
     const keys = [
       'selectionFillShort', 'selectionEraseShort',
+      'selectionCopyShort', 'selectionPasteShort',
       'selectionFlipHShort', 'selectionFlipVShort',
       'selectionRotateCwShort', 'selectionRotateCcwShort',
     ]
@@ -169,6 +172,27 @@ describe('MobileToolbar · 选区操作条', () => {
     const mirrorH = buttons.find(b => b.getAttribute('aria-label') === i18n.t('tools.mirrorH'))
     fireEvent.click(mirrorH)
     expect(props.onSelectionCommand).toHaveBeenCalledWith('mirrorH')
+  })
+
+  it('空剪贴板时「粘贴」禁用,有内容时可用', () => {
+    const { unmount } = renderBar({ selection: { x: 0, y: 0, w: 2, h: 2 }, canPaste: false })
+    const pasteOf = () => [...$$('.selection-actions-row button')]
+      .find(b => b.getAttribute('aria-label') === i18n.t('tools.pasteSelection'))
+
+    expect(pasteOf().disabled).toBe(true)
+    unmount()
+
+    renderBar({ selection: { x: 0, y: 0, w: 2, h: 2 }, canPaste: true })
+    expect(pasteOf().disabled).toBe(false)
+  })
+
+  it('复制按钮始终可点(复制不依赖剪贴板)', () => {
+    const { props } = renderBar({ selection: { x: 0, y: 0, w: 2, h: 2 }, canPaste: false })
+    const copyBtn = [...$$('.selection-actions-row button')]
+      .find(b => b.getAttribute('aria-label') === i18n.t('tools.copySelection'))
+    expect(copyBtn.disabled).toBe(false)
+    fireEvent.click(copyBtn)
+    expect(props.onSelectionCommand).toHaveBeenCalledWith('copy')
   })
 })
 
