@@ -92,6 +92,21 @@ describe('buildPatternSnapshot', () => {
     expect(buildPatternSnapshot({ ...tpl, pattern: undefined })).toBe(null)
     expect(buildPatternSnapshot({ ...tpl, name: '', nameZh: '' })).toBe(null)
   })
+
+  it('传入 ogImage 时补全为绝对地址(社交平台不解析相对路径)', () => {
+    const snap = buildPatternSnapshot(tpl, { ogImage: '/og/pattern/tpl-1-abc.png' })
+    expect(snap.image).toBe('https://tangnotes.site/og/pattern/tpl-1-abc.png')
+  })
+
+  it('未传 ogImage 时 image 为空(绘制层负责退回站点默认图)', () => {
+    expect(buildPatternSnapshot(tpl).image).toBe('')
+    expect(buildPatternSnapshot(tpl, { ogImage: '' }).image).toBe('')
+  })
+
+  it('ogImage 已是绝对地址时原样保留(便于换 CDN)', () => {
+    const snap = buildPatternSnapshot(tpl, { ogImage: 'https://cdn.example.com/a.png' })
+    expect(snap.image).toBe('https://cdn.example.com/a.png')
+  })
 })
 
 describe('buildThemeSnapshot / buildCollectionSnapshot', () => {
@@ -215,6 +230,9 @@ describe('renderSnapshotHtml', () => {
     '  <meta property="og:description" content="OG 描述" />',
     '  <meta property="og:url" content="https://tangnotes.site/" />',
     '  <meta property="og:image" content="https://tangnotes.site/og-image.png" />',
+    '  <meta property="og:image:width" content="1200" />',
+    '  <meta property="og:image:height" content="630" />',
+    '  <meta property="og:image:alt" content="拼豆Studio - 在线拼豆图纸设计工具" />',
     '  <meta name="twitter:title" content="TW 首页" />',
     '  <meta name="twitter:description" content="TW 描述" />',
     '  <meta name="twitter:image" content="https://tangnotes.site/og-image.png" />',
@@ -264,6 +282,62 @@ describe('renderSnapshotHtml', () => {
     )
     expect(out).toContain('<meta property="og:image" content="https://tangnotes.site/covers/a.png" />')
     expect(out).toContain('<meta name="twitter:image" content="https://tangnotes.site/covers/a.png" />')
+  })
+
+  it('封面尺寸未知时删除 og:image:width/height(避免按错误比例裁切)', () => {
+    // 主题/合集的 cover_url 是管理员上传的任意尺寸,首页声明的 1200×630 是错的。
+    // 缺少这两行时平台会自己探测真实尺寸,比声明错误尺寸安全。
+    const out = renderSnapshotHtml(
+      INDEX,
+      { ...snap, image: 'https://tangnotes.site/covers/a.png' },
+      'https://tangnotes.site/gallery/pattern/t1',
+    )
+    expect(out).not.toContain('og:image:width')
+    expect(out).not.toContain('og:image:height')
+  })
+
+  it('封面尺寸已知时改写 og:image:width/height', () => {
+    const out = renderSnapshotHtml(
+      INDEX,
+      { ...snap, image: 'https://tangnotes.site/og/pattern/x-abc.png' },
+      'https://tangnotes.site/gallery/pattern/x',
+      { imageSize: { width: 1200, height: 630 } },
+    )
+    expect(out).toContain('<meta property="og:image:width" content="1200" />')
+    expect(out).toContain('<meta property="og:image:height" content="630" />')
+  })
+
+  it('尺寸与实际不同时按传入值改写(不是照抄首页的 1200×630)', () => {
+    const out = renderSnapshotHtml(
+      INDEX,
+      { ...snap, image: 'https://tangnotes.site/covers/a.png' },
+      'https://tangnotes.site/gallery/theme/t',
+      { imageSize: { width: 800, height: 450 } },
+    )
+    expect(out).toContain('<meta property="og:image:width" content="800" />')
+    expect(out).toContain('<meta property="og:image:height" content="450" />')
+    expect(out).not.toContain('content="1200"')
+  })
+
+  it('无封面时不碰尺寸 meta(站点默认图确实是 1200×630)', () => {
+    const out = renderSnapshotHtml(INDEX, snap, 'https://tangnotes.site/gallery/pattern/t1')
+    expect(out).toContain('<meta property="og:image:width" content="1200" />')
+    expect(out).toContain('<meta property="og:image:height" content="630" />')
+  })
+
+  it('有封面时 og:image:alt 换成内容标题(不再是站点级文案)', () => {
+    const out = renderSnapshotHtml(
+      INDEX,
+      { ...snap, image: 'https://tangnotes.site/og/pattern/x-abc.png' },
+      'https://tangnotes.site/gallery/pattern/x',
+    )
+    expect(out).toContain('<meta property="og:image:alt" content="小鸭 拼豆图纸 - 拼豆Studio" />')
+    expect(out).not.toContain('在线拼豆图纸设计工具')
+  })
+
+  it('无封面时 og:image:alt 保持站点级文案', () => {
+    const out = renderSnapshotHtml(INDEX, snap, 'https://tangnotes.site/gallery/pattern/t1')
+    expect(out).toContain('在线拼豆图纸设计工具')
   })
 
   it('注入静态正文与首帧隐藏守卫', () => {

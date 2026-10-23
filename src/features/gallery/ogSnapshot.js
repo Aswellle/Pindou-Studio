@@ -100,10 +100,18 @@ function colorListHtml(stats) {
 
 /**
  * 图纸详情快照。
+ *
+ * `ogImage` 由构建脚本传入(生成的分享卡片路径)。为空的后果只是退回站点
+ * 默认图 —— 纯函数层不负责画图,也不知道卡片生成成功与否。
+ *
  * @param {object} template - 云端模板行(含 pattern)
- * @returns {{path:string,title:string,description:string,image:string,bodyHtml:string}|null}
+ * @param {object} [opts]
+ * @param {string} [opts.ogImage] 分享卡片路径(站内绝对路径或完整 URL)
+ * @param {{width:number,height:number}} [opts.ogImageSize] 卡片实际像素尺寸;
+ *   与 ogCard 的 OG_CARD_WIDTH/HEIGHT 一致时才会被写入 meta
+ * @returns {{path:string,title:string,description:string,image:string,imageSize:object|null,bodyHtml:string}|null}
  */
-export function buildPatternSnapshot(template, { site: _site = SITE } = {}) {
+export function buildPatternSnapshot(template, { site = SITE, ogImage = '', ogImageSize = null } = {}) {
   if (!template?.id || !template?.pattern) return null
   const name = templateDisplayName(template)
   if (!name) return null
@@ -135,7 +143,7 @@ export function buildPatternSnapshot(template, { site: _site = SITE } = {}) {
     '<p class="note">在拼豆Studio 打开本页可复制到自己的图纸、导出图纸或直接开始制作。</p>',
   ].join('\n')
 
-  return { path, title, description, image: '', bodyHtml }
+  return { path, title, description, image: absoluteUrl(ogImage, site), imageSize: ogImageSize, bodyHtml }
 }
 /**
  * 主题快照。patterns 为该主题下的模板(已按关联顺序解析)。
@@ -298,9 +306,10 @@ const HREFLANG_LANGS = ['zh-CN', 'en', 'ja', 'ko', 'x-default']
  * @param {string} indexHtml - dist/index.html 的原始内容
  * @param {{title:string,description:string,image:string,bodyHtml:string}} snap
  * @param {string} canonicalUrl - 本页绝对地址
- * @param {{noindex?:boolean}} [opts]
+ * @param {{noindex?:boolean, imageSize?:{width:number,height:number}}} [opts]
+ *   imageSize 为 og:image 的真实像素尺寸;不传则删除尺寸 meta(交给平台自行探测)
  */
-export function renderSnapshotHtml(indexHtml, snap, canonicalUrl, { noindex = false } = {}) {
+export function renderSnapshotHtml(indexHtml, snap, canonicalUrl, { noindex = false, imageSize = null } = {}) {
   const EOL = indexHtml.includes('\r\n') ? '\r\n' : '\n'
   const robots = noindex
     ? 'noindex, nofollow'
@@ -318,10 +327,30 @@ export function renderSnapshotHtml(indexHtml, snap, canonicalUrl, { noindex = fa
     .replace(/<meta name="twitter:description" content="[^"]*"\s*\/?>/, `<meta name="twitter:description" content="${snap.description}" />`)
 
   // 封面:有则替换;无则保留站点默认图(空 content 会让社交平台显示无图卡片)
+  //
+  // 尺寸也要一起处理。index.html 把 og:image:width/height 写死成站点默认图的
+  // 1200×630,而主题/合集的 cover_url 是管理员上传的任意尺寸 —— 元数据说
+  // 1200×630、图片却是别的比例时,部分平台会按声明比例裁切,或直接不渲染大图。
+  // 图纸卡片确实是 1200×630(见 ogCard.OG_CARD_WIDTH),由调用方显式声明。
   if (snap.image) {
     out = out
       .replace(/<meta property="og:image" content="[^"]*"\s*\/?>/, `<meta property="og:image" content="${snap.image}" />`)
       .replace(/<meta name="twitter:image" content="[^"]*"\s*\/?>/, `<meta name="twitter:image" content="${snap.image}" />`)
+      // alt 描述的是「这张图是什么」。换成内容自己的图后仍留着站点级 alt,
+      // 无障碍与部分平台的图片描述会张冠李戴。
+      .replace(/<meta property="og:image:alt" content="[^"]*"\s*\/?>/, `<meta property="og:image:alt" content="${snap.title}" />`)
+
+    // 尺寸未知的封面(主题/合集)直接删掉这两行 —— 缺元数据时平台会自己探测
+    // 图片尺寸,比声明一个错误的尺寸更安全。
+    if (!imageSize) {
+      out = out
+        .replace(/\s*<meta property="og:image:width" content="[^"]*"\s*\/?>/g, '')
+        .replace(/\s*<meta property="og:image:height" content="[^"]*"\s*\/?>/g, '')
+    } else {
+      out = out
+        .replace(/<meta property="og:image:width" content="[^"]*"\s*\/?>/, `<meta property="og:image:width" content="${imageSize.width}" />`)
+        .replace(/<meta property="og:image:height" content="[^"]*"\s*\/?>/, `<meta property="og:image:height" content="${imageSize.height}" />`)
+    }
   }
 
   // hreflang:首页那 5 行指向 /,留着会让每个快照页都声称自己是首页的语言变体

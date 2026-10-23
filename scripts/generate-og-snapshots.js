@@ -39,6 +39,7 @@ import {
   appendToSitemap,
   renderSnapshotHtml,
 } from '../src/features/gallery/ogSnapshot.js'
+import { ogCardPath, patternContentHash, OG_CARD_WIDTH, OG_CARD_HEIGHT } from '../src/features/gallery/ogCard.js'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const ROOT = path.join(__dirname, '..')
@@ -179,11 +180,33 @@ function linkedTemplates(links, parentKey, parentId, byId) {
 // 这里只负责读模板文件与落盘。
 function writeSnapshot(indexHtml, snap, site) {
   const canonicalUrl = `${site}${snap.path}`
-  const html = renderSnapshotHtml(indexHtml, snap, canonicalUrl)
+  const html = renderSnapshotHtml(indexHtml, snap, canonicalUrl, { imageSize: snap.imageSize || null })
   const dir = path.join(DIST, snap.path.replace(/^\//, ''))
   fs.mkdirSync(dir, { recursive: true })
   fs.writeFileSync(path.join(dir, 'index.html'), html)
   debug(`写入 ${snap.path}/index.html`)
+}
+
+// ── 分享卡片 ────────────────────────────────────────────────
+// 图纸没有封面字段,不画卡片的话所有图纸分享出去都是同一张站点默认图。
+// 卡片是增强项:原生 canvas 装不上(或绘图抛错)时一律降级为「不生成」,
+// 快照照常产出,只是 og:image 退回站点默认图。
+async function writePatternCard(template) {
+  try {
+    // 动态 import:模块本身也依赖原生 canvas,顶层 import 失败会连累整个脚本
+    const { renderPatternCard } = await import('./og-card-renderer.mjs')
+    const png = await renderPatternCard(template, { root: ROOT })
+    if (!png) return ''
+    const rel = ogCardPath(template.id, patternContentHash(template))
+    const file = path.join(DIST, rel.replace(/^\//, ''))
+    fs.mkdirSync(path.dirname(file), { recursive: true })
+    fs.writeFileSync(file, png)
+    debug(`写入 ${rel}`)
+    return rel
+  } catch (e) {
+    debug(`卡片生成失败(${template?.id}):${e?.message || e}`)
+    return ''
+  }
 }
 
 // ── 主流程 ──────────────────────────────────────────────────
@@ -218,8 +241,18 @@ async function main() {
   const collections = content.collections.map(rowToContent)
 
   const snapshots = []
+  let cards = 0
+  const cardSize = { width: OG_CARD_WIDTH, height: OG_CARD_HEIGHT }
   for (const t of templates) {
-    const snap = buildPatternSnapshot(t, { site })
+    const ogImage = await writePatternCard(t)
+    if (ogImage) cards++
+    const snap = buildPatternSnapshot(t, {
+      site,
+      ogImage,
+      // 卡片尺寸已知且固定;没生成卡片时传 null,让 renderSnapshotHtml 删掉
+      // 那两行尺寸 meta(保留站点默认图的 1200×630 反而是错的)
+      ogImageSize: ogImage ? cardSize : null,
+    })
     if (snap) snapshots.push(snap)
   }
   for (const theme of themes) {
@@ -259,7 +292,7 @@ async function main() {
     debug('sitemap.xml 已追加动态条目')
   }
 
-  log(`完成:${written} 份快照(主题 ${themes.length} / 合集 ${collections.length} / 图纸 ${templates.length})`)
+  log(`完成:${written} 份快照(主题 ${themes.length} / 合集 ${collections.length} / 图纸 ${templates.length}),分享卡片 ${cards} 张`)
   if (STRICT && written < limited.length) process.exitCode = 1
 }
 
