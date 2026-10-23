@@ -913,6 +913,19 @@
           background: var(--error);
           color: white;
         }
+        /* 历史入口:视觉上比「载入/删除」轻,它是查看而非操作。
+           三个按钮等宽并排会把标签挤到换行,这里给它更小的 flex 权重。 */
+        .work-btn.history {
+          flex: 0 0 auto;
+          padding: 8px 10px;
+          background: transparent;
+          border: 1px solid var(--border-color);
+          color: var(--text-secondary);
+        }
+        .work-btn.history:hover {
+          border-color: var(--accent);
+          color: var(--accent-hover);
+        }
 
         /* ── 发现区块(精选 / 热门 / 最新 / 主题 / 合集) ───────── */
         .discovery {

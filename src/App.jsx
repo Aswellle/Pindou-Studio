@@ -19,6 +19,7 @@ import BrandSwitchDialog from './components/BrandSwitchDialog'
 import DraftRestorePrompt from './components/DraftRestorePrompt'
 import MyBeadsPage from './components/MyBeadsPage'
 import SelectionContextMenu from './components/SelectionContextMenu'
+import VersionHistoryDialog from './components/VersionHistoryDialog'
 import { useToast } from './components/Toast'
 import {
   fillSelection,
@@ -142,7 +143,7 @@ export default function App() {
     canvasRef.current?.cancelStroke?.()
     resetCanvas(nextData)
   }, [resetCanvas])
-  const { works: savedWorks, worksLoading, worksError, syncCount, cloudMirrorCount, saveState, markDirty, saveWork, updateWork, deleteWork, ackSync, reload: reloadWorks } = useSavedWorks(user)
+  const { works: savedWorks, worksLoading, worksError, syncCount, cloudMirrorCount, saveState, markDirty, saveWork, updateWork, deleteWork, ackSync, reload: reloadWorks, loadVersions, rollbackToVersion } = useSavedWorks(user)
 
   // 画布内容变化 → 标记「未保存」。
   // 只在 canvasData 真的换了一个矩阵对象时触发(useHistory 每次 PUSH/RESET
@@ -191,6 +192,9 @@ export default function App() {
   const [saveToast, setSaveToast] = useState(false)
   const [fitToast, setFitToast] = useState(false)
   const [syncToast, setSyncToast] = useState(false)
+  // 版本时间线:存的是「正在看哪件作品的历史」,不是版本数据本身 ——
+  // 版本由 VersionHistoryDialog 打开时按 work.id 现拉,避免 App 里再维护一份缓存。
+  const [versionsWork, setVersionsWork] = useState(null)
 
   // 登录迁移完成后展示「已同步 N 幅作品到云端」toast
   useEffect(() => {
@@ -316,7 +320,8 @@ export default function App() {
 
   // 保存/导出弹层同时打开时用 fixed 锁(记录并回滚滚动位置);单独保存弹层只需 overflow 锁。
   // 统一走引用计数,避免与 ContactUsModal / ImageQuantizer 等弹层互相覆盖。
-  const anyModalOpen = showSaveDialog || showExport
+  // 版本面板同样需要滚动锁:它自己内部滚动,背景不应跟着动。
+  const anyModalOpen = showSaveDialog || showExport || !!versionsWork
   useScrollLock(anyModalOpen, { fixed: showExport })
 
   const handleClearCanvas = () => {
@@ -418,6 +423,28 @@ export default function App() {
     replaceCanvas(work.canvasData)
     navigate('/')
   }
+
+  /**
+   * 回滚成功后把内容同步进画布。
+   *
+   * 回滚改的是作品本体,但用户当前可能正在画布上编辑别的内容 ——
+   * 不同步进画布,用户会看到「历史显示已回滚、画布还是旧样子」。
+   * 走 replaceCanvas 而不是 setCanvas:这是载入,不是用户画的一笔,
+   * 不该在撤销栈里多出一条。同时对齐自动保存基线,否则这次载入
+   * 会被当成新改动立刻再写一次草稿。
+   */
+  const handleRollbackVersion = useCallback(async (work, version) => {
+    const restored = await rollbackToVersion(work, version)
+    if (!restored) return null
+    setGridSize(restored.gridSize)
+    setGridWidth(restored.gridWidth ?? null)
+    setGridHeight(restored.gridHeight ?? null)
+    setCurrentPalette(restored.paletteId || 'perler')
+    replaceCanvas(restored.canvasData)
+    resetBaseline(restored.canvasData)
+    toast(t('versions.rollbackDone', { time: new Date().toLocaleString() }), 'success')
+    return restored
+  }, [rollbackToVersion, replaceCanvas, resetBaseline, toast, t])
 
   // 导入的项目直接进画布继续编辑(不落库;用户可再点保存决定是否留存)
   const handleLoadImportedProject = (project) => {
@@ -881,6 +908,9 @@ export default function App() {
                 onLoadTemplate={handleLoadTemplate}
                 onDeleteWork={deleteWork}
                 onLoadWork={handleLoadWork}
+                // 版本时间线只覆盖本地作品:云端作品的「里程碑版本」策略未定,
+                // 传 undefined 让按钮不出现,而不是给一个点了没反应的入口。
+                onShowVersions={!user ? setVersionsWork : undefined}
                 savedWorks={savedWorks}
                 worksLoading={worksLoading}
                 cloudMirrorCount={cloudMirrorCount}
@@ -1265,6 +1295,9 @@ export default function App() {
                 onLoadTemplate={handleLoadTemplate}
                 onDeleteWork={deleteWork}
                 onLoadWork={handleLoadWork}
+                // 版本时间线只覆盖本地作品:云端作品的「里程碑版本」策略未定,
+                // 传 undefined 让按钮不出现,而不是给一个点了没反应的入口。
+                onShowVersions={!user ? setVersionsWork : undefined}
                 savedWorks={savedWorks}
                 worksLoading={worksLoading}
                 cloudMirrorCount={cloudMirrorCount}
@@ -1655,6 +1688,15 @@ export default function App() {
     <>
       {seoHelmet}
       {isMobile || isTablet ? renderMobileLayout() : renderDesktopLayout()}
+      {/* 版本时间线:与布局无关,桌面/移动共用同一份,只挂一次。
+          组件内部已 createPortal 到 body,不受布局容器影响。 */}
+      <VersionHistoryDialog
+        open={!!versionsWork}
+        work={versionsWork}
+        loadVersions={loadVersions}
+        onRollback={handleRollbackVersion}
+        onClose={() => setVersionsWork(null)}
+      />
     </>
   )
 }

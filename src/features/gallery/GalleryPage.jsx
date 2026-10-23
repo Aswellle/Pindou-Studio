@@ -51,7 +51,7 @@ function ColorDots({ pattern }) {
   )
 }
 
-export default function GalleryPage({ onLoadTemplate, onDeleteWork, onLoadWork, savedWorks = [], worksLoading, cloudMirrorCount = 0, cloudStore, user, onLogin, onRegister }) {
+export default function GalleryPage({ onLoadTemplate, onDeleteWork, onLoadWork, onShowVersions, savedWorks = [], worksLoading, cloudMirrorCount = 0, cloudStore, user, onLogin, onRegister }) {
   const { t } = useTranslation()
   const toast = useToast()
   const navigate = useNavigate()
@@ -540,6 +540,16 @@ export default function GalleryPage({ onLoadTemplate, onDeleteWork, onLoadWork, 
                         >
                           {t('gallery.load')}
                         </button>
+                        {/* 历史入口只在有回调时出现:本地模式才有版本时间线,
+                            云端作品的版本策略未定,不显示一个点了没反应的按钮 */}
+                        {onShowVersions && (
+                          <button
+                            className="work-btn history"
+                            onClick={() => onShowVersions(work)}
+                          >
+                            {t('versions.open')}
+                          </button>
+                        )}
                         <button
                           className="work-btn delete"
                           onClick={() => onDeleteWork(work)}
