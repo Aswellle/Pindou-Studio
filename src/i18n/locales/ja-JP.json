@@ -514,6 +514,15 @@
     "fillIncludeEmpty": "塗りつぶし時に空白マスを含める",
     "fillIncludeEmptyShort": "空白を含む",
     "selectionFillNoBeads": "選択範囲に塗りつぶせるビーズがありません(空白マスはスキップ)",
+    "copySelection": "選択範囲をコピー",
+    "pasteSelection": "貼り付け",
+    "selectionCopyShort": "コピー",
+    "selectionPasteShort": "貼り付け",
+    "selectionCopyEmpty": "選択範囲にコピーできる内容がありません",
+    "selectionPasteEmpty": "クリップボードが空です。先に選択範囲をコピーしてください",
+    "selectionCopiedToast": "{{w}} × {{h}} の選択範囲をコピーしました",
+    "selectionPasteNoChange": "貼り付け先に同じ内容があるため変更はありません",
+    "selectionPastedToast": "{{n}} マスを貼り付けました",
     "pickedColorToast": "{{hex}} を取得しました"
   },
   "gallery": {

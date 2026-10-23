@@ -514,6 +514,15 @@
     "fillIncludeEmpty": "Include empty cells when filling",
     "fillIncludeEmptyShort": "Include empty",
     "selectionFillNoBeads": "No beads in the selection; empty cells were skipped",
+    "copySelection": "Copy selection",
+    "pasteSelection": "Paste",
+    "selectionCopyShort": "Copy",
+    "selectionPasteShort": "Paste",
+    "selectionCopyEmpty": "Nothing to copy in the selection",
+    "selectionPasteEmpty": "Clipboard is empty — copy a selection first",
+    "selectionCopiedToast": "Copied {{w}} × {{h}} selection",
+    "selectionPasteNoChange": "The paste target already has the same content",
+    "selectionPastedToast": "Pasted {{n}} cells",
     "pickedColorToast": "Picked {{hex}}"
   },
   "gallery": {

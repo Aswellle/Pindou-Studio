@@ -514,6 +514,15 @@
     "fillIncludeEmpty": "填充时包含空白格",
     "fillIncludeEmptyShort": "含空白",
     "selectionFillNoBeads": "选区内没有可填充的珠子,已跳过空白格",
+    "copySelection": "复制选区",
+    "pasteSelection": "粘贴",
+    "selectionCopyShort": "复制",
+    "selectionPasteShort": "粘贴",
+    "selectionCopyEmpty": "选区里没有可复制的内容",
+    "selectionPasteEmpty": "剪贴板是空的,先复制一块选区",
+    "selectionCopiedToast": "已复制 {{w}} × {{h}} 选区",
+    "selectionPasteNoChange": "粘贴位置已有相同内容,未做改动",
+    "selectionPastedToast": "已粘贴 {{n}} 格",
     "pickedColorToast": "已取色 {{hex}}"
   },
   "gallery": {
