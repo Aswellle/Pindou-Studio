@@ -3,7 +3,7 @@ import { useToast } from './Toast'
 import {
   Pencil, Eraser, PaintBucket, Hand, Undo2, Redo2, Trash2, ChevronLeft, ChevronRight, FileJson,
   Pipette, SquareDashed, Replace, FlipHorizontal2, FlipVertical2, RotateCw, RotateCcw, X,
-  Copy, ClipboardPaste,
+  Copy, ClipboardPaste, Scissors,
 } from 'lucide-react'
 
 export default function Tools({
@@ -168,10 +168,13 @@ export default function Tools({
                   <button className="action-btn" onClick={() => onSelectionCommand?.('erase')} title={t('tools.clearSelection')}>
                     <Eraser size={15} /><span className="action-btn-label">{t('tools.clearSelection')}</span>
                   </button>
-                  {/* 复制 / 粘贴:纯内存剪贴板,不碰系统剪贴板。
+                  {/* 复制 / 剪切 / 粘贴:纯内存剪贴板,不碰系统剪贴板。
                       粘贴以当前选区左上角为落点(无选区时贴到画布左上角),越界裁剪。 */}
                   <button className="action-btn" onClick={() => onSelectionCommand?.('copy')} title={t('tools.copySelection')}>
                     <Copy size={15} /><span className="action-btn-label">{t('tools.copySelection')}</span>
+                  </button>
+                  <button className="action-btn" onClick={() => onSelectionCommand?.('cut')} title={t('tools.cutSelection')}>
+                    <Scissors size={15} /><span className="action-btn-label">{t('tools.cutSelection')}</span>
                   </button>
                   <button
                     className="action-btn"

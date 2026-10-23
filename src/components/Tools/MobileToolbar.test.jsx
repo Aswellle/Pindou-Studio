@@ -79,6 +79,7 @@ describe('MobileToolbar · 选区操作条', () => {
       ['tools.selectionFillShort', 'tools.fillSelection'],
       ['tools.selectionEraseShort', 'tools.clearSelection'],
       ['tools.selectionCopyShort', 'tools.copySelection'],
+      ['tools.selectionCutShort', 'tools.cutSelection'],
       ['tools.selectionPasteShort', 'tools.pasteSelection'],
       ['tools.selectionFlipHShort', 'tools.mirrorH'],
       ['tools.selectionFlipVShort', 'tools.mirrorV'],

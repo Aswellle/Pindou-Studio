@@ -18,6 +18,7 @@ import ReplaceColorDialog from './components/ReplaceColorDialog'
 import BrandSwitchDialog from './components/BrandSwitchDialog'
 import DraftRestorePrompt from './components/DraftRestorePrompt'
 import MyBeadsPage from './components/MyBeadsPage'
+import SelectionContextMenu from './components/SelectionContextMenu'
 import { useToast } from './components/Toast'
 import {
   fillSelection,
@@ -28,6 +29,7 @@ import {
   moveSelection,
   copyMoveSelection,
   copySelection,
+  cutSelection,
   pasteBlock,
   normalizeSelection,
 } from './utils/selectionUtils'
@@ -115,6 +117,11 @@ export default function App() {
   // A3 框选吸附:默认开。拼豆的框选几乎总是贴着图案边界走,吸附能省掉
   // 「差一格重来一次」;不喜欢抢手感的用户可以关掉,关掉后行为与改造前一致。
   const [snapToEdges, setSnapToEdges] = useState(true)
+
+  // A4 长按上下文菜单:记录触点屏幕坐标,非 null 即打开。
+  // 菜单本身不持有「当前选区」——命令仍走 handleSelectionCommand,
+  // 与操作条按钮是同一条路径,不会出现两套行为。
+  const [selectionMenu, setSelectionMenu] = useState(null)
 
   // 切页 / 网格尺寸变化(换模板、载入作品、调整画布)后,旧选区坐标可能失效
   // → 清空。普通绘制不改变网格,选区矩形仍然有效,无需清空。
@@ -493,6 +500,8 @@ export default function App() {
     copyDrag,
     // A3:框选吸附到已有珠子的边缘
     snapToEdges,
+    // A4:长按选区内部弹出上下文菜单(仅移动端传入,桌面端不启用)
+    onSelectionLongPress: (point) => setSelectionMenu(point),
     // M5.2 拖拽移动:画布只在松手时上报一次偏移,这里提交一条历史。
     // 偏移已由画布按 clampMove 钳制,内容不会掉出画布。
     // A2:`copy` 为 true 时是复制拖动(Alt/Option 或移动端开关),原件保留。
@@ -548,6 +557,21 @@ export default function App() {
       return
     }
 
+    if (command === 'cut') {
+      const cut = cutSelection(canvasData, selection)
+      if (!cut.block) {
+        // 整片空白:既没东西可剪,也不该清空已有剪贴板
+        toast(t('tools.selectionCopyEmpty'), 'info')
+        return
+      }
+      setClipboard(cut)
+      // 剪下与清空是同一条历史:一次撤销回到剪切前,不会先撤出「清空」
+      // 再撤一次「复制」,那样中间态(内容没了、剪贴板还在)反而更让人困惑。
+      if (cut.data) setCanvas(cut.data)
+      toast(t('tools.selectionCutToast', { w: cut.w, h: cut.h }), 'success')
+      return
+    }
+
     if (command === 'paste') {
       // 落点:有选区贴到选区左上角,否则贴到画布左上角
       const ox = selection ? selection.x : 0
@@ -599,9 +623,19 @@ export default function App() {
 
   const handleClearSelection = useCallback(() => setSelection(null), [])
 
-  // 选区复制 / 粘贴快捷键(规格 04 §2)。
+  // A4:菜单里的「取消选区」不是选区命令(它不改矩阵、不压历史),
+  // 走 handleClearSelection;其余命令与操作条共用 handleSelectionCommand。
+  const handleSelectionMenuCommand = useCallback((command) => {
+    if (command === 'clear') {
+      handleClearSelection()
+      return
+    }
+    handleSelectionCommand(command)
+  }, [handleClearSelection, handleSelectionCommand])
+
+  // 选区复制 / 剪切 / 粘贴快捷键(规格 04 §2)。
   //
-  // 只在「选区工具 + 条件满足」时接管 Ctrl/Cmd+C / V,其余一律放行给浏览器:
+  // 只在「选区工具 + 条件满足」时接管 Ctrl/Cmd+C / X / V,其余一律放行给浏览器:
   // 页面上选中文字后按 Ctrl+C 必须仍然复制文字,不能因为画布有选区就被抢走。
   // 输入框内的原生复制粘贴同样跳过(与上面的撤销/重做 handler 一致)。
   useEffect(() => {
@@ -616,6 +650,11 @@ export default function App() {
         if (!selection) return
         e.preventDefault()
         handleSelectionCommand('copy')
+      } else if (key === 'x') {
+        // 剪切与复制同理:无选区时留给浏览器
+        if (!selection) return
+        e.preventDefault()
+        handleSelectionCommand('cut')
       } else if (key === 'v') {
         // 剪贴板为空时不接管:留给浏览器原生粘贴
         if (!clipboard) return
@@ -1206,6 +1245,16 @@ export default function App() {
               onToggleCopyDrag={setCopyDrag}
               snapToEdges={snapToEdges}
               onToggleSnapToEdges={setSnapToEdges}
+            />
+
+            {/* A4 长按上下文菜单:portal 到 body,位置由触点决定 */}
+            <SelectionContextMenu
+              open={Boolean(selectionMenu)}
+              x={selectionMenu?.x || 0}
+              y={selectionMenu?.y || 0}
+              canPaste={Boolean(clipboard)}
+              onCommand={handleSelectionMenuCommand}
+              onClose={() => setSelectionMenu(null)}
             />
           </>
         } />

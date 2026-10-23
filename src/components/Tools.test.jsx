@@ -54,7 +54,7 @@ describe('Tools · 桌面选区面板', () => {
     const buttons = $$('.selection-actions button')
     const expected = [
       'tools.fillSelection', 'tools.clearSelection',
-      'tools.copySelection', 'tools.pasteSelection',
+      'tools.copySelection', 'tools.cutSelection', 'tools.pasteSelection',
       'tools.mirrorH', 'tools.mirrorV',
       'tools.rotateCw', 'tools.rotateCcw',
       'tools.clearSelectionBtn',
