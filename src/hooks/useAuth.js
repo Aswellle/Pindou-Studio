@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react'
 import { supabase } from '../services/supabase'
+import { normalizeAuthUser } from '../utils/normalizeAuthUser'
 
 /**
  * 真实账号体系(Supabase Auth):
@@ -26,10 +27,12 @@ export function useAuth() {
         .eq('id', userId)
         .maybeSingle()
       setIsAdmin(data?.role === 'admin')
-      // 同步昵称/头像到当前 user(若已登录)
+      // 同步昵称/头像到当前 user(若已登录)。
+      // 昵称为空时退回 user_metadata.nickname —— 早期账号注册时把昵称写进了元数据,
+      // profiles 行却可能是空的;不回退会让这类账号在个人中心显示成邮箱前缀。
       setUser(prev => prev && prev.id === userId ? {
         ...prev,
-        nickname: data?.nickname || '',
+        nickname: data?.nickname || prev.metaNickname || '',
         avatarUrl: data?.avatar_url || '',
       } : prev)
     } catch {
@@ -103,16 +106,12 @@ export function useAuth() {
   }, [refreshProfile])
 
   // 登录/会话恢复时带出昵称与头像
-  const buildUser = (sessionUser) => {
-    const email = sessionUser.email || ''
-    return {
-      id: sessionUser.id,
-      email,
-      name: email.split('@')[0] || '',
-      nickname: '',
-      avatarUrl: '',
-    }
-  }
+  //
+  // 身份字段统一由 normalizeAuthUser 生成:两类账号(真实邮箱 / 用户名 + 合成邮箱)
+  // 的区分只在这里做一次。合成邮箱 `${username}@custom.local` 仅供认证 API 使用,
+  // 页面展示走 user.username / accountIdentity(),永远不会把它当邮箱显示。
+  // 新增字段全部是只读派生值,既有 id/email/name/nickname/avatarUrl 语义不变。
+  const buildUser = (sessionUser) => normalizeAuthUser(sessionUser)
 
   // 同一用户会话重建(切回标签页触发 token 刷新等)时保留已加载的昵称/头像,
   // 避免头像闪回默认、昵称闪回初始值再恢复的跳动
@@ -218,6 +217,57 @@ export function useAuth() {
     await setPassword(newPassword)
   }, [verifyPassword, setPassword])
 
+  /**
+   * 邮箱验证码重设密码(适用于「用验证码登录、从未设置过密码」的账号)。
+   *
+   * 安全性关键:verifyOtp 会建立**新会话** —— 如果用户填了别人的邮箱验证码,
+   * 当前会话会被顶替成那个账号,之后直接 setPassword 就会改掉别人的密码。
+   * 所以验证后必须比对 getUser().id 与调用前的期望用户 id,不一致立即中止。
+   *
+   * @param {string} email - 当前账号的真实邮箱(用户名账号不适用,调用方不应展示该入口)
+   * @param {string} token - 6 位验证码
+   * @param {string} password - 新密码
+   * @param {string} expectedUserId - 调用前当前登录用户的 id
+   */
+  const setPasswordWithOtp = useCallback(async (email, token, password, expectedUserId) => {
+    if (!supabase) throw new Error('CLOUD_NOT_CONFIGURED')
+    if (!expectedUserId) throw new Error('NOT_SIGNED_IN')
+    await verifyOtp(email, token)
+    const { data } = await supabase.auth.getUser()
+    if (!data?.user || data.user.id !== expectedUserId) {
+      throw new Error('SESSION_USER_MISMATCH')
+    }
+    await setPassword(password)
+  }, [verifyOtp, setPassword])
+
+  /**
+   * 发起邮箱变更(Supabase Auth 官方流程)。
+   *
+   * 返回后 user.email 仍是**旧邮箱**,user.new_email 是待确认的新邮箱;
+   * 只有用户点开确认邮件才真正切换。调用方不得本地改写 email 字段。
+   * 仅真实邮箱账号可用 —— 用户名账号的邮箱是内部合成地址。
+   */
+  const changeEmail = useCallback(async (newEmail) => {
+    if (!supabase) throw new Error('CLOUD_NOT_CONFIGURED')
+    const { error } = await supabase.auth.updateUser({ email: newEmail })
+    if (error) throw error
+  }, [])
+
+  /**
+   * 更新安全密钥(仅自定义用户名账号)。
+   *
+   * 服务端 `set_security_key`(migration 0006)是 security definer + `auth.uid()` 限定,
+   * 只保存 bcrypt 哈希,不返回任何内容 —— 前端既读不到旧密钥,也无法判断是否已设置。
+   * 因此这里只提供「设置/覆盖」,不提供「查看」。
+   *
+   * 调用方必须先 verifyPassword 重新验证当前密码,再调本方法。
+   */
+  const setSecurityKey = useCallback(async (securityKey) => {
+    if (!supabase) throw new Error('CLOUD_NOT_CONFIGURED')
+    const { error } = await supabase.rpc('set_security_key', { p_security_key: securityKey })
+    if (error) throw error
+  }, [])
+
   // ── 自定义账号(用户名 + 安全密钥,合成邮箱映射) ──────────────
   // 用户名规则:3-20 位字母/数字/下划线
   const USERNAME_RE = /^[a-zA-Z0-9_]{3,20}$/
@@ -290,8 +340,7 @@ export function useAuth() {
     if (error) throw error
   }, [])
 
-  const logout = useCallback(async () => {
-    if (supabase) {
+  const logout = useCallback(async () => {    if (supabase) {
       const { error } = await supabase.auth.signOut()
       if (error) console.warn('signOut failed:', error.message) // 服务端失败也清本地状态,留可观测信号
     }
@@ -334,6 +383,12 @@ export function useAuth() {
     setPassword,
     verifyPassword,
     changePassword,
+    // 邮箱验证码重设密码(验证后校验会话归属,防止改到别人账号)
+    setPasswordWithOtp,
+    // 更换邮箱(Supabase Auth 确认流程;确认前 user.email 不变)
+    changeEmail,
+    // 安全密钥(仅用户名账号;只写不读,哈希永不出现在前端)
+    setSecurityKey,
     // 自定义账号(用户名 + 安全密钥)
     registerUsername,
     loginByUsername,
