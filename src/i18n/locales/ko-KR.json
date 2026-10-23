@@ -1169,6 +1169,8 @@
       "removeSection": "삭제",
       "saveSections": "섹션 설정 저장",
       "sectionsSaved": "섹션 설정을 저장했습니다",
+      "snapshotStale": "저장되었습니다. 공유 카드와 정적 텍스트는 빌드 시 생성되므로 업데이트하려면 배포가 필요합니다.",
+      "snapshotStaleDismiss": "확인",
       "sectionsEmpty": "설정된 섹션이 없습니다. 홈은 기본 순서로 표시됩니다.",
       "kindFeatured": "추천",
       "kindPopular": "인기 도안",

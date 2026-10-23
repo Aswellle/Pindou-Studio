@@ -1169,6 +1169,8 @@
       "removeSection": "削除",
       "saveSections": "セクション設定を保存",
       "sectionsSaved": "セクション設定を保存しました",
+      "snapshotStale": "保存しました。共有カードと静的テキストはビルド時に生成されるため、更新にはデプロイが必要です。",
+      "snapshotStaleDismiss": "了解",
       "sectionsEmpty": "セクションが未設定です。ホームは既定の順序で表示されます。",
       "kindFeatured": "特集",
       "kindPopular": "人気の図案",

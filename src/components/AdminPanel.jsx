@@ -432,6 +432,21 @@ export default function AdminPanel({ user, isAdmin, authLoading, onLogin, onLogo
           font-size: var(--text-lg);
           font-weight: var(--font-weight-semibold);
         }
+        .admin-notice {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          gap: 12px;
+          flex-wrap: wrap;
+          background: var(--warning-bg);
+          border: 1px solid var(--warning-border);
+          border-radius: var(--radius-card);
+          padding: 12px 16px;
+          margin-bottom: 16px;
+          color: var(--text-primary);
+          font-size: var(--text-md);
+          line-height: 1.6;
+        }
         .admin-input {
           width: 100%;
           box-sizing: border-box;

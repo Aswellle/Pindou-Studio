@@ -438,6 +438,9 @@ export default function ContentManager({ cloudStore }) {
   const [linksFor, setLinksFor] = useState(null) // { kind, id, ids }
   const [linkSearch, setLinkSearch] = useState('')
   const [formError, setFormError] = useState('')
+  // 内容保存成功后置位:快照只在部署时重建,发布/改动内容后需要一次部署才会
+  // 反映到分享卡片与静态正文。不提示的话管理员会以为已经生效。
+  const [snapshotStale, setSnapshotStale] = useState(false)
   // 主题嵌套编辑(0027):{ mode: 'children'|'collections', id, title }
   const [nestingFor, setNestingFor] = useState(null)
   const [nestingBusy, setNestingBusy] = useState(false)
@@ -472,12 +475,14 @@ export default function ContentManager({ cloudStore }) {
       return
     }
     setEditing(null)
+    setSnapshotStale(true)
   }
 
   const confirmDelete = async () => {
     if (!deleting) return
     await content.deleteContent(deleting.kind, deleting.id)
     setDeleting(null)
+    setSnapshotStale(true)
   }
 
   const saveLinks = async () => {
@@ -539,6 +544,19 @@ export default function ContentManager({ cloudStore }) {
 
   return (
     <div>
+      {snapshotStale && (
+        <div className="admin-notice" role="status">
+          <span>{t('admin.content.snapshotStale')}</span>
+          <button
+            type="button"
+            className="admin-btn secondary"
+            onClick={() => setSnapshotStale(false)}
+          >
+            {t('admin.content.snapshotStaleDismiss')}
+          </button>
+        </div>
+      )}
+
       <HomeSectionsPanel
         content={content}
         themes={content.themes}

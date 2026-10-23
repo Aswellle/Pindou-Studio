@@ -1169,6 +1169,8 @@
       "removeSection": "Remove",
       "saveSections": "Save sections",
       "sectionsSaved": "Section configuration saved",
+      "snapshotStale": "Content saved. Share cards and static text are generated at build time, so a deployment is needed to update them.",
+      "snapshotStaleDismiss": "Got it",
       "sectionsEmpty": "No sections configured; the homepage uses the default order.",
       "kindFeatured": "Featured",
       "kindPopular": "Popular patterns",

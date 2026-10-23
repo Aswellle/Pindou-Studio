@@ -149,6 +149,59 @@ describe('ContentManager', () => {
   })
 })
 
+describe('ContentManager · 快照重建提示', () => {
+  const STALE = /需要一次部署才会更新/
+
+  it('初始不显示提示', () => {
+    setup()
+    expect(screen.queryByText(STALE)).toBeNull()
+  })
+
+  it('新建成功后提示需要部署(快照在构建期生成)', async () => {
+    contentState.createContent.mockResolvedValue({ ok: true, content: theme('new') })
+    setup()
+    fireEvent.click(screen.getByText('新增主题'))
+    const inputs = screen.getAllByRole('textbox')
+    fireEvent.change(inputs[0], { target: { value: 'spring' } })
+    fireEvent.change(inputs[1], { target: { value: '春日' } })
+    fireEvent.click(screen.getByText('保存'))
+    expect(await screen.findByText(STALE)).toBeTruthy()
+  })
+
+  it('保存失败不提示(内容没变,快照没变旧)', async () => {
+    contentState.createContent.mockResolvedValue({ ok: false, errors: [{ code: 'slugRequired' }] })
+    setup()
+    fireEvent.click(screen.getByText('新增主题'))
+    fireEvent.click(screen.getByText('保存'))
+    await waitFor(() => expect(contentState.createContent).toHaveBeenCalled())
+    expect(screen.queryByText(STALE)).toBeNull()
+  })
+
+  it('删除成功后也提示(被删内容仍留在快照里)', async () => {
+    contentState.themes = [theme('a')]
+    contentState.deleteContent.mockResolvedValue({ ok: true })
+    setup()
+    fireEvent.click(screen.getByText('删除'))
+    const deleteButtons = screen.getAllByRole('button', { name: '删除' })
+    fireEvent.click(deleteButtons[deleteButtons.length - 1])
+    await waitFor(() => expect(contentState.deleteContent).toHaveBeenCalled())
+    expect(await screen.findByText(STALE)).toBeTruthy()
+  })
+
+  it('可以手动关闭提示', async () => {
+    contentState.createContent.mockResolvedValue({ ok: true, content: theme('new') })
+    setup()
+    fireEvent.click(screen.getByText('新增主题'))
+    const inputs = screen.getAllByRole('textbox')
+    fireEvent.change(inputs[0], { target: { value: 'spring' } })
+    fireEvent.change(inputs[1], { target: { value: '春日' } })
+    fireEvent.click(screen.getByText('保存'))
+    await screen.findByText(STALE)
+    fireEvent.click(screen.getByText('知道了'))
+    expect(screen.queryByText(STALE)).toBeNull()
+  })
+})
+
 describe('ContentManager · 首页区块配置', () => {
   const section = (over = {}) => ({
     kind: 'popular',

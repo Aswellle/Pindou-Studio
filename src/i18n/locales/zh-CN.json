@@ -1169,6 +1169,8 @@
       "removeSection": "移除",
       "saveSections": "保存区块配置",
       "sectionsSaved": "区块配置已保存",
+      "snapshotStale": "内容已保存。分享卡片与静态正文在构建时生成,需要一次部署才会更新。",
+      "snapshotStaleDismiss": "知道了",
       "sectionsEmpty": "还没有配置区块,首页将使用默认顺序。",
       "kindFeatured": "编辑精选",
       "kindPopular": "热门图纸",
