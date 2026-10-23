@@ -129,6 +129,20 @@ describe('computeViewport · 焦点闩锁', () => {
     expect(r.visibleHeight).toBe(LAYOUT)
   })
 
+  it('visualHeight 瞬时报 0 时不让根壳塌成零高', () => {
+    // 旋转 / 切后台 / 键盘动画极值:Safari 会短暂报 0。
+    // 若直接参与计算,visibleHeight 写成 0 → --vh: 0px → #root height: 0,
+    // 整棵树塌陷一帧白屏。下限保护必须把它抬到 1。
+    const r = run({ visualHeight: 0, textFocused: true, latched: true })
+    expect(r.visibleHeight).toBeGreaterThan(0)
+    expect(r.visibleHeight).toBe(1)
+  })
+
+  it('visualHeight 为负时同样被下限保护', () => {
+    const r = run({ visualHeight: -50, textFocused: true, latched: true })
+    expect(r.visibleHeight).toBeGreaterThan(0)
+  })
+
   it('stale offsetTop 在键盘打开时正常参与差值计算', () => {
     const r = run({ visualHeight: 500, offsetTop: 20, textFocused: true })
     expect(r.visibleTop).toBe(20)
@@ -373,5 +387,32 @@ describe('placePopupMenu · 弹出菜单在视觉视口内的落点', () => {
       rect: { top: 100, bottom: 140, left: 2, right: 40 },
     })
     expect(left).toBe(8)
+  })
+})
+
+describe('focusScrollDelta · 极窄可见带不震荡', () => {
+  const narrow = {
+    scrollerTop: 0,
+    scrollerHeight: 15, // 带高 15 < 2×pad(20)
+    visualTop: 0,
+    visualHeight: 15,
+    pad: 10,
+  }
+
+  it('带窄于 2×pad 且元素贴顶时向上修正一次', () => {
+    // 元素 5–25,顶边 5 < pad 10 → delta = 5 - 10 = -5
+    expect(focusScrollDelta({ ...narrow, elementTop: 5, elementBottom: 25 })).toBe(-5)
+  })
+
+  it('修正后再次调用不再产生反向增量(否则会以 ±25 来回跳)', () => {
+    // 第一次 -2 后元素变成 108–128 的等价场景:元素已越过 pad,不再要求下沿
+    const after = focusScrollDelta({ ...narrow, elementTop: 12, elementBottom: 32 })
+    expect(after).toBe(0)
+  })
+
+  it('元素远低于极窄带时也只保证顶边,不追求下沿', () => {
+    // 带高 15、pad 10:下沿目标 bandHeight - pad = 5,与顶边目标矛盾,
+    // 此时顶边已在带内 → 不滚,交给用户自己滚
+    expect(focusScrollDelta({ ...narrow, elementTop: 40, elementBottom: 60 })).toBe(0)
   })
 })

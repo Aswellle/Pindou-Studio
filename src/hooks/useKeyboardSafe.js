@@ -20,10 +20,6 @@ const OVERLAY_SELECTOR = [
 // 本 hook 负责写入的 CSS 变量(卸载时逐一清理)
 const VARS = ['--visible-vh', '--visible-vh-top', '--visual-offset-left', '--keyboard-height', '--vh']
 
-// 键盘最小遮挡高度与焦点留白定义在 viewportGeometry(纯函数模块),
-// 这里 re-export 保持既有引用路径可用。
-export { KEYBOARD_MIN_INSET } from './viewportGeometry'
-
 // 焦点可见性留白(输入框与滚动容器边缘之间)
 const FOCUS_PAD = 10
 

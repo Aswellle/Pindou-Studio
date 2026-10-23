@@ -142,6 +142,11 @@ export function focusScrollDelta({
   const top = elementTop - bandTop
   const bottom = elementBottom - bandTop
 
+  // 可见带窄于 2×pad 时,「上边留白」与「下边留白」两个目标互相矛盾:
+  // 满足一个必然违反另一个,反复修正会以 ±2×pad 来回跳。
+  // 这种极窄带(键盘动画极值、横屏低高度)只保顶边可见,不试图同时满足两端。
+  if (bandHeight < pad * 2) return top < pad ? top - pad : 0
+
   if (top < pad) return top - pad
   if (bottom > bandHeight - pad) return bottom - bandHeight + pad
   return 0
