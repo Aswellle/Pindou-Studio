@@ -295,6 +295,23 @@ export function copySelection(data, sel) {
 }
 
 /**
+ * Cut the selection: copy the block out, then clear the region.
+ *
+ * Returns the same shape as `copySelection` plus the cleared matrix, so the
+ * caller can do it in one history entry:
+ *   - `block` is null when the region is blank — nothing to put on the
+ *     clipboard, and clearing blank cells is a no-op, so the caller should
+ *     leave both the clipboard and the canvas untouched.
+ *   - `data` is null when the clear produced no change (already blank).
+ */
+export function cutSelection(data, sel) {
+  const copied = copySelection(data, sel)
+  if (!copied.block) return { ...copied, data: null, changed: 0 }
+  const cleared = clearSelection(data, sel)
+  return { ...copied, data: cleared.data, changed: cleared.changed }
+}
+
+/**
  * Write a clipboard block at (x, y) in one transaction.
  *
  * Out-of-bounds cells are **clipped**, not clamped: pasting near the edge

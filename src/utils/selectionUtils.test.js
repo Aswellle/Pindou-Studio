@@ -15,6 +15,7 @@ import {
   moveSelection,
   copyMoveSelection,
   copySelection,
+  cutSelection,
   pasteBlock,
 } from './selectionUtils'
 
@@ -466,5 +467,55 @@ describe('copySelection / pasteBlock · 选区复制与粘贴', () => {
     const snapshot = clone(source)
     pasteBlock(source, { w: 2, h: 2, block: [[G, G], [G, G]] }, 1, 0)
     expect(source).toEqual(snapshot)
+  })
+})
+
+describe('cutSelection · 剪切选区', () => {
+  it('返回被剪下的块,同时把原区域清空', () => {
+    const source = grid()
+    const res = cutSelection(source, { x: 0, y: 0, w: 2, h: 2 })
+
+    expect(res.block).toEqual([[R, R], [R, null]])
+    expect(res.w).toBe(2)
+    expect(res.h).toBe(2)
+    // 原区域已清空
+    expect(res.data[0][0]).toBeNull()
+    expect(res.data[0][1]).toBeNull()
+    expect(res.data[1][0]).toBeNull()
+    expect(res.changed).toBe(3)
+  })
+
+  it('不修改输入矩阵', () => {
+    const source = grid()
+    const snapshot = clone(source)
+    cutSelection(source, { x: 0, y: 0, w: 2, h: 2 })
+    expect(source).toEqual(snapshot)
+  })
+
+  it('选区之外的内容原样保留', () => {
+    const source = grid()
+    const res = cutSelection(source, { x: 0, y: 0, w: 1, h: 1 })
+    expect(res.data[1][2]).toBe(G) // 选区外,不动
+    expect(res.data[0][0]).toBeNull()
+  })
+
+  it('剪空白区域 → 块与数据都是 null(调用方据此不覆盖剪贴板、不压历史)', () => {
+    const empty = [[null, null], [null, null]]
+    const res = cutSelection(empty, { x: 0, y: 0, w: 2, h: 2 })
+    expect(res.block).toBeNull()
+    expect(res.data).toBeNull()
+    expect(res.changed).toBe(0)
+  })
+
+  it('null / 空矩阵 → 安全返回', () => {
+    expect(cutSelection(grid(), null).block).toBeNull()
+    expect(cutSelection([], { x: 0, y: 0, w: 1, h: 1 }).block).toBeNull()
+  })
+
+  it('剪切后立刻粘贴回原处 → 矩阵与剪切前完全一致', () => {
+    const source = grid()
+    const cut = cutSelection(source, { x: 0, y: 0, w: 2, h: 2 })
+    const back = pasteBlock(cut.data, cut, 0, 0)
+    expect(back.data).toEqual(source)
   })
 })
