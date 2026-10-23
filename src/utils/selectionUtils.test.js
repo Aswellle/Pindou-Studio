@@ -13,6 +13,8 @@ import {
   stampBlock,
   clampMove,
   moveSelection,
+  copySelection,
+  pasteBlock,
 } from './selectionUtils'
 
 const R = '#E53935'
@@ -309,6 +311,109 @@ describe('selectionUtils · 拖拽移动选区(M5.2)', () => {
     const source = grid()
     const snapshot = clone(source)
     moveSelection(source, { x: 0, y: 0, w: 2, h: 2 }, 1, 1)
+    expect(source).toEqual(snapshot)
+  })
+})
+
+describe('copySelection / pasteBlock · 选区复制与粘贴', () => {
+  it('复制不修改原矩阵,返回块与来源尺寸', () => {
+    const source = grid()
+    const snapshot = clone(source)
+    const res = copySelection(source, { x: 0, y: 0, w: 2, h: 2 })
+
+    expect(res.block).toEqual([[R, R], [R, null]])
+    expect(res.w).toBe(2)
+    expect(res.h).toBe(2)
+    expect(source).toEqual(snapshot) // 复制是只读的
+  })
+
+  it('复制空选区 → block 为 null(调用方据此禁用粘贴)', () => {
+    const empty = [[null, null], [null, null]]
+    expect(copySelection(empty, { x: 0, y: 0, w: 2, h: 2 }).block).toBeNull()
+  })
+
+  it('复制 null / 空矩阵 → block 为 null', () => {
+    expect(copySelection(grid(), null).block).toBeNull()
+    expect(copySelection([], { x: 0, y: 0, w: 1, h: 1 }).block).toBeNull()
+  })
+
+  it('粘贴到空位写入内容,并返回跟随的新选区', () => {
+    const clip = { w: 2, h: 2, block: [[R, G], [null, B]] }
+    const empty = [[null, null, null, null], [null, null, null, null], [null, null, null, null]]
+    const res = pasteBlock(empty, clip, 1, 1)
+
+    expect(res.data[1][1]).toBe(R)
+    expect(res.data[1][2]).toBe(G)
+    expect(res.data[2][1]).toBeNull()
+    expect(res.data[2][2]).toBe(B)
+    expect(res.selection).toEqual({ x: 1, y: 1, w: 2, h: 2 })
+  })
+
+  it('可重复粘贴:同一份剪贴板贴两次得到两份内容', () => {
+    const clip = { w: 1, h: 1, block: [[R]] }
+    const empty = [[null, null, null], [null, null, null], [null, null, null]]
+    const first = pasteBlock(empty, clip, 0, 0)
+    const second = pasteBlock(first.data, clip, 2, 2)
+
+    expect(second.data[0][0]).toBe(R)
+    expect(second.data[2][2]).toBe(R)
+    expect(second.selection).toEqual({ x: 2, y: 2, w: 1, h: 1 })
+  })
+
+  it('跨边界粘贴越界裁剪,不报错', () => {
+    const clip = { w: 3, h: 3, block: [[R, R, R], [R, R, R], [R, R, R]] }
+    const empty = [[null, null], [null, null]]
+    const res = pasteBlock(empty, clip, 1, 1)
+
+    // 只有 (1,1) 落在 2×2 网格内
+    expect(res.data[1][1]).toBe(R)
+    expect(res.changed).toBe(1)
+    // 选区按块尺寸给出,但由调用方按网格钳制
+    expect(res.selection.w).toBe(3)
+  })
+
+  it('越界是裁剪而不是钳制:溢出列整列丢弃,不会挤到最后一列上', () => {
+    // 这条用例专门区分 clip 与 clamp —— 全同色块两者结果一样,必须用不同色。
+    // 2 列宽的块贴在 3 列网格的最后一列:裁剪 → 只落第 0 列(G);
+    // 钳制 → 第 1 列会被夹到同一格并覆盖成 R,最终变成 R。
+    const clip = { w: 2, h: 1, block: [[G, R]] }
+    const empty = [[null, null, null], [null, null, null]]
+    const res = pasteBlock(empty, clip, 2, 0)
+
+    expect(res.data[0][2]).toBe(G)
+    expect(res.data[0][0]).toBeNull()
+    expect(res.data[0][1]).toBeNull()
+    expect(res.changed).toBe(1)
+  })
+
+  it('越界是裁剪而不是钳制(行方向同理)', () => {
+    const clip = { w: 1, h: 2, block: [[G], [R]] }
+    const empty = [[null], [null], [null]]
+    const res = pasteBlock(empty, clip, 0, 2)
+
+    expect(res.data[2][0]).toBe(G)
+    expect(res.data[1][0]).toBeNull()
+    expect(res.changed).toBe(1)
+  })
+
+  it('粘贴到内容完全相同的区域 → data 为 null(不压栈),选区仍跟随', () => {
+    const clip = { w: 2, h: 2, block: [[R, R], [R, null]] }
+    const res = pasteBlock(grid(), clip, 0, 0)
+
+    expect(res.data).toBeNull()
+    expect(res.changed).toBe(0)
+    expect(res.selection).toEqual({ x: 0, y: 0, w: 2, h: 2 })
+  })
+
+  it('空剪贴板粘贴 → data 为 null', () => {
+    expect(pasteBlock(grid(), null, 0, 0).data).toBeNull()
+    expect(pasteBlock(grid(), { w: 0, h: 0, block: null }, 0, 0).data).toBeNull()
+  })
+
+  it('不修改输入矩阵', () => {
+    const source = grid()
+    const snapshot = clone(source)
+    pasteBlock(source, { w: 2, h: 2, block: [[G, G], [G, G]] }, 1, 0)
     expect(source).toEqual(snapshot)
   })
 })

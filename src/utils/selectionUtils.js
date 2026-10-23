@@ -274,6 +274,59 @@ export function stampBlock(data, block, x, y) {
 }
 
 /**
+ * Read the selection contents without modifying the matrix (copy, not cut).
+ *
+ * `block` is null when there is nothing worth copying — no selection, empty
+ * matrix, or a region made entirely of blank cells. Callers use that to keep
+ * the paste button disabled instead of pasting an invisible empty block.
+ */
+export function copySelection(data, sel) {
+  const { rows, cols } = gridSize(data)
+  if (!sel || rows === 0 || cols === 0) return { w: 0, h: 0, block: null }
+  const block = Array.from({ length: sel.h }, () => Array(sel.w).fill(null))
+  let hasContent = false
+  forEachSelected(sel, cols, rows, (x, y) => {
+    const cell = data[y][x]
+    block[y - sel.y][x - sel.x] = cell
+    if (cell !== null) hasContent = true
+  })
+  if (!hasContent) return { w: sel.w, h: sel.h, block: null }
+  return { w: sel.w, h: sel.h, block }
+}
+
+/**
+ * Write a clipboard block at (x, y) in one transaction.
+ *
+ * Out-of-bounds cells are **clipped**, not clamped: pasting near the edge
+ * lands the visible part and silently drops the rest. (Drag-to-move uses the
+ * opposite rule — see `clampMove` — because there the user is repositioning
+ * existing beads and would lose work.)
+ *
+ * `selection` describes the pasted block and may extend past the grid; the
+ * caller clamps it before storing, so the marquee never draws outside canvas.
+ */
+export function pasteBlock(data, clip, x, y) {
+  const { rows, cols } = gridSize(data)
+  const block = clip?.block
+  if (!block || rows === 0 || cols === 0) {
+    return { data: null, changed: 0, selection: null }
+  }
+  const next = cloneMatrix(data)
+  for (let r = 0; r < block.length; r++) {
+    const ty = y + r
+    if (ty < 0 || ty >= rows) continue
+    for (let c = 0; c < block[r].length; c++) {
+      const tx = x + c
+      if (tx < 0 || tx >= cols) continue
+      next[ty][tx] = block[r][c]
+    }
+  }
+  const changed = diffCount(data, next, rows, cols)
+  const selection = { x, y, w: block[0]?.length || 0, h: block.length }
+  return changed ? { data: next, changed, selection } : { data: null, changed: 0, selection }
+}
+
+/**
  * Clamp a move offset so the whole block stays inside the grid.
  *
  * Out-of-bounds rule for drag-to-move (规格 04 §2 requires an explicit rule):
