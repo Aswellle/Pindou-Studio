@@ -1827,5 +1827,27 @@
     "statusFailedHint": "This browser blocks local storage (private mode?). Please save manually.",
     "toggleLabel": "Auto-save drafts",
     "toggleHint": "Saves a copy to this device every 2 seconds so you can recover it after closing the page. Local only, never uploaded."
+  },
+  "versions": {
+    "title": "Version history",
+    "open": "History",
+    "empty": "No versions yet",
+    "emptyHint": "Each explicit save records a version here; autosaved drafts are not counted.",
+    "labelCurrent": "Current version",
+    "labelEarliest": "Earliest version",
+    "labelOlder": "{{n}} versions ago",
+    "beads": "beads",
+    "colors": "colors",
+    "diffBeads": "{{n}} beads",
+    "diffColors": "{{n}} colors",
+    "diffCells": "{{n}} cells changed",
+    "diffSame": "Same as current",
+    "rollback": "Restore this version",
+    "rollbackConfirm": "Restore the version from {{time}}? Your current content is kept as a version first, so you can switch back.",
+    "rollbackDone": "Restored the version from {{time}}",
+    "rollbackFailed": "Restore failed, please try again",
+    "storage": "Versions use about {{size}}",
+    "close": "Close",
+    "limitHint": "Only the latest {{n}} versions are kept locally; older ones are removed automatically."
   }
 }

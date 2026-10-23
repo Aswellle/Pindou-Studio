@@ -1,0 +1,189 @@
+/**
+ * 版本时间线浮层(C2)。
+ *
+ * 浮层的定位/高度/键盘补偿全部来自 index.css 的 `.modal-overlay` 共享组,
+ * 这里只写内容样式 —— 重复声明 top/height 会让 iOS 键盘弹出时出现白板。
+ */
+.version-dialog {
+  background: var(--bg-primary);
+  border-radius: var(--radius-card);
+  width: 460px;
+  max-width: calc(100vw - 32px);
+  max-height: min(72vh, 560px);
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 8px 40px rgba(43, 36, 32, 0.18);
+  overflow: hidden;
+}
+
+.version-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 18px 20px 12px;
+  border-bottom: 1px solid var(--border-color);
+  flex-shrink: 0;
+}
+.version-header h3 {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+.version-close {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border: none;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--text-secondary);
+  cursor: pointer;
+}
+.version-close:hover {
+  background: var(--bg-tertiary);
+  color: var(--text-primary);
+}
+
+.version-list {
+  list-style: none;
+  margin: 0;
+  padding: 8px;
+  overflow-y: auto;
+  flex: 1;
+  min-height: 0;
+}
+
+.version-item {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 12px;
+  border-radius: 10px;
+  border: 1px solid transparent;
+}
+.version-item + .version-item {
+  margin-top: 4px;
+}
+.version-item.current {
+  background: var(--accent-soft);
+  border-color: var(--accent);
+}
+
+.version-meta {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.version-time {
+  font-family: var(--font-mono);
+  font-size: 13px;
+  color: var(--text-primary);
+}
+.version-label {
+  font-size: 12px;
+  color: var(--text-muted);
+}
+.version-item.current .version-label {
+  color: var(--accent-hover);
+  font-weight: 600;
+}
+
+.version-stats {
+  display: flex;
+  gap: 14px;
+  font-size: 13px;
+  color: var(--text-secondary);
+}
+
+.version-diff {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  font-size: 12px;
+}
+.diff-same {
+  color: var(--text-muted);
+}
+.diff-up {
+  color: var(--secondary-accent);
+}
+.diff-down {
+  color: var(--error);
+}
+.diff-cells {
+  color: var(--text-secondary);
+}
+
+.version-rollback {
+  align-self: flex-start;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 34px;
+  padding: 0 12px;
+  margin-top: 2px;
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  background: var(--bg-secondary);
+  color: var(--text-primary);
+  font-family: inherit;
+  font-size: 13px;
+  cursor: pointer;
+}
+.version-rollback:hover:not(:disabled) {
+  border-color: var(--accent);
+  color: var(--accent-hover);
+}
+.version-rollback:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.version-empty {
+  padding: 32px 24px;
+  text-align: center;
+  color: var(--text-secondary);
+  font-size: 14px;
+}
+.version-empty p {
+  margin: 0 0 8px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+.version-empty span {
+  font-size: 13px;
+  color: var(--text-muted);
+}
+
+.version-footer {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 10px 20px 14px;
+  border-top: 1px solid var(--border-color);
+  font-size: 12px;
+  color: var(--text-secondary);
+  flex-shrink: 0;
+}
+.version-limit {
+  color: var(--text-muted);
+}
+
+/* 移动端:面板更宽,按钮加大到可点范围 */
+@media (max-width: 640px) {
+  .version-dialog {
+    width: calc(100vw - 24px);
+    max-height: min(80vh, 640px);
+  }
+  .version-rollback {
+    min-height: 40px;
+    font-size: 14px;
+  }
+}

@@ -1827,5 +1827,27 @@
     "statusFailedHint": "브라우저가 로컬 저장을 허용하지 않습니다(시크릿 모드 등). 직접 저장해 주세요.",
     "toggleLabel": "초안 자동 저장",
     "toggleHint": "2초마다 캔버스를 이 기기에 저장해 페이지를 닫아도 복원할 수 있습니다. 기기에만 저장되며 클라우드로 전송되지 않습니다."
+  },
+  "versions": {
+    "title": "버전 기록",
+    "open": "기록",
+    "empty": "아직 버전이 없습니다",
+    "emptyHint": "직접 저장할 때마다 여기에 버전이 기록됩니다. 자동 저장된 임시본은 포함되지 않습니다.",
+    "labelCurrent": "현재 버전",
+    "labelEarliest": "가장 오래된 버전",
+    "labelOlder": "{{n}}개 이전 버전",
+    "beads": "비즈",
+    "colors": "색상",
+    "diffBeads": "비즈 {{n}}",
+    "diffColors": "색상 {{n}}",
+    "diffCells": "{{n}}칸 변경",
+    "diffSame": "현재 버전과 같음",
+    "rollback": "이 버전으로 되돌리기",
+    "rollbackConfirm": "{{time}} 버전으로 되돌릴까요? 현재 내용은 먼저 버전으로 보관되므로 나중에 다시 돌아올 수 있습니다.",
+    "rollbackDone": "{{time}} 버전으로 되돌렸습니다",
+    "rollbackFailed": "되돌리지 못했습니다. 잠시 후 다시 시도해 주세요",
+    "storage": "버전 사용량 약 {{size}}",
+    "close": "닫기",
+    "limitHint": "로컬에는 최근 {{n}}개 버전만 보관되며, 그보다 오래된 버전은 자동으로 정리됩니다."
   }
 }
