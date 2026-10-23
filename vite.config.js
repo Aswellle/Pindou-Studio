@@ -20,6 +20,13 @@ export default defineConfig({
           // 图表库(recharts)只被后台概览页用:单独分包 + 页面 lazy 加载,
           // 普通用户访问画布/图库不会下载它
           'chart-vendor': ['recharts'],
+          // 非原生图片格式的解码库,只在用户真的导入 HEIC / PDF 时动态 import。
+          // 显式命名(而不是让它变成匿名的 index-<hash>.js)是为了让产物体积可审计:
+          // libheif 把 wasm 以 base64 内嵌,单块约 3MB,一眼能看出它没进主包。
+          // pdfjs 必须写具体子路径 —— 只写包名匹配不到 legacy 构建入口,
+          // 结果是一个 0 字节的空 chunk 加上一个匿名的 pdf-<hash>.js。
+          'heic-vendor': ['libheif-js'],
+          'pdf-vendor': ['pdfjs-dist/legacy/build/pdf.mjs'],
         },
       },
     },
