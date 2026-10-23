@@ -146,3 +146,57 @@ export function focusScrollDelta({
   if (bottom > bandHeight - pad) return bottom - bandHeight + pad
   return 0
 }
+
+/**
+ * 弹出菜单(fixed 定位)在视觉视口内的落点。
+ *
+ * 菜单是 position:fixed,坐标系是**视觉视口**而不是布局视口:键盘弹起时
+ * window.innerHeight 不收缩,iOS 还会平移视觉视口(offsetTop > 0)。只取
+ * vv.height 会把菜单摆到键盘上方偏高处。
+ *
+ * 关键在于**双向**夹紧:只约束下沿不够 —— 触发按钮可能还在可见带内,
+ * 但菜单向上展开会越过带顶(vTop > 0 时尤其明显)。因此两个方向都夹回带内。
+ *
+ * @param {object} p
+ * @param {{top:number,bottom:number,left:number,right:number}} p.rect 触发按钮的布局矩形
+ * @param {number} p.menuWidth 菜单宽度
+ * @param {number} p.menuHeight 菜单高度
+ * @param {number} p.vTop 视觉视口上沿(offsetTop,已钳到 ≥0)
+ * @param {number} p.vBottom 视觉视口下沿(offsetTop + height)
+ * @param {number} p.viewportWidth 布局视口宽度(横向夹紧用)
+ * @param {'below'|'above'} p.prefer 首选展开方向
+ * @param {number} [p.gap] 与触发按钮的间距
+ * @param {number} [p.margin] 与视口边缘的最小间距
+ * @returns {{left:number, top:number}}
+ */
+export function placePopupMenu({
+  rect,
+  menuWidth,
+  menuHeight,
+  vTop,
+  vBottom,
+  viewportWidth,
+  prefer,
+  gap = 6,
+  margin = 8,
+}) {
+  const mh = menuHeight
+  const mw = menuWidth
+
+  // 横向:品牌菜单左对齐,导出菜单右对齐(按钮在卡片右下角)
+  let left = prefer === 'below' ? rect.left : rect.right - mw
+  if (left + mw > viewportWidth - margin) left = Math.max(margin, viewportWidth - mw - margin)
+  if (left < margin) left = margin
+
+  // 纵向:先按首选方向摆,越界就翻到另一侧,最后无条件夹回带内
+  let top = prefer === 'below' ? rect.bottom + gap : rect.top - mh - gap
+  if (top + mh > vBottom - margin) top = Math.max(vTop + margin, rect.top - mh - gap)
+  if (top < vTop + margin) top = Math.min(rect.bottom + gap, vBottom - mh - margin)
+  // 可见带比菜单还矮时,上面两条会互相把对方推出去。此时只能保证顶边可见
+  // (内容可滚),绝不能让菜单整个跑到带外 —— 取带顶与「放下所需位置」的较大者,
+  // 再退一步夹到带底之内。
+  if (top + mh > vBottom - margin) top = Math.max(vTop + margin, vBottom - mh - margin)
+  if (top < vTop + margin) top = vTop + margin
+
+  return { left, top }
+}

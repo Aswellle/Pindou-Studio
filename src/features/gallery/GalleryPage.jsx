@@ -28,6 +28,7 @@ import { useGalleryTemplates } from './hooks/useGalleryTemplates'
 import useDownloadCounts from './hooks/useDownloadCounts'
 import { useGalleryContent } from '../../hooks/useGalleryContent'
 import { useScrollLock } from '../../hooks/useScrollLock'
+import { placePopupMenu } from '../../hooks/viewportGeometry'
 import { useDialogA11y } from '../../hooks/useDialogA11y'
 import { buildDiscoverySections } from './discovery'
 import DiscoveryRails from './components/DiscoveryRails'
@@ -148,18 +149,19 @@ export default function GalleryPage({ onLoadTemplate, onDeleteWork, onLoadWork, 
     if (!brandMenuId || !brandMenuRef.current || !brandTriggerRect.current) return
     const menu = brandMenuRef.current
     const r = brandTriggerRect.current
-    const mw = menu.offsetWidth
-    const mh = menu.offsetHeight
-    let left = r.left
-    let top = r.bottom + 6
-    if (left + mw > window.innerWidth - 8) left = Math.max(8, window.innerWidth - mw - 8)
     // 菜单是 position:fixed,坐标系是视觉视口。键盘弹起时 window.innerHeight 仍是
-    // 布局视口(不收缩),必须用视觉视口的上下沿;且 iOS 会自动平移视觉视口
-    // (offsetTop > 0),只取 height 会把菜单摆到键盘上方偏高处。
+    // 布局视口(不收缩),且 iOS 会自动平移视觉视口(offsetTop > 0),
+    // 只取 height 会把菜单摆到键盘上方偏高处。定位与双向夹紧在纯函数里,可单测。
     const vv = window.visualViewport
-    const vTop = vv ? Math.max(0, vv.offsetTop) : 0
-    const vBottom = vv ? vv.offsetTop + vv.height : window.innerHeight
-    if (top + mh > vBottom - 8) top = Math.max(vTop + 8, r.top - mh - 6)
+    const { left, top } = placePopupMenu({
+      rect: r,
+      menuWidth: menu.offsetWidth,
+      menuHeight: menu.offsetHeight,
+      vTop: vv ? Math.max(0, vv.offsetTop) : 0,
+      vBottom: vv ? vv.offsetTop + vv.height : window.innerHeight,
+      viewportWidth: window.innerWidth,
+      prefer: 'below',
+    })
     menu.style.left = `${left}px`
     menu.style.top = `${top}px`
   }, [brandMenuId])
@@ -167,18 +169,18 @@ export default function GalleryPage({ onLoadTemplate, onDeleteWork, onLoadWork, 
     if (!exportMenuId || !exportMenuRef.current || !exportTriggerRect.current) return
     const menu = exportMenuRef.current
     const r = exportTriggerRect.current
-    const mw = menu.offsetWidth
-    const mh = menu.offsetHeight
-    // 右对齐导出按钮(按钮在卡片右下角),优先在按钮上方展开
-    let left = r.right - mw
-    let top = r.top - mh - 6
-    if (left < 8) left = 8
-    if (top < 8) top = r.bottom + 6
-    // 同 brandMenu:fixed 定位要用视觉视口的上下沿,offsetTop > 0 时不能只看 height
+    // 同 brandMenu:fixed 定位要用视觉视口的上下沿,offsetTop > 0 时不能只看 height。
+    // 导出按钮在卡片右下角,右对齐并优先向上展开。
     const vv = window.visualViewport
-    const vTop = vv ? Math.max(0, vv.offsetTop) : 0
-    const vBottom = vv ? vv.offsetTop + vv.height : window.innerHeight
-    if (top + mh > vBottom - 8) top = Math.max(vTop + 8, vBottom - mh - 8)
+    const { left, top } = placePopupMenu({
+      rect: r,
+      menuWidth: menu.offsetWidth,
+      menuHeight: menu.offsetHeight,
+      vTop: vv ? Math.max(0, vv.offsetTop) : 0,
+      vBottom: vv ? vv.offsetTop + vv.height : window.innerHeight,
+      viewportWidth: window.innerWidth,
+      prefer: 'above',
+    })
     menu.style.left = `${left}px`
     menu.style.top = `${top}px`
   }, [exportMenuId])

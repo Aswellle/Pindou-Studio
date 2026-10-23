@@ -168,10 +168,10 @@ export default function ContactUsModal({ onClose, user }) {
     if (el) el.scrollTop = el.scrollHeight
   }, [thread, text])
 
-  // iOS 键盘弹起已由 useKeyboardSafe 全局收缩 overlay(--visible-vh)并让内容可滚,
-  // 输入框自然落在键盘上方。此处不做任何 scrollIntoView/scrollTo —— 主动滚动会与
-  // iOS 的键盘自动滚动打架,把 modal 挤出视口(白板元凶,见 useKeyboardSafe 注释)。
-  const focusInput = () => {}
+  // iOS 键盘弹起由 useKeyboardSafe 全局收缩 overlay(--visible-vh);浮层**内部**的
+  // 滚动容器(.contact-body)由它统一修正到可见带内,浮层遮罩自身永不滚动。
+  // 这里不再单独 scrollIntoView / scrollTo —— 那会与键盘自动滚动打架,
+  // 把 modal 挤出视口(白板元凶,见 useKeyboardSafe 注释)。
 
   const handleSend = async () => {
     if (sending) return
@@ -288,7 +288,6 @@ export default function ContactUsModal({ onClose, user }) {
           type="email"
           value={email}
           onChange={e => setEmail(e.target.value)}
-          onFocus={focusInput}
           placeholder={t('contact.emailPlaceholder')}
           maxLength={120}
         />
@@ -319,7 +318,6 @@ export default function ContactUsModal({ onClose, user }) {
             className="contact-msg-input"
             value={text}
             onChange={e => setText(e.target.value)}
-            onFocus={focusInput}
             placeholder={t('contact.messagePlaceholder')}
             maxLength={500}
             onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSend() } }}

@@ -1,8 +1,10 @@
 import { useEffect } from 'react'
 import { computeViewport, focusScrollDelta } from './viewportGeometry'
 
-// 全屏浮层类:聚焦这些容器内的输入框由 overlay 收缩机制处理(--visible-vh),
-// 不做主动滚动;页面内输入框(后台表单、联系消息回复、登录页等)用内层滚动容器修正。
+// 全屏浮层类:浮层**遮罩自身**永不滚动,由 overlay 收缩机制处理(--visible-vh);
+// 但浮层**内部**的滚动容器(如 .contact-body、.my-beads-modal)会被修正到可见带内 ——
+// 浮层收缩只保证遮罩在键盘上方,不保证内部表单末尾可见。
+// 页面内输入框(后台表单、联系消息回复、登录页等)同样用内层滚动容器修正。
 // 新增全屏浮层时必须同步加入 index.css 的共享浮层组(mobileOverlayContract.test.js 强制)。
 const OVERLAY_SELECTOR = [
   '.modal-overlay',

@@ -306,9 +306,32 @@ describe('useKeyboardSafe', () => {
     expect(cssVar('--visible-vh-top')).toBe('100px')
 
     // 有效可见带 = [max(0,100), min(500, 100+400)] = [100, 500]
-    // 输入框 460–500 恰好贴底,应该只差留白;把它挪到 490–530 才会越界。
-    // 这里断言:元素在带内时不产生滚动,越界时才滚。
-    expect(scroller.scrollTop).toBeGreaterThanOrEqual(0)
+    // 输入框 460–500 恰好贴底,只差留白:delta = 500 - 500 + 10 = 10。
+    // 这里必须是确定值 —— toBeGreaterThanOrEqual(0) 连 0 和 10000 都满足,
+    // 无法区分「算对了」与「算错了」。
+    expect(scroller.scrollTop).toBe(10)
+    unmount()
+  })
+
+  it('元素完全在可见带内时不产生任何滚动', () => {
+    const { unmount } = renderHook(() => useKeyboardSafe())
+    const scroller = document.createElement('div')
+    scroller.style.overflowY = 'auto'
+    Object.defineProperty(scroller, 'clientHeight', { value: 500, configurable: true })
+    Object.defineProperty(scroller, 'scrollHeight', { value: 2000, configurable: true })
+    const input = document.createElement('input')
+    scroller.appendChild(input)
+    document.body.appendChild(scroller)
+    vi.spyOn(scroller, 'getBoundingClientRect').mockReturnValue({ top: 0, bottom: 500 })
+    // 输入框 200–240,上下都离带边远超 pad
+    vi.spyOn(input, 'getBoundingClientRect').mockReturnValue({ top: 200, bottom: 240, height: 40 })
+
+    input.focus()
+    scroller.scrollTop = 0
+    viewport.set(400, 100)
+
+    // 带 [100, 500]:元素 200–240 完全在内,delta 必须精确为 0
+    expect(scroller.scrollTop).toBe(0)
     unmount()
   })
 

@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { computeViewport, focusScrollDelta, KEYBOARD_MIN_INSET } from './viewportGeometry'
+import { computeViewport, focusScrollDelta, placePopupMenu, KEYBOARD_MIN_INSET } from './viewportGeometry'
 
 /**
  * 视口几何判定的穷举测试(规格 §8.1 第 1 条)。
@@ -286,5 +286,92 @@ describe('focusScrollDelta · 焦点可见性修正', () => {
       elementBottom: 190,
     })
     expect(delta).toBe(-60) // (150-200) - 10
+  })
+})
+
+describe('placePopupMenu · 弹出菜单在视觉视口内的落点', () => {
+  // 典型场景:390×844 手机,键盘弹起后视觉视口 [400, 800](offsetTop=400)
+  const base = {
+    menuWidth: 160,
+    menuHeight: 100,
+    vTop: 0,
+    vBottom: 800,
+    viewportWidth: 390,
+    prefer: 'below',
+  }
+
+  it('首选向下展开:菜单贴按钮下沿', () => {
+    const { top, left } = placePopupMenu({
+      ...base,
+      rect: { top: 100, bottom: 140, left: 20, right: 60 },
+    })
+    expect(top).toBe(146) // 140 + 6
+    expect(left).toBe(20)
+  })
+
+  it('下方放不下时翻到按钮上方', () => {
+    const { top } = placePopupMenu({
+      ...base,
+      rect: { top: 700, bottom: 740, left: 20, right: 60 },
+    })
+    expect(top).toBe(594) // 700 - 100 - 6
+  })
+
+  it('视觉视口下移后,向上展开越过带顶时翻到按钮下方', () => {
+    // 键盘弹起:vTop=400,vBottom=800。按钮 420–460 在带内,
+    // 但菜单向上展开 top = 420-100-6 = 314,在带顶之上 86px。
+    const { top } = placePopupMenu({
+      ...base,
+      vTop: 400,
+      vBottom: 800,
+      rect: { top: 420, bottom: 460, left: 20, right: 60 },
+      prefer: 'above',
+    })
+    // 翻到按钮下方 466(460+6),整个菜单仍在带内 —— 比硬夹到带顶更贴近用户预期
+    expect(top).toBe(466)
+    expect(top).toBeGreaterThanOrEqual(400)
+    expect(top + 100).toBeLessThanOrEqual(800)
+  })
+
+  it('可见带比菜单还矮时:保证顶边可见,不把菜单推到带外', () => {
+    // 带只有 100 高([400,500]),菜单也是 100 —— 加减 8px 留白后必然放不下。
+    // 此时只能保顶边(标题/关闭按钮)可见,底部溢出由内容滚动兜底。
+    const { top } = placePopupMenu({
+      ...base,
+      vTop: 400,
+      vBottom: 500,
+      rect: { top: 420, bottom: 460, left: 20, right: 60 },
+      prefer: 'below',
+    })
+    expect(top).toBe(408) // vTop + margin,顶边在带内
+    expect(top).toBeGreaterThanOrEqual(400)
+    expect(top).toBeLessThanOrEqual(500)
+  })
+
+  it('右对齐菜单不越过右边界', () => {
+    const { left } = placePopupMenu({
+      ...base,
+      rect: { top: 100, bottom: 140, left: 300, right: 380 },
+      prefer: 'above',
+    })
+    // 380 - 160 = 220,加宽 160 → 380 ≤ 390-8 = 382,不需要夹紧
+    expect(left).toBe(220)
+
+    const narrow = placePopupMenu({
+      ...base,
+      viewportWidth: 320,
+      rect: { top: 100, bottom: 140, left: 280, right: 316 },
+      prefer: 'above',
+    })
+    // 316 - 160 = 156 → 156+160 = 316 > 312 → 夹到 320-160-8 = 152
+    expect(narrow.left).toBe(152)
+  })
+
+  it('左边界不会为负', () => {
+    const { left } = placePopupMenu({
+      ...base,
+      rect: { top: 100, bottom: 140, left: 2, right: 40 },
+    })
+    expect(left).toBe(8)
   })
 })
