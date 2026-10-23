@@ -24,10 +24,14 @@ vi.mock('react-i18next', () => ({
 // like a real 48×48 px canvas (3×3 grid, scale 1): a click at (24,24) maps to
 // cell (1,1).
 function installCanvasMocks(hooks = {}) {
-  const calls = { fillRect: [], stroke: 0, moveTo: [], lineTo: [], clearRect: [], setLineDash: [], arc: [], strokeRect: [], rect: [] }
+  const calls = { fillRect: [], stroke: 0, moveTo: [], lineTo: [], clearRect: [], setLineDash: [], arc: [], strokeRect: [], rect: [], strokeStyle: [] }
+  // strokeStyle 必须走 setter 记录:吸附高亮线靠换色来区分,
+  // 只存最后一次赋值看不出「画过高亮」。
+  let strokeStyleValue = '#000000'
   const ctx = {
     fillStyle: '#000000',
-    strokeStyle: '#000000',
+    get strokeStyle() { return strokeStyleValue },
+    set strokeStyle(v) { strokeStyleValue = v; calls.strokeStyle.push(v) },
     lineWidth: 1,
     lineDashOffset: 0,
     fillRect: (x, y, w, h) => calls.fillRect.push({ x, y, w, h }),
@@ -192,6 +196,8 @@ describe('Canvas 选区与取色(M5)', () => {
       onCanvasChange,
       onSelectionChange,
       onPickColor,
+      // 这组测的是选区几何与取色,不是吸附(A3 有独立用例)
+      snapToEdges: false,
       ...overrides,
     }
     const view = render(<Canvas {...props} />)
@@ -324,6 +330,8 @@ describe('Canvas 缩放下的坐标正确性(规格 04 §8)', () => {
         onCanvasChange={onCanvasChange}
         onSelectionChange={onSelectionChange}
         onPickColor={onPickColor}
+        // 空白画布本来就没有边界可吸,显式关掉以免日后加数据时意外被吸附影响
+        snapToEdges={false}
         {...overrides}
       />
     )
@@ -562,7 +570,8 @@ describe('Canvas 拖拽移动选区(M5.2)', () => {
   })
 
   test('在选区外按下仍是重新拖选框', () => {
-    const { container, onSelectionMove, onSelectionChange } = renderMove()
+    // 关掉吸附:这条测的是手势判定,不是吸附(吸附会改变最终矩形)
+    const { container, onSelectionMove, onSelectionChange } = renderMove({ snapToEdges: false })
     const c = container.querySelector('.canvas-container')
 
     // (2,2) 在选区 (0,0,2×1) 之外
@@ -692,6 +701,114 @@ describe('Canvas 复制拖动(A2)', () => {
 
     // 选区 2×1 在 (0,0):向右最多 1 格、向下最多 2 格
     expect(onSelectionMove.mock.calls[0][0]).toMatchObject({ dx: 1, dy: 2, copy: true })
+  })
+})
+
+/**
+ * A3:框选吸附到已有珠子的边缘。
+ *
+ * 3×3 网格,第 0 行有珠子、其余为空。拖选时右/下边界靠近珠块边缘会被吸过去。
+ */
+describe('Canvas 框选吸附(A3)', () => {
+  let mock
+  beforeEach(() => { mock = installCanvasMocks() })
+  afterEach(() => mock.restore())
+
+  function renderSnap(overrides = {}) {
+    const onSelectionChange = vi.fn()
+    // 3×3:第 0 行整行有珠,其余为空
+    const data = blankGrid(3)
+    data[0] = ['#E53935', '#E53935', '#E53935']
+    const view = render(
+      <Canvas
+        gridSize={3}
+        gridWidth={null}
+        gridHeight={null}
+        selectedColor="#ff0000"
+        tool="select"
+        committedData={data}
+        onCanvasChange={vi.fn()}
+        onSelectionChange={onSelectionChange}
+        {...overrides}
+      />
+    )
+    return { ...view, onSelectionChange }
+  }
+
+  test('默认开启:下边界靠近珠块底边时吸过去', () => {
+    // 第 0、1 行有珠,珠块底边在 y=2。
+    // 从 (0,0) 拖到 (0,2) 时下边界是 3,与底边差一格 → 吸到 2,高度 3 → 2。
+    const data = blankGrid(3)
+    data[0] = ['#E53935', '#E53935', '#E53935']
+    data[1] = ['#E53935', '#E53935', '#E53935']
+    const { container, onSelectionChange } = renderSnap({ committedData: data })
+    const c = container.querySelector('.canvas-container')
+
+    fireEvent.mouseDown(c, { clientX: 8, clientY: 8 })
+    fireEvent.mouseMove(c, { clientX: 8, clientY: 40 })
+    fireEvent.mouseUp(c, { clientX: 8, clientY: 40 })
+
+    const last = onSelectionChange.mock.calls.at(-1)[0]
+    expect(last).toEqual({ x: 0, y: 0, w: 1, h: 2 })
+  })
+
+  test('关闭吸附后,同样的手势得到未吸附的矩形', () => {
+    const { container, onSelectionChange } = renderSnap({ snapToEdges: false })
+    const c = container.querySelector('.canvas-container')
+
+    fireEvent.mouseDown(c, { clientX: 8, clientY: 8 })
+    fireEvent.mouseMove(c, { clientX: 8, clientY: 24 })
+    fireEvent.mouseUp(c, { clientX: 8, clientY: 24 })
+
+    const last = onSelectionChange.mock.calls.at(-1)[0]
+    expect(last.h).toBe(2)
+  })
+
+  test('吸附时画出高亮实线', () => {
+    // 第 0、1 行有珠,珠块底边在 y=2;拖到第 2 行时下边界差一格被吸过去。
+    const data = blankGrid(3)
+    data[0] = ['#E53935', '#E53935', '#E53935']
+    data[1] = ['#E53935', '#E53935', '#E53935']
+    const { container } = renderSnap({ committedData: data })
+    const c = container.querySelector('.canvas-container')
+    const before = mock.calls.strokeStyle.length
+
+    fireEvent.mouseDown(c, { clientX: 8, clientY: 8 })
+    fireEvent.mouseMove(c, { clientX: 8, clientY: 40 })
+
+    // 吸附高亮线用独立颜色(MARQUEE_SNAP),不是虚线框的颜色
+    const added = mock.calls.strokeStyle.slice(before)
+    expect(added.some(s => String(s).includes('255, 152, 0'))).toBe(true)
+  })
+
+  test('吸附把焦点拽回锚点时丢弃吸附,不把选区塌成单击', () => {
+    // 第 0 行 = [空, 珠, 珠]。从 (0,0) 拖到 (1,0):右边界 2 两侧都有珠子
+    // 不是边界,而边界 1(珠子在右、左边空)在阈值 1 内 → 焦点会被吸回 0,
+    // 与锚点重合。若照单全收,endSelection 会把这次拖动当成单击并取消选区。
+    const data = blankGrid(3)
+    data[0] = [null, '#E53935', '#E53935']
+    const { container, onSelectionChange } = renderSnap({ committedData: data })
+    const c = container.querySelector('.canvas-container')
+
+    fireEvent.mouseDown(c, { clientX: 8, clientY: 8 })
+    fireEvent.mouseMove(c, { clientX: 24, clientY: 8 })
+    fireEvent.mouseUp(c, { clientX: 24, clientY: 8 })
+
+    const last = onSelectionChange.mock.calls.at(-1)[0]
+    expect(last).toEqual({ x: 0, y: 0, w: 2, h: 1 })
+  })
+
+  test('远离所有边缘时不吸附,也不画高亮线', () => {
+    const { container } = renderSnap()
+    const c = container.querySelector('.canvas-container')
+    const before = mock.calls.strokeStyle.length
+
+    // 从 (1,1) 拖到 (2,2):离第 0 行的珠子很远
+    fireEvent.mouseDown(c, { clientX: 24, clientY: 24 })
+    fireEvent.mouseMove(c, { clientX: 40, clientY: 40 })
+
+    const added = mock.calls.strokeStyle.slice(before)
+    expect(added.some(s => String(s).includes('255, 152, 0'))).toBe(false)
   })
 })
 
@@ -877,6 +994,8 @@ describe('Canvas 选框实时跟随预览', () => {
         committedData={blankGrid(3)}
         onCanvasChange={vi.fn()}
         onSelectionChange={onSelectionChange}
+        // 这组测的是选框绘制,不是吸附
+        snapToEdges={false}
       />
     )
     return { ...view, onSelectionChange }
