@@ -794,6 +794,12 @@ body:has(.quantizer-zoom) .mobile-toolbar {
   overflow: visible;
   flex: none;
 }
+/* 个人中心同理:桌面端 .profile-page 自己滚动,移动端已被 .mobile-page-area
+   包住,内层再滚一次同样滑不动。 */
+.mobile-page-area > .profile-page {
+  overflow: visible;
+  flex: none;
+}
 
 
 /* ── 后台门禁(AdminGate,AdminPanel 与 /admin/dashboard 共用) ── */

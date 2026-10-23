@@ -17,7 +17,13 @@ const mockUser = {
   nickname: '测试用户',
 }
 
-function renderProfilePage(initialEntries = ['/profile'], initialIndex) {
+/** 云端/本机都读成功且为空的拼豆资产,用于让统计显示 0 而不是骨架 */
+const emptyBeadStore = {
+  palettes: [], colors: [], inventory: [],
+  loading: false, error: null, pendingLocal: 0, mode: 'local',
+}
+
+function renderPage(overrides = {}, { initialEntries = ['/profile'], initialIndex } = {}) {
   return render(
     <MemoryRouter initialEntries={initialEntries} initialIndex={initialIndex}>
       <Routes>
@@ -27,22 +33,28 @@ function renderProfilePage(initialEntries = ['/profile'], initialIndex) {
             onLogout={() => {}}
             onUpdateProfile={async () => {}}
             onChangePassword={async () => {}}
+            {...overrides}
           />
         } />
         <Route path="/login" element={<div>login-marker</div>} />
         <Route path="/" element={<div>home-marker</div>} />
+        <Route path="/gallery" element={<div>gallery-marker</div>} />
       </Routes>
     </MemoryRouter>
   )
 }
 
+/** 分区导航是按钮,按文案切换后目标分区才会挂载 */
+const gotoSection = (label) => fireEvent.click(screen.getByRole('button', { name: label }))
+
 describe('ProfilePage', () => {
-  it('以独立页面形态渲染(页面壳 + 身份卡 + 设置卡),不产生模态遮罩', () => {
-    const { container } = renderProfilePage()
+  it('以独立页面形态渲染(页面壳 + 分区导航 + 身份摘要),不产生模态遮罩', () => {
+    const { container } = renderPage()
 
     expect(container.querySelector('.profile-page')).toBeTruthy()
-    expect(container.querySelector('.profile-layout')).toBeTruthy()
-    expect(container.querySelector('.profile-identity')).toBeTruthy()
+    expect(container.querySelector('.pf-layout')).toBeTruthy()
+    expect(container.querySelector('.pf-nav')).toBeTruthy()
+    expect(container.querySelector('.pf-identity-summary')).toBeTruthy()
     // 页面形态不再渲染模态遮罩,也没有浮层的关闭按钮
     expect(container.querySelector('.modal-overlay.profile-overlay')).toBeNull()
     expect(container.querySelector('.profile-page .close-btn')).toBeNull()
@@ -51,10 +63,10 @@ describe('ProfilePage', () => {
   })
 
   it('页面内不出现站点导航/其他页面控件/登录按钮', () => {
-    const { container } = renderProfilePage()
+    const { container } = renderPage()
 
     // 站点顶栏(nav/logo)与画布工具栏、保存/导出、调色板等均不得出现
-    expect(container.querySelector('header.site-header, nav, .mobile-toolbar, .color-palette, .tools-drawer')).toBeNull()
+    expect(container.querySelector('header.header, header.site-header, .mobile-toolbar, .color-palette, .tools-drawer')).toBeNull()
     // 登录/注册是 /login 的职责:本页不得出现登录或注册按钮(退出登录不算)
     expect(screen.queryByRole('button', { name: /^(登录|立即登录|登录\/注册)$/ })).toBeNull()
     expect(screen.queryByRole('button', { name: /^注册$/ })).toBeNull()
@@ -62,11 +74,103 @@ describe('ProfilePage', () => {
     // 只保留个人资料自身的操作入口
     expect(screen.getByText('test@example.com')).toBeTruthy()
     expect(screen.getByText(/退出登录/)).toBeTruthy()
+    gotoSection('账号与安全')
     expect(screen.getByText(/修改密码/)).toBeTruthy()
   })
 
+  it('切换分区只渲染当前分区的内容', () => {
+    renderPage()
+
+    // 概览默认可见,资料表单尚未挂载
+    expect(screen.getByText('最近作品')).toBeTruthy()
+    expect(screen.queryByLabelText('昵称')).toBeNull()
+
+    gotoSection('个人资料')
+    expect(screen.getByLabelText('昵称')).toBeTruthy()
+    expect(screen.queryByText('最近作品')).toBeNull()
+
+    gotoSection('偏好设置')
+    expect(screen.getByText('界面语言')).toBeTruthy()
+    expect(screen.queryByLabelText('昵称')).toBeNull()
+  })
+
+  it('统计加载中显示骨架,读取失败显示骨架而不是 0,只有读到空才是 0', () => {
+    const { container, rerender } = renderPage({ worksLoading: true })
+    // 加载中:作品统计是骨架,不是 0
+    expect(container.querySelectorAll('.pf-stat-skeleton').length).toBeGreaterThan(0)
+    expect(screen.queryByText('已保存图纸')).toBeTruthy()
+
+    // 云端读取失败:仍然不能把「读不到」画成「0 件」
+    rerender(
+      <MemoryRouter initialEntries={['/profile']}>
+        <Routes>
+          <Route path="/profile" element={
+            <ProfilePage
+              user={mockUser}
+              works={[]}
+              worksLoading={false}
+              worksError={{ code: 'loadFailed' }}
+              beadStore={emptyBeadStore}
+            />
+          } />
+        </Routes>
+      </MemoryRouter>,
+    )
+    expect(screen.getByText(/云端作品暂时没读到/)).toBeTruthy()
+    expect(container.querySelector('.pf-stat-skeleton')).toBeTruthy()
+
+    // 读到且确实为空:这时才显示 0
+    rerender(
+      <MemoryRouter initialEntries={['/profile']}>
+        <Routes>
+          <Route path="/profile" element={
+            <ProfilePage
+              user={mockUser}
+              works={[]}
+              worksLoading={false}
+              worksError={null}
+              beadStore={emptyBeadStore}
+            />
+          } />
+        </Routes>
+      </MemoryRouter>,
+    )
+    expect(screen.getByText('已保存图纸').parentElement.textContent).toContain('0')
+    expect(container.querySelector('.pf-stat-skeleton')).toBeNull()
+  })
+
+  it('用户名账号只显示用户名,任何分区都不出现合成邮箱', () => {
+    const usernameUser = {
+      id: 'u2',
+      email: 'alice@custom.local',
+      username: 'alice',
+      authType: 'username',
+      nickname: '',
+      name: 'alice',
+      emailConfirmedAt: null,
+      pendingEmail: null,
+    }
+    renderPage({ user: usernameUser })
+
+    // 概览里名称与账号标识都是 alice(显示名回落到用户名),用 getAllByText 而非唯一匹配
+    expect(screen.getAllByText('alice').length).toBeGreaterThan(0)
+    expect(screen.getByText('用户名账号')).toBeTruthy()
+    expect(screen.queryByText(/custom\.local/)).toBeNull()
+
+    gotoSection('个人资料')
+    expect(screen.getByText('用户名')).toBeTruthy()
+    expect(screen.queryByText(/custom\.local/)).toBeNull()
+
+    // 用户名账号没有真实邮箱 → 不提供更换邮箱入口,只提供安全密钥
+    gotoSection('账号与安全')
+    expect(screen.queryByText('更换邮箱')).toBeNull()
+    expect(screen.getByText('安全密钥')).toBeTruthy()
+    expect(screen.queryByText(/custom\.local/)).toBeNull()
+  })
+
   it('昵称未改动时保存按钮禁用,改动后可保存并提示已保存', async () => {
-    renderProfilePage()
+    renderPage()
+    gotoSection('个人资料')
 
     const saveBtn = screen.getByRole('button', { name: '保存' })
     expect(saveBtn.disabled).toBe(true)
@@ -78,20 +182,22 @@ describe('ProfilePage', () => {
     expect(await screen.findByText('已保存')).toBeTruthy()
   })
 
-  it('点击修改密码展开表单,缺少当前密码时给出校验提示', async () => {
-    const { container } = renderProfilePage()
+  it('修改密码表单缺少当前密码时给出校验提示', async () => {
+    const { container } = renderPage()
+    gotoSection('账号与安全')
 
-    fireEvent.click(screen.getByRole('button', { name: '修改密码' }))
     expect(screen.getByLabelText('当前密码')).toBeTruthy()
 
-    // 密码表单与昵称卡各有一个「保存」:按表单范围定位,避免歧义
-    const pwForm = container.querySelector('.profile-pw-form')
+    // 密码表单内的「保存」,按表单范围定位,避免与其他卡片的按钮歧义
+    const pwForm = container.querySelector('.pf-form')
     fireEvent.click(within(pwForm).getByRole('button', { name: '保存' }))
     expect(await screen.findByText('请输入当前密码')).toBeTruthy()
   })
 
   it('头像上传过门控:非图片 / 超大字节 / 像素极多的文件均被拒绝,不进入裁剪', async () => {
-    const { container } = renderProfilePage()
+    const { container } = renderPage()
+    gotoSection('个人资料')
+
     const input = container.querySelector('input[type="file"]')
     const pngWithSize = (w, h) => {
       const bytes = new Uint8Array(24)
@@ -108,7 +214,8 @@ describe('ProfilePage', () => {
     fireEvent.change(input, { target: { files: [new File([pngWithSize(20000, 20000)], 'huge.png', { type: 'image/png' })] } })
     expect(await screen.findByText(/像素过多/)).toBeTruthy()
 
-    expect(container.querySelector('.profile-crop')).toBeNull()
+    expect(container.querySelector('.pf-avatar-editor')).toBeTruthy()
+    expect(container.querySelector('.pf-avatar-editor input[type="file"]')).toBeTruthy()
   })
 
   it('退出登录需二次确认', () => {
@@ -130,35 +237,26 @@ describe('ProfilePage', () => {
   })
 
   it('资料异步到达时昵称输入框跟随同步,已编辑内容不被覆盖', async () => {
-    const { rerender } = render(
+    const tree = (user) => (
       <MemoryRouter initialEntries={['/profile']}>
         <Routes>
-          <Route path="/profile" element={<ProfilePage user={{ id: 'u1', email: 'test@example.com' }} onLogout={vi.fn()} onUpdateProfile={async () => {}} onChangePassword={async () => {}} />} />
+          <Route path="/profile" element={<ProfilePage user={user} onLogout={vi.fn()} onUpdateProfile={async () => {}} onChangePassword={async () => {}} />} />
         </Routes>
-      </MemoryRouter>,
+      </MemoryRouter>
     )
+
+    const { rerender } = render(tree({ id: 'u1', email: 'test@example.com' }))
+    gotoSection('个人资料')
 
     // 首帧无昵称 → 资料到达后同步进输入框
     const nickInput = () => screen.getByLabelText('昵称')
     expect(nickInput().value).toBe('')
-    rerender(
-      <MemoryRouter initialEntries={['/profile']}>
-        <Routes>
-          <Route path="/profile" element={<ProfilePage user={{ id: 'u1', email: 'test@example.com', nickname: '测试用户' }} onLogout={vi.fn()} onUpdateProfile={async () => {}} onChangePassword={async () => {}} />} />
-        </Routes>
-      </MemoryRouter>,
-    )
+    rerender(tree({ id: 'u1', email: 'test@example.com', nickname: '测试用户' }))
     expect(await waitFor(() => expect(nickInput().value).toBe('测试用户')))
 
     // 用户编辑后再刷新资料:保留用户输入
     fireEvent.change(nickInput(), { target: { value: '我在编辑' } })
-    rerender(
-      <MemoryRouter initialEntries={['/profile']}>
-        <Routes>
-          <Route path="/profile" element={<ProfilePage user={{ id: 'u1', email: 'test@example.com', nickname: '别的名字' }} onLogout={vi.fn()} onUpdateProfile={async () => {}} onChangePassword={async () => {}} />} />
-        </Routes>
-      </MemoryRouter>,
-    )
+    rerender(tree({ id: 'u1', email: 'test@example.com', nickname: '别的名字' }))
     expect(nickInput().value).toBe('我在编辑')
   })
 
@@ -190,7 +288,7 @@ describe('ProfilePage', () => {
   })
 
   it('深链接直达(无浏览历史)时,返回按钮兜底回首页', () => {
-    renderProfilePage(['/profile'])
+    renderPage({}, { initialEntries: ['/profile'] })
 
     fireEvent.click(screen.getByRole('button', { name: /返回/ }))
 
@@ -202,7 +300,7 @@ describe('ProfilePage', () => {
     // jsdom 中 MemoryRouter 不写 window.history,手动模拟"存在浏览历史"
     Object.defineProperty(window.history, 'length', { value: 3, configurable: true })
     try {
-      renderProfilePage(['/', '/profile'], 1)
+      renderPage({}, { initialEntries: ['/', '/profile'], initialIndex: 1 })
 
       fireEvent.click(screen.getByRole('button', { name: /返回/ }))
 

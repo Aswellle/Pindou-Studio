@@ -100,6 +100,12 @@ describe('移动端整页滚动', () => {
     expect(inner).toContain('overflow: visible')
     expect(inner).not.toContain('overflow-y: auto')
   })
+
+  it('移动端内层 profile-page 同样不再滚动(个人中心与内容页同一处境)', () => {
+    const inner = ruleBody(INDEX_CSS, '.mobile-page-area > .profile-page {')
+    expect(inner).toContain('overflow: visible')
+    expect(inner).not.toContain('overflow-y: auto')
+  })
 })
 
 describe('根层级高度契约(计划 §6.1)', () => {
