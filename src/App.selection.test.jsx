@@ -38,12 +38,16 @@ vi.mock('./components/Canvas', async () => {
 vi.mock('./components/Tools', async () => {
   const React = await import('react')
   return {
-    default: ({ selection, onSelectionCommand, onClearSelection, onGridSizeChange, onToggleFillIncludeEmpty }) => React.createElement(
+    default: ({ selection, tool, onToolChange, onSelectionCommand, onClearSelection, onGridSizeChange, onToggleFillIncludeEmpty, canPaste }) => React.createElement(
       'div',
       null,
       React.createElement('span', { 'data-testid': 'sel' }, selection ? `${selection.w}x${selection.h}` : 'none'),
+      React.createElement('span', { 'data-testid': 'tool' }, tool),
+      React.createElement('button', { 'data-testid': 'select-tool', onClick: () => onToolChange('select') }, 'select-tool'),
       React.createElement('button', { 'data-testid': 'fill', onClick: () => onSelectionCommand('fill') }, 'fill'),
       React.createElement('button', { 'data-testid': 'rotate', onClick: () => onSelectionCommand('rotateCw') }, 'rotate'),
+      React.createElement('button', { 'data-testid': 'copy', onClick: () => onSelectionCommand('copy') }, 'copy'),
+      React.createElement('button', { 'data-testid': 'paste', disabled: !canPaste, onClick: () => onSelectionCommand('paste') }, 'paste'),
       React.createElement('button', { 'data-testid': 'clear-sel', onClick: onClearSelection }, 'clear-sel'),
       React.createElement('button', { 'data-testid': 'resize', onClick: () => onGridSizeChange(57) }, 'resize'),
       // 规格 04 §2:填充默认跳过空白格,需要连空白一起填时由这个开关显式打开
@@ -291,5 +295,203 @@ describe('App · 拖拽移动选区(M5.2)', () => {
 
     await waitFor(() => expect(getByTestId('sel').textContent).toBe('2x2'))
     expect(canvasProps.current.committedData).toBe(before)
+  })
+})
+
+/**
+ * 规格 04 §2 的选区复制 / 粘贴。
+ *
+ * 关键语义(与拖拽移动刻意不同):
+ *   - 复制只读,不改矩阵、不改选区;
+ *   - 粘贴以当前选区左上角为落点,**越界裁剪**(拖拽移动则是钳制,因为那里是
+ *     在搬动已有珠子,裁掉就是丢工作);
+ *   - 粘贴只产生一条历史,一次撤销回到粘贴前;
+ *   - 空剪贴板时「粘贴」按钮禁用。
+ */
+describe('App · 选区复制 / 粘贴(规格 04 §2)', () => {
+  /** 画一块 2×2 内容并返回当时的矩阵快照 */
+  async function fillBlock(getByTestId) {
+    selectRegion({ x: 0, y: 0, w: 2, h: 2 })
+    await waitFor(() => expect(getByTestId('sel').textContent).toBe('2x2'))
+    enableIncludeEmpty(getByTestId)
+    fireEvent.click(getByTestId('fill'))
+    await waitFor(() => expect(canvasProps.current.committedData[0][0]).toBe('#E53935'))
+    return canvasProps.current.committedData.map(r => [...r])
+  }
+
+  it('复制不改画布、不改选区,之后粘贴按钮可用', async () => {
+    const { getByTestId } = renderApp()
+    await waitFor(() => expect(canvasProps.current?.committedData).toBeTruthy())
+
+    const before = await fillBlock(getByTestId)
+    expect(getByTestId('paste').disabled).toBe(true)
+
+    fireEvent.click(getByTestId('copy'))
+
+    // 复制是只读操作:矩阵与选区都不动,但剪贴板已有内容
+    expect(canvasProps.current.committedData).toEqual(before)
+    expect(getByTestId('sel').textContent).toBe('2x2')
+    await waitFor(() => expect(getByTestId('paste').disabled).toBe(false))
+  })
+
+  it('粘贴到当前选区左上角,且可重复多次', async () => {
+    const { getByTestId } = renderApp()
+    await waitFor(() => expect(canvasProps.current?.committedData).toBeTruthy())
+
+    await fillBlock(getByTestId)
+    fireEvent.click(getByTestId('copy'))
+    await waitFor(() => expect(getByTestId('paste').disabled).toBe(false))
+
+    // 把选区挪到 (4,4) 再粘贴 → 内容落在 (4,4)
+    selectRegion({ x: 4, y: 4, w: 2, h: 2 })
+    await waitFor(() => expect(getByTestId('sel').textContent).toBe('2x2'))
+    fireEvent.click(getByTestId('paste'))
+    await waitFor(() => expect(canvasProps.current.committedData[4][4]).toBe('#E53935'))
+
+    // 再贴一次到 (8,8):剪贴板仍在,可重复粘贴
+    selectRegion({ x: 8, y: 8, w: 2, h: 2 })
+    await waitFor(() => expect(getByTestId('sel').textContent).toBe('2x2'))
+    fireEvent.click(getByTestId('paste'))
+    await waitFor(() => expect(canvasProps.current.committedData[8][8]).toBe('#E53935'))
+
+    // 原位置内容未被搬走(复制不是剪切)
+    expect(canvasProps.current.committedData[0][0]).toBe('#E53935')
+  })
+
+  it('粘贴只产生一条历史,一次撤销回到粘贴前', async () => {
+    const { getByTestId } = renderApp()
+    await waitFor(() => expect(canvasProps.current?.committedData).toBeTruthy())
+
+    await fillBlock(getByTestId)
+    fireEvent.click(getByTestId('copy'))
+    await waitFor(() => expect(getByTestId('paste').disabled).toBe(false))
+
+    const beforePaste = canvasProps.current.committedData.map(r => [...r])
+
+    selectRegion({ x: 4, y: 4, w: 2, h: 2 })
+    await waitFor(() => expect(getByTestId('sel').textContent).toBe('2x2'))
+    fireEvent.click(getByTestId('paste'))
+    await waitFor(() => expect(canvasProps.current.committedData[4][4]).toBe('#E53935'))
+
+    fireEvent.keyDown(window, { key: 'z', ctrlKey: true })
+    await waitFor(() => expect(canvasProps.current.committedData).toEqual(beforePaste))
+  })
+
+  it('粘贴越界时裁剪到画布内,不报错也不写到网格外', async () => {
+    const { getByTestId } = renderApp()
+    await waitFor(() => expect(canvasProps.current?.committedData).toBeTruthy())
+
+    // 先做一个 3×3 的块
+    selectRegion({ x: 0, y: 0, w: 3, h: 3 })
+    await waitFor(() => expect(getByTestId('sel').textContent).toBe('3x3'))
+    enableIncludeEmpty(getByTestId)
+    fireEvent.click(getByTestId('fill'))
+    await waitFor(() => expect(canvasProps.current.committedData[2][2]).toBe('#E53935'))
+    fireEvent.click(getByTestId('copy'))
+    await waitFor(() => expect(getByTestId('paste').disabled).toBe(false))
+
+    // 选区贴到右下角(29×29 网格的最后一格),3×3 的块只能落下左上 1 格
+    selectRegion({ x: 28, y: 28, w: 1, h: 1 })
+    await waitFor(() => expect(getByTestId('sel').textContent).toBe('1x1'))
+    fireEvent.click(getByTestId('paste'))
+
+    await waitFor(() => expect(canvasProps.current.committedData[28][28]).toBe('#E53935'))
+    // 越界部分被丢弃,不是钳制到别处
+    expect(canvasProps.current.committedData).toHaveLength(29)
+    expect(canvasProps.current.committedData[28]).toHaveLength(29)
+    // 选框被收回网格内
+    expect(getByTestId('sel').textContent).toBe('1x1')
+  })
+
+  it('空剪贴板时粘贴按钮禁用', async () => {
+    const { getByTestId } = renderApp()
+    await waitFor(() => expect(canvasProps.current?.committedData).toBeTruthy())
+    expect(getByTestId('paste').disabled).toBe(true)
+  })
+})
+
+/**
+ * 复制 / 粘贴快捷键只在选区工具下接管,且必须放行浏览器原生行为:
+ * 页面上选中文字后 Ctrl+C 仍然要能复制文字,不能因为画布有选区就被抢走。
+ */
+describe('App · 复制/粘贴快捷键的接管边界', () => {
+  async function prepare(getByTestId) {
+    selectRegion({ x: 0, y: 0, w: 2, h: 2 })
+    await waitFor(() => expect(getByTestId('sel').textContent).toBe('2x2'))
+    enableIncludeEmpty(getByTestId)
+    fireEvent.click(getByTestId('fill'))
+    await waitFor(() => expect(canvasProps.current.committedData[0][0]).toBe('#E53935'))
+    return canvasProps.current.committedData.map(r => [...r])
+  }
+
+  it('非选区工具下 Ctrl+C / Ctrl+V 不接管', async () => {
+    const { getByTestId } = renderApp()
+    await waitFor(() => expect(canvasProps.current?.committedData).toBeTruthy())
+    expect(getByTestId('tool').textContent).toBe('pencil')
+
+    await prepare(getByTestId)
+    // fireEvent 返回 true 表示事件未被 preventDefault —— 也就是浏览器原生行为照常
+    expect(fireEvent.keyDown(window, { key: 'c', ctrlKey: true })).toBe(true)
+    // 没有复制 → 粘贴仍禁用
+    expect(getByTestId('paste').disabled).toBe(true)
+  })
+
+  it('选区工具下 Ctrl+C 复制、Ctrl+V 粘贴', async () => {
+    const { getByTestId } = renderApp()
+    await waitFor(() => expect(canvasProps.current?.committedData).toBeTruthy())
+
+    fireEvent.click(getByTestId('select-tool'))
+    await waitFor(() => expect(getByTestId('tool').textContent).toBe('select'))
+
+    await prepare(getByTestId)
+    // 接管:preventDefault 掉浏览器的文本复制
+    expect(fireEvent.keyDown(window, { key: 'c', ctrlKey: true })).toBe(false)
+    await waitFor(() => expect(getByTestId('paste').disabled).toBe(false))
+
+    selectRegion({ x: 4, y: 4, w: 2, h: 2 })
+    await waitFor(() => expect(getByTestId('sel').textContent).toBe('2x2'))
+    expect(fireEvent.keyDown(window, { key: 'v', ctrlKey: true })).toBe(false)
+    await waitFor(() => expect(canvasProps.current.committedData[4][4]).toBe('#E53935'))
+  })
+
+  it('输入框聚焦时 Ctrl+V 交给浏览器原生粘贴', async () => {
+    const { container, getByTestId } = renderApp()
+    await waitFor(() => expect(canvasProps.current?.committedData).toBeTruthy())
+
+    fireEvent.click(getByTestId('select-tool'))
+    await prepare(getByTestId)
+    fireEvent.click(getByTestId('copy'))
+    await waitFor(() => expect(getByTestId('paste').disabled).toBe(false))
+    const before = canvasProps.current.committedData
+
+    const input = document.createElement('input')
+    container.appendChild(input)
+    expect(fireEvent.keyDown(input, { key: 'v', ctrlKey: true })).toBe(true)
+
+    // 画布不得变化(粘贴没有发生)
+    expect(canvasProps.current.committedData).toBe(before)
+  })
+
+  it('无选区时 Ctrl+C 不接管(留给浏览器复制页面文字)', async () => {
+    const { getByTestId } = renderApp()
+    await waitFor(() => expect(canvasProps.current?.committedData).toBeTruthy())
+
+    fireEvent.click(getByTestId('select-tool'))
+    fireEvent.click(getByTestId('clear-sel'))
+    await waitFor(() => expect(getByTestId('sel').textContent).toBe('none'))
+
+    expect(fireEvent.keyDown(window, { key: 'c', ctrlKey: true })).toBe(true)
+    expect(getByTestId('paste').disabled).toBe(true)
+  })
+
+  it('剪贴板为空时 Ctrl+V 不接管', async () => {
+    const { getByTestId } = renderApp()
+    await waitFor(() => expect(canvasProps.current?.committedData).toBeTruthy())
+
+    fireEvent.click(getByTestId('select-tool'))
+    await prepare(getByTestId)
+
+    // 有选区但没复制过:粘贴快捷键必须放行,而不是吃掉事件却什么都不做
+    expect(fireEvent.keyDown(window, { key: 'v', ctrlKey: true })).toBe(true)
   })
 })

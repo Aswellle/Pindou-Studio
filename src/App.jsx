@@ -25,6 +25,9 @@ import {
   rotateSelection,
   replaceColor,
   moveSelection,
+  copySelection,
+  pasteBlock,
+  normalizeSelection,
 } from './utils/selectionUtils'
 import { loadFillIncludeEmpty, saveFillIncludeEmpty, loadDeductInventory, saveDeductInventory } from './utils/editorPrefs'
 import { runInventoryDeduction } from './services/beads/inventoryDeduction'
@@ -95,6 +98,11 @@ export default function App() {
   // 因此每个命令天然是「一次撤销回到原矩阵」。
   const [selection, setSelection] = useState(null)
   const [showReplace, setShowReplace] = useState(false)
+
+  // 选区剪贴板:纯内存,不碰系统剪贴板。
+  // 不跨网格尺寸清空 —— 复制一块内容后调整画布大小再粘贴是合理操作,
+  // 越界部分由 pasteBlock 裁剪。
+  const [clipboard, setClipboard] = useState(null)
 
   // 切页 / 网格尺寸变化(换模板、载入作品、调整画布)后,旧选区坐标可能失效
   // → 清空。普通绘制不改变网格,选区矩形仍然有效,无需清空。
@@ -422,12 +430,62 @@ export default function App() {
   }
 
   // ── M5 选区命令 ─────────────────────────────────────────────
+  // 粘贴块可能伸出画布(越界部分已被 pasteBlock 裁掉),选框本身要收回网格内,
+  // 否则框会画到画布外面。normalizeSelection 用左上/右下两角重建矩形即可。
+  const clampSelection = useCallback((sel) => {
+    if (!sel) return null
+    const rows = canvasData?.length || 0
+    const cols = canvasData?.[0]?.length || 0
+    return normalizeSelection(
+      { x: sel.x, y: sel.y },
+      { x: sel.x + sel.w - 1, y: sel.y + sel.h - 1 },
+      cols,
+      rows,
+    )
+  }, [canvasData])
+
   // 每个命令都只调用一次 setCanvas(单条历史),返回 null 表示无变化、不压栈。
   const handleSelectionCommand = useCallback((command) => {
-    if (!selection) {
+    // 复制不依赖已有剪贴板,但必须有选区;粘贴反过来 —— 先分别守卫,
+    // 否则空剪贴板时点粘贴会得到「请先框选」这种误导性提示。
+    if (command === 'paste') {
+      if (!clipboard) {
+        toast(t('tools.selectionPasteEmpty'), 'error')
+        return
+      }
+    } else if (!selection) {
       toast(t('tools.selectionEmpty'), 'error')
       return
     }
+
+    if (command === 'copy') {
+      const copied = copySelection(canvasData, selection)
+      if (!copied.block) {
+        // 整片空白:没有可复制的内容,不覆盖已有剪贴板
+        toast(t('tools.selectionCopyEmpty'), 'info')
+        return
+      }
+      setClipboard(copied)
+      toast(t('tools.selectionCopiedToast', { w: copied.w, h: copied.h }), 'success')
+      return
+    }
+
+    if (command === 'paste') {
+      // 落点:有选区贴到选区左上角,否则贴到画布左上角
+      const ox = selection ? selection.x : 0
+      const oy = selection ? selection.y : 0
+      const pasted = pasteBlock(canvasData, clipboard, ox, oy)
+      if (!pasted.data) {
+        toast(t('tools.selectionPasteNoChange'), 'info')
+        if (pasted.selection) setSelection(clampSelection(pasted.selection))
+        return
+      }
+      setCanvas(pasted.data)
+      setSelection(clampSelection(pasted.selection))
+      toast(t('tools.selectionPastedToast', { n: pasted.changed }), 'success')
+      return
+    }
+
     let result
     if (command === 'fill') result = fillSelection(canvasData, selection, selectedColor, { includeEmpty: fillIncludeEmpty })
     else if (command === 'erase') result = clearSelectionRegion(canvasData, selection)
@@ -459,9 +517,37 @@ export default function App() {
       rotateCcw: 'tools.selectionRotatedToast',
     }[command]
     if (toastKey) toast(t(toastKey, { n: result.changed }), 'success')
-  }, [selection, canvasData, selectedColor, fillIncludeEmpty, setCanvas, toast, t])
+  }, [selection, clipboard, canvasData, selectedColor, fillIncludeEmpty, setCanvas, toast, t, clampSelection])
 
   const handleClearSelection = useCallback(() => setSelection(null), [])
+
+  // 选区复制 / 粘贴快捷键(规格 04 §2)。
+  //
+  // 只在「选区工具 + 条件满足」时接管 Ctrl/Cmd+C / V,其余一律放行给浏览器:
+  // 页面上选中文字后按 Ctrl+C 必须仍然复制文字,不能因为画布有选区就被抢走。
+  // 输入框内的原生复制粘贴同样跳过(与上面的撤销/重做 handler 一致)。
+  useEffect(() => {
+    const handler = (e) => {
+      if (tool !== 'select') return
+      const target = e.target
+      if (target && (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable)) return
+      if (!(e.ctrlKey || e.metaKey) || e.altKey) return
+      const key = e.key.toLowerCase()
+      if (key === 'c') {
+        // 无选区时不接管:留给浏览器复制页面文字
+        if (!selection) return
+        e.preventDefault()
+        handleSelectionCommand('copy')
+      } else if (key === 'v') {
+        // 剪贴板为空时不接管:留给浏览器原生粘贴
+        if (!clipboard) return
+        e.preventDefault()
+        handleSelectionCommand('paste')
+      }
+    }
+    window.addEventListener('keydown', handler)
+    return () => window.removeEventListener('keydown', handler)
+  }, [tool, selection, clipboard, handleSelectionCommand])
 
   // ── 品牌切换(规格 04 §4)────────────────────────────────────
   // 切色卡有两种语义,必须让用户选:
@@ -604,6 +690,7 @@ export default function App() {
             onOpenReplace={() => setShowReplace(true)}
             fillIncludeEmpty={fillIncludeEmpty}
             onToggleFillIncludeEmpty={handleToggleFillIncludeEmpty}
+            canPaste={Boolean(clipboard)}
           />
         </div>
         <div className="left-sidebar-bottom">
@@ -1020,6 +1107,7 @@ export default function App() {
               onOpenReplace={() => setShowReplace(true)}
               fillIncludeEmpty={fillIncludeEmpty}
               onToggleFillIncludeEmpty={handleToggleFillIncludeEmpty}
+              canPaste={Boolean(clipboard)}
             />
           </>
         } />
