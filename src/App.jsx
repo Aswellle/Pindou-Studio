@@ -16,6 +16,7 @@ import ExportPanel from './components/ExportPanel'
 import ColorStatsBar from './components/ColorStatsBar'
 import ReplaceColorDialog from './components/ReplaceColorDialog'
 import BrandSwitchDialog from './components/BrandSwitchDialog'
+import DraftRestorePrompt from './components/DraftRestorePrompt'
 import MyBeadsPage from './components/MyBeadsPage'
 import { useToast } from './components/Toast'
 import {
@@ -30,6 +31,7 @@ import {
   normalizeSelection,
 } from './utils/selectionUtils'
 import { loadFillIncludeEmpty, saveFillIncludeEmpty, loadDeductInventory, saveDeductInventory } from './utils/editorPrefs'
+import useAutoSave, { useAutoSaveEnabled } from './hooks/useAutoSave'
 import { runInventoryDeduction } from './services/beads/inventoryDeduction'
 import { createBrandColorResolver } from './services/export/PatternDocument'
 import { useUserPalettes } from './hooks/useUserPalettes'
@@ -222,6 +224,62 @@ export default function App() {
     }
   }, [gridSize])
 
+  // ── 自动保存草稿(规格 03 §7)────────────────────────────────
+  // 只进 IndexedDB,不写 `works` 表、不产生历史、失败静默。
+  // meta 里的上下文不参与「是否该写」的判定 —— 只有画布内容变了才写,
+  // 否则改个名字、切个色卡都会触发一次多余的写盘。
+  const [autoSaveEnabled, toggleAutoSave] = useAutoSaveEnabled()
+  const autoSave = useAutoSave({
+    canvasData,
+    meta: {
+      gridSize,
+      gridWidth,
+      gridHeight,
+      paletteId: currentPalette,
+      name: designName,
+      sourceKind: canvasSource,
+    },
+    enabled: autoSaveEnabled,
+  })
+  const { readDraft, discardDraft, resetBaseline } = autoSave
+
+  // 草稿恢复提示:启动时读一次。用 ref 挡住重复提示(StrictMode 双执行 / 路由重挂载)。
+  const [pendingDraft, setPendingDraft] = useState(null)
+  const draftCheckedRef = useRef(false)
+  useEffect(() => {
+    if (draftCheckedRef.current) return undefined
+    draftCheckedRef.current = true
+    let cancelled = false
+    ;(async () => {
+      const draft = await readDraft()
+      if (cancelled || !draft) return
+      setPendingDraft(draft)
+    })()
+    return () => { cancelled = true }
+  }, [readDraft])
+
+  const handleRestoreDraft = useCallback(() => {
+    const draft = pendingDraft
+    if (!draft) return
+    const size = Number(draft.gridSize) || (draft.canvasData?.length ?? 0)
+    const w = Number(draft.gridWidth) || size
+    const h = Number(draft.gridHeight) || size
+    setGridSize(Math.max(w, h))
+    setGridWidth(w === h ? null : w)
+    setGridHeight(w === h ? null : h)
+    if (draft.paletteId) setCurrentPalette(draft.paletteId)
+    if (draft.sourceKind) setCanvasSource(draft.sourceKind)
+    replaceCanvas(draft.canvasData)
+    // 恢复后把基线对齐到刚载入的矩阵:这不是「用户画的一笔」,不该立刻再写一次草稿
+    resetBaseline(draft.canvasData)
+    setPendingDraft(null)
+  }, [pendingDraft, replaceCanvas, resetBaseline])
+
+  const handleDiscardDraft = useCallback(async () => {
+    setPendingDraft(null)
+    await discardDraft()
+  }, [discardDraft])
+
   // Keyboard shortcuts: Ctrl+Z undo, Ctrl+Y / Ctrl+Shift+Z redo
   useEffect(() => {
     const handler = (e) => {
@@ -274,6 +332,9 @@ export default function App() {
     if (!work) return
     const ok = await saveWork(work)
     if (!ok) return
+    // 显式保存成功 → 草稿已完成使命。留着它下次打开会提示「恢复上次未保存的修改」,
+    // 而那份内容其实已经正式存过了,提示只会让用户困惑。
+    await discardDraft()
     setShowSaveDialog(false)
     setSaveToast(true)
     setTimeout(() => setSaveToast(false), 1500)
@@ -746,6 +807,7 @@ export default function App() {
           currentPage={currentPage}
           onPageChange={handlePageChange}
           saveState={saveState}
+          autoSaveState={autoSave.state}
         />
       )}
 
@@ -811,6 +873,8 @@ export default function App() {
               onChangeEmail={changeEmail}
               onVerifyPassword={verifyPassword}
               onSetSecurityKey={setSecurityKey}
+              autoSaveEnabled={autoSaveEnabled}
+              onToggleAutoSave={toggleAutoSave}
             />
           } />
 
@@ -960,6 +1024,13 @@ export default function App() {
         onMappingOnly={handleBrandSwitchMappingOnly}
       />
 
+      {/* 自动保存草稿的恢复提示(规格 03 §7):只在本机有草稿时出现一次 */}
+      <DraftRestorePrompt
+        draft={pendingDraft}
+        onRestore={handleRestoreDraft}
+        onDiscard={handleDiscardDraft}
+      />
+
       <style>{`
         .left-sidebar {
           display: flex;
@@ -1050,6 +1121,7 @@ export default function App() {
           onPageChange={handlePageChange}
           simplified={isMobile}
           saveState={saveState}
+          autoSaveState={autoSave.state}
         />
       )}
 
@@ -1067,6 +1139,7 @@ export default function App() {
                 scale={mobileScale}
                 onReset={() => canvasRef.current?.resetTransform()}
                 onFit={() => canvasRef.current?.fitToScreen()}
+                autoSaveState={autoSave.state}
               />
             )}
             <div className="mobile-canvas-area">
@@ -1180,6 +1253,8 @@ export default function App() {
               onChangeEmail={changeEmail}
               onVerifyPassword={verifyPassword}
               onSetSecurityKey={setSecurityKey}
+              autoSaveEnabled={autoSaveEnabled}
+              onToggleAutoSave={toggleAutoSave}
             />
           </div>
         } />
@@ -1331,6 +1406,13 @@ export default function App() {
         onClose={() => setPendingPalette(null)}
         onConvert={handleBrandSwitchConvert}
         onMappingOnly={handleBrandSwitchMappingOnly}
+      />
+
+      {/* 自动保存草稿的恢复提示(规格 03 §7):只在本机有草稿时出现一次 */}
+      <DraftRestorePrompt
+        draft={pendingDraft}
+        onRestore={handleRestoreDraft}
+        onDiscard={handleDiscardDraft}
       />
 
       <style>{`

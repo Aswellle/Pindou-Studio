@@ -63,6 +63,9 @@ export default function ProfilePage({
   onChangeEmail,
   onVerifyPassword,
   onSetSecurityKey,
+  // 自动保存开关(App 持有同一份状态:个人中心改完立刻作用于正在运行的自动保存)
+  autoSaveEnabled,
+  onToggleAutoSave,
 }) {
   const { t } = useTranslation()
   const navigate = useNavigate()
@@ -226,7 +229,12 @@ export default function ProfilePage({
             {section === 'assets' ? (
               <ProfileAssetsSection summary={summary} onRetryWorks={onRetryWorks} onRetryBeads={onRetryBeads} />
             ) : null}
-            {section === 'preferences' ? <ProfilePreferencesSection /> : null}
+            {section === 'preferences' ? (
+              <ProfilePreferencesSection
+                autoSaveEnabled={autoSaveEnabled}
+                onToggleAutoSave={onToggleAutoSave}
+              />
+            ) : null}
           </main>
         </div>
       </div>

@@ -94,6 +94,39 @@ describe('ProfilePage', () => {
     expect(screen.queryByLabelText('昵称')).toBeNull()
   })
 
+  it('自动保存开关用的是 App 下传的状态,勾选后回调给上层', () => {
+    // 这里不能自持一份 useState:开关要作用的是创作页正在跑的那个自动保存实例。
+    // 组件内自持状态只会写 localStorage,当前会话里的自动保存照旧写草稿 ——
+    // 表面关了、实际没关。
+    const onToggleAutoSave = vi.fn()
+    const { container, rerender } = renderPage({ autoSaveEnabled: false, onToggleAutoSave })
+
+    gotoSection('偏好设置')
+    const box = container.querySelector('.pf-switch-row input[type="checkbox"]')
+    expect(box).toBeTruthy()
+    expect(box.checked).toBe(false)
+
+    fireEvent.click(box)
+    expect(onToggleAutoSave).toHaveBeenCalledWith(true)
+
+    // 状态由上层驱动:上层改成 true 后勾选框跟着变
+    rerender(
+      <MemoryRouter initialEntries={['/profile']}>
+        <Routes>
+          <Route path="/profile" element={
+            <ProfilePage
+              user={mockUser}
+              autoSaveEnabled
+              onToggleAutoSave={onToggleAutoSave}
+            />
+          } />
+        </Routes>
+      </MemoryRouter>,
+    )
+    gotoSection('偏好设置')
+    expect(container.querySelector('.pf-switch-row input[type="checkbox"]').checked).toBe(true)
+  })
+
   it('统计加载中显示骨架,读取失败显示骨架而不是 0,只有读到空才是 0', () => {
     const { container, rerender } = renderPage({ worksLoading: true })
     // 加载中:作品统计是骨架,不是 0

@@ -695,6 +695,29 @@
 /* ── 语言选择 ─────────────────────────────────────────────── */
 .pf-language-row { display: flex; align-items: center; gap: 10px; }
 
+/* ── 开关行(自动保存草稿)───────────────────────────────── */
+/* 用原生 checkbox 而不是自绘开关:同一张卡片里已经有语言下拉框,
+   再来一个需要自己维护 ARIA 的自定义控件不值当;原生控件在
+   读屏/键盘/触屏上都是现成的正确行为。 */
+.pf-switch-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: var(--text-base);
+  color: var(--text-primary);
+  cursor: pointer;
+  margin-top: 8px;
+  line-height: 1.5;
+}
+.pf-switch-row input {
+  flex-shrink: 0;
+  width: 16px;
+  height: 16px;
+  accent-color: var(--accent);
+  cursor: pointer;
+}
+.pf-switch-row span { min-width: 0; }
+
 /* ── 响应式 ───────────────────────────────────────────────── */
 @media (min-width: 900px) {
   .pf-layout { grid-template-columns: minmax(200px, 240px) minmax(0, 1fr); }

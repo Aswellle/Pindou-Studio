@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
 import { renderHook, act, cleanup, waitFor } from '@testing-library/react'
 import { IDBFactory } from 'fake-indexeddb'
 import { useSavedWorks, SAVE_STATES } from './useSavedWorks'
-import { __resetForTests as resetWorksStore } from '../services/project/worksStore'
+import { __resetForTests as resetWorksStore, listWorks } from '../services/project/worksStore'
 
 /**
  * 本地模式的作品持久化契约。
@@ -42,21 +42,15 @@ const waitForLoad = async (result) => {
   await act(async () => { await new Promise((r) => setTimeout(r, 0)) })
 }
 
-/** 直接读 IndexedDB 里的作品(验证落库结果,而不是 hook 内存态) */
+/**
+ * 直接读 IndexedDB 里的作品(验证落库结果,而不是 hook 内存态)。
+ *
+ * 走 worksStore 的 listWorks 而不是自己 indexedDB.open:库版本由 worksStore
+ * 单方面决定(草稿槽把版本提到了 2),测试里写死版本号会在升级后
+ * 抛 VersionError —— 请求永不 resolve,整个用例卡到超时。
+ */
 async function readStored() {
-  const db = await new Promise((resolve) => {
-    const req = indexedDB.open('pindou-works', 1)
-    req.onsuccess = () => resolve(req.result)
-    req.onupgradeneeded = () => {
-      const d = req.result
-      if (!d.objectStoreNames.contains('works')) d.createObjectStore('works', { keyPath: 'id' })
-    }
-  })
-  return new Promise((resolve) => {
-    const t = db.transaction('works', 'readonly')
-    const req = t.objectStore('works').getAll()
-    t.oncomplete = () => resolve(req.result || [])
-  })
+  return listWorks()
 }
 
 beforeEach(() => {
