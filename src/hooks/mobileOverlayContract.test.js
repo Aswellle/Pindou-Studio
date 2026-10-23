@@ -54,6 +54,139 @@ function collectOverlayClasses() {
   return found
 }
 
+/**
+ * 从一段 JSX 起始标签里取出 className 与 style 的原始文本。
+ *
+ * 不能用正则 `className=...[^>]*?style=` —— 本仓库每个浮层根元素都在 style
+ * 之前挂着 `onClick={() => ...}`,箭头函数里的 '>' 会把匹配截断,导致
+ * 全树 0 组命中、断言在空集上通过。这里按引号与花括号配对扫描,
+ * 只在**标签层级**遇到 '>' 才结束。
+ *
+ * @returns {{className: string, style: string}|null}
+ */
+function parseJsxAttrs(tag) {
+  const attrs = {}
+  let i = tag.indexOf('<') + 1
+  // 跳过标签名
+  while (i < tag.length && /[A-Za-z0-9]/.test(tag[i])) i++
+
+  const readValue = (j) => {
+    // 跳过空白与 '='
+    while (j < tag.length && /\s/.test(tag[j])) j++
+    if (tag[j] !== '=') return { value: '', end: j }
+    j++
+    while (j < tag.length && /\s/.test(tag[j])) j++
+    const quote = tag[j]
+    if (quote === '"' || quote === "'") {
+      const close = tag.indexOf(quote, j + 1)
+      if (close === -1) return { value: tag.slice(j + 1), end: tag.length }
+      return { value: tag.slice(j + 1, close), end: close + 1 }
+    }
+    if (quote === '{') {
+      // 花括号配对,内部的字符串引号要一并跳过
+      let depth = 0
+      let k = j
+      while (k < tag.length) {
+        const ch = tag[k]
+        if (ch === '"' || ch === "'" || ch === '`') {
+          let close = k + 1
+          while (close < tag.length && tag[close] !== ch) close++
+          k = close + 1
+          continue
+        }
+        if (ch === '{') depth++
+        else if (ch === '}') {
+          depth--
+          if (depth === 0) return { value: tag.slice(j + 1, k), end: k + 1 }
+        }
+        k++
+      }
+      return { value: tag.slice(j + 1), end: tag.length }
+    }
+    return { value: '', end: j }
+  }
+
+  while (i < tag.length) {
+    while (i < tag.length && /\s/.test(tag[i])) i++
+    if (tag[i] === '>' || tag[i] === '/' || i >= tag.length) break
+    const nameStart = i
+    while (i < tag.length && /[A-Za-z0-9_:.-]/.test(tag[i])) i++
+    const name = tag.slice(nameStart, i)
+    if (!name) { i++; continue }
+    const { value, end } = readValue(i)
+    i = end
+    attrs[name] = value
+  }
+
+  if (!('className' in attrs) && !('style' in attrs)) return null
+  return { className: attrs.className || '', style: attrs.style || '' }
+}
+
+/**
+ * 切出源码里的 JSX 起始标签。
+ *
+ * 同样不能交给正则:`<[A-Za-z][^<>]*?>` 会在 onClick={() => ...} 的 '>'
+ * 处提前收尾,把 style 截掉。这里逐字符走,维护花括号深度与字符串状态,
+ * 只在**标签层级**的 '>' 结束。
+ */
+function findJsxTags(code) {
+  const tags = []
+  for (let i = 0; i < code.length; i++) {
+    if (code[i] !== '<') continue
+    const next = code[i + 1]
+    if (!next || !/[A-Za-z]/.test(next)) continue
+
+    let depth = 0
+    let j = i + 1
+    while (j < code.length) {
+      const ch = code[j]
+      if (ch === '"' || ch === "'" || ch === '`') {
+        let close = j + 1
+        while (close < code.length && code[close] !== ch) {
+          if (code[close] === '\\') close++
+          close++
+        }
+        j = close + 1
+        continue
+      }
+      if (ch === '{') depth++
+      else if (ch === '}') depth--
+      else if (ch === '>' && depth === 0) break
+      j++
+    }
+    tags.push(code.slice(i, j + 1))
+    i = j
+  }
+  return tags
+}
+
+/**
+ * 全树扫描:找出所有挂共享浮层类、且带 style 属性的 JSX 元素。
+ * @param {string} [code] - 传入源码文本则只扫这一段(用于自检),省略则扫全树
+ * @param {string} [file] - code 模式下的显示名
+ * @returns {Array<{file: string, cls: string, style: string}>}
+ */
+function scanOverlayElements(code, file = '<sample>') {
+  const scan = (text, name) => {
+    const hits = []
+    for (const tag of findJsxTags(text)) {
+      const parsed = parseJsxAttrs(tag)
+      if (!parsed) continue
+      const tokens = parsed.className.match(/[A-Za-z][A-Za-z0-9_-]*/g) || []
+      const shared = tokens.filter((tk) => SHARED_BASES.has(tk))
+      if (shared.length === 0) continue
+      if (!parsed.style) continue
+      hits.push({ file: name, cls: shared.join(' '), style: parsed.style })
+    }
+    return hits
+  }
+
+  if (typeof code === 'string') return scan(code, file)
+  const hits = []
+  for (const f of walk(SRC)) hits.push(...scan(readFileSync(f, 'utf8'), relative(SRC, f)))
+  return hits
+}
+
 /** 取 index.css 中以 selector 开头的选择器组的声明体(选择器组可跨多行) */
 function cssBlockFor(selector) {
   const escaped = selector.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
@@ -254,6 +387,84 @@ describe('移动端全屏浮层契约', () => {
     expect(offenders).toEqual([])
   })
 
+  it('组件 CSS 不得在共享浮层类上重写定位与内边距(不限于引用补偿变量的写法)', () => {
+    // 上一条只拦「引用 --keyboard-height / --visible-vh-top」的行,但真正要防的回归
+    // 写成 `padding: 16px` 就绕过去了 —— 同等特异性,且组件 <style> 后加载所以胜出。
+    // 这里按「选择器主体是否就是共享浮层类」判断,拦下任意 padding / height /
+    // top / bottom / inset 声明;留白只允许通过 --overlay-pad 参数化。
+    const DECL_RE = /(?:^|[;{])\s*(padding|padding-(?:top|right|bottom|left)|height|min-height|max-height|top|bottom|inset|inset-(?:block|inline)(?:-(?:start|end))?)\s*:/gi
+
+    const collectCss = (dir, out = []) => {
+      for (const name of readdirSync(dir)) {
+        const full = join(dir, name)
+        if (statSync(full).isDirectory()) collectCss(full, out)
+        else if (name.endsWith('.css') && full !== join(SRC, 'index.css')) out.push(full)
+      }
+      return out
+    }
+
+    /** 取选择器每一段的主体(最后一个组合子之后的部分),判断是否为共享浮层类 */
+    const subjects = (selector) => selector
+      .split(',')
+      .map((part) => part.trim().split(/\s+|>/).filter(Boolean).pop() || '')
+
+    const isSharedSubject = (compound) => {
+      const tokens = compound.match(/[A-Za-z][A-Za-z0-9_-]*/g) || []
+      return tokens.some((tk) => SHARED_BASES.has(tk))
+    }
+
+    const offenders = []
+    for (const file of collectCss(SRC)) {
+      const code = readFileSync(file, 'utf8')
+      for (const m of code.matchAll(/([^{}]+)\{([^{}]*)\}/g)) {
+        const selector = m[1].replace(/\/\*[\s\S]*?\*\//g, '').trim()
+        if (!selector || selector.startsWith('@')) continue
+        if (!subjects(selector).some(isSharedSubject)) continue
+        const body = m[2].replace(/\/\*[\s\S]*?\*\//g, '')
+        for (const d of body.matchAll(DECL_RE)) {
+          offenders.push(`${relative(SRC, file)} → ${selector} 声明了 ${d[1]}`)
+        }
+      }
+    }
+    expect(offenders).toEqual([])
+  })
+
+  it('上述规则确实会拦截(自检:合成样式表必须被判违规)', () => {
+    // 防止 DECL_RE / subjects() 退化后整条断言在空集上通过。
+    const sample = [
+      '.my-beads-modal-overlay { padding: 16px; }',
+      '.quantizer-zoom { padding-bottom: 24px; }',
+      '.load-confirm-overlay { height: 100vh; }',
+      '.modal-overlay { top: 0; }',
+    ].join('\n')
+
+    const DECL_RE = /(?:^|[;{])\s*(padding|padding-(?:top|right|bottom|left)|height|min-height|max-height|top|bottom|inset|inset-(?:block|inline)(?:-(?:start|end))?)\s*:/gi
+    const subjects = (selector) => selector
+      .split(',')
+      .map((part) => part.trim().split(/\s+|>/).filter(Boolean).pop() || '')
+    const isSharedSubject = (compound) => {
+      const tokens = compound.match(/[A-Za-z][A-Za-z0-9_-]*/g) || []
+      return tokens.some((tk) => SHARED_BASES.has(tk))
+    }
+
+    let hits = 0
+    for (const m of sample.matchAll(/([^{}]+)\{([^{}]*)\}/g)) {
+      const selector = m[1].trim()
+      if (!subjects(selector).some(isSharedSubject)) continue
+      hits += [...m[2].matchAll(DECL_RE)].length
+    }
+    expect(hits).toBe(4)
+
+    // 反向:允许的写法不得被误判
+    const allowed = '.my-beads-modal-overlay { z-index: 1200; background: #000; }'
+    let falsePositive = 0
+    for (const m of allowed.matchAll(/([^{}]+)\{([^{}]*)\}/g)) {
+      if (!subjects(m[1].trim()).some(isSharedSubject)) continue
+      falsePositive += [...m[2].matchAll(DECL_RE)].length
+    }
+    expect(falsePositive).toBe(0)
+  })
+
   it('每个浮层容器都挂了 useDialogA11y(role/aria-modal/Escape/焦点)', () => {
     // 规格 08 §5。此前只有三个组件手写 role="dialog",Escape 全站缺失。
     // 现在统一走 hook:承载内容的容器必须展开 *DialogProps 或显式写 role。
@@ -275,18 +486,15 @@ describe('移动端全屏浮层契约', () => {
     // 规格 §8.1 第 5 条:检查 top/height/padding-bottom 未被 inline style 意外覆盖。
     // 内联 style 的优先级高于任何选择器 —— 一旦浮层根元素上写了 height/top,
     // 共享组的 inset:0 + 100dvh 就静默失效,键盘补偿也跟着失效。
+    //
+    // 注意:全树当前**没有**任何带 style 的浮层元素,所以这条断言的强度完全取决于
+    // 扫描器能否看见真实写法 —— 见下面那条自检用例。旧正则 [^>]*? 跨不过
+    // onClick={() => ...} 里的 '>',全树 0 组命中,断言在空集上永远通过。
     const offenders = []
-    for (const file of walk(SRC)) {
-      const code = readFileSync(file, 'utf8')
-      // 找所有含浮层类名的元素,看它同一行/紧随的 style={{...}} 里有没有危险属性
-      for (const m of code.matchAll(/className=(?:"([^"]*)"|\{`([^`]*)`\})[^>]*?style=\{\{([^}]*)\}\}/g)) {
-        const cls = m[1] ?? m[2] ?? ''
-        if (!SHARED_BASES.has(cls) && ![...SHARED_BASES].some((b) => cls.split(/\s+/).includes(b))) continue
-        const style = m[3]
-        for (const prop of ['height', 'top', 'bottom', 'position', 'paddingBottom']) {
-          if (new RegExp(`(^|[,{\\s])${prop}\\s*:`).test(style)) {
-            offenders.push(`${relative(SRC, file)} → ${cls}: ${prop}`)
-          }
+    for (const hit of scanOverlayElements()) {
+      for (const prop of ['height', 'top', 'bottom', 'position', 'paddingBottom']) {
+        if (new RegExp(`(^|[,{\\s])${prop}\\s*:`, 'i').test(hit.style)) {
+          offenders.push(`${hit.file} → ${hit.cls}: ${prop}`)
         }
       }
     }
@@ -297,17 +505,36 @@ describe('移动端全屏浮层契约', () => {
     // style={{ height: 'var(--visible-vh)' }} 这类写法虽然引用了正确变量,
     // 但把「谁负责高度」拆成两处。浮层高度只应由 index.css 共享组决定。
     const offenders = []
-    for (const file of walk(SRC)) {
-      const code = readFileSync(file, 'utf8')
-      for (const m of code.matchAll(/className=(?:"([^"]*)"|\{`([^`]*)`\})[^>]*?style=\{\{([^}]*)\}\}/g)) {
-        const cls = m[1] ?? m[2] ?? ''
-        const tokens = cls.match(/[A-Za-z][A-Za-z0-9_-]*/g) || []
-        if (!tokens.some((tk) => SHARED_BASES.has(tk))) continue
-        if (/--visible-vh|--keyboard-height|100dvh|100vh/.test(m[3])) {
-          offenders.push(`${relative(SRC, file)} → ${cls}`)
-        }
+    for (const hit of scanOverlayElements()) {
+      if (/--visible-vh|--keyboard-height|100dvh|100vh/.test(hit.style)) {
+        offenders.push(`${hit.file} → ${hit.cls}`)
       }
     }
     expect(offenders).toEqual([])
+  })
+
+  it('扫描器能看见 onClick 箭头函数之后的 style(防止空集上通过)', () => {
+    // 回归:旧正则 [^>]*? 无法跨越 onClick={() => ...} 里的 '>',
+    // 真实写法(style 写在箭头函数之后)全被漏掉。
+    // 这里注入一份与仓库真实写法同构的样本,断言扫描器按括号配对解析。
+    // 模板字符串写法(AdminPanel / MyBeadsPage 的真实形态):用拼接构造,
+    // 避免被 lint 当成「字符串里出现了意外的模板占位符」。
+    const dollar = '$'
+    const sample = [
+      '<div className="modal-overlay" onClick={() => setOpen(false)} style={{ height: \'100dvh\' }}>',
+      `<div className={\`my-beads-modal-overlay${dollar}{active ? ' on' : ''}\`} onClick={onCancel} style={{ top: 0 }}>`,
+    ].join('\n')
+    const hits = scanOverlayElements(sample)
+
+    expect(hits).toHaveLength(2)
+    expect(hits[0].cls).toBe('modal-overlay')
+    expect(hits[0].style).toContain('100dvh')
+    expect(hits[1].style).toContain('top')
+
+    // 再验证断言本身会红:同样两条样本必须被判为违规
+    const heightOffender = hits.filter((h) => /(^|[,{\s])height\s*:/i.test(h.style))
+    const varOffender = hits.filter((h) => /100dvh|--visible-vh/.test(h.style))
+    expect(heightOffender).toHaveLength(1)
+    expect(varOffender).toHaveLength(1)
   })
 })

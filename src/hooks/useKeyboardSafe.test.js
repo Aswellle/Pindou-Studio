@@ -140,7 +140,11 @@ describe('useKeyboardSafe', () => {
     const scrollIntoView = vi.fn()
     input.scrollIntoView = scrollIntoView
 
-    input.dispatchEvent(new Event('focusin', { bubbles: true }))
+    // 必须用真实 focus():dispatchEvent(new Event('focusin')) 不会设置
+    // document.activeElement,而 hook 在 isFocusableField(activeElement)
+    // 守卫处就返回了 —— 那样这条测试根本没走到被测分支,删掉守卫也不会红。
+    input.focus()
+    expect(document.activeElement).toBe(input)
     expect(scrollIntoView).not.toHaveBeenCalled()
     unmount()
   })
