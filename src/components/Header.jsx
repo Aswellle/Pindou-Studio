@@ -4,9 +4,17 @@ import { PenTool, LayoutGrid, BookOpen, Palette } from 'lucide-react'
 import LanguageSelector from './Header/LanguageSelector'
 import Avatar from './Avatar'
 
-export default function Header({ user, onLogin, onRegister: _onRegister, onLogout: _onLogout, onSave, currentPage, onPageChange: _onPageChange, simplified, saveState }) {
+export default function Header({ user, onLogin, onRegister: _onRegister, onLogout: _onLogout, onSave, currentPage, onPageChange: _onPageChange, simplified, saveState, autoSaveState }) {
   const { t } = useTranslation()
   const navigate = useNavigate()
+
+  // 自动保存状态:只在「保存中 / 已保存 / 失败」时显示。
+  // 与 saveState 的未保存圆点是两件事 —— 一个是「要不要手动存」,
+  // 一个是「本机草稿有没有落地」,混成一个反而看不懂。
+  const autoSaveLabel = autoSaveState === 'saving' ? t('autosave.statusSaving')
+    : autoSaveState === 'saved' ? t('autosave.statusSaved')
+    : autoSaveState === 'failed' ? t('autosave.statusFailed')
+    : null
 
   // 后台管理(admin)不在导航中显示,仅通过 /admin 路由访问
   const navItems = [
@@ -83,6 +91,17 @@ export default function Header({ user, onLogin, onRegister: _onRegister, onLogou
             {/* 未保存标记:一个不依赖颜色的圆点,窄屏也能看见 */}
             {saveState === 'dirty' && <span className="save-unsaved-dot" aria-hidden="true" />}
           </button>
+        )}
+        {/* 自动保存状态:紧挨保存按钮,读作「保存这件事的现状」。
+            移动端没有空间放文字,只在失败时提示 —— 失败是唯一需要用户行动的态。 */}
+        {currentPage === 'canvas' && autoSaveLabel && (
+          <span
+            className={`autosave-status${autoSaveState === 'failed' ? ' is-failed' : ''}`}
+            role="status"
+            title={autoSaveState === 'failed' ? t('autosave.statusFailedHint') : undefined}
+          >
+            {simplified ? (autoSaveState === 'failed' ? '!' : '') : autoSaveLabel}
+          </span>
         )}
         {!simplified && <LanguageSelector />}
         {/* 移动端:非画布页在导航与用户区之间显示语言切换按钮(🌐) */}
@@ -290,6 +309,17 @@ export default function Header({ user, onLogin, onRegister: _onRegister, onLogou
           top: 6px;
           right: 6px;
           margin: 0;
+        }
+        /* 自动保存状态:低对比度的旁注,不与保存按钮抢注意力。
+           失败时转为警示色 —— 那是唯一需要用户动手处理的态。 */
+        .autosave-status {
+          font-size: var(--text-sm);
+          color: var(--text-muted);
+          white-space: nowrap;
+        }
+        .autosave-status.is-failed {
+          color: var(--danger, #c62828);
+          font-weight: 600;
         }
         .icon-only-btn,
         .header.simplified .save-work-btn {

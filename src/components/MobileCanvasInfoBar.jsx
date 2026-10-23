@@ -2,7 +2,11 @@ import { useTranslation } from 'react-i18next'
 
 /**
  * 移动端画布信息条 — 紧凑显示在 Header 下方
- * 包含：当前画布规格、缩放比例、重置按钮、适应按钮
+ * 包含：当前画布规格、缩放比例、重置按钮、适应按钮、自动保存状态
+ *
+ * 自动保存状态放在这里而不是单独加一条:移动端垂直空间极紧,
+ * 多一条 32px 的横条就是从画布手里抢 32px。信息条本来就是「画布状态的
+ * 一行摘要」,自动保存状态属于同一类信息。
  */
 export default function MobileCanvasInfoBar({
   gridSize,
@@ -11,17 +15,33 @@ export default function MobileCanvasInfoBar({
   scale,
   onReset,
   onFit,
+  autoSaveState,
 }) {
   const { t } = useTranslation()
 
   const w = gridWidth || gridSize
   const h = gridHeight || gridSize
   const scalePercent = Math.round((scale || 1) * 100)
+  // 只在「正在保存 / 已保存 / 失败」时显示:空闲与待保存都没必要占位,
+  // 否则这一格会长期挂着一个无信息的词
+  const saveLabel = autoSaveState === 'saving' ? t('autosave.statusSaving')
+    : autoSaveState === 'saved' ? t('autosave.statusSaved')
+    : autoSaveState === 'failed' ? t('autosave.statusFailed')
+    : null
 
   return (
     <div className="mobile-canvas-info-bar">
       <span className="info-size">{w}×{h}</span>
       <span className="info-scale">{scalePercent}%</span>
+      {saveLabel && (
+        <span
+          className={`info-autosave${autoSaveState === 'failed' ? ' is-failed' : ''}`}
+          title={autoSaveState === 'failed' ? t('autosave.statusFailedHint') : undefined}
+          role="status"
+        >
+          {saveLabel}
+        </span>
+      )}
       <button className="info-reset-btn" onClick={onReset} title={t('canvas.resetTitle')}>
         {t('canvas.reset')}
       </button>
@@ -52,6 +72,16 @@ export default function MobileCanvasInfoBar({
           font-variant-numeric: tabular-nums;
           margin-right: auto;
         }
+        /* 自动保存状态:与缩放百分比同级的次要信息,不抢按钮的注意力 */
+        .info-autosave {
+          font-size: 11px;
+          color: var(--text-muted);
+          white-space: nowrap;
+          overflow: hidden;
+          text-overflow: ellipsis;
+          min-width: 0;
+        }
+        .info-autosave.is-failed { color: var(--danger, #c62828); }
         .info-reset-btn {
           background: var(--secondary-accent);
           color: white;
