@@ -22,8 +22,11 @@
  */
 
 const DB_NAME = 'pindou-works'
-const DB_VERSION = 1
+// v2 增加草稿槽(drafts)。升级处理器对新旧库都只补缺失的 store,
+// 因此从 v1 升级和全新安装走同一条路径。
+const DB_VERSION = 2
 const STORE = 'works'
+const DRAFT_STORE = 'drafts'
 const LEGACY_KEY = 'saved-works'
 const LEGACY_BACKUP_KEY = 'saved-works-migrated'
 const LEGACY_CORRUPT_KEY = 'saved-works-corrupt'
@@ -60,6 +63,11 @@ function openDb() {
         const store = db.createObjectStore(STORE, { keyPath: 'id' })
         store.createIndex('savedAt', 'savedAt')
       }
+      // 草稿槽:keyPath 固定为 'slot',全库只有一条「当前草稿」。
+      // 不做多草稿 —— 自动保存的语义是「保住正在做的这一张」,不是版本库(C2 才做时间线)。
+      if (!db.objectStoreNames.contains(DRAFT_STORE)) {
+        db.createObjectStore(DRAFT_STORE, { keyPath: 'slot' })
+      }
     }
     req.onsuccess = () => resolve(req.result)
     req.onerror = () => resolve(null)
@@ -69,18 +77,18 @@ function openDb() {
 }
 
 /** 在 store 上执行一个操作并等待事务结束;任何失败都解析为 null,不 reject */
-function run(db, mode, op) {
+function run(db, mode, op, storeName = STORE) {
   return new Promise((resolve) => {
     let transaction
     try {
-      transaction = db.transaction(STORE, mode)
+      transaction = db.transaction(storeName, mode)
     } catch {
       resolve(null)
       return
     }
     let request
     try {
-      request = op(transaction.objectStore(STORE))
+      request = op(transaction.objectStore(storeName))
     } catch {
       resolve(null)
       return
@@ -256,6 +264,9 @@ export async function migrateLegacyWorks() {
  * 用于「登录后本地作品已全部迁到云端」这一场景:必须同时清掉 IndexedDB
  * 与 localStorage 残留,否则登出后旧作品会重新冒出来。
  *
+ * **不动草稿槽** —— 草稿不是作品,登录迁移清的是作品;把草稿一并清掉会让
+ * 正在编辑、还没保存的内容凭空消失。
+ *
  * @returns {Promise<boolean>}
  */
 export async function clearWorks() {
@@ -295,6 +306,57 @@ export function estimateBytes(works) {
 /** IndexedDB 是否可用(供 UI 决定是否提示「仅本机」) */
 export function isIdbAvailable() {
   return hasIndexedDB()
+}
+
+/* ── 自动保存草稿(规格 03 §7)───────────────────────────── */
+
+/** 草稿槽主键:全库唯一一条,自动保存只覆盖它 */
+export const DRAFT_SLOT = 'current'
+
+/**
+ * 写入自动保存草稿。
+ *
+ * 草稿**只进 IndexedDB,不进 localStorage,也绝不进 `works` 表**:
+ *   - 它是半成品,写进作品库会让「我的作品」混入大量自动生成的条目;
+ *   - 它是本地恢复用的,同步到云端等于把未完成内容外传(规格 03 §7 明确要求
+ *     「未经用户同意不把私有内容上传」)。
+ *
+ * IndexedDB 不可用(隐私模式/被策略禁用)时返回 `{ ok: false, reason: 'unavailable' }`,
+ * 由调用方决定是否提示 —— 自动保存失败不该打断创作,所以这里不 toast、不抛异常。
+ *
+ * @param {Object} draft - 至少含 canvasData;其余字段由调用方决定
+ * @returns {Promise<{ ok: boolean, reason?: string }>}
+ */
+export async function saveDraft(draft) {
+  if (!draft || !Array.isArray(draft.canvasData)) return { ok: false, reason: 'invalid' }
+  const db = await openDb()
+  if (!db) return { ok: false, reason: 'unavailable' }
+  const record = { ...draft, slot: DRAFT_SLOT, savedAt: draft.savedAt || new Date().toISOString() }
+  const result = await run(db, 'readwrite', (store) => store.put(record), DRAFT_STORE)
+  return result === null ? { ok: false, reason: 'quota' } : { ok: true }
+}
+
+/**
+ * 读取自动保存草稿;没有草稿时返回 null。
+ * @returns {Promise<Object|null>}
+ */
+export async function loadDraft() {
+  const db = await openDb()
+  if (!db) return null
+  const record = await run(db, 'readonly', (store) => store.get(DRAFT_SLOT), DRAFT_STORE)
+  if (!record || !Array.isArray(record.canvasData)) return null
+  return record
+}
+
+/**
+ * 丢弃草稿(显式保存成功后、或用户选择「不恢复」时)。
+ * @returns {Promise<boolean>}
+ */
+export async function clearDraft() {
+  const db = await openDb()
+  if (!db) return false
+  const result = await run(db, 'readwrite', (store) => store.delete(DRAFT_SLOT), DRAFT_STORE)
+  return result !== null
 }
 
 /** 仅供测试:重置连接缓存 */

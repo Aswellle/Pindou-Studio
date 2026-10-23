@@ -1,5 +1,5 @@
 /**
- * 编辑器偏好设置的持久化(目前只有选区填充的「含空白格」开关)。
+ * 编辑器偏好设置的持久化(选区填充的「含空白格」开关、导出后扣库存、自动保存)。
  *
  * 存储位置沿用 `bead_studio_settings`(与语言、记住登录同一份 JSON),
  * 不新开 localStorage 键 —— 用户清缓存时不会出现「语言还在、编辑器偏好丢了」
@@ -54,5 +54,29 @@ export function saveDeductInventory(value) {
     localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings))
   } catch {
     // 同上:偏好不落盘也不影响本次会话
+  }
+}
+
+/**
+ * 自动保存草稿(规格 03 §7)。
+ *
+ * 默认 **true** —— 自动保存的全部价值就在于「用户没想过要保存时也在保存」,
+ * 默认关闭等于没有这个功能。开关存在的意义是给介意本地写入的用户一个出口,
+ * 而不是把它当成需要用户主动发现的高级选项。
+ */
+export const DEFAULT_AUTO_SAVE = true
+
+export function loadAutoSaveEnabled() {
+  const value = readSettings().autoSave
+  return typeof value === 'boolean' ? value : DEFAULT_AUTO_SAVE
+}
+
+export function saveAutoSaveEnabled(value) {
+  try {
+    const settings = readSettings()
+    settings.autoSave = Boolean(value)
+    localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings))
+  } catch {
+    // 隐私模式 / 配额不足:开关无法持久化,但本次会话内仍然生效
   }
 }

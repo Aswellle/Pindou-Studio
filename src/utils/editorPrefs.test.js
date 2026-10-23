@@ -7,6 +7,9 @@ import {
   DEFAULT_DEDUCT_INVENTORY,
   loadDeductInventory,
   saveDeductInventory,
+  DEFAULT_AUTO_SAVE,
+  loadAutoSaveEnabled,
+  saveAutoSaveEnabled,
 } from './editorPrefs'
 
 /**
@@ -78,5 +81,35 @@ describe('editorPrefs · deductInventory(导出后扣减库存)', () => {
   it('类型不对时回退默认值', () => {
     localStorage.setItem(SETTINGS_KEY, JSON.stringify({ deductInventory: 'true' }))
     expect(loadDeductInventory()).toBe(false)
+  })
+})
+
+describe('editorPrefs · autoSave(自动保存草稿)', () => {
+  it('默认开启 —— 默认关闭等于没有这个功能', () => {
+    expect(DEFAULT_AUTO_SAVE).toBe(true)
+    expect(loadAutoSaveEnabled()).toBe(true)
+  })
+
+  it('保存后能读回,且不冲掉其他偏好', () => {
+    saveFillIncludeEmpty(true)
+    saveDeductInventory(true)
+    saveAutoSaveEnabled(false)
+
+    expect(loadAutoSaveEnabled()).toBe(false)
+    expect(loadFillIncludeEmpty()).toBe(true)
+    expect(loadDeductInventory()).toBe(true)
+  })
+
+  it('类型不对时回退默认值(true,而不是 false)', () => {
+    localStorage.setItem(SETTINGS_KEY, JSON.stringify({ autoSave: 'false' }))
+    expect(loadAutoSaveEnabled()).toBe(true)
+    localStorage.setItem(SETTINGS_KEY, JSON.stringify({ autoSave: 0 }))
+    expect(loadAutoSaveEnabled()).toBe(true)
+  })
+
+  it('存储损坏时回退默认值,不抛异常', () => {
+    localStorage.setItem(SETTINGS_KEY, '{broken')
+    expect(() => loadAutoSaveEnabled()).not.toThrow()
+    expect(loadAutoSaveEnabled()).toBe(true)
   })
 })

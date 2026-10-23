@@ -9,10 +9,15 @@ import {
   migrateLegacyWorks,
   estimateBytes,
   isIdbAvailable,
+  saveDraft,
+  loadDraft,
+  clearDraft,
+  DRAFT_SLOT,
   __resetForTests,
 } from './worksStore'
 
 const LEGACY_KEY = 'saved-works'
+const R = '#E53935'
 const work = (id, extra = {}) => ({
   id,
   name: `作品 ${id}`,
@@ -178,5 +183,82 @@ describe('worksStore · 占用估算', () => {
     expect(estimateBytes([])).toBe(0)
     expect(estimateBytes(null)).toBe(0)
     expect(estimateBytes(undefined)).toBe(0)
+  })
+})
+
+/**
+ * 自动保存草稿槽(规格 03 §7)。
+ *
+ * 草稿与作品是两条独立的链路:草稿只进 IndexedDB,不写 localStorage、
+ * 不进作品列表 —— 半成品混进「我的作品」比丢草稿更糟。
+ */
+describe('worksStore · 自动保存草稿', () => {
+  const draft = (extra = {}) => ({
+    canvasData: [[null, R]],
+    gridSize: 2,
+    paletteId: 'perler',
+    ...extra,
+  })
+
+  it('没有草稿时返回 null', async () => {
+    expect(await loadDraft()).toBeNull()
+  })
+
+  it('保存后能读回,且带 slot 与 savedAt', async () => {
+    const res = await saveDraft(draft({ savedAt: '2026-10-23T00:00:00.000Z' }))
+    expect(res.ok).toBe(true)
+
+    const loaded = await loadDraft()
+    expect(loaded.slot).toBe(DRAFT_SLOT)
+    expect(loaded.savedAt).toBe('2026-10-23T00:00:00.000Z')
+    expect(loaded.canvasData).toEqual([[null, R]])
+  })
+
+  it('再次保存覆盖同一条草稿,不会堆积', async () => {
+    await saveDraft(draft({ gridSize: 2 }))
+    await saveDraft(draft({ gridSize: 5 }))
+
+    const loaded = await loadDraft()
+    expect(loaded.gridSize).toBe(5)
+  })
+
+  it('草稿不写 localStorage(不落进旧的作品键)', async () => {
+    await saveDraft(draft())
+    expect(localStorage.getItem(LEGACY_KEY)).toBeNull()
+  })
+
+  it('草稿不出现在作品列表里', async () => {
+    await saveDraft(draft())
+    expect(await listWorks()).toEqual([])
+  })
+
+  it('清空作品不会清掉草稿', async () => {
+    await saveWorkRecord(work(1))
+    await saveDraft(draft())
+    await clearWorks()
+
+    expect(await listWorks()).toEqual([])
+    expect(await loadDraft()).not.toBeNull()
+  })
+
+  it('clearDraft 后读不到', async () => {
+    await saveDraft(draft())
+    expect(await clearDraft()).toBe(true)
+    expect(await loadDraft()).toBeNull()
+  })
+
+  it('非法草稿(没有 canvasData)被拒绝,不写库', async () => {
+    expect((await saveDraft({ gridSize: 2 })).ok).toBe(false)
+    expect(await loadDraft()).toBeNull()
+  })
+
+  it('IndexedDB 不可用时保存草稿返回 unavailable,不抛异常', async () => {
+    globalThis.indexedDB = undefined
+    __resetForTests()
+
+    const res = await saveDraft(draft())
+    expect(res.ok).toBe(false)
+    expect(res.reason).toBe('unavailable')
+    expect(await loadDraft()).toBeNull()
   })
 })
