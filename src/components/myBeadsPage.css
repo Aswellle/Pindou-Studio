@@ -1099,7 +1099,10 @@
   line-height: 1.6;
 }
 
-.match-steps {
+/* ── 换算流程条 ──────────────────────────────────────────────
+   顶部只做「现在总共几步、各步是什么」的概览;每步的详细说明放在对应分区里,
+   不在顶部重复。 */
+.match-flow {
   display: flex;
   flex-wrap: wrap;
   gap: 8px 18px;
@@ -1110,13 +1113,13 @@
   color: var(--text-secondary);
 }
 
-.match-steps li {
+.match-flow li {
   display: inline-flex;
   align-items: center;
   gap: 6px;
 }
 
-.match-steps li span {
+.match-flow li span {
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -1127,6 +1130,68 @@
   color: var(--accent-hover);
   font-size: 10px;
   font-weight: var(--font-weight-semibold);
+}
+
+/* ── 每个步骤是一个独立分区 ─────────────────────────────────
+   分区之间用分隔线断开,编号 + 标题 + 一句话说明 + 本步控件。
+   之前所有控件平铺在同一层,用户看不出先后关系。 */
+.match-step {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px;
+  border-radius: 10px;
+  border: 1px solid var(--border-color);
+  background: var(--bg-primary);
+}
+
+.match-step-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.match-step-no {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: var(--accent);
+  color: #fff;
+  font-size: 11px;
+  font-weight: var(--font-weight-semibold);
+  flex-shrink: 0;
+}
+
+.match-step-head h3 {
+  margin: 0;
+  font-size: var(--text-sm);
+  color: var(--text-primary);
+}
+
+/* 批量勾选行:两个按钮 + 当前已勾选数量,放在结果列表上方 */
+.match-bulk {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.match-bulk-count {
+  margin-left: auto;
+  font-size: var(--text-xs);
+  color: var(--text-muted);
+}
+
+/* 应用行的状态说明:与主按钮同一行,说明它为什么可点 / 不可点 */
+.match-apply-status {
+  flex: 1 1 220px;
+  min-width: 0;
+  font-size: var(--text-xs);
+  color: var(--text-muted);
+  line-height: 1.6;
 }
 
 .match-config {
@@ -1251,7 +1316,6 @@
 
 .match-source { min-width: 96px; }
 .match-target { min-width: 150px; }
-.match-delta { min-width: 56px; }
 .match-needed { min-width: 48px; }
 .match-stock { min-width: 48px; }
 .match-shortage { min-width: 48px; }
@@ -1515,6 +1579,15 @@
 
   .my-beads-match-actions { flex-direction: column; align-items: stretch; }
   .my-beads-match-actions .my-beads-btn { justify-content: center; }
+  /* 状态说明在按钮下方左对齐,不居中挤成一条 */
+  .match-apply-status { flex: 1 1 auto; text-align: left; }
+
+  /* 流程条在窄屏改为竖排:横排三条说明会折成两行半,读起来像一团 */
+  .match-flow { flex-direction: column; gap: 6px; }
+  .match-step { padding: 10px; }
+  .match-bulk { gap: 6px; }
+  .match-bulk .my-beads-btn { flex: 1 1 auto; justify-content: center; }
+  .match-bulk-count { flex: 1 1 100%; margin-left: 0; }
 
   /* 匹配预览:两张图并排(原图 / 预览对照),不再上下各占 160px ——
      竖排会把统计与结果推到首屏之外,用户要滑很久才看到可操作内容。 */
@@ -1623,7 +1696,6 @@
   /* 第一行:勾选 + 源色;第二行:目标色;其后 2×2 统计 */
   .match-source { flex: 1 1 auto; min-width: 0; }
   .match-target { flex: 1 1 100%; }
-  .match-delta,
   .match-needed,
   .match-stock,
   .match-shortage { flex: 1 1 40%; flex-direction: column; align-items: flex-start; gap: 0; }
