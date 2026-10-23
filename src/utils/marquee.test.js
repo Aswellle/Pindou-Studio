@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { drawMarquee, MARQUEE_DASH_PERIOD, MARQUEE_FILL, MARQUEE_STROKE } from './marquee'
+import { drawMarquee, MARQUEE_DASH_PERIOD, MARQUEE_FILL, MARQUEE_STROKE, MARQUEE_SNAP } from './marquee'
 
 /**
  * 选框绘制(实时跟随预览 + marching ants + 触屏把手)。
@@ -9,7 +9,7 @@ import { drawMarquee, MARQUEE_DASH_PERIOD, MARQUEE_FILL, MARQUEE_STROKE } from '
  */
 
 function recordingCtx() {
-  const calls = { fillRect: [], strokeRect: [], setLineDash: [], arc: [], rect: [], fill: 0, stroke: 0, save: 0, restore: 0, fillStyle: [], strokeStyle: [], lineWidth: [] }
+  const calls = { fillRect: [], strokeRect: [], setLineDash: [], arc: [], rect: [], moveTo: [], lineTo: [], stroke: 0, fill: 0, save: 0, restore: 0, fillStyle: [], strokeStyle: [], lineWidth: [] }
   const ctx = {
     get fillStyle() { return this._f },
     set fillStyle(v) { this._f = v; calls.fillStyle.push(v) },
@@ -23,6 +23,8 @@ function recordingCtx() {
     setLineDash: (d) => calls.setLineDash.push(d),
     arc: (...a) => calls.arc.push(a),
     rect: (...a) => calls.rect.push(a),
+    moveTo: (...a) => calls.moveTo.push(a),
+    lineTo: (...a) => calls.lineTo.push(a),
     beginPath: () => {},
     fill: () => { calls.fill++ },
     stroke: () => { calls.stroke++ },
@@ -144,5 +146,41 @@ describe('drawMarquee · resize 手柄(A1)', () => {
     const { ctx, calls } = recordingCtx()
     drawMarquee(ctx, { x: 0, y: 0, w: 1, h: 5 }, { resizeHandles: true })
     expect(calls.rect).toHaveLength(8)
+  })
+})
+
+describe('drawMarquee · 吸附高亮(A3)', () => {
+  it('x 轴吸附时画一条实线竖边', () => {
+    const { ctx, calls } = recordingCtx()
+    drawMarquee(ctx, { x: 0, y: 0, w: 2, h: 2 }, {
+      snapEdges: { x: true, y: false },
+    })
+    expect(calls.strokeStyle).toContain(MARQUEE_SNAP)
+    expect(calls.moveTo).toContainEqual([32, 0])
+    expect(calls.lineTo).toContainEqual([32, 32])
+    // 高亮线是实线:最后一次 setLineDash 是空数组
+    expect(calls.setLineDash.at(-1)).toEqual([])
+  })
+
+  it('y 轴吸附时画一条实线横边', () => {
+    const { ctx, calls } = recordingCtx()
+    drawMarquee(ctx, { x: 0, y: 0, w: 2, h: 2 }, {
+      snapEdges: { x: false, y: true },
+    })
+    expect(calls.moveTo).toContainEqual([0, 32])
+    expect(calls.lineTo).toContainEqual([32, 32])
+  })
+
+  it('没有吸附时不画高亮线(行为与改造前一致)', () => {
+    const { ctx, calls } = recordingCtx()
+    drawMarquee(ctx, { x: 0, y: 0, w: 2, h: 2 }, { snapEdges: { x: false, y: false } })
+    expect(calls.strokeStyle).not.toContain(MARQUEE_SNAP)
+    expect(calls.moveTo).toHaveLength(0)
+  })
+
+  it('不传 snapEdges 时也不画', () => {
+    const { ctx, calls } = recordingCtx()
+    drawMarquee(ctx, { x: 0, y: 0, w: 2, h: 2 })
+    expect(calls.moveTo).toHaveLength(0)
   })
 })
