@@ -6,6 +6,7 @@ import { drawMarquee, MARQUEE_DASH_PERIOD } from '../utils/marquee'
 import {
   HANDLE_CURSORS, HANDLE_HIT_PX, hitTestHandle, resizeSelection,
 } from '../utils/selectionHandles'
+import { SNAP_THRESHOLD, snapSelection } from '../utils/selectionSnap'
 
 const CELL_SIZE = 16
 const MIN_SCALE = 0.3
@@ -41,6 +42,9 @@ const Canvas = forwardRef(function Canvas({
   // A2: 移动端的「复制拖动」开关。触屏没有 Alt/Option,由操作条上的显式开关
   // 决定拖选区内部是剪切还是复制。桌面端不受它影响(Alt 优先)。
   copyDrag = false,
+  // A3: 框选时是否吸附到已有珠子的边缘。默认开 —— 拼豆的框选几乎总是
+  // 贴着图案边界走;不喜欢「抢手感」的用户可以在操作条上关掉。
+  snapToEdges = true,
 }, ref) {
   const { t } = useTranslation()
   const containerRef = useRef(null)
@@ -443,19 +447,40 @@ const Canvas = forwardRef(function Canvas({
   // 拖动中:把锚点与当前格规范成矩形,**直接画在 overlay 上**。
   // 不依赖 React 渲染 —— 每一帧移动都立即跟手,虚线框随手指/光标实时变形,
   // 松手前就能看清将要选中的范围(这是「实时跟随预览」的核心)。
+  //
+  // A3:靠近已有珠子的边界时吸附 1–2 格。吸附只改焦点,不改锚点那条边;
+  // 阈值按指针类型给(触屏更宽)。开关关闭时 snapSelection 原样返回,
+  // 行为与改造前完全一致。
   const updateSelection = useCallback((x, y) => {
     if (!selDraggingRef.current || !selAnchorRef.current) return
-    selFocusRef.current = { x, y }
-    const rect = normalizeSelection(selAnchorRef.current, { x, y }, cols, rows)
+    const anchor = selAnchorRef.current
+    let point = { x, y }
+    let snapped = { x: false, y: false }
+    if (snapToEdges) {
+      const threshold = coarsePointerRef.current ? SNAP_THRESHOLD.coarse : SNAP_THRESHOLD.fine
+      const res = snapSelection(committedData, anchor, point, cols, rows, threshold)
+      // 吸附把焦点拽回锚点(选区塌成 1×1)时丢弃吸附结果:
+      // 用户明明拖开了两格,却因为贴边被吸成单击 —— 松手会直接取消选区。
+      // 吸附只该微调边界,不该抹掉用户已经做出的拖动。
+      if (res.point.x !== anchor.x || res.point.y !== anchor.y) {
+        point = res.point
+        snapped = res.snapped
+      }
+    }
+    selFocusRef.current = point
+    const rect = normalizeSelection(anchor, point, cols, rows)
     painter.clearOverlay()
     drawMarquee(painter.overlayRef.current?.getContext('2d'), rect, {
       cellSize: CELL_SIZE,
       scale: transform.scale,
       dashOffset: dashOffsetRef.current,
       handles: coarsePointerRef.current,
+      // 吸附时画出被吸住的那条边:细实线,与虚线框区分开。
+      // 没有反馈的吸附会让用户觉得选框「自己乱跳」。
+      snapEdges: snapped,
     })
     onSelectionChange?.(rect)
-  }, [onSelectionChange, cols, rows, painter, transform.scale])
+  }, [onSelectionChange, cols, rows, painter, transform.scale, committedData, snapToEdges])
 
   // 松开:确认选区。单击(锚点=焦点)视为「取消选区」,避免 1×1 选框常驻。
   const endSelection = useCallback(() => {
