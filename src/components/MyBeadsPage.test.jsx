@@ -620,6 +620,57 @@ describe('MyBeadsPage · 库存', () => {
     expect(within(empty).getByText('复制品牌色卡')).toBeTruthy()
     expect(within(empty).getByText('新建自定义色卡')).toBeTruthy()
   })
+
+  it('库存页的「复制品牌色卡」切回色卡页并高亮内置目录', async () => {
+    // 回归:内置目录只渲染在「我的色卡」页签里。此前这里只调 scrollIntoView,
+    // 而 builtinRef 在库存页为 null —— 点击完全没有反应,流程断在半路。
+    const { container } = setup()
+    await openInventory(container)
+    fireEvent.click(within(container.querySelector('.inventory-picker')).getByText('我的色卡'))
+
+    const empty = await waitFor(() => {
+      const el = container.querySelector('.my-beads-empty-action')
+      expect(el).toBeTruthy()
+      return el
+    })
+    fireEvent.click(within(empty).getByText('复制品牌色卡'))
+
+    // 1) 切回色卡页签
+    await waitFor(() => {
+      expect(screen.getByRole('tab', { name: /我的色卡/ }).getAttribute('aria-selected')).toBe('true')
+    })
+    // 2) 内置目录出现并带高亮 + 落点提示
+    const builtin = await waitFor(() => {
+      const el = container.querySelector('.my-beads-builtin')
+      expect(el).toBeTruthy()
+      return el
+    })
+    expect(builtin.className).toContain('highlighted')
+    expect(builtin.querySelector('.my-beads-builtin-focus-hint')).toBeTruthy()
+  })
+
+  it('点击内置目录里的复制按钮后,高亮提示消失', async () => {
+    const { container } = setup()
+    await openInventory(container)
+    fireEvent.click(within(container.querySelector('.inventory-picker')).getByText('我的色卡'))
+    const empty = await waitFor(() => {
+      const el = container.querySelector('.my-beads-empty-action')
+      expect(el).toBeTruthy()
+      return el
+    })
+    fireEvent.click(within(empty).getByText('复制品牌色卡'))
+
+    const builtin = await waitFor(() => {
+      const el = container.querySelector('.my-beads-builtin.highlighted')
+      expect(el).toBeTruthy()
+      return el
+    })
+    fireEvent.click(within(builtin).getAllByText('复制为我的色卡')[0])
+    // 用户已经在目标区域动手,提示不该继续闪
+    await waitFor(() => {
+      expect(container.querySelector('.my-beads-builtin.highlighted')).toBeNull()
+    })
+  })
 })
 
 describe('MyBeadsPage · 备份', () => {

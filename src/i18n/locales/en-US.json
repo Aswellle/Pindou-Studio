@@ -1404,6 +1404,7 @@
     "builtin": {
       "title": "Built-in brand palettes",
       "hint": "Built-in palettes are read-only. Copying gives you an independent palette; edits never touch the built-in data.",
+      "focusHint": "Right here: pick a brand below and tap “Copy to my palettes”. The copy will appear in the list above.",
       "colorCount": "{{n}} colors",
       "copy": "Copy to my palettes"
     },

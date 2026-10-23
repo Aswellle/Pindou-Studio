@@ -117,6 +117,8 @@ export default function MyBeadsPage({ user, canvasData, onApplyMapping, works = 
   const [reassignTargetId, setReassignTargetId] = useState('')
   const [busy, setBusy] = useState(false)
   const [highlightBuiltin, setHighlightBuiltin] = useState(false)
+  // 空状态跳转到内置目录:切页后需要等目录挂载完成再滚动
+  const [pendingBuiltinFocus, setPendingBuiltinFocus] = useState(false)
 
   const detailRef = useRef(null)
   const builtinRef = useRef(null)
@@ -398,7 +400,11 @@ export default function MyBeadsPage({ user, canvasData, onApplyMapping, works = 
   }
 
   // ── 复制内置色卡(替换 window.prompt)──────────────────────
-  const openCopyBuiltin = (builtin) => setCopyTarget(builtin)
+  const openCopyBuiltin = (builtin) => {
+    // 用户已经在目标区域动手,高亮提示的使命结束
+    setHighlightBuiltin(false)
+    setCopyTarget(builtin)
+  }
 
   const confirmCopyBuiltin = async (name) => {
     const builtin = copyTarget
@@ -419,14 +425,29 @@ export default function MyBeadsPage({ user, canvasData, onApplyMapping, works = 
     setTimeout(scrollToDetail, 0)
   }
 
-  /** 空状态里的「复制品牌色卡」:滚动并高亮内置目录 */
+  /**
+   * 空状态里的「复制品牌色卡」:切回色卡页,滚动并高亮内置目录。
+   *
+   * 内置色卡目录只渲染在「我的色卡」页签里。库存 / 图纸匹配页签的空状态也
+   * 调用本函数,若只滚动不切页,builtinRef.current 为 null,点击完全没有反应 ——
+   * 流程就断在半路。这里先切页,滚动交给下面的 effect(渲染提交后 ref 才有值)。
+   */
   const focusBuiltinDirectory = () => {
+    setTab(TAB_PALETTES)
     setHighlightBuiltin(true)
+    setPendingBuiltinFocus(true)
+    setTimeout(() => setHighlightBuiltin(false), 4000)
+  }
+
+  // 切页后目录才挂载。用 effect 而不是 requestAnimationFrame:rAF 可能在 React
+  // 提交之前触发,那时 builtinRef 仍是 null,滚动落空。
+  useEffect(() => {
+    if (!pendingBuiltinFocus) return
+    setPendingBuiltinFocus(false)
     if (typeof builtinRef.current?.scrollIntoView === 'function') {
       builtinRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' })
     }
-    setTimeout(() => setHighlightBuiltin(false), 2400)
-  }
+  }, [pendingBuiltinFocus])
 
   // ── 库存 ───────────────────────────────────────────────────
   const [invKind, setInvKind] = useState('builtin')
@@ -851,6 +872,12 @@ export default function MyBeadsPage({ user, canvasData, onApplyMapping, works = 
               <div className={`my-beads-builtin${highlightBuiltin ? ' highlighted' : ''}`} ref={builtinRef}>
                 <h3>{t('myBeads.builtin.title')}</h3>
                 <p className="my-beads-hint small">{t('myBeads.builtin.hint')}</p>
+                {/* 从其他页签的空状态跳转过来时,用一句话说清下一步在哪做 */}
+                {highlightBuiltin && (
+                  <p className="my-beads-builtin-focus-hint" role="status">
+                    {t('myBeads.builtin.focusHint')}
+                  </p>
+                )}
                 <div className="my-beads-builtin-grid">
                   {PALETTE_LIST.map((p) => (
                     <div key={p.id} className="my-beads-builtin-card">

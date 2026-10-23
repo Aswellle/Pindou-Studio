@@ -1069,6 +1069,18 @@
   outline-offset: 4px;
 }
 
+/* 跳转落点提示:从库存 / 匹配页签的空状态过来时,说明下一步在哪做 */
+.my-beads-builtin-focus-hint {
+  margin: 0;
+  padding: 8px 10px;
+  border-radius: 8px;
+  border-left: 3px solid var(--accent);
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  font-size: var(--text-sm);
+  line-height: 1.6;
+}
+
 .my-beads-builtin h3 {
   margin: 0;
   font-size: var(--text-sm);
