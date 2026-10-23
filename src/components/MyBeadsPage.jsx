@@ -652,7 +652,21 @@ export default function MyBeadsPage({ user, canvasData, onApplyMapping, works = 
               </div>
 
               {store.loading ? (
-                <p className="my-beads-hint">{t('common.loading')}</p>
+                // 加载骨架:此前这里只有一行「加载中」文字,数据到达后被整块
+                // 空状态(图标 + 标题 + 说明 + 两个按钮,约 200px)替换,
+                // 下方的内置色卡目录被猛地推下去 —— 用户能明显看到画面跳动。
+                // 骨架按空状态的实际高度占位,内容到达时不再产生纵向位移。
+                <div className="my-beads-palette-skeleton" role="status" aria-live="polite">
+                  <span className="sr-only">{t('common.loading')}</span>
+                  <span className="sk-icon" aria-hidden="true" />
+                  <span className="sk-line w-45" aria-hidden="true" />
+                  <span className="sk-line w-80" aria-hidden="true" />
+                  <span className="sk-line w-60" aria-hidden="true" />
+                  <span className="sk-actions" aria-hidden="true">
+                    <span className="sk-btn" />
+                    <span className="sk-btn" />
+                  </span>
+                </div>
               ) : palettes.length === 0 ? (
                 <PaletteEmptyState
                   onCopyBuiltin={focusBuiltinDirectory}

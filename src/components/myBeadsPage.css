@@ -297,6 +297,73 @@
   gap: 8px;
 }
 
+/* ── 色卡列表加载骨架 ────────────────────────────────────────
+   与 .my-beads-getting-started 同尺寸(同样的 padding / 虚线边框 / 纵向排布),
+   数据到达时整块高度不变,下方内容不会被推动。 */
+.my-beads-palette-skeleton {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  padding: 28px 18px;
+  border: 1px dashed var(--border-color);
+  border-radius: 12px;
+  background: var(--bg-secondary);
+}
+
+.my-beads-palette-skeleton .sk-icon,
+.my-beads-palette-skeleton .sk-line,
+.my-beads-palette-skeleton .sk-btn {
+  display: block;
+  background: linear-gradient(
+    90deg,
+    var(--bg-tertiary) 0%,
+    var(--border-color) 50%,
+    var(--bg-tertiary) 100%
+  );
+  background-size: 200% 100%;
+  animation: my-beads-sk-shimmer 1.4s ease-in-out infinite;
+}
+
+.my-beads-palette-skeleton .sk-icon {
+  width: 22px;
+  height: 22px;
+  border-radius: 6px;
+}
+
+.my-beads-palette-skeleton .sk-line {
+  height: 14px;
+  border-radius: 6px;
+}
+.my-beads-palette-skeleton .sk-line.w-45 { width: 45%; min-width: 140px; height: 18px; }
+.my-beads-palette-skeleton .sk-line.w-80 { width: 80%; max-width: 420px; }
+.my-beads-palette-skeleton .sk-line.w-60 { width: 60%; max-width: 320px; }
+
+.my-beads-palette-skeleton .sk-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 8px;
+  margin-top: 2px;
+}
+.my-beads-palette-skeleton .sk-btn {
+  width: 128px;
+  height: 34px;
+  border-radius: 8px;
+}
+
+@keyframes my-beads-sk-shimmer {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
+/* 尊重「减少动态效果」偏好 */
+@media (prefers-reduced-motion: reduce) {
+  .my-beads-palette-skeleton .sk-icon,
+  .my-beads-palette-skeleton .sk-line,
+  .my-beads-palette-skeleton .sk-btn { animation: none; }
+}
+
 .my-beads-empty-inline {
   display: flex;
   flex-direction: column;
