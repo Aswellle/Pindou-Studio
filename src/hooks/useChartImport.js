@@ -15,7 +15,7 @@
 
 import { useCallback, useRef, useState } from 'react'
 import { analyzeChart, buildChartProject } from '../services/chart/chartImport'
-import { checkImageFile, checkImagePixels } from '../utils/imageGuard'
+import { checkImageFile, checkImagePixels, readImageHead, isSvgFile, ensureSvgSize } from '../utils/imageGuard'
 import { fingerprintImage, loadSession } from '../services/project/chartImportStore'
 
 /** 工作分辨率长边上限 */
@@ -23,7 +23,19 @@ export const WORK_MAX_SIDE = 1600
 
 /** 把 File 解码为 { imageData, previewUrl, width, height } */
 async function decodeToImageData(file) {
-  const url = URL.createObjectURL(file)
+  // SVG 先补显式尺寸:只带 viewBox 的 SVG 在 <img> 里按 300×150 渲染,
+  // 矢量图纸会被压糊,逐格采样拿不到有效像素。
+  let source = file
+  if (isSvgFile(file)) {
+    try {
+      const text = await file.text()
+      const patched = ensureSvgSize(text)
+      if (patched !== text) source = new Blob([patched], { type: 'image/svg+xml' })
+    } catch {
+      // 读不出全文就按原样解码,让后续阶段自然失败
+    }
+  }
+  const url = URL.createObjectURL(source)
   try {
     const img = await new Promise((resolve, reject) => {
       const el = new Image()
@@ -85,15 +97,13 @@ export function useChartImport() {
       setFileError(code)
       return false
     }
-    try {
-      const head = await file.slice(0, 65536).arrayBuffer()
+    const head = await readImageHead(file)
+    if (head) {
       const pixelCode = checkImagePixels(head)
       if (pixelCode) {
         setFileError(pixelCode)
         return false
       }
-    } catch {
-      // 文件头读不出来不阻断,解码阶段会自然失败并给出提示
     }
 
     const gen = ++genRef.current

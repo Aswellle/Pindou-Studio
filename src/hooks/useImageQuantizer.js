@@ -1,5 +1,6 @@
 import { useState, useCallback, useRef } from 'react'
 import { getPalette } from '../data/palettes'
+import { isSvgFile, ensureSvgSize } from '../utils/imageGuard'
 
 export function useImageQuantizer() {
   const [isProcessing, setIsProcessing] = useState(false)
@@ -37,7 +38,7 @@ export function useImageQuantizer() {
     setError(null)
 
     try {
-      const img = await loadImage(imageFile)
+      const img = await loadImageNormalized(imageFile)
 
       // Phase 6.3: 源分辨率提升 25→49 (7×7 per cell)，与专业站对齐
       // 上限 3000px 防止大图内存爆炸
@@ -208,4 +209,24 @@ function loadImage(file) {
     img.onerror = () => { URL.revokeObjectURL(url); reject(new Error('图片加载失败')) } // 包装错误,避免 err.message undefined
     img.src = url
   })
+}
+
+/**
+ * 解码入口:SVG 先补显式尺寸再解码。
+ *
+ * 只带 viewBox 的 SVG 在 `<img>` 里没有固有尺寸,浏览器按 300×150 渲染 ——
+ * 矢量图纸会被压成 300px 宽,逐格采样时每格不到 1.5px,识别必然失败。
+ * 非 SVG 直接原样解码,不读全文、不产生额外拷贝。
+ */
+async function loadImageNormalized(file) {
+  if (!isSvgFile(file)) return loadImage(file)
+  let text
+  try {
+    text = await file.text()
+  } catch {
+    return loadImage(file) // 读不出全文就按原样试一次,让解码阶段自己报错
+  }
+  const patched = ensureSvgSize(text)
+  if (patched === text) return loadImage(file)
+  return loadImage(new Blob([patched], { type: 'image/svg+xml' }))
 }

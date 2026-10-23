@@ -14,7 +14,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { supabase, SUPABASE_URL } from '../../services/supabase'
-import { checkImageFile, checkImagePixels } from '../../utils/imageGuard'
+import { checkImageFile, checkImagePixels, readImageHead } from '../../utils/imageGuard'
 import { accountIdentity, displayNameOf } from '../../utils/normalizeAuthUser'
 import Avatar from '../Avatar'
 import AvatarCropper from '../AvatarCropper'
@@ -69,8 +69,8 @@ export default function ProfileInfoSection({ user, onUpdateProfile, onMessage })
       onMessage(t(fileErr === 'notImage' ? 'profile.avatarInvalid' : 'profile.avatarTooLarge'), 'error')
       return
     }
-    const head = await file.slice(0, 65536).arrayBuffer()
-    if (checkImagePixels(head)) {
+    const head = await readImageHead(file)
+    if (head && checkImagePixels(head)) {
       onMessage(t('quantizer.errors.tooManyPixels'), 'error')
       return
     }

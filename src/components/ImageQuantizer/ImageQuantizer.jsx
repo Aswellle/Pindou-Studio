@@ -6,7 +6,7 @@ import { useScrollLock } from '../../hooks/useScrollLock'
 import { useDialogA11y } from '../../hooks/useDialogA11y'
 import { getPalette, PALETTE_LIST } from '../../data/palettes'
 import { recommendGridSize, suggestMaxColorsForGrid } from '../../utils/autoGrid'
-import { checkImageFile, checkImagePixels } from '../../utils/imageGuard'
+import { checkImageFile, checkImagePixels, readImageHead } from '../../utils/imageGuard'
 import './ImageQuantizer.css'
 
 // 拟真珠子渲染 — 径向渐变 + 高光 + 中心孔
@@ -363,12 +363,10 @@ export default function ImageQuantizer({ onApply, onClose }) {
       return
     }
     let pixelCode = null
-    try {
-      // 只需文件头:PNG 的 IHDR 与绝大多数 JPEG 的 SOF 都在前 64KB 内
-      pixelCode = checkImagePixels(await file.slice(0, 65536).arrayBuffer())
-    } catch {
-      pixelCode = null // 读取失败不阻断,交由后续解码路径自然报错
-    }
+    // 只需文件头:PNG 的 IHDR 与绝大多数 JPEG 的 SOF 都在前 64KB 内;
+    // SVG 读成文本才能拿到根元素尺寸(几 KB 的 SVG 可以声明上万像素)
+    const head = await readImageHead(file)
+    if (head) pixelCode = checkImagePixels(head)
     if (pixelCode) {
       setFileError(t(`quantizer.errors.${pixelCode}`, pixelCode))
       return
