@@ -6,9 +6,12 @@ import {
   readSvgSize,
   ensureSvgSize,
   isSvgFile,
+  isPdfFile,
+  isHeicFile,
   readImageHead,
   MAX_IMAGE_BYTES,
   MAX_IMAGE_PIXELS,
+  MAX_PDF_BYTES,
 } from './imageGuard'
 import zh from '../i18n/locales/zh-CN.json'
 
@@ -50,8 +53,18 @@ describe('checkImageFile', () => {
   })
 
   it('错误码与 i18n 键一一对应(避免向用户露出原始码)', () => {
-    // 组件按 `quantizer.errors.<code>` 直接拼键取值:任一侧漏配都会让用户看到 raw code
-    expect(Object.keys(zh.quantizer.errors).sort()).toEqual(['imageTooLarge', 'notImage', 'tooManyPixels'])
+    // 组件按 `quantizer.errors.<code>` 直接拼键取值:任一侧漏配都会让用户看到 raw code。
+    // 新增一条门控规则时这里会变红 —— 那是在提醒补 4 语言文案,不是测试过时。
+    expect(Object.keys(zh.quantizer.errors).sort()).toEqual([
+      'heicDecodeFailed',
+      'heicUnsupported',
+      'imageTooLarge',
+      'notImage',
+      'pdfDecodeFailed',
+      'pdfTooLarge',
+      'pdfUnsupported',
+      'tooManyPixels',
+    ])
     expect(checkImageFile({ type: 'text/plain' })).toBe('notImage')
     expect(checkImageFile({ type: 'image/png', size: MAX_IMAGE_BYTES + 1 })).toBe('imageTooLarge')
     expect(checkImagePixels(pngHeader(20000, 20000))).toBe('tooManyPixels')
@@ -263,5 +276,73 @@ describe('isSvgFile / readImageHead', () => {
 
   it('读失败返回 null(调用方放行,不阻断)', async () => {
     expect(await readImageHead({ slice: () => { throw new Error('boom') } })).toBeNull()
+  })
+})
+
+describe('isPdfFile / isHeicFile', () => {
+  it('PDF 按 MIME 识别', () => {
+    expect(isPdfFile({ type: 'application/pdf' })).toBe(true)
+    expect(isPdfFile({ type: 'image/png' })).toBe(false)
+  })
+
+  it('PDF 的 MIME 缺失时退化到扩展名(拖放/微信传文件常给空 type)', () => {
+    expect(isPdfFile({ type: '', name: 'chart.pdf' })).toBe(true)
+    expect(isPdfFile({ type: '', name: 'CHART.PDF' })).toBe(true)
+    expect(isPdfFile({ type: '', name: 'chart.png' })).toBe(false)
+  })
+
+  it('HEIC 的四种 MIME 都识别', () => {
+    for (const type of ['image/heic', 'image/heif', 'image/heic-sequence', 'image/heif-sequence']) {
+      expect(isHeicFile({ type })).toBe(true)
+    }
+    expect(isHeicFile({ type: 'image/png' })).toBe(false)
+  })
+
+  it('HEIC 的 MIME 缺失时退化到扩展名', () => {
+    expect(isHeicFile({ type: '', name: 'IMG_0001.HEIC' })).toBe(true)
+    expect(isHeicFile({ type: '', name: 'IMG_0001.heif' })).toBe(true)
+    expect(isHeicFile({ type: '', name: 'IMG_0001.jpg' })).toBe(false)
+  })
+
+  it('空入参都不算', () => {
+    expect(isPdfFile(null)).toBe(false)
+    expect(isHeicFile(null)).toBe(false)
+    expect(isPdfFile({})).toBe(false)
+    expect(isHeicFile({})).toBe(false)
+  })
+})
+
+describe('checkImageFile · PDF 放行', () => {
+  it('默认拒绝 PDF(其他入口不受影响)', () => {
+    expect(checkImageFile({ type: 'application/pdf', size: 100 })).toBe('notImage')
+  })
+
+  it('allowPdf 时接受 PDF', () => {
+    expect(checkImageFile({ type: 'application/pdf', size: 100 }, { allowPdf: true })).toBeNull()
+    // 扩展名兜底:拖放时 type 可能为空
+    expect(checkImageFile({ type: '', name: 'a.pdf', size: 100 }, { allowPdf: true })).toBeNull()
+  })
+
+  it('PDF 有独立的体积上限(图纸常含扫描图,比图片宽)', () => {
+    expect(MAX_PDF_BYTES).toBeGreaterThan(MAX_IMAGE_BYTES)
+    expect(checkImageFile({ type: 'application/pdf', size: MAX_PDF_BYTES + 1 }, { allowPdf: true }))
+      .toBe('pdfTooLarge')
+    expect(checkImageFile({ type: 'application/pdf', size: MAX_PDF_BYTES }, { allowPdf: true })).toBeNull()
+  })
+
+  it('allowPdf 不放宽图片的体积上限', () => {
+    expect(checkImageFile({ type: 'image/png', size: MAX_IMAGE_BYTES + 1 }, { allowPdf: true }))
+      .toBe('imageTooLarge')
+  })
+
+  it('allowPdf 仍拒绝无关类型', () => {
+    expect(checkImageFile({ type: 'text/plain', size: 10 }, { allowPdf: true })).toBe('notImage')
+  })
+
+  it('新增错误码在 4 语言里都有文案(否则会向用户露出原始键名)', () => {
+    for (const code of ['pdfTooLarge', 'heicUnsupported', 'heicDecodeFailed', 'pdfDecodeFailed', 'pdfUnsupported']) {
+      expect(typeof zh.quantizer.errors[code]).toBe('string')
+      expect(zh.quantizer.errors[code].length).toBeGreaterThan(0)
+    }
   })
 })

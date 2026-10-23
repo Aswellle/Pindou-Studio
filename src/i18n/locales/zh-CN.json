@@ -841,7 +841,12 @@
     "errors": {
       "notImage": "请选择图片文件",
       "imageTooLarge": "图片过大(超过 30MB),请压缩后重试",
-      "tooManyPixels": "图片像素过多(超过 4000 万),请缩小后重试"
+      "tooManyPixels": "图片像素过多(超过 4000 万),请缩小后重试",
+      "pdfTooLarge": "PDF 过大(超过 50MB),请压缩后重试",
+      "heicUnsupported": "当前浏览器无法解码 HEIC 照片,请改用 Safari,或先把照片转换为 JPG 再试",
+      "heicDecodeFailed": "HEIC 照片读取失败,请换一张,或先把照片转换为 JPG",
+      "pdfDecodeFailed": "PDF 读取失败,请确认文件未加密、未损坏",
+      "pdfUnsupported": "PDF 解析组件加载失败,请检查网络后重试"
     }
   },
   "tutorials": {
@@ -1348,7 +1353,7 @@
     "title": "导入图纸",
     "intro": "导入 .pindou.json 原生工程文件，或项目模板 JSON。文件会在本机完成校验，不会上传；导入结果默认仅自己可见。",
     "chooseFile": "选择 JSON 文件",
-    "dropHint": "点击选择，或把文件拖到这里 · 上限 {{size}} KB",
+    "dropHint": "支持截图、拍照、HEIC 照片、PDF 或 SVG 矢量图纸；识别在本机完成，图片不会上传",
     "failedTitle": "导入失败",
     "failedHint": "当前画布与已保存作品均未改动。请修正文件后重试。",
     "moreErrors": "还有 {{n}} 条错误未显示",

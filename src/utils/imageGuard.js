@@ -6,8 +6,10 @@
  * 字节数成正比 —— 一张 20000×20000 的纯色 PNG 压缩后可能只有几 MB,却能解出约 1.6GB
  * 的 RGBA 位图。因此在「文件选择期」同时按字节数与像素数设限,把风险挡在解码之前。
  *
- * 约束:只做拒绝判断,不改动既有可接受范围 —— 类型判定与原实现的
- * `file.type.startsWith('image/')` 一致,不会新增对原本可用文件的拒绝。
+ * 约束:只做拒绝判断,不改动既有可接受范围 —— 类型判定保持
+ * `file.type.startsWith('image/')` 的原口径,不会新增对原本可用文件的拒绝。
+ * 唯一放宽的是 PDF:它不是 `image/*`,但在「导入图纸」路径下会被栅格化成
+ * 位图再走同一条管线,由 `allowPdf` 显式开启(默认关闭,不影响其他入口)。
  *
  * 错误码约定:返回值即 i18n 键后缀(`quantizer.errors.<code>`),组件直接拼键取文案。
  * 新增一条规则必须同时补 4 语言的对应文案,否则会向用户露出原始错误码。
@@ -15,12 +17,31 @@
 
 export const MAX_IMAGE_BYTES = 30 * 1024 * 1024 // 30MB
 export const MAX_IMAGE_PIXELS = 40e6            // 4000 万像素
+export const MAX_PDF_BYTES = 50 * 1024 * 1024   // 50MB:图纸 PDF 常含扫描图,比图片宽
 
 /** 是否 SVG:按 MIME 判断,退化到扩展名(部分系统给空 type) */
 export function isSvgFile(file) {
   if (!file) return false
   if (String(file.type || '').toLowerCase() === 'image/svg+xml') return true
   return /\.svg$/i.test(String(file.name || ''))
+}
+
+/** 是否 PDF:按 MIME 判断,退化到扩展名(拖放/微信传文件常给空 type) */
+export function isPdfFile(file) {
+  if (!file) return false
+  if (String(file.type || '').toLowerCase() === 'application/pdf') return true
+  return /\.pdf$/i.test(String(file.name || ''))
+}
+
+/** 是否 HEIC/HEIF:iOS 相册默认格式,浏览器原生解不了 */
+export function isHeicFile(file) {
+  if (!file) return false
+  const type = String(file.type || '').toLowerCase()
+  if (type === 'image/heic' || type === 'image/heif'
+    || type === 'image/heic-sequence' || type === 'image/heif-sequence') {
+    return true
+  }
+  return /\.(heic|heif)$/i.test(String(file.name || ''))
 }
 
 /**
@@ -42,10 +63,19 @@ export async function readImageHead(file, { bytes = 65536 } = {}) {
 
 /**
  * 文件级门控:类型 + 字节数(同步,无需读取内容)。
- * @returns {null|'notImage'|'imageTooLarge'} null 表示通过,否则返回错误码(即 i18n 键后缀)
+ *
+ * @param {File|Blob} file
+ * @param {object} [opts]
+ * @param {number} [opts.maxBytes]
+ * @param {boolean} [opts.allowPdf] 是否接受 PDF(仅「导入图纸」路径开启)
+ * @returns {null|'notImage'|'imageTooLarge'|'pdfTooLarge'} null 表示通过
  */
-export function checkImageFile(file, { maxBytes = MAX_IMAGE_BYTES } = {}) {
-  if (!file || !String(file.type || '').startsWith('image/')) return 'notImage'
+export function checkImageFile(file, { maxBytes = MAX_IMAGE_BYTES, allowPdf = false } = {}) {
+  if (!file) return 'notImage'
+  if (allowPdf && isPdfFile(file)) {
+    return file.size > MAX_PDF_BYTES ? 'pdfTooLarge' : null
+  }
+  if (!String(file.type || '').startsWith('image/')) return 'notImage'
   if (file.size > maxBytes) return 'imageTooLarge'
   return null
 }

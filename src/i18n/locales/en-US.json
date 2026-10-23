@@ -841,7 +841,12 @@
     "errors": {
       "notImage": "Please choose an image file",
       "imageTooLarge": "Image is too large (over 30 MB). Please compress it and try again.",
-      "tooManyPixels": "Image has too many pixels (over 40 megapixels). Please downscale it and try again."
+      "tooManyPixels": "Image has too many pixels (over 40 megapixels). Please downscale it and try again.",
+      "pdfTooLarge": "PDF is too large (over 50 MB). Please compress it and try again.",
+      "heicUnsupported": "This browser cannot decode HEIC photos. Use Safari, or convert the photo to JPG first.",
+      "heicDecodeFailed": "Could not read this HEIC photo. Try another one, or convert it to JPG first.",
+      "pdfDecodeFailed": "Could not read this PDF. Make sure it is not encrypted or corrupted.",
+      "pdfUnsupported": "The PDF parser failed to load. Check your connection and try again."
     }
   },
   "tutorials": {
@@ -1348,7 +1353,7 @@
     "title": "Import Pattern",
     "intro": "Import a .pindou.json project file or a template JSON. Validation runs locally — nothing is uploaded, and imported results stay private by default.",
     "chooseFile": "Choose a JSON file",
-    "dropHint": "Click to choose, or drop a file here · up to {{size}} KB",
+    "dropHint": "Screenshots, photos, HEIC, PDF, and SVG vector charts work; recognition runs locally and the image is never uploaded",
     "failedTitle": "Import failed",
     "failedHint": "Your canvas and saved works are unchanged. Fix the file and try again.",
     "moreErrors": "{{n}} more errors not shown",
