@@ -1,0 +1,67 @@
+/**
+ * 长按上下文菜单(A4)。
+ *
+ * 遮罩是透明点击拦截层,与 gallery 的 export-menu-overlay 同构 —— 因此
+ * 不参与全屏浮层的键盘补偿契约(见 mobileOverlayContract.test.js 的
+ * CLICK_CATCHERS)。菜单本体按触点定位,越界由组件内的 useLayoutEffect
+ * 拉回视口,这里只负责视觉。
+ */
+.selection-menu-overlay {
+  position: fixed;
+  inset: 0;
+  background: transparent;
+  z-index: 1000;
+}
+
+.selection-menu {
+  position: fixed;
+  min-width: 176px;
+  padding: 4px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  background: var(--bg-primary);
+  border: 1px solid var(--border-color);
+  border-radius: 10px;
+  box-shadow: 0 6px 20px rgba(43, 36, 32, 0.22);
+}
+
+.selection-menu-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  min-height: 40px;
+  padding: 0 12px;
+  border: none;
+  border-radius: 7px;
+  background: transparent;
+  color: var(--text-primary);
+  font-family: inherit;
+  font-size: var(--text-sm);
+  text-align: left;
+  cursor: pointer;
+}
+
+.selection-menu-item:active {
+  background: var(--bg-secondary);
+}
+
+.selection-menu-item:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+.selection-menu-item.danger {
+  color: var(--secondary-accent);
+}
+
+.selection-menu-icon {
+  display: inline-flex;
+  flex-shrink: 0;
+  color: var(--text-muted);
+}
+
+.selection-menu-item.danger .selection-menu-icon {
+  color: inherit;
+}

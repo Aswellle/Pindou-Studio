@@ -20,7 +20,7 @@ const INDEX_CSS = readFileSync(join(SRC, 'index.css'), 'utf8')
 const KEYBOARD_SAFE = readFileSync(join(SRC, 'hooks', 'useKeyboardSafe.js'), 'utf8')
 
 // 透明点击遮罩:只拦截点击、不承载内容,不适用浮层契约
-const CLICK_CATCHERS = new Set(['export-menu-overlay', 'brand-menu-overlay'])
+const CLICK_CATCHERS = new Set(['export-menu-overlay', 'brand-menu-overlay', 'selection-menu-overlay'])
 
 // 自带完整浮层基础的类:其他浮层可以叠加它们获得同一套契约
 const SHARED_BASES = new Set(['modal-overlay', 'contact-overlay', 'admin-modal-overlay',
