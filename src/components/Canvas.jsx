@@ -38,6 +38,9 @@ const Canvas = forwardRef(function Canvas({
   onSelectionChange,
   // M5.2: 在选区内按下并拖动 = 移动选区内容(拖到哪就贴到哪)
   onSelectionMove,
+  // A2: 移动端的「复制拖动」开关。触屏没有 Alt/Option,由操作条上的显式开关
+  // 决定拖选区内部是剪切还是复制。桌面端不受它影响(Alt 优先)。
+  copyDrag = false,
 }, ref) {
   const { t } = useTranslation()
   const containerRef = useRef(null)
@@ -65,6 +68,10 @@ const Canvas = forwardRef(function Canvas({
   const moveStartRef = useRef(null)
   const moveBaseSelRef = useRef(null)
   const moveOffsetRef = useRef({ dx: 0, dy: 0 })
+  // 本次拖动是「复制」而不是「剪切」:桌面 Alt/Option 按住拖动,
+  // 或移动端操作条上的「复制一份」开关(A2)。按下瞬间定下来,拖动中不再变 ——
+  // 拖到一半松开 Alt 不该让已经预览好的副本突然变成剪切。
+  const moveCopyRef = useRef(false)
 
   // 选区 resize 手柄(A1):按住手柄拖动改尺寸,对角锚点不动。
   //   handle — 正在拖的手柄 id(nw/n/ne/e/se/s/sw/w)
@@ -482,11 +489,16 @@ const Canvas = forwardRef(function Canvas({
   // 在已选中的区域内部按下并拖动 = 移动内容,而不是重新拖一个新选框。
   // 拖动期间只画预览(overlay 上画半透明块),松手才提交一条历史。
   // 越界规则:偏移量被 clampMove 钳制,内容始终整体留在画布内,绝不悄悄裁掉珠子。
-  const startMove = useCallback((x, y) => {
+  //
+  // `copy` 为 true 时是「复制拖动」(A2):预览照旧画在新位置,但原件不清空。
+  // 桌面端由 Alt/Option 触发,移动端由操作条上的显式开关触发 —— 触屏没有
+  // 修饰键,只能给可见入口,不能靠隐藏手势。
+  const startMove = useCallback((x, y, { copy = false } = {}) => {
     moveDraggingRef.current = true
     moveStartRef.current = { x, y }
     moveBaseSelRef.current = { ...selection }
     moveOffsetRef.current = { dx: 0, dy: 0 }
+    moveCopyRef.current = copy
   }, [selection])
 
   const updateMove = useCallback((x, y) => {
@@ -516,6 +528,8 @@ const Canvas = forwardRef(function Canvas({
       scale: transform.scale,
       dashOffset: dashOffsetRef.current,
       handles: coarsePointerRef.current,
+      // 复制拖动时额外画手柄:光标提示这是「复制一份」而不是搬走原件
+      resizeHandles: moveCopyRef.current,
     })
   }, [cols, rows, painter, committedData, transform.scale])
 
@@ -525,13 +539,15 @@ const Canvas = forwardRef(function Canvas({
     moveStartRef.current = null
     const base = moveBaseSelRef.current
     moveBaseSelRef.current = null
+    const copy = moveCopyRef.current
+    moveCopyRef.current = false
     const { dx, dy } = moveOffsetRef.current
     moveOffsetRef.current = { dx: 0, dy: 0 }
     painter.clearOverlay()
     // 无论是否提交,都让选框重画一次(预览期间 overlay 被清空过)
     setOverlayTick(n => n + 1)
     if (!base || (!dx && !dy)) return
-    onSelectionMove?.({ dx, dy, selection: base })
+    onSelectionMove?.({ dx, dy, selection: base, copy })
   }, [painter, onSelectionMove])
 
   // ─────────────────────────────────────────────────────────────────
@@ -697,8 +713,12 @@ const Canvas = forwardRef(function Canvas({
           // 边缘那几格就永远拖不出 resize,只能移动内容。
           const handleId = handleAtPoint(e.clientX, e.clientY)
           if (handleId) startResize(handleId)
-          else if (pointInSelection(selection, pos)) startMove(pos.x, pos.y)
-          else startSelection(pos.x, pos.y)
+          else if (pointInSelection(selection, pos)) {
+            // Alt/Option + 拖动 = 复制一份(A2);操作条上的开关同理。
+            // 按下瞬间定下来,拖动中改主意不生效 —— 否则预览到一半会突然
+            // 从「复制」变「剪切」,用户看到的东西和松手后落地的对不上。
+            startMove(pos.x, pos.y, { copy: e.altKey || copyDrag })
+          } else startSelection(pos.x, pos.y)
           return
         }
         isDrawingRef.current = true
@@ -721,7 +741,7 @@ const Canvas = forwardRef(function Canvas({
     isDrawingRef.current = false
     panCursorStartRef.current = { x: cursorX, y: cursorY }
     panStartRef.current = { x: transform.cx, y: transform.cy }
-  }, [isOverCanvas, getGridPos, startStroke, paintToStroke, applyFill, transform, tool, pickColorAt, startSelection, startMove, selection, handleAtPoint, startResize])
+  }, [isOverCanvas, getGridPos, startStroke, paintToStroke, applyFill, transform, tool, pickColorAt, startSelection, startMove, selection, handleAtPoint, startResize, copyDrag])
 
   const handleContainerMouseMove = useCallback((e) => {
     const rect = containerRef.current?.getBoundingClientRect()
@@ -937,8 +957,10 @@ const Canvas = forwardRef(function Canvas({
         // 手势优先级:手柄 > 选区内部移动 > 外部新框
         const handleId = handleAtPoint(t.clientX, t.clientY)
         if (handleId) startResize(handleId)
-        else if (pointInSelection(selection, gridPos)) startMove(gridPos.x, gridPos.y)
-        else startSelection(gridPos.x, gridPos.y)
+        else if (pointInSelection(selection, gridPos)) {
+          // 触屏没有修饰键:复制拖动由操作条开关决定(A2)
+          startMove(gridPos.x, gridPos.y, { copy: copyDrag })
+        } else startSelection(gridPos.x, gridPos.y)
         return
       }
 
@@ -948,7 +970,7 @@ const Canvas = forwardRef(function Canvas({
         touchPanCanvasStartRef.current = { x: transform.cx, y: transform.cy }
       }
     }
-  }, [stopMomentum, getGridPos, transform, tool, startSelection, startMove, selection, painter, handleAtPoint, startResize])
+  }, [stopMomentum, getGridPos, transform, tool, startSelection, startMove, selection, painter, handleAtPoint, startResize, copyDrag])
 
   const handleTouchMove = useCallback((e) => {
     e.preventDefault()

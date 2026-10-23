@@ -26,6 +26,7 @@ import {
   rotateSelection,
   replaceColor,
   moveSelection,
+  copyMoveSelection,
   copySelection,
   pasteBlock,
   normalizeSelection,
@@ -105,6 +106,11 @@ export default function App() {
   // 不跨网格尺寸清空 —— 复制一块内容后调整画布大小再粘贴是合理操作,
   // 越界部分由 pasteBlock 裁剪。
   const [clipboard, setClipboard] = useState(null)
+
+  // A2 复制拖动开关:打开后拖动选区内部 = 复制一份(原件保留),而不是剪切移动。
+  // 桌面端另有 Alt/Option 快捷键,但开关本身对所有端都生效 —— 触屏没有修饰键,
+  // 桌面也不该要求用户先知道有个隐藏手势。
+  const [copyDrag, setCopyDrag] = useState(false)
 
   // 切页 / 网格尺寸变化(换模板、载入作品、调整画布)后,旧选区坐标可能失效
   // → 清空。普通绘制不改变网格,选区矩形仍然有效,无需清空。
@@ -479,14 +485,19 @@ export default function App() {
     },
     selection,
     onSelectionChange: setSelection,
+    // A2:复制拖动开关(拖动选区内部时是复制而不是剪切)
+    copyDrag,
     // M5.2 拖拽移动:画布只在松手时上报一次偏移,这里提交一条历史。
     // 偏移已由画布按 clampMove 钳制,内容不会掉出画布。
-    onSelectionMove: ({ dx, dy, selection: base }) => {
-      const result = moveSelection(canvasData, base, dx, dy)
+    // A2:`copy` 为 true 时是复制拖动(Alt/Option 或移动端开关),原件保留。
+    onSelectionMove: ({ dx, dy, selection: base, copy }) => {
+      const result = copy
+        ? copyMoveSelection(canvasData, base, dx, dy)
+        : moveSelection(canvasData, base, dx, dy)
       if (result.selection) setSelection(result.selection)
       if (!result.data) return
       setCanvas(result.data)
-      toast(t('tools.selectionMovedToast', { n: result.changed }), 'success')
+      toast(t(copy ? 'tools.selectionCopiedDragToast' : 'tools.selectionMovedToast', { n: result.changed }), 'success')
     },
   }
 
@@ -752,6 +763,8 @@ export default function App() {
             fillIncludeEmpty={fillIncludeEmpty}
             onToggleFillIncludeEmpty={handleToggleFillIncludeEmpty}
             canPaste={Boolean(clipboard)}
+            copyDrag={copyDrag}
+            onToggleCopyDrag={setCopyDrag}
           />
         </div>
         <div className="left-sidebar-bottom">
@@ -1181,6 +1194,8 @@ export default function App() {
               fillIncludeEmpty={fillIncludeEmpty}
               onToggleFillIncludeEmpty={handleToggleFillIncludeEmpty}
               canPaste={Boolean(clipboard)}
+              copyDrag={copyDrag}
+              onToggleCopyDrag={setCopyDrag}
             />
           </>
         } />

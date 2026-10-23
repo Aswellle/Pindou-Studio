@@ -296,6 +296,36 @@ describe('App · 拖拽移动选区(M5.2)', () => {
     await waitFor(() => expect(getByTestId('sel').textContent).toBe('2x2'))
     expect(canvasProps.current.committedData).toBe(before)
   })
+
+  it('复制拖动:原件保留、副本落在新位置,一次撤销后副本消失', async () => {
+    // 与移动的关键区别:原件必须还在。Alt 拖动是「再要一份」,不是「搬到别处」。
+    const { getByTestId } = renderApp()
+
+    await waitFor(() => expect(canvasProps.current?.committedData).toBeTruthy())
+    selectRegion({ x: 0, y: 0, w: 2, h: 2 })
+    await waitFor(() => expect(getByTestId('sel').textContent).toBe('2x2'))
+    enableIncludeEmpty(getByTestId)
+    fireEvent.click(getByTestId('fill'))
+    await waitFor(() => expect(canvasProps.current.committedData[0][0]).toBe('#E53935'))
+    const before = canvasProps.current.committedData.map(r => [...r])
+
+    canvasProps.current.onSelectionMove({
+      dx: 2, dy: 2, selection: { x: 0, y: 0, w: 2, h: 2 }, copy: true,
+    })
+
+    await waitFor(() => {
+      // 副本
+      expect(canvasProps.current.committedData[2][2]).toBe('#E53935')
+      // 原件仍在原处
+      expect(canvasProps.current.committedData[0][0]).toBe('#E53935')
+    })
+
+    // 一次撤销:副本消失,原件不动
+    fireEvent.keyDown(window, { key: 'z', ctrlKey: true })
+    await waitFor(() => {
+      expect(canvasProps.current.committedData).toEqual(before)
+    })
+  })
 })
 
 /**

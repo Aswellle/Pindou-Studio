@@ -516,7 +516,7 @@ describe('Canvas 拖拽移动选区(M5.2)', () => {
 
     expect(onSelectionMove).toHaveBeenCalledTimes(1)
     expect(onSelectionMove.mock.calls[0][0]).toEqual({
-      dx: 1, dy: 1, selection: { x: 0, y: 0, w: 2, h: 1 },
+      dx: 1, dy: 1, selection: { x: 0, y: 0, w: 2, h: 1 }, copy: false,
     })
     // 移动不经过「拖新选框」路径,也不直接写画布(App 负责提交)
     expect(onSelectionChange).not.toHaveBeenCalled()
@@ -557,7 +557,7 @@ describe('Canvas 拖拽移动选区(M5.2)', () => {
     fireEvent.mouseUp(c, { clientX: 47, clientY: 47 })
 
     expect(onSelectionMove.mock.calls[0][0]).toEqual({
-      dx: 1, dy: 2, selection: { x: 0, y: 0, w: 2, h: 1 },
+      dx: 1, dy: 2, selection: { x: 0, y: 0, w: 2, h: 1 }, copy: false,
     })
   })
 
@@ -585,6 +585,113 @@ describe('Canvas 拖拽移动选区(M5.2)', () => {
     expect(onSelectionMove).toHaveBeenCalledTimes(1)
     expect(onSelectionMove.mock.calls[0][0]).toMatchObject({ dx: 1, dy: 1 })
     expect(onCanvasChange).not.toHaveBeenCalled()
+  })
+})
+
+/**
+ * A2:复制拖动。
+ *
+ * 桌面用 Alt/Option,触屏用操作条上的开关 —— 触屏没有修饰键,隐藏手势
+ * 在触屏上等于不存在,所以必须有可见入口。
+ */
+describe('Canvas 复制拖动(A2)', () => {
+  let mock
+  beforeEach(() => { mock = installCanvasMocks() })
+  afterEach(() => mock.restore())
+
+  function renderCopy(overrides = {}) {
+    const onSelectionMove = vi.fn()
+    const data = blankGrid(3)
+    data[0][0] = '#E53935'
+    data[0][1] = '#43A047'
+    const view = render(
+      <Canvas
+        gridSize={3}
+        gridWidth={null}
+        gridHeight={null}
+        selectedColor="#ff0000"
+        tool="select"
+        committedData={data}
+        selection={{ x: 0, y: 0, w: 2, h: 1 }}
+        onCanvasChange={vi.fn()}
+        onSelectionChange={vi.fn()}
+        onSelectionMove={onSelectionMove}
+        {...overrides}
+      />
+    )
+    return { ...view, onSelectionMove }
+  }
+
+  test('Alt + 拖动上报 copy: true', () => {
+    const { container, onSelectionMove } = renderCopy()
+    const c = container.querySelector('.canvas-container')
+
+    fireEvent.mouseDown(c, { clientX: 8, clientY: 8, altKey: true })
+    fireEvent.mouseMove(c, { clientX: 24, clientY: 24 })
+    fireEvent.mouseUp(c, { clientX: 24, clientY: 24 })
+
+    expect(onSelectionMove).toHaveBeenCalledTimes(1)
+    expect(onSelectionMove.mock.calls[0][0]).toMatchObject({ dx: 1, dy: 1, copy: true })
+  })
+
+  test('不按 Alt 时仍是剪切移动', () => {
+    const { container, onSelectionMove } = renderCopy()
+    const c = container.querySelector('.canvas-container')
+
+    fireEvent.mouseDown(c, { clientX: 8, clientY: 8 })
+    fireEvent.mouseMove(c, { clientX: 24, clientY: 24 })
+    fireEvent.mouseUp(c, { clientX: 24, clientY: 24 })
+
+    expect(onSelectionMove.mock.calls[0][0]).toMatchObject({ copy: false })
+  })
+
+  test('操作条开关打开后,普通拖动也是复制', () => {
+    // 触屏没有修饰键,这个开关是唯一入口
+    const { container, onSelectionMove } = renderCopy({ copyDrag: true })
+    const c = container.querySelector('.canvas-container')
+
+    fireEvent.mouseDown(c, { clientX: 8, clientY: 8 })
+    fireEvent.mouseMove(c, { clientX: 24, clientY: 24 })
+    fireEvent.mouseUp(c, { clientX: 24, clientY: 24 })
+
+    expect(onSelectionMove.mock.calls[0][0]).toMatchObject({ copy: true })
+  })
+
+  test('触屏拖动同样受开关控制', () => {
+    const { container, onSelectionMove } = renderCopy({ copyDrag: true })
+    const c = container.querySelector('.canvas-container')
+
+    fireEvent.touchStart(c, { touches: [{ clientX: 8, clientY: 8, identifier: 0 }] })
+    fireEvent.touchMove(c, { touches: [{ clientX: 24, clientY: 24, identifier: 0 }] })
+    fireEvent.touchEnd(c, { touches: [] })
+
+    expect(onSelectionMove.mock.calls[0][0]).toMatchObject({ copy: true })
+  })
+
+  test('按下时决定复制/剪切,拖动中松开 Alt 不改变本次语义', () => {
+    // 拖到一半改主意会让预览和落地对不上:用户看到的是复制预览,
+    // 松手却把原件搬走了。
+    const { container, onSelectionMove } = renderCopy()
+    const c = container.querySelector('.canvas-container')
+
+    fireEvent.mouseDown(c, { clientX: 8, clientY: 8, altKey: true })
+    // 后续 move/up 不带 altKey
+    fireEvent.mouseMove(c, { clientX: 24, clientY: 24 })
+    fireEvent.mouseUp(c, { clientX: 24, clientY: 24 })
+
+    expect(onSelectionMove.mock.calls[0][0]).toMatchObject({ copy: true })
+  })
+
+  test('复制拖动同样被钳制在网格内', () => {
+    const { container, onSelectionMove } = renderCopy()
+    const c = container.querySelector('.canvas-container')
+
+    fireEvent.mouseDown(c, { clientX: 8, clientY: 8, altKey: true })
+    fireEvent.mouseMove(c, { clientX: 47, clientY: 47 })
+    fireEvent.mouseUp(c, { clientX: 47, clientY: 47 })
+
+    // 选区 2×1 在 (0,0):向右最多 1 格、向下最多 2 格
+    expect(onSelectionMove.mock.calls[0][0]).toMatchObject({ dx: 1, dy: 2, copy: true })
   })
 })
 
