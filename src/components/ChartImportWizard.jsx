@@ -395,7 +395,7 @@ export default function ChartImportWizard({ onLoadProject, onSaveProject }) {
         <input
           ref={fileInputRef}
           type="file"
-          accept="image/*"
+          accept="image/*,.heic,.heif,application/pdf,.pdf"
           className="chart-file-input"
           onChange={(e) => {
             const file = e.target.files?.[0]

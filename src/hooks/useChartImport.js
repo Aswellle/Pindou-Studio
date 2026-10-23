@@ -15,12 +15,30 @@
 
 import { useCallback, useRef, useState } from 'react'
 import { analyzeChart, buildChartProject } from '../services/chart/chartImport'
-import { checkImageFile, checkImagePixels, readImageHead, isSvgFile, ensureSvgSize } from '../utils/imageGuard'
+import {
+  checkImageFile,
+  checkImagePixels,
+  readImageHead,
+  isSvgFile,
+  ensureSvgSize,
+  isHeicFile,
+  isPdfFile,
+} from '../utils/imageGuard'
+import { heicToPngBlob, pdfToPngBlob } from '../utils/imageFormats'
 import { warpQuadToRect, isQuadUsable, orderQuad } from '../utils/perspective'
 import { fingerprintImage, loadSession } from '../services/project/chartImportStore'
 
 /** 工作分辨率长边上限 */
 export const WORK_MAX_SIDE = 1600
+
+/**
+ * PDF 栅格化的长边上限。
+ *
+ * 比工作分辨率(1600)高:透视校正会从一个斜拍页面的四边形里裁出矩形,
+ * 四角只占原图的一部分,先按 1600 渲染再裁会损失有效像素。2400 留出余量,
+ * 同时一页 A4 放大到 2400 约 2400×3394 ≈ 800 万像素,内存可控。
+ */
+export const PDF_RASTER_MAX_SIDE = 2400
 
 /** 把 File 解码为 { imageData, previewUrl, width, height } */
 async function decodeToImageData(file) {
@@ -97,21 +115,32 @@ export function useChartImport() {
 
   /**
    * 选择图片:门控 → 解码到工作分辨率 → 自动检测网格 → 查历史修正。
+   *
+   * 支持 PDF / HEIC:两者先栅格化成 PNG 再走同一条解码路径。
+   * 转换发生在门控**之后** —— 先用原始文件判类型与字节数,再花 CPU 解码,
+   * 避免为一个 100MB 的 PDF 先跑完栅格化才被拒。
+   *
    * @returns {Promise<boolean>} 是否成功进入识别状态
    */
   const loadFile = useCallback(async (file) => {
     if (!file) return false
-    const code = checkImageFile(file)
+    const code = checkImageFile(file, { allowPdf: true })
     if (code) {
       setFileError(code)
       return false
     }
-    const head = await readImageHead(file)
-    if (head) {
-      const pixelCode = checkImagePixels(head)
-      if (pixelCode) {
-        setFileError(pixelCode)
-        return false
+
+    // PDF 不做文件头像素判定(页面尺寸要解析文档才知道),由栅格化时的
+    // maxSide 封顶;HEIC 的尺寸要解码后才拿到,同样交给后续阶段。
+    const needsConversion = isPdfFile(file) || isHeicFile(file)
+    if (!needsConversion) {
+      const head = await readImageHead(file)
+      if (head) {
+        const pixelCode = checkImagePixels(head)
+        if (pixelCode) {
+          setFileError(pixelCode)
+          return false
+        }
       }
     }
 
@@ -121,7 +150,15 @@ export function useChartImport() {
     setRestored(null)
     try {
       const fp = await fingerprintImage(file)
-      const decoded = await decodeToImageData(file)
+      let source = file
+      if (needsConversion) {
+        // 转换失败要给出**具体**原因:HEIC 在缺解码库时抛 heicUnsupported,
+        // PDF 在解析失败时抛 pdfDecodeFailed —— 两者都比笼统的「读取失败」有用
+        source = isPdfFile(file)
+          ? await pdfToPngBlob(file, { maxSide: PDF_RASTER_MAX_SIDE })
+          : await heicToPngBlob(file)
+      }
+      const decoded = await decodeToImageData(source)
       if (gen !== genRef.current) return false // 期间换了图片/取消了
       const result = analyzeChart(decoded.imageData)
       // 检测失败也要给一个可用边界(整张图),否则用户连手动设置列数/行数都做不了。
@@ -150,8 +187,13 @@ export function useChartImport() {
         }
       }
       return true
-    } catch {
-      if (gen === genRef.current) setFileError('decodeFailed')
+    } catch (e) {
+      // 转换层抛的是错误码(heicUnsupported / heicDecodeFailed / pdfDecodeFailed),
+      // 直接透传给 UI 取对应文案;其他异常(解码失败等)统一按 decodeFailed。
+      // 这里不透传 e.message 的原始内容 —— 那会把内部实现细节漏给用户。
+      const known = ['heicUnsupported', 'heicDecodeFailed', 'pdfDecodeFailed', 'pdfUnsupported', 'tooManyPixels']
+      const code = known.includes(e?.message) ? e.message : 'decodeFailed'
+      if (gen === genRef.current) setFileError(code)
       return false
     } finally {
       if (gen === genRef.current) setBusy(false)

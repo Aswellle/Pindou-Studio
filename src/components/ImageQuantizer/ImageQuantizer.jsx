@@ -6,7 +6,8 @@ import { useScrollLock } from '../../hooks/useScrollLock'
 import { useDialogA11y } from '../../hooks/useDialogA11y'
 import { getPalette, PALETTE_LIST } from '../../data/palettes'
 import { recommendGridSize, suggestMaxColorsForGrid } from '../../utils/autoGrid'
-import { checkImageFile, checkImagePixels, readImageHead } from '../../utils/imageGuard'
+import { checkImageFile, checkImagePixels, readImageHead, isHeicFile } from '../../utils/imageGuard'
+import { heicToPngBlob } from '../../utils/imageFormats'
 import './ImageQuantizer.css'
 
 // 拟真珠子渲染 — 径向渐变 + 高光 + 中心孔
@@ -356,6 +357,10 @@ export default function ImageQuantizer({ onApply, onClose }) {
   // 文件门控:选图(输入/拖放/粘贴)统一走这里 —— 类型 + 字节数 + 像素数三重校验,
   // 像素数在**解码前**用文件头判定(纯色像素画常"文件很小但像素极多",按字节数拦不住)。
   // 任一不过关都通过页面错误区给出可见提示,不再出现"点了没反应"。
+  //
+  // HEIC(iOS 相册默认格式)先转成 PNG 再预览:Chrome/Firefox 解不了 HEIC,
+  // 直接塞给 <img> 会显示破图,而用户看到的是「图片加载失败」这种误导性提示。
+  // PDF 不在这里支持 —— 它是图纸格式,走「导入图纸」路径更合适。
   const acceptFile = useCallback(async (file) => {
     const fileCode = checkImageFile(file)
     if (fileCode) {
@@ -371,8 +376,26 @@ export default function ImageQuantizer({ onApply, onClose }) {
       setFileError(t(`quantizer.errors.${pixelCode}`, pixelCode))
       return
     }
+
+    // HEIC 的像素数要解码后才知道,这里不预判;转换本身在 worker 之外、
+    // 在预览之前完成,失败时给出明确的格式提示而不是「加载失败」。
+    let source = file
+    if (isHeicFile(file)) {
+      try {
+        source = await heicToPngBlob(file)
+      } catch (e) {
+        const code = ['heicUnsupported', 'tooManyPixels'].includes(e?.message)
+          ? e.message
+          : 'heicDecodeFailed'
+        setFileError(t(`quantizer.errors.${code}`, t('chartImport.decodeFailed')))
+        return
+      }
+    }
+
     setFileError('')
-    const url = URL.createObjectURL(file)
+    // 预览与量化都走这个 URL:量化时 `fetch(previewUrl).then(r => r.blob())`
+    // 取到的自然是转换后的 PNG,不需要额外的「源文件」状态。
+    const url = URL.createObjectURL(source)
     setPreviewUrl(url)
     loadImageMeta(url)
     reset()
@@ -541,7 +564,7 @@ export default function ImageQuantizer({ onApply, onClose }) {
                 <input
                   ref={fileInputRef}
                   type="file"
-                  accept="image/*"
+                  accept="image/*,.heic,.heif"
                   onChange={handleFileSelect}
                   hidden
                 />
@@ -572,7 +595,7 @@ export default function ImageQuantizer({ onApply, onClose }) {
                 <input
                   ref={fileInputRef}
                   type="file"
-                  accept="image/*"
+                  accept="image/*,.heic,.heif"
                   onChange={handleFileSelect}
                   hidden
                 />
