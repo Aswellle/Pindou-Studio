@@ -27,6 +27,95 @@ const RESIZE_HANDLE_SIZE = 8
 export const MARQUEE_SNAP = 'rgba(255, 152, 0, 0.95)'
 
 /**
+ * Draw a lasso (mask-based) selection.
+ *
+ * 套索的形状不在矩形里,不能复用 drawMarquee 的 fillRect/strokeRect ——
+ * 那样会把形状画成一个外接矩形,用户看不出自己到底圈了哪几格。
+ * 这里按掩码逐格画:填充块 + 沿掩码边界的虚线。
+ *
+ * 边界线的画法:**只画「选中格与未选中格之间」的那条边**。
+ * 对每一格检查四邻,邻居没被选中就画这条边 —— 这样凹多边形、带洞的形状
+ * 都能得到一条贴合形状的闭合轮廓,而不需要把掩码重新还原成多边形路径。
+ * 内部相邻的格子之间不画线,所以内部是干净的填充色。
+ */
+export function drawLassoMarquee(ctx, sel, {
+  cellSize = 16,
+  scale = 1,
+  dashOffset = 0,
+} = {}) {
+  if (!ctx || !sel || sel.kind !== 'lasso' || !sel.mask) return
+  const zoom = scale > 0 ? scale : 1
+  const inv = 1 / zoom
+  const b = sel.bounds
+  if (!b) return
+  const { cols, rows, mask } = sel
+
+  const inside = (x, y) => (
+    x >= 0 && x < cols && y >= 0 && y < rows && mask[y * cols + x] === 1
+  )
+
+  // 填充:逐格画小块。外接矩形先整体铺一层淡色,再让未选中的格子
+  // 「挖空」是不行的 —— 画布没有擦除语义(会连底下的珠子一起擦掉),
+  // 所以只能正向画每个选中的格子。
+  ctx.save()
+  ctx.fillStyle = MARQUEE_FILL
+  for (let y = b.y; y < b.y + b.h; y++) {
+    // 同一行里连续的选中格合并成一段,减少 fillRect 调用次数:
+    // 200×200 的套索逐格画会有上万次调用,合并后通常只剩几十次。
+    let runStart = -1
+    for (let x = b.x; x <= b.x + b.w; x++) {
+      const on = x < b.x + b.w && inside(x, y)
+      if (on && runStart < 0) runStart = x
+      else if (!on && runStart >= 0) {
+        ctx.fillRect(
+          runStart * cellSize,
+          y * cellSize,
+          (x - runStart) * cellSize,
+          cellSize,
+        )
+        runStart = -1
+      }
+    }
+  }
+  ctx.restore()
+
+  // 轮廓:沿掩码边界逐段描边
+  ctx.save()
+  ctx.setLineDash([6 * inv, 4 * inv])
+  ctx.lineDashOffset = dashOffset * inv
+  ctx.lineWidth = 2 * inv
+  ctx.strokeStyle = MARQUEE_STROKE
+  ctx.beginPath()
+  for (let y = b.y; y < b.y + b.h; y++) {
+    for (let x = b.x; x < b.x + b.w; x++) {
+      if (!inside(x, y)) continue
+      const px = x * cellSize
+      const py = y * cellSize
+      if (!inside(x, y - 1)) { ctx.moveTo(px, py); ctx.lineTo(px + cellSize, py) }
+      if (!inside(x, y + 1)) { ctx.moveTo(px, py + cellSize); ctx.lineTo(px + cellSize, py + cellSize) }
+      if (!inside(x - 1, y)) { ctx.moveTo(px, py); ctx.lineTo(px, py + cellSize) }
+      if (!inside(x + 1, y)) { ctx.moveTo(px + cellSize, py); ctx.lineTo(px + cellSize, py + cellSize) }
+    }
+  }
+  ctx.stroke()
+  ctx.restore()
+}
+
+/**
+ * 选区绘制入口:按 kind 分派到矩形或套索。
+ *
+ * 调用方(Canvas)只需要这一个函数 —— 矩形路径仍然走原来的 drawMarquee,
+ * 一个字节都没改,因此「矩形选区零回归」是结构上的保证而不是靠测试兜底。
+ */
+export function drawSelection(ctx, sel, options = {}) {
+  if (!sel) return
+  if (sel.kind === 'lasso') drawLassoMarquee(ctx, sel, options)
+  else drawMarquee(ctx, sel, options)
+}
+
+/**
+ * Draw a rectangular selection marquee.
+ *
  * @param {CanvasRenderingContext2D} ctx
  * @param {{x:number,y:number,w:number,h:number}} rect  selection in grid cells
  * @param {object} [opts]

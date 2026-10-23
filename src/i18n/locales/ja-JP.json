@@ -443,6 +443,7 @@
       "fill": "塗りつぶし",
       "hand": "移動",
       "select": "選択範囲",
+      "lasso": "なげなわ",
       "eyedropper": "スポイト"
     },
     "reset": "リセット",
@@ -496,6 +497,7 @@
     "clearSelectionBtn": "選択を解除",
     "replaceColor": "色を置換",
     "selectionSize": "選択範囲 {{w}} × {{h}}",
+    "lassoSize": "なげなわ {{n}} マス",
     "replacedToast": "{{n}} 個を置換しました",
     "selectionFilledToast": "{{n}} マスを塗りつぶしました",
     "selectionClearedToast": "{{n}} マスを消去しました",

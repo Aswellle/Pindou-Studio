@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef, useCallback, useLayoutEffect } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useToast } from '../Toast'
+import { countLassoCells as lassoCount } from '../../utils/lassoSelection'
 import './MobileToolbar.css'
 
 const TOOL_ICONS = {
@@ -49,6 +50,14 @@ const TOOL_ICONS = {
       <path d="M14 3h1" /><path d="M14 21h1" />
       <path d="M3 9v1" /><path d="M21 9v1" />
       <path d="M3 14v1" /><path d="M21 14v1" />
+    </svg>
+  ),
+  // 自由套索:与桌面端 lucide Lasso 同形的虚线套索圈 + 绳尾
+  lasso: (
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M7 22a5 5 0 0 1-2-4" />
+      <path d="M3.3 14A6.8 6.8 0 0 1 2 10c0-4.4 4.5-8 10-8s10 3.6 10 8-4.5 8-10 8a12 12 0 0 1-5-1" />
+      <path d="M5 18a2 2 0 1 0 0-4 2 2 0 0 0 0 4z" />
     </svg>
   ),
 }
@@ -435,6 +444,7 @@ export default function MobileToolbar({
     { id: 'hand', label: t('canvas.tool.hand') },
     { id: 'eyedropper', label: t('canvas.tool.eyedropper') },
     { id: 'select', label: t('canvas.tool.select') },
+    { id: 'lasso', label: t('canvas.tool.lasso') },
   ]
 
   const currentWidth = gridWidth || gridSize
@@ -491,13 +501,16 @@ export default function MobileToolbar({
           布局分两行:第一行是「尺寸 + 移动提示」,第二行是全部命令按钮。
           按钮一律「图标 + 文字」并自动换行 —— 移动端没有 hover,title 不可见,
           纯图标等于让用户猜;横向滚动则会把后几个命令藏到屏幕外。 */}
-      {tool === 'select' && (
+      {(tool === 'select' || tool === 'lasso') && (
         <div className="toolbar-selection" data-testid="mobile-selection-bar" ref={selectionBarRef}>
           {selection ? (
             <>
               <div className="selection-info-line">
                 <span className="selection-size-badge">
-                  {t('tools.selectionSize', { w: selection.w, h: selection.h })}
+                  {/* A5:套索形状不规则,外接矩形宽高没有意义 —— 显示格子数 */}
+                  {selection.kind === 'lasso'
+                    ? t('tools.lassoSize', { n: lassoCount(selection, currentWidth, currentHeight) })
+                    : t('tools.selectionSize', { w: selection.w, h: selection.h })}
                 </span>
                 {/* 拖拽移动没有按钮(它直接发生在画布上),这里用图标 + 文字持续提示 */}
                 <span className="selection-move-hint">

@@ -1,5 +1,6 @@
 import { render, fireEvent } from '@testing-library/react'
 import Canvas from './Canvas'
+import { createLassoSelection } from '../utils/lassoSelection'
 
 // Canvas only needs t() from react-i18next; no need to load the real i18n instance.
 vi.mock('react-i18next', () => ({
@@ -284,6 +285,165 @@ describe('Canvas 选区与取色(M5)', () => {
     expect(container.querySelector('[data-testid="selection-size"]').textContent).toBe('2 × 1')
     // 选框以虚线绘制,而不是实线
     expect(mock.calls.setLineDash.length).toBeGreaterThan(0)
+  })
+})
+
+/**
+ * A5:自由套索。
+ *
+ * 验收要点之一是「矩形选区行为零回归」—— 套索走的是独立工具(lasso),
+ * 下面第一组用例专门盯住 select 的行为没有被动过。
+ */
+describe('Canvas 自由套索(A5)', () => {
+  let mock
+  beforeEach(() => { mock = installCanvasMocks() })
+  afterEach(() => mock.restore())
+
+  function renderWith(overrides = {}) {
+    const onCanvasChange = vi.fn()
+    const onSelectionChange = vi.fn()
+    const props = {
+      gridSize: 3,
+      gridWidth: null,
+      gridHeight: null,
+      selectedColor: '#ff0000',
+      tool: 'lasso',
+      committedData: blankGrid(3),
+      onCanvasChange,
+      onSelectionChange,
+      snapToEdges: false,
+      ...overrides,
+    }
+    const view = render(<Canvas {...props} />)
+    return { ...view, onCanvasChange, onSelectionChange }
+  }
+
+  /** 绕一圈回到起点,形成闭合轨迹 */
+  function drawLoop(c, points) {
+    fireEvent.mouseDown(c, { clientX: points[0][0], clientY: points[0][1] })
+    for (let i = 1; i < points.length; i++) {
+      fireEvent.mouseMove(c, { clientX: points[i][0], clientY: points[i][1] })
+    }
+    const last = points[points.length - 1]
+    fireEvent.mouseUp(c, { clientX: last[0], clientY: last[1] })
+  }
+
+  test('拖出闭合轨迹后得到掩码选区(kind=lasso)', () => {
+    const { container, onSelectionChange } = renderWith()
+    const c = container.querySelector('.canvas-container')
+
+    // 覆盖 (0,0)-(1,1) 这一小块
+    drawLoop(c, [[2, 2], [30, 2], [30, 30], [2, 30], [2, 2]])
+
+    const sel = onSelectionChange.mock.calls.at(-1)[0]
+    expect(sel).not.toBeNull()
+    expect(sel.kind).toBe('lasso')
+    expect(sel.mask).toBeInstanceOf(Uint8Array)
+    expect(sel.cols).toBe(3)
+    expect(sel.rows).toBe(3)
+    // (0,0) 在圈内
+    expect(sel.mask[0]).toBe(1)
+  })
+
+  test('轨迹不足三点(单击)不产生选区', () => {
+    const { container, onSelectionChange } = renderWith()
+    const c = container.querySelector('.canvas-container')
+
+    fireEvent.mouseDown(c, { clientX: 24, clientY: 24 })
+    fireEvent.mouseUp(c, { clientX: 24, clientY: 24 })
+
+    expect(onSelectionChange).toHaveBeenLastCalledWith(null)
+  })
+
+  test('套索不写入画布(它只是选区工具)', () => {
+    const { container, onCanvasChange } = renderWith()
+    const c = container.querySelector('.canvas-container')
+
+    drawLoop(c, [[2, 2], [30, 2], [30, 30], [2, 30], [2, 2]])
+    expect(onCanvasChange).not.toHaveBeenCalled()
+  })
+
+  test('套索按下时清空旧选区', () => {
+    const { container, onSelectionChange } = renderWith()
+    const c = container.querySelector('.canvas-container')
+
+    fireEvent.mouseDown(c, { clientX: 2, clientY: 2 })
+    expect(onSelectionChange).toHaveBeenNthCalledWith(1, null)
+  })
+
+  test('触屏拖出轨迹同样生成掩码选区', () => {
+    const { container, onSelectionChange } = renderWith()
+    const c = container.querySelector('.canvas-container')
+
+    fireEvent.touchStart(c, { touches: [{ clientX: 2, clientY: 2, identifier: 0 }] })
+    fireEvent.touchMove(c, { touches: [{ clientX: 30, clientY: 2, identifier: 0 }] })
+    fireEvent.touchMove(c, { touches: [{ clientX: 30, clientY: 30, identifier: 0 }] })
+    fireEvent.touchEnd(c, { touches: [] })
+
+    const sel = onSelectionChange.mock.calls.at(-1)[0]
+    expect(sel?.kind).toBe('lasso')
+  })
+
+  test('套索选区在 HUD 上显示格子数而不是外接矩形宽高', () => {
+    const sel = createLassoSelection(
+      [{ x: 0, y: 0 }, { x: 2, y: 0 }, { x: 2, y: 2 }, { x: 0, y: 2 }],
+      3, 3,
+    )
+    const { container } = renderWith({ selection: sel })
+    const hud = container.querySelector('[data-testid="lasso-size"]')
+    expect(hud).not.toBeNull()
+    // 2×2 = 4 格
+    expect(hud.textContent).toContain('4')
+    // 矩形尺寸的 HUD 不出现
+    expect(container.querySelector('[data-testid="selection-size"]')).toBeNull()
+  })
+})
+
+describe('Canvas 矩形选区零回归(A5 前置保证)', () => {
+  let mock
+  beforeEach(() => { mock = installCanvasMocks() })
+  afterEach(() => mock.restore())
+
+  function renderWith(overrides = {}) {
+    const onSelectionChange = vi.fn()
+    const onCanvasChange = vi.fn()
+    const props = {
+      gridSize: 3,
+      gridWidth: null,
+      gridHeight: null,
+      selectedColor: '#ff0000',
+      tool: 'select',
+      committedData: blankGrid(3),
+      onCanvasChange,
+      onSelectionChange,
+      snapToEdges: false,
+      ...overrides,
+    }
+    const view = render(<Canvas {...props} />)
+    return { ...view, onSelectionChange, onCanvasChange }
+  }
+
+  test('select 工具产出的仍是纯矩形(没有 kind 字段)', () => {
+    const { container, onSelectionChange } = renderWith()
+    const c = container.querySelector('.canvas-container')
+
+    fireEvent.mouseDown(c, { clientX: 8, clientY: 8 })
+    fireEvent.mouseMove(c, { clientX: 40, clientY: 40 })
+    fireEvent.mouseUp(c, { clientX: 40, clientY: 40 })
+
+    const sel = onSelectionChange.mock.calls.at(-1)[0]
+    // 套索的 kind 标记绝不能漏到矩形路径上 —— 否则 App 会按 lasso 分派,
+    // 把矩形选区当成掩码处理
+    expect(sel).not.toHaveProperty('kind')
+    expect(sel).not.toHaveProperty('mask')
+    expect(sel).toEqual({ x: 0, y: 0, w: 3, h: 3 })
+  })
+
+  test('select 工具仍以矩形描边绘制选框(不是逐格轮廓)', () => {
+    const { container } = renderWith({ selection: { x: 0, y: 0, w: 2, h: 2 } })
+    // 矩形路径用 strokeRect 一次画完;套索是逐段 moveTo/lineTo
+    expect(mock.calls.strokeRect.length).toBeGreaterThan(0)
+    expect(container.querySelector('[data-testid="lasso-size"]')).toBeNull()
   })
 })
 

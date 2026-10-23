@@ -1,5 +1,9 @@
 import { describe, it, expect } from 'vitest'
-import { drawMarquee, MARQUEE_DASH_PERIOD, MARQUEE_FILL, MARQUEE_STROKE, MARQUEE_SNAP } from './marquee'
+import {
+  drawMarquee, drawLassoMarquee, drawSelection,
+  MARQUEE_DASH_PERIOD, MARQUEE_FILL, MARQUEE_STROKE, MARQUEE_SNAP,
+} from './marquee'
+import { createLassoSelection } from './lassoSelection'
 
 /**
  * 选框绘制(实时跟随预览 + marching ants + 触屏把手)。
@@ -102,6 +106,99 @@ describe('drawMarquee', () => {
     drawMarquee(ctx, { x: 0, y: 0, w: 1, h: 1 }, { scale: 1 })
     const [dash, gap] = calls.setLineDash[0]
     expect(dash + gap).toBe(MARQUEE_DASH_PERIOD)
+  })
+})
+
+describe('drawLassoMarquee', () => {
+  /** 10×10 画布上一个 3×3 的方块套索 */
+  const square = () => createLassoSelection(
+    [{ x: 2, y: 2 }, { x: 5, y: 2 }, { x: 5, y: 5 }, { x: 2, y: 5 }],
+    10, 10,
+  )
+
+  it('按掩码填充,而不是填外接矩形', () => {
+    const sel = square()
+    const { ctx, calls } = recordingCtx()
+    drawLassoMarquee(ctx, sel, { cellSize: 16 })
+
+    // 3×3 方块:每行一段,共 3 次 fillRect,面积正好 48×48
+    expect(calls.fillRect).toHaveLength(3)
+    const total = calls.fillRect.reduce((a, [, , w, h]) => a + w * h, 0)
+    expect(total).toBe(48 * 48)
+    expect(calls.fillStyle).toContain(MARQUEE_FILL)
+  })
+
+  it('凹形(L 形)只填充选中的格子,凹口留空', () => {
+    const sel = createLassoSelection(
+      [
+        { x: 0, y: 0 }, { x: 2, y: 0 }, { x: 2, y: 2 },
+        { x: 4, y: 2 }, { x: 4, y: 4 }, { x: 0, y: 4 },
+      ],
+      10, 10,
+    )
+    const { ctx, calls } = recordingCtx()
+    drawLassoMarquee(ctx, sel, { cellSize: 16 })
+
+    // L 形共 12 格;若按外接矩形填会得到 16 格
+    const total = calls.fillRect.reduce((a, [, , w, h]) => a + w * h, 0)
+    expect(total / (16 * 16)).toBe(12)
+  })
+
+  it('轮廓只画掩码边界,内部不画线', () => {
+    const sel = square()
+    const { ctx, calls } = recordingCtx()
+    drawLassoMarquee(ctx, sel, { cellSize: 16 })
+
+    // 3×3 方块的外轮廓周长 = 4 × 3 条边 = 12 段
+    expect(calls.moveTo).toHaveLength(12)
+    expect(calls.lineTo).toHaveLength(12)
+    expect(calls.strokeStyle).toContain(MARQUEE_STROKE)
+    expect(calls.save).toBe(calls.restore)
+  })
+
+  it('线宽与虚线按 1/scale 补偿', () => {
+    const sel = square()
+    const small = recordingCtx()
+    drawLassoMarquee(small.ctx, sel, { scale: 0.5 })
+    const big = recordingCtx()
+    drawLassoMarquee(big.ctx, sel, { scale: 4 })
+    expect(small.calls.lineWidth[0]).toBe(4)
+    expect(big.calls.lineWidth[0]).toBe(0.5)
+  })
+
+  it('非套索 / 空值安全返回', () => {
+    const { ctx, calls } = recordingCtx()
+    expect(() => drawLassoMarquee(ctx, { x: 0, y: 0, w: 2, h: 2 })).not.toThrow()
+    expect(() => drawLassoMarquee(ctx, null)).not.toThrow()
+    expect(() => drawLassoMarquee(null, square())).not.toThrow()
+    expect(calls.fillRect).toHaveLength(0)
+  })
+})
+
+describe('drawSelection · 按 kind 分派', () => {
+  it('矩形选区走 drawMarquee(填充+描边)', () => {
+    const { ctx, calls } = recordingCtx()
+    drawSelection(ctx, { x: 1, y: 2, w: 3, h: 4 }, { cellSize: 16 })
+    expect(calls.fillRect).toEqual([[16, 32, 48, 64]])
+    expect(calls.strokeRect).toHaveLength(1)
+  })
+
+  it('套索选区走 drawLassoMarquee(逐格填充,不画矩形描边)', () => {
+    const sel = createLassoSelection(
+      [{ x: 0, y: 0 }, { x: 2, y: 0 }, { x: 2, y: 2 }, { x: 0, y: 2 }],
+      5, 5,
+    )
+    const { ctx, calls } = recordingCtx()
+    drawSelection(ctx, sel, { cellSize: 16 })
+    // 没有整块 strokeRect —— 那是矩形路径的特征
+    expect(calls.strokeRect).toHaveLength(0)
+    expect(calls.fillRect.length).toBeGreaterThan(0)
+  })
+
+  it('空选区不绘制', () => {
+    const { ctx, calls } = recordingCtx()
+    drawSelection(ctx, null)
+    expect(calls.fillRect).toHaveLength(0)
   })
 })
 

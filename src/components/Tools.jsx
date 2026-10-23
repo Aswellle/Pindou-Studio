@@ -1,8 +1,9 @@
 import { useTranslation } from 'react-i18next'
 import { useToast } from './Toast'
+import { countLassoCells as lassoCount } from '../utils/lassoSelection'
 import {
   Pencil, Eraser, PaintBucket, Hand, Undo2, Redo2, Trash2, ChevronLeft, ChevronRight, FileJson,
-  Pipette, SquareDashed, Replace, FlipHorizontal2, FlipVertical2, RotateCw, RotateCcw, X,
+  Pipette, SquareDashed, Lasso, Replace, FlipHorizontal2, FlipVertical2, RotateCw, RotateCcw, X,
   Copy, ClipboardPaste, Scissors,
 } from 'lucide-react'
 
@@ -147,21 +148,35 @@ export default function Tools({
             >
               <SquareDashed size={20} />
             </button>
+            {/* A5:自由套索。与矩形选区并列放在第二排 */}
+            <button
+              className={`tool-btn ${tool === 'lasso' ? 'active' : ''}`}
+              onClick={() => onToolChange('lasso')}
+              title={t('canvas.tool.lasso')}
+            >
+              <Lasso size={20} />
+            </button>
           </div>
         </div>
 
         {/* 选区命令:仅在选区工具且有选区时展开,不占常驻空间。
             按钮排成单列(图标 + 文字,左对齐):侧栏只有 200px,两列布局下
             「顺时针旋转」这类标签会顶出按钮边界;单列保证任何语言都不换行、不溢出。 */}
-        {tool === 'select' && (
+        {/* 选区命令:仅在选区工具且有选区时展开,不占常驻空间。
+            按钮排成单列(图标 + 文字,左对齐):侧栏只有 200px,两列布局下
+            「顺时针旋转」这类标签会顶出按钮边界;单列保证任何语言都不换行、不溢出。
+            A5:套索与矩形共用同一组命令,因此两种工具下都展开。 */}
+        {(tool === 'select' || tool === 'lasso') && (
           <div className="tool-group selection-group">
             <label className="tool-label">{t('tools.selection')}</label>
             {selection ? (
               <>
                 <div className="selection-size">
-                  {t('tools.selectionSize', { w: selection.w, h: selection.h })}
-                </div>
-                <div className="selection-actions">
+                  {/* A5:套索形状不规则,显示格子数而不是外接矩形宽高 */}
+                  {selection.kind === 'lasso'
+                    ? t('tools.lassoSize', { n: lassoCount(selection, currentWidth, currentHeight) })
+                    : t('tools.selectionSize', { w: selection.w, h: selection.h })}
+                </div>                <div className="selection-actions">
                   <button className="action-btn" onClick={() => onSelectionCommand?.('fill')} title={t('tools.fillSelection')}>
                     <PaintBucket size={15} /><span className="action-btn-label">{t('tools.fillSelection')}</span>
                   </button>

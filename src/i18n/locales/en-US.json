@@ -443,6 +443,7 @@
       "fill": "Fill",
       "hand": "Hand",
       "select": "Select",
+      "lasso": "Lasso",
       "eyedropper": "Eyedropper"
     },
     "reset": "Reset",
@@ -496,6 +497,7 @@
     "clearSelectionBtn": "Clear selection",
     "replaceColor": "Replace color",
     "selectionSize": "Selection {{w}} × {{h}}",
+    "lassoSize": "Lasso {{n}} cells",
     "replacedToast": "Replaced {{n}} beads",
     "selectionFilledToast": "Filled {{n}} cells",
     "selectionClearedToast": "Erased {{n}} cells",

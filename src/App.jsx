@@ -34,6 +34,17 @@ import {
   pasteBlock,
   normalizeSelection,
 } from './utils/selectionUtils'
+import {
+  fillLasso,
+  clearLasso,
+  mirrorLasso,
+  rotateLasso,
+  moveLasso,
+  copyMoveLasso,
+  copyLasso,
+  cutLasso,
+  pasteLasso,
+} from './utils/lassoCommands'
 import { loadFillIncludeEmpty, saveFillIncludeEmpty, loadDeductInventory, saveDeductInventory } from './utils/editorPrefs'
 import useAutoSave, { useAutoSaveEnabled } from './hooks/useAutoSave'
 import { runInventoryDeduction } from './services/beads/inventoryDeduction'
@@ -533,9 +544,11 @@ export default function App() {
     // 偏移已由画布按 clampMove 钳制,内容不会掉出画布。
     // A2:`copy` 为 true 时是复制拖动(Alt/Option 或移动端开关),原件保留。
     onSelectionMove: ({ dx, dy, selection: base, copy }) => {
-      const result = copy
-        ? copyMoveSelection(canvasData, base, dx, dy)
-        : moveSelection(canvasData, base, dx, dy)
+      // A5:套索选区走掩码版,形状跟着一起搬
+      const isLasso = base?.kind === 'lasso'
+      const result = isLasso
+        ? (copy ? copyMoveLasso(canvasData, base, dx, dy) : moveLasso(canvasData, base, dx, dy))
+        : (copy ? copyMoveSelection(canvasData, base, dx, dy) : moveSelection(canvasData, base, dx, dy))
       if (result.selection) setSelection(result.selection)
       if (!result.data) return
       setCanvas(result.data)
@@ -572,8 +585,21 @@ export default function App() {
       return
     }
 
+    // A5:套索与矩形共用同一套命令名,按 selection.kind 选择实现。
+    // 矩形路径(selection 没有 kind)继续走原来的 selectionUtils —— 一个字节都不改。
+    // 套索的剪贴板是掩码块(带 mask),粘贴时按掩码还原形状而不是整块矩形。
+    const isLasso = selection?.kind === 'lasso'
+    const cmd = {
+      fill: isLasso ? fillLasso : fillSelection,
+      erase: isLasso ? clearLasso : clearSelectionRegion,
+      mirrorH: (d, s) => (isLasso ? mirrorLasso(d, s, 'horizontal') : mirrorSelection(d, s, 'horizontal')),
+      mirrorV: (d, s) => (isLasso ? mirrorLasso(d, s, 'vertical') : mirrorSelection(d, s, 'vertical')),
+      rotateCw: (d, s) => (isLasso ? rotateLasso(d, s, 'cw') : rotateSelection(d, s, 'cw')),
+      rotateCcw: (d, s) => (isLasso ? rotateLasso(d, s, 'ccw') : rotateSelection(d, s, 'ccw')),
+    }
+
     if (command === 'copy') {
-      const copied = copySelection(canvasData, selection)
+      const copied = isLasso ? copyLasso(canvasData, selection) : copySelection(canvasData, selection)
       if (!copied.block) {
         // 整片空白:没有可复制的内容,不覆盖已有剪贴板
         toast(t('tools.selectionCopyEmpty'), 'info')
@@ -585,7 +611,7 @@ export default function App() {
     }
 
     if (command === 'cut') {
-      const cut = cutSelection(canvasData, selection)
+      const cut = isLasso ? cutLasso(canvasData, selection) : cutSelection(canvasData, selection)
       if (!cut.block) {
         // 整片空白:既没东西可剪,也不该清空已有剪贴板
         toast(t('tools.selectionCopyEmpty'), 'info')
@@ -603,25 +629,31 @@ export default function App() {
       // 落点:有选区贴到选区左上角,否则贴到画布左上角
       const ox = selection ? selection.x : 0
       const oy = selection ? selection.y : 0
-      const pasted = pasteBlock(canvasData, clipboard, ox, oy)
+      // 套索剪贴板带掩码,必须按掩码贴 —— 否则矩形块里的占位 null
+      // 会把落点处原有的珠子抹掉。矩形剪贴板走原来的 pasteBlock。
+      const pasted = clipboard.mask
+        ? pasteLasso(canvasData, clipboard, ox, oy)
+        : pasteBlock(canvasData, clipboard, ox, oy)
       if (!pasted.data) {
         toast(t('tools.selectionPasteNoChange'), 'info')
-        if (pasted.selection) setSelection(clampSelection(pasted.selection))
+        if (pasted.selection) {
+          setSelection(clipboard.mask ? pasted.selection : clampSelection(pasted.selection))
+        }
         return
       }
       setCanvas(pasted.data)
-      setSelection(clampSelection(pasted.selection))
+      setSelection(clipboard.mask ? pasted.selection : clampSelection(pasted.selection))
       toast(t('tools.selectionPastedToast', { n: pasted.changed }), 'success')
       return
     }
 
     let result
-    if (command === 'fill') result = fillSelection(canvasData, selection, selectedColor, { includeEmpty: fillIncludeEmpty })
-    else if (command === 'erase') result = clearSelectionRegion(canvasData, selection)
-    else if (command === 'mirrorH') result = mirrorSelection(canvasData, selection, 'horizontal')
-    else if (command === 'mirrorV') result = mirrorSelection(canvasData, selection, 'vertical')
-    else if (command === 'rotateCw') result = rotateSelection(canvasData, selection, 'cw')
-    else if (command === 'rotateCcw') result = rotateSelection(canvasData, selection, 'ccw')
+    if (command === 'fill') result = cmd.fill(canvasData, selection, selectedColor, { includeEmpty: fillIncludeEmpty })
+    else if (command === 'erase') result = cmd.erase(canvasData, selection)
+    else if (command === 'mirrorH') result = cmd.mirrorH(canvasData, selection)
+    else if (command === 'mirrorV') result = cmd.mirrorV(canvasData, selection)
+    else if (command === 'rotateCw') result = cmd.rotateCw(canvasData, selection)
+    else if (command === 'rotateCcw') result = cmd.rotateCcw(canvasData, selection)
     else return
 
     if (!result.data) {

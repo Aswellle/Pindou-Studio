@@ -2,11 +2,12 @@ import { useState, useRef, useEffect, useCallback, useImperativeHandle, forwardR
 import { useTranslation } from 'react-i18next'
 import { useCanvasPainter } from '../hooks/useCanvasPainter'
 import { normalizeSelection, pointInSelection, clampMove } from '../utils/selectionUtils'
-import { drawMarquee, MARQUEE_DASH_PERIOD } from '../utils/marquee'
+import { drawMarquee, drawSelection, MARQUEE_DASH_PERIOD } from '../utils/marquee'
 import {
   HANDLE_CURSORS, HANDLE_HIT_PX, hitTestHandle, resizeSelection,
 } from '../utils/selectionHandles'
 import { SNAP_THRESHOLD, snapSelection } from '../utils/selectionSnap'
+import { createLassoSelection, countLassoCells as lassoCellCount } from '../utils/lassoSelection'
 
 const CELL_SIZE = 16
 const MIN_SCALE = 0.3
@@ -92,6 +93,16 @@ const Canvas = forwardRef(function Canvas({
   // 拖拽移动结束后强制重画 overlay 选框:若本次移动没有实际变化(比如在边缘被钳住),
   // selection prop 不会变,effect 不会重跑,选框会停留在被预览清空的状态。
   const [overlayTick, setOverlayTick] = useState(0)
+
+  // ── 自由套索(A5)────────────────────────────────────────────────
+  // 套索用**独立的工具**(tool === 'lasso'),不复用 'select' 的状态机。
+  // 这是「矩形选区零回归」的结构性保证:select 的每一条代码路径都原封不动,
+  // 套索只在 tool === 'lasso' 时才进入下面这套 ref。
+  //
+  // 轨迹点用 ref 而不是 state:拖动期间每帧都在追加,进 state 会触发整棵树重渲染,
+  // 而轨迹只用来在 overlay 上画一条预览线,不需要参与 React 渲染。
+  const lassoPointsRef = useRef(null)
+  const lassoDraggingRef = useRef(false)
 
   // 选框虚线的流动相位(marching ants)。用 ref 而非 state:动画每 60ms 推进一次,
   // 直接重画 overlay 即可,不应触发 React 重渲染。
@@ -217,8 +228,10 @@ const Canvas = forwardRef(function Canvas({
     }
     // 选区框画在 overlay 上:虚线描边 + 内部淡色遮罩 + (触屏)四角把手 + resize 方块。
     // 线宽/虚线按 1/scale 补偿,缩放到 0.3× 或 5× 都保持同样的屏幕观感。
+    // A5:drawSelection 按 selection.kind 分派 —— 矩形仍走原来的 drawMarquee,
+    // 套索按掩码逐格画轮廓,调用方不需要关心区别。
     if (tool === 'select' && selection) {
-      drawMarquee(painter.overlayRef.current?.getContext('2d'), selection, {
+      drawSelection(painter.overlayRef.current?.getContext('2d'), selection, {
         cellSize: CELL_SIZE,
         scale: transform.scale,
         dashOffset: dashOffsetRef.current,
@@ -232,13 +245,15 @@ const Canvas = forwardRef(function Canvas({
   // Effect 2b: marching ants —— 选框落定后虚线缓慢流动。
   // 只在「选区工具 + 有选区 + 没有进行中的拖动」时运行,60ms 推进一格相位;
   // 直接重画 overlay,不进入 React state,因此不会引起重渲染或历史变化。
+  // A5:套索同样需要流动效果(否则一大片掩码看起来像静态色块),
+  // 因此条件里也接受 tool === 'lasso'。
   // ─────────────────────────────────────────────────────────────────
   useEffect(() => {
-    if (tool !== 'select' || !selection) return undefined
+    if ((tool !== 'select' && tool !== 'lasso') || !selection) return undefined
     let raf = 0
     let last = 0
     const step = (now) => {
-      if (selDraggingRef.current || moveDraggingRef.current) {
+      if (selDraggingRef.current || moveDraggingRef.current || lassoDraggingRef.current) {
         // 拖动中由各自的预览路径独占 overlay,这里让位,避免互相清屏闪烁
         raf = requestAnimationFrame(step)
         return
@@ -247,7 +262,7 @@ const Canvas = forwardRef(function Canvas({
         last = now
         dashOffsetRef.current = (dashOffsetRef.current + 1) % MARQUEE_DASH_PERIOD
         painter.clearOverlay()
-        drawMarquee(painter.overlayRef.current?.getContext('2d'), selection, {
+        drawSelection(painter.overlayRef.current?.getContext('2d'), selection, {
           cellSize: CELL_SIZE,
           scale: transform.scale,
           dashOffset: dashOffsetRef.current,
@@ -424,6 +439,9 @@ const Canvas = forwardRef(function Canvas({
     selDraggingRef.current = false
     selAnchorRef.current = null
     selFocusRef.current = null
+    // A5:套索轨迹的坐标系同样失效,一并丢弃
+    lassoDraggingRef.current = false
+    lassoPointsRef.current = null
   }, [cols, rows, cancelStroke])
 
   // ─────────────────────────────────────────────────────────────────
@@ -516,6 +534,76 @@ const Canvas = forwardRef(function Canvas({
     })
     onSelectionChange?.(rect)
   }, [onSelectionChange, cols, rows, painter, transform.scale])
+
+  // ─────────────────────────────────────────────────────────────────
+  // 自由套索(A5):拖出一条任意形状的轨迹,松手光栅化成掩码选区
+  // ─────────────────────────────────────────────────────────────────
+  // 与矩形选区的区别只在「怎么得到选区」:矩形用两个角点,套索用整条轨迹。
+  // 得到选区之后的所有命令(fill/mirror/rotate/move/copy)都由父组件按
+  // selection.kind 分派到 lassoCommands,画布这边不需要区分。
+
+  // 把 overlay 上的套索预览轨迹画出来:一条跟随指针的虚线 + 起点圆点。
+  // 松手前用户看到的是**轨迹本身**,不是将要选中的格子 —— 后者要等光栅化
+  // 才知道,而光栅化在松手时才做。这与主流图像编辑器的套索手感一致。
+  const drawLassoPath = useCallback((points) => {
+    const ctx = painter.overlayRef.current?.getContext('2d')
+    if (!ctx) return
+    painter.clearOverlay()
+    if (!points || points.length < 2) return
+    const inv = 1 / (transform.scale > 0 ? transform.scale : 1)
+    ctx.save()
+    ctx.setLineDash([6 * inv, 4 * inv])
+    ctx.lineWidth = 2 * inv
+    ctx.strokeStyle = 'rgba(74, 155, 142, 0.95)'
+    ctx.beginPath()
+    ctx.moveTo(points[0].x * CELL_SIZE, points[0].y * CELL_SIZE)
+    for (let i = 1; i < points.length; i++) {
+      ctx.lineTo(points[i].x * CELL_SIZE, points[i].y * CELL_SIZE)
+    }
+    // 回到起点,让轨迹看起来是闭合的(实际光栅化也按闭合多边形处理)
+    ctx.lineTo(points[0].x * CELL_SIZE, points[0].y * CELL_SIZE)
+    ctx.stroke()
+    // 起点画个小圆:多圈缠绕时能看出从哪开始
+    ctx.setLineDash([])
+    ctx.beginPath()
+    ctx.arc(points[0].x * CELL_SIZE, points[0].y * CELL_SIZE, 4 * inv, 0, Math.PI * 2)
+    ctx.fillStyle = 'rgba(74, 155, 142, 0.95)'
+    ctx.fill()
+    ctx.restore()
+  }, [painter, transform.scale])
+
+  const startLasso = useCallback((point) => {
+    lassoPointsRef.current = [point]
+    lassoDraggingRef.current = true
+    onSelectionChange?.(null)
+    drawLassoPath([point])
+  }, [onSelectionChange, drawLassoPath])
+
+  const updateLasso = useCallback((point) => {
+    if (!lassoDraggingRef.current || !lassoPointsRef.current) return
+    const pts = lassoPointsRef.current
+    const last = pts[pts.length - 1]
+    // 稀疏化:同一格内移动不追加点。轨迹只用于光栅化,
+    // 逐像素累积会让一次拖动产生上千个点,而它们对结果没有影响。
+    if (last && last.x === point.x && last.y === point.y) return
+    pts.push(point)
+    drawLassoPath(pts)
+  }, [drawLassoPath])
+
+  const endLasso = useCallback(() => {
+    if (!lassoDraggingRef.current) return
+    lassoDraggingRef.current = false
+    const points = lassoPointsRef.current
+    lassoPointsRef.current = null
+    painter.clearOverlay()
+    // 不足三点或覆盖不到任何格子 → 视为取消,不留下空选区
+    const sel = points && points.length >= 3
+      ? createLassoSelection(points, cols, rows)
+      : null
+    onSelectionChange?.(sel)
+    // 让 Effect 2 把最终掩码画出来(轨迹已被清掉)
+    setOverlayTick(n => n + 1)
+  }, [cols, rows, painter, onSelectionChange])
 
   // ─────────────────────────────────────────────────────────────────
   // 长按选区 → 上下文菜单(A4)
@@ -794,6 +882,14 @@ const Canvas = forwardRef(function Canvas({
           } else startSelection(pos.x, pos.y)
           return
         }
+        // A5:自由套索。按下即开始记录轨迹,松手光栅化成掩码选区。
+        // 与 select 一样不进入笔画状态机(不创建 stroke 累加器)。
+        if (tool === 'lasso') {
+          e.preventDefault()
+          const point = getGridPoint(e.clientX, e.clientY)
+          if (point) startLasso(point)
+          return
+        }
         isDrawingRef.current = true
         drawStartRef.current = { x: e.clientX, y: e.clientY }
         startStroke()
@@ -814,13 +910,22 @@ const Canvas = forwardRef(function Canvas({
     isDrawingRef.current = false
     panCursorStartRef.current = { x: cursorX, y: cursorY }
     panStartRef.current = { x: transform.cx, y: transform.cy }
-  }, [isOverCanvas, getGridPos, startStroke, paintToStroke, applyFill, transform, tool, pickColorAt, startSelection, startMove, selection, handleAtPoint, startResize, copyDrag])
+  }, [isOverCanvas, getGridPos, getGridPoint, startStroke, paintToStroke, applyFill, transform, tool, pickColorAt, startSelection, startMove, selection, handleAtPoint, startResize, copyDrag, startLasso])
 
   const handleContainerMouseMove = useCallback((e) => {
     const rect = containerRef.current?.getBoundingClientRect()
     if (!rect) return
     const cursorX = e.clientX - rect.left - rect.width / 2
     const cursorY = e.clientY - rect.top - rect.height / 2
+
+    // A5 套索:只记录轨迹并画预览线,不平移、不填色。
+    // 用连续坐标(不取整) —— 光栅化需要轨迹的真实形状,
+    // 取整成格子索引会把斜边压成阶梯,选出来的边界会跳格。
+    if (lassoDraggingRef.current) {
+      const point = getGridPoint(e.clientX, e.clientY)
+      if (point) updateLasso(point)
+      return
+    }
 
     // 拖拽移动:只更新预览,不平移、不填色
     if (moveDraggingRef.current) {
@@ -906,30 +1011,34 @@ const Canvas = forwardRef(function Canvas({
       const clamped = softClamp(rawCX, rawCY, prev.scale)
       return { ...prev, cx: clamped.x, cy: clamped.y }
     })
-  }, [getGridPos, paintToStroke, applyFill, commitStroke, softClamp, tool, updateSelection, updateMove, transform, updateResize, handleAtPoint])
+  }, [getGridPos, getGridPoint, paintToStroke, applyFill, commitStroke, softClamp, tool, updateSelection, updateMove, transform, updateResize, handleAtPoint, updateLasso])
 
   const handleContainerMouseUp = useCallback(() => {
     if (resizeHandleRef.current) endResize()
     if (moveDraggingRef.current) endMove()
     if (selDraggingRef.current) endSelection()
+    if (lassoDraggingRef.current) endLasso()
     if (isDrawingRef.current) commitStroke()
     isDrawingRef.current = false
     isPanningRef.current = false
     panHasStartedRef.current = false
     setPanActive(false)
-  }, [commitStroke, endSelection, endMove, endResize])
+  }, [commitStroke, endSelection, endMove, endResize, endLasso])
 
   const handleContainerMouseLeave = useCallback(() => {
     if (resizeHandleRef.current) endResize()
     if (moveDraggingRef.current) endMove()
     if (selDraggingRef.current) endSelection()
+    // A5:鼠标移出画布区域时收掉套索,用已记录的轨迹光栅化 ——
+    // 与矩形选区一致,「拖出边界再松手」应当提交而不是丢弃。
+    if (lassoDraggingRef.current) endLasso()
     if (isDrawingRef.current) commitStroke()
     isDrawingRef.current = false
     isPanningRef.current = false
     setPanActive(false)
     setHoverCell(null)
     setHoverHandle(null)
-  }, [commitStroke, endSelection, endMove, endResize])
+  }, [commitStroke, endSelection, endMove, endResize, endLasso])
 
   // PC hover
   const handleMouseMove = useCallback((e) => {
@@ -1039,13 +1148,20 @@ const Canvas = forwardRef(function Canvas({
         return
       }
 
+      // A5:自由套索。触屏同样从按下开始记轨迹,松手光栅化。
+      if (tool === 'lasso') {
+        const point = getGridPoint(t.clientX, t.clientY)
+        if (point) startLasso(point)
+        return
+      }
+
       // 抓手工具或不在grid上 → 开始单指平移
       if (!gridPos) {
         touchPanCursorStartRef.current = { x: cursorX, y: cursorY }
         touchPanCanvasStartRef.current = { x: transform.cx, y: transform.cy }
       }
     }
-  }, [stopMomentum, getGridPos, transform, tool, startSelection, startMove, selection, painter, handleAtPoint, startResize, copyDrag, scheduleLongPress])
+  }, [stopMomentum, getGridPos, getGridPoint, transform, tool, startSelection, startMove, selection, painter, handleAtPoint, startResize, copyDrag, scheduleLongPress, startLasso])
 
   const handleTouchMove = useCallback((e) => {
     e.preventDefault()
@@ -1115,6 +1231,13 @@ const Canvas = forwardRef(function Canvas({
       if (selDraggingRef.current) {
         const pos = getGridPos(t.clientX, t.clientY)
         if (pos) updateSelection(pos.x, pos.y)
+        return
+      }
+
+      // A5 套索:只记录轨迹并画预览线
+      if (lassoDraggingRef.current) {
+        const point = getGridPoint(t.clientX, t.clientY)
+        if (point) updateLasso(point)
         return
       }
 
@@ -1211,6 +1334,16 @@ const Canvas = forwardRef(function Canvas({
         return
       }
 
+      // A5:套索结束,光栅化成掩码选区
+      if (lassoDraggingRef.current) {
+        endLasso()
+        touchStartRef.current = null
+        touchMovedRef.current = false
+        wasPinchingRef.current = false
+        setHoverCell(null)
+        return
+      }
+
       // 单指点击(未移动)且在grid上 → 填色（抓手工具不绘制;
       // pinch 结束后的剩余手指抬起不算点按,不得填色）
       if (tool !== 'hand' && !wasPinchingRef.current && touchStartRef.current?.gridPos && !touchMovedRef.current) {
@@ -1259,7 +1392,7 @@ const Canvas = forwardRef(function Canvas({
         }
       }
     }
-  }, [startStroke, paintToStroke, applyFill, commitStroke, getGridPos, transform, startMomentum, tool, pickColorAt, endSelection, endMove, onSelectionChange, endResize, cancelLongPress])
+  }, [startStroke, paintToStroke, applyFill, commitStroke, getGridPos, transform, startMomentum, tool, pickColorAt, endSelection, endMove, endLasso, onSelectionChange, endResize, cancelLongPress])
 
   const handleTouchCancel = useCallback(() => {
     stopMomentum()
@@ -1331,6 +1464,13 @@ const Canvas = forwardRef(function Canvas({
         {tool === 'select' && selection && (
           <span className="info-selection" data-testid="selection-size">
             {selection.w} × {selection.h}
+          </span>
+        )}
+        {/* A5:套索显示的是格子数而不是宽高 —— 形状不规则,外接矩形尺寸
+            对用户没有意义,「圈了多少格」才是他关心的 */}
+        {tool === 'lasso' && selection?.kind === 'lasso' && (
+          <span className="info-selection" data-testid="lasso-size">
+            {lassoCellCount(selection, cols, rows)} {t('tools.cells')}
           </span>
         )}
         <button className="reset-btn" onClick={resetTransform} title={t('canvas.resetTitle')}>
