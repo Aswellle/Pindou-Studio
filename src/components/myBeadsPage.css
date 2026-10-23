@@ -280,8 +280,14 @@
   line-height: 1.7;
 }
 
-.my-beads-getting-started .gs-icon,
-.my-beads-empty-action svg { color: var(--accent); }
+/* 空状态的装饰图标用强调色。必须限定为「直接子元素」:
+   `.my-beads-empty-action svg` 会连按钮内部的图标一起命中,把橙色画在
+   橙色主按钮底上 —— 复制图标因此完全看不见。按钮内的图标一律继承按钮
+   自身的 color(主按钮是白字)。 */
+.my-beads-getting-started > .gs-icon,
+.my-beads-empty-action > svg { color: var(--accent); }
+.my-beads-getting-started .my-beads-btn svg,
+.my-beads-empty-action .my-beads-btn svg { color: inherit; }
 
 .gs-actions,
 .empty-actions {
