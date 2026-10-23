@@ -73,7 +73,14 @@ export function computeViewport({
   }
 
   const zoomed = Math.abs((scale || 1) - 1) > SCALE_EPSILON
-  const inset = Math.max(0, layoutHeight - visualHeight - offsetTop)
+  // 负的 offsetTop 没有物理意义(视觉视口不可能跑到布局视口上方),统一夹到 0。
+  // inset 与 visibleTop 必须用同一个值,否则键盘高度会多算负偏移的绝对值:
+  // offsetTop = -30 时旧实现给出 374(应为 344),浮层底部多让出 30px 空白。
+  const clampedTop = Math.max(0, offsetTop)
+  // visualHeight 下限保护:旋转 / 切后台的瞬间 Safari 会报 0 或负数,
+  // 若此时焦点闩锁仍为真,visibleHeight 会被写成 0 → --vh: 0px → 根壳塌成零高。
+  const safeVisualHeight = Math.max(1, visualHeight)
+  const inset = Math.max(0, layoutHeight - safeVisualHeight - clampedTop)
 
   // 焦点闩锁:缩放状态下绝不判键盘;文本控件聚焦才置真;
   // 几何差值回到阈值以下才解除 —— 这样 focusout 之后键盘收起动画期间
@@ -90,8 +97,8 @@ export function computeViewport({
     keyboardHeight: keyboardOpen ? inset : 0,
     // 键盘关闭时一律归一化为布局视口:不把 stale offsetTop / 收缩后的视觉高
     // 传给组件,否则根壳会缩水、浮层会偏移。
-    visibleHeight: keyboardOpen ? visualHeight : layoutHeight,
-    visibleTop: keyboardOpen ? Math.max(0, offsetTop) : 0,
+    visibleHeight: keyboardOpen ? safeVisualHeight : layoutHeight,
+    visibleTop: keyboardOpen ? clampedTop : 0,
     visibleLeft: keyboardOpen ? offsetLeft : 0,
     latched: nextLatched,
     changed: keyboardOpen !== wasKeyboardOpen,

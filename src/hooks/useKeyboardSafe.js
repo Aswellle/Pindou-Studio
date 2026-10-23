@@ -25,6 +25,10 @@ export { KEYBOARD_MIN_INSET } from './viewportGeometry'
 // 焦点可见性留白(输入框与滚动容器边缘之间)
 const FOCUS_PAD = 10
 
+// focusout 后的收敛轮询上限(帧)。约 500ms,覆盖键盘收起动画;
+// 每帧重新测量,判定已关闭即停,不是固定延时。
+const SETTLE_MAX_FRAMES = 30
+
 // 会唤起软键盘的文本类控件。select 在 iOS 上弹的是滚轮选择器、不改变视觉视口,
 // 因此不参与键盘判定(但仍参与焦点可见性修正)。
 const TEXT_INPUT_TYPES = new Set(['text', 'email', 'password', 'search', 'tel', 'url', 'number', 'date', 'datetime-local', 'month', 'time', 'week'])
@@ -77,6 +81,9 @@ export default function useKeyboardSafe() {
     const root = document.documentElement
     const vv = window.visualViewport
     let raf = 0
+    // 键盘收起后的有界收敛轮询(见 beginSettle 注释)
+    let settleRaf = 0
+    let settleLeft = 0
     // 本帧是否请求了焦点可见性修正(rAF 合并期间只保留最后一次意图)
     let wantFocusCheck = false
     // 焦点闩锁:文本控件聚焦后置真,几何恢复或缩放时解除
@@ -203,18 +210,51 @@ export default function useKeyboardSafe() {
       scheduleMeasure()
     }
 
+    // 键盘收起后的收敛轮询。
+    //
+    // 为什么需要:闩锁只有在「几何真正恢复」时才解除,而它依赖 visualViewport
+    // 继续派发 resize。iOS 上存在不派发的路径 —— 点键盘右下角「完成」收起、
+    // 或 interactive-widget=resizes-content 生效导致视觉视口高度不变 ——
+    // 此时最后一次 measure 停在键盘打开态,--vh 保持收缩值,根壳比布局视口矮,
+    // 页面底部就悬在浏览器视口底部之上,而且再也回不来(没有后续事件唤醒)。
+    //
+    // 这里不是固定延时:每帧重新测量,一旦判定键盘已关就立即停止;最多 30 帧
+    // (约 500ms)后放弃,不会变成常驻轮询。
+    const stopSettle = () => {
+      if (settleRaf) { cancelAnimationFrame(settleRaf); settleRaf = 0 }
+      settleLeft = 0
+    }
+    const settleStep = () => {
+      settleRaf = 0
+      if (settleLeft <= 0) return
+      settleLeft -= 1
+      measure()
+      if (lastKeyboardOpen && settleLeft > 0) settleRaf = requestAnimationFrame(settleStep)
+      else settleLeft = 0
+    }
+    const beginSettle = () => {
+      stopSettle()
+      settleLeft = SETTLE_MAX_FRAMES
+      settleRaf = requestAnimationFrame(settleStep)
+    }
+
     const onFocusIn = (e) => {
       // 所有输入框聚焦都要做一次可见性修正:
       //  - 页面内输入框 → 滚最近的页面滚动容器;
       //  - 浮层内输入框 → 滚浮层内部 modal 的滚动容器(键盘已开时,浮层收缩不再
       //    变化,若不主动修正,用户点到最后一个字段时它会停在 sticky 操作行底下)。
       // 浮层遮罩自身被 getScrollAncestor 排除,不会把整个 modal 顶出视口。
+      stopSettle()
       if (isFocusableField(e.target)) requestFocusCheck()
       else scheduleMeasure()
     }
     // focusout 时 activeElement 立刻变 body,但键盘还在播放收起动画。
-    // 这里只重新测量;闩锁会保持到几何真正恢复,变量不会中途跳回全高。
-    const onFocusOut = () => scheduleMeasure()
+    // 先重新测量;闩锁会保持到几何真正恢复,变量不会中途跳回全高。
+    // 再启动有界收敛,兜住「收起后不再有 resize 事件」的路径。
+    const onFocusOut = () => {
+      scheduleMeasure()
+      beginSettle()
+    }
     // 生命周期重校验:从后台返回、bfcache 恢复、旋转后都要重新读一次真实值,
     // 否则变量会停留在离开前的旧状态。
     const onVisibilityChange = () => { if (!document.hidden) scheduleMeasure() }
@@ -241,6 +281,7 @@ export default function useKeyboardSafe() {
       document.removeEventListener('focusin', onFocusIn)
       document.removeEventListener('focusout', onFocusOut)
       if (raf) cancelAnimationFrame(raf)
+      stopSettle()
       // 卸载时清掉本 hook 写入的变量(规格 08 §8):避免污染测试环境或
       // 同一文档里的其他应用实例。只移除自己设置的键,不动 :root 上的其他自定义属性。
       for (const key of VARS) root.style.removeProperty(key)
