@@ -9,7 +9,7 @@ import { drawMarquee, MARQUEE_DASH_PERIOD, MARQUEE_FILL, MARQUEE_STROKE } from '
  */
 
 function recordingCtx() {
-  const calls = { fillRect: [], strokeRect: [], setLineDash: [], arc: [], fill: 0, save: 0, restore: 0, fillStyle: [], strokeStyle: [], lineWidth: [] }
+  const calls = { fillRect: [], strokeRect: [], setLineDash: [], arc: [], rect: [], fill: 0, stroke: 0, save: 0, restore: 0, fillStyle: [], strokeStyle: [], lineWidth: [] }
   const ctx = {
     get fillStyle() { return this._f },
     set fillStyle(v) { this._f = v; calls.fillStyle.push(v) },
@@ -22,8 +22,10 @@ function recordingCtx() {
     strokeRect: (...a) => calls.strokeRect.push(a),
     setLineDash: (d) => calls.setLineDash.push(d),
     arc: (...a) => calls.arc.push(a),
+    rect: (...a) => calls.rect.push(a),
     beginPath: () => {},
     fill: () => { calls.fill++ },
+    stroke: () => { calls.stroke++ },
     save: () => { calls.save++ },
     restore: () => { calls.restore++ },
   }
@@ -98,5 +100,49 @@ describe('drawMarquee', () => {
     drawMarquee(ctx, { x: 0, y: 0, w: 1, h: 1 }, { scale: 1 })
     const [dash, gap] = calls.setLineDash[0]
     expect(dash + gap).toBe(MARQUEE_DASH_PERIOD)
+  })
+})
+
+describe('drawMarquee · resize 手柄(A1)', () => {
+  it('画八个方块:四角 + 四边中点', () => {
+    const { ctx, calls } = recordingCtx()
+    // 2×2 格、单元 16px → 矩形 0..32
+    drawMarquee(ctx, { x: 0, y: 0, w: 2, h: 2 }, { resizeHandles: true })
+
+    expect(calls.rect).toHaveLength(8)
+    const centers = calls.rect.map(([x, y, w, h]) => [x + w / 2, y + h / 2])
+    expect(centers).toEqual(expect.arrayContaining([
+      [0, 0], [32, 0], [0, 32], [32, 32], // 四角
+      [16, 0], [32, 16], [16, 32], [0, 16], // 四边中点
+    ]))
+  })
+
+  it('方块屏幕尺寸按 1/scale 补偿:缩放后观感恒定', () => {
+    const small = recordingCtx()
+    drawMarquee(small.ctx, { x: 0, y: 0, w: 4, h: 4 }, { scale: 0.5, resizeHandles: true })
+    const big = recordingCtx()
+    drawMarquee(big.ctx, { x: 0, y: 0, w: 4, h: 4 }, { scale: 4, resizeHandles: true })
+
+    // 边长 8px × 1/scale
+    expect(small.calls.rect[0][2]).toBe(16)
+    expect(big.calls.rect[0][2]).toBe(2)
+  })
+
+  it('不传 resizeHandles 时不画方块(既有观感不变)', () => {
+    const { ctx, calls } = recordingCtx()
+    drawMarquee(ctx, { x: 0, y: 0, w: 2, h: 2 })
+    expect(calls.rect).toHaveLength(0)
+  })
+
+  it('1×1 选区不画方块:八个手柄会把唯一一格糊满', () => {
+    const { ctx, calls } = recordingCtx()
+    drawMarquee(ctx, { x: 3, y: 3, w: 1, h: 1 }, { resizeHandles: true })
+    expect(calls.rect).toHaveLength(0)
+  })
+
+  it('细长选区(w=1,h>1)仍然画:只有宽高都为 1 才省略', () => {
+    const { ctx, calls } = recordingCtx()
+    drawMarquee(ctx, { x: 0, y: 0, w: 1, h: 5 }, { resizeHandles: true })
+    expect(calls.rect).toHaveLength(8)
   })
 })

@@ -21,6 +21,8 @@ export const MARQUEE_DASH_PERIOD = 10 // dash + gap in canvas units at scale 1
 export const MARQUEE_STROKE = 'rgba(74, 155, 142, 0.95)'
 export const MARQUEE_FILL = 'rgba(74, 155, 142, 0.10)'
 const HANDLE_RADIUS = 5
+// resize 手柄:方块边长(屏幕像素),按 1/scale 折算后画在格边界上
+const RESIZE_HANDLE_SIZE = 8
 
 /**
  * @param {CanvasRenderingContext2D} ctx
@@ -30,12 +32,14 @@ const HANDLE_RADIUS = 5
  * @param {number} [opts.scale=1]       current canvas zoom (CSS transform)
  * @param {number} [opts.dashOffset=0]  marching-ants phase
  * @param {boolean} [opts.handles=false] draw corner handles (touch devices)
+ * @param {boolean} [opts.resizeHandles=false] draw the eight resize squares (A1)
  */
 export function drawMarquee(ctx, rect, {
   cellSize = 16,
   scale = 1,
   dashOffset = 0,
   handles = false,
+  resizeHandles = false,
 } = {}) {
   if (!ctx || !rect) return
   const zoom = scale > 0 ? scale : 1
@@ -68,6 +72,33 @@ export function drawMarquee(ctx, rect, {
       ctx.beginPath()
       ctx.arc(hx, hy, r, 0, Math.PI * 2)
       ctx.fill()
+    }
+    ctx.restore()
+  }
+
+  // A1:八个 resize 手柄(四角 + 四边中点),画成实心方块。
+  //
+  // 与上面的圆形把手是两回事:圆形只提示「可拖动」,方块是真正可拖拽的
+  // 尺寸控制点。尺寸按 1/scale 折算,因此 0.3× 与 5× 下屏幕大小恒定。
+  // 1×1 选区不画 —— 八个方块会把唯一那一格糊满,反而看不出选了哪。
+  if (resizeHandles && (rect.w > 1 || rect.h > 1)) {
+    const half = (RESIZE_HANDLE_SIZE * inv) / 2
+    const midX = px + pw / 2
+    const midY = py + ph / 2
+    ctx.save()
+    ctx.fillStyle = MARQUEE_STROKE
+    ctx.strokeStyle = '#ffffff'
+    ctx.lineWidth = 1 * inv
+    for (const [hx, hy] of [
+      [px, py], [midX, py], [px + pw, py],
+      [px + pw, midY],
+      [px + pw, py + ph], [midX, py + ph], [px, py + ph],
+      [px, midY],
+    ]) {
+      ctx.beginPath()
+      ctx.rect(hx - half, hy - half, half * 2, half * 2)
+      ctx.fill()
+      ctx.stroke()
     }
     ctx.restore()
   }
