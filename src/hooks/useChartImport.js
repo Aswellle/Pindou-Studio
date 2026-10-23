@@ -16,6 +16,7 @@
 import { useCallback, useRef, useState } from 'react'
 import { analyzeChart, buildChartProject } from '../services/chart/chartImport'
 import { checkImageFile, checkImagePixels, readImageHead, isSvgFile, ensureSvgSize } from '../utils/imageGuard'
+import { warpQuadToRect, isQuadUsable, orderQuad } from '../utils/perspective'
 import { fingerprintImage, loadSession } from '../services/project/chartImportStore'
 
 /** 工作分辨率长边上限 */
@@ -73,6 +74,12 @@ export function useChartImport() {
   const [restored, setRestored] = useState(null)
   // 当前图片的原始 Blob(会话写回 IndexedDB 时需要连同原图一起存)
   const [imageBlob, setImageBlob] = useState(null)
+  // 透视校正状态。
+  //   original  — 未经校正的原始工作图;校正可撤销,靠它还原
+  //   quad      — 用户指定的四个角(原图坐标);null 表示未校正
+  // 校正后 `image` 被替换为 warp 结果,下游检测/采样完全不知道透视的存在。
+  const [originalImage, setOriginalImage] = useState(null)
+  const [quad, setQuad] = useState(null)
   const genRef = useRef(0)
 
   const reset = useCallback(() => {
@@ -84,6 +91,8 @@ export function useChartImport() {
     setSessionId(null)
     setRestored(null)
     setImageBlob(null)
+    setOriginalImage(null)
+    setQuad(null)
   }, [])
 
   /**
@@ -128,6 +137,9 @@ export function useChartImport() {
 
       setSessionId(fp)
       setImage(decoded)
+      // 保留一份未经校正的原图:校正可以随时撤销,撤销就是回到它
+      setOriginalImage(decoded)
+      setQuad(null)
       setImageBlob(file)
       setDetection(withBounds)
       if (saved?.state) {
@@ -160,6 +172,62 @@ export function useChartImport() {
   }, [])
 
   /**
+   * 应用透视校正:把四个角围成的四边形重采样成矩形,再重新检测网格。
+   *
+   * 这是**可选路径**:不调用它时 `image` 一直是原始解码结果,检测/采样
+   * 走的是与之前完全相同的代码。校正只在用户显式点了四个角后发生。
+   *
+   * 校正后原来的 bounds 失效(坐标系从「原图」变成了「校正后的矩形」),
+   * 所以必须重新跑检测;检测失败也要给整张图作为兜底边界,与 loadFile 一致。
+   *
+   * @param {Array<{x:number,y:number}>} corners - 原图坐标下的四个角,顺序任意
+   * @returns {boolean} 是否校正成功
+   */
+  const applyPerspective = useCallback((corners) => {
+    const base = originalImage
+    if (!base) return false
+    const ordered = orderQuad(corners)
+    if (!ordered || !isQuadUsable(ordered)) return false
+
+    // base 是 hook 的解码结果({ imageData, width, height, sourceWidth, sourceHeight }),
+    // 而 warpQuadToRect 吃的是原始 ImageData 形状({ data, width, height })
+    const warped = warpQuadToRect(base.imageData, ordered)
+    if (!warped) return false
+
+    const decoded = {
+      imageData: warped,
+      width: warped.width,
+      height: warped.height,
+      // 源尺寸沿用原图:它只用于「这张图原本多大」的展示,不参与采样
+      sourceWidth: base.sourceWidth ?? base.width,
+      sourceHeight: base.sourceHeight ?? base.height,
+    }
+    setImage(decoded)
+    setQuad(ordered)
+
+    const result = analyzeChart(warped)
+    setDetection(result.bounds
+      ? result
+      : { ...result, bounds: { x0: 0, y0: 0, x1: warped.width, y1: warped.height } })
+    return true
+  }, [originalImage])
+
+  /**
+   * 撤销透视校正:回到原始工作图并重新检测。
+   * 没有校正过时是空操作(不重跑检测,避免无谓的状态抖动)。
+   */
+  const clearPerspective = useCallback(() => {
+    if (!originalImage || !quad) return false
+    setImage(originalImage)
+    setQuad(null)
+    const result = analyzeChart(originalImage.imageData)
+    setDetection(result.bounds
+      ? result
+      : { ...result, bounds: { x0: 0, y0: 0, x1: originalImage.width, y1: originalImage.height } })
+    return true
+  }, [originalImage, quad])
+
+  /**
    * 按当前图片/边界/参数生成项目。
    * @param {Object} params - 见 buildChartProject,imageData/bounds/cols/rows 由本 hook 补
    */
@@ -184,6 +252,11 @@ export function useChartImport() {
     sessionId,
     restored,
     imageBlob,
+    // 透视校正:quad 非空表示当前显示的是校正后的图
+    originalImage,
+    quad,
+    applyPerspective,
+    clearPerspective,
     loadFile,
     applyManualGrid,
     applyManualBounds,

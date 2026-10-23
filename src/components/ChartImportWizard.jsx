@@ -16,7 +16,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { ImagePlus, Wand2, AlertTriangle, CheckCircle2, Eye, Save, RotateCcw, Eraser, History } from 'lucide-react'
+import { ImagePlus, Wand2, AlertTriangle, CheckCircle2, Eye, Save, RotateCcw, Eraser, History, Maximize } from 'lucide-react'
 import { useChartImport } from '../hooks/useChartImport'
 import { getPalette, PALETTE_LIST } from '../data/palettes'
 import { projectToImportWork } from '../services/project/importProject'
@@ -39,7 +39,7 @@ function hexFor(value) {
 export default function ChartImportWizard({ onLoadProject, onSaveProject }) {
   const { t } = useTranslation()
   const toast = useToast()
-  const { image, detection, fileError, busy, sessionId, restored, imageBlob, loadFile, applyManualBounds, build, reset } = useChartImport()
+  const { image, detection, fileError, busy, sessionId, restored, imageBlob, quad, originalImage, applyPerspective, clearPerspective, loadFile, applyManualBounds, build, reset } = useChartImport()
 
   const [cols, setCols] = useState(29)
   const [rows, setRows] = useState(29)
@@ -49,6 +49,11 @@ export default function ChartImportWizard({ onLoadProject, onSaveProject }) {
   const [selected, setSelected] = useState(null) // { x, y }
   const [saving, setSaving] = useState(false)
   const [dragRect, setDragRect] = useState(null)
+  // 透视校正:开启后点击预览图依次指定四个角(左上→右上→右下→左下),
+  // 点满四个立即应用。用「点四次」而不是「拖框」:斜拍图纸的四角往往是
+  // 纸边而不是网格线,逐点定位比拖一个矩形更精确,也不与既有的拖拽定边界冲突。
+  const [cornerMode, setCornerMode] = useState(false)
+  const [corners, setCorners] = useState([])
   // 是否从历史会话恢复了修正(仅用于界面提示,不参与逻辑)
   const [restoredFromHistory, setRestoredFromHistory] = useState(false)
 
@@ -138,7 +143,27 @@ export default function ChartImportWizard({ onLoadProject, onSaveProject }) {
       ctx.strokeRect(dragRect.x, dragRect.y, dragRect.w, dragRect.h)
       ctx.setLineDash([])
     }
-  }, [image, detection, cols, rows, dragRect])
+
+    // 已点的角:实心圆 + 序号。用户需要看到「已经点了几个」,
+    // 否则点错一个只能全部重来却不知道错在哪。
+    if (corners.length > 0) {
+      const r = Math.max(6, Math.round(Math.max(width, height) / 90))
+      ctx.font = `${r * 2}px sans-serif`
+      ctx.textAlign = 'center'
+      ctx.textBaseline = 'middle'
+      corners.forEach((p, i) => {
+        ctx.beginPath()
+        ctx.arc(p.x, p.y, r, 0, Math.PI * 2)
+        ctx.fillStyle = 'rgba(232, 115, 74, 0.95)'
+        ctx.fill()
+        ctx.strokeStyle = '#fff'
+        ctx.lineWidth = Math.max(2, Math.round(r / 3))
+        ctx.stroke()
+        ctx.fillStyle = '#fff'
+        ctx.fillText(String(i + 1), p.x, p.y)
+      })
+    }
+  }, [image, detection, cols, rows, dragRect, corners])
 
   /* ── 结果预览 ────────────────────────────────────────── */
   useEffect(() => {
@@ -252,12 +277,39 @@ export default function ChartImportWizard({ onLoadProject, onSaveProject }) {
 
   const handleSourcePointerDown = (e) => {
     if (!image) return
+    // 角点模式:单击记录一个角,不进入拖拽。两种模式互斥 ——
+    // 同时响应会让「点第四个角」变成一次零面积拖拽,把刚点的角当成边界起点。
+    if (cornerMode) {
+      const p = toImagePoint(e)
+      // 画布尚未布局(rect 尺寸为 0)时换算不出坐标,直接忽略这次点击 ——
+      // 记一个 null 角会让后续 orderQuad 抛错
+      if (!p) return
+      const next = [...corners, { x: p.x, y: p.y }]
+      if (next.length < 4) {
+        setCorners(next)
+        return
+      }
+      // 点满四个:应用校正并退出角点模式
+      const ok = applyPerspective(next)
+      if (ok) {
+        setCorners([])
+        setCornerMode(false)
+      } else {
+        // 失败(四点共线等)时**留在角点模式并清空已选点**:
+        // 退出模式会把用户刚点的四次全部作废,还得重新进一次模式;
+        // 留在原地则可以直接重选。
+        setCorners([])
+        toast(t('chartImport.perspectiveFailed'), 'error')
+      }
+      return
+    }
     e.currentTarget.setPointerCapture?.(e.pointerId)
     dragStartRef.current = toImagePoint(e)
     setDragRect({ x: dragStartRef.current.x, y: dragStartRef.current.y, w: 0, h: 0 })
   }
 
   const handleSourcePointerMove = (e) => {
+    if (cornerMode) return // 角点模式不追踪拖拽
     const start = dragStartRef.current
     if (!start) return
     const p = toImagePoint(e)
@@ -270,6 +322,7 @@ export default function ChartImportWizard({ onLoadProject, onSaveProject }) {
   }
 
   const handleSourcePointerUp = () => {
+    if (cornerMode) return
     const start = dragStartRef.current
     dragStartRef.current = null
     const rect = dragRect
@@ -435,6 +488,51 @@ export default function ChartImportWizard({ onLoadProject, onSaveProject }) {
       </div>
 
       <p className="chart-tip">{t('chartImport.cropHint')}</p>
+
+      {/* 透视校正:斜拍/纸张弯曲时先校正再识别。
+          未校正时这一整块只占一行按钮,不改变原有的任何交互。 */}
+      <div className="chart-perspective">
+        {!cornerMode && !quad && (
+          <button
+            type="button"
+            className="chart-perspective-btn"
+            onClick={() => { setCorners([]); setCornerMode(true) }}
+            disabled={!originalImage}
+          >
+            <Maximize size={14} aria-hidden="true" />
+            {t('chartImport.perspectiveStart')}
+          </button>
+        )}
+        {cornerMode && (
+          <>
+            <span className="chart-perspective-hint">
+              {t('chartImport.perspectiveHint', { n: corners.length })}
+            </span>
+            <button
+              type="button"
+              className="chart-perspective-btn ghost"
+              onClick={() => { setCorners([]); setCornerMode(false) }}
+            >
+              {t('common.cancel')}
+            </button>
+          </>
+        )}
+        {!cornerMode && quad && (
+          <>
+            <span className="chart-perspective-done">
+              <CheckCircle2 size={14} aria-hidden="true" />
+              {t('chartImport.perspectiveApplied')}
+            </span>
+            <button
+              type="button"
+              className="chart-perspective-btn ghost"
+              onClick={() => { clearPerspective() }}
+            >
+              {t('chartImport.perspectiveReset')}
+            </button>
+          </>
+        )}
+      </div>
 
       {/* 双预览 */}
       <div className="chart-previews">

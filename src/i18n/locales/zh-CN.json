@@ -1811,7 +1811,12 @@
     "saved": "已保存为我的作品",
     "restoredHistory": "已恢复上次的 {{n}} 处人工修正（原图与修正记录只保存在本机）",
     "historyHint": "识别参数与逐格修正会自动记在本机；重新选择同一张图片可继续修改。",
-    "storageHint": "识别与校正都在本机完成；保存后与其他作品一样：登录时写入你的云端作品库（仅本人可读写），未登录时只保存在本机浏览器。"
+    "storageHint": "识别与校正都在本机完成；保存后与其他作品一样：登录时写入你的云端作品库（仅本人可读写），未登录时只保存在本机浏览器。",
+    "perspectiveStart": "透视校正",
+    "perspectiveHint": "依次点击图纸的四个角（左上 → 右上 → 右下 → 左下），已点 {{n}}/4",
+    "perspectiveApplied": "已应用透视校正",
+    "perspectiveReset": "取消校正",
+    "perspectiveFailed": "校正失败：四点几乎在同一条线上，请重新选择"
   },
   "autosave": {
     "restoreTitle": "恢复上次未保存的修改",

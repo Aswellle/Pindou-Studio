@@ -146,6 +146,57 @@
   color: var(--warning);
 }
 
+/* ── 透视校正 ─────────────────────────────────────────────── */
+/* 未校正时只占一行,不改变原有布局;开启后多出一个取消按钮与进度提示 */
+.chart-perspective {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+  min-height: 34px;
+}
+
+.chart-perspective-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 34px;
+  padding: 0 12px;
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  background: var(--bg-secondary);
+  color: var(--text-primary);
+  font-family: inherit;
+  font-size: var(--text-sm);
+  cursor: pointer;
+}
+.chart-perspective-btn:hover:not(:disabled) {
+  border-color: var(--accent);
+  color: var(--accent-hover);
+}
+.chart-perspective-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+.chart-perspective-btn.ghost {
+  background: transparent;
+  color: var(--text-secondary);
+}
+
+.chart-perspective-hint {
+  font-size: var(--text-xs);
+  color: var(--accent-hover);
+  line-height: 1.5;
+}
+
+.chart-perspective-done {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: var(--text-xs);
+  color: var(--secondary-accent);
+}
+
 /* ── 双预览 ───────────────────────────────────────────────── */
 .chart-previews {
   display: grid;
