@@ -3,6 +3,10 @@ import {
   checkImageFile,
   checkImagePixels,
   readImageSize,
+  readSvgSize,
+  ensureSvgSize,
+  isSvgFile,
+  readImageHead,
   MAX_IMAGE_BYTES,
   MAX_IMAGE_PIXELS,
 } from './imageGuard'
@@ -102,5 +106,162 @@ describe('checkImagePixels', () => {
   it('自定义上限生效(恰好等于上限放行,超出才拦)', () => {
     expect(checkImagePixels(pngHeader(100, 100), { maxPixels: 10000 })).toBeNull()
     expect(checkImagePixels(pngHeader(200, 100), { maxPixels: 10000 })).toBe('tooManyPixels')
+  })
+})
+
+describe('readSvgSize', () => {
+  const svg = (attrs, inner = '') =>
+    `<?xml version="1.0"?>\n<svg xmlns="http://www.w3.org/2000/svg" ${attrs}>${inner}</svg>`
+
+  it('读 width / height 属性', () => {
+    expect(readSvgSize(svg('width="800" height="600"'))).toEqual({ width: 800, height: 600 })
+  })
+
+  it('接受 px 单位', () => {
+    expect(readSvgSize(svg('width="800px" height="600px"'))).toEqual({ width: 800, height: 600 })
+  })
+
+  it('宽高缺失时退化到 viewBox', () => {
+    expect(readSvgSize(svg('viewBox="0 0 320 240"'))).toEqual({ width: 320, height: 240 })
+  })
+
+  it('viewBox 带负偏移与逗号分隔', () => {
+    expect(readSvgSize(svg('viewBox="-10,-20,320,240"'))).toEqual({ width: 320, height: 240 })
+  })
+
+  it('宽高优先于 viewBox(渲染尺寸才是解码尺寸)', () => {
+    expect(readSvgSize(svg('width="100" height="50" viewBox="0 0 1000 500"')))
+      .toEqual({ width: 100, height: 50 })
+  })
+
+  it('相对单位(100% / 2em)不可预判 → 退化到 viewBox', () => {
+    expect(readSvgSize(svg('width="100%" height="100%" viewBox="0 0 640 480"')))
+      .toEqual({ width: 640, height: 480 })
+  })
+
+  it('属性顺序无关、单引号同样识别', () => {
+    expect(readSvgSize(`<svg height='300' width='400'>`)).toEqual({ width: 400, height: 300 })
+  })
+
+  it('注释里的假 svg 标签不干扰', () => {
+    const text = `<!-- <svg width="99999" height="99999"> -->\n<svg width="50" height="50">`
+    expect(readSvgSize(text)).toEqual({ width: 50, height: 50 })
+  })
+
+  it('没有尺寸信息 → null(交给调用方放行)', () => {
+    expect(readSvgSize('<svg xmlns="http://www.w3.org/2000/svg"></svg>')).toBeNull()
+    expect(readSvgSize('<html></html>')).toBeNull()
+    expect(readSvgSize('')).toBeNull()
+    expect(readSvgSize(null)).toBeNull()
+  })
+
+  it('非文本入参 → null', () => {
+    expect(readSvgSize(pngHeader(10, 10))).toBeNull()
+  })
+})
+
+describe('SVG 像素门控(小文件大像素的绕过路径)', () => {
+  it('几 KB 的 SVG 声明上万像素时被拦下', () => {
+    // 这正是 SVG 必须单独处理的原因:PNG/JPEG 的像素门控读文件头,
+    // 对文本格式完全失效,一个 60 字节的 SVG 能解出上百亿像素。
+    const huge = '<svg width="50000" height="50000"></svg>'
+    expect(huge.length).toBeLessThan(100)
+    expect(checkImagePixels(huge)).toBe('tooManyPixels')
+  })
+
+  it('正常尺寸的 SVG 放行', () => {
+    expect(checkImagePixels('<svg width="800" height="600"></svg>')).toBeNull()
+  })
+
+  it('readImageSize 对字符串走 SVG 分支,对字节走 PNG/JPEG 分支', () => {
+    expect(readImageSize('<svg viewBox="0 0 64 32"></svg>')).toEqual({ width: 64, height: 32 })
+    expect(readImageSize(pngHeader(64, 32))).toEqual({ width: 64, height: 32 })
+  })
+})
+
+describe('ensureSvgSize', () => {
+  it('只有 viewBox 时补上显式宽高(否则 <img> 按 300×150 解码)', () => {
+    const out = ensureSvgSize('<svg viewBox="0 0 200 200"><rect/></svg>')
+    expect(out).toContain('width="200"')
+    expect(out).toContain('height="200"')
+    // viewBox 必须保留:它决定内容坐标系,删了图形会错位
+    expect(out).toContain('viewBox="0 0 200 200"')
+  })
+
+  it('已有宽高则原样返回(不碰用户文件)', () => {
+    const src = '<svg width="800" height="600"><rect/></svg>'
+    expect(ensureSvgSize(src)).toBe(src)
+  })
+
+  it('已有 px 单位也算显式宽高', () => {
+    const src = '<svg width="800px" height="600px"><rect/></svg>'
+    expect(ensureSvgSize(src)).toBe(src)
+  })
+
+  it('只缺一个维度时只补那一个', () => {
+    const out = ensureSvgSize('<svg width="500" viewBox="0 0 500 400"><rect/></svg>')
+    expect(out).toContain('width="500"')
+    expect(out).toContain('height="400"')
+    // 原有的 width 不该被重复插入
+    expect(out.match(/width="500"/g)).toHaveLength(1)
+  })
+
+  it('没有 viewBox 也没有宽高 → 原样返回(无从推断)', () => {
+    const src = '<svg xmlns="http://www.w3.org/2000/svg"><rect/></svg>'
+    expect(ensureSvgSize(src)).toBe(src)
+  })
+
+  it('相对单位(100%)不算显式尺寸,用 viewBox 补', () => {
+    const out = ensureSvgSize('<svg width="100%" height="100%" viewBox="0 0 640 480"><rect/></svg>')
+    expect(out).toContain('width="640"')
+    expect(out).toContain('height="480"')
+  })
+
+  it('非 SVG 文本 / 空值原样返回', () => {
+    expect(ensureSvgSize('<html></html>')).toBe('<html></html>')
+    expect(ensureSvgSize('')).toBe('')
+    expect(ensureSvgSize(null)).toBeNull()
+  })
+
+  it('补完的尺寸能被 readSvgSize 读回(两个函数口径一致)', () => {
+    const out = ensureSvgSize('<svg viewBox="0 0 128 64"><rect/></svg>')
+    expect(readSvgSize(out)).toEqual({ width: 128, height: 64 })
+  })
+})
+
+describe('isSvgFile / readImageHead', () => {
+  const makeFile = (content, { type = 'image/svg+xml', name = 'a.svg' } = {}) => {
+    const blob = new Blob([content], { type })
+    // Blob.type 是只读 getter,File 语义需要可覆盖的 name/type
+    return Object.defineProperty(blob, 'name', { value: name, configurable: true })
+  }
+
+  it('按 MIME 识别 SVG', () => {
+    expect(isSvgFile({ type: 'image/svg+xml' })).toBe(true)
+    expect(isSvgFile({ type: 'image/png' })).toBe(false)
+  })
+
+  it('MIME 缺失时退化到扩展名', () => {
+    expect(isSvgFile({ type: '', name: 'chart.svg' })).toBe(true)
+    expect(isSvgFile({ type: '', name: 'CHART.SVG' })).toBe(true)
+    expect(isSvgFile({ type: '', name: 'chart.png' })).toBe(false)
+  })
+
+  it('空入参不算 SVG', () => {
+    expect(isSvgFile(null)).toBe(false)
+    expect(isSvgFile({})).toBe(false)
+  })
+
+  it('SVG 文件读成文本,PNG 文件读成字节', async () => {
+    const svgHead = await readImageHead(makeFile('<svg width="10" height="10"></svg>'))
+    expect(typeof svgHead).toBe('string')
+    expect(svgHead).toContain('<svg')
+
+    const pngHead = await readImageHead(makeFile(pngHeader(10, 10), { type: 'image/png', name: 'a.png' }))
+    expect(pngHead).toBeInstanceOf(Uint8Array)
+  })
+
+  it('读失败返回 null(调用方放行,不阻断)', async () => {
+    expect(await readImageHead({ slice: () => { throw new Error('boom') } })).toBeNull()
   })
 })

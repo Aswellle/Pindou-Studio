@@ -16,6 +16,30 @@
 export const MAX_IMAGE_BYTES = 30 * 1024 * 1024 // 30MB
 export const MAX_IMAGE_PIXELS = 40e6            // 4000 万像素
 
+/** 是否 SVG:按 MIME 判断,退化到扩展名(部分系统给空 type) */
+export function isSvgFile(file) {
+  if (!file) return false
+  if (String(file.type || '').toLowerCase() === 'image/svg+xml') return true
+  return /\.svg$/i.test(String(file.name || ''))
+}
+
+/**
+ * 读文件前若干字节,并按格式给出像素门控所需的输入。
+ *
+ * SVG 是文本,必须解码成字符串才能读根元素尺寸;PNG/JPEG 传字节即可。
+ * 读失败返回 null —— 调用方应放行,交由解码阶段自然报错。
+ *
+ * @returns {Promise<Uint8Array|string|null>}
+ */
+export async function readImageHead(file, { bytes = 65536 } = {}) {
+  try {
+    const buf = await file.slice(0, bytes).arrayBuffer()
+    return isSvgFile(file) ? new TextDecoder().decode(buf) : new Uint8Array(buf)
+  } catch {
+    return null
+  }
+}
+
 /**
  * 文件级门控:类型 + 字节数(同步,无需读取内容)。
  * @returns {null|'notImage'|'imageTooLarge'} null 表示通过,否则返回错误码(即 i18n 键后缀)
@@ -27,12 +51,96 @@ export function checkImageFile(file, { maxBytes = MAX_IMAGE_BYTES } = {}) {
 }
 
 /**
- * 仅从文件头解析像素尺寸(PNG IHDR / JPEG SOF),不做解码。
- * 解析不出(PNG/JPEG 之外的格式、截断、损坏)返回 null —— 调用方应放行,不误伤合法格式。
- * @param {Uint8Array|ArrayBuffer} bytes 文件前若干 KB
+ * 从 SVG 文本里读根元素的 width / height / viewBox。
+ *
+ * 为什么单独处理 SVG:它是**文本**矢量格式,压缩后几 KB 就能声明
+ * `width="50000" height="50000"`,解码出来的位图却有 100 亿像素。
+ * 前面 PNG/JPEG 的像素门控全靠文件头,对 SVG 完全失效 —— 不加这一条,
+ * 一张几 KB 的 SVG 就能绕过 4000 万像素上限把标签页解到 OOM。
+ *
+ * **安全前提**:SVG 只经 `<img src=blob:...>` 解码,从不 `innerHTML` 插入。
+ * 该上下文下浏览器不执行 SVG 内的 `<script>`、不解析 `<foreignObject>` 里的
+ * HTML、也不加载外部 `href` 引用的资源 —— 因此这里只需处理尺寸,不必做
+ * 脚本/外部引用的清洗。若将来有人把 SVG 直接插进 DOM,这个前提就失效了,
+ * 那时必须另做清洗(白名单标签 + 移除 on* 属性 + 剥离外部 href)。
+ *
+ * 只读前若干个 KB 已经够:根 `<svg>` 标签必然在文件开头(前面只可能有
+ * XML 声明、注释、DOCTYPE)。解析不出尺寸时返回 null(交给调用方放行)——
+ * 没有 width/height 也没有 viewBox 的 SVG 会按容器默认尺寸渲染,不会爆内存。
+ *
+ * @param {string} text SVG 文本(文件前若干 KB 即可)
+ * @returns {{width:number,height:number}|null}
+ */
+export function readSvgSize(text) {
+  if (typeof text !== 'string' || !text) return null
+  // 去掉注释,避免注释里的 `<svg width=...>` 干扰
+  const stripped = text.replace(/<!--[\s\S]*?-->/g, '')
+  const tag = stripped.match(/<svg\b[^>]*>/i)
+  if (!tag) return null
+  const attrs = tag[0]
+
+  const num = (name) => {
+    const m = attrs.match(new RegExp(`\\b${name}\\s*=\\s*["']([^"']*)["']`, 'i'))
+    if (!m) return null
+    // 只接受纯数字(可带单位 px / 无单位);`100%` / `2em` 这类相对单位无法预判像素
+    const v = m[1].trim().match(/^(\d+(?:\.\d+)?)(?:px)?$/i)
+    return v ? Number(v[1]) : null
+  }
+
+  const w = num('width')
+  const h = num('height')
+  if (w > 0 && h > 0) return { width: Math.round(w), height: Math.round(h) }
+
+  // 退化到 viewBox:minX minY width height
+  const vb = attrs.match(/\bviewBox\s*=\s*["']\s*([-\d.\s,]+)\s*["']/i)
+  if (vb) {
+    const parts = vb[1].trim().split(/[\s,]+/).map(Number)
+    if (parts.length === 4 && parts[2] > 0 && parts[3] > 0) {
+      return { width: Math.round(parts[2]), height: Math.round(parts[3]) }
+    }
+  }
+  return null
+}
+
+/**
+ * 给缺显式宽高的 SVG 补上 width/height,避免 `<img>` 按默认 300×150 解码。
+ *
+ * 只靠 viewBox 的 SVG 在 `<img>` 里没有固有尺寸,浏览器按 CSS 默认替换元素
+ * 尺寸(300×150)渲染 —— 一张 200×200 格的矢量图纸会被压成 300px 宽,
+ * 逐格采样时每格不到 1.5px,识别必然失败。这里把 viewBox 的尺寸写成
+ * 显式 width/height,让解码分辨率等于设计尺寸。
+ *
+ * 已有 width/height(含 px 单位)则原样返回,不碰用户文件。
+ *
+ * @param {string} text SVG 文本
+ * @returns {string} 可能被改写的 SVG 文本
+ */
+export function ensureSvgSize(text) {
+  if (typeof text !== 'string' || !text) return text
+  const tag = text.match(/<svg\b[^>]*>/i)
+  if (!tag) return text
+  const attrs = tag[0]
+  const hasW = /\bwidth\s*=\s*["']\s*\d+(?:\.\d+)?(?:px)?\s*["']/i.test(attrs)
+  const hasH = /\bheight\s*=\s*["']\s*\d+(?:\.\d+)?(?:px)?\s*["']/i.test(attrs)
+  if (hasW && hasH) return text
+
+  const size = readSvgSize(text)
+  if (!size) return text
+
+  let patched = attrs
+  if (!hasW) patched = patched.replace(/<svg\b/i, `<svg width="${size.width}"`)
+  if (!hasH) patched = patched.replace(/<svg\b/i, `<svg height="${size.height}"`)
+  return text.replace(tag[0], patched)
+}
+
+/**
+ * 仅从文件头解析像素尺寸(PNG IHDR / JPEG SOF / SVG 根元素),不做解码。
+ * 解析不出(其他格式、截断、损坏)返回 null —— 调用方应放行,不误伤合法格式。
+ * @param {Uint8Array|ArrayBuffer|string} bytes 文件前若干 KB;SVG 传文本
  * @returns {{width:number,height:number}|null}
  */
 export function readImageSize(bytes) {
+  if (typeof bytes === 'string') return readSvgSize(bytes)
   const u8 = bytes instanceof Uint8Array ? bytes : new Uint8Array(bytes)
 
   // PNG: 89 50 4E 47 0D 0A 1A 0A | 长度(4)=13 | 'IHDR' | width(4) height(4) @ 16..23
@@ -67,6 +175,12 @@ export function readImageSize(bytes) {
 
 /**
  * 像素总数门控:解析不出尺寸时返回 null(放行)。
+ *
+ * SVG 必须传**文本**(`readImageSize` 据此走 `readSvgSize`);传 ArrayBuffer
+ * 会走 PNG/JPEG 分支、解析不出尺寸,等于对 SVG 完全失去像素门控 ——
+ * 一个几 KB 的 `width="50000"` SVG 就能解出上百亿像素。
+ *
+ * @param {Uint8Array|ArrayBuffer|string} bytes 文件前若干 KB;SVG 传文本
  * @returns {null|'tooManyPixels'} null 表示通过
  */
 export function checkImagePixels(bytes, { maxPixels = MAX_IMAGE_PIXELS } = {}) {
