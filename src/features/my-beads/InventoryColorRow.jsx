@@ -1,16 +1,21 @@
 /**
- * InventoryColorRow — 单个颜色的库存行(重构规格 §5.3 / §5.4)。
+ * InventoryColorRow — 单个颜色的库存行。
  *
  * 数量输入是「草稿 + 提交」:输入时只改本地草稿,Enter / 失焦才写 store。
  * 旧实现每次 onChange 都写库,把 25 改成 100 时会依次持久化 2、1、0。
  *
  * 状态操作:有库存 / 数量不足 / 缺货 / 清除记录。清除记录与「缺货」是两件事 ——
  * 前者删除记录(回到未记录),后者写入 quantity=0。
+ *
+ * 行结构:信息区(.inv-row-head:勾选 / 色块 / 色号 / 名称 / 状态)+ 操作区
+ * (.stock-controls:状态三选一 + 数量 + 保存 + 更多)。桌面端两块并排,空间不够
+ * 时操作区整块换行;移动端信息区占首行,操作区独占后续行(状态按钮一行、
+ * 数量与「更多」一行),每个触控目标都能拿到 ≥40px。
  */
 
 import { useEffect, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { Check, X, AlertTriangle, MoreHorizontal, Trash2 } from 'lucide-react'
+import { Check, X, AlertTriangle, MoreHorizontal, Trash2, RotateCcw } from 'lucide-react'
 import StockStateTag from './StockStateTag'
 import {
   STOCK_STATE,
@@ -110,23 +115,25 @@ export default function InventoryColorRow({
 
   return (
     <li className={`my-beads-inv-row${selected ? ' selected' : ''}`} data-key={color.key}>
-      <input
-        type="checkbox"
-        checked={selected}
-        onChange={() => onToggleSelect(color.key)}
-        aria-label={`${t('myBeads.inventory.selectRow')} ${color.code}`}
-      />
+      {/* 行首:勾选 + 色块 + 色号/名称。移动端这一组占满首行。 */}
+      <div className="inv-row-head">
+        <input
+          type="checkbox"
+          checked={selected}
+          onChange={() => onToggleSelect(color.key)}
+          aria-label={`${t('myBeads.inventory.selectRow')} ${color.code}`}
+        />
 
-      <span className="swatch" style={{ background: color.hex }} aria-hidden="true" />
-      <span className="code">{color.code}</span>
-      <span className="name">{color.name || ''}</span>
-      <span className="hex">{color.hex}</span>
+        <span className="swatch" style={{ background: color.hex }} aria-hidden="true" />
+        <span className="code">{color.code}</span>
+        <span className="name">{color.name || ''}</span>
+        <span className="hex">{color.hex}</span>
 
-      <StockStateTag state={state} quantity={savedQty} />
+        <StockStateTag state={state} quantity={savedQty} />
+      </div>
 
       <div className="stock-controls">
-        {/* 状态三选一:桌面端是三个独立按钮,移动端由 CSS 收成一段分段控件
-            (三个 40px 按钮 + 数量 + 保存 + 更多 = 354px,超出 390px 视口的可用宽度) */}
+        {/* 状态三选一:桌面端是三个独立按钮,移动端由 CSS 收成一段分段控件 */}
         <div className="stock-status-group" role="group" aria-label={t('myBeads.inventory.statusGroup')}>
           <button
             type="button"
@@ -188,7 +195,7 @@ export default function InventoryColorRow({
 
           <button
             type="button"
-            className="my-beads-icon-btn small"
+            className="my-beads-icon-btn small qty-save-btn"
             disabled={saving || !dirty}
             title={t('myBeads.inventory.save')}
             aria-label={`${t('myBeads.inventory.save')} ${color.code}`}
@@ -203,21 +210,36 @@ export default function InventoryColorRow({
               className="my-beads-icon-btn small"
               aria-label={`${t('myBeads.inventory.moreActions')} ${color.code}`}
               aria-expanded={menuOpen}
-              disabled={!record}
+              aria-haspopup="menu"
+              // 没有记录时菜单仍有可用项(标记有货),此前 disabled={!record}
+              // 让按钮完全没反应 —— 用户点「更多」却什么都不发生。
+              disabled={saving}
               onClick={() => setMenuOpen((v) => !v)}
             >
               <MoreHorizontal size={14} />
             </button>
-            {menuOpen && record && (
+            {menuOpen && (
               <div className="row-menu-pop" role="menu">
-                <button
-                  type="button"
-                  role="menuitem"
-                  className="danger"
-                  onClick={() => { setMenuOpen(false); onClearRecord() }}
-                >
-                  <Trash2 size={13} />{t('myBeads.inventory.clearRecord')}
-                </button>
+                {record && (
+                  <button
+                    type="button"
+                    role="menuitem"
+                    className="danger"
+                    onClick={() => { setMenuOpen(false); onClearRecord() }}
+                  >
+                    <Trash2 size={13} />{t('myBeads.inventory.clearRecord')}
+                  </button>
+                )}
+                {/* 没有记录时给出可执行项:直接标记有货(数量未知) */}
+                {!record && (
+                  <button
+                    type="button"
+                    role="menuitem"
+                    onClick={() => { setMenuOpen(false); setStatus('owned') }}
+                  >
+                    <RotateCcw size={13} />{t('myBeads.inventory.markOwnedUnknown')}
+                  </button>
+                )}
               </div>
             )}
           </div>

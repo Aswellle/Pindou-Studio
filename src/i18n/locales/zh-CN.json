@@ -1490,7 +1490,8 @@
         "low": "{{code}} 已标记为数量不足",
         "out_of_stock": "{{code}} 已标记为缺货",
         "failed": "保存失败，请重试"
-      }
+      },
+      "markOwnedUnknown": "标记为有货（数量未知）"
     },
     "match": {
       "title": "把图纸换算成手里的豆子",

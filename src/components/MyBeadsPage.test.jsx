@@ -510,7 +510,8 @@ describe('MyBeadsPage · 库存', () => {
     const { container } = setup()
     await openInventory(container)
 
-    const boxes = container.querySelectorAll('.my-beads-inv-row > input[type="checkbox"]')
+    // 勾选框现在位于 .inv-row-head 内(行被拆成信息区 + 操作区两块)
+    const boxes = container.querySelectorAll('.my-beads-inv-row input[type="checkbox"]')
     fireEvent.click(boxes[0])
     fireEvent.click(boxes[1])
     await waitFor(() => expect(container.querySelector('.my-beads-batch')).toBeTruthy())
@@ -538,12 +539,41 @@ describe('MyBeadsPage · 库存', () => {
     const { container } = setup()
     await openInventory(container)
 
-    fireEvent.click(container.querySelector('.my-beads-inv-row > input[type="checkbox"]'))
+    fireEvent.click(container.querySelector('.my-beads-inv-row input[type="checkbox"]'))
     fireEvent.click(screen.getByText('清除记录'))
 
     await waitFor(() => {
       const stored = JSON.parse(localStorage.getItem('personal-beads-v1'))
       expect(stored.inventory).toHaveLength(0)
+    })
+  })
+
+  it('没有库存记录时「更多」按钮仍可点,菜单给出可执行项', async () => {
+    // 回归:此前「更多」按钮 disabled={!record},没有记录的行点它毫无反应 ——
+    // 用户点了按钮却什么都没发生,看起来就是坏掉的控件。
+    const { container } = setup()
+    await openInventory(container)
+
+    const firstRow = container.querySelector('.my-beads-inv-row')
+    expect(firstRow).toBeTruthy()
+    const moreBtn = within(firstRow).getByLabelText(/更多操作/)
+    expect(moreBtn.disabled).toBe(false)
+
+    fireEvent.click(moreBtn)
+    const menu = await waitFor(() => {
+      const el = firstRow.querySelector('.row-menu-pop')
+      expect(el).toBeTruthy()
+      return el
+    })
+    // 无记录时不该出现「清除库存记录」(没有可清的),而是「标记为有货」
+    expect(within(menu).queryByText('清除库存记录')).toBeNull()
+    expect(within(menu).getByText('标记为有货（数量未知）')).toBeTruthy()
+
+    fireEvent.click(within(menu).getByText('标记为有货（数量未知）'))
+    await waitFor(() => {
+      const stored = JSON.parse(localStorage.getItem('personal-beads-v1'))
+      expect(stored.inventory).toHaveLength(1)
+      expect(stored.inventory[0].status).toBe('owned')
     })
   })
 

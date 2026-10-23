@@ -1490,7 +1490,8 @@
         "low": "{{code}} marked as low",
         "out_of_stock": "{{code}} marked as out of stock",
         "failed": "Save failed, please retry"
-      }
+      },
+      "markOwnedUnknown": "Mark as owned (quantity unknown)"
     },
     "match": {
       "title": "Convert a pattern to the beads you own",

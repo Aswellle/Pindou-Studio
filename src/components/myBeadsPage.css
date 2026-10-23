@@ -436,6 +436,29 @@
   background: var(--bg-primary);
 }
 
+/* 库存行拆成「信息区 + 操作区」两块。
+   信息区(.inv-row-head)负责勾选/色块/色号/名称/状态,操作区(.stock-controls)
+   负责三态按钮与数量。桌面端并排,空间不够时操作区整块换行,而不是把
+   每个按钮挤成 26px 的窄条。 */
+.my-beads-inv-row {
+  flex-wrap: wrap;
+  align-items: center;
+  row-gap: 6px;
+}
+
+.inv-row-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: 1 1 260px;
+  min-width: 0;
+}
+
+/* 颜色名吃掉剩余宽度,状态标签贴右 —— 与旧行里「标签在名称之后、
+   操作区 margin-left:auto」的视觉一致,只是现在被拆成两个容器。 */
+.inv-row-head .name { flex: 1 1 auto; }
+.inv-row-head .stock-state-tag { margin-left: auto; }
+
 .swatch {
   width: 16px;
   height: 16px;
@@ -755,7 +778,9 @@
   background: var(--accent-soft);
 }
 
-.my-beads-inv-row > input[type="checkbox"] {
+/* 勾选框现在位于 .inv-row-head 内部(不再是 .my-beads-inv-row 的直接子元素),
+   选择器改为后代匹配,否则尺寸规则全部失效、勾选框回到浏览器默认大小。 */
+.my-beads-inv-row input[type="checkbox"] {
   flex-shrink: 0;
   width: 14px;
   height: 14px;
@@ -896,6 +921,9 @@
   font-size: 10px;
   color: var(--error);
 }
+
+/* 保存按钮:脏值前保持可见但弱化,让「改过还没保存」这件事本身可读 */
+.qty-save-btn:disabled { opacity: 0.4; }
 
 /* 行内「更多操作」菜单 */
 .row-menu { position: relative; }
@@ -1505,10 +1533,10 @@
     overflow: visible;
   }
 
-  /* 库存行 → 卡片:关键字段不横向滚动即可读 */
   /* 库存行 → 卡片,显式排布:
-     第一行 勾选 + 色块 + 色号 + 状态标签;第二行 颜色名;第三行 操作 + 数量。
-     旧写法只给部分字段定 order,checkbox 与 code 会跟着默认顺序乱跑。 */
+     第一行 勾选 + 色块 + 色号 + 状态标签;第二行 颜色名;第三行 状态按钮;第四行 数量。
+     字段都收在 .inv-row-head 里,排序改由该容器自己承担 —— 在行上写 order
+     已经选不中它们了。 */
   .my-beads-inv-row {
     flex-wrap: wrap;
     padding: 10px;
@@ -1518,13 +1546,14 @@
     row-gap: 8px;
   }
 
-  .my-beads-inv-row > input[type="checkbox"] { order: 1; }
-  .my-beads-inv-row .swatch { order: 1; }
-  .my-beads-inv-row .code { order: 1; }
-  .stock-state-tag { order: 2; margin-left: auto; }
-  .my-beads-inv-row .name { order: 3; flex: 1 1 100%; }
+  .inv-row-head {
+    flex: 1 1 100%;
+    flex-wrap: wrap;
+    row-gap: 4px;
+  }
+  .inv-row-head .stock-state-tag { margin-left: auto; }
+  .inv-row-head .name { order: 2; flex: 1 1 100%; }
   .stock-controls {
-    order: 4;
     flex-basis: 100%;
     margin-left: 0;
     /* 关键:允许换行 + 不允许子项撑出容器。
