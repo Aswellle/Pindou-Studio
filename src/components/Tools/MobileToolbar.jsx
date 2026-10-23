@@ -248,6 +248,9 @@ export default function MobileToolbar({
   // A2:复制拖动开关(触屏没有 Alt/Option,只能给显式入口)
   copyDrag = false,
   onToggleCopyDrag,
+  // A3:框选吸附到已有珠子的边缘(默认开)
+  snapToEdges = true,
+  onToggleSnapToEdges,
 }) {
   const { t } = useTranslation()
   const toast = useToast()
@@ -513,6 +516,17 @@ export default function MobileToolbar({
                   onClick={() => onToggleCopyDrag?.(!copyDrag)}
                 >
                   {copyDrag ? '✓ ' : ''}{t('tools.copyDragShort')}
+                </button>
+                {/* A3:框选吸附开关。默认开 —— 触屏的落点误差比鼠标大,
+                    吸附在移动端收益更高;关掉后框选行为与改造前完全一致。 */}
+                <button
+                  type="button"
+                  className={`selection-fill-toggle${snapToEdges ? ' active' : ''}`}
+                  aria-pressed={Boolean(snapToEdges)}
+                  title={t('tools.snapToEdgesHint')}
+                  onClick={() => onToggleSnapToEdges?.(!snapToEdges)}
+                >
+                  {snapToEdges ? '✓ ' : ''}{t('tools.snapToEdgesShort')}
                 </button>
               </div>
               {/* 按钮文字用「短标签」(填充 / 左右翻转 / 顺时针 …):

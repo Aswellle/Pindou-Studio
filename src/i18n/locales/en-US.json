@@ -526,7 +526,9 @@
     "pickedColorToast": "Picked {{hex}}",
     "copyDragHint": "Drag to duplicate (original stays)",
     "copyDragShort": "Drag copy",
-    "copiedDragToast": "Duplicated {{n}} beads"
+    "selectionCopiedDragToast": "Duplicated {{n}} beads",
+    "snapToEdgesHint": "Snap selection to bead edges",
+    "snapToEdgesShort": "Snap"
   },
   "gallery": {
     "title": "Gallery",

@@ -36,6 +36,9 @@ export default function Tools({
   // A2:复制拖动开关(拖动选区内部 = 复制一份,而不是搬走原件)
   copyDrag = false,
   onToggleCopyDrag,
+  // A3:框选吸附到已有珠子的边缘(默认开)
+  snapToEdges = true,
+  onToggleSnapToEdges,
 }) {
   const { t } = useTranslation()
   const toast = useToast()
@@ -212,6 +215,15 @@ export default function Tools({
                     onChange={(e) => onToggleCopyDrag?.(e.target.checked)}
                   />
                   <span>{t('tools.copyDragHint')}</span>
+                </label>
+                {/* A3:框选吸附。默认开;关掉后框选行为与改造前完全一致 */}
+                <label className="selection-fill-toggle">
+                  <input
+                    type="checkbox"
+                    checked={Boolean(snapToEdges)}
+                    onChange={(e) => onToggleSnapToEdges?.(e.target.checked)}
+                  />
+                  <span>{t('tools.snapToEdgesHint')}</span>
                 </label>
                 {/* 拖拽移动没有按钮,只能靠提示告知(规格 04 §2 要求移动有明确入口) */}
                 <p className="selection-hint">{t('tools.selectionMoveHint')}</p>

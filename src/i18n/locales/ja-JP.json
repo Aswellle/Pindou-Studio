@@ -526,7 +526,9 @@
     "pickedColorToast": "{{hex}} を取得しました",
     "copyDragHint": "ドラッグで複製(元は残す)",
     "copyDragShort": "ドラッグ複製",
-    "copiedDragToast": "{{n}} 個複製しました"
+    "selectionCopiedDragToast": "{{n}} 個複製しました",
+    "snapToEdgesHint": "選択範囲をビーズの縁に吸着",
+    "snapToEdgesShort": "吸着"
   },
   "gallery": {
     "title": "テンプレートギャラリー",

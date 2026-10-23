@@ -526,7 +526,9 @@
     "pickedColorToast": "{{hex}} 색을 선택했습니다",
     "copyDragHint": "드래그하여 복제(원본 유지)",
     "copyDragShort": "드래그 복제",
-    "copiedDragToast": "{{n}}개 복제됨"
+    "selectionCopiedDragToast": "{{n}}개 복제됨",
+    "snapToEdgesHint": "선택 영역을 비즈 가장자리에 붙이기",
+    "snapToEdgesShort": "자석"
   },
   "gallery": {
     "title": "갤러리",

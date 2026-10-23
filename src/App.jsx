@@ -112,6 +112,10 @@ export default function App() {
   // 桌面也不该要求用户先知道有个隐藏手势。
   const [copyDrag, setCopyDrag] = useState(false)
 
+  // A3 框选吸附:默认开。拼豆的框选几乎总是贴着图案边界走,吸附能省掉
+  // 「差一格重来一次」;不喜欢抢手感的用户可以关掉,关掉后行为与改造前一致。
+  const [snapToEdges, setSnapToEdges] = useState(true)
+
   // 切页 / 网格尺寸变化(换模板、载入作品、调整画布)后,旧选区坐标可能失效
   // → 清空。普通绘制不改变网格,选区矩形仍然有效,无需清空。
   // biome-ignore lint/correctness/useExhaustiveDependencies: 切页/改网格尺寸时清空选区坐标,这些值只作触发信号
@@ -487,6 +491,8 @@ export default function App() {
     onSelectionChange: setSelection,
     // A2:复制拖动开关(拖动选区内部时是复制而不是剪切)
     copyDrag,
+    // A3:框选吸附到已有珠子的边缘
+    snapToEdges,
     // M5.2 拖拽移动:画布只在松手时上报一次偏移,这里提交一条历史。
     // 偏移已由画布按 clampMove 钳制,内容不会掉出画布。
     // A2:`copy` 为 true 时是复制拖动(Alt/Option 或移动端开关),原件保留。
@@ -765,6 +771,8 @@ export default function App() {
             canPaste={Boolean(clipboard)}
             copyDrag={copyDrag}
             onToggleCopyDrag={setCopyDrag}
+            snapToEdges={snapToEdges}
+            onToggleSnapToEdges={setSnapToEdges}
           />
         </div>
         <div className="left-sidebar-bottom">
@@ -1196,6 +1204,8 @@ export default function App() {
               canPaste={Boolean(clipboard)}
               copyDrag={copyDrag}
               onToggleCopyDrag={setCopyDrag}
+              snapToEdges={snapToEdges}
+              onToggleSnapToEdges={setSnapToEdges}
             />
           </>
         } />

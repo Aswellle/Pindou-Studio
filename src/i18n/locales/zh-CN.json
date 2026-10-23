@@ -526,7 +526,9 @@
     "pickedColorToast": "已取色 {{hex}}",
     "copyDragHint": "拖动时复制一份(不搬走原件)",
     "copyDragShort": "拖动复制",
-    "copiedDragToast": "已复制 {{n}} 颗珠子"
+    "selectionCopiedDragToast": "已复制 {{n}} 颗珠子",
+    "snapToEdgesHint": "框选时吸附到已有珠子的边缘",
+    "snapToEdgesShort": "边缘吸附"
   },
   "gallery": {
     "title": "图库",
