@@ -1289,3 +1289,141 @@ describe('Canvas 选区 resize 手柄(A1)', () => {
     expect(onSelectionChange).toHaveBeenLastCalledWith({ x: 0, y: 0, w: 2, h: 2 })
   })
 })
+
+describe('Canvas 长按上下文菜单(A4)', () => {
+  let mock
+  beforeEach(() => { mock = installCanvasMocks() })
+  afterEach(() => {
+    mock.restore()
+    vi.useRealTimers()
+  })
+
+  function renderLongPress(overrides = {}) {
+    const onSelectionLongPress = vi.fn()
+    const onSelectionMove = vi.fn()
+    const view = render(
+      <Canvas
+        gridSize={3}
+        gridWidth={null}
+        gridHeight={null}
+        selectedColor="#ff0000"
+        tool="select"
+        committedData={blankGrid(3)}
+        selection={{ x: 0, y: 0, w: 2, h: 2 }}
+        onCanvasChange={vi.fn()}
+        onSelectionChange={vi.fn()}
+        onSelectionMove={onSelectionMove}
+        onSelectionLongPress={onSelectionLongPress}
+        {...overrides}
+      />
+    )
+    return { ...view, onSelectionLongPress, onSelectionMove }
+  }
+
+  test('按住选区内部 500ms 后弹出菜单,并上报触点坐标', () => {
+    vi.useFakeTimers()
+    const { container, onSelectionLongPress } = renderLongPress()
+    const c = container.querySelector('.canvas-container')
+
+    fireEvent.touchStart(c, { touches: [{ clientX: 24, clientY: 24, identifier: 0 }] })
+    // 还没到点:不能提前弹
+    vi.advanceTimersByTime(400)
+    expect(onSelectionLongPress).not.toHaveBeenCalled()
+
+    vi.advanceTimersByTime(150)
+    expect(onSelectionLongPress).toHaveBeenCalledWith({ x: 24, y: 24 })
+  })
+
+  test('长按后松手不提交移动(不产生空历史)', () => {
+    vi.useFakeTimers()
+    const { container, onSelectionLongPress, onSelectionMove } = renderLongPress()
+    const c = container.querySelector('.canvas-container')
+
+    fireEvent.touchStart(c, { touches: [{ clientX: 24, clientY: 24, identifier: 0 }] })
+    vi.advanceTimersByTime(600)
+    fireEvent.touchEnd(c, { touches: [] })
+
+    expect(onSelectionLongPress).toHaveBeenCalledTimes(1)
+    // 长按成立时已经取消了移动拖动,松手不该再报一次 0 偏移的移动
+    expect(onSelectionMove).not.toHaveBeenCalled()
+  })
+
+  test('长按成立后,阈值内的余下移动也不再提交', () => {
+    // 这条用例专门覆盖「长按到点 → 取消移动」的必要性:
+    // 阈值是 10px,但从格中线附近按下时,9px 就足以跨进下一格。
+    // 若长按成立后不取消 moveDragging,松手会提交一次 dx=1 的移动 ——
+    // 用户只想长按弹菜单,内容却被挪走了一格。
+    vi.useFakeTimers()
+    const { container, onSelectionMove } = renderLongPress()
+    const c = container.querySelector('.canvas-container')
+
+    // (24,24) 落在格 (1,1) 的中线上;+9px → 33,仍在格 (1,1)?不:
+    // 33/16 = 2.06 → 格 (2,2)。跨格了,但 9px < 10px 阈值,长按不会被取消。
+    fireEvent.touchStart(c, { touches: [{ clientX: 24, clientY: 24, identifier: 0 }] })
+    vi.advanceTimersByTime(600)
+    fireEvent.touchMove(c, { touches: [{ clientX: 33, clientY: 24, identifier: 0 }] })
+    fireEvent.touchEnd(c, { touches: [] })
+
+    expect(onSelectionMove).not.toHaveBeenCalled()
+  })
+
+  test('移动超过阈值后取消长按(拖动优先)', () => {
+    vi.useFakeTimers()
+    const { container, onSelectionLongPress } = renderLongPress()
+    const c = container.querySelector('.canvas-container')
+
+    fireEvent.touchStart(c, { touches: [{ clientX: 24, clientY: 24, identifier: 0 }] })
+    // 拖出 20px(> 10px 阈值)
+    fireEvent.touchMove(c, { touches: [{ clientX: 44, clientY: 24, identifier: 0 }] })
+    vi.advanceTimersByTime(800)
+
+    expect(onSelectionLongPress).not.toHaveBeenCalled()
+  })
+
+  test('按住时的轻微抖动不取消长按', () => {
+    vi.useFakeTimers()
+    const { container, onSelectionLongPress } = renderLongPress()
+    const c = container.querySelector('.canvas-container')
+
+    fireEvent.touchStart(c, { touches: [{ clientX: 24, clientY: 24, identifier: 0 }] })
+    // 抖动 4px,仍在 10px 阈值内
+    fireEvent.touchMove(c, { touches: [{ clientX: 28, clientY: 24, identifier: 0 }] })
+    vi.advanceTimersByTime(600)
+
+    expect(onSelectionLongPress).toHaveBeenCalled()
+  })
+
+  test('按在选区外部不会触发长按(那是拖新选框)', () => {
+    vi.useFakeTimers()
+    const { container, onSelectionLongPress } = renderLongPress()
+    const c = container.querySelector('.canvas-container')
+
+    // (2,2) 在选区 (0,0,2,2) 之外
+    fireEvent.touchStart(c, { touches: [{ clientX: 40, clientY: 40, identifier: 0 }] })
+    vi.advanceTimersByTime(800)
+
+    expect(onSelectionLongPress).not.toHaveBeenCalled()
+  })
+
+  test('未传 onSelectionLongPress 时不启动长按(桌面端无此需求)', () => {
+    vi.useFakeTimers()
+    const { container } = renderLongPress({ onSelectionLongPress: undefined })
+    const c = container.querySelector('.canvas-container')
+
+    fireEvent.touchStart(c, { touches: [{ clientX: 24, clientY: 24, identifier: 0 }] })
+    // 长按没有回调就什么也不做;顺带确认不会抛错(计时器里访问 undefined)
+    expect(() => vi.advanceTimersByTime(800)).not.toThrow()
+  })
+
+  test('手势被系统取消时收掉计时器', () => {
+    vi.useFakeTimers()
+    const { container, onSelectionLongPress } = renderLongPress()
+    const c = container.querySelector('.canvas-container')
+
+    fireEvent.touchStart(c, { touches: [{ clientX: 24, clientY: 24, identifier: 0 }] })
+    fireEvent.touchCancel(c, { touches: [] })
+    vi.advanceTimersByTime(800)
+
+    expect(onSelectionLongPress).not.toHaveBeenCalled()
+  })
+})

@@ -45,6 +45,9 @@ const Canvas = forwardRef(function Canvas({
   // A3: 框选时是否吸附到已有珠子的边缘。默认开 —— 拼豆的框选几乎总是
   // 贴着图案边界走;不喜欢「抢手感」的用户可以在操作条上关掉。
   snapToEdges = true,
+  // A4:长按选区内容时上报屏幕坐标,父组件据此弹上下文菜单。
+  // 不传 = 不启用长按(桌面端用不上,右键菜单另有语义)。
+  onSelectionLongPress,
 }, ref) {
   const { t } = useTranslation()
   const containerRef = useRef(null)
@@ -129,6 +132,12 @@ const Canvas = forwardRef(function Canvas({
   // 剩余手指重新登记为单指起点,若不加标记,最后一指抬起时会被误判为
   // "单指点按"而填色。真实业务里只有"单指起、单指落"的手势才允许填色。
   const wasPinchingRef = useRef(false)
+  // A4:长按上下文菜单。计时器只在「选区工具 + 按在选区内部 + 没动」时跑:
+  // 一旦移动超过阈值立刻取消 —— 长按与拖动是互斥手势,不能等松手再判断,
+  // 那样用户已经拖出去一段了才弹出菜单。
+  const longPressTimerRef = useRef(null)
+  const longPressFiredRef = useRef(false)
+
   const strokeAccumRef = useRef(null) // accumulated canvas state during a drag stroke
   const lastTouchRef = useRef(0) // 最近一次触控时间戳,用于区分触屏双击与鼠标双击
 
@@ -507,6 +516,45 @@ const Canvas = forwardRef(function Canvas({
     })
     onSelectionChange?.(rect)
   }, [onSelectionChange, cols, rows, painter, transform.scale])
+
+  // ─────────────────────────────────────────────────────────────────
+  // 长按选区 → 上下文菜单(A4)
+  // ─────────────────────────────────────────────────────────────────
+  // 计时器从 touchStart 开始跑,移动超过 10px 立即取消。为什么不能等
+  // 松手再判断「这算不算长按」:拖动选区内容是同一块区域上的手势,
+  // 等松手才区分的话,用户已经拖出去一段了才弹菜单 —— 手势一旦重叠,
+  // 只能靠「先动就取消」来保证互斥。
+  const LONG_PRESS_MS = 500
+  const LONG_PRESS_MOVE_PX = 10
+
+  const cancelLongPress = useCallback(() => {
+    if (longPressTimerRef.current) {
+      clearTimeout(longPressTimerRef.current)
+      longPressTimerRef.current = null
+    }
+  }, [])
+
+  const scheduleLongPress = useCallback((clientX, clientY) => {
+    cancelLongPress()
+    if (!onSelectionLongPress) return
+    longPressFiredRef.current = false
+    longPressTimerRef.current = setTimeout(() => {
+      longPressTimerRef.current = null
+      // 到点即视为「长按成立」:取消已经开始的移动拖动,否则松手时会提交
+      // 一次 0 偏移的移动 —— 那会压一条空历史,菜单弹出后画布却「闪」了一下。
+      longPressFiredRef.current = true
+      // 到点即视为「长按成立」:取消已经开始的移动拖动,否则松手时会提交
+      // 一次偏移 —— 长按成立后手指在阈值内的小幅移动仍可能跨过格子边界
+      // (从格中线附近开始,9px 就能换一格),那会压一条用户没打算做的历史。
+      moveDraggingRef.current = false
+      moveStartRef.current = null
+      moveBaseSelRef.current = null
+      moveOffsetRef.current = { dx: 0, dy: 0 }
+      painter.clearOverlay()
+      setOverlayTick(n => n + 1)
+      onSelectionLongPress({ x: clientX, y: clientY })
+    }, LONG_PRESS_MS)
+  }, [onSelectionLongPress, cancelLongPress, painter])
 
   // ─────────────────────────────────────────────────────────────────
   // 拖拽移动选区内容(M5.2,规格 04 §2)
@@ -985,6 +1033,8 @@ const Canvas = forwardRef(function Canvas({
         else if (pointInSelection(selection, gridPos)) {
           // 触屏没有修饰键:复制拖动由操作条开关决定(A2)
           startMove(gridPos.x, gridPos.y, { copy: copyDrag })
+          // A4:同时起一个长按计时器;真正拖动起来会在 touchMove 里取消它。
+          scheduleLongPress(t.clientX, t.clientY)
         } else startSelection(gridPos.x, gridPos.y)
         return
       }
@@ -995,7 +1045,7 @@ const Canvas = forwardRef(function Canvas({
         touchPanCanvasStartRef.current = { x: transform.cx, y: transform.cy }
       }
     }
-  }, [stopMomentum, getGridPos, transform, tool, startSelection, startMove, selection, painter, handleAtPoint, startResize, copyDrag])
+  }, [stopMomentum, getGridPos, transform, tool, startSelection, startMove, selection, painter, handleAtPoint, startResize, copyDrag, scheduleLongPress])
 
   const handleTouchMove = useCallback((e) => {
     e.preventDefault()
@@ -1044,6 +1094,12 @@ const Canvas = forwardRef(function Canvas({
 
       // 拖拽移动:只更新预览,不平移、不填色
       if (moveDraggingRef.current) {
+        // A4:真正拖起来才取消长按。手指按住时总会有 1–2px 抖动,
+        // 一有 touchmove 就取消的话,长按几乎永远等不到 500ms。
+        const start = touchStartRef.current
+        if (start && Math.hypot(t.clientX - start.x, t.clientY - start.y) > LONG_PRESS_MOVE_PX) {
+          cancelLongPress()
+        }
         const pos = getGridPos(t.clientX, t.clientY)
         if (pos) updateMove(pos.x, pos.y)
         return
@@ -1107,6 +1163,12 @@ const Canvas = forwardRef(function Canvas({
   const handleTouchEnd = useCallback((e) => {
     e.preventDefault()
 
+    // A4:松手时收掉计时器。长按已经成立的话,这次手势不再走任何点按/拖动
+    // 分支 —— 菜单已经弹出来了,松手只是「完成长按」,不该再触发移动提交。
+    cancelLongPress()
+    const longPressed = longPressFiredRef.current
+    longPressFiredRef.current = false
+
     if (e.touches.length === 0) {
       pinchRef.current = null
 
@@ -1123,6 +1185,15 @@ const Canvas = forwardRef(function Canvas({
       // 拖拽移动结束:提交偏移(单指点按 = 原地不动,不产生历史)
       if (moveDraggingRef.current) {
         endMove()
+        touchStartRef.current = null
+        touchMovedRef.current = false
+        wasPinchingRef.current = false
+        setHoverCell(null)
+        return
+      }
+
+      // A4:长按成立的那次手势在松手时直接收尾,不进入点按填色/取消选区分支。
+      if (longPressed) {
         touchStartRef.current = null
         touchMovedRef.current = false
         wasPinchingRef.current = false
@@ -1188,10 +1259,14 @@ const Canvas = forwardRef(function Canvas({
         }
       }
     }
-  }, [startStroke, paintToStroke, applyFill, commitStroke, getGridPos, transform, startMomentum, tool, pickColorAt, endSelection, endMove, onSelectionChange, endResize])
+  }, [startStroke, paintToStroke, applyFill, commitStroke, getGridPos, transform, startMomentum, tool, pickColorAt, endSelection, endMove, onSelectionChange, endResize, cancelLongPress])
 
   const handleTouchCancel = useCallback(() => {
     stopMomentum()
+    // A4:手势被系统取消(来电、通知等)时收掉计时器,否则菜单会在
+    // 手指早已离开之后突然弹出来。
+    cancelLongPress()
+    longPressFiredRef.current = false
     if (resizeHandleRef.current) {
       // 取消手势:矩形已通过 onSelectionChange 逐个上报,无法回滚到原尺寸;
       // 这里只结束手势,让 marching ants 接管重绘(选区是视图状态,不写历史)
@@ -1220,7 +1295,7 @@ const Canvas = forwardRef(function Canvas({
     wasPinchingRef.current = false
     setHoverCell(null)
     setOverlayTick(n => n + 1)
-  }, [stopMomentum, painter])
+  }, [stopMomentum, painter, cancelLongPress])
 
   // 双击重置(仅鼠标语义):触屏快速连点(移动端连续填珠)会由浏览器合成 dblclick,不触发重置
   const handleDoubleClick = useCallback(() => {
