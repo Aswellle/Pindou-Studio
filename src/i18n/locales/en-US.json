@@ -663,6 +663,8 @@
     "visitorHint": "You're chatting as a visitor. Replies show up in this window; if you leave an email, you can also get replies by email.",
     "userHint": "You're chatting as a signed-in user. Replies show up in this window; if you leave an email, you can also get replies by email.",
     "emailPlaceholder": "Email (optional — to receive replies)",
+    "emailToggle": "Add an email to get replies (optional)",
+    "emailSet": "Email: {{email}}",
     "messagePlaceholder": "Type a message...",
     "send": "Send",
     "emptyMsg": "Message is empty, nothing to send",

@@ -663,6 +663,8 @@
     "visitorHint": "您正在以访客身份咨询。回复会显示在此窗口中;留下邮箱后也可通过邮件收到回复。",
     "userHint": "您正在以站内用户身份咨询。回复会显示在此窗口中;留下邮箱后也可通过邮件收到回复。",
     "emailPlaceholder": "邮箱(选填 — 用于接收回复)",
+    "emailToggle": "添加邮箱以便接收回复(选填)",
+    "emailSet": "邮箱:{{email}}",
     "messagePlaceholder": "输入消息...",
     "send": "发送",
     "emptyMsg": "消息为空,不能发送",

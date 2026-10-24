@@ -1,0 +1,299 @@
+/* ── /contact 联系我们 ─────────────────────────────────────────
+   独立页,不继承站点导航(Header / 底部工具栏),版面三段式:
+
+     顶栏(不滚) ┌ 会话区(flex:1,唯一滚动容器) ┌ 输入区(flex:0,钉底)
+
+   关键约束:**全程不用 position: fixed**。模态框时代的内容被键盘顶走、
+   露出白板,根源就是 fixed 元素按布局视口定位,而 iOS 键盘只收缩 visual
+   viewport。改成页面后,高度链条是 #root → .app → .contact-page,
+   全都跟随 --vh(由 useKeyboardSafe 写入),键盘一弹整页收缩,
+   输入区天然停在屏幕底部。
+
+   移动端由 .mobile-page-area 包住(与其他独立页一致),此时外层已滚动,
+   本页改为 overflow: visible,避免「滚动套滚动」。 */
+
+.contact-page {
+  width: 100%;
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  background: var(--bg-secondary);
+}
+
+.contact-page-inner {
+  width: min(720px, 100%);
+  margin: 0 auto;
+  /* 上下两段固定(顶栏 + 输入区),中间会话区吃掉剩余空间。
+     用 min-height: 0 让 flex 子项真的能收缩 —— 缺了它,会话区会被
+     内容撑开,输入区被推出视口,与模态框时代的症状一致。 */
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  background: var(--bg-primary);
+}
+
+/* ── 顶栏 ─────────────────────────────────────────────────── */
+.contact-page-bar {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px clamp(14px, 3vw, 22px);
+  border-bottom: 1px solid var(--border-color);
+  background: var(--bg-primary);
+}
+.contact-back {
+  flex: 0 0 auto;
+  width: 36px;
+  height: 36px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--border-color);
+  border-radius: 10px;
+  background: var(--bg-primary);
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: border-color .15s ease, color .15s ease, background .15s ease;
+}
+.contact-back:hover { border-color: var(--accent); background: var(--accent-soft); color: var(--accent-hover); }
+.contact-back:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+.contact-page-title { min-width: 0; }
+.contact-page-title h1 {
+  margin: 0 0 2px;
+  font-size: var(--text-lg);
+  font-weight: var(--font-weight-semibold);
+  color: var(--text-primary);
+}
+.contact-page-title p {
+  margin: 0;
+  font-size: var(--text-xs);
+  color: var(--text-muted);
+  line-height: 1.5;
+}
+
+/* ── 会话区(唯一滚动容器)──────────────────────────────── */
+.contact-thread {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
+  padding: 16px clamp(14px, 3vw, 22px) 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  scroll-behavior: smooth;
+}
+
+.contact-msg { display: flex; align-items: flex-end; gap: 8px; }
+.contact-msg.user { justify-content: flex-end; }
+
+.contact-avatar {
+  flex-shrink: 0;
+  border-radius: 8px;
+  overflow: hidden;
+  width: 28px;
+  height: 28px;
+}
+.contact-avatar-img { width: 100%; height: 100%; object-fit: cover; border-radius: 8px; }
+.contact-avatar-default {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 8px;
+  background: var(--bg-tertiary);
+  color: var(--text-secondary);
+  border: 1px solid var(--border-color);
+}
+
+.contact-bubble {
+  max-width: 72%;
+  padding: 10px 12px;
+  border: 1.5px solid var(--border-color);
+  border-radius: 12px;
+  background: var(--bg-secondary);
+  color: var(--text-primary);
+  font-size: var(--text-sm);
+  line-height: 1.7;
+  word-break: break-word;
+  white-space: pre-wrap;
+}
+.contact-bubble.user {
+  background: var(--accent-soft);
+  border-color: var(--accent);
+}
+.contact-bubble.admin-reply {
+  border-color: var(--secondary-accent);
+  background: rgba(74, 155, 142, 0.08);
+}
+
+/* ── 输入区(钉底)───────────────────────────────────────────
+   flex: 0 0 auto —— 不参与收缩,始终完整可见。键盘弹起后页面高度下降,
+   会话区让出空间,本区不动。 */
+.contact-composer {
+  flex: 0 0 auto;
+  padding: 10px clamp(14px, 3vw, 22px);
+  padding-bottom: calc(10px + env(safe-area-inset-bottom, 0px));
+  border-top: 1px solid var(--border-color);
+  background: var(--bg-primary);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+/* 邮箱:默认折叠成一个按钮,展开后是单行输入 + 确认 */
+.contact-email-toggle {
+  align-self: flex-start;
+  padding: 4px 10px;
+  border: 1px dashed var(--border-color);
+  border-radius: 999px;
+  background: transparent;
+  color: var(--text-muted);
+  font-family: inherit;
+  font-size: var(--text-xs);
+  cursor: pointer;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  transition: border-color .15s ease, color .15s ease;
+}
+.contact-email-toggle:hover { border-color: var(--accent); color: var(--accent-hover); }
+.contact-email-toggle.filled { border-style: solid; border-color: var(--secondary-accent); color: var(--text-secondary); }
+
+.contact-email-row { display: flex; gap: 8px; }
+.contact-email-input {
+  flex: 1;
+  min-width: 0;
+  padding: 8px 10px;
+  border: 1.5px solid var(--border-color);
+  border-radius: 10px;
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  font-size: var(--text-sm);
+  outline: none;
+  transition: border-color .15s ease;
+}
+.contact-email-input:focus { border-color: var(--accent); }
+.contact-email-input::placeholder { color: var(--text-muted); }
+.contact-email-done {
+  flex-shrink: 0;
+  padding: 0 12px;
+  border: 1.5px solid var(--border-color);
+  border-radius: 10px;
+  background: var(--bg-secondary);
+  color: var(--text-secondary);
+  font-family: inherit;
+  font-size: var(--text-sm);
+  cursor: pointer;
+}
+.contact-email-done:hover { border-color: var(--accent); color: var(--accent-hover); }
+
+.contact-captcha { display: flex; justify-content: center; }
+.turnstile-wrap {
+  position: relative;
+  width: 300px;
+  max-width: 100%;
+  height: 65px;
+}
+.turnstile-host { width: 100%; height: 65px; }
+/* 加载过渡:组件就绪前覆盖的渐进加载态,就绪后淡出 */
+.turnstile-loading {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  background: var(--bg-primary);
+  border: 1.5px dashed var(--border-color);
+  border-radius: 10px;
+  animation: turnstile-loading-in .3s ease;
+}
+.turnstile-spinner {
+  width: 18px;
+  height: 18px;
+  border: 2.5px solid var(--border-color);
+  border-top-color: var(--accent);
+  border-radius: 50%;
+  animation: turnstile-spin .8s linear infinite;
+}
+.turnstile-loading-text {
+  font-size: var(--text-xs);
+  color: var(--text-muted);
+  animation: turnstile-breathe 1.4s ease-in-out infinite;
+}
+@keyframes turnstile-spin { to { transform: rotate(360deg); } }
+@keyframes turnstile-loading-in { from { opacity: 0; } to { opacity: 1; } }
+@keyframes turnstile-breathe { 0%, 100% { opacity: .45; } 50% { opacity: 1; } }
+
+.contact-captcha-off { font-size: var(--text-xs); color: var(--text-muted); }
+
+.contact-input-row { display: flex; gap: 8px; align-items: flex-end; }
+.contact-msg-input {
+  flex: 1;
+  min-width: 0;
+  padding: 11px 12px;
+  border: 1.5px solid var(--border-color);
+  border-radius: 12px;
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  font-size: var(--text-md);
+  outline: none;
+  transition: border-color .15s ease;
+}
+.contact-msg-input:focus { border-color: var(--accent); }
+.contact-msg-input::placeholder { color: var(--text-muted); }
+
+.contact-send-btn {
+  flex-shrink: 0;
+  width: 44px;
+  height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  border-radius: 12px;
+  background: var(--accent);
+  color: #fff;
+  cursor: pointer;
+  transition: background .15s ease, opacity .15s ease;
+}
+.contact-send-btn:hover { background: var(--accent-hover); }
+.contact-send-btn:disabled { opacity: .55; cursor: default; }
+
+/* ── 移动端 ───────────────────────────────────────────────── */
+/* 外层 .mobile-page-area 已是滚动容器,本页改为 overflow: visible,
+   否则会出现「滚动套滚动」—— 手指在会话区里滑不动外层,体验很差。 */
+.mobile-page-area > .contact-page {
+  overflow: visible;
+  flex: none;
+}
+
+@media (max-width: 639px) {
+  .contact-page-inner {
+    /* 移动端整页贴着视口排,不留两侧留白 */
+    width: 100%;
+  }
+  .contact-bubble { max-width: 80%; }
+  /* 会话区至少留住一段可读高度,否则键盘弹起后只剩两行气泡 */
+  .contact-thread { min-height: 120px; }
+}
+
+/* 桌面端:居中卡片,四周留白 */
+@media (min-width: 640px) {
+  .contact-page { padding: 20px clamp(16px, 3vw, 32px); }
+  .contact-page-inner {
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-card);
+    box-shadow: var(--shadow-card);
+    overflow: hidden;
+  }
+}
