@@ -14,6 +14,7 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { PALETTE_LIST } from '../../data/palettes'
 import { MAX_PALETTE_NAME } from '../../services/beads/personalPalette'
+import { isIOSSafariLike } from '../../utils/device'
 import {
   beadSizeOptions,
   brandOptions,
@@ -58,8 +59,13 @@ export default function PaletteSetupDialog({
     return sizes.includes(Number(value.beadSizeMm)) ? '' : CUSTOM
   })
 
-  // 默认聚焦名称(规格 §4.2)
+  // 默认聚焦名称 —— **仅非 iOS**。
+  // 移动端不自动聚焦(与 App.jsx 保存对话框同一结论,规格 08 §5):autoFocus
+  // 会立刻唤起键盘,与浮层收缩动画互相竞争。更麻烦的是本表单里有三个 select,
+  // iOS 上点下拉框会先收起键盘;用户被迫在「点输入框弹键盘 → 点下拉框收键盘」
+  // 之间反复往返。不自动聚焦后,用户按自己的顺序填写,不会平白多一轮。
   useEffect(() => {
+    if (isIOSSafariLike(navigator.userAgent, navigator.maxTouchPoints)) return
     nameRef.current?.focus()
   }, [])
 
