@@ -236,7 +236,6 @@ input:focus, textarea:focus, button:focus {
    注意:各组件 inline <style> 后加载,会覆盖这里的 padding 等声明 ——
    组件侧已相应只保留自身差异;新加全屏浮层时必须同步加入本组与
    useKeyboardSafe 的 OVERLAY_SELECTOR(mobileOverlayContract.test.js 会强制检查)。 */
-.contact-overlay,
 .admin-modal-overlay,
 .users-confirm-overlay,
 .profile-confirm-overlay,
@@ -312,7 +311,6 @@ input:focus, textarea:focus, button:focus {
 /* 手机(≤639px)全屏浮层打开时淡出画布底部工具栏 —— 工具栏是 fixed 定位,不受
    overlay 的 inset:0 遮挡,会盖在 modal 底部按钮上方;桌面端工具栏是侧栏,不需要。
    注意:`.my-beads-modal-overlay` 也要列进来,否则该页的编辑浮层底部按钮会被工具栏压住。 */
-body:has(.contact-overlay) .mobile-toolbar,
 body:has(.modal-overlay) .mobile-toolbar,
 body:has(.admin-modal-overlay) .mobile-toolbar,
 body:has(.users-confirm-overlay) .mobile-toolbar,

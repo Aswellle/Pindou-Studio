@@ -68,6 +68,9 @@ import { PrivacyPolicy, TermsOfService } from './components/LegalPages'
 import MobileCanvasInfoBar from './components/MobileCanvasInfoBar'
 const CreateImagePage = lazy(() => import('./components/CreateImagePage'))
 import ProfilePage from './components/ProfilePage'
+// 联系我们:独立路由页(而非模态框)—— iOS Safari 键盘只收缩 visual viewport,
+// 浮层会被顶走露白,且浮层内两个编辑框在键盘弹起后互相挤压
+const ContactPage = lazy(() => import('./components/ContactPage'))
 // Gallery V2:已对齐 V1 全部功能并通过灰度验证,接任 /gallery 主路由
 // (V1 Gallery.jsx 源码转存 _legacy/ 本地归档,不再入库)
 const GalleryPage = lazy(() => import('./features/gallery/GalleryPage'))
@@ -226,10 +229,11 @@ export default function App() {
     : location.pathname.startsWith('/create/image') ? 'createImage'
     : location.pathname.startsWith('/import') ? 'import'
     : location.pathname.startsWith('/my/beads') ? 'myBeads'
+    : location.pathname.startsWith('/contact') ? 'contact'
     : location.pathname.startsWith('/profile') ? 'profile'
     : 'canvas'
   // 核心功能页不继承站点导航，页面内部提供自己的返回与操作层。
-  const isStandalonePage = currentPage === 'login' || currentPage === 'adminLogin' || currentPage === 'privacy' || currentPage === 'terms' || currentPage === 'createImage' || currentPage === 'import' || currentPage === 'profile' || currentPage === 'myBeads'
+  const isStandalonePage = currentPage === 'login' || currentPage === 'adminLogin' || currentPage === 'privacy' || currentPage === 'terms' || currentPage === 'createImage' || currentPage === 'import' || currentPage === 'profile' || currentPage === 'myBeads' || currentPage === 'contact'
 
   // iOS Safari 键盘安全(全站统一,防复发机制):
   // 监听 visual viewport 的 resize/scroll 与聚焦,把可视高度写入 --visible-vh、
@@ -330,7 +334,7 @@ export default function App() {
   }, [handleUndo, handleRedo])
 
   // 保存/导出弹层同时打开时用 fixed 锁(记录并回滚滚动位置);单独保存弹层只需 overflow 锁。
-  // 统一走引用计数,避免与 ContactUsModal / ImageQuantizer 等弹层互相覆盖。
+  // 统一走引用计数,避免与 ImageQuantizer / 版本面板等弹层互相覆盖。
   // 版本面板同样需要滚动锁:它自己内部滚动,背景不应跟着动。
   const anyModalOpen = showSaveDialog || showExport || !!versionsWork
   useScrollLock(anyModalOpen, { fixed: showExport })
@@ -1023,6 +1027,12 @@ export default function App() {
             />
           } />
 
+          <Route path="/contact" element={
+            <Suspense fallback={<LoadingScreen />}>
+              <ContactPage user={user} />
+            </Suspense>
+          } />
+
           <Route path="/admin/dashboard" element={
             <Suspense fallback={<LoadingScreen />}>
               <AdminDashboardPage
@@ -1435,6 +1445,13 @@ export default function App() {
             />
           </div>
         } />
+        <Route path="/contact" element={
+          <div className="mobile-page-area">
+            <Suspense fallback={<LoadingScreen />}>
+              <ContactPage user={user} />
+            </Suspense>
+          </div>
+        } />
         <Route path="/admin/login" element={renderAdminLoginPage()} />
         <Route path="/admin" element={
           <Suspense fallback={<LoadingScreen />}>
@@ -1658,6 +1675,11 @@ export default function App() {
       desc: '管理个人拼豆色卡、豆子库存，并把当前图纸的颜色匹配到目标色卡。',
       noindex: true,
     },
+    contact: {
+      title: '联系我们 - 拼豆Studio',
+      desc: '向拼豆Studio 运营者反馈使用问题、提交功能建议或咨询拼豆图纸相关问题，回复会直接显示在会话中。',
+      noindex: true,
+    },
     privacy: {
       title: '隐私政策 - 拼豆Studio',
       desc: '了解拼豆Studio如何收集、使用和保护您的个人信息，以及账号验证、云端存储与第三方服务的详细说明。',
@@ -1675,7 +1697,7 @@ export default function App() {
     canvas: '/', gallery: '/gallery', tutorials: '/tutorials', admin: '/admin',
     adminLogin: '/admin/login', login: '/login', profile: '/profile',
     createImage: '/create/image', import: '/import', privacy: '/privacy', terms: '/terms',
-    myBeads: '/my/beads',
+    myBeads: '/my/beads', contact: '/contact',
   }
   const SITE_ORIGIN = 'https://tangnotes.site'
   // 主题/合集/图纸详情是动态内容页,canonical 自指;其余 /gallery/* 子路径

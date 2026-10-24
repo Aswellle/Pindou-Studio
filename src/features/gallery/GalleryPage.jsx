@@ -22,7 +22,6 @@ import { getPalette, PALETTE_LIST } from '../../data/palettes'
 import { exportAsPNG } from '../../services/BeadPatternExporter'
 import { useToast } from '../../components/Toast'
 import ThumbnailCanvas from '../../components/ThumbnailCanvas'
-import ContactUsModal from '../../components/ContactUsModal'
 import { useGalleryQuery, COLOR_COUNT_TIERS } from './hooks/useGalleryQuery'
 import { useGalleryTemplates } from './hooks/useGalleryTemplates'
 import useDownloadCounts from './hooks/useDownloadCounts'
@@ -95,8 +94,7 @@ export default function GalleryPage({ onLoadTemplate, onDeleteWork, onLoadWork, 
   const [brandOverride, setBrandOverride] = useState({})
   // 待确认填充到画布的模板(卡片点击不再直接填充,弹窗让用户确认,避免误触)
   const [pendingLoad, setPendingLoad] = useState(null)
-  const [showContact, setShowContact] = useState(false)
-  // 载入确认与联系弹层打开时锁背景滚动(引用计数;联系弹层内部也持有同一把锁)
+  // 载入确认弹层打开时锁背景滚动(引用计数)
   useScrollLock(!!pendingLoad)
 
   // 可访问性(规格 08 §5):载入确认浮层
@@ -308,14 +306,13 @@ export default function GalleryPage({ onLoadTemplate, onDeleteWork, onLoadWork, 
         </button>
         <button
           className="gallery-float-btn contact"
-          onClick={() => setShowContact(true)}
+          onClick={() => navigate('/contact')}
           aria-label={t('gallery.contactUs')}
           title={t('gallery.contactUs')}
         >
           <MessageCircle size={20} />
         </button>
       </div>
-      {showContact && <ContactUsModal user={user} onClose={() => setShowContact(false)} />}
 
       <div className="gallery-header">
         <h1 className="gallery-title">{t('gallery.title')}</h1>

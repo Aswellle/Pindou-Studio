@@ -1,7 +1,7 @@
 /**
  * useScrollLock — 全站统一的 body 滚动锁(引用计数)。
  *
- * 背景(R4):此前 App、ContactUsModal、ImageQuantizer、BottomSheet 各自保存/恢复
+ * 背景(R4):此前 App、ImageQuantizer、BottomSheet 各自保存/恢复
  * `document.body.style.overflow`,叠加弹层或快速开关时后挂载的组件会把前一个组件的
  * 锁当成初始值,先卸载的一方又直接清空样式 —— 结果要么提前解锁、要么锁残留。
  *

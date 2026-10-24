@@ -23,7 +23,7 @@ const KEYBOARD_SAFE = readFileSync(join(SRC, 'hooks', 'useKeyboardSafe.js'), 'ut
 const CLICK_CATCHERS = new Set(['export-menu-overlay', 'brand-menu-overlay', 'selection-menu-overlay'])
 
 // 自带完整浮层基础的类:其他浮层可以叠加它们获得同一套契约
-const SHARED_BASES = new Set(['modal-overlay', 'contact-overlay', 'admin-modal-overlay',
+const SHARED_BASES = new Set(['modal-overlay', 'admin-modal-overlay',
   'users-confirm-overlay', 'profile-confirm-overlay', 'load-confirm-overlay',
   'my-beads-modal-overlay', 'quantizer-zoom'])
 
@@ -219,7 +219,7 @@ const contractOwner = (cls) => {
 // ── 浮层可访问性契约(规格 08 §5)───────────────────────────
 // 承载内容的浮层容器(遮罩本身不需要 dialog 语义)
 const DIALOG_CONTAINERS = new Set([
-  'export-modal-content', 'contact-modal', 'admin-modal', 'admin-gate-confirm',
+  'export-modal-content', 'admin-modal', 'admin-gate-confirm',
   'users-confirm', 'modal-content', 'load-confirm-modal', 'my-beads-modal',
   'save-dialog', 'export-confirm-dialog', 'brand-switch-dialog', 'replace-dialog',
   'quantizer-zoom',
@@ -256,7 +256,6 @@ describe('移动端全屏浮层契约', () => {
   it('至少收集到已知的浮层类(防止正则失配导致空跑通过)', () => {
     expect(overlays).toEqual(expect.arrayContaining([
       'modal-overlay',
-      'contact-overlay',
       'admin-modal-overlay',
       'users-confirm-overlay',
       'profile-confirm-overlay',
@@ -276,7 +275,7 @@ describe('移动端全屏浮层契约', () => {
       expect(cssBlockFor('.modal-overlay')).toContain('inset: 0')
       return
     }
-    const sharedStart = INDEX_CSS.indexOf('.contact-overlay,\n.admin-modal-overlay,')
+    const sharedStart = INDEX_CSS.indexOf('.admin-modal-overlay,\n.users-confirm-overlay,')
     expect(sharedStart).toBeGreaterThan(-1)
     const sharedEnd = INDEX_CSS.indexOf('}', sharedStart)
     expect(INDEX_CSS.slice(sharedStart, sharedEnd)).toContain(`.${owner}`)
@@ -287,7 +286,7 @@ describe('移动端全屏浮层契约', () => {
   })
 
   it('共享浮层组用 inset:0 盖满布局视口,并同时让出顶部偏移与键盘高度', () => {
-    const block = cssBlockFor('.contact-overlay')
+    const block = cssBlockFor('.admin-modal-overlay')
     expect(block).toContain('inset: 0')
     expect(block).toContain('var(--visible-vh-top')
     expect(block).toContain('var(--keyboard-height')
