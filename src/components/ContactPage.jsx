@@ -2,19 +2,20 @@
  * ContactPage — /contact 联系我们
  *
  * 为什么是**路由页**而不是模态框:
- *   模态框在 iOS Safari 上有两个叠加的顽疾 —— 浮层是 fixed + 布局视口坐标,
- *   键盘只收缩 visual viewport,于是浮层被顶走、露出白板;而浮层里又同时摆着
- *   邮箱框与消息框两个编辑控件,键盘弹起后可用高度骤减,用户既看不清聊天内容
- *   也填不完表单。改成独立页面后,页面高度本来就跟 --vh 走(#root 的唯一根壳
- *   补偿),键盘收缩整页跟着收缩,不再需要任何 --visible-vh / --keyboard-height
- *   的浮层补偿。
+ *   模态框在 iOS Safari 上有两个叠加的顽疾 —— 浮层里同时摆着邮箱框与消息框
+ *   两个编辑控件,键盘弹起后可用高度骤减,用户既看不清聊天内容也填不完表单。
+ *   改成独立页面后版面可以专心服务这一件事:整页只有会话 + 一个输入框。
  *
- * 版面三段式(全部在正常文档流里,没有 position: fixed):
+ * 版面三段式(全部在正常文档流里,没有 position: fixed 的子元素):
  *   1. 顶栏 —— 返回 + 标题 + 说明,不出现站点导航(本页属独立页);
  *   2. 会话区 —— flex: 1 + 内部滚动,键盘弹起时收缩到剩余空间;
  *   3. 输入区 —— flex: 0 0 auto,钉在页面底部。用 flex 而不是 fixed:
- *      fixed 正是上面那个白板问题的来源,而 flex 底部在收缩后的容器里天然
- *      就是「屏幕底部」。
+ *      本页的定位框已经是 fixed 且恰好等于可见区域,尾部 flex 项天然就是
+ *      「屏幕底部」,再套一层 fixed 只会重新引入布局视口坐标问题。
+ *
+ * 页面根节点本身是 fixed + inset:0(见 contactPage.css):iOS 键盘弹起时
+ * Safari 会滚动文档 / 平移视觉视口,普通流与 absolute 的整页会跟着被推上去,
+ * 中间露出 body 底色 —— 那片「大片空白」就是这么来的。fixed 不受两者影响。
  *
  * 邮箱默认折叠成一个按钮:本页默认只有**一个**编辑控件(消息输入),点开才多一个。
  * 这是「减少同时出现的编辑框」的直接落地。
@@ -250,11 +251,10 @@ export default function ContactPage({ user }) {
   const savedEmail = email.trim()
 
   return (
-    /* 定位宿主:页面用绝对定位对齐视觉视口矩形(见 contactPage.css 顶部注释),
-       需要一个 position: relative 的祖先作参照系。.app / .main-content / #root
-       都不是定位元素,不加这层会一路找到视口,top 被重复计算。 */
-    <div className="contact-page-host">
-      <div className="contact-page">
+    /* 页面根节点就是定位框:fixed + inset:0 盖满布局视口,内容再用内边距
+       框进视觉视口(见 contactPage.css 顶部注释)。不需要定位宿主 ——
+       fixed 的包含块是初始包含块,祖先的 position 不影响它。 */
+    <div className="contact-page">
       <div className="contact-page-inner">
         <header className="contact-page-bar">
           <button
@@ -367,7 +367,6 @@ export default function ContactPage({ user }) {
             </button>
           </div>
         </footer>
-      </div>
       </div>
     </div>
   )
