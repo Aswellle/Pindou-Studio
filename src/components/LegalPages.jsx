@@ -1,5 +1,6 @@
 import { Link, useParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
+import BackButton from './BackButton';
 
 /* ═════════════════════════════════════════════════════════════
    法律文档版本化渲染
@@ -30,12 +31,7 @@ function LegalDocument({ versions, type, onBack }) {
         </svg>
         <span className="legal-logo-text">{t('app.title')}</span>
       </Link>
-      <button className="legal-back-btn" onClick={onBack} aria-label={t('legal.back')}>
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-          <polyline points="15 18 9 12 15 6"/>
-        </svg>
-        <span>{t('legal.back')}</span>
-      </button>
+      <BackButton className="legal-back-btn" onClick={onBack} label={t('legal.back')} />
       <div className="legal-container">
         <h1>{current.title}</h1>
         <p className="legal-updated">
@@ -108,50 +104,32 @@ function LegalDocument({ versions, type, onBack }) {
           font-size: var(--text-xl);
           font-weight: var(--font-weight-semibold);
         }
-        .legal-back-btn {
-          display: inline-flex;
-          align-items: center;
-          gap: 6px;
-          padding: 8px 16px;
-          margin-bottom: 20px;
-          font-size: 14px;
-          font-weight: 500;
-          color: var(--text-secondary);
-          background: var(--bg-secondary);
-          border: 1px solid var(--border-color);
-          border-radius: 8px;
-          cursor: pointer;
-          transition: all 0.2s;
-          font-family: inherit;
-        }
-        .legal-back-btn:hover {
-          color: var(--accent);
-          border-color: var(--accent);
-          background: var(--accent-soft);
-        }
-        .legal-back-btn svg { flex-shrink: 0; }
+        /* 返回按钮本体在 BackButton.css；这里只管它在本文档里的落位。
+           窄屏改成钉在底部的圆形悬浮键 —— 法律文档很长，顶部的返回滚下去就够不到了。 */
+        .legal-back-btn { margin-bottom: 20px; }
         @media (max-width: 640px) {
-          .legal-back-btn {
+          /* 双类选择器:需要压过 BackButton.css 的 .back-btn-md 尺寸档 */
+          .legal-page .legal-back-btn {
             position: fixed;
             bottom: 24px;
             left: 50%;
             transform: translateX(-50%);
+            width: 48px;
+            height: 48px;
             margin-bottom: 0;
-            padding: 12px 24px;
-            font-size: 15px;
+            border-radius: 50%;
             background: var(--text-primary);
             color: white;
             border: none;
-            border-radius: 24px;
             box-shadow: 0 4px 16px rgba(43,36,32,0.2);
             z-index: 50;
           }
-          .legal-back-btn:hover {
+          .legal-page .legal-back-btn:hover {
             background: var(--accent);
             color: white;
             border: none;
           }
-          .legal-back-btn:active {
+          .legal-page .legal-back-btn:active {
             transform: translateX(-50%) scale(0.96);
           }
           .legal-page { padding-bottom: 88px; }

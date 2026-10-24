@@ -8,6 +8,7 @@
 import { useState, useEffect } from 'react'
 import { useTranslation, Trans } from 'react-i18next'
 import { useNavigate, Link } from 'react-router-dom'
+import BackButton from './BackButton'
 import { useToast } from './Toast'
 import { passwordWeakness } from '../utils/password'
 
@@ -255,7 +256,7 @@ export default function AuthPage({
         <span className="auth-logo-text">{t('app.title')}</span>
       </Link>
       <div className="auth-card">
-        <button className="auth-back" onClick={goBack}>← {t('common.back')}</button>
+        <BackButton className="auth-back" onClick={goBack} />
 
         {mode === 'login' || mode === 'register' ? (
           <div className="auth-mode-switch">
@@ -456,23 +457,8 @@ export default function AuthPage({
           text-decoration: none;
         }
         .auth-logo-text { font-size: var(--text-xl); font-weight: var(--font-weight-semibold); }
-        .auth-back {
-          display: inline-flex;
-          align-items: center;
-          align-self: flex-start;
-          gap: 6px;
-          background: var(--bg-secondary);
-          border: 1px solid var(--border-color);
-          color: var(--text-secondary);
-          font-size: var(--text-md);
-          font-weight: 500;
-          cursor: pointer;
-          padding: 8px 16px;
-          border-radius: 10px;
-          margin-bottom: 12px;
-          transition: all 0.15s;
-        }
-        .auth-back:hover { color: var(--accent); border-color: var(--accent); background: var(--accent-soft); }
+        /* 返回按钮本体在 BackButton.css；这里只留它与下方表单的间距 */
+        .auth-back { margin-bottom: 12px; }
         .auth-card {
           width: 100%;
           max-width: 380px;

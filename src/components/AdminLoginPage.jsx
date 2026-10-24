@@ -12,6 +12,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useNavigate, Link } from 'react-router-dom'
+import BackButton from './BackButton'
 import { supabase } from '../services/supabase'
 
 export default function AdminLoginPage({ onLogin }) {
@@ -169,7 +170,7 @@ export default function AdminLoginPage({ onLogin }) {
         <span className="auth-logo-text">{t('app.title')}</span>
       </Link>
       <div className="auth-card">
-        <button className="auth-back" onClick={() => navigate('/')}>← {t('common.back')}</button>
+        <BackButton className="auth-back" onClick={() => navigate('/')} />
         <div className="admin-login-badge">
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
             <rect x="3" y="11" width="18" height="11" rx="2"/>
@@ -286,18 +287,8 @@ export default function AdminLoginPage({ onLogin }) {
               text-decoration: none;
             }
             .auth-logo-text { font-size: var(--text-xl); font-weight: var(--font-weight-semibold); }
-            .auth-back {
-              display: block;
-              align-self: flex-start;
-              background: transparent;
-              border: none;
-              color: var(--text-secondary);
-              font-size: var(--text-sm);
-              cursor: pointer;
-              padding: 0;
-              margin-bottom: 10px;
-            }
-            .auth-back:hover { color: var(--accent); }
+            /* 返回按钮本体在 BackButton.css；这里只留它与下方徽标的间距 */
+            .auth-back { margin-bottom: 10px; }
             .auth-card {
               width: 100%;
               max-width: 380px;
