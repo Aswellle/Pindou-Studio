@@ -12,6 +12,8 @@
  *   node scripts/verify-rls.mjs
  *
  *   # 可选:提供 service_role 时,脚本会用它建号并在结束时删除临时账号
+ *   # 新旧两种密钥格式都接受,新格式(sb_secret_…)优先
+ *   SUPABASE_SECRET_KEY=... node scripts/verify-rls.mjs
  *   SUPABASE_SERVICE_ROLE_KEY=... node scripts/verify-rls.mjs
  *
  * 两种模式:
@@ -45,12 +47,29 @@
 
 import { createClient } from '@supabase/supabase-js'
 
+/**
+ * 密钥选择:新格式(sb_secret_ / sb_publishable_)优先,旧 JWT 兜底。
+ *
+ * 按**值的形状**排序,而不是按变量名 —— 停用 Legacy JWT keys 之后,环境里
+ * 残留的旧 key 会一律 401。若它排在前面,整套断言会集体失败,看起来像 RLS
+ * 坏了,实际只是拿了一把已作废的钥匙。
+ *
+ * 占位符(如 .env.local 里 vercel env pull 留下的 "[SENSITIVE]")视为「未提供」
+ * 而不是「提供错了」,否则「新格式是占位符、旧格式是真的」这种组合会被误判成
+ * 「没有密钥」,白跑一遍 anon 模式。
+ */
+const isPlaceholder = (v) => !v || v.length <= 20 || v.startsWith('[')
+const isNewKeyFormat = (v) => v.startsWith('sb_secret_') || v.startsWith('sb_publishable_')
+
+function pickKey(names) {
+  const usable = names.map((n) => process.env[n]).filter((v) => !isPlaceholder(v))
+  return usable.find(isNewKeyFormat) || usable[0]
+}
+
 const URL_ = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL
-const ANON = process.env.SUPABASE_ANON_KEY || process.env.VITE_SUPABASE_ANON_KEY
-const SERVICE = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_SECRET_KEY
-// .env.local 里的占位符(如 "[SENSITIVE]")会让 supabase-js 发出无效请求,
-// 视为「未提供」而不是「提供错了」。
-const HAS_SERVICE = Boolean(SERVICE && SERVICE.length > 20 && !SERVICE.startsWith('['))
+const ANON = pickKey(['SUPABASE_ANON_KEY', 'VITE_SUPABASE_ANON_KEY'])
+const SERVICE = pickKey(['SUPABASE_SERVICE_ROLE_KEY', 'SUPABASE_SECRET_KEY'])
+const HAS_SERVICE = Boolean(SERVICE)
 
 const results = []
 function check(name, ok, detail = '') {
