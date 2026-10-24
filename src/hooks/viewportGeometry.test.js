@@ -123,6 +123,31 @@ describe('computeViewport · 焦点闩锁', () => {
     expect(r.changed).toBe(true) // 刚收起 → 调用方补一次焦点修正
   })
 
+  it('几何永不恢复时,收敛耗尽可强制解除(settleExpired)', () => {
+    // iOS 26 已知 bug(Apple Forums 800125 / FB19889436):键盘收起后
+    // visualViewport.height 不恢复。此时「布局视口 − 视觉视口 ≥ 120」恒成立,
+    // 只靠几何永远解不开闩锁 → 键盘高度永久非零 → 页面底部留下大片空白。
+    const stuck = run({ visualHeight: 500, textFocused: false, latched: true, wasKeyboardOpen: true })
+    expect(stuck.latched).toBe(true) // 没有第二条路径时:卡死
+
+    const expired = run({
+      visualHeight: 500, textFocused: false, latched: true, wasKeyboardOpen: true, settleExpired: true,
+    })
+    expect(expired.latched).toBe(false)
+    expect(expired.keyboardOpen).toBe(false)
+    expect(expired.keyboardHeight).toBe(0)
+    expect(expired.changed).toBe(true)
+  })
+
+  it('settleExpired 不解除「仍在输入」的闩锁', () => {
+    // 用户还在文本框里:几何即使异常,也不能把内容顶回键盘后面
+    const r = run({
+      visualHeight: 500, textFocused: true, latched: true, wasKeyboardOpen: true, settleExpired: true,
+    })
+    expect(r.latched).toBe(true)
+    expect(r.keyboardOpen).toBe(true)
+  })
+
   it('stale offsetTop 在键盘关闭时被归一化为 0', () => {
     // iOS 26 报告过:键盘收起后 offsetTop 仍残留 20
     const r = run({ visualHeight: LAYOUT, offsetTop: 20, textFocused: false, latched: false })

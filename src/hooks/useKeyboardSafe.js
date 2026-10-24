@@ -85,6 +85,9 @@ export default function useKeyboardSafe() {
     let wantFocusCheck = false
     // 焦点闩锁:文本控件聚焦后置真,几何恢复或缩放时解除
     let keyboardLatched = false
+    // 收敛轮询耗尽仍未见几何恢复时为真(见 beginSettle / settleStep 注释):
+    // 闩锁的第二条解除路径,专治 iOS 26「键盘收起后 visualViewport 不恢复」
+    let settleExpired = false
     // 上一帧的键盘状态,用于识别「刚打开 / 刚关闭」并补一次焦点修正
     let lastKeyboardOpen = false
     // 最近一次测量得到的视觉视口窗口(布局视口坐标),供焦点可见性修正使用
@@ -110,6 +113,7 @@ export default function useKeyboardSafe() {
         textFocused: isTextInput(document.activeElement),
         latched: keyboardLatched,
         wasKeyboardOpen: lastKeyboardOpen,
+        settleExpired,
       })
 
       set('--visible-vh', `${next.visibleHeight}px`)
@@ -215,19 +219,36 @@ export default function useKeyboardSafe() {
     // 此时最后一次 measure 停在键盘打开态,--vh 保持收缩值,根壳比布局视口矮,
     // 页面底部就悬在浏览器视口底部之上,而且再也回不来(没有后续事件唤醒)。
     //
+    // 更糟的是 iOS 26 的已知 bug(Apple Forums 800125 / FB19889436):键盘收起
+    // 后 visualViewport.height 压根不恢复。这时几何**永远不会**回到阈值以下,
+    // 「等几何」的闩锁就永久卡死。所以收敛轮询跑满仍未见几何恢复时,置
+    // settleExpired 强制解锁 —— 焦点确实已经离开,继续按键盘态排版只会让
+    // 页面底部留下一大片空白。
+    //
     // 这里不是固定延时:每帧重新测量,一旦判定键盘已关就立即停止;最多 30 帧
     // (约 500ms)后放弃,不会变成常驻轮询。
     const stopSettle = () => {
       if (settleRaf) { cancelAnimationFrame(settleRaf); settleRaf = 0 }
       settleLeft = 0
+      settleExpired = false
     }
     const settleStep = () => {
       settleRaf = 0
       if (settleLeft <= 0) return
       settleLeft -= 1
       measure()
-      if (lastKeyboardOpen && settleLeft > 0) settleRaf = requestAnimationFrame(settleStep)
-      else settleLeft = 0
+      if (lastKeyboardOpen && settleLeft > 0) {
+        settleRaf = requestAnimationFrame(settleStep)
+      } else if (lastKeyboardOpen) {
+        // 轮询耗尽、几何仍未恢复、且焦点确实不在文本控件上 → 强制解锁。
+        // 再测一次让新状态立刻生效(此时 settleExpired 为真)。
+        settleLeft = 0
+        settleExpired = true
+        measure()
+        settleExpired = false
+      } else {
+        settleLeft = 0
+      }
     }
     const beginSettle = () => {
       stopSettle()

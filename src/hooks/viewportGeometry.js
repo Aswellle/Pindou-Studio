@@ -14,7 +14,12 @@
  *   3. 几何差值 ≥ KEYBOARD_MIN_INSET 才算键盘。软键盘 ≥200px,地址栏/工具栏动画
  *      <80px,120px 落在两者中间;
  *   4. 键盘关闭时所有输出归一化为「布局视口」,不保留任何 offsetTop 残留
- *      (iOS 26 有键盘收起后 offsetTop 不归零的报告)。
+ *      (iOS 26 有键盘收起后 offsetTop 不归零的报告);
+ *   5. 闩锁有**两条**解除路径,缺一不可:几何恢复(正常情况),或焦点已离开
+ *      文本控件且收起动画早已结束(settleExpired)。只有前者的话,iOS 26 上
+ *      「键盘收起后 visualViewport.height 不恢复」的已知 bug(Apple Forums
+ *      800125 / FB19889436)会让闩锁永远卡住 —— 页面永久停在收缩后的高度,
+ *      屏幕下方留下大片空白且再也回不来。
  */
 
 /** 键盘最小遮挡高度:低于此值视为浏览器 UI 变化而非键盘 */
@@ -35,6 +40,9 @@ const SCALE_EPSILON = 0.01
  * @param {boolean} [input.textFocused=false] - 当前焦点是否在会唤起软键盘的文本控件上
  * @param {boolean} [input.latched=false] - 上一帧的焦点闩锁状态
  * @param {boolean} [input.wasKeyboardOpen=false] - 上一帧的键盘开合状态
+ * @param {boolean} [input.settleExpired=false] - 焦点已离开且收起动画早已结束
+ *   (由调用方的有界收敛轮询判定)。几何在 iOS 26 上可能永不恢复,这条是闩锁的
+ *   第二条解除路径 —— 见文件头第 5 条。
  * @returns {{
  *   keyboardOpen: boolean,
  *   keyboardHeight: number,
@@ -57,6 +65,7 @@ export function computeViewport({
   textFocused = false,
   latched = false,
   wasKeyboardOpen = false,
+  settleExpired = false,
 }) {
   // 无 visualViewport:退化到布局视口,键盘高度不可测 → 0。
   // 闩锁一并解除,避免浏览器升级/降级切换后残留状态。
@@ -85,10 +94,17 @@ export function computeViewport({
   // 焦点闩锁:缩放状态下绝不判键盘;文本控件聚焦才置真;
   // 几何差值回到阈值以下才解除 —— 这样 focusout 之后键盘收起动画期间
   // 变量不会中途跳回全高(页面不抖),动画结束、几何真正恢复后自然解除。
+  //
+  // settleExpired 是第二条解除路径:焦点已离开、收起动画早已结束,但几何因
+  // iOS 26 的 bug 没有恢复。此时若仍坚持「等几何」,闩锁就永久卡住 ——
+  // 键盘高度永远非零,页面底部留下一大片空白且再也回不来。
+  // 只在**焦点不在文本控件上**时才允许它解除:用户仍在输入时几何即使异常,
+  // 也不该把内容顶回键盘后面。
   let nextLatched = latched
   if (zoomed) nextLatched = false
   else if (textFocused) nextLatched = true
   else if (inset < KEYBOARD_MIN_INSET) nextLatched = false
+  else if (settleExpired) nextLatched = false
 
   const keyboardOpen = !zoomed && nextLatched && inset >= KEYBOARD_MIN_INSET
 
