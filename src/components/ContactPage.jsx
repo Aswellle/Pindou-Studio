@@ -250,7 +250,11 @@ export default function ContactPage({ user }) {
   const savedEmail = email.trim()
 
   return (
-    <div className="contact-page">
+    /* 定位宿主:页面用绝对定位对齐视觉视口矩形(见 contactPage.css 顶部注释),
+       需要一个 position: relative 的祖先作参照系。.app / .main-content / #root
+       都不是定位元素,不加这层会一路找到视口,top 被重复计算。 */
+    <div className="contact-page-host">
+      <div className="contact-page">
       <div className="contact-page-inner">
         <header className="contact-page-bar">
           <button
@@ -363,6 +367,7 @@ export default function ContactPage({ user }) {
             </button>
           </div>
         </footer>
+      </div>
       </div>
     </div>
   )

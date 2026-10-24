@@ -3,23 +3,48 @@
 
      顶栏(不滚) ┌ 会话区(flex:1,唯一滚动容器) ┌ 输入区(flex:0,钉底)
 
-   关键约束:**全程不用 position: fixed**。模态框时代的内容被键盘顶走、
-   露出白板,根源就是 fixed 元素按布局视口定位,而 iOS 键盘只收缩 visual
-   viewport。改成页面后,高度链条是 #root → .app → .contact-page,
-   全都跟随 --vh(由 useKeyboardSafe 写入),键盘一弹整页收缩,
-   输入区天然停在屏幕底部。
+   **本页的高度不跟 --vh 走,直接绑原始视觉视口。**
 
-   移动端由 .mobile-page-area 包住(与其他独立页一致),此时外层已滚动,
-   本页改为 overflow: visible,避免「滚动套滚动」。 */
+   为什么:--vh / --visible-vh 都来自 useKeyboardSafe 的**键盘判定**,而判定
+   依赖「布局视口高 − 视觉视口高 ≥ 120px」。iOS 上存在布局视口同时收缩的路径
+   (interactive-widget=resizes-content 生效时尤其明显),差值掉到阈值以下就
+   判成「没有键盘」,变量被归一化回布局视口高。对浮层那只是补偿没生效;对
+   一整页,则是页面按**比可见区域更高**的框排版 —— 输入区被排到键盘后面,
+   中间 flex:1 的会话区把多出来的高度撑成键盘上方的大片空白,主控件被顶到
+   视口之外。这正是改造前模态框的症状,换成路由页后原样复现了一次。
+
+   --raw-visual-vh / --raw-visual-top 是浏览器报出的原始值,不做任何判定,
+   只夹掉不可能越界的那部分几何。页面框 = 可见区域,与判定成功与否解耦。
+
+   全程不用 position: fixed:fixed 按布局视口定位,键盘只收缩视觉视口,
+   正是白板的来源。这里用「绝对定位到视觉视口矩形」——
+   它同样以布局视口为坐标系,但 top/height 由原始值给出,
+   所以框永远落在可见区域上。 */
 
 .contact-page {
-  width: 100%;
-  flex: 1;
-  min-height: 0;
+  /* 绝对定位而不是 fixed:坐标系仍是布局视口,但 top/height 来自原始视觉视口,
+     于是框恒等于可见区域。键盘关闭时 --raw-visual-top=0、--raw-visual-vh=布局
+     视口高,与普通整页排版逐像素一致。 */
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: var(--raw-visual-top, 0px);
+  height: var(--raw-visual-vh, 100vh);
   display: flex;
   flex-direction: column;
   overflow: hidden;
   background: var(--bg-secondary);
+}
+
+/* 绝对定位的参照系:最近的定位祖先。.app / .main-content / #root 都不是
+   position: relative,所以这里显式给页面容器一个 —— 否则会一路找到视口,
+   坐标系变成视觉视口,top 被重复计算一次。 */
+.contact-page-host {
+  position: relative;
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
 }
 
 .contact-page-inner {
@@ -270,12 +295,9 @@
 .contact-send-btn:disabled { opacity: .55; cursor: default; }
 
 /* ── 移动端 ───────────────────────────────────────────────── */
-/* 外层 .mobile-page-area 已是滚动容器,本页改为 overflow: visible,
-   否则会出现「滚动套滚动」—— 手指在会话区里滑不动外层,体验很差。 */
-.mobile-page-area > .contact-page {
-  overflow: visible;
-  flex: none;
-}
+/* 不再被 .mobile-page-area 包裹(见 App.jsx 注释):那个容器是块级滚动容器,
+   页面在其中只能拿到内容高度,填不满视口 —— 底部留白正好在键盘上方。
+   本页直接挂在 flex 纵向的 .app 下,由 .contact-page-host 承接剩余高度。 */
 
 @media (max-width: 639px) {
   .contact-page-inner {
@@ -287,7 +309,10 @@
   .contact-thread { min-height: 120px; }
 }
 
-/* 桌面端:居中卡片,四周留白 */
+/* 桌面端:居中卡片,四周留白。
+   留白写在 .contact-page 自己身上是安全的 —— 全局 box-sizing: border-box
+   让 padding 落在 height 之内,框的外沿仍精确等于视觉视口矩形;
+   padding 只是把卡片往里收,露出的部分由 .contact-page 的底色填充。 */
 @media (min-width: 640px) {
   .contact-page { padding: 20px clamp(16px, 3vw, 32px); }
   .contact-page-inner {

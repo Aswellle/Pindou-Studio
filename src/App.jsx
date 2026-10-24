@@ -1445,12 +1445,15 @@ export default function App() {
             />
           </div>
         } />
+        {/* 联系我们直接作为 .app 的 flex 子项,不套 .mobile-page-area。
+            那个容器是**块级滚动容器**,页面在其中只能拿到内容高度,填不满
+            视口 —— 底部于是留出空白;键盘弹起、可见区收缩后,这段空白正好
+            露在键盘上方。本页自己的三段式布局需要拿到「整段剩余高度」,
+            所以与 /create/image 一样直接挂在 flex 纵向的 .app 下。 */}
         <Route path="/contact" element={
-          <div className="mobile-page-area">
-            <Suspense fallback={<LoadingScreen />}>
-              <ContactPage user={user} />
-            </Suspense>
-          </div>
+          <Suspense fallback={<LoadingScreen />}>
+            <ContactPage user={user} />
+          </Suspense>
         } />
         <Route path="/admin/login" element={renderAdminLoginPage()} />
         <Route path="/admin" element={
