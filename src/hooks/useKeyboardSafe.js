@@ -1,5 +1,5 @@
 import { useEffect } from 'react'
-import { computeViewport, focusScrollDelta } from './viewportGeometry'
+import { computeViewport, computeRawViewport, focusScrollDelta } from './viewportGeometry'
 
 // 全屏浮层类:浮层**遮罩自身**永不滚动,由 overlay 收缩机制处理(--visible-vh);
 // 但浮层**内部**的滚动容器(如 .my-beads-modal)会被修正到可见带内 ——
@@ -17,7 +17,8 @@ const OVERLAY_SELECTOR = [
 ].join(',')
 
 // 本 hook 负责写入的 CSS 变量(卸载时逐一清理)
-const VARS = ['--visible-vh', '--visible-vh-top', '--visual-offset-left', '--keyboard-height', '--vh']
+const VARS = ['--visible-vh', '--visible-vh-top', '--visual-offset-left', '--keyboard-height', '--vh',
+  '--raw-visual-vh', '--raw-visual-top']
 
 // 焦点可见性留白(输入框与滚动容器边缘之间)
 const FOCUS_PAD = 10
@@ -62,6 +63,12 @@ const isFocusableField = (el) => !!el && (el.tagName === 'INPUT' || el.tagName =
  *  - `--keyboard-height`   键盘打开时为 布局视口 − 视觉视口 − 顶部偏移,否则恒为 0。
  *  - `--vh`                根壳高度基准 = 上述可视高 * 0.01。
  *  - `--visual-offset-left` 横向偏移(当前无消费者,为横向 safe-area 预留)。
+ *  - `--raw-visual-vh` / `--raw-visual-top`
+ *                          **原始**视觉视口(高 / 顶偏移),不做任何键盘判定。
+ *                          给「整页框必须等于可见区域」的页面用(如 /contact):
+ *                          键盘判定有阈值,一旦漏判(布局视口也一起缩小时
+ *                          几何差 < 120px),上面的变量会归一化回布局视口高,
+ *                          整页就会按错误高度排版。原始值没有这个前提。
  *
  * 键盘状态用「焦点闩锁 + 几何阈值」判定,不使用任何定时器:
  *  文本控件聚焦 → 闩锁置真;缩放、或几何差回到阈值以下 → 闩锁解除。
@@ -119,6 +126,17 @@ export default function useKeyboardSafe() {
       // 根壳基准:键盘打开时取视觉视口高(根壳再由 max() 补上 offsetTop),
       // 其余情况恒为布局视口高 —— 缩放与地址栏动画都不再改变整棵树的高度。
       set('--vh', `${next.visibleHeight * 0.01}px`)
+
+      // 原始视觉视口(不做键盘判定):给「整页 = 可见区域」的页面用。
+      // 与上面的归一化变量并列存在 —— 浮层需要的是「键盘开没开」这个判断,
+      // 而独立页需要的是「此刻用户看得见多大一块」,后者不该受判定阈值影响。
+      const raw = computeRawViewport({
+        layoutHeight,
+        visualHeight: vv ? vv.height : null,
+        offsetTop: vv ? vv.offsetTop : 0,
+      })
+      set('--raw-visual-vh', `${raw.height}px`)
+      set('--raw-visual-top', `${raw.top}px`)
 
       // 供 ensureFocusedVisible 使用:视觉视口在布局视口坐标系里的窗口
       visualTop = next.visibleTop
