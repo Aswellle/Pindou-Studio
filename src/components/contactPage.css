@@ -3,23 +3,27 @@
 
      顶栏(不滚) ┌ 会话区(flex:1,唯一滚动容器) ┌ 输入区(flex:0,钉底)
 
-   **定位、尺寸与键盘补偿在 index.css 的「整页框」组里**(.contact-page),
-   全站只有那一处写 --visible-vh-top / --keyboard-height 补偿表达式。本文件
-   只负责这一页自己的排版与留白。
-
-   为什么页面框是 fixed + inset:0:视觉视口永远是布局视口的子集,框盖满布局
-   视口后无论 iOS 怎么平移视觉视口 / 滚动文档,看到的都还是本页 —— 白板在
-   几何上不可能出现。普通流会跟着文档上移(顶栏挤出屏幕、底部露白),absolute
-   则会被祖先 #root / .app 的 overflow:hidden 裁切。详细论证见 index.css 注释。
+   **定位、尺寸与键盘补偿全在 #root(index.css)。** #root 是 fixed + inset:0,
+   用 --visible-vh-top / --keyboard-height 内边距把内容框进视觉视口。本页只是
+   它的普通 flex 子项,天然继承那份已经让出键盘的内容区高度 ——
+   因此这里**不写任何高度、定位或补偿**,只负责三段式排版与自身留白。
+   再补一次就是双重让出:键盘弹起时内容被压掉两倍键盘高度,底部反而露白。
 
    --page-pad-x / --page-pad-y 是本页的基础留白:移动端 0(各段自己贴边),
-   桌面端把卡片往里收。补偿量由 index.css 与它们取 max。 */
+   桌面端把卡片往里收。 */
 
 .contact-page {
   --page-pad-x: 0px;
   --page-pad-y: 0px;
+  flex: 1;
+  min-height: 0;
+  padding-top: var(--page-pad-y);
+  padding-right: var(--page-pad-x);
+  padding-bottom: var(--page-pad-y);
+  padding-left: var(--page-pad-x);
   display: flex;
   flex-direction: column;
+  overflow: hidden;
   background: var(--bg-secondary);
 }
 
@@ -273,7 +277,7 @@
 /* ── 移动端 ───────────────────────────────────────────────── */
 /* 不再被 .mobile-page-area 包裹(见 App.jsx 注释):那个容器是块级滚动容器,
    页面在其中只能拿到内容高度,填不满视口 —— 底部留白正好在键盘上方。
-   本页是 fixed,直接挂在 .app 下也不会参与 .app 的 flex 分配。 */
+   本页直接挂在 flex 纵向的 .app 下,拿到整段剩余高度。 */
 
 @media (max-width: 639px) {
   .contact-page-inner {
@@ -286,8 +290,7 @@
 }
 
 /* 桌面端:居中卡片,四周留白。
-   留白写成 --page-pad-x / --page-pad-y 而不是 padding 简写 —— 简写会覆盖
-   .contact-page 上那组键盘 / safe-area 补偿,键盘一弹内容就顶到屏幕边缘。 */
+   留白写成 --page-pad-x / --page-pad-y,由 .contact-page 的 padding 消费。 */
 @media (min-width: 640px) {
   .contact-page {
     --page-pad-x: clamp(16px, 3vw, 32px);

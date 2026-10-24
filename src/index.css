@@ -80,9 +80,10 @@ body {
   line-height: 1.5;
   background: var(--bg-primary);
   color: var(--text-primary);
-  /* iOS 上 100vh 是大视口（URL 栏收起时的全屏高度），会让文档比可见区域
-     高出一个 URL 栏、页面在 body 层可滚动，后台恢复时整页被上推。
-     100svh 恒等于 URL 栏展开时的可见高度，文档不溢出、不可滚动。 */
+  /* #root 已是 fixed + inset:0,不再依赖 body 的高度撑满屏幕。这里的
+     min-height 只剩兜底作用(JS 未执行 / #root 缺失时不留白屏)。
+     用 100svh 而不是 100vh:后者在 iOS 上是大视口(URL 栏收起时的高度),
+     会让文档比可见区域高,页面在 body 层可滚动。 */
   min-height: 100vh;
   min-height: 100svh;
   -webkit-font-smoothing: antialiased;
@@ -90,22 +91,38 @@ body {
 }
 
 #root {
-  /* 回退:不支持 max()/var() 的旧浏览器,等同改造前行为 */
-  height: calc(var(--vh, 1svh) * 100);
-  /* 全站唯一的根壳补偿。取「布局视口高」与「视觉视口底部」的较大值:
-       · 键盘关闭:--visible-vh-top 归 0,--visible-vh = 布局视口高 → 与改造前逐像素一致;
-       · 键盘打开:iOS 会自动平移视觉视口(offsetTop > 0),只按 --vh 定高会让根壳
-         停在视觉视口底之上,子壳(含 .mobile-page-area 滚动容器)的最后 offsetTop
-         像素被本元素的 overflow:hidden 裁掉 —— 表现为页面底部空白带/滚不到底。
-     offsetTop + visualHeight 恒 ≤ 布局视口高,因此根壳永远不超过 body,不会被反向裁切。
-     子壳(.app / .mobile-layout)只继承 100%,不再各自叠加补偿。 */
-  height: max(
-    calc(var(--vh, 1svh) * 100),
-    calc(var(--visible-vh-top, 0px) + var(--visible-vh, 100svh))
-  );
+  /* 根壳 = 整个布局视口(fixed + inset:0),内容再用内边距框进视觉视口。
+     这是全站唯一一处键盘补偿,子壳(.app / .mobile-layout)只继承 100%。
+
+     为什么高度不再由 JS 变量驱动(旧写法 height: max(--vh*100, offsetTop+visible)):
+       · 旧写法把根壳高度绑在**键盘判定**上。iOS 26 存在键盘收起后
+         visualViewport.height 不恢复的已知 bug(Apple Forums 800125 /
+         FB19889436),此时「布局视口 − 视觉视口 ≥ 120px」恒成立,焦点闩锁
+         永远不释放 → 根壳永久停在收缩后的高度 → 屏幕下方留下大片空白,
+         且再也回不来。
+       · 旧写法还把根壳锚在布局视口顶部。iOS 为露出输入框会平移视觉视口
+         (offsetTop > 0),根壳顶部那段(顶栏)就跑到可见区之上,表现为
+         「页面被抬升上去」。
+     fixed + inset:0 让根壳恒等于布局视口:视觉视口永远是它的子集,无论
+     iOS 怎么平移,根壳都盖满屏幕 —— 底部不可能露白,与判定成功与否解耦。
+     这是 .contact-page 已经验证过的同一套模型(index.css 下方「整页框」组)。
+
+     注意:fixed 元素上的 height:100% 是相对**包含块**(初始包含块 = 视口)
+     解析的,但 inset:0 已经把高度定死,不再需要 height —— 子壳的 100% 也
+     相对本元素的 content box 解析,因此内边距让出的空间会被子壳正确继承。 */
+  position: fixed;
+  inset: 0;
   display: flex;
   flex-direction: column;
   overflow: hidden;
+  box-sizing: border-box;
+  /* 把内容框进视觉视口:
+       padding-top    = 视觉视口顶偏移(iOS 自动平移)
+       padding-bottom = 键盘高度
+     两者相减,内容区恰好等于视觉视口 [offsetTop, offsetTop + vv.height]。
+     键盘关闭时两值均为 0,与改动前逐像素一致(桌面端恒为 0)。 */
+  padding-top: var(--visible-vh-top, 0px);
+  padding-bottom: var(--keyboard-height, 0px);
 }
 
 html {
@@ -264,37 +281,6 @@ input:focus, textarea:focus, button:focus {
 .profile-confirm-overlay {
   background: rgba(43, 36, 32, 0.45);
   z-index: 1200;
-}
-
-/* ── 整页框(独立路由页,当前唯一消费者:.contact-page)─────────────────────
-   与上面浮层同一套**几何**契约,但内容行为不同:
-     浮层 —— grid 居中 + 自身滚动;
-     独立页 —— flex 纵向 + 内部滚动(会话区滚,输入区钉底)。
-   之所以也放在 index.css:补偿表达式(--visible-vh-top / --keyboard-height)
-   全站只允许在这一处出现,组件 CSS 重抄会在共享组调整时静默失配
-   (mobileOverlayContract.test.js 强制)。页面自己的排版写在各页 CSS 里。
-
-   为什么是 fixed 而不是普通流 / absolute:
-     iOS 键盘只收缩 visual viewport,布局视口不变;为露出聚焦的输入框,Safari
-     会平移视觉视口并滚动文档 —— html/body 的 overflow:hidden 拦不住。普通流与
-     absolute 的整页会跟着文档上移(顶栏挤出屏幕、底部露出 body 底色),而
-     absolute 还会被祖先 #root / .app 的 overflow:hidden 裁切。
-     fixed 的包含块是初始包含块:不随文档滚动,也不被祖先 overflow 裁切
-     (祖先链上没有 transform / filter / will-change,不会改写包含块)。
-   框取整个布局视口(inset:0):视觉视口永远是它的子集,无论怎么平移,
-   看到的都是本页 —— 白板在几何上不可能出现。再用内边距把内容框进视觉视口。 */
-.contact-page {
-  position: fixed;
-  inset: 0;
-  box-sizing: border-box;
-  overflow: hidden;
-  /* --page-pad-x / --page-pad-y 是页面自己的基础留白(移动端 0,桌面端收边),
-     由页面 CSS 提供;补偿量与之取 max,键盘收起时行为与普通整页一致。
-     底部不叠加 env(safe-area-inset-bottom):输入区自己已经让过一次。 */
-  padding-top: max(var(--page-pad-y, 0px), var(--visible-vh-top, 0px), env(safe-area-inset-top, 0px));
-  padding-right: var(--page-pad-x, 0px);
-  padding-bottom: max(var(--page-pad-y, 0px), var(--keyboard-height, 0px));
-  padding-left: var(--page-pad-x, 0px);
 }
 
 /* 居中组(确认框 / 后台模态):内容放得下居中、超高可滚到底 */
@@ -615,9 +601,9 @@ body:has(.quantizer-zoom) .mobile-toolbar {
 /* ==================== Layout Styles ==================== */
 
 .app {
-  /* 根壳(#root)已经按「覆盖到视觉视口底部」定高,子壳只需继承。
-     此前这里也写 calc(var(--vh) * 100),与 #root 用同一个值重复定高,
-     一旦两者公式出现任何分歧就会互相裁切。 */
+  /* 根壳(#root)已用 fixed + inset:0 定高并让出键盘内边距,子壳只需继承
+     其内容区高度(100%)。子壳绝不能再按 --vh 或视觉视口自行定高 ——
+     一旦两处公式出现分歧就会互相裁切,那正是历次白板/空白带的来源。 */
   height: 100%;
   display: flex;
   flex-direction: column;
@@ -625,8 +611,11 @@ body:has(.quantizer-zoom) .mobile-toolbar {
 }
 
 .header {
+  /* 固定在视觉视口顶部,而不是布局视口顶部:fixed 元素的包含块是初始包含块,
+     不受 #root 内边距影响。iOS 键盘弹起会平移视觉视口(offsetTop > 0),
+     只写 top:0 会让顶栏留在布局视口顶部 —— 跑到可见区之上,被「抬升」掉。 */
   position: fixed;
-  top: 0;
+  top: var(--visible-vh-top, 0px);
   left: 0;
   right: 0;
   z-index: 100;
@@ -634,10 +623,36 @@ body:has(.quantizer-zoom) .mobile-toolbar {
   height: 60px;
 }
 
+/* ── 常驻界面元素跟随视觉视口 ──────────────────────────────────────────
+   #root 的内边距把**文档流内**的内容框进了视觉视口,但 position: fixed 的
+   元素包含块是初始包含块,完全不理会 #root 的内边距 —— 它们仍以布局视口
+   定位。键盘弹起时布局视口底部在键盘后面、iOS 平移视觉视口时顶部又跑到
+   可见区之上,于是顶栏被「抬升」掉、工具栏被键盘盖住。
+
+   这三处是全站仅有的常驻 fixed chrome(其余 fixed 都是浮层,由共享浮层组
+   统一处理)。补偿表达式集中在这里,组件 CSS 不再各写一份。 */
+.header {
+  /* 顶栏贴视觉视口顶部(iOS 自动平移时跟随下移) */
+  top: var(--visible-vh-top, 0px);
+}
+
+.mobile-toolbar {
+  /* 工具栏贴视觉视口底部(让出键盘高度) */
+  bottom: var(--keyboard-height, 0px);
+}
+
+.mobile-color-palette {
+  /* 色卡条叠在工具栏之上,同样让出键盘高度。--mobile-toolbar-h 已含
+     safe-area,不再叠加 env(safe-area-inset-bottom)。 */
+  bottom: calc(var(--mobile-toolbar-h, 100px) + var(--keyboard-height, 0px));
+}
+
 .main-content {
   flex: 1;
   display: flex;
   flex-direction: column;
+  /* 给顶栏让位(60px)。不要再叠加 --visible-vh-top:#root 的内边距已经让内容
+     从视觉视口顶部开始,这里只需让出顶栏自身的高度。 */
   margin-top: 60px;
   overflow: hidden;
   min-height: 0;

@@ -1,9 +1,8 @@
 .mobile-color-palette {
   display: none;
+  /* bottom(含键盘高度)在 index.css 的「常驻界面元素」组里 ——
+     全站补偿只写一处,组件不再重抄 --keyboard-height 表达式。 */
   position: fixed;
-  /* 直接贴合工具栏上沿:--mobile-toolbar-h 是工具栏的 offsetHeight,
-     已经包含 safe-area 内边距,这里不能再叠加 env(safe-area-inset-bottom)。 */
-  bottom: var(--mobile-toolbar-h, 100px);
   left: 0;
   right: 0;
   background: var(--bg-primary);

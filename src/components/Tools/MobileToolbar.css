@@ -1,7 +1,8 @@
 .mobile-toolbar {
   display: none;
+  /* 定位(bottom)与键盘跟随在 index.css 的「常驻界面元素」组里 ——
+     全站补偿只写一处,组件不再重抄 --keyboard-height 表达式。 */
   position: fixed;
-  bottom: 0;
   left: 0;
   right: 0;
   background: var(--bg-primary);
