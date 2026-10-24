@@ -23,8 +23,14 @@ import { normalizeProject, validateProject, PROJECT_ERROR_CODES, PROJECT_SCHEMA_
 import { legacyWorkToProject } from './adapters'
 import { normalizeCustomTemplate } from '../../data/templates'
 
-/** 文件字节上限:与后台模板导入一致(1MB),避免同步解析冻结主线程 */
-export const MAX_IMPORT_BYTES = 1024 * 1024
+/** 文件字节上限:5MB。
+ *  单张图纸不会撞到这条线 —— 200×200 满格按导出格式序列化实测约 0.38MB。
+ *  真正需要余量的是**数组文件**:一个文件里最多可含 MAX_IMPORT_ITEMS 张图纸,
+ *  每张 200×200 满格约 0.38MB,三张就超过原先的 1MB 上限。5MB 大约能放下
+ *  13 张满格大图纸,覆盖「一次导入一批」的正常用法。
+ *  主线程 JSON.parse 5MB 约几十毫秒,不会卡住界面;上限继续由 maxBytes 兜底,
+ *  不做流式解析。注意:后台模板导入(AdminPanel)有自己独立的 1MB 上限。 */
+export const MAX_IMPORT_BYTES = 5 * 1024 * 1024
 /** 单次导入条目上限(数组文件),防止误传批量数据把界面卡死 */
 export const MAX_IMPORT_ITEMS = 50
 

@@ -132,6 +132,35 @@ describe('importProject · 拒绝非法输入(不产生半张图纸)', () => {
     fail(huge, IMPORT_ERROR_CODES.FILE_TOO_LARGE)
   })
 
+  it('上限能容纳最大的单张图纸(200×200 满格)', () => {
+    // 守的是「上限别收得太紧」:最大的合法图纸必须能导进来。
+    // 实测 200×200 满格约 0.38MB —— 旧上限 1MB 也容得下,所以这条不是
+    // 5MB 的回归测试;若有人把上限压到 256KB 之类,这里才会红。
+    const N = 200
+    const full = Array.from({ length: N }, () => Array.from({ length: N }, () => '#FFFFFF'))
+    const res = parseImportText(JSON.stringify(projectFile({
+      name: '200x200',
+      grid: { width: N, height: N, cells: full },
+    })))
+    expect(res.ok).toBe(true)
+    expect(res.projects[0].grid.width).toBe(N)
+    expect(res.projects[0].grid.height).toBe(N)
+  })
+
+  it('上限能容纳一批满格大图纸(数组文件)', () => {
+    // 5MB 的实际收益在这里:数组文件每张 200×200 满格约 0.38MB,
+    // 三张就超过旧的 1MB 上限 —— 这条在 1MB 下会红,是本次调整的回归测试。
+    const N = 200
+    const full = Array.from({ length: N }, () => Array.from({ length: N }, () => '#FFFFFF'))
+    const batch = Array.from({ length: 3 }, (_, i) => projectFile({
+      name: `200x200-${i}`,
+      grid: { width: N, height: N, cells: full },
+    }))
+    const res = parseImportText(JSON.stringify(batch))
+    expect(res.ok).toBe(true)
+    expect(res.projects).toHaveLength(3)
+  })
+
   it('默认不接受旧作品形状(避免误把作品备份当项目)', () => {
     const res = parseImportText(JSON.stringify({
       id: 1, name: 'w', canvasData: cells(), gridSize: SIZE, paletteId: 'perler',
