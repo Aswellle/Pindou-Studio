@@ -106,49 +106,6 @@ export function computeViewport({
 }
 
 /**
- * 原始视觉视口 —— 不做任何键盘判定。
- *
- * 与 `computeViewport` 的分工:
- *   - `computeViewport` 要回答「键盘开没开」,所以几何证据不足时必须归一化回
- *     布局视口(否则一次地址栏动画就会让全站根壳抖动)。它的输出是**布尔判断**,
- *     天然带有「宁可漏判也不要误判」的保守倾向。
- *   - 本函数不回答任何问题,只把浏览器报出的两个数搬出来:**用户此刻真正看得见
- *     的那块矩形**。键盘开没开、为什么开,一概不管。
- *
- * 为什么需要它:键盘判定依赖 `layoutHeight - visualHeight >= 120` 这个阈值。
- * 一旦某个浏览器在键盘弹起时**同时**缩小了布局视口(iOS 上存在这种路径,
- * `interactive-widget=resizes-content` 生效时尤其明显),差值会掉到阈值以下,
- * 于是判定为「没有键盘」,`--visible-vh` 被归一化成布局视口高。对浮层来说这
- * 只是「补偿没生效」;对一整个页面来说,就是页面按错误的高度排版 —— 底部输入区
- * 被排到键盘后面,中间那段 flex:1 的空间变成键盘上方的大片空白。
- *
- * 直接把页面框绑到原始视觉视口就没有这个前提:页面框永远等于可见区域,
- * 与「判定是否成功」完全解耦。
- *
- * 唯一需要的修正仍是**几何**的,而不是启发式的:视觉视口不可能越过布局视口底部,
- * 所以 offsetTop 超过 `layoutHeight - height` 就是残留值(键盘收起后 iOS 不归零
- * 的报告),夹回上界即可。键盘关闭时 height = 布局视口高 → 上界为 0 → top 恒为 0,
- * 残留值自然失效,不需要额外的「归一化」步骤。
- *
- * @param {object} input
- * @param {number} input.layoutHeight - 布局视口高(window.innerHeight)
- * @param {number|null} input.visualHeight - visualViewport.height;null 表示不支持
- * @param {number} [input.offsetTop=0] - visualViewport.offsetTop
- * @returns {{height: number, top: number}} 页面框应占据的矩形(布局视口坐标)
- */
-export function computeRawViewport({ layoutHeight, visualHeight, offsetTop = 0 }) {
-  // 不支持 visualViewport:退化到布局视口。此时键盘问题无解,但至少版面正常。
-  if (visualHeight == null) {
-    return { height: layoutHeight, top: 0 }
-  }
-  // 旋转/切后台的瞬间 Safari 会报 0 或负数;上限夹到布局视口,避免框比屏幕还高
-  const height = Math.max(1, Math.min(visualHeight, layoutHeight))
-  const maxTop = Math.max(0, layoutHeight - height)
-  const top = Math.max(0, Math.min(offsetTop, maxTop))
-  return { height, top }
-}
-
-/**
  * 焦点可见性修正量(纯函数)。
  *
  * 坐标系:getBoundingClientRect() 返回相对【布局视口】的坐标;用户真正看得见的

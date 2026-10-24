@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest'
 import {
-  computeViewport, computeRawViewport, focusScrollDelta, placePopupMenu, KEYBOARD_MIN_INSET,
+  computeViewport, focusScrollDelta, placePopupMenu, KEYBOARD_MIN_INSET,
 } from './viewportGeometry'
 
 /**
@@ -416,87 +416,5 @@ describe('focusScrollDelta · 极窄可见带不震荡', () => {
     // 带高 15、pad 10:下沿目标 bandHeight - pad = 5,与顶边目标矛盾,
     // 此时顶边已在带内 → 不滚,交给用户自己滚
     expect(focusScrollDelta({ ...narrow, elementTop: 40, elementBottom: 60 })).toBe(0)
-  })
-})
-
-/**
- * 原始视觉视口 —— 与 computeViewport 的分工。
- *
- * computeViewport 要回答「键盘开没开」,几何证据不足时必须归一化回布局视口,
- * 否则一次地址栏动画就会让全站根壳抖动。它天然带有「宁可漏判也不要误判」的倾向。
- *
- * computeRawViewport 不回答任何问题,只把浏览器报出的两个数搬出来。整页框必须
- * 等于可见区域的场景(/contact)靠它 —— 那里一旦跟着判定走,漏判就会让页面按
- * 比可见区域更高的框排版,输入区跑到键盘后面、中间撑出大片空白。
- */
-describe('computeRawViewport · 不做键盘判定', () => {
-  it('键盘关闭:等于布局视口', () => {
-    const r = computeRawViewport({ layoutHeight: LAYOUT, visualHeight: LAYOUT, offsetTop: 0 })
-    expect(r).toEqual({ height: LAYOUT, top: 0 })
-  })
-
-  it('键盘打开:直接给出视觉视口,不经过 120px 阈值', () => {
-    // 344 = 844 - 500(键盘高度)。computeViewport 也会判成键盘,两者一致
-    const r = computeRawViewport({ layoutHeight: LAYOUT, visualHeight: 344, offsetTop: 500 })
-    expect(r).toEqual({ height: 344, top: 500 })
-  })
-
-  it('布局视口同时收缩时仍给出真实可见高度(判定会漏判的正是这种情况)', () => {
-    // interactive-widget=resizes-content 生效:布局视口也跟着缩到 400,
-    // 视觉视口 344,几何差仅 56px < 120 阈值 → computeViewport 判「没键盘」,
-    // --visible-vh 被归一化成 400(布局视口高)。而用户实际只看得见 344。
-    const layout = 400
-    const judged = computeViewport({
-      layoutHeight: layout, visualHeight: 344, offsetTop: 0, textFocused: true,
-    })
-    expect(judged.keyboardOpen).toBe(false)
-    expect(judged.visibleHeight).toBe(layout) // 判定结果:按 400 排版 ← 问题所在
-
-    const raw = computeRawViewport({ layoutHeight: layout, visualHeight: 344, offsetTop: 0 })
-    expect(raw.height).toBe(344) // 原始值:按 344 排版 ← 页面要的
-  })
-
-  it('无 visualViewport 时退化到布局视口', () => {
-    expect(computeRawViewport({ layoutHeight: LAYOUT, visualHeight: null }))
-      .toEqual({ height: LAYOUT, top: 0 })
-  })
-
-  it('旋转瞬间报 0 / 负数时不塌成零高', () => {
-    expect(computeRawViewport({ layoutHeight: LAYOUT, visualHeight: 0 }).height).toBe(1)
-    expect(computeRawViewport({ layoutHeight: LAYOUT, visualHeight: -20 }).height).toBe(1)
-  })
-
-  it('视觉视口高不会超过布局视口', () => {
-    // 某些过渡帧会报出比布局视口还高的值,直接采信会让页面框超出屏幕
-    expect(computeRawViewport({ layoutHeight: LAYOUT, visualHeight: 1200 }).height).toBe(LAYOUT)
-  })
-
-  it('offsetTop 夹到「布局视口 − 视觉视口高」上界', () => {
-    // 视觉视口不可能越过布局视口底部。键盘关闭后 iOS 有不归零的报告,
-    // 此时 height 已等于布局视口,上界为 0 → 残留值自动失效。
-    expect(computeRawViewport({ layoutHeight: LAYOUT, visualHeight: 344, offsetTop: 9999 }).top)
-      .toBe(LAYOUT - 344)
-    expect(computeRawViewport({ layoutHeight: LAYOUT, visualHeight: LAYOUT, offsetTop: 120 }).top)
-      .toBe(0)
-  })
-
-  it('负 offsetTop 夹到 0', () => {
-    expect(computeRawViewport({ layoutHeight: LAYOUT, visualHeight: 344, offsetTop: -30 }).top).toBe(0)
-  })
-
-  it('top + height 恒不超过布局视口(页面框不会溢出屏幕)', () => {
-    const cases = [
-      { visualHeight: 344, offsetTop: 500 },
-      { visualHeight: 344, offsetTop: 0 },
-      { visualHeight: LAYOUT, offsetTop: 0 },
-      { visualHeight: 200, offsetTop: 9000 },
-      { visualHeight: 0, offsetTop: 9000 },
-    ]
-    for (const c of cases) {
-      const r = computeRawViewport({ layoutHeight: LAYOUT, ...c })
-      expect(r.top + r.height).toBeLessThanOrEqual(LAYOUT)
-      expect(r.top).toBeGreaterThanOrEqual(0)
-      expect(r.height).toBeGreaterThan(0)
-    }
   })
 })
