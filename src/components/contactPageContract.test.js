@@ -60,24 +60,38 @@ const stripComments = (code) => code
 const CSS_CODE = stripComments(CSS)
 const JSX_CODE = stripComments(JSX)
 
-describe('联系我们页 · 不回到浮层定位', () => {
-  it('页面样式里不出现 position: fixed', () => {
-    // fixed 按布局视口定位,iOS 键盘只收缩 visual viewport → 元素被顶走、露白。
-    // 这正是改造前模态框的症状;写回来等于把问题一起带回来。
-    const offenders = [...CSS_CODE.matchAll(/position\s*:\s*fixed/gi)]
-    expect(offenders).toHaveLength(0)
+describe('联系我们页 · 页面框对齐视觉视口', () => {
+  it('页面框高度绑定原始视觉视口,而不是键盘判定后的 --vh', () => {
+    // 这是本页最关键的一条。--vh / --visible-vh 来自键盘**判定**,判定依赖
+    // 「布局视口 − 视觉视口 ≥ 120px」。iOS 上存在布局视口也一起收缩的路径,
+    // 差值掉到阈值以下就判成「没键盘」,变量归一化回布局视口高 → 页面按比
+    // 可见区域更高的框排版 → 输入区跑到键盘后面,中间撑出大片空白。
+    const page = ruleBody(CSS, '.contact-page')
+    expect(page).toMatch(/height:\s*var\(--raw-visual-vh/)
+    expect(page).toMatch(/top:\s*var\(--raw-visual-top/)
   })
 
-  it('页面样式里不出现 100vh / 100dvh 定高', () => {
-    // 布局视口高度不随键盘变化;整页高度必须由 #root 的 --vh 链条给出
-    expect(CSS_CODE).not.toMatch(/\b100(?:d|s)?vh\b/)
+  it('页面框用绝对定位对齐矩形,而不是 fixed', () => {
+    // 绝对定位同样以布局视口为坐标系,但 top/height 由原始值给出 → 框恒等于
+    // 可见区域;fixed 只会停在布局视口里,键盘一弹就被盖住/顶走。
+    const page = ruleBody(CSS, '.contact-page')
+    expect(page).toMatch(/position:\s*absolute/)
+    expect(page).not.toMatch(/position:\s*fixed/)
   })
 
-  it('不再依赖浮层键盘补偿变量', () => {
-    // --visible-vh / --keyboard-height 是给 fixed 浮层用的补偿。
-    // 页面已经跟着 --vh 收缩,再用它们等于把两套机制叠在一起。
+  it('高度不依赖浮层键盘补偿变量', () => {
+    // --visible-vh / --keyboard-height 是给 fixed 浮层用的,且同样受判定阈值影响
     expect(CSS_CODE).not.toMatch(/--visible-vh|--keyboard-height/)
     expect(JSX_CODE).not.toMatch(/--visible-vh|--keyboard-height/)
+  })
+
+  it('定位宿主提供 relative 参照系', () => {
+    // .app / .main-content / #root 都不是定位元素;缺这层会一路找到视口,
+    // 坐标系变成视觉视口,top 被重复计算一次。
+    const host = ruleBody(CSS, '.contact-page-host')
+    expect(host).toMatch(/position:\s*relative/)
+    expect(host).toMatch(/min-height:\s*0/)
+    expect(JSX_CODE).toMatch(/className="contact-page-host"/)
   })
 
   it('联系我们的浮层类已从全站基础设施中移除', () => {
@@ -89,12 +103,20 @@ describe('联系我们页 · 不回到浮层定位', () => {
 })
 
 describe('联系我们页 · 三段式版面', () => {
-  it('根容器是 flex 纵向布局且可收缩', () => {
+  it('根容器是 flex 纵向布局,并填满定位宿主', () => {
     const root = ruleBody(CSS, '.contact-page')
     expect(root).toMatch(/display:\s*flex/)
     expect(root).toMatch(/flex-direction:\s*column/)
+    // 绝对定位 + top/height 已确定框大小,overflow:hidden 防止内容溢出框外
+    expect(root).toMatch(/overflow:\s*hidden/)
+  })
+
+  it('内层是 flex 纵向且可收缩', () => {
+    const inner = ruleBody(CSS, '.contact-page-inner')
+    expect(inner).toMatch(/display:\s*flex/)
+    expect(inner).toMatch(/flex-direction:\s*column/)
     // 缺 min-height: 0 时 flex 子项会被内容撑开,输入区被推出视口
-    expect(root).toMatch(/min-height:\s*0/)
+    expect(inner).toMatch(/min-height:\s*0/)
   })
 
   it('会话区是唯一滚动容器', () => {
@@ -117,10 +139,10 @@ describe('联系我们页 · 三段式版面', () => {
     expect(bar).toMatch(/flex:\s*0\s+0\s+auto/)
   })
 
-  it('移动端交给 .mobile-page-area 滚动,本页不重复滚动', () => {
-    // 滚动套滚动会让手指在会话区里滑不动外层
-    const override = ruleBody(CSS, '.mobile-page-area > .contact-page')
-    expect(override).toMatch(/overflow:\s*visible/)
+  it('页面不再被块级滚动容器包裹', () => {
+    // .mobile-page-area 是块级滚动容器,页面在其中只能拿到内容高度、填不满视口,
+    // 底部留白正好露在键盘上方。本页必须直接挂在 flex 纵向的 .app 下。
+    expect(CSS).not.toMatch(/\.mobile-page-area\s*>\s*\.contact-page/)
   })
 })
 
