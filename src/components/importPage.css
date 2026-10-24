@@ -6,10 +6,25 @@
  */
 
 .import-page {
-  min-height: calc(var(--visible-vh, 100vh) - 60px);
+  /* 独立页不渲染顶栏(isStandalonePage),此前按「视口高 − 60px」预留顶栏,
+     结果页面底部永远空出 60px,露出 app 壳的底色 —— 图纸截图页内容少时
+     这条空白带最显眼。改为与个人中心同一套:自身是滚动容器,flex:1 撑满
+     父级剩余高度,背景自然铺到底。 */
+  width: 100%;
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
   background: var(--bg-secondary);
   padding: 24px 16px 48px;
-  overflow-y: auto;
+}
+
+/* 移动端外层 .mobile-page-area 已是滚动容器且高度确定:交出滚动权,
+   并按 100% 撑满它,内容不足一屏时背景也铺到底。 */
+.mobile-page-area > .import-page {
+  flex: none;
+  min-height: 100%;
+  overflow: visible;
 }
 
 .import-page-inner {
@@ -379,18 +394,6 @@
 .import-format p {
   margin: 0 0 10px;
   line-height: 1.7;
-}
-
-.import-format pre {
-  margin: 0 0 10px;
-  padding: 12px;
-  border-radius: 10px;
-  background: var(--bg-tertiary);
-  color: var(--text-primary);
-  font-family: var(--font-mono);
-  font-size: 11px;
-  line-height: 1.6;
-  overflow-x: auto;
 }
 
 .import-format-note {
