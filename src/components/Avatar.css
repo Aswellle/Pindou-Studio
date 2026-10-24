@@ -1,0 +1,41 @@
+/* ── 用户头像 ──────────────────────────────────────────────────
+   圆形是社交平台通行的头像展示标准:原图多为方形或竖构图,圆形裁切配合
+   object-fit: cover 只裁掉边缘、不拉伸变形;首字母兜底落在同一个圆形里,
+   有图/无图切换时版面尺寸不变。
+
+   这份样式跟着组件走,而不是留在某个页面的 <style> 里 —— Avatar 是共享
+   组件,而 Header 只在非独立页渲染:/profile、/admin/login 这类独立页不挂载
+   Header,头像会退回成未裁切的方块,兜底的 <span> 还会因为 display 仍是
+   inline 而拿不到宽高,只剩一个裸字母。 */
+.avatar-img,
+.avatar-fallback {
+  border-radius: 50%;
+  flex-shrink: 0;
+  transition: transform 0.15s, box-shadow 0.15s;
+}
+
+/* 图片:圆形裁切 + 细边框。边框用 border 而非外扩的 box-shadow,
+   配合全局 box-sizing: border-box,环算进调用方给的 width/height 里,
+   传多大就是多大,不会撑破 32px 的导航栏或 104px 的编辑槽。 */
+.avatar-img {
+  display: block;
+  object-fit: cover;
+  background: var(--bg-secondary);
+  border: 2px solid var(--border-color);
+}
+
+/* 首字母兜底:与站点 --accent 一致的实心圆,白字保证任何缩放下都清晰。
+   边框与图片同宽同色,两种状态切换时圆盘直径不跳。 */
+.avatar-fallback {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--accent);
+  color: #fff;
+  font-weight: var(--font-weight-bold);
+  line-height: 1;
+  user-select: none;
+  -webkit-user-select: none;
+  border: 2px solid var(--border-color);
+  box-shadow: 0 1px 4px rgba(43, 36, 32, 0.15);
+}

@@ -1,9 +1,14 @@
 /**
- * 用户头像 — 登录后显示在顶部导航右侧。
- * 有头像图显示图片;否则显示昵称/邮箱首字符,橙色背景 + 白色文字
- * (与站点 --accent 一致,强对比保证清晰可见)。
+ * 用户头像 — 登录后显示在顶部导航右侧,以及个人中心的身份摘要 / 头像编辑区。
+ *
+ * 视觉:圆形(社交平台通行标准)+ 细边框;有头像图显示图片,否则显示昵称/邮箱
+ * 首字符,橙色背景 + 白色文字(与站点 --accent 一致,强对比保证清晰可见)。
+ *
+ * 样式放在同目录的 Avatar.css 并由本文件导入,不依赖调用方页面 —— Header 只在
+ * 非独立页渲染,/profile 这类独立页不挂载 Header,样式留在 Header 里就会丢失。
  */
 import { toStorageUrl } from '../services/supabase'
+import './Avatar.css'
 
 export default function Avatar({ user, size = 32, onClick }) {
   const initial = (user?.nickname || user?.name || user?.email || 'A')[0].toUpperCase()

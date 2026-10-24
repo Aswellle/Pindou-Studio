@@ -104,15 +104,6 @@
 
 /* 身份卡 */
 .profile-identity { display: flex; flex-direction: column; align-items: center; text-align: center; }
-.profile-avatar-wrap {
-  display: grid;
-  place-items: center;
-  width: 104px;
-  height: 104px;
-  border-radius: 50%;
-  background: var(--bg-secondary);
-  border: 1px solid var(--border-color);
-}
 .profile-name {
   margin: 12px 0 2px;
   max-width: 100%;
@@ -680,15 +671,14 @@
 
 /* ── 头像编辑 ─────────────────────────────────────────────── */
 .pf-avatar-editor { display: flex; gap: 16px; align-items: flex-start; flex-wrap: wrap; }
+/* 只做尺寸与居中:圆环由 Avatar 自带(圆形 + 2px 边框)。
+   这里再画一圈 border/背景会变成「环套环」,预览区看着比实际头像厚一圈。 */
 .pf-avatar-preview {
   flex: 0 0 auto;
   display: grid;
   place-items: center;
   width: 104px;
   height: 104px;
-  border-radius: 50%;
-  background: var(--bg-secondary);
-  border: 1px solid var(--border-color);
 }
 .pf-avatar-controls { flex: 1 1 240px; min-width: 0; display: flex; flex-direction: column; gap: 8px; }
 

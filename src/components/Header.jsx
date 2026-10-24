@@ -158,26 +158,9 @@ export default function Header({ user, onLogin, onRegister: _onRegister, onLogou
           color: var(--text-primary);
           font-weight: 500;
         }
-        .avatar-fallback {
-          display: inline-flex;
-          align-items: center;
-          justify-content: center;
-          border-radius: 50%;
-          background: var(--accent);
-          color: white;
-          font-weight: 700;
-          user-select: none;
-          flex-shrink: 0;
-          box-shadow: 0 1px 4px rgba(43, 36, 32, 0.15);
-          transition: transform 0.15s, box-shadow 0.15s;
-        }
-        .avatar-img {
-          border-radius: 50%;
-          object-fit: cover;
-          border: 2px solid var(--border-color);
-          flex-shrink: 0;
-          transition: transform 0.15s, box-shadow 0.15s;
-        }
+        /* 头像的圆形/边框基础样式在 Avatar.css(组件自带),这里只保留
+           导航栏特有的悬停放大 —— 头像在 /profile 等独立页也要用,而那时
+           本组件根本不渲染。 */
         .avatar-entry:hover .avatar-fallback,
         .avatar-entry:hover .avatar-img {
           transform: scale(1.06);
