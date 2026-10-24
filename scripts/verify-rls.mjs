@@ -84,18 +84,58 @@ function check(name, ok, detail = '') {
  * 与「RLS 拒绝」长得一模一样。若直接断言 `error 为空`,一次网络抖动就会变成
  * 假失败;若断言「有 error 就是拒绝」,抖动又会被误判成越权被拦。
  * 所以这里只对传输层错误重试,真正的 PostgREST 错误原样返回。
+ *
+ * `terminated` 是 undici 在连接被中途掐断时给的消息(网关超时、HTTP/2 GOAWAY
+ * 都会这样),比 `fetch failed` 更常见于长连接场景 —— GoTrue 的登录请求正好
+ * 走在长连接上,实测会以 `signIn failed: terminated` 的形式冒出来。
+ *
+ * 两种失败形态都要接:supabase-js 大多数接口把传输层错误**返回**在 `error` 里,
+ * 但少数路径(如 PostgREST 的 delete/update)直接 **throw** `TypeError: fetch failed`。
+ * 只处理返回值的话,后者会一路冒到最外层,把整轮验证判成失败。
  */
-const NETWORK_ERROR = /fetch failed|network|ECONNRESET|ETIMEDOUT|socket hang up/i
+const NETWORK_ERROR = /fetch failed|network|ECONNRESET|ETIMEDOUT|socket hang up|terminated|ECONNREFUSED|EAI_AGAIN/i
 
 async function retry(fn, attempts = 4) {
   let last
   for (let i = 0; i < attempts; i++) {
-    last = await fn()
+    try {
+      last = await fn()
+    } catch (e) {
+      // 抛出的异常:只有传输层错误值得重试,业务异常原样抛出
+      if (i === attempts - 1 || !NETWORK_ERROR.test(e?.message || String(e))) throw e
+      await new Promise((r) => setTimeout(r, 400 * (i + 1)))
+      continue
+    }
     const msg = last?.error?.message || ''
     if (!NETWORK_ERROR.test(msg)) return last
     await new Promise((r) => setTimeout(r, 400 * (i + 1)))
   }
   return last
+}
+
+/**
+ * 幂等地拿到一行(用于建探针)。
+ *
+ * 非幂等 insert 包 `retry` 是危险的:网络抖动时写入可能已经成功、只是响应丢了,
+ * 重试就会撞唯一索引 —— 于是「一次抖动」被放大成「一条假失败」。
+ *
+ * 这里先查后插:查询本身幂等,插入只在确认不存在后发生;若插入仍因抖动失败,
+ * 下一轮重试的查询会看到上一次其实写成功的那一行。
+ *
+ * @param {Function} find - 返回 { data, error } 的查询,不存在时 data 为 null
+ * @param {Function} create - 返回 { data, error } 的插入
+ * @returns {Promise<{data: any, error: any}>} 形状与 supabase-js 一致
+ */
+async function ensureRow(find, create) {
+  const found = await retry(find)
+  if (found.error) return found
+  if (found.data) return found
+  const created = await retry(create)
+  // 插入撞唯一索引说明并发/重试下已存在:回查一次,把它当成成功
+  if (created.error && /duplicate key|unique constraint/i.test(created.error.message)) {
+    return await retry(find)
+  }
+  return created
 }
 
 function randomPassword() {
@@ -119,11 +159,20 @@ async function createAndSignIn(admin, anonKey, email, password, onCreated) {
     //
     // 建号/登录也要重试:上面的 retry 只覆盖数据操作,而这里同样会吃到网络抖动
     // (`createUser failed: fetch failed` 会让整个脚本在第一步就崩掉)。
-    const created = await retry(() => admin.auth.admin.createUser({
+    //
+    // 「已注册」是重试的产物,不是错误:上一次尝试其实建成功了,只是响应丢了。
+    // 此时账号已存在、密码就是本次生成的,直接按已建号处理并登记到清理列表 ——
+    // 否则会以「email already registered」整轮失败,还留下一个没人认领的账号。
+    let created = await retry(() => admin.auth.admin.createUser({
       email,
       password,
       email_confirm: true,
     }))
+    if (created.error && /already been registered|already exists/i.test(created.error.message)) {
+      const list = await retry(() => admin.auth.admin.listUsers({ page: 1, perPage: 1000 }))
+      const hit = (list.data?.users || []).find((u) => u.email === email)
+      if (hit) created = { data: { user: hit }, error: null }
+    }
     if (created.error) throw new Error(`createUser failed: ${created.error.message}`)
     const data = created.data
     onCreated?.(data.user.id, email)
@@ -185,6 +234,10 @@ async function main() {
       .single())
     if (pErr || !palette) throw new Error(`A createPalette failed: ${pErr?.message || 'no row'}`)
 
+    // 色号在 (palette_id, lower(btrim(code))) 上有**表达式**唯一索引,
+    // onConflict 指不到它,所以不能靠 upsert 收敛。
+    // 改为:重复键 = 上一次尝试其实写成功了(行是我们刚建的临时色卡下的),
+    // 这正是这条断言要证明的结果,按通过处理。
     const { error: cErr } = await retry(() => a
       .from('user_palette_colors')
       .insert({
@@ -195,7 +248,9 @@ async function main() {
         sort_order: 0,
         source: 'factory',
       }))
-    check('A 能写自己的色卡与颜色', !cErr, cErr?.message)
+    const cDup = /duplicate key|unique constraint/i.test(cErr?.message || '')
+    check('A 能写自己的色卡与颜色', !cErr || cDup,
+      cDup ? '重复键(上一次写入已成功)' : cErr?.message)
 
     const { error: iErr } = await retry(() => a
       .from('user_bead_inventory')
@@ -378,11 +433,15 @@ async function main() {
     // 再验证匿名和普通用户都读不到它,最后删除探针。
     if (HAS_SERVICE) {
       const draftSlug = `${runId}-draft`
-      const { data: draftTheme, error: draftErr } = await admin.from('gallery_themes').insert({
-        slug: draftSlug,
-        title: `${runId} draft probe`,
-        status: 'draft',
-      }).select('id').single()
+      // 幂等建探针:先按 slug 查,没有才插。网络抖动时「写成功但响应丢失」会让
+      // 重试撞唯一索引(slug 上是 lower(slug) 唯一索引,onConflict 指不到它),
+      // 所以用查-插两步而不是 upsert。
+      const { data: draftTheme, error: draftErr } = await ensureRow(
+        () => admin.from('gallery_themes').select('id').eq('slug', draftSlug).maybeSingle(),
+        () => admin.from('gallery_themes')
+          .insert({ slug: draftSlug, title: `${runId} draft probe`, status: 'draft' })
+          .select('id').single(),
+      )
 
       if (draftErr) {
         check('创建 draft 探针(service_role)', false, draftErr.message)
@@ -403,8 +462,9 @@ async function main() {
 
           // 正向对照:把它改成 published,匿名就应该能读到 ——
           // 否则「读不到」可能只是因为整张表不可达,而不是 status 过滤生效。
-          const { error: pubErr } = await admin
-            .from('gallery_themes').update({ status: 'published' }).eq('id', themeId)
+          // update 是幂等的(同一行改成同一值),可以安全重试。
+          const { error: pubErr } = await retry(() => admin
+            .from('gallery_themes').update({ status: 'published' }).eq('id', themeId))
           if (pubErr) {
             check('draft 探针改 published(正向对照准备)', false, pubErr.message)
           } else {
@@ -415,16 +475,17 @@ async function main() {
               anonPub.error?.message || `返回 ${anonPub.data?.length ?? 0} 行`)
           }
         } finally {
-          await admin.from('gallery_themes').delete().eq('id', themeId)
+          await retry(() => admin.from('gallery_themes').delete().eq('id', themeId))
         }
       }
 
       const draftCollSlug = `${runId}-draft-coll`
-      const { data: draftColl, error: collErr } = await admin.from('gallery_collections').insert({
-        slug: draftCollSlug,
-        title: `${runId} draft coll`,
-        status: 'draft',
-      }).select('id').single()
+      const { data: draftColl, error: collErr } = await ensureRow(
+        () => admin.from('gallery_collections').select('id').eq('slug', draftCollSlug).maybeSingle(),
+        () => admin.from('gallery_collections')
+          .insert({ slug: draftCollSlug, title: `${runId} draft coll`, status: 'draft' })
+          .select('id').single(),
+      )
       if (collErr) {
         check('创建 collection draft 探针(service_role)', false, collErr.message)
       } else {
@@ -435,7 +496,7 @@ async function main() {
             !anonColl.error && (anonColl.data || []).length === 0,
             anonColl.error?.message || `返回 ${anonColl.data?.length ?? 0} 行`)
         } finally {
-          await admin.from('gallery_collections').delete().eq('id', draftColl.id)
+          await retry(() => admin.from('gallery_collections').delete().eq('id', draftColl.id))
         }
       }
     } else {
@@ -504,9 +565,9 @@ async function main() {
         // admin_* 会一直拿到旧的 is_admin() = false,看起来像「提权没生效」。
         // 新建 client 重新登录 → 新连接 → 新快照。
         const cAdminClient = createClient(URL_, ANON, { auth: { persistSession: false } })
-        const { error: reSignErr } = await cAdminClient.auth.signInWithPassword({
+        const { error: reSignErr } = await retry(() => cAdminClient.auth.signInWithPassword({
           email: cEmail, password,
-        })
+        }))
         if (reSignErr) {
           check('提权后重新登录 C', false, reSignErr.message)
         } else {
@@ -572,7 +633,11 @@ async function main() {
         // 删除也要重试:一次 `fetch failed` 就会把账号永久留在 auth.users 里。
         // 上面已经证明网络抖动在这个环境里确实会发生,清理路径没有理由不设防。
         const { error } = await retry(() => admin.auth.admin.deleteUser(id))
-        if (error) undeleted.push(`${id.slice(0, 8)}…: ${error.message}`)
+        // `User not found` 不是失败:上一轮的网络抖动可能其实已经删成功了,
+        // 只是响应没回来;重试时账号已不存在。目标状态(账号不存在)已经达成。
+        if (error && !/user not found/i.test(error.message)) {
+          undeleted.push(`${id.slice(0, 8)}…: ${error.message}`)
+        }
       }
       check('清理临时账号', undeleted.length === 0,
         undeleted.length === 0
