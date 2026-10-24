@@ -63,7 +63,7 @@ describe('MyBeadsPage · 色卡管理(本地模式)', () => {
     const { container } = setup()
     await waitFor(() => expect(container.querySelector('.my-beads-inner')).toBeTruthy())
 
-    fireEvent.click(screen.getByText('新建色卡'))
+    fireEvent.click(screen.getByText('新建自定义色卡'))
     const dialog = document.querySelector('.my-beads-modal')
     fireEvent.change(within(dialog).getByPlaceholderText('例如：我的 5mm 拼豆'), { target: { value: '测试色卡' } })
     fireEvent.click(within(dialog).getByText('保存'))
@@ -79,7 +79,7 @@ describe('MyBeadsPage · 色卡管理(本地模式)', () => {
   it('非法 HEX 被拒绝,颜色不写入', async () => {
     const { container } = setup()
     await waitFor(() => expect(container.querySelector('.my-beads-inner')).toBeTruthy())
-    fireEvent.click(screen.getByText('新建色卡'))
+    fireEvent.click(screen.getByText('新建自定义色卡'))
     let dialog = document.querySelector('.my-beads-modal')
     fireEvent.change(within(dialog).getByPlaceholderText('例如：我的 5mm 拼豆'), { target: { value: 'P' } })
     fireEvent.click(within(dialog).getByText('保存'))
@@ -207,7 +207,7 @@ describe('MyBeadsPage · 色卡管理(本地模式)', () => {
   it('自定义豆径经新建保存后,再编辑仍完整回显', async () => {
     const { container } = setup()
     await waitFor(() => expect(container.querySelector('.my-beads-inner')).toBeTruthy())
-    fireEvent.click(screen.getByText('新建色卡'))
+    fireEvent.click(screen.getByText('新建自定义色卡'))
     const dialog = document.querySelector('.my-beads-modal')
     fireEvent.change(within(dialog).getByPlaceholderText('例如：我的 5mm 拼豆'), { target: { value: '怪尺寸' } })
 
@@ -229,7 +229,7 @@ describe('MyBeadsPage · 色卡管理(本地模式)', () => {
   it('选中内置品牌预设后回填品牌名与豆径', async () => {
     const { container } = setup()
     await waitFor(() => expect(container.querySelector('.my-beads-inner')).toBeTruthy())
-    fireEvent.click(screen.getByText('新建色卡'))
+    fireEvent.click(screen.getByText('新建自定义色卡'))
     const dialog = document.querySelector('.my-beads-modal')
     fireEvent.change(within(dialog).getByPlaceholderText('例如：我的 5mm 拼豆'), { target: { value: '预设测试' } })
 
@@ -249,7 +249,7 @@ describe('MyBeadsPage · 色卡管理(本地模式)', () => {
   it('删除色卡需要确认,确认后色卡与颜色一起消失', async () => {
     const { container } = setup()
     await waitFor(() => expect(container.querySelector('.my-beads-inner')).toBeTruthy())
-    fireEvent.click(screen.getByText('新建色卡'))
+    fireEvent.click(screen.getByText('新建自定义色卡'))
     const dialog = document.querySelector('.my-beads-modal')
     fireEvent.change(within(dialog).getByPlaceholderText('例如：我的 5mm 拼豆'), { target: { value: '待删' } })
     fireEvent.click(within(dialog).getByText('保存'))
@@ -320,7 +320,7 @@ describe('MyBeadsPage · 色卡管理(本地模式)', () => {
   it('颜色来源:新建时可选,保存后显示徽章', async () => {
     const { container } = setup()
     await waitFor(() => expect(container.querySelector('.my-beads-inner')).toBeTruthy())
-    fireEvent.click(screen.getByText('新建色卡'))
+    fireEvent.click(screen.getByText('新建自定义色卡'))
     let dialog = document.querySelector('.my-beads-modal')
     fireEvent.change(within(dialog).getByPlaceholderText('例如：我的 5mm 拼豆'), { target: { value: '来源测试' } })
     fireEvent.click(within(dialog).getByText('保存'))

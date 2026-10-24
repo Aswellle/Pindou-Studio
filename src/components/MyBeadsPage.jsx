@@ -665,11 +665,11 @@ export default function MyBeadsPage({ user, canvasData, onApplyMapping, works = 
         {tab === TAB_PALETTES && (
           <div role="tabpanel" id={`my-beads-panel-${TAB_PALETTES}`} aria-labelledby={`my-beads-tab-${TAB_PALETTES}`} className="my-beads-panel">
             <section className="my-beads-section">
+              {/* 这里不再放「新建色卡」:内置色卡目录每张卡片都有「复制」按钮,
+                  空状态里也有「创建自定义色卡」,再放一个顶栏按钮就是第三个入口,
+                  功能完全相同。标题独占一行即可。 */}
               <div className="my-beads-section-head">
                 <h2>{t('myBeads.palettes.title')}</h2>
-                <button type="button" className="my-beads-btn primary" onClick={openNewPalette}>
-                  <Plus size={15} />{t('myBeads.palettes.new')}
-                </button>
               </div>
 
               {store.loading ? (
