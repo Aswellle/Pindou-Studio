@@ -31,6 +31,9 @@
  *   6. 公开内容表:普通用户写 templates/categories 必须被拒,
  *      匿名读 gallery_themes/gallery_collections 只能看到 published;
  *   7. 管理员 RPC:普通用户调用 admin_* 必须被拒,admin 账号本身豁免删除/冻结。
+ *   8. 「联系我们」:contact_messages 无直接写入口,submit_contact_message 只授
+ *      service_role(否则可自带 p_verified_now=true 绕过 Turnstile);线程读取
+ *      对匿名是能力即凭证,对登录用户收紧为只能读自己。
  *
  * 关于第 7 项:它需要「一个真正的 admin 账号」。脚本不向你要 admin 密码,
  * 而是用 service_role 把自己创建的临时账号 C 的 profiles.role 临时改成 admin,
@@ -206,6 +209,10 @@ async function main() {
   const admin = HAS_SERVICE ? createClient(URL_, SERVICE, { auth: { persistSession: false } }) : null
   const createdUsers = []
   const createdEmails = []
+  // 「联系我们」探针的 participant_id,清理时按它删掉探针消息。
+  // contact_messages.participant_id 是 text 而非外键,删账号**不会**级联清掉,
+  // 不显式删就会在真实留言表里留一条测试数据。
+  const contactProbes = []
   // 建号即登记:createAndSignIn 在建出账号后立刻回调,失败路径也不会漏掉
   const track = (id, email) => { createdUsers.push(id); createdEmails.push(email) }
   console.log(`模式: ${HAS_SERVICE ? 'service_role(结束后删除临时账号)' : 'anon signUp(临时账号需手工清理)'}\n`)
@@ -503,6 +510,100 @@ async function main() {
       console.log('⏭  跳过草稿可见性验证(需要 service_role 创建 draft 探针)')
     }
 
+    // ── 「联系我们」写入路径 ────────────────────────────────────
+    // 设计约束:contact_messages 只能经 contact-us Edge Function 写入,而
+    // Edge Function 的全部价值就是那道 Turnstile 人机验证。**绕过它的方式
+    // 有两种**:直接 insert 表,或直接调 submit_contact_message RPC。两种都要验,
+    // 只验一种等于留了半扇门。
+    //
+    // 特别地,submit_contact_message 接受 p_verified_now 参数 —— 这里故意传 true,
+    // 模拟「攻击者自称刚通过验证」。如果 anon/authenticated 能调到它,人机验证
+    // 就形同虚设;正确行为是连调用权限都没有(execute 只授给 service_role)。
+    if (HAS_SERVICE) {
+      // 探针参与者用 B 的 user id(UUID):get_contact_thread 对已登录用户做
+      // p_participant_id::uuid 比较,非 UUID 字符串会让那个分支直接抛语法错,
+      // 于是 IDOR 断言会因为「参数格式不对」而不是「越权被拦」通过。
+      const probeParticipant = bUser.id
+      const probeMsg = `${runId} contact probe`
+      // 先登记再写入:写成功后若断言过程抛异常,finally 仍能清掉
+      contactProbes.push(probeParticipant, `${runId}-anon`, `${runId}-a-rpc`)
+
+      // service_role 造一条真实消息作为读取探针(绕过 RLS 才能写进去)
+      const { error: seedErr } = await retry(() => admin
+        .from('contact_messages')
+        .insert({
+          participant_id: probeParticipant,
+          email: `${runId}@example.com`,
+          message: probeMsg,
+          author: 'user',
+        }))
+      if (seedErr) {
+        check('创建 contact_messages 探针(service_role)', false, seedErr.message)
+      } else {
+        // 路径一:直接写表。表上没有任何 insert 策略,两条都必须被拒。
+        const anonContactWrite = await retry(() => anon
+          .from('contact_messages')
+          .insert({ participant_id: `${runId}-anon`, message: `${runId} bypass turnstile` }))
+        check('匿名不能直接写 contact_messages', Boolean(anonContactWrite.error),
+          anonContactWrite.error?.message || '写入成功了(绕过了 Turnstile)')
+
+        const aContactWrite = await retry(() => a
+          .from('contact_messages')
+          .insert({ participant_id: aUser.id, message: `${runId} bypass turnstile` }))
+        check('登录用户不能直接写 contact_messages', Boolean(aContactWrite.error),
+          aContactWrite.error?.message || '写入成功了(绕过了 Turnstile)')
+
+        // 路径二:直接调 RPC。p_verified_now=true 是攻击者最想要的能力。
+        const anonRpc = await retry(() => anon.rpc('submit_contact_message', {
+          p_participant_id: `${runId}-anon`,
+          p_email: null,
+          p_message: `${runId} bypass turnstile`,
+          p_verified_now: true,
+        }))
+        check('匿名不能直接调用 submit_contact_message', Boolean(anonRpc.error),
+          anonRpc.error?.message || '调用成功了(可绕过人机验证)')
+
+        const aRpc = await retry(() => a.rpc('submit_contact_message', {
+          p_participant_id: `${runId}-a-rpc`,
+          p_email: null,
+          p_message: `${runId} bypass turnstile`,
+          p_verified_now: true,
+        }))
+        check('登录用户不能直接调用 submit_contact_message', Boolean(aRpc.error),
+          aRpc.error?.message || '调用成功了(可绕过人机验证)')
+
+        // 读取侧:访客是「能力即凭证」(凭 participant_id 读),登录用户则收紧
+        // 到只能读自己的 —— 两者语义不同,分别验。
+        const anonThread = await retry(() => anon.rpc('get_contact_thread', {
+          p_participant_id: probeParticipant,
+        }))
+        check('匿名能凭 participant_id 读到自己的线程(正向对照)',
+          !anonThread.error && (anonThread.data || []).some((m) => m.message === probeMsg),
+          anonThread.error?.message || `返回 ${anonThread.data?.length ?? 0} 条`)
+
+        const aCrossThread = await retry(() => a.rpc('get_contact_thread', {
+          p_participant_id: probeParticipant, // B 的线程
+        }))
+        check('登录用户读不到他人线程(IDOR)',
+          Boolean(aCrossThread.error) && /not authorized/i.test(aCrossThread.error?.message || ''),
+          aCrossThread.error?.message || `读到了 ${aCrossThread.data?.length ?? 0} 条(越权)`)
+
+        const aOwnThread = await retry(() => a.rpc('get_contact_thread', {
+          p_participant_id: aUser.id,
+        }))
+        check('登录用户能读自己的线程(正向对照)', !aOwnThread.error,
+          aOwnThread.error?.message || `返回 ${aOwnThread.data?.length ?? 0} 条`)
+
+        // 验证/限流状态表:没有任何 anon/authenticated 策略,读不到是设计而非遗漏
+        const anonParticipants = await retry(() => anon.from('contact_participants').select('*'))
+        check('匿名读不到 contact_participants',
+          !anonParticipants.error && (anonParticipants.data || []).length === 0,
+          anonParticipants.error?.message || `返回 ${anonParticipants.data?.length ?? 0} 行`)
+      }
+    } else {
+      console.log('⏭  跳过「联系我们」写入路径验证(需要 service_role 建探针)')
+    }
+
     // ── 管理员 RPC 越权 ────────────────────────────────────────
     // 三条要验的语义:
     //   1. 普通用户调用 admin_* 必须被拒(not authorized);
@@ -627,6 +728,24 @@ async function main() {
         .delete()
         .like('email', `${runId}-%`))
       check('清理 removed_accounts 墓碑', !tombErr, tombErr?.message)
+
+      // 「联系我们」探针:按 participant_id 删掉本次写入的测试消息。
+      // 这些行的 participant_id 是 text,不随删号级联,漏删就会污染真实留言表。
+      // contact_participants 同理 —— 正常情况下越权调用被拒、不会有行,
+      // 但万一断言失败(说明真被写进去了),这里要把它一起收拾掉。
+      if (contactProbes.length > 0) {
+        const probeDel = await retry(() => admin
+          .from('contact_messages')
+          .delete()
+          .in('participant_id', contactProbes))
+        check('清理 contact_messages 探针', !probeDel.error, probeDel.error?.message)
+
+        const partDel = await retry(() => admin
+          .from('contact_participants')
+          .delete()
+          .in('participant_id', contactProbes))
+        check('清理 contact_participants 探针', !partDel.error, partDel.error?.message)
+      }
 
       const undeleted = []
       for (const id of createdUsers) {
