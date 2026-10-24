@@ -266,6 +266,37 @@ input:focus, textarea:focus, button:focus {
   z-index: 1200;
 }
 
+/* ── 整页框(独立路由页,当前唯一消费者:.contact-page)─────────────────────
+   与上面浮层同一套**几何**契约,但内容行为不同:
+     浮层 —— grid 居中 + 自身滚动;
+     独立页 —— flex 纵向 + 内部滚动(会话区滚,输入区钉底)。
+   之所以也放在 index.css:补偿表达式(--visible-vh-top / --keyboard-height)
+   全站只允许在这一处出现,组件 CSS 重抄会在共享组调整时静默失配
+   (mobileOverlayContract.test.js 强制)。页面自己的排版写在各页 CSS 里。
+
+   为什么是 fixed 而不是普通流 / absolute:
+     iOS 键盘只收缩 visual viewport,布局视口不变;为露出聚焦的输入框,Safari
+     会平移视觉视口并滚动文档 —— html/body 的 overflow:hidden 拦不住。普通流与
+     absolute 的整页会跟着文档上移(顶栏挤出屏幕、底部露出 body 底色),而
+     absolute 还会被祖先 #root / .app 的 overflow:hidden 裁切。
+     fixed 的包含块是初始包含块:不随文档滚动,也不被祖先 overflow 裁切
+     (祖先链上没有 transform / filter / will-change,不会改写包含块)。
+   框取整个布局视口(inset:0):视觉视口永远是它的子集,无论怎么平移,
+   看到的都是本页 —— 白板在几何上不可能出现。再用内边距把内容框进视觉视口。 */
+.contact-page {
+  position: fixed;
+  inset: 0;
+  box-sizing: border-box;
+  overflow: hidden;
+  /* --page-pad-x / --page-pad-y 是页面自己的基础留白(移动端 0,桌面端收边),
+     由页面 CSS 提供;补偿量与之取 max,键盘收起时行为与普通整页一致。
+     底部不叠加 env(safe-area-inset-bottom):输入区自己已经让过一次。 */
+  padding-top: max(var(--page-pad-y, 0px), var(--visible-vh-top, 0px), env(safe-area-inset-top, 0px));
+  padding-right: var(--page-pad-x, 0px);
+  padding-bottom: max(var(--page-pad-y, 0px), var(--keyboard-height, 0px));
+  padding-left: var(--page-pad-x, 0px);
+}
+
 /* 居中组(确认框 / 后台模态):内容放得下居中、超高可滚到底 */
 .admin-modal-overlay,
 .users-confirm-overlay,
