@@ -104,7 +104,15 @@ function randomPassword() {
   return Array.from(bytes, (b) => b.toString(16).padStart(2, '0')).join('')
 }
 
-async function createAndSignIn(admin, anonKey, email, password) {
+/**
+ * 建号并登录。
+ *
+ * `onCreated` 在**账号真的建出来之后、登录之前**调用 —— 这是清理能否兜住
+ * 失败路径的关键:建号成功但登录失败时函数会抛异常,若等到返回后才登记,
+ * 那个账号就永远不会被 `finally` 删掉,残留在 auth.users 里。
+ * (2026-10-24 的 6 个 rls-* 残留正是这么来的。)
+ */
+async function createAndSignIn(admin, anonKey, email, password, onCreated) {
   if (HAS_SERVICE) {
     // 用 service_role 直接建号并标记邮箱已确认:不依赖项目的注册开关/邮件投递,
     // 也不会因为 OTP 配置不同而卡住。临时账号最后一定会被删除。
@@ -118,6 +126,7 @@ async function createAndSignIn(admin, anonKey, email, password) {
     }))
     if (created.error) throw new Error(`createUser failed: ${created.error.message}`)
     const data = created.data
+    onCreated?.(data.user.id, email)
 
     const client = createClient(URL_, anonKey, { auth: { persistSession: false } })
     const signIn = await retry(() => client.auth.signInWithPassword({ email, password }))
@@ -130,6 +139,8 @@ async function createAndSignIn(admin, anonKey, email, password) {
   const client = createClient(URL_, anonKey, { auth: { persistSession: false } })
   const { data, error } = await retry(() => client.auth.signUp({ email, password }))
   if (error) throw new Error(`signUp failed: ${error.message}`)
+  // signUp 也可能建出账号却没给会话(待邮件确认),同样要登记
+  if (data?.user) onCreated?.(data.user.id, email)
   if (!data?.session) {
     throw new Error('signUp 未返回会话:项目未开启 autoconfirm,且没有 service_role 可用于建号')
   }
@@ -146,6 +157,8 @@ async function main() {
   const admin = HAS_SERVICE ? createClient(URL_, SERVICE, { auth: { persistSession: false } }) : null
   const createdUsers = []
   const createdEmails = []
+  // 建号即登记:createAndSignIn 在建出账号后立刻回调,失败路径也不会漏掉
+  const track = (id, email) => { createdUsers.push(id); createdEmails.push(email) }
   console.log(`模式: ${HAS_SERVICE ? 'service_role(结束后删除临时账号)' : 'anon signUp(临时账号需手工清理)'}\n`)
 
   try {
@@ -156,14 +169,12 @@ async function main() {
 
     const anon = createClient(URL_, ANON, { auth: { persistSession: false } })
 
-    const aSession = await createAndSignIn(admin, ANON, aEmail, password)
-    const bSession = await createAndSignIn(admin, ANON, bEmail, password)
+    const aSession = await createAndSignIn(admin, ANON, aEmail, password, track)
+    const bSession = await createAndSignIn(admin, ANON, bEmail, password, track)
     const aUser = aSession.user
     const bUser = bSession.user
     const a = aSession.client
     const b = bSession.client
-    createdUsers.push(aUser.id, bUser.id)
-    createdEmails.push(aEmail, bEmail)
     check('创建两个临时账号', true, `${aUser.id.slice(0, 8)}… / ${bUser.id.slice(0, 8)}…`)
 
     // ── A 写入自己的数据 ────────────────────────────────────
@@ -441,11 +452,9 @@ async function main() {
     // 不使用真实 admin 账号的凭据 —— 那会把真人密码带进环境变量。
     if (HAS_SERVICE) {
       const cEmail = `${runId}-c@example.com`
-      const cSession = await createAndSignIn(admin, ANON, cEmail, password)
+      const cSession = await createAndSignIn(admin, ANON, cEmail, password, track)
       const cUser = cSession.user
       const c = cSession.client
-      createdUsers.push(cUser.id)
-      createdEmails.push(cEmail)
 
       // 普通用户 A 调用 admin_* → 必须被拒
       const aList = await retry(() => a.rpc('admin_list_users'))
@@ -545,22 +554,33 @@ async function main() {
     check('执行过程无异常', false, e?.message || String(e))
   } finally {
     // ── 清理:删除临时账号(级联删除其色卡/颜色/库存/作品)──
+    //
+    // 清理失败必须是**断言**,不能只打 stderr:脚本的主要危害就是往真实项目里
+    // 留垃圾,清理没做成却退出 0,等于把「跑完了」和「收拾干净了」混为一谈。
     if (HAS_SERVICE) {
       // 清墓碑:admin_delete_user 会在 removed_accounts 里留一条永久记录
       // (用于阻止被删账号用同一邮箱/用户名重新注册)。验证脚本调用它时
       // 也会留下痕迹,所以按本次 runId 前缀清掉 —— 只删自己写的,不动真实记录。
-      const { error: tombErr } = await admin
+      const { error: tombErr } = await retry(() => admin
         .from('removed_accounts')
         .delete()
-        .like('email', `${runId}-%`)
-      if (tombErr) console.error(`清理 removed_accounts 失败: ${tombErr.message}`)
+        .like('email', `${runId}-%`))
+      check('清理 removed_accounts 墓碑', !tombErr, tombErr?.message)
 
+      const undeleted = []
       for (const id of createdUsers) {
-        const { error } = await admin.auth.admin.deleteUser(id)
-        if (error) console.error(`清理临时账号失败(${id.slice(0, 8)}…): ${error.message}`)
+        // 删除也要重试:一次 `fetch failed` 就会把账号永久留在 auth.users 里。
+        // 上面已经证明网络抖动在这个环境里确实会发生,清理路径没有理由不设防。
+        const { error } = await retry(() => admin.auth.admin.deleteUser(id))
+        if (error) undeleted.push(`${id.slice(0, 8)}…: ${error.message}`)
       }
+      check('清理临时账号', undeleted.length === 0,
+        undeleted.length === 0
+          ? `已删除 ${createdUsers.length} 个`
+          : `以下未能删除,请到 Dashboard → Authentication 手工清理 —— ${undeleted.join(' | ')}`)
     } else if (createdEmails.length > 0) {
-      // 无 admin 权限时删不掉账号:明确列出,由人工在 Dashboard 清理
+      // 无 admin 权限时删不掉账号:明确列出,由人工在 Dashboard 清理。
+      // 这不是断言失败 —— 该模式下「删不掉」是已知且被接受的约束。
       console.log('')
       console.log('⚠️  以下临时账号未能自动删除(无 service_role),请到 Dashboard → Authentication 删除:')
       for (const email of createdEmails) console.log(`   - ${email}`)
