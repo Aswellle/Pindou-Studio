@@ -12,7 +12,7 @@
 import { useMemo } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
-import { ArrowLeft } from 'lucide-react'
+import BackButton from '../../components/BackButton'
 import { useGalleryContent } from '../../hooks/useGalleryContent'
 import { useGalleryTemplates } from './hooks/useGalleryTemplates'
 import { useFilteredTemplates } from './hooks/useFilteredTemplates'
@@ -98,10 +98,7 @@ export default function ThemePage({ cloudStore }) {
         noindex={!theme}
       />
       <div className="content-page-head">
-        <button className="content-back" onClick={() => navigate('/gallery')}>
-          <ArrowLeft size={16} aria-hidden="true" />
-          {t('gallery.discovery.backToGallery')}
-        </button>
+        <BackButton size="md" onClick={() => navigate('/gallery')} />
         {/* 返回按钮始终可见(加载中也能退出);标题区用占位块。
             已确认不存在(!theme 且不在加载)才显示「内容不存在」。 */}
         {showPageSkeleton && <PageHeadSkeleton kind="theme" />}

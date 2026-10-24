@@ -14,7 +14,8 @@
 import { useMemo, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
-import { ArrowLeft, Copy, Pencil, Download } from 'lucide-react'
+import { Copy, Pencil, Download } from 'lucide-react'
+import BackButton from '../../components/BackButton'
 import { useToast } from '../../components/Toast'
 import ThumbnailCanvas from '../../components/ThumbnailCanvas'
 import {
@@ -137,10 +138,7 @@ export default function PatternDetailPage({ cloudStore, onSaveProject, onLoadTem
       />
 
       <div className="content-page-head">
-        <button className="content-back" onClick={() => navigate('/gallery')}>
-          <ArrowLeft size={16} aria-hidden="true" />
-          {t('gallery.discovery.backToGallery')}
-        </button>
+        <BackButton size="md" onClick={() => navigate('/gallery')} />
         {!template ? (
           <p className="content-desc" role="status">
             {cloudDown ? t('gallery.discovery.unavailable') : t('gallery.discovery.notFound')}

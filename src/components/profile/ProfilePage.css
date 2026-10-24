@@ -25,27 +25,6 @@
   gap: 14px;
   margin-bottom: 18px;
 }
-.profile-back {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  flex: 0 0 auto;
-  height: 38px;
-  padding: 0 14px 0 11px;
-  border: 1px solid var(--border-color);
-  border-radius: 10px;
-  background: var(--bg-primary);
-  color: var(--text-secondary);
-  font-family: inherit;
-  font-size: var(--text-md);
-  cursor: pointer;
-  transition: background .15s ease, border-color .15s ease, color .15s ease;
-}
-.profile-back:hover { border-color: var(--accent); background: var(--accent-soft); color: var(--accent-hover); }
-.profile-back:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
-.profile-back svg { flex: 0 0 auto; transition: transform .16s ease; }
-.profile-back:hover svg { transform: translateX(-2px); }
-
 .profile-page-title { min-width: 0; }
 .profile-page-title h1 {
   margin: 0 0 2px;

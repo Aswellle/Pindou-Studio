@@ -38,39 +38,6 @@
 .quantizer-header-meta { display: inline-flex; align-items: center; justify-self: end; gap: 8px; color: var(--quantizer-muted); font-size: 13px; }
 .quantizer-status-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--secondary-accent); }
 
-/* 返回按钮 —— 独立功能页的唯一退出入口，需自解释、可聚焦、按住有反馈。
-   交互色全部落在暖调令牌上：默认暖白面 + 次级文字，hover 用标志色柔底（--accent-soft），
-   不使用深色填充（与本站暖调体系冲突）。 */
-.quantizer-back {
-  display: inline-flex;
-  align-items: center;
-  justify-self: start;
-  gap: 8px;
-  min-height: 40px;
-  padding: 0 14px 0 11px;
-  border: 1px solid var(--quantizer-line);
-  border-radius: 10px;
-  background: var(--quantizer-surface);
-  color: var(--text-secondary);
-  font-size: 14px;
-  font-weight: 500;
-  line-height: 1;
-  white-space: nowrap;
-  cursor: pointer;
-  transition: background 160ms ease, border-color 160ms ease, color 160ms ease, box-shadow 160ms ease, transform 120ms ease;
-}
-.quantizer-back-label { white-space: nowrap; }
-.quantizer-back-icon { flex: 0 0 auto; transition: transform 160ms ease; }
-.quantizer-back:hover {
-  border-color: var(--accent);
-  background: var(--accent-soft);
-  color: var(--accent-hover);
-  box-shadow: 0 6px 16px rgba(232, 115, 74, 0.18); /* --accent 的 18% 投影 */
-}
-.quantizer-back:hover .quantizer-back-icon { transform: translateX(-2px); }
-.quantizer-back:active { transform: translateY(1px); box-shadow: none; }
-.quantizer-back:focus-visible { outline: 2px solid var(--quantizer-accent); outline-offset: 2px; }
-
 .quantizer-steps { display: flex; align-items: center; justify-content: center; gap: 16px; padding: 16px 24px; background: var(--quantizer-surface-soft); border-bottom: 1px solid var(--quantizer-line); flex-shrink: 0; }
 
 /* 基础（<981px）：单列 + 整页滚动 —— 触屏上一栏到底最省事，
@@ -621,8 +588,6 @@
     min-height: 64px;
     padding: 12px 14px;
   }
-  .quantizer-back { width: 38px; padding: 0; justify-content: center; }
-  .quantizer-back-label { display: none; }
   .quantizer-header-title { justify-self: start; gap: 8px; min-width: 0; }
   .quantizer-brand-mark { width: 30px; height: 30px; border-radius: 8px; font-size: 15px; }
   .quantizer-header-title h2 { overflow: hidden; font-size: 16px; text-overflow: ellipsis; }

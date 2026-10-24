@@ -1179,7 +1179,6 @@
            这里只定义占位块自身的尺寸。
            高度对齐真实元素(实测:kicker 17 / 标题 30 / 描述 22 / 计数 18),
            内容到达时页头高度不变,下方网格不会往下跳。 */
-        .skeleton-back { width: 104px; height: 44px; border-radius: 8px; }
         .skeleton-kicker { width: 48px; height: 17px; }
         .skeleton-heading { width: 220px; height: 30px; }
         .skeleton-desc-line { width: min(100%, 420px); height: 22px; }
@@ -1423,25 +1422,6 @@
           display: flex;
           flex-direction: column;
           gap: 8px;
-        }
-        .content-back {
-          align-self: flex-start;
-          display: inline-flex;
-          align-items: center;
-          gap: 6px;
-          min-height: 44px;
-          padding: 8px 12px;
-          border: 1px solid var(--border-color);
-          border-radius: 8px;
-          background: var(--bg-secondary);
-          color: var(--text-secondary);
-          font-family: inherit;
-          font-size: var(--text-sm);
-          cursor: pointer;
-        }
-        .content-back:hover {
-          color: var(--text-primary);
-          border-color: var(--accent);
         }
         .content-kicker {
           font-size: var(--text-xs);

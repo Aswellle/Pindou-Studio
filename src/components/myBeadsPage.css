@@ -39,25 +39,6 @@
   gap: 12px;
 }
 
-.my-beads-back {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  height: 34px;
-  padding: 0 12px;
-  border-radius: 999px;
-  border: 1px solid var(--border-color);
-  background: var(--bg-primary);
-  color: var(--text-secondary);
-  font-size: var(--text-sm);
-  cursor: pointer;
-  /* 不被标题挤扁:此前 flex-shrink 让按钮只剩 18px 宽,「返回」被压成竖排 */
-  flex: 0 0 auto;
-  white-space: nowrap;
-}
-
-.my-beads-back:hover { background: var(--bg-tertiary); }
-
 .my-beads-title { min-width: 0; }
 
 .my-beads-title h1 {

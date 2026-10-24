@@ -25,6 +25,7 @@ import { useTranslation } from 'react-i18next'
 import {
   LayoutDashboard, UserRound, ShieldCheck, Boxes, Settings2,
 } from 'lucide-react'
+import BackButton from './BackButton'
 import { useScrollLock } from '../hooks/useScrollLock'
 import { useDialogA11y } from '../hooks/useDialogA11y'
 import { buildProfileSummary } from './profile/profileSummary'
@@ -133,18 +134,7 @@ export default function ProfilePage({
     <div className="profile-page">
       <div className="profile-page-inner">
         <header className="profile-page-bar">
-          <button
-            type="button"
-            className="profile-back"
-            onClick={handleBack}
-            aria-label={t('common.back')}
-            title={t('common.back')}
-          >
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-              <path d="M15 18l-6-6 6-6" />
-            </svg>
-            <span className="profile-back-label">{t('common.back')}</span>
-          </button>
+          <BackButton size="lg" onClick={handleBack} />
           <div className="profile-page-title">
             <h1>{t('profile.center.title')}</h1>
             <p>{t('profile.center.subtitle')}</p>

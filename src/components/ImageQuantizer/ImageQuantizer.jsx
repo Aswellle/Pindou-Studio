@@ -1,6 +1,7 @@
 import { useState, useCallback, useRef, useEffect, useMemo } from 'react'
 import { createPortal } from 'react-dom'
 import { useTranslation } from 'react-i18next'
+import BackButton from '../BackButton'
 import { useImageQuantizer } from '../../hooks/useImageQuantizer'
 import { useScrollLock } from '../../hooks/useScrollLock'
 import { useDialogA11y } from '../../hooks/useDialogA11y'
@@ -503,23 +504,7 @@ export default function ImageQuantizer({ onApply, onClose }) {
     <div className="quantizer-page">
       <div className="quantizer-shell">
         <header className="quantizer-header">
-          <button
-            type="button"
-            className="quantizer-back"
-            onClick={handleClose}
-            aria-label={t('common.back', '返回')}
-            title={t('common.back', '返回')}
-          >
-            <svg
-              className="quantizer-back-icon"
-              width="16" height="16" viewBox="0 0 24 24"
-              fill="none" stroke="currentColor" strokeWidth="2.2"
-              strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"
-            >
-              <path d="M15 18l-6-6 6-6" />
-            </svg>
-            <span className="quantizer-back-label">{t('common.back', '返回')}</span>
-          </button>
+          <BackButton size="lg" onClick={handleClose} />
           <div className="quantizer-header-title">
             <span className="quantizer-brand-mark" aria-hidden="true">✦</span>
             <div>

@@ -20,9 +20,10 @@ import { createPortal } from 'react-dom'
 import { useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import {
-  ArrowLeft, Plus, Trash2, Pencil, Copy, Search, AlertTriangle,
+  Plus, Trash2, Pencil, Copy, Search, AlertTriangle,
   Palette as PaletteIcon, Layers, Package, Sparkles, Download, Upload, ClipboardCopy,
 } from 'lucide-react'
+import BackButton from '../components/BackButton'
 import { useToast } from '../components/Toast'
 import { useScrollLock } from '../hooks/useScrollLock'
 import { useDialogA11y } from '../hooks/useDialogA11y'
@@ -621,10 +622,7 @@ export default function MyBeadsPage({ user, canvasData, onApplyMapping, works = 
     <div className="my-beads-page">
       <div className="my-beads-inner">
         <header className="my-beads-bar">
-          <button type="button" className="my-beads-back" onClick={() => navigate(-1)} aria-label={t('common.back')}>
-            <ArrowLeft size={16} />
-            <span>{t('common.back')}</span>
-          </button>
+          <BackButton size="md" onClick={() => navigate(-1)} />
           <div className="my-beads-title">
             <span className="my-beads-eyebrow">PINDOU STUDIO / BEADS</span>
             <h1>{t('myBeads.title')}</h1>

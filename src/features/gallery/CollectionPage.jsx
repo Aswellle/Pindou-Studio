@@ -8,7 +8,7 @@
 import { useMemo } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
-import { ArrowLeft } from 'lucide-react'
+import BackButton from '../../components/BackButton'
 import { useGalleryContent } from '../../hooks/useGalleryContent'
 import { useGalleryTemplates } from './hooks/useGalleryTemplates'
 import { useFilteredTemplates } from './hooks/useFilteredTemplates'
@@ -64,10 +64,7 @@ export default function CollectionPage({ cloudStore }) {
         noindex={!collection}
       />
       <div className="content-page-head">
-        <button className="content-back" onClick={() => navigate('/gallery')}>
-          <ArrowLeft size={16} aria-hidden="true" />
-          {t('gallery.discovery.backToGallery')}
-        </button>
+        <BackButton size="md" onClick={() => navigate('/gallery')} />
         {showPageSkeleton && <PageHeadSkeleton kind="collection" />}
         {!showPageSkeleton && !collection && (
           <p className="content-desc" role="status">{t('gallery.discovery.notFound')}</p>

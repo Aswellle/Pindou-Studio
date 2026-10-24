@@ -22,7 +22,8 @@
 import { useCallback, useMemo, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
-import { Upload, FileJson, CheckCircle2, AlertTriangle, ArrowLeft, Eye, Save, ImagePlus } from 'lucide-react'
+import { Upload, FileJson, CheckCircle2, AlertTriangle, Eye, Save, ImagePlus } from 'lucide-react'
+import BackButton from './BackButton'
 import { useToast } from '../components/Toast'
 import ThumbnailCanvas from '../components/ThumbnailCanvas'
 import ChartImportWizard from './ChartImportWizard'
@@ -179,10 +180,7 @@ export default function ImportPage({ onLoadProject, onSaveProject }) {
     <div className="import-page">
       <div className="import-page-inner">
         <header className="import-page-bar">
-          <button type="button" className="import-back" onClick={() => navigate(-1)} aria-label={t('common.back')}>
-            <ArrowLeft size={16} />
-            <span>{t('common.back')}</span>
-          </button>
+          <BackButton size="md" onClick={() => navigate(-1)} />
           <div className="import-page-title">
             <span className="import-eyebrow">PINDOU STUDIO / IMPORT</span>
             <h1>{t('importPage.title')}</h1>

@@ -24,7 +24,8 @@
 import { useState, useEffect, useRef, useCallback, useMemo } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
-import { ArrowLeft, Send, User } from 'lucide-react'
+import { Send, User } from 'lucide-react'
+import BackButton from './BackButton'
 import { supabase, toStorageUrl } from '../services/supabase'
 import { useToast } from './Toast'
 import './contactPage.css'
@@ -257,15 +258,7 @@ export default function ContactPage({ user }) {
     <div className="contact-page">
       <div className="contact-page-inner">
         <header className="contact-page-bar">
-          <button
-            type="button"
-            className="contact-back"
-            onClick={handleBack}
-            aria-label={t('common.back')}
-            title={t('common.back')}
-          >
-            <ArrowLeft size={16} />
-          </button>
+          <BackButton size="md" onClick={handleBack} />
           <div className="contact-page-title">
             <h1>{t('contact.title')}</h1>
             <p>{user ? t('contact.userHint') : t('contact.visitorHint')}</p>

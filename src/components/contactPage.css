@@ -50,23 +50,6 @@
   border-bottom: 1px solid var(--border-color);
   background: var(--bg-primary);
 }
-.contact-back {
-  flex: 0 0 auto;
-  width: 36px;
-  height: 36px;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  border: 1px solid var(--border-color);
-  border-radius: 10px;
-  background: var(--bg-primary);
-  color: var(--text-secondary);
-  cursor: pointer;
-  transition: border-color .15s ease, color .15s ease, background .15s ease;
-}
-.contact-back:hover { border-color: var(--accent); background: var(--accent-soft); color: var(--accent-hover); }
-.contact-back:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
-
 .contact-page-title { min-width: 0; }
 .contact-page-title h1 {
   margin: 0 0 2px;
