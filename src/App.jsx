@@ -1670,7 +1670,7 @@ export default function App() {
     },
     import: {
       title: '导入图纸 - 拼豆Studio',
-      desc: '导入 .pindou.json 原生项目文件或模板 JSON，校验后保存为仅自己可见的拼豆图纸。',
+      desc: '把现成的图纸文件导进来继续编辑，或从图纸截图里自动识别格子，保存为仅自己可见的拼豆图纸。',
       noindex: true,
     },
     myBeads: {

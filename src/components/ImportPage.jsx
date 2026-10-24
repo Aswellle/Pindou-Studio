@@ -22,7 +22,7 @@
 import { useCallback, useMemo, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
-import { Upload, FileJson, CheckCircle2, AlertTriangle, Eye, Save, ImagePlus } from 'lucide-react'
+import { Upload, FileUp, FileText, CheckCircle2, AlertTriangle, Eye, Save, ImagePlus } from 'lucide-react'
 import BackButton from './BackButton'
 import { useToast } from '../components/Toast'
 import ThumbnailCanvas from '../components/ThumbnailCanvas'
@@ -198,7 +198,7 @@ export default function ImportPage({ onLoadProject, onSaveProject }) {
             className={`import-mode${mode === 'file' ? ' active' : ''}`}
             onClick={() => setMode('file')}
           >
-            <FileJson size={16} />
+            <FileUp size={16} />
             <span>
               <strong>{t('importPage.modeFile')}</strong>
               <small>{t('importPage.modeFileHint')}</small>
@@ -248,9 +248,9 @@ export default function ImportPage({ onLoadProject, onSaveProject }) {
           <Upload size={28} className="import-drop-icon" />
           <span className="import-drop-main">{t('importPage.chooseFile')}</span>
           <span className="import-drop-hint">
-            {t('importPage.dropHint', { size: Math.round(MAX_IMPORT_BYTES / 1024) })}
+            {t('importPage.dropHint', { size: Math.round(MAX_IMPORT_BYTES / 1024 / 1024) })}
           </span>
-          {fileName && <span className="import-file-name"><FileJson size={14} />{fileName}</span>}
+          {fileName && <span className="import-file-name"><FileText size={14} />{fileName}</span>}
           {reading && <span className="import-reading">{t('common.loading')}</span>}
         </section>
 
@@ -307,8 +307,16 @@ export default function ImportPage({ onLoadProject, onSaveProject }) {
                 <div><dt>{t('importPage.size')}</dt><dd>{selected.grid.width} × {selected.grid.height}</dd></div>
                 <div><dt>{t('importPage.colors')}</dt><dd>{stats?.colorCount ?? 0}</dd></div>
                 <div><dt>{t('importPage.beads')}</dt><dd>{stats?.totalBeads ?? 0}</dd></div>
-                <div><dt>{t('importPage.palette')}</dt><dd>{selected.palette?.paletteId || 'perler'}</dd></div>
-                <div><dt>{t('importPage.source')}</dt><dd>{selected.source?.kind || '—'}</dd></div>
+                {/* 色卡与来源都按用户认识的说法显示:此前直接打印 paletteId 与
+                    source.kind 的内部枚举(perler / native-file),对用户是乱码。 */}
+                <div>
+                  <dt>{t('importPage.palette')}</dt>
+                  <dd>{t(`palette.brand.${selected.palette?.paletteId || 'perler'}`, selected.palette?.paletteId || 'perler')}</dd>
+                </div>
+                <div>
+                  <dt>{t('importPage.source')}</dt>
+                  <dd>{t(`importPage.sourceKinds.${selected.source?.kind || 'native-file'}`, selected.source?.kind || '—')}</dd>
+                </div>
               </dl>
             </div>
 
@@ -335,13 +343,6 @@ export default function ImportPage({ onLoadProject, onSaveProject }) {
         <section className="import-format">
           <h2>{t('importPage.formatTitle')}</h2>
           <p>{t('importPage.formatBody')}</p>
-          <pre>{`{
-  "schemaVersion": 1,
-  "name": "我的拼豆图纸",
-  "grid": { "width": 2, "height": 2,
-    "cells": [["#E53935", null], [null, "#FFFFFF"]] },
-  "palette": { "paletteId": "perler" }
-}`}</pre>
           <p className="import-format-note">{t('importPage.formatNote')}</p>
         </section>
           </>

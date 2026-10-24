@@ -46,10 +46,11 @@ describe('ImportPage · 合法文件', () => {
     const { container } = setup()
     selectFile(container, projectJson())
 
-    await waitFor(() => expect(screen.getByText('校验通过')).toBeTruthy())
+    await waitFor(() => expect(screen.getByText('读取成功')).toBeTruthy())
     expect(screen.getByText('导入测试图')).toBeTruthy()
     expect(screen.getByText('12 × 10')).toBeTruthy()
-    expect(screen.getByText('mard')).toBeTruthy()
+    // 色卡按品牌显示名呈现,不再直接打印内部 id
+    expect(screen.getByText('MARD 拼豆')).toBeTruthy()
   })
 
   it('点击「保存为我的作品」把 work 交给 onSaveProject(尺寸由数据推导)', async () => {
@@ -104,7 +105,7 @@ describe('ImportPage · 非法文件', () => {
     selectFile(container, '{not json')
 
     await waitFor(() => expect(screen.getByText('导入失败')).toBeTruthy())
-    expect(screen.getByText(/不是合法的 JSON/)).toBeTruthy()
+    expect(screen.getByText(/这个文件读不出来/)).toBeTruthy()
     expect(screen.queryByText('保存为我的作品')).toBeNull()
     expect(container.querySelector('.import-preview')).toBeNull()
   })
@@ -114,7 +115,7 @@ describe('ImportPage · 非法文件', () => {
     selectFile(container, projectJson({ schemaVersion: 99 }))
 
     await waitFor(() => expect(screen.getByText('导入失败')).toBeTruthy())
-    expect(screen.getByText(/不支持的项目版本/)).toBeTruthy()
+    expect(screen.getByText(/来自更新的版本/)).toBeTruthy()
   })
 
   it('非法颜色给出可识别错误', async () => {
@@ -126,7 +127,7 @@ describe('ImportPage · 非法文件', () => {
     }))
 
     await waitFor(() => expect(screen.getByText('导入失败')).toBeTruthy())
-    expect(screen.getByText(/非法颜色值/)).toBeTruthy()
+    expect(screen.getByText(/认不出的颜色/)).toBeTruthy()
   })
 
   it('非 JSON 扩展名在读取前被拒', async () => {
@@ -135,7 +136,7 @@ describe('ImportPage · 非法文件', () => {
     selectFile(container, projectJson(), 'photo.png', 'image/png')
 
     await waitFor(() => expect(screen.getByText('导入失败')).toBeTruthy())
-    expect(screen.getByText(/请选择 \.json 文件/)).toBeTruthy()
+    expect(screen.getByText(/请选择图纸文件/)).toBeTruthy()
   })
 
   it('重新选择会清空上一次的错误与预览', async () => {
@@ -144,7 +145,7 @@ describe('ImportPage · 非法文件', () => {
     await waitFor(() => expect(screen.getByText('导入失败')).toBeTruthy())
 
     selectFile(container, projectJson())
-    await waitFor(() => expect(screen.getByText('校验通过')).toBeTruthy())
+    await waitFor(() => expect(screen.getByText('读取成功')).toBeTruthy())
     expect(screen.queryByText('导入失败')).toBeNull()
   })
 })
@@ -160,6 +161,6 @@ describe('ImportPage · 保存失败不误报成功', () => {
 
     await waitFor(() => expect(onSaveProject).toHaveBeenCalledTimes(1))
     // 仍停留在预览态,用户可重试
-    expect(screen.getByText('校验通过')).toBeTruthy()
+    expect(screen.getByText('读取成功')).toBeTruthy()
   })
 })

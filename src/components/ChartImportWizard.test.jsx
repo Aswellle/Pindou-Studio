@@ -217,7 +217,7 @@ describe('ChartImportWizard · 透视校正', () => {
   it('未校正时显示「透视校正」按钮,点击进入角点模式', () => {
     const { container } = renderWizard()
     const btn = container.querySelector('.chart-perspective-btn')
-    expect(btn.textContent).toContain('透视校正')
+    expect(btn.textContent).toContain('斜拍拉正')
 
     fireEvent.click(btn)
     expect(container.querySelector('.chart-perspective-hint').textContent).toContain('0/4')
@@ -260,9 +260,9 @@ describe('ChartImportWizard · 透视校正', () => {
     mocks.state.quad = [{ x: 0, y: 0 }, { x: 1, y: 0 }, { x: 1, y: 1 }, { x: 0, y: 1 }]
     const { container } = renderWizard()
 
-    expect(container.querySelector('.chart-perspective-done').textContent).toContain('已应用透视校正')
+    expect(container.querySelector('.chart-perspective-done').textContent).toContain('已按四个角拉正')
     const btn = container.querySelector('.chart-perspective-btn.ghost')
-    expect(btn.textContent).toBe('取消校正')
+    expect(btn.textContent).toBe('取消拉正')
 
     fireEvent.click(btn)
     expect(mocks.state.clearPerspective).toHaveBeenCalledTimes(1)
@@ -280,7 +280,7 @@ describe('ChartImportWizard · 透视校正', () => {
 
     expect(mocks.state.applyPerspective).not.toHaveBeenCalled()
     // 回到未校正状态
-    expect(container.querySelector('.chart-perspective-btn').textContent).toContain('透视校正')
+    expect(container.querySelector('.chart-perspective-btn').textContent).toContain('斜拍拉正')
   })
 
   it('校正失败时提示,不静默退出', () => {
