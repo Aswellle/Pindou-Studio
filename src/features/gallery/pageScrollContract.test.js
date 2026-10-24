@@ -36,18 +36,23 @@ function ruleBody(css, selector) {
 
 describe('整页滚动契约', () => {
   it('.app 固定视口高度并裁切溢出(所有整页内容必须自带滚动)', () => {
-    // 高度契约已上移到 #root:根壳用 max(--vh*100, offsetTop+--visible-vh) 覆盖到
-    // 视觉视口底部,子壳只继承 100%。这里同时锁住两件事:子壳不再自己按 --vh 定高
-    // (否则与根壳公式分歧就会互相裁切),并且仍然裁切溢出(整页内容必须自带滚动)。
+    // 高度契约在 #root:它是 fixed + inset:0 盖满布局视口,再用内边距把内容
+    // 框进视觉视口(见 index.css 注释)。子壳只继承 100%,不再自己按 --vh 或
+    // 视觉视口定高 —— 一旦公式分歧就会互相裁切。
     const app = ruleBody(INDEX_CSS, '.app {')
     expect(app).toContain('overflow: hidden')
     expect(app).toContain('height: 100%')
     expect(app).not.toMatch(/height:\s*calc\(var\(--vh/)
 
-    const rootRule = ruleBody(INDEX_CSS, '#root {')
-    expect(rootRule).toMatch(/height:\s*max\(/)
+    // 断言前去掉注释:块内注释会引用旧写法作为说明,直接匹配会假通过。
+    const rootRule = ruleBody(INDEX_CSS, '#root {').replace(/\/\*[\s\S]*?\*\//g, '')
+    expect(rootRule).toMatch(/position:\s*fixed/)
+    expect(rootRule).toMatch(/inset:\s*0/)
     expect(rootRule).toContain('var(--visible-vh-top')
     expect(rootRule).toContain('overflow: hidden')
+    // 高度不再由 JS 变量驱动:那是 iOS 26「键盘收起后 visualViewport 不恢复」
+    // 卡死闩锁的根源(Apple Forums 800125)
+    expect(rootRule).not.toMatch(/height:\s*max\(/)
   })
 
   it('图库 / 教程 / 内容页共用同一条滚动规则', () => {
@@ -105,6 +110,33 @@ describe('移动端整页滚动', () => {
     const inner = ruleBody(INDEX_CSS, '.mobile-page-area > .profile-page {')
     expect(inner).toContain('overflow: visible')
     expect(inner).not.toContain('overflow-y: auto')
+  })
+})
+
+describe('常驻 fixed chrome 跟随视觉视口', () => {
+  it('顶栏 / 工具栏 / 色卡条各自让出视觉视口偏移与键盘高度', () => {
+    // #root 的内边距只作用于文档流内的内容;fixed 元素的包含块是初始包含块,
+    // 不理会 #root 的内边距。键盘弹起时布局视口底部在键盘后面、iOS 平移视觉
+    // 视口时顶部又跑到可见区之上 —— 所以这三处必须各自跟随。
+    // 补偿表达式集中在 index.css,组件 CSS 不再重抄(mobileOverlayContract 强制)。
+    const header = ruleBody(INDEX_CSS, '.header {')
+    expect(header).toMatch(/top:\s*var\(--visible-vh-top/)
+
+    // 用 "\n.mobile-toolbar {" 精确定位:规则块本身前面还有
+    // `body:has(.modal-overlay) .mobile-toolbar` 这种选择器,indexOf 会先命中它
+    const toolbar = ruleBody(INDEX_CSS, '\n.mobile-toolbar {')
+    expect(toolbar).toMatch(/bottom:\s*var\(--keyboard-height/)
+
+    const palette = ruleBody(INDEX_CSS, '\n.mobile-color-palette {')
+    expect(palette).toMatch(/bottom:\s*calc\(/)
+    expect(palette).toContain('--keyboard-height')
+  })
+
+  it('组件 CSS 不重抄常驻 chrome 的键盘补偿', () => {
+    const toolbarCss = readFileSync(join(SRC, 'components', 'Tools', 'MobileToolbar.css'), 'utf8')
+    const paletteCss = readFileSync(join(SRC, 'components', 'ColorPalette', 'MobileColorPalette.css'), 'utf8')
+    expect(toolbarCss.replace(/\/\*[\s\S]*?\*\//g, '')).not.toMatch(/var\(--keyboard-height/)
+    expect(paletteCss.replace(/\/\*[\s\S]*?\*\//g, '')).not.toMatch(/var\(--keyboard-height/)
   })
 })
 

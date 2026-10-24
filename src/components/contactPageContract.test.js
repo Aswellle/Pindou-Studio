@@ -74,53 +74,50 @@ function declValue(block, prop) {
 const CSS_CODE = stripComments(CSS)
 const JSX_CODE = stripComments(JSX)
 
-describe('联系我们页 · 页面框盖满布局视口', () => {
-  it('页面框用 fixed + inset:0 盖满整个布局视口', () => {
-    // 这是本页最关键的一条。视觉视口永远是布局视口的子集 —— 框盖满布局视口,
-    // 视觉视口无论怎么平移看到的都是本页,白板在几何上不可能出现。
-    // 换成普通流:文档被 iOS 滚动时整页跟着上移,底部露白。
-    // 换成 absolute:被 #root / .app 的 overflow:hidden 裁切,症状相同。
-    // 定位写在 index.css 的「整页框」组里(补偿表达式全站只允许一处)。
-    const page = ruleBody(INDEX_CSS, '.contact-page')
-    expect(page).toMatch(/position:\s*fixed/)
-    expect(page).toMatch(/inset:\s*0/)
+describe('联系我们页 · 键盘补偿只在 #root 做一次', () => {
+  it('#root 是盖满布局视口的固定壳,并用内边距让出键盘', () => {
+    // 全站唯一的补偿点。视觉视口永远是布局视口的子集 —— 壳盖满布局视口,
+    // 无论 iOS 怎么平移视觉视口 / 滚动文档,看到的都还是本页,
+    // 「页面被抬升」与「底部大片空白」在几何上都不可能出现。
+    const root = ruleBody(INDEX_CSS, '#root')
+    expect(root).toMatch(/position:\s*fixed/)
+    expect(root).toMatch(/inset:\s*0/)
+    expect(declValue(root, 'padding-top')).toContain('--visible-vh-top')
+    expect(declValue(root, 'padding-bottom')).toContain('--keyboard-height')
+  })
+
+  it('#root 的高度不再绑在键盘判定上', () => {
+    // 旧写法 height: max(--vh*100, offsetTop+visible) 有两个致命前提:
+    //   1. 依赖「键盘判定」—— iOS 26 键盘收起后 visualViewport 不恢复
+    //      (Apple Forums 800125),闩锁永不释放,壳永久停在收缩高度 → 底部留白;
+    //   2. 锚在布局视口顶部 —— iOS 平移视觉视口时顶栏跑到可见区之上 → 被抬升。
+    // fixed + inset:0 把壳与判定完全解耦。
+    // 注释里会引用旧写法作为说明,断言前先去掉
+    const root = stripComments(ruleBody(INDEX_CSS, '#root'))
+    expect(root).not.toMatch(/height:\s*calc\(var\(--vh/)
+    expect(root).not.toMatch(/height:\s*max\(/)
+  })
+
+  it('页面自身不重复做键盘补偿', () => {
+    // 页面是 #root 的普通 flex 子项,天然继承已经让出键盘的内容区高度。
+    // 再补一次就是双重让出:内容被压掉两倍键盘高度,底部反而露白。
+    expect(CSS_CODE).not.toMatch(/var\(--(?:keyboard-height|visible-vh-top)/)
+    const page = ruleBody(CSS, '.contact-page')
+    expect(page).not.toMatch(/position:\s*(?:fixed|absolute)/)
+    // 不得自带高度(flex:1 + min-height:0 已足够让它吃满剩余空间)
+    expect(page).not.toMatch(/(?:^|[;\s])height\s*:/)
   })
 
   it('不再用绝对定位 / 视觉视口矩形那一套', () => {
     // 上一版模型:absolute + top/height 绑 --raw-visual-*。已证伪(会被裁切),
     // 残留会让人误以为那套还在生效。
-    const page = ruleBody(INDEX_CSS, '.contact-page')
-    expect(page).not.toMatch(/position:\s*absolute/)
     expect(INDEX_CSS).not.toMatch(/--raw-visual/)
     expect(CSS_CODE).not.toMatch(/--raw-visual/)
     expect(KEYBOARD_SAFE).not.toContain('--raw-visual')
   })
 
-  it('内容用内边距框进视觉视口(顶部偏移 + 键盘高度)', () => {
-    // fixed 盖满布局视口只保证「看得到本页」,不保证输入区在键盘上方。
-    // 真正把内容压进可见区的是这两个内边距:顶部让出 iOS 的自动平移,
-    // 底部让出键盘高度,两者相减内容区恰好等于视觉视口。
-    const page = ruleBody(INDEX_CSS, '.contact-page')
-    expect(declValue(page, 'padding-top')).toContain('--visible-vh-top')
-    expect(declValue(page, 'padding-bottom')).toContain('--keyboard-height')
-  })
-
-  it('页面自己的 CSS 不重抄补偿表达式', () => {
-    // 全站只允许 index.css 写一次 —— 组件重抄会在共享组调整时静默失配
-    // (mobileOverlayContract.test.js 会拦,这里再钉一次让意图就近可读)
-    expect(CSS_CODE).not.toMatch(/var\(--(?:keyboard-height|visible-vh-top)/)
-  })
-
-  it('底部不再叠加 safe-area:输入区自己已经加过一次', () => {
-    // 两处都加 → 键盘收起时底部凭空多出一条 34px 空白
-    const page = ruleBody(INDEX_CSS, '.contact-page')
-    expect(declValue(page, 'padding-bottom')).not.toContain('safe-area-inset-bottom')
-    expect(ruleBody(CSS, '.contact-composer')).toMatch(/env\(safe-area-inset-bottom/)
-  })
-
   it('页面根节点不再需要定位宿主', () => {
-    // fixed 的包含块是初始包含块,祖先的 position 不影响它。
-    // 保留 .contact-page-host 只会让人以为这里还有绝对定位需要参照系。
+    // 页面已是普通流 flex 子项,没有绝对定位,不需要 position: relative 参照系。
     expect(CSS).not.toMatch(/\.contact-page-host/)
     expect(JSX_CODE).not.toMatch(/contact-page-host/)
   })
@@ -134,13 +131,14 @@ describe('联系我们页 · 页面框盖满布局视口', () => {
 })
 
 describe('联系我们页 · 三段式版面', () => {
-  it('根容器是 flex 纵向布局', () => {
+  it('根容器是 flex 纵向布局,并填满 #root 的内容区', () => {
     const root = ruleBody(CSS, '.contact-page')
     expect(root).toMatch(/display:\s*flex/)
     expect(root).toMatch(/flex-direction:\s*column/)
-    // 框的大小由 fixed + inset:0 决定(index.css);overflow:hidden 在那边,
-    // 防止内容溢出框外
-    expect(ruleBody(INDEX_CSS, '.contact-page')).toMatch(/overflow:\s*hidden/)
+    // flex:1 + min-height:0 让它吃满 #root 已让出键盘后的剩余高度
+    expect(root).toMatch(/flex:\s*1/)
+    expect(root).toMatch(/min-height:\s*0/)
+    expect(root).toMatch(/overflow:\s*hidden/)
   })
 
   it('内层是 flex 纵向且可收缩', () => {
