@@ -1,0 +1,73 @@
+/* BackButton — 统一的纯图标返回按钮(见 BackButton.jsx 顶部注释)。
+ *
+ * 三档尺寸按「所在行的高度」选,而不是按屏幕大小:
+ *   sm 28px — 紧凑工具栏、卡片头
+ *   md 34px — 与常规按钮/输入框齐平(导入页、我的色卡、联系我们)
+ *   lg 40px — 顶部大标题栏(个人中心、图片转拼豆)
+ *
+ * 图标尺寸随按钮走:sm 15 / md 16 / lg 18。视觉上图标占比始终约 45%,
+ * 换档时不会出现「按钮变大、箭头还是那么小」的失衡。
+ */
+
+.back-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+  padding: 0;
+  border: 1px solid var(--border-color);
+  border-radius: 10px;
+  background: var(--bg-primary);
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: background .15s ease, border-color .15s ease, color .15s ease, transform .12s ease;
+}
+
+.back-btn:hover {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+  color: var(--accent-hover);
+}
+.back-btn:active { transform: translateY(1px); }
+.back-btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+/* 图标本身不参与收缩,悬停时轻微左移 —— 与「返回」的语义同向 */
+.back-btn svg {
+  flex: 0 0 auto;
+  transition: transform .16s ease;
+}
+.back-btn:hover svg { transform: translateX(-2px); }
+
+/* ── 尺寸档位 ─────────────────────────────────────────────── */
+.back-btn-sm {
+  width: 28px;
+  height: 28px;
+  border-radius: 8px;
+}
+.back-btn-sm svg { width: 15px; height: 15px; }
+
+.back-btn-md {
+  width: 34px;
+  height: 34px;
+}
+.back-btn-md svg { width: 16px; height: 16px; }
+
+.back-btn-lg {
+  width: 40px;
+  height: 40px;
+}
+.back-btn-lg svg { width: 18px; height: 18px; }
+
+/* 触摸设备:命中区域不足 44px 时用伪元素外扩,视觉尺寸不变。
+   只在粗指针设备生效 —— 鼠标设备不需要,反而会让相邻按钮的点击区重叠。 */
+@media (pointer: coarse) {
+  .back-btn { position: relative; }
+  .back-btn::after {
+    content: '';
+    position: absolute;
+    inset: 50% auto auto 50%;
+    width: 44px;
+    height: 44px;
+    transform: translate(-50%, -50%);
+  }
+}
