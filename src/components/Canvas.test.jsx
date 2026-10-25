@@ -49,7 +49,7 @@ function installCanvasMocks(hooks = {}) {
     save: () => {},
     restore: () => {},
     setLineDash: (segments) => calls.setLineDash.push(segments),
-    // 触屏选区四角把手(pointer: coarse 时才调用)
+    // 套索预览轨迹的起点圆点
     arc: (x, y, r) => { calls.arc.push({ x, y, r }); hooks.arc?.(x, y, r) },
     fill: () => { hooks.fill?.() },
   }
@@ -705,6 +705,85 @@ describe('Canvas 拖拽移动选区(M5.2)', () => {
     expect(preview).toContainEqual({ x: 32, y: 16, w: 16, h: 16 })
   })
 
+  test('套索选区同样能拖动(回归:此前 clampMove 读到 undefined 导致偏移 NaN)', () => {
+    // 套索选区没有 x/y/w/h 字段,偏移必须按外接矩形算 ——
+    // 早期直接读 sel.x,整个偏移变成 NaN,预览一片空白、松手也不提交。
+    const data = blankGrid(3)
+    data[0][0] = '#E53935'
+    data[0][1] = '#43A047'
+    const lasso = createLassoSelection(
+      [{ x: 0, y: 0 }, { x: 2, y: 0 }, { x: 2, y: 1 }, { x: 0, y: 1 }],
+      3, 3,
+    )
+    const onSelectionMove = vi.fn()
+    const onSelectionChange = vi.fn()
+    const { container } = renderMove({
+      tool: 'lasso', committedData: data, selection: lasso, onSelectionMove, onSelectionChange,
+    })
+    const c = container.querySelector('.canvas-container')
+
+    // 从 (0,0) 拖到 (1,1):dx=1, dy=1
+    fireEvent.mouseDown(c, { clientX: 8, clientY: 8 })
+    fireEvent.mouseMove(c, { clientX: 24, clientY: 24 })
+    fireEvent.mouseUp(c, { clientX: 24, clientY: 24 })
+
+    expect(onSelectionMove).toHaveBeenCalledTimes(1)
+    // 按在选区内是「搬走」,不该顺手起一个新套索把旧选区顶掉
+    expect(onSelectionChange).not.toHaveBeenCalled()
+    const payload = onSelectionMove.mock.calls[0][0]
+    expect(payload.dx).toBe(1)
+    expect(payload.dy).toBe(1)
+    // 形状信息随选区一起回传,App 据此走掩码版命令
+    expect(payload.selection.kind).toBe('lasso')
+  })
+
+  test('套索选区拖动时预览按掩码画,不会画成外接矩形', () => {
+    const data = blankGrid(3)
+    data[0][0] = '#E53935'
+    // 只选 (0,0) 这一格,外接矩形也是 1×1 —— 但走的是掩码路径
+    const lasso = createLassoSelection(
+      [{ x: 0, y: 0 }, { x: 1, y: 0 }, { x: 1, y: 1 }, { x: 0, y: 1 }],
+      3, 3,
+    )
+    const { container } = renderMove({ tool: 'lasso', committedData: data, selection: lasso })
+    const c = container.querySelector('.canvas-container')
+    const before = mock.calls.fillRect.length
+
+    fireEvent.mouseDown(c, { clientX: 8, clientY: 8 })
+    fireEvent.mouseMove(c, { clientX: 24, clientY: 24 })
+
+    const preview = mock.calls.fillRect.slice(before)
+    // 珠子按偏移画到 (1,1)
+    expect(preview).toContainEqual({ x: 16, y: 16, w: 16, h: 16 })
+  })
+
+  test('矩形工具下也能拖动遗留的套索选区(命中判定按 kind 分派)', () => {
+    // 从套索工具切回矩形工具,或粘贴过套索剪贴板后,画布上会有套索选区。
+    // 早先 select 分支用矩形专用的 pointInSelection 判命中 —— 它对掩码选区
+    // 读 sel.x/sel.w 全是 undefined,永远返回 false,于是光标提示 move
+    // 却按下去变成新建矩形框,又是一次「拖不动」。
+    const data = blankGrid(3)
+    data[0][0] = '#E53935'
+    const lasso = createLassoSelection(
+      [{ x: 0, y: 0 }, { x: 2, y: 0 }, { x: 2, y: 2 }, { x: 0, y: 2 }],
+      3, 3,
+    )
+    const onSelectionMove = vi.fn()
+    const onSelectionChange = vi.fn()
+    const { container } = renderMove({
+      tool: 'select', committedData: data, selection: lasso, onSelectionMove, onSelectionChange,
+    })
+    const c = container.querySelector('.canvas-container')
+
+    fireEvent.mouseDown(c, { clientX: 8, clientY: 8 })
+    fireEvent.mouseMove(c, { clientX: 24, clientY: 24 })
+    fireEvent.mouseUp(c, { clientX: 24, clientY: 24 })
+
+    expect(onSelectionMove).toHaveBeenCalledTimes(1)
+    expect(onSelectionMove.mock.calls[0][0]).toMatchObject({ dx: 1, dy: 1 })
+    expect(onSelectionChange).not.toHaveBeenCalled()
+  })
+
   test('原地点击(偏移 0)不提交历史', () => {
     const { container, onSelectionMove } = renderMove()
     const c = container.querySelector('.canvas-container')
@@ -895,9 +974,26 @@ describe('Canvas 框选吸附(A3)', () => {
     return { ...view, onSelectionChange }
   }
 
-  test('默认开启:下边界靠近珠块底边时吸过去', () => {
+  test('显式开启:下边界靠近珠块底边时吸过去', () => {
     // 第 0、1 行有珠,珠块底边在 y=2。
     // 从 (0,0) 拖到 (0,2) 时下边界是 3,与底边差一格 → 吸到 2,高度 3 → 2。
+    // 默认已改为关闭(吸附会抢手感),所以这里显式传 snapToEdges。
+    const data = blankGrid(3)
+    data[0] = ['#E53935', '#E53935', '#E53935']
+    data[1] = ['#E53935', '#E53935', '#E53935']
+    const { container, onSelectionChange } = renderSnap({ committedData: data, snapToEdges: true })
+    const c = container.querySelector('.canvas-container')
+
+    fireEvent.mouseDown(c, { clientX: 8, clientY: 8 })
+    fireEvent.mouseMove(c, { clientX: 8, clientY: 40 })
+    fireEvent.mouseUp(c, { clientX: 8, clientY: 40 })
+
+    const last = onSelectionChange.mock.calls.at(-1)[0]
+    expect(last).toEqual({ x: 0, y: 0, w: 1, h: 2 })
+  })
+
+  test('默认不吸附:同样的手势保持指针位置', () => {
+    // 回归:吸附曾在默认开启时把焦点拽走 1–2 格,用户体感是「拖动不管用」
     const data = blankGrid(3)
     data[0] = ['#E53935', '#E53935', '#E53935']
     data[1] = ['#E53935', '#E53935', '#E53935']
@@ -908,8 +1004,9 @@ describe('Canvas 框选吸附(A3)', () => {
     fireEvent.mouseMove(c, { clientX: 8, clientY: 40 })
     fireEvent.mouseUp(c, { clientX: 8, clientY: 40 })
 
+    // 指针停在 y=2 那一格 → 高度 3,没有被吸到 2
     const last = onSelectionChange.mock.calls.at(-1)[0]
-    expect(last).toEqual({ x: 0, y: 0, w: 1, h: 2 })
+    expect(last.h).toBe(3)
   })
 
   test('关闭吸附后,同样的手势得到未吸附的矩形', () => {
@@ -929,7 +1026,7 @@ describe('Canvas 框选吸附(A3)', () => {
     const data = blankGrid(3)
     data[0] = ['#E53935', '#E53935', '#E53935']
     data[1] = ['#E53935', '#E53935', '#E53935']
-    const { container } = renderSnap({ committedData: data })
+    const { container } = renderSnap({ committedData: data, snapToEdges: true })
     const c = container.querySelector('.canvas-container')
     const before = mock.calls.strokeStyle.length
 
@@ -947,7 +1044,7 @@ describe('Canvas 框选吸附(A3)', () => {
     // 与锚点重合。若照单全收,endSelection 会把这次拖动当成单击并取消选区。
     const data = blankGrid(3)
     data[0] = [null, '#E53935', '#E53935']
-    const { container, onSelectionChange } = renderSnap({ committedData: data })
+    const { container, onSelectionChange } = renderSnap({ committedData: data, snapToEdges: true })
     const c = container.querySelector('.canvas-container')
 
     fireEvent.mouseDown(c, { clientX: 8, clientY: 8 })
@@ -959,7 +1056,7 @@ describe('Canvas 框选吸附(A3)', () => {
   })
 
   test('远离所有边缘时不吸附,也不画高亮线', () => {
-    const { container } = renderSnap()
+    const { container } = renderSnap({ snapToEdges: true })
     const c = container.querySelector('.canvas-container')
     const before = mock.calls.strokeStyle.length
 
@@ -1247,53 +1344,6 @@ describe('Canvas 选框实时跟随预览', () => {
 })
 
 /**
- * 触摸设备没有 hover:选区四角画把手,明确「可按住拖动移动」。
- * 桌面端(pointer: fine)不画,保持既有观感。
- */
-describe('Canvas 选区把手(触屏可发现性)', () => {
-  let mock
-  beforeEach(() => { mock = installCanvasMocks() })
-  afterEach(() => mock.restore())
-
-  function renderWith(pointerCoarse) {
-    const orig = window.matchMedia
-    window.matchMedia = (q) => ({
-      matches: q === '(pointer: coarse)' ? pointerCoarse : false,
-      media: q, onchange: null,
-      addListener: () => {}, removeListener: () => {},
-      addEventListener: () => {}, removeEventListener: () => {},
-      dispatchEvent: () => false,
-    })
-    const view = render(
-      <Canvas
-        gridSize={3}
-        gridWidth={null}
-        gridHeight={null}
-        selectedColor="#ff0000"
-        tool="select"
-        committedData={blankGrid(3)}
-        selection={{ x: 0, y: 0, w: 2, h: 2 }}
-        onCanvasChange={vi.fn()}
-        onSelectionChange={vi.fn()}
-      />
-    )
-    window.matchMedia = orig
-    return view
-  }
-
-  test('触屏设备绘制四角把手', () => {
-    // installCanvasMocks 已把 arc 调用记录在 mock.calls.arc
-    renderWith(true)
-    expect(mock.calls.arc.length).toBeGreaterThanOrEqual(4)
-  })
-
-  test('桌面指针设备不绘制把手', () => {
-    renderWith(false)
-    expect(mock.calls.arc.length).toBe(0)
-  })
-})
-
-/**
  * A1:选区 resize 手柄。
  *
  * 3×3 网格 / 16px 单元 / scale 1 → 屏幕坐标 0..48 对应格 0..2。
@@ -1373,7 +1423,7 @@ describe('Canvas 选区 resize 手柄(A1)', () => {
   })
 
   test('手柄命中优先于选区内部移动', () => {
-    // 选区右下角的手柄压在格子 (1,1) 的边界上 —— 若先判 pointInSelection,
+    // 选区右下角的手柄压在格子 (1,1) 的边界上 —— 若先判选区命中,
     // 这一按会变成「移动内容」,手柄永远拖不动。
     const { container, onSelectionMove, onSelectionChange } = renderResize()
     const c = container.querySelector('.canvas-container')
