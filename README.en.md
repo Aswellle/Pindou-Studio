@@ -305,7 +305,7 @@ CI (`.github/workflows/ci.yml`) runs on push / PR to `main`: `test:run` → `che
 ## 🚀 Deployment
 
 - **Push to deploy** — the repo is connected to Vercel's GitHub integration; every push to `main` builds and ships
-- **Canonical domain** — **https://tangnotes.site**; `vercel.json` permanently redirects the old `pindou-studio.vercel.app/*` domain
+- **Canonical domain** — production is bound to a custom domain; `vercel.json` permanently redirects the previous domain to the current one
 - **Static prerendering** — build-time HTML for `gallery` / `tutorials` / `privacy` / `terms` / `admin`, each with its own title / description / canonical / hreflang / OG (`admin` is `noindex`)
 - **Dynamic content snapshots** — build-time fetch of published content produces static HTML plus a **1200×630 share card** per theme / collection / pattern; content published after the build still falls through to the SPA, so nothing 404s
 - **Caching** — hashed `/assets/*` immutable for a year, everything else no-cache
@@ -321,29 +321,6 @@ CI (`.github/workflows/ci.yml`) runs on push / PR to `main`: `test:run` → `che
    npm run test:run && npm run check-i18n && npm run check-migrations && npm run build
    ```
 4. Push and open a Pull Request
-
-### Commit conventions (mandatory)
-
-**Split commits**: commit in logical units — do not pile a whole round of changes into one big commit.
-One commit should tell one story: reading the message should be enough, without opening the diff.
-A single change may become several commits (e.g. "add the parser" → "wire it into the UI" → "add tests"),
-and follow-up commits that fix something you just introduced are fine — don't squash them at the end.
-Exception: purely mechanical bulk changes (repo-wide renames, formatting) can be a single commit,
-since splitting them wouldn't be independently buildable anyway.
-
-**Commit messages**: describe the change itself — what changed, why, and what it affects.
-Use `type(scope): summary`, with `feat` / `fix` / `refactor` / `test` / `docs` / `chore`.
-
-- **No** priority labels, batch/phase/milestone numbers (`P0`/`P1`/`P2`, `批次`, `BATCH_`,
-  `阶段`, `Phase N`, `M0`–`M99`). That is internal scheduling and tells a reader of the history nothing.
-- **No** AI attribution (`Co-Authored-By: Claude` etc.); commits carry your authorship only.
-- Pull requests carry no AI co-author either.
-
-A `commit-msg` hook enforces the rules above — install it once:
-
-```bash
-bash scripts/install-git-hooks.sh
-```
 
 ### Code style
 

@@ -305,7 +305,7 @@ CI(`.github/workflows/ci.yml`)在 push / PR 到 `main` 时依次运行:`test:run
 ## 🚀 部署
 
 - **推送即部署** — 仓库连接 Vercel 的 GitHub 集成,推送 `main` 自动构建与发布
-- **规范域名** — 生产域名为 **https://tangnotes.site**;`vercel.json` 将旧域名 `pindou-studio.vercel.app/*` 永久重定向到新域名
+- **规范域名** — 生产环境绑定自定义域名;`vercel.json` 将旧域名永久重定向到当前域名
 - **静态预渲染** — 构建时为 `gallery` / `tutorials` / `privacy` / `terms` / `admin` 生成静态 HTML(各带独立 title / description / canonical / hreflang / OG),`admin` 标记 `noindex`
 - **动态内容快照** — 构建时从 Supabase 拉已发布内容,为每个主题 / 合集 / 图纸生成静态 HTML 与 **1200×630 分享卡片**;新发布的内容未命中快照时仍走 SPA 兜底,不会 404
 - **缓存策略** — 带哈希的 `/assets/*` 一年不可变缓存,其余 no-cache
@@ -321,27 +321,6 @@ CI(`.github/workflows/ci.yml`)在 push / PR 到 `main` 时依次运行:`test:run
    npm run test:run && npm run check-i18n && npm run check-migrations && npm run build
    ```
 4. Push 并发起 Pull Request
-
-### 提交规范(硬性)
-
-**拆分提交**:按逻辑单元分多次提交,不要把整轮改动堆成一次大提交。一次提交只讲一件事——
-读 commit message 就能知道改了什么,不需要再看 diff。允许一次改动拆成多个提交
-(如「新增解析函数」→「接入 UI」→「补测试」),也允许为修复自己刚引入的问题追加提交,
-不要在收尾时 squash 成一个。例外:纯机械的批量改动(全仓库重命名、格式化)可合并为一次提交。
-
-**提交信息**:只描述改动本身——改了什么、为什么改、影响范围。推荐 `type(scope): 摘要`,
-type 用 `feat` / `fix` / `refactor` / `test` / `docs` / `chore`。
-
-- **禁止**出现优先级、批次、阶段、里程碑编号等过程性字眼(`P0`/`P1`/`P2`、`批次`、`BATCH_`、
-  `阶段`、`Phase N`、`M0`–`M99`)。这类信息属于内部排期,对读提交历史的人没有价值。
-- **禁止**任何 AI 署名(`Co-Authored-By: Claude` 等);提交只保留本人作者信息。
-- 创建 PR 时同样不添加 AI 合作者信息。
-
-本仓库提供 `commit-msg` 钩子自动校验上述规则,安装一次即可:
-
-```bash
-bash scripts/install-git-hooks.sh
-```
 
 ### 代码风格
 
