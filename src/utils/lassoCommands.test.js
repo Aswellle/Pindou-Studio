@@ -9,7 +9,6 @@ import {
   moveLasso,
   copyMoveLasso,
   pasteLasso,
-  lassoCellCount,
 } from './lassoCommands'
 import { createLassoSelection } from './lassoSelection'
 
@@ -441,17 +440,6 @@ describe('pasteLasso', () => {
     const r = pasteLasso(data, clip, 0, 0)
     expect(r.changed).toBe(0)
     expect(r.data).toBeNull()
-  })
-})
-
-describe('lassoCellCount', () => {  it('统计掩码内格子数', () => {
-    const sel = squareSel()
-    expect(lassoCellCount(sel, 10, 10)).toBe(25)
-  })
-
-  it('非套索返回 0', () => {
-    expect(lassoCellCount({ x: 0, y: 0, w: 3, h: 3 }, 10, 10)).toBe(0)
-    expect(lassoCellCount(null, 10, 10)).toBe(0)
   })
 })
 

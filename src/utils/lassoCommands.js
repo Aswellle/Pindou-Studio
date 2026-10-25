@@ -30,13 +30,6 @@ function diffCount(a, b, rows, cols) {
   return changed
 }
 
-/** 掩码选区的格子数 */
-function maskCount(sel, cols, rows) {
-  let n = 0
-  forEachLassoCell(sel, cols, rows, () => { n++ })
-  return n
-}
-
 /**
  * 填充套索选区。默认只改已有珠子(与矩形版一致)。
  */
@@ -314,12 +307,6 @@ export function copyMoveLasso(data, sel, dx, dy) {
     bounds: { x: tx, y: ty, w: b.w, h: b.h },
   }
   return changed ? { data: next, changed, selection } : { data: null, changed: 0, selection }
-}
-
-/** 选中格子数(供 UI 显示选区大小) */
-export function lassoCellCount(sel, cols, rows) {
-  if (!sel || sel.kind !== 'lasso') return 0
-  return maskCount(sel, cols, rows)
 }
 
 /**
