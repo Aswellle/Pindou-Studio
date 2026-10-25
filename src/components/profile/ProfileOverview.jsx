@@ -11,7 +11,7 @@
 
 import { useTranslation } from 'react-i18next'
 import { Link } from 'react-router-dom'
-import { ArrowRight, Cloud, HardDrive, RefreshCw, LayoutGrid, Palette } from 'lucide-react'
+import { ArrowRight, Cloud, HardDrive, RefreshCw, LayoutGrid, Palette, Heart } from 'lucide-react'
 import { accountIdentity, displayNameOf } from '../../utils/normalizeAuthUser'
 import { inventoryQuantityState } from './profileSummary'
 import Avatar from '../Avatar'
@@ -41,7 +41,7 @@ function formatDate(value, lang) {
   }
 }
 
-export default function ProfileOverview({ user, summary, onRetryWorks, onRetryBeads }) {
+export default function ProfileOverview({ user, summary, onRetryWorks, onRetryBeads, onGotoSection }) {
   const { t, i18n } = useTranslation()
   const lang = i18n.language
 
@@ -205,14 +205,23 @@ export default function ProfileOverview({ user, summary, onRetryWorks, onRetryBe
           <h3>{t('profile.center.shortcuts')}</h3>
         </div>
         <div className="pf-shortcuts">
-          <Link className="pf-shortcut" to="/gallery?view=works">
+          {/* 作品与收藏已搬进本页,入口改为切分区,不再跳出到图库 */}
+          <button type="button" className="pf-shortcut" onClick={() => onGotoSection?.('works')}>
             <LayoutGrid size={18} aria-hidden="true" />
             <span className="pf-shortcut-text">
               <strong>{t('profile.center.manageWorks')}</strong>
               <small>{t('profile.center.manageWorksHint')}</small>
             </span>
             <ArrowRight size={15} aria-hidden="true" />
-          </Link>
+          </button>
+          <button type="button" className="pf-shortcut" onClick={() => onGotoSection?.('favorites')}>
+            <Heart size={18} aria-hidden="true" />
+            <span className="pf-shortcut-text">
+              <strong>{t('profile.center.manageFavorites')}</strong>
+              <small>{t('profile.center.manageFavoritesHint')}</small>
+            </span>
+            <ArrowRight size={15} aria-hidden="true" />
+          </button>
           <Link className="pf-shortcut" to="/my/beads">
             <Palette size={18} aria-hidden="true" />
             <span className="pf-shortcut-text">

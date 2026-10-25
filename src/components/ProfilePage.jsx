@@ -23,7 +23,7 @@ import { createPortal } from 'react-dom'
 import { Navigate, useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import {
-  LayoutDashboard, UserRound, ShieldCheck, Boxes, Settings2,
+  LayoutDashboard, UserRound, ShieldCheck, Boxes, Settings2, LayoutGrid, Heart,
 } from 'lucide-react'
 import BackButton from './BackButton'
 import { useScrollLock } from '../hooks/useScrollLock'
@@ -33,12 +33,16 @@ import ProfileOverview from './profile/ProfileOverview'
 import ProfileInfoSection from './profile/ProfileInfoSection'
 import ProfileSecuritySection from './profile/ProfileSecuritySection'
 import ProfileAssetsSection from './profile/ProfileAssetsSection'
+import ProfileWorksSection from './profile/ProfileWorksSection'
+import ProfileFavoritesSection from './profile/ProfileFavoritesSection'
 import ProfilePreferencesSection from './profile/ProfilePreferencesSection'
 import LoadingScreen from './LoadingScreen'
 import './profile/ProfilePage.css'
 
 const SECTIONS = [
   { id: 'overview', icon: LayoutDashboard, labelKey: 'profile.center.sectionOverview' },
+  { id: 'works', icon: LayoutGrid, labelKey: 'profile.center.sectionWorks' },
+  { id: 'favorites', icon: Heart, labelKey: 'profile.center.sectionFavorites' },
   { id: 'info', icon: UserRound, labelKey: 'profile.center.sectionInfo' },
   { id: 'security', icon: ShieldCheck, labelKey: 'profile.center.sectionSecurity' },
   { id: 'assets', icon: Boxes, labelKey: 'profile.center.sectionAssets' },
@@ -55,9 +59,20 @@ export default function ProfilePage({
   works,
   worksLoading,
   worksError,
+  cloudMirrorCount,
   beadStore,
   onRetryWorks,
   onRetryBeads,
+  // 作品操作(与图库时期同一套回调,由 App 传入)
+  onLoadWork,
+  onDeleteWork,
+  onShowVersions,
+  // 收藏:图库卡片上的心形按钮与这里共用 useGalleryFavorites
+  favorites,
+  isFavorite,
+  removeFavorite,
+  cloudStore,
+  onLoadTemplate,
   // 账号安全扩展能力
   onSendOtp,
   onSetPasswordWithOtp,
@@ -128,6 +143,7 @@ export default function ProfilePage({
     onMessage: pushMessage,
     onRetryWorks,
     onRetryBeads,
+    onGotoSection: setSection,
   }
 
   return (
@@ -197,6 +213,29 @@ export default function ProfilePage({
           {/* ── 右:分区内容 ─────────────────────────────────── */}
           <main className="pf-main">
             {section === 'overview' ? <ProfileOverview {...sectionProps} /> : null}
+            {section === 'works' ? (
+              <ProfileWorksSection
+                works={works}
+                worksLoading={worksLoading}
+                worksError={worksError}
+                onRetry={onRetryWorks}
+                onLoadWork={onLoadWork}
+                onDeleteWork={onDeleteWork}
+                onShowVersions={onShowVersions}
+                cloudMirrorCount={cloudMirrorCount}
+                onOpenGallery={() => navigate('/gallery')}
+              />
+            ) : null}
+            {section === 'favorites' ? (
+              <ProfileFavoritesSection
+                cloudStore={cloudStore}
+                favorites={favorites || []}
+                isFavorite={isFavorite}
+                removeFavorite={removeFavorite}
+                onLoadTemplate={onLoadTemplate}
+                onOpenGallery={() => navigate('/gallery')}
+              />
+            ) : null}
             {section === 'info' ? (
               <ProfileInfoSection
                 user={user}
@@ -217,7 +256,12 @@ export default function ProfilePage({
               />
             ) : null}
             {section === 'assets' ? (
-              <ProfileAssetsSection summary={summary} onRetryWorks={onRetryWorks} onRetryBeads={onRetryBeads} />
+              <ProfileAssetsSection
+                summary={summary}
+                onRetryWorks={onRetryWorks}
+                onRetryBeads={onRetryBeads}
+                onGotoSection={setSection}
+              />
             ) : null}
             {section === 'preferences' ? (
               <ProfilePreferencesSection

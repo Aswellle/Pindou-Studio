@@ -27,7 +27,7 @@ function MetricRow({ label, value, hint, loading }) {
   )
 }
 
-export default function ProfileAssetsSection({ summary, onRetryWorks, onRetryBeads }) {
+export default function ProfileAssetsSection({ summary, onRetryWorks, onRetryBeads, onGotoSection }) {
   const { t } = useTranslation()
 
   const worksLoading = summary.worksLoading || summary.worksDegraded
@@ -77,10 +77,14 @@ export default function ProfileAssetsSection({ summary, onRetryWorks, onRetryBea
           <p className="pf-note">{t('profile.center.noWorks')}</p>
         ) : null}
 
-        <Link className="pf-inline-link" to="/gallery?view=works">
+        <button
+          type="button"
+          className="pf-inline-link as-button"
+          onClick={() => onGotoSection?.('works')}
+        >
           {t('profile.center.openWorks')}
           <ArrowRight size={13} aria-hidden="true" />
-        </Link>
+        </button>
       </section>
 
       {/* ── 个人色卡与颜色 ───────────────────────────────────── */}
