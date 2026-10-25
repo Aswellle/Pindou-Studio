@@ -39,13 +39,6 @@ export function normalizeSelection(anchor, focus, cols, rows) {
   return { x: x1, y: y1, w: x2 - x1 + 1, h: y2 - y1 + 1 }
 }
 
-/** True when a grid cell lies inside the selection rectangle. */
-export function pointInSelection(sel, pos) {
-  return !!sel && !!pos
-    && pos.x >= sel.x && pos.x < sel.x + sel.w
-    && pos.y >= sel.y && pos.y < sel.y + sel.h
-}
-
 /** Iterate the in-grid cells of a selection (clipped). */
 function forEachSelected(sel, cols, rows, fn) {
   const x0 = Math.max(0, sel.x)

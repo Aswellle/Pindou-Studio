@@ -4,9 +4,8 @@ import {
   pointInLassoSelection,
   forEachLassoCell,
   countLassoCells,
-  lassoToRect,
-  clampLassoToGrid,
-  boundsFromMask,
+  selectionBounds,
+  selectionContains,
 } from './lassoSelection'
 
 /**
@@ -147,82 +146,49 @@ describe('pointInLassoSelection', () => {
   })
 })
 
-describe('lassoToRect', () => {
-  it('返回外接矩形', () => {
+describe('selectionBounds', () => {
+  it('套索返回掩码的外接矩形', () => {
     const sel = createLassoSelection(
       [{ x: 2, y: 3 }, { x: 6, y: 3 }, { x: 6, y: 7 }, { x: 2, y: 7 }],
       10, 10,
     )
     // 坐标是**格子边界**语义:轨迹从格 (2,3) 的左上角拉到格 (5,6) 的右下角,
     // 覆盖的格子中心是 x∈[2.5,5.5] → 2..5 共 4 列
-    expect(lassoToRect(sel)).toEqual({ x: 2, y: 3, w: 4, h: 4 })
+    expect(selectionBounds(sel)).toEqual({ x: 2, y: 3, w: 4, h: 4 })
   })
 
-  it('非套索返回 null', () => {
-    expect(lassoToRect({ x: 0, y: 0, w: 2, h: 2 })).toBeNull()
-    expect(lassoToRect(null)).toBeNull()
-  })
-})
-
-describe('clampLassoToGrid', () => {
-  it('画布尺寸没变时原样返回同一个对象', () => {
-    const sel = createLassoSelection(
-      [{ x: 0, y: 0 }, { x: 3, y: 0 }, { x: 3, y: 3 }],
-      10, 10,
-    )
-    expect(clampLassoToGrid(sel, 10, 10)).toBe(sel)
+  it('矩形选区原样返回同一组字段', () => {
+    expect(selectionBounds({ x: 0, y: 1, w: 2, h: 3 })).toEqual({ x: 0, y: 1, w: 2, h: 3 })
   })
 
-  it('画布变大时保留原有选区并重建掩码坐标系', () => {
-    const sel = createLassoSelection(
-      [{ x: 0, y: 0 }, { x: 3, y: 0 }, { x: 3, y: 3 }],
-      10, 10,
-    )
-    const clamped = clampLassoToGrid(sel, 20, 20)
-    expect(clamped).not.toBe(sel)
-    expect(clamped.cols).toBe(20)
-    expect(clamped.rows).toBe(20)
-    // 选中格子数不变
-    expect(countLassoCells(clamped, 20, 20)).toBe(countLassoCells(sel, 10, 10))
-    expect(pointInLassoSelection(clamped, { x: 0, y: 0 })).toBe(true)
-  })
-
-  it('画布变小时裁掉越界部分', () => {
-    const sel = createLassoSelection(
-      [{ x: 5, y: 5 }, { x: 9, y: 5 }, { x: 9, y: 9 }, { x: 5, y: 9 }],
-      10, 10,
-    )
-    const clamped = clampLassoToGrid(sel, 7, 7)
-    expect(clamped).not.toBeNull()
-    expect(clamped.cols).toBe(7)
-    // 只剩 (5,5)(6,6) 这一小块
-    expect(clamped.bounds.x).toBe(5)
-    expect(clamped.bounds.w).toBe(2)
-    expect(pointInLassoSelection(clamped, { x: 6, y: 6 })).toBe(true)
-    expect(pointInLassoSelection(clamped, { x: 8, y: 8 })).toBe(false)
-  })
-
-  it('全部越界时返回 null', () => {
-    const sel = createLassoSelection(
-      [{ x: 5, y: 5 }, { x: 9, y: 5 }, { x: 9, y: 9 }, { x: 5, y: 9 }],
-      10, 10,
-    )
-    expect(clampLassoToGrid(sel, 3, 3)).toBeNull()
+  it('空值与残缺对象返回 null', () => {
+    expect(selectionBounds(null)).toBeNull()
+    expect(selectionBounds({ kind: 'lasso' })).toBeNull()
+    expect(selectionBounds({ x: 0 })).toBeNull()
   })
 })
 
-describe('boundsFromMask', () => {
-  it('从掩码反推外接矩形', () => {
-    const cols = 5
-    const rows = 4
-    const mask = new Uint8Array(cols * rows)
-    mask[1 * cols + 2] = 1
-    mask[2 * cols + 3] = 1
-    expect(boundsFromMask(mask, cols, rows)).toEqual({ x: 2, y: 1, w: 2, h: 2 })
+describe('selectionContains', () => {
+  it('套索按掩码判定,不是外接矩形', () => {
+    const sel = createLassoSelection(
+      [{ x: 0, y: 0 }, { x: 6, y: 0 }, { x: 0, y: 6 }],
+      10, 10,
+    )
+    // 三角形内 / 外接矩形内但形状外
+    expect(selectionContains(sel, { x: 0, y: 0 })).toBe(true)
+    expect(selectionContains(sel, { x: 5, y: 5 })).toBe(false)
   })
 
-  it('全零掩码返回 null', () => {
-    expect(boundsFromMask(new Uint8Array(25), 5, 5)).toBeNull()
+  it('矩形按外接矩形判定', () => {
+    const sel = { x: 1, y: 1, w: 2, h: 2 }
+    expect(selectionContains(sel, { x: 1, y: 1 })).toBe(true)
+    expect(selectionContains(sel, { x: 2, y: 2 })).toBe(true)
+    expect(selectionContains(sel, { x: 3, y: 1 })).toBe(false)
+  })
+
+  it('空值安全', () => {
+    expect(selectionContains(null, { x: 0, y: 0 })).toBe(false)
+    expect(selectionContains({ x: 0, y: 0, w: 2, h: 2 }, null)).toBe(false)
   })
 })
 

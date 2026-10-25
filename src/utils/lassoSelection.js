@@ -119,69 +119,27 @@ export function countLassoCells(sel, cols, rows) {
 }
 
 /**
- * 套索选区转成最小包围矩形。
- * 用于「转成矩形选区」这个操作:用户画了个歪的形状,想按矩形继续编辑。
- */
-export function lassoToRect(sel) {
-  if (!sel || sel.kind !== 'lasso' || !sel.bounds) return null
-  return { ...sel.bounds }
-}
-
-/**
- * 把套索选区裁剪到画布范围内。
+ * 把任意选区归一成外接矩形 `{ x, y, w, h }`。
  *
- * 画布尺寸变化(换网格)后,旧掩码的坐标系失效 —— 必须重建,不能沿用。
- * 返回新的选区对象,不改入参。
+ * 矩形选区本身就是这个形状;套索的形状信息在掩码里,对外只能暴露外接矩形。
+ * 拖动预览、越界钳制、命中判定都要问「这块选区占多大地方」—— 有了这个
+ * 访问器,那些代码就不必到处写 `sel.kind === 'lasso' ? sel.bounds : sel`,
+ * 也就不会像早期版本那样直接读 `sel.x` 拿到 undefined。
  */
-export function clampLassoToGrid(sel, cols, rows) {
-  if (!sel || sel.kind !== 'lasso' || !sel.mask) return null
-  const oldCols = sel.cols
-  const oldRows = sel.rows
-  if (oldCols === cols && oldRows === rows) return sel // 尺寸没变,原样返回
-
-  const mask = new Uint8Array(cols * rows)
-  let minX = Infinity
-  let minY = Infinity
-  let maxX = -Infinity
-  let maxY = -Infinity
-  for (let y = 0; y < Math.min(rows, oldRows || rows); y++) {
-    for (let x = 0; x < Math.min(cols, oldCols || cols); x++) {
-      if (sel.mask[y * oldCols + x] !== 1) continue
-      mask[y * cols + x] = 1
-      if (x < minX) minX = x
-      if (x > maxX) maxX = x
-      if (y < minY) minY = y
-      if (y > maxY) maxY = y
-    }
+export function selectionBounds(sel) {
+  if (!sel) return null
+  if (sel.kind === 'lasso') return sel.bounds || null
+  if (typeof sel.x === 'number' && typeof sel.w === 'number') {
+    return { x: sel.x, y: sel.y, w: sel.w, h: sel.h }
   }
-  if (maxX < minX) return null
-  return {
-    kind: 'lasso',
-    mask,
-    cols,
-    rows,
-    bounds: { x: minX, y: minY, w: maxX - minX + 1, h: maxY - minY + 1 },
-  }
+  return null
 }
 
-/**
- * 从掩码反推外接矩形(供 clampLassoToGrid 与调试使用)。
- * mask 的坐标系由 cols 决定。
- */
-export function boundsFromMask(mask, cols, rows) {
-  let minX = Infinity
-  let minY = Infinity
-  let maxX = -Infinity
-  let maxY = -Infinity
-  for (let y = 0; y < rows; y++) {
-    for (let x = 0; x < cols; x++) {
-      if (mask[y * cols + x] !== 1) continue
-      if (x < minX) minX = x
-      if (x > maxX) maxX = x
-      if (y < minY) minY = y
-      if (y > maxY) maxY = y
-    }
-  }
-  if (maxX < minX) return null
-  return { x: minX, y: minY, w: maxX - minX + 1, h: maxY - minY + 1 }
+/** 这一格是否落在选区内 —— 矩形与套索统一入口 */
+export function selectionContains(sel, pos) {
+  if (!sel || !pos) return false
+  if (sel.kind === 'lasso') return pointInLassoSelection(sel, pos)
+  const b = selectionBounds(sel)
+  if (!b) return false
+  return pos.x >= b.x && pos.x < b.x + b.w && pos.y >= b.y && pos.y < b.y + b.h
 }

@@ -1,7 +1,6 @@
 import { describe, it, expect } from 'vitest'
 import {
   normalizeSelection,
-  pointInSelection,
   fillSelection,
   clearSelection,
   mirrorSelection,
@@ -53,16 +52,6 @@ describe('selectionUtils · normalizeSelection', () => {
   it('空输入返回 null', () => {
     expect(normalizeSelection(null, { x: 0, y: 0 }, 4, 3)).toBeNull()
     expect(normalizeSelection({ x: 0, y: 0 }, { x: 0, y: 0 }, 0, 3)).toBeNull()
-  })
-})
-
-describe('selectionUtils · pointInSelection', () => {
-  const sel = { x: 1, y: 1, w: 2, h: 2 }
-  it('边界包含左上、不包含右下外沿', () => {
-    expect(pointInSelection(sel, { x: 1, y: 1 })).toBe(true)
-    expect(pointInSelection(sel, { x: 2, y: 2 })).toBe(true)
-    expect(pointInSelection(sel, { x: 3, y: 2 })).toBe(false)
-    expect(pointInSelection(sel, { x: 0, y: 1 })).toBe(false)
   })
 })
 
