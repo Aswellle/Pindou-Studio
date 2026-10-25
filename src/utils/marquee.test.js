@@ -81,17 +81,12 @@ describe('drawMarquee', () => {
     expect(b.ctx.lineDashOffset).toBe(1.5)
   })
 
-  it('触屏设备画四个角把手,桌面端不画', () => {
+  it('不再画四角圆点把手(与 resize 方块同位置,纯重复绘制)', () => {
+    // 早先触屏额外画四个圆点提示「可拖动」,但方块正好压在它们上面 ——
+    // 圆点从未被看见过。可拖动提示由光标与操作条文字承担。
     const touch = recordingCtx()
-    drawMarquee(touch.ctx, { x: 0, y: 0, w: 2, h: 2 }, { handles: true })
-    expect(touch.calls.arc).toHaveLength(4)
-    // 把手落在四角(0,0) (32,0) (0,32) (32,32)
-    const centers = touch.calls.arc.map(([x, y]) => [x, y])
-    expect(centers).toEqual(expect.arrayContaining([[0, 0], [32, 0], [0, 32], [32, 32]]))
-
-    const desktop = recordingCtx()
-    drawMarquee(desktop.ctx, { x: 0, y: 0, w: 2, h: 2 }, { handles: false })
-    expect(desktop.calls.arc).toHaveLength(0)
+    drawMarquee(touch.ctx, { x: 0, y: 0, w: 2, h: 2 }, { resizeHandles: true })
+    expect(touch.calls.arc).toHaveLength(0)
   })
 
   it('空上下文或空选区时安全返回', () => {
@@ -106,6 +101,25 @@ describe('drawMarquee', () => {
     drawMarquee(ctx, { x: 0, y: 0, w: 1, h: 1 }, { scale: 1 })
     const [dash, gap] = calls.setLineDash[0]
     expect(dash + gap).toBe(MARQUEE_DASH_PERIOD)
+  })
+
+  it('offset 把整个选框平移到预览落点', () => {
+    // 拖动预览用:选框要跟着珠子一起走,否则用户看到的是
+    // 「珠子在动、框不动」,松手前无法确认落点。
+    const { ctx, calls } = recordingCtx()
+    drawMarquee(ctx, { x: 1, y: 2, w: 3, h: 4 }, { cellSize: 16, offsetX: 2, offsetY: -1 })
+
+    expect(calls.fillRect).toEqual([[48, 16, 48, 64]])
+  })
+
+  it('不传 offset 时与原行为完全一致', () => {
+    const a = recordingCtx()
+    drawMarquee(a.ctx, { x: 1, y: 2, w: 3, h: 4 }, { cellSize: 16 })
+    const b = recordingCtx()
+    drawMarquee(b.ctx, { x: 1, y: 2, w: 3, h: 4 }, { cellSize: 16, offsetX: 0, offsetY: 0 })
+
+    expect(b.calls.fillRect).toEqual(a.calls.fillRect)
+    expect(b.calls.moveTo).toEqual(a.calls.moveTo)
   })
 })
 
@@ -164,6 +178,30 @@ describe('drawLassoMarquee', () => {
     drawLassoMarquee(big.ctx, sel, { scale: 4 })
     expect(small.calls.lineWidth[0]).toBe(4)
     expect(big.calls.lineWidth[0]).toBe(0.5)
+  })
+
+  it('offset 把整个掩码形状平移到预览落点', () => {
+    // 套索形状在掩码里,预览只能整块平移 —— 填色与轮廓必须用同一个偏移,
+    // 否则松手前看到的框和珠子会错位。
+    const sel = square()
+    const { ctx, calls } = recordingCtx()
+    drawLassoMarquee(ctx, sel, { cellSize: 16, offsetX: 2, offsetY: 3 })
+
+    // 原选区在 (2,2) 起 3×3,平移后每行起点 x 从 32 变 64,y 从 32 变 80
+    expect(calls.fillRect[0]).toEqual([64, 80, 48, 16])
+    expect(calls.moveTo[0]).toEqual([64, 80])
+  })
+
+  it('不传 offset 时与原行为完全一致', () => {
+    const sel = square()
+    const a = recordingCtx()
+    drawLassoMarquee(a.ctx, sel, { cellSize: 16 })
+    const b = recordingCtx()
+    drawLassoMarquee(b.ctx, sel, { cellSize: 16, offsetX: 0, offsetY: 0 })
+
+    expect(b.calls.fillRect).toEqual(a.calls.fillRect)
+    expect(b.calls.moveTo).toEqual(a.calls.moveTo)
+    expect(b.calls.lineTo).toEqual(a.calls.lineTo)
   })
 
   it('非套索 / 空值安全返回', () => {

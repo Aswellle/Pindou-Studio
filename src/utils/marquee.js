@@ -20,7 +20,6 @@
 export const MARQUEE_DASH_PERIOD = 10 // dash + gap in canvas units at scale 1
 export const MARQUEE_STROKE = 'rgba(74, 155, 142, 0.95)'
 export const MARQUEE_FILL = 'rgba(74, 155, 142, 0.10)'
-const HANDLE_RADIUS = 5
 // resize 手柄:方块边长(屏幕像素),按 1/scale 折算后画在格边界上
 const RESIZE_HANDLE_SIZE = 8
 // 吸附高亮线颜色:比虚线框更醒目,一眼能看出「这条边贴住了」
@@ -42,6 +41,11 @@ export function drawLassoMarquee(ctx, sel, {
   cellSize = 16,
   scale = 1,
   dashOffset = 0,
+  // 拖动预览:形状整体平移若干格。套索的形状信息全在掩码里,
+  // 想把它画到「松手后将要落在的位置」只能整块平移,不能像矩形那样
+  // 改一个 x/y 就完事。
+  offsetX = 0,
+  offsetY = 0,
 } = {}) {
   if (!ctx || !sel || sel.kind !== 'lasso' || !sel.mask) return
   const zoom = scale > 0 ? scale : 1
@@ -49,6 +53,8 @@ export function drawLassoMarquee(ctx, sel, {
   const b = sel.bounds
   if (!b) return
   const { cols, rows, mask } = sel
+  const ox = offsetX * cellSize
+  const oy = offsetY * cellSize
 
   const inside = (x, y) => (
     x >= 0 && x < cols && y >= 0 && y < rows && mask[y * cols + x] === 1
@@ -68,8 +74,8 @@ export function drawLassoMarquee(ctx, sel, {
       if (on && runStart < 0) runStart = x
       else if (!on && runStart >= 0) {
         ctx.fillRect(
-          runStart * cellSize,
-          y * cellSize,
+          runStart * cellSize + ox,
+          y * cellSize + oy,
           (x - runStart) * cellSize,
           cellSize,
         )
@@ -89,8 +95,8 @@ export function drawLassoMarquee(ctx, sel, {
   for (let y = b.y; y < b.y + b.h; y++) {
     for (let x = b.x; x < b.x + b.w; x++) {
       if (!inside(x, y)) continue
-      const px = x * cellSize
-      const py = y * cellSize
+      const px = x * cellSize + ox
+      const py = y * cellSize + oy
       if (!inside(x, y - 1)) { ctx.moveTo(px, py); ctx.lineTo(px + cellSize, py) }
       if (!inside(x, y + 1)) { ctx.moveTo(px, py + cellSize); ctx.lineTo(px + cellSize, py + cellSize) }
       if (!inside(x - 1, y)) { ctx.moveTo(px, py); ctx.lineTo(px, py + cellSize) }
@@ -122,24 +128,27 @@ export function drawSelection(ctx, sel, options = {}) {
  * @param {number} [opts.cellSize=16]   canvas px per grid cell
  * @param {number} [opts.scale=1]       current canvas zoom (CSS transform)
  * @param {number} [opts.dashOffset=0]  marching-ants phase
- * @param {boolean} [opts.handles=false] draw corner handles (touch devices)
  * @param {boolean} [opts.resizeHandles=false] draw the eight resize squares (A1)
  * @param {{x:boolean,y:boolean}} [opts.snapEdges] highlight the snapped edges (A3)
+ * @param {number} [opts.offsetX=0] shift the marquee horizontally (drag preview)
+ * @param {number} [opts.offsetY=0] shift the marquee vertically (drag preview)
  */
 export function drawMarquee(ctx, rect, {
   cellSize = 16,
   scale = 1,
   dashOffset = 0,
-  handles = false,
   resizeHandles = false,
   snapEdges = null,
+  // 拖动预览:选区整体平移若干格(与 drawLassoMarquee 的偏移语义一致)
+  offsetX = 0,
+  offsetY = 0,
 } = {}) {
   if (!ctx || !rect) return
   const zoom = scale > 0 ? scale : 1
   const inv = 1 / zoom
 
-  const px = rect.x * cellSize
-  const py = rect.y * cellSize
+  const px = (rect.x + offsetX) * cellSize
+  const py = (rect.y + offsetY) * cellSize
   const pw = rect.w * cellSize
   const ph = rect.h * cellSize
 
@@ -182,25 +191,13 @@ export function drawMarquee(ctx, rect, {
     ctx.restore()
   }
 
-  // 触摸设备没有 hover,用四角把手明确「这块区域可以按住拖动」。
-  if (handles) {
-    const r = HANDLE_RADIUS * inv
-    ctx.save()
-    ctx.fillStyle = MARQUEE_STROKE
-    for (const [hx, hy] of [
-      [px, py], [px + pw, py], [px, py + ph], [px + pw, py + ph],
-    ]) {
-      ctx.beginPath()
-      ctx.arc(hx, hy, r, 0, Math.PI * 2)
-      ctx.fill()
-    }
-    ctx.restore()
-  }
-
   // A1:八个 resize 手柄(四角 + 四边中点),画成实心方块。
   //
-  // 与上面的圆形把手是两回事:圆形只提示「可拖动」,方块是真正可拖拽的
-  // 尺寸控制点。尺寸按 1/scale 折算,因此 0.3× 与 5× 下屏幕大小恒定。
+  // 早先触屏还另画一圈四角圆点提示「可拖动」,但 resize 方块正好压在同一
+  // 位置、且画在后面,圆点被完全盖住 —— 只是白费一次 arc/fill。可拖动的
+  // 提示改由光标与操作条文字承担,这里只留真正能拖的方块。
+  //
+  // 尺寸按 1/scale 折算,因此 0.3× 与 5× 下屏幕大小恒定。
   // 1×1 选区不画 —— 八个方块会把唯一那一格糊满,反而看不出选了哪。
   if (resizeHandles && (rect.w > 1 || rect.h > 1)) {
     const half = (RESIZE_HANDLE_SIZE * inv) / 2
