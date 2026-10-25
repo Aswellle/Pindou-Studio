@@ -1,4 +1,4 @@
-import React from 'react'
+import React, { useLayoutEffect } from 'react'
 import ReactDOM from 'react-dom/client'
 import { BrowserRouter } from 'react-router-dom'
 import { HelmetProvider } from 'react-helmet-async'
@@ -55,20 +55,38 @@ import './index.css'
 // 加载失败不阻塞,回退 zh-CN)。zh-CN 用户零等待直接走 microtask。
 i18nReady.then(() => {
   const rootEl = document.getElementById('root')
-  // 预渲染页在首帧前用 .js-booting 隐藏静态正文(见 scripts/generate-prerender-html.js)。
-  // createRoot().render() 会清空 #root,此时移除标记,让后续内容正常可见。
-  document.documentElement.classList.remove('js-booting')
   ReactDOM.createRoot(rootEl).render(
     <React.StrictMode>
-      <BrowserRouter>
-        <HelmetProvider>
-          <ToastProvider>
-            <App />
-          </ToastProvider>
-          <Analytics />
-          <SpeedInsights />
-        </HelmetProvider>
-      </BrowserRouter>
+      <BootGuard>
+        <BrowserRouter>
+          <HelmetProvider>
+            <ToastProvider>
+              <App />
+            </ToastProvider>
+            <Analytics />
+            <SpeedInsights />
+          </HelmetProvider>
+        </BrowserRouter>
+      </BootGuard>
     </React.StrictMode>
   )
 })
+
+/**
+ * 预渲染页的静态正文守卫(见 scripts/generate-prerender-html.js)。
+ *
+ * 构建期会把 #seo-static 正文塞进 #root,供不执行 JS 的抓取端读取;同时在
+ * <head> 里用 .js-booting 把它 visibility:hidden,避免用户先看到一屏纯文字。
+ *
+ * 摘标记必须发生在**应用已经提交到 DOM 之后**。此前是在 createRoot().render()
+ * 之前同步摘掉的,而 render() 只是把工作排进调度队列 —— 浏览器完全有机会在
+ * 「标记已摘、应用还没上屏」这段间隙画一帧:静态正文的纯文本 + body 的浅色底,
+ * 看起来就是一次白屏闪烁。改用 useLayoutEffect:它在 React 提交 DOM 之后、
+ * 浏览器绘制之前同步执行,摘标记与首帧应用永远在同一帧内完成。
+ */
+function BootGuard({ children }) {
+  useLayoutEffect(() => {
+    document.documentElement.classList.remove('js-booting')
+  }, [])
+  return children
+}
