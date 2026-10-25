@@ -267,8 +267,8 @@ export default function MobileToolbar({
   // A2:复制拖动开关(触屏没有 Alt/Option,只能给显式入口)
   copyDrag = false,
   onToggleCopyDrag,
-  // A3:框选吸附到已有珠子的边缘(默认开)
-  snapToEdges = true,
+  // A3:框选吸附到已有珠子的边缘(默认关)
+  snapToEdges = false,
   onToggleSnapToEdges,
 }) {
   const { t } = useTranslation()
@@ -526,7 +526,7 @@ export default function MobileToolbar({
                   title={t('tools.fillIncludeEmpty')}
                   onClick={() => onToggleFillIncludeEmpty?.(!fillIncludeEmpty)}
                 >
-                  {fillIncludeEmpty ? '✓ ' : ''}{t('tools.fillIncludeEmptyShort')}
+                  <span className="selection-fill-toggle-label">{fillIncludeEmpty ? '✓ ' : ''}{t('tools.fillIncludeEmptyShort')}</span>
                 </button>
                 {/* A2:复制拖动开关。触屏没有 Alt/Option,只能给可见入口 ——
                     打开后拖动选区内部 = 复制一份,原件留在原处。
@@ -538,10 +538,10 @@ export default function MobileToolbar({
                   title={t('tools.copyDragHint')}
                   onClick={() => onToggleCopyDrag?.(!copyDrag)}
                 >
-                  {copyDrag ? '✓ ' : ''}{t('tools.copyDragShort')}
+                  <span className="selection-fill-toggle-label">{copyDrag ? '✓ ' : ''}{t('tools.copyDragShort')}</span>
                 </button>
-                {/* A3:框选吸附开关。默认开 —— 触屏的落点误差比鼠标大,
-                    吸附在移动端收益更高;关掉后框选行为与改造前完全一致。 */}
+                {/* A3:框选吸附开关。默认关 —— 吸附会把落点从指针位置拽走 1–2 格,
+                    触屏本来就难瞄,再抢手感就更像「拖不动」。需要贴边时手动打开。 */}
                 <button
                   type="button"
                   className={`selection-fill-toggle${snapToEdges ? ' active' : ''}`}
@@ -549,7 +549,7 @@ export default function MobileToolbar({
                   title={t('tools.snapToEdgesHint')}
                   onClick={() => onToggleSnapToEdges?.(!snapToEdges)}
                 >
-                  {snapToEdges ? '✓ ' : ''}{t('tools.snapToEdgesShort')}
+                  <span className="selection-fill-toggle-label">{snapToEdges ? '✓ ' : ''}{t('tools.snapToEdgesShort')}</span>
                 </button>
               </div>
               {/* 按钮文字用「短标签」(填充 / 左右翻转 / 顺时针 …):

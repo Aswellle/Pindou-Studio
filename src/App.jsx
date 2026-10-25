@@ -133,9 +133,10 @@ export default function App() {
   // 桌面也不该要求用户先知道有个隐藏手势。
   const [copyDrag, setCopyDrag] = useState(false)
 
-  // A3 框选吸附:默认开。拼豆的框选几乎总是贴着图案边界走,吸附能省掉
-  // 「差一格重来一次」;不喜欢抢手感的用户可以关掉,关掉后行为与改造前一致。
-  const [snapToEdges, setSnapToEdges] = useState(true)
+  // A3 框选吸附:默认关。早期默认开,但吸附会在指针接近图案边缘时
+  // 把焦点拽走 1–2 格 —— 对已经瞄准边界的用户,体感就是「拖了但没完全跟上」,
+  // 也就是反馈里的「拖动不管用」。需要精确贴边的用户可自行打开。
+  const [snapToEdges, setSnapToEdges] = useState(false)
 
   // A4 长按上下文菜单:记录触点屏幕坐标,非 null 即打开。
   // 菜单本身不持有「当前选区」——命令仍走 handleSelectionCommand,

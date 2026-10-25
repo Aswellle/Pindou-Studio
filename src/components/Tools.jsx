@@ -37,8 +37,8 @@ export default function Tools({
   // A2:复制拖动开关(拖动选区内部 = 复制一份,而不是搬走原件)
   copyDrag = false,
   onToggleCopyDrag,
-  // A3:框选吸附到已有珠子的边缘(默认开)
-  snapToEdges = true,
+  // A3:框选吸附到已有珠子的边缘(默认关)
+  snapToEdges = false,
   onToggleSnapToEdges,
 }) {
   const { t } = useTranslation()
@@ -161,9 +161,6 @@ export default function Tools({
 
         {/* 选区命令:仅在选区工具且有选区时展开,不占常驻空间。
             按钮排成单列(图标 + 文字,左对齐):侧栏只有 200px,两列布局下
-            「顺时针旋转」这类标签会顶出按钮边界;单列保证任何语言都不换行、不溢出。 */}
-        {/* 选区命令:仅在选区工具且有选区时展开,不占常驻空间。
-            按钮排成单列(图标 + 文字,左对齐):侧栏只有 200px,两列布局下
             「顺时针旋转」这类标签会顶出按钮边界;单列保证任何语言都不换行、不溢出。
             A5:套索与矩形共用同一组命令,因此两种工具下都展开。 */}
         {(tool === 'select' || tool === 'lasso') && (
@@ -172,11 +169,13 @@ export default function Tools({
             {selection ? (
               <>
                 <div className="selection-size">
-                  {/* A5:套索形状不规则,显示格子数而不是外接矩形宽高 */}
+                  {/* 按 selection.kind 而不是 tool 判断:套索工具里也可能存在
+                      矩形选区(粘贴矩形剪贴板后),用 tool 判断会读 undefined 宽高 */}
                   {selection.kind === 'lasso'
                     ? t('tools.lassoSize', { n: lassoCount(selection, currentWidth, currentHeight) })
                     : t('tools.selectionSize', { w: selection.w, h: selection.h })}
-                </div>                <div className="selection-actions">
+                </div>
+                <div className="selection-actions">
                   <button className="action-btn" onClick={() => onSelectionCommand?.('fill')} title={t('tools.fillSelection')}>
                     <PaintBucket size={15} /><span className="action-btn-label">{t('tools.fillSelection')}</span>
                   </button>
@@ -234,7 +233,7 @@ export default function Tools({
                   />
                   <span>{t('tools.copyDragHint')}</span>
                 </label>
-                {/* A3:框选吸附。默认开;关掉后框选行为与改造前完全一致 */}
+                {/* A3:框选吸附。默认关(吸附会抢手感),需要精确贴边时手动打开 */}
                 <label className="selection-fill-toggle">
                   <input
                     type="checkbox"
@@ -472,28 +471,35 @@ export default function Tools({
         /* 「含空白格」开关:一行 checkbox + 文字,窄侧栏下允许换行但不溢出 */
         .selection-fill-toggle {
           display: flex;
-          align-items: center;
+          align-items: flex-start;
           gap: 6px;
           margin-top: 6px;
           font-size: var(--text-xs);
           color: var(--text-secondary);
           cursor: pointer;
           line-height: 1.4;
+          min-width: 0;
         }
         .selection-fill-toggle input {
           flex-shrink: 0;
           width: 14px;
           height: 14px;
+          /* 与首行文字视觉对齐:14px 盒子配 1.4 行高,顶部留 1px */
+          margin-top: 1px;
           accent-color: var(--accent);
           cursor: pointer;
         }
+        /* 说明文字往往是一整句(「含空白格一起填充」),200px 侧栏放不下一行。
+           允许换行 + anywhere,长单词/长译文也不会顶破侧栏边框。 */
         .selection-fill-toggle span {
           min-width: 0;
+          overflow-wrap: anywhere;
         }
         .selection-hint {
           font-size: var(--text-xs);
           color: var(--text-muted);
           line-height: 1.5;
+          overflow-wrap: anywhere;
         }
         .tool-btn {
           flex: 1;
