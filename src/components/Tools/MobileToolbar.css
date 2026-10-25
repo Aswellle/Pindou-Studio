@@ -58,7 +58,8 @@
 .selection-info-line {
   display: flex;
   align-items: center;
-  gap: 10px;
+  flex-wrap: wrap;
+  gap: 6px 10px;
   min-width: 0;
 }
 .selection-actions-row {
@@ -130,12 +131,23 @@
   font-size: var(--text-xs);
   color: var(--text-muted);
   line-height: 1.4;
+  /* 窄屏下这句提示最长(「在选区内拖动即可移动内容」,日文还要再长一倍),
+     允许换行,否则它会把同一行的三个胶囊开关挤到屏幕外。
+     flex-basis 用 auto:提示按自身文字长度占位,胶囊放不下就整块换行;
+     收缩时也是提示先折行(胶囊设了 flex-shrink: 0,不会缩成「含空…」)。 */
+  flex: 1 1 auto;
+  overflow-wrap: anywhere;
 }
 .selection-move-hint svg { flex-shrink: 0; }
 /* 「含空白格」开关:触屏没有 hover,做成常驻胶囊按钮并带按下态;
-   点击区域高度 24px + 信息行间距,足以避免误触邻近元素 */
+   点击区域高度 24px + 信息行间距,足以避免误触邻近元素。
+   不允许收缩(flex-shrink: 0):胶囊标签只有 2–4 个字,缩一点就会变成
+   「含空…」,比换行还难读 —— 空间不够时整块换到下一行,文字始终完整。
+   max-width + 内层省略号只兜底极端窄屏与超长译文。 */
 .selection-fill-toggle {
-  flex-shrink: 0;
+  flex: 0 0 auto;
+  min-width: 0;
+  max-width: 100%;
   margin-left: auto;
   height: 24px;
   padding: 0 8px;
@@ -148,8 +160,15 @@
   font-weight: var(--font-weight-medium);
   display: inline-flex;
   align-items: center;
-  white-space: nowrap;
   cursor: pointer;
+}
+/* 省略号必须落在内层文字上:inline-flex 容器的直接文本会成为匿名 flex item,
+   text-overflow 对它不生效,胶囊会被长译文顶出操作条。 */
+.selection-fill-toggle-label {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 .selection-fill-toggle.active {
   border-color: var(--secondary-accent);
