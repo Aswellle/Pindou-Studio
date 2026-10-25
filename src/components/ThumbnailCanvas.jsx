@@ -12,6 +12,23 @@ const CELL_SIZE = 8
  *   - 传 `gridWidth`/`gridHeight` 时按真实宽高渲染(矩形模板不再被塞进正方形);
  *   - 只传 `size` 时退回旧的 size×size 方形画布,矩形图案居中显示(向后兼容)。
  *
+ * ── 画布盒子:一律用逻辑网格的宽高比,不用位图宽高比 ──────────────
+ *
+ * canvas 是替换元素,它的**固有尺寸就是 width/height 两个属性**(位图像素)。
+ * 只要 CSS 没有把两个方向都钉死,浏览器就会拿位图比例去算盒子的另一维:
+ *
+ *   · 父级只约束了 max-width/max-height(模态框、收藏、详情页、管理后台)
+ *     → 竖长图案的画布变成 88×296,横向只占预览区的 26%,两侧空出一大片;
+ *   · 父级用 aspect-ratio + 百分比尺寸(卡片)时又会因「百分比高度依赖父级
+ *     高度、父级高度又来自 aspect-ratio」退回 auto,同样按位图比例撑开。
+ *
+ * 更麻烦的是这两个方向会互相喂养:effect 按 getBoundingClientRect() 设位图,
+ * 位图比例又决定下一次的盒子比例 —— 一旦某次量到的盒子被压扁,位图跟着变扁,
+ * 之后就再也回不到正确比例,同一张卡在不同模板之间来回打开时形状还会漂移。
+ *
+ * 所以盒子比例必须由**逻辑网格**单方面决定(style 上的 aspect-ratio),
+ * 位图只是往里填像素,不参与布局。这样任何容器约束下形状都稳定。
+ *
  * 位图分辨率跟随显示尺寸与 devicePixelRatio:
  *   此前位图固定按 8px/格生成(29×29 → 232px),再由 CSS 放大到卡片宽度(245px),
  *   缩放比 1.056 不是整数。格子之间本来留了 1px 间隙,非整数缩放会让间隙
@@ -45,8 +62,10 @@ export default function ThumbnailCanvas({ pattern, size, gridWidth, gridHeight }
 
       const ctx = canvas.getContext('2d')
       ctx.clearRect(0, 0, bitmapW, bitmapH)
-      ctx.fillStyle = '#ffffff'
-      ctx.fillRect(0, 0, bitmapW, bitmapH)
+      // 不铺白底:缩略图容器的底色才是「纸」,画布只负责画珠子。
+      // 此前这里 fillStyle = '#ffffff' 把整块位图刷白,于是非正方形图案
+      // 四周会多出一圈突兀的白边 —— 在米色预览区里尤其像「图片没对齐」。
+      // 透明底让容器的背景色透出来,图案边界即是画布边界。
 
       if (!Array.isArray(pattern) || !Array.isArray(pattern[0])) return // 损坏模板数据兜底,不拖垮页面
 
@@ -93,13 +112,17 @@ export default function ThumbnailCanvas({ pattern, size, gridWidth, gridHeight }
     return () => ro.disconnect()
   }, [pattern, width, height, derived.width])
 
+  // 盒子比例锁定为逻辑网格比例(见组件头注释)。width/height 由容器给,
+  // aspect-ratio 只负责在容器只约束一维时算出另一维,两者不冲突。
+  const aspectRatio = width && height ? `${width} / ${height}` : undefined
+
   return (
     <canvas
       ref={canvasRef}
       // 位图尺寸由 effect 按显示尺寸设置;这里的初始值只用于首帧占位
       width={width * CELL_SIZE}
       height={height * CELL_SIZE}
-      style={{ imageRendering: 'pixelated' }}
+      style={{ imageRendering: 'pixelated', aspectRatio }}
     />
   )
 }
