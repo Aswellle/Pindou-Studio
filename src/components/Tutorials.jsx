@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react'
+import { useState, useEffect, useMemo, useRef } from 'react'
 import { useTranslation } from 'react-i18next'
 import { flattenTutorials, loadTutorials } from '../data/tutorials'
 import i18n from '../i18n'
@@ -138,6 +138,7 @@ export default function Tutorials() {
   const TUTORIALS = useTutorials()
   const [expandedSections, setExpandedSections] = useState(['getting-started'])
   const [selectedTutorial, setSelectedTutorial] = useState(null)
+  const contentRef = useRef(null)
   const [readProgress, setReadProgress] = useState(() => {
     const saved = localStorage.getItem('tutorial-progress')
     if (!saved) return []
@@ -157,6 +158,20 @@ export default function Tutorials() {
   useEffect(() => {
     localStorage.setItem('tutorial-progress', JSON.stringify(readProgress))
   }, [readProgress])
+
+  // 切换教程时把阅读位置锚回开头。
+  // 桌面端滚动容器是 .tutorials-content 本身(overflow-y:auto),
+  // 平板/手机端 .tutorials-page 改成 height:auto 后由外层 .tutorials-page
+  // 承担滚动,所以不能只重置一个 —— 从内容区向上走一遍可滚动祖先全部归零。
+  // biome-ignore lint/correctness/useExhaustiveDependencies: 只按教程 id 触发,selectedTutorial 对象本身换语言时也会变
+  useEffect(() => {
+    let el = contentRef.current
+    // 向上最多走 5 层,避免在异常 DOM 结构里无界循环
+    for (let depth = 0; el && depth < 5; depth += 1) {
+      if (el.scrollTop) el.scrollTop = 0
+      el = el.parentElement
+    }
+  }, [selectedTutorial?.id])
 
   // 当前语言教程摊平列表(进度统计与上/下篇导航共用)
   const allTutorials = useMemo(() => flattenTutorials(TUTORIALS), [TUTORIALS])
@@ -286,7 +301,7 @@ export default function Tutorials() {
         </nav>
       </div>
 
-      <div className="tutorials-content">
+      <div className="tutorials-content" ref={contentRef}>
         {/* 语言切换时 selectedTutorial 仍指向旧语言对象,按 id 解析当前语言版本 */}
         {(() => {
         const activeTutorial = TUTORIALS
@@ -346,6 +361,7 @@ export default function Tutorials() {
               )}
               <div className="content-footer">
                 <NavigationButtons currentTutorial={selectedTutorial} allTutorials={allTutorials} onSelect={selectTutorial} />
+                <p className="content-sources">{t('tutorials.sources')}</p>
               </div>
             </div>
           </>
@@ -657,6 +673,15 @@ export default function Tutorials() {
           padding-top: 24px;
           border-top: 1px solid var(--border-color);
           margin-top: 32px;
+        }
+        /* 数据来源:页脚注脚,只在下滑到文末时可见。字号刻意小于正文
+           (--text-sm 而非 --text-md),颜色用 muted,避免和操作步骤抢视线;
+           行高放宽到 1.6,小字号下中文才不挤。 */
+        .content-sources {
+          margin-top: 20px;
+          font-size: var(--text-sm);
+          line-height: 1.6;
+          color: var(--text-muted);
         }
         .no-selection {
           display: flex;
