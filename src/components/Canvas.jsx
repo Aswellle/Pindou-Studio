@@ -1,13 +1,13 @@
 import { useState, useRef, useEffect, useCallback, useImperativeHandle, forwardRef } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useCanvasPainter } from '../hooks/useCanvasPainter'
-import { normalizeSelection, pointInSelection, clampMove } from '../utils/selectionUtils'
+import { normalizeSelection, clampMove } from '../utils/selectionUtils'
 import { drawMarquee, drawSelection, MARQUEE_DASH_PERIOD } from '../utils/marquee'
 import {
   HANDLE_CURSORS, HANDLE_HIT_PX, hitTestHandle, resizeSelection,
 } from '../utils/selectionHandles'
 import { SNAP_THRESHOLD, snapSelection } from '../utils/selectionSnap'
-import { createLassoSelection, countLassoCells as lassoCellCount } from '../utils/lassoSelection'
+import { createLassoSelection, countLassoCells as lassoCellCount, selectionBounds, selectionContains, forEachLassoCell } from '../utils/lassoSelection'
 
 const CELL_SIZE = 16
 const MIN_SCALE = 0.3
@@ -43,9 +43,10 @@ const Canvas = forwardRef(function Canvas({
   // A2: 移动端的「复制拖动」开关。触屏没有 Alt/Option,由操作条上的显式开关
   // 决定拖选区内部是剪切还是复制。桌面端不受它影响(Alt 优先)。
   copyDrag = false,
-  // A3: 框选时是否吸附到已有珠子的边缘。默认开 —— 拼豆的框选几乎总是
-  // 贴着图案边界走;不喜欢「抢手感」的用户可以在操作条上关掉。
-  snapToEdges = true,
+  // A3: 框选时是否吸附到已有珠子的边缘。默认**关** —— 吸附会把焦点从
+  // 指针位置拽走 1–2 格,对已经瞄准边界的用户来说体感是「选框不跟手」。
+  // 需要精确贴边的用户可在选区操作条上打开。
+  snapToEdges = false,
   // A4:长按选区内容时上报屏幕坐标,父组件据此弹上下文菜单。
   // 不传 = 不启用长按(桌面端用不上,右键菜单另有语义)。
   onSelectionLongPress,
@@ -214,7 +215,16 @@ const Canvas = forwardRef(function Canvas({
   // ─────────────────────────────────────────────────────────────────
   // biome-ignore lint/correctness/useExhaustiveDependencies: overlayTick 是强制重绘触发器(见其声明处注释),故意不参与计算
   useEffect(() => {
-    if (isDrawingRef.current || selDraggingRef.current || moveDraggingRef.current) return
+    // 任何「预览路径独占 overlay」的手势进行中都必须早退,否则画布自身
+    // 的 mousemove 会 setHoverCell 触发重渲染 → 这里 clearOverlay()
+    // 把正在跟手的选框/套索轨迹抹掉,表现为拖动时选框一闪一闪。
+    if (
+      isDrawingRef.current
+      || selDraggingRef.current
+      || moveDraggingRef.current
+      || lassoDraggingRef.current
+      || resizeHandleRef.current
+    ) return
     painter.clearOverlay()
     if (tool === 'pencil' && hoverCell) {
       const ctx = painter.overlayRef.current?.getContext('2d')
@@ -235,7 +245,6 @@ const Canvas = forwardRef(function Canvas({
         cellSize: CELL_SIZE,
         scale: transform.scale,
         dashOffset: dashOffsetRef.current,
-        handles: coarsePointerRef.current,
         resizeHandles: true,
       })
     }
@@ -253,8 +262,10 @@ const Canvas = forwardRef(function Canvas({
     let raf = 0
     let last = 0
     const step = (now) => {
-      if (selDraggingRef.current || moveDraggingRef.current || lassoDraggingRef.current) {
-        // 拖动中由各自的预览路径独占 overlay,这里让位,避免互相清屏闪烁
+      // 拖动中由各自的预览路径独占 overlay,这里让位,避免互相清屏闪烁。
+      // resize 也要让位:updateResize 每帧自己画选框,animation tick 若同时
+      // clearOverlay + 按旧 selection 重画,拖动中的矩形会被打回上一帧的形状。
+      if (selDraggingRef.current || moveDraggingRef.current || lassoDraggingRef.current || resizeHandleRef.current) {
         raf = requestAnimationFrame(step)
         return
       }
@@ -266,7 +277,6 @@ const Canvas = forwardRef(function Canvas({
           cellSize: CELL_SIZE,
           scale: transform.scale,
           dashOffset: dashOffsetRef.current,
-          handles: coarsePointerRef.current,
           resizeHandles: true,
         })
       }
@@ -467,7 +477,6 @@ const Canvas = forwardRef(function Canvas({
       cellSize: CELL_SIZE,
       scale: transform.scale,
       dashOffset: dashOffsetRef.current,
-      handles: coarsePointerRef.current,
     })
   }, [onSelectionChange, painter, transform.scale])
 
@@ -501,7 +510,6 @@ const Canvas = forwardRef(function Canvas({
       cellSize: CELL_SIZE,
       scale: transform.scale,
       dashOffset: dashOffsetRef.current,
-      handles: coarsePointerRef.current,
       // 吸附时画出被吸住的那条边:细实线,与虚线框区分开。
       // 没有反馈的吸附会让用户觉得选框「自己乱跳」。
       snapEdges: snapped,
@@ -530,7 +538,6 @@ const Canvas = forwardRef(function Canvas({
       cellSize: CELL_SIZE,
       scale: transform.scale,
       dashOffset: dashOffsetRef.current,
-      handles: coarsePointerRef.current,
     })
     onSelectionChange?.(rect)
   }, [onSelectionChange, cols, rows, painter, transform.scale])
@@ -583,9 +590,17 @@ const Canvas = forwardRef(function Canvas({
     if (!lassoDraggingRef.current || !lassoPointsRef.current) return
     const pts = lassoPointsRef.current
     const last = pts[pts.length - 1]
-    // 稀疏化:同一格内移动不追加点。轨迹只用于光栅化,
+    // 稀疏化:同一个格子内移动不追加点。轨迹只用于光栅化(按格扫描线填充),
     // 逐像素累积会让一次拖动产生上千个点,而它们对结果没有影响。
-    if (last && last.x === point.x && last.y === point.y) return
+    // 注意比较的是**格子索引**而不是连续坐标 —— 连续坐标每帧都在变,
+    // 直接比较浮点几乎永不相等,稀疏化等于没写。
+    if (last && Math.floor(last.x) === Math.floor(point.x) && Math.floor(last.y) === Math.floor(point.y)) {
+      // 仍要更新最后一个点为最新坐标,让预览线跟手;只是不追加新点
+      last.x = point.x
+      last.y = point.y
+      drawLassoPath(pts)
+      return
+    }
     pts.push(point)
     drawLassoPath(pts)
   }, [drawLassoPath])
@@ -666,31 +681,46 @@ const Canvas = forwardRef(function Canvas({
     if (!moveDraggingRef.current || !moveStartRef.current || !moveBaseSelRef.current) return
     const rawDx = x - moveStartRef.current.x
     const rawDy = y - moveStartRef.current.y
-    const { dx, dy } = clampMove(moveBaseSelRef.current, rawDx, rawDy, cols, rows)
+    // 套索选区没有 x/y/w/h 字段,偏移量必须按外接矩形钳制 ——
+    // 直接读 sel.x 会得到 undefined,整个偏移变成 NaN,预览一片空白。
+    const baseBounds = selectionBounds(moveBaseSelRef.current)
+    if (!baseBounds) return
+    const { dx, dy } = clampMove(baseBounds, rawDx, rawDy, cols, rows)
     moveOffsetRef.current = { dx, dy }
     // 预览:清空 overlay 后把块按偏移画在半透明层上,原位置保持可见(移动意图更直观);
     // 选框同时跟到新位置 —— 虚线框与珠子一起走,松手前就能确认落点。
     const base = moveBaseSelRef.current
     painter.clearOverlay()
-    for (let r = 0; r < base.h; r++) {
-      for (let c = 0; c < base.w; c++) {
-        const hex = committedData?.[base.y + r]?.[base.x + c]
-        if (typeof hex !== 'string' || !hex) continue
-        const tx = base.x + c + dx
-        const ty = base.y + r + dy
-        if (tx < 0 || tx >= cols || ty < 0 || ty >= rows) continue
+    if (base.kind === 'lasso') {
+      // 套索:只画掩码里的格子,形状原样保留
+      forEachLassoCell(base, cols, rows, (cx, cy) => {
+        const hex = committedData?.[cy]?.[cx]
+        if (typeof hex !== 'string' || !hex) return
+        const tx = cx + dx
+        const ty = cy + dy
+        if (tx < 0 || tx >= cols || ty < 0 || ty >= rows) return
         painter.paintOverlayCell(tx, ty, hex)
+      })
+    } else {
+      for (let r = 0; r < baseBounds.h; r++) {
+        for (let c = 0; c < baseBounds.w; c++) {
+          const hex = committedData?.[baseBounds.y + r]?.[baseBounds.x + c]
+          if (typeof hex !== 'string' || !hex) continue
+          const tx = baseBounds.x + c + dx
+          const ty = baseBounds.y + r + dy
+          if (tx < 0 || tx >= cols || ty < 0 || ty >= rows) continue
+          painter.paintOverlayCell(tx, ty, hex)
+        }
       }
     }
-    drawMarquee(painter.overlayRef.current?.getContext('2d'), {
-      x: base.x + dx, y: base.y + dy, w: base.w, h: base.h,
-    }, {
+    drawSelection(painter.overlayRef.current?.getContext('2d'), base, {
       cellSize: CELL_SIZE,
       scale: transform.scale,
       dashOffset: dashOffsetRef.current,
-      handles: coarsePointerRef.current,
       // 复制拖动时额外画手柄:光标提示这是「复制一份」而不是搬走原件
-      resizeHandles: moveCopyRef.current,
+      resizeHandles: moveCopyRef.current && base.kind !== 'lasso',
+      offsetX: dx,
+      offsetY: dy,
     })
   }, [cols, rows, painter, committedData, transform.scale])
 
@@ -737,7 +767,6 @@ const Canvas = forwardRef(function Canvas({
       cellSize: CELL_SIZE,
       scale: transform.scale,
       dashOffset: dashOffsetRef.current,
-      handles: coarsePointerRef.current,
       resizeHandles: true,
     })
     onSelectionChange?.(next)
@@ -874,7 +903,7 @@ const Canvas = forwardRef(function Canvas({
           // 边缘那几格就永远拖不出 resize,只能移动内容。
           const handleId = handleAtPoint(e.clientX, e.clientY)
           if (handleId) startResize(handleId)
-          else if (pointInSelection(selection, pos)) {
+          else if (selectionContains(selection, pos)) {
             // Alt/Option + 拖动 = 复制一份(A2);操作条上的开关同理。
             // 按下瞬间定下来,拖动中改主意不生效 —— 否则预览到一半会突然
             // 从「复制」变「剪切」,用户看到的东西和松手后落地的对不上。
@@ -884,8 +913,16 @@ const Canvas = forwardRef(function Canvas({
         }
         // A5:自由套索。按下即开始记录轨迹,松手光栅化成掩码选区。
         // 与 select 一样不进入笔画状态机(不创建 stroke 累加器)。
+        //
+        // 但如果按下的位置**已经在套索选区内**,这次拖动是「搬走这块内容」
+        // 而不是「画一个新圈」—— 否则选完就再也拖不动,只能靠剪切+粘贴绕路。
+        // 优先级与矩形选区一致:选区内部移动 > 外部新轨迹。
         if (tool === 'lasso') {
           e.preventDefault()
+          if (selection?.kind === 'lasso' && selectionContains(selection, pos)) {
+            startMove(pos.x, pos.y, { copy: e.altKey || copyDrag })
+            return
+          }
           const point = getGridPoint(e.clientX, e.clientY)
           if (point) startLasso(point)
           return
@@ -1042,6 +1079,11 @@ const Canvas = forwardRef(function Canvas({
 
   // PC hover
   const handleMouseMove = useCallback((e) => {
+    // 手势进行中不更新 hover:setHoverCell 会触发重渲染,而 Effect 2
+    // 在重渲染时会 clearOverlay()。虽然那里已经对活动手势早退,
+    // 但每次 mousemove 都白跑一次状态更新仍然拖慢跟手速度 ——
+    // 拖动期间指针位置由各自的预览路径负责,不需要 hover 高亮。
+    if (selDraggingRef.current || moveDraggingRef.current || lassoDraggingRef.current || resizeHandleRef.current) return
     const pos = getGridPos(e.clientX, e.clientY)
     setHoverCell(pos)
   }, [getGridPos])
@@ -1139,7 +1181,7 @@ const Canvas = forwardRef(function Canvas({
         // 手势优先级:手柄 > 选区内部移动 > 外部新框
         const handleId = handleAtPoint(t.clientX, t.clientY)
         if (handleId) startResize(handleId)
-        else if (pointInSelection(selection, gridPos)) {
+        else if (selectionContains(selection, gridPos)) {
           // 触屏没有修饰键:复制拖动由操作条开关决定(A2)
           startMove(gridPos.x, gridPos.y, { copy: copyDrag })
           // A4:同时起一个长按计时器;真正拖动起来会在 touchMove 里取消它。
@@ -1149,7 +1191,13 @@ const Canvas = forwardRef(function Canvas({
       }
 
       // A5:自由套索。触屏同样从按下开始记轨迹,松手光栅化。
+      // 按在已有套索选区内时改为拖动内容(与桌面端一致)。
       if (tool === 'lasso') {
+        if (selection?.kind === 'lasso' && selectionContains(selection, gridPos)) {
+          startMove(gridPos.x, gridPos.y, { copy: copyDrag })
+          scheduleLongPress(t.clientX, t.clientY)
+          return
+        }
         const point = getGridPoint(t.clientX, t.clientY)
         if (point) startLasso(point)
         return
@@ -1448,12 +1496,16 @@ const Canvas = forwardRef(function Canvas({
   // 选区工具与取色器沿用 crosshair(与画笔一致),抓手工具用抓取光标。
   // 悬停到 resize 手柄时优先显示对应方向的 resize 光标(拖错方向要立刻手感不对);
   // 拖动中锁定该光标,指针滑出手柄也不闪回十字。
+  // 悬停在选区内部时显示 move —— 这是「按住可以搬走内容」唯一的视觉提示,
+  // 没有它用户根本不会想到选区能拖(反馈里的「拖动不管用」多半源于此)。
   const resizeCursor = resizeHandleRef.current
     ? HANDLE_CURSORS[resizeHandleRef.current]
     : (hoverHandle ? HANDLE_CURSORS[hoverHandle] : null)
+  const overSelection = (tool === 'select' || tool === 'lasso')
+    && hoverCell && selectionContains(selection, hoverCell)
   const canvasCursor = panActive
     ? 'grabbing'
-    : resizeCursor || (tool === 'hand' ? 'grab' : 'crosshair')
+    : resizeCursor || (tool === 'hand' ? 'grab' : overSelection ? 'move' : 'crosshair')
 
   return (
     <div className="canvas-wrapper">
@@ -1461,18 +1513,19 @@ const Canvas = forwardRef(function Canvas({
         <span>{cols} × {rows}</span>
         <span className="info-divider">|</span>
         <span>{Math.round(transform.scale * 100)}%</span>
-        {tool === 'select' && selection && (
-          <span className="info-selection" data-testid="selection-size">
-            {selection.w} × {selection.h}
-          </span>
-        )}
-        {/* A5:套索显示的是格子数而不是宽高 —— 形状不规则,外接矩形尺寸
-            对用户没有意义,「圈了多少格」才是他关心的 */}
-        {tool === 'lasso' && selection?.kind === 'lasso' && (
+        {/* 选区读数:套索与矩形共用同一块位置。
+            套索形状不规则,外接矩形尺寸对用户没有意义,显示「圈了多少格」;
+            矩形显示宽高。两个工具下都按 selection.kind 判断而不是按 tool ——
+            套索工具里也可能存在矩形选区(粘贴矩形剪贴板后),反之亦然。 */}
+        {selection?.kind === 'lasso' ? (
           <span className="info-selection" data-testid="lasso-size">
             {lassoCellCount(selection, cols, rows)} {t('tools.cells')}
           </span>
-        )}
+        ) : (tool === 'select' || tool === 'lasso') && selection ? (
+          <span className="info-selection" data-testid="selection-size">
+            {selection.w} × {selection.h}
+          </span>
+        ) : null}
         <button className="reset-btn" onClick={resetTransform} title={t('canvas.resetTitle')}>
           {t('canvas.reset')}
         </button>
