@@ -9,13 +9,13 @@ export const TUTORIALS_EN = [
         id: 'what-is-bead',
         title: 'What Are Fuse Beads',
         blocks: [
-          { type: 'paragraph', text: 'Fuse beads (also known as Perler beads) are colorful plastic melt beads that originated in the United States and have become a craft material loved all over the world. Unlike traditional beads, fuse beads have a distinctive flat, disc-like shape with tiny bumps on both sides, which lets them fuse together and hold their shape when heated.' },
+          { type: 'paragraph', text: 'Fuse beads (most often sold as Perler beads, Hama beads, or iron beads) are small colorful plastic beads that were first developed in Sweden in the 1960s as a hand-therapy exercise for care homes, and only later became a craft for children and adults alike. Each bead is a short hollow tube with a hole through the middle. You thread them onto the pegs of a pegboard to build your design; when you iron them, neighboring beads melt into each other and set as one piece when they cool.' },
           { type: 'heading2', text: 'Main Brands' },
-          { type: 'paragraph', text: 'Besides the internationally known Perler (USA), Hama (Denmark), and Artkal (China/Netherlands), Chinese-market brands such as COCO and MARD are also popular. Each brand differs slightly in color count, bead size, and texture, but the core technique is exactly the same.' },
-          { type: 'bulletList', items: ['Perler: the widest color range (100+ colors) and the most well-known entry brand', 'Hama: Scandinavian style, soft and muted colors, great value for money', 'Artkal: known for metallic and fluorescent colors, with a slightly finer grain'] },
+          { type: 'paragraph', text: 'Common brands include Perler (USA, founded 1981), Hama (Denmark, making pegboard beads since 1971), and Artkal (Shenzhen, China), plus Chinese-market brands such as COCO and MARD. Each brand differs slightly in color count, bead size, and texture, but the core technique is exactly the same.' },
+          { type: 'bulletList', items: ['Perler: the US brand with the biggest name recognition, a wide color range, and the easiest availability for beginners', 'Hama: the Danish brand, with soft Scandinavian colors and solid build quality', 'Artkal: a Shenzhen brand strong on metallic and fluorescent colors, also available in a 2.6mm mini size'] },
           { type: 'heading2', text: 'The Basic Principle' },
           { type: 'paragraph', text: 'The magic of fuse beads is heat-fusing: you arrange colored beads on a Pegboard according to your design, then heat them with an iron so the bead surfaces melt slightly. Once cooled, they fuse into one sturdy piece. No glue needed — the process is safe and easy to control, and the result can be flat or three-dimensional.' },
-          { type: 'callout', variant: 'info', title: 'What Is a Pegboard?', text: 'A Pegboard is a plastic board with evenly spaced holes. Each bead fits neatly into one peg hole, so your rows stay straight and never slide. They come in square sizes (29×29, 57×57) and rectangle sizes (57×29), among others.' },
+          { type: 'callout', variant: 'info', title: 'What Is a Pegboard?', text: 'A pegboard is a plastic board covered in small upright pegs. The hole in each bead slips over a peg, so your rows stay straight and never slide. The common sizes are a 29×29 large square and a 14×14 small square, plus round and heart-shaped boards; bigger designs use several boards joined together.' },
           { type: 'keyPoint', text: 'Fuse beads are a safe craft for all ages: no glue, simple tools, and great-looking results — the perfect entry project for building focus and creativity.' }
         ],
         content: '', steps: [], tips: ''
@@ -26,11 +26,11 @@ export const TUTORIALS_EN = [
         blocks: [
           { type: 'paragraph', text: 'Before you start creating, let\'s get to know the essential tools. Having everything ready not only makes you more efficient, it also makes crafting far more enjoyable.' },
           { type: 'heading2', text: 'Core Tools' },
-          { type: 'numberedList', items: ['Fuse beads: buy a basic color set from your chosen brand — a 30-color starter set is a great place to begin', 'Pegboard: the holed plastic base board. Having 2-3 boards on hand makes sectioned work much easier', 'Iron: a regular household iron is all you need — just don\'t use the steam function', 'Ironing paper / parchment: baking paper or dedicated ironing paper that keeps the iron off the beads', 'Pattern book: ready-made designs you can trace directly — perfect for beginners'] },
+          { type: 'numberedList', items: ['Fuse beads: buy a basic color set from your chosen brand — a 30-color starter set is a great place to begin', 'Pegboard: the plastic board with upright pegs. Having 2-3 boards on hand makes sectioned work much easier', 'Iron: a regular household iron is all you need — just don\'t use the steam function', 'Ironing paper / parchment: baking paper or dedicated ironing paper that keeps the iron off the beads', 'Pattern book: ready-made designs you can trace directly — perfect for beginners'] },
           { type: 'heading2', text: 'Helpful Extras' },
           { type: 'bulletList', items: ['Tweezers: for picking up individual beads or filling tiny gaps', 'Tray: a light-colored flat tray makes it easy to sort colors and set beads aside', 'Magnetic wand: a magnetic tip that quickly picks up metal-effect beads', 'Magnifier: very handy for details and tiny characters or symbols'] },
           { type: 'callout', variant: 'tip', title: 'Advice for Beginners', text: 'Don\'t buy tons of beads at the start! Get a small 30-50 color set and one or two pegboards, enjoy the craft for a while, then slowly expand your colors and tools.' },
-          { type: 'keyPoint', text: 'To get started you only need: beads + a Pegboard + an iron + ironing paper — all of it for under ¥100. Add the extras gradually as the need arises.' }
+          { type: 'keyPoint', text: 'To get started you only need beads, a pegboard, an iron, and ironing paper. Add the extras gradually as the need arises.' }
         ],
         content: '', steps: [], tips: ''
       },
@@ -40,11 +40,11 @@ export const TUTORIALS_EN = [
         blocks: [
           { type: 'paragraph', text: 'Making a red 3D heart is the classic first project for most fuse bead crafters. Simple pattern, few colors, and a big sense of achievement — it\'s the perfect starter exercise.' },
           { type: 'heading2', text: 'Steps' },
-          { type: 'numberedList', items: ['Find the reference point for the heart pattern on the Pegboard — usually starting from the center of the board', 'Place the red beads row by row from the center outward, keeping the heart\'s rounded curves smooth', 'Once all the red beads are placed, check for any missing or misaligned beads', 'Cover with ironing paper and iron at medium heat (around 150°C) for 30-40 seconds, moving in arcs from the center outward', 'Flip the piece over and iron the back for about 20-30 seconds', 'Lift it off, lay it flat on the table, and let it cool naturally for at least 15 minutes'] },
+          { type: 'numberedList', items: ['Find the reference point for the heart pattern on the Pegboard — usually starting from the center of the board', 'Place the red beads row by row from the center outward, keeping the heart\'s rounded curves smooth', 'Once all the red beads are placed, check for any missing or misaligned beads', 'Cover with ironing paper and iron at medium heat for 30-40 seconds, moving in arcs from the center outward', 'Flip the piece over and iron the back for about 20-30 seconds', 'Lift it off, lay it flat on the table, and let it cool naturally for at least 15 minutes'] },
           { type: 'heading2', text: 'Things to Keep in Mind' },
           { type: 'callout', variant: 'warning', title: 'Temperature Control', text: 'Don\'t iron at too high a temperature, or the beads will warp badly or even turn yellow. Better to do several low-heat passes than one hot one. If the beads are visibly collapsing, your iron is too hot.' },
           { type: 'bulletList', items: ['Keep the iron moving the whole time — never hold it still in one spot', 'When flipping, lift and turn the piece together with the ironing paper — don\'t slide the beads', 'During cooling, press the piece gently under something heavy (like a book) to prevent warping'] },
-          { type: 'keyPoint', text: 'Heart-making essentials: low heat (≤150°C), short sessions (≤40 seconds each), keep the iron moving, and cool fully. Follow these rules and your success rate will be sky-high.' }
+          { type: 'keyPoint', text: 'Heart-making essentials: medium-low heat, short sessions (≤40 seconds each), keep the iron moving, and cool fully. Follow these rules and your success rate will be sky-high.' }
         ],
         content: '', steps: [], tips: ''
       }
@@ -59,18 +59,18 @@ export const TUTORIALS_EN = [
         id: 'brands-guide',
         title: 'Brand Breakdown',
         blocks: [
-          { type: 'paragraph', text: 'Different mainstream brands (Perler, Hama, Artkal, and similar) each have different ironing temperature requirements. Knowing each brand\'s characteristics makes ironing easier and helps you avoid mishaps.' },
+          { type: 'paragraph', text: 'Each brand\'s bead formula is a little different, so heat tolerance varies slightly. But the official guidance is remarkably consistent across brands: medium heat, steam off, and adjust as you watch the beads fuse. The table below is what each brand typically recommends — always defer to the sheet that came with your beads.' },
           { type: 'heading2', text: 'Brand Temperature Reference' },
-          { type: 'table', headers: ['Brand', 'Recommended Temperature', 'Characteristics', 'Best For'], rows: [
-            ['Perler (USA)', 'around 150°C (medium heat / cotton-synthetic setting)', 'Widest color range (100+ colors), fuses well', 'The first choice for beginners'],
-            ['Hama (Denmark)', 'around 150°C (medium heat)', 'Soft, muted colors with a Scandinavian style', 'Crafters who love fresh, light aesthetics'],
-            ['Artkal (China/Netherlands)', '130-150°C (low to medium heat)', 'Plenty of metallic and fluorescent colors, slightly finer grain', 'Advanced and color-loving crafters'],
-            ['Sillyette (Korea)', 'below 130°C (low heat)', 'Ultra-fine beads, great for intricate patterns', 'Delicate, detailed openwork pieces']
+          { type: 'table', headers: ['Brand', 'Iron Setting', 'Characteristics', 'Best For'], rows: [
+            ['Perler (USA)', 'Medium heat, steam off', 'Wide color range and reliable fusing; Perler recommends ironing both sides', 'The first choice for beginners'],
+            ['Hama (Denmark)', 'Medium heat, steam off', 'Soft, muted colors with a Scandinavian feel', 'Crafters who love fresh, light palettes'],
+            ['Artkal (Shenzhen, China)', 'Slightly below medium, steam off', 'Strong on metallics and fluorescents; comes in 5mm (S series) and 2.6mm (C series)', 'Advanced and color-loving crafters'],
+            ['COCO / MARD (China)', 'Medium heat, steam off', 'Widely available in China with its own color-number system', 'Crafters buying beads by Chinese color codes']
           ] },
           { type: 'callout', variant: 'info', title: 'Test the Temperature', text: 'When ironing a new brand for the first time, test on one or two beads in a corner first, check how they melt, then iron the whole piece. Prefer several low-heat passes — one too-hot pass causes irreversible warping.' },
           { type: 'heading2', text: 'Bead Size Differences' },
-          { type: 'paragraph', text: 'Perler and Hama beads are about 5mm in diameter, while Artkal beads are slightly finer at about 4.7mm. That means the same pattern uses slightly different amounts of beads per brand — keep size compatibility in mind when mixing.' },
-          { type: 'keyPoint', text: 'The mainstream brands covered here (Perler, Hama, Artkal, and similar) all iron within the 130-150°C range — medium-low heat across the board. Artkal prefers the low end, and Sillyette needs even lower heat.' }
+          { type: 'paragraph', text: 'Mainstream brands come in two sizes: 5mm standard beads (called midi) and 2.6mm mini beads. Different brands\' 5mm beads are broadly interchangeable and can share a board; 2.6mm beads will not fit a 5mm pegboard, so you need a board made for that size. This site\'s Artkal palette uses the 2.6mm C series; every other brand here is 5mm.' },
+          { type: 'keyPoint', text: 'Every mainstream brand\'s official line is the same: medium heat, steam off, watch the beads as you go. Err on the cooler side and make several passes rather than one hot one. What actually decides the result is technique and observation, not the number on the dial.' }
         ],
         content: '', steps: [], tips: ''
       },
@@ -80,12 +80,12 @@ export const TUTORIALS_EN = [
         blocks: [
           { type: 'paragraph', text: 'Ironing is the most critical step in fuse bead crafting — it directly decides the quality of the finished piece. Mastering the right temperature and technique dramatically boosts your results.' },
           { type: 'heading2', text: 'How to Choose the Temperature' },
-          { type: 'bulletList', items: ['Start from the brand\'s recommended temperature as your baseline', 'Use slightly lower heat for large patterns than for small ones (heat spreads more slowly)', 'When ironing both sides, the second side can be a little cooler than the first', 'On humid days, raise the temperature by about 5-10°C'] },
+          { type: 'bulletList', items: ['Start from the brand\'s recommended temperature as your baseline', 'Large patterns heat up more slowly, so give each spot more time rather than turning the heat up', 'When ironing both sides, the second side can be a little cooler than the first', 'On humid days, raise the temperature by about 5-10°C'] },
           { type: 'heading2', text: 'Standard Ironing Technique' },
           { type: 'svgDiagram', id: 'ironing-motion', caption: 'Iron in arcs, moving from the center outward' },
           { type: 'numberedList', items: ['Preheat the iron to the recommended temperature and turn off the steam function', 'Cover the beads with a sheet of ironing paper (baking paper) to keep the iron off the beads', 'Lay the iron flat on the paper and move it slowly in arcs from the center of the design outward', 'Hold each spot for about 3-5 seconds, watching for a subtle sheen on the bead surfaces', 'After about 30-50 seconds of ironing, gently flip the piece together with the paper', 'After flipping, iron the back for about 20-30 seconds'] },
           { type: 'callout', variant: 'warning', title: 'Common Mistakes', text: 'An iron that\'s too hot scorches and warps the beads; one that\'s too cool won\'t fuse them, and the piece falls apart at the lightest touch. Timing matters just as much — don\'t over-iron.' },
-          { type: 'keyPoint', text: 'The three essentials of ironing: moderate heat (around 150°C), keep moving (arcs from the center outward), and cool thoroughly (≥15 minutes).' }
+          { type: 'keyPoint', text: 'The three essentials of ironing: medium heat, keep moving (arcs from the center outward), and cool thoroughly (≥15 minutes).' }
         ],
         content: '', steps: [], tips: ''
       },
@@ -136,8 +136,8 @@ export const TUTORIALS_EN = [
           { type: 'heading2', text: 'The Three Main Causes' },
           { type: 'numberedList', items: ['Uneven heat: if the iron lingers too long in one area, those beads melt and shrink more than the rest, creating internal stress', 'Cooling too fast: a piece that goes from hot to cool air sets on the surface while the inside is still hot and expanding, causing curling', 'No weight during cooling: with no outside force holding the melted beads, they shrink unevenly as they cool'] },
           { type: 'heading2', text: 'Which Pieces Are More Prone to Warping' },
-          { type: 'bulletList', items: ['Large pieces (>57×57): heat dissipates slowly, leaving a big temperature gap between edges and center', 'Pieces dominated by dark beads: dark colors absorb more heat, making temperature distribution less even', 'Pieces ironed on one side only: with an unfused back, the structure is asymmetric and shrinks unevenly'] },
-          { type: 'callout', variant: 'warning', title: 'Special Note', text: 'For anything larger than 57×57, single-sided ironing will almost certainly warp. You must combine double-sided ironing with weighted cooling.' },
+          { type: 'bulletList', items: ['Large pieces (the kind that span several pegboards): heat dissipates slowly, leaving a big temperature gap between edges and center', 'Pieces dominated by dark beads: dark colors absorb more heat, making temperature distribution less even', 'Pieces ironed on one side only: with an unfused back, the structure is asymmetric and shrinks unevenly'] },
+          { type: 'callout', variant: 'warning', title: 'Special Note', text: 'For a design that spans several pegboards, ironing only one side will almost certainly warp it. You must combine double-sided ironing with weighted cooling.' },
           { type: 'keyPoint', text: 'Warping ultimately comes from uneven heat plus uncontrolled cooling. Prevention essentials: iron both sides thoroughly, cool under weight, and avoid rapid cooling.' }
         ],
         content: '', steps: [], tips: ''
@@ -149,7 +149,7 @@ export const TUTORIALS_EN = [
           { type: 'paragraph', text: 'Weighted pressing is the most effective anti-warping technique. Applying even pressure during the cooling phase resists the shrinkage stress of the beads and keeps the finished piece flat.' },
           { type: 'svgDiagram', id: 'pressing-stack', caption: 'Press with books and cool for at least 30 minutes' },
           { type: 'heading2', text: 'Steps' },
-          { type: 'numberedList', items: ['Right after double-sided ironing, press the piece while it\'s still warm (about 50-60°C — slightly hot to the touch)', 'Place a flat board or thick cardboard larger than the piece underneath it', 'Cover with ironing paper, then put heavy objects on top (books, a cutting board, a weighted box, etc.)', 'Weight guide: 3-5 thick books for a 57×57 piece; 8-10 books or a dedicated pressing frame for a 140×140 piece', 'Keep everything still and cool for at least 30 minutes before removing the weight', 'For the best results, leave it overnight (≥8 hours) for a perfectly flat piece'] },
+          { type: 'numberedList', items: ['Right after double-sided ironing, press the piece while it\'s still warm (about 50-60°C — slightly hot to the touch)', 'Place a flat board or thick cardboard larger than the piece underneath it', 'Cover with ironing paper, then put heavy objects on top (books, a cutting board, a weighted box, etc.)', 'Weight guide: 3-5 thick books for a single-board piece; 8-10 books or a dedicated pressing frame for a multi-board design', 'Keep everything still and cool for at least 30 minutes before removing the weight', 'For the best results, leave it overnight (≥8 hours) for a perfectly flat piece'] },
           { type: 'heading2', text: 'Advanced Tips' },
           { type: 'bulletList', items: ['A dedicated pressing frame gives the most even, professional results', 'For large multi-board pieces, stack layers of newspaper for even pressure', 'In winter, you can speed things up near a heater (but not under an AC vent)'] },
           { type: 'callout', variant: 'tip', title: 'The Right Moment', text: 'The best time to press is while the piece is still warm (about 50-60°C). Too hot and you\'ll damage the surface; too cold and the beads have already set, so pressing does nothing. Feel check: the ironing paper slides out easily but doesn\'t burn your hand.' },
@@ -161,14 +161,14 @@ export const TUTORIALS_EN = [
         id: 'tape-method',
         title: 'The Tape Method for Large Pieces',
         blocks: [
-          { type: 'paragraph', text: 'For extra-large pieces (100×100 and up), weight alone may not keep the piece flat. The tape method is a warp-prevention trick designed specifically for oversized patterns.' },
+          { type: 'paragraph', text: 'Once a design needs several pegboards joined together, weight alone may not keep it flat. The tape method is built for exactly that case: it lets you move the whole design off the boards in one go instead of trying to fit a pegboard under your iron.' },
           { type: 'heading2', text: 'How It Works' },
-          { type: 'paragraph', text: 'Before ironing, tightly wrap the edges of the Pegboard with heat-resistant masking tape so the board can\'t warp as it heats up. When the Pegboard stays flat, the beads\' shrinkage is kept in check.' },
+          { type: 'paragraph', text: 'The official tape method is not about strapping the board down — it is about lifting the whole design off the board so you can iron it on an ironing board. You cover the beads with masking tape, peel the taped design off the pegboard, and iron it through paper. The board never goes under the iron at all, so it cannot warp and the iron cannot crush the pegs.' },
           { type: 'heading2', text: 'Steps' },
-          { type: 'numberedList', items: ['Place the pegboard on a flat, heat-resistant surface', 'Wrap masking tape (or painter\'s tape) tightly around all four edges of the pegboard, pulling it taut and pressing it down firmly', 'Make sure the four corners are secured too — nothing should feel loose', 'Lay the beads on the pegboard; the beads will hold part of the tape in place', 'Iron normally — same temperature and technique as always', 'After cooling, carefully lift the piece off with the tape still attached, then peel the tape away'] },
-          { type: 'callout', variant: 'warning', title: 'Choosing the Tape', text: 'You must use heat-resistant masking tape (rated above 150°C). Ordinary clear tape melts in the heat, leaves sticky residue, and ruins the work. Baking parchment paper can be used instead.' },
-          { type: 'bulletList', items: ['Made for oversized patterns above 100×100', 'Works best combined with the weighted pressing method', 'The tighter you wrap the tape, the better it holds'] },
-          { type: 'keyPoint', text: 'The complete anti-warp combo for oversized pieces (>100×100): tape down all four edges of the Pegboard + double-sided ironing + weighted cooling overnight. All three are essential.' }
+          { type: 'numberedList', items: ['Lay the design out on the pegboard and check it over', 'Cover the whole design with 5cm-wide masking tape, overlapping each strip by about 6mm', 'Press the tape down firmly with your hand or the tape roll so every bead sticks', 'Trim the excess tape, leaving about 1cm around the design', 'Lift the taped design off the pegboard and lay it on a heat-resistant ironing board', 'Cover with ironing paper and iron at medium heat; flip, peel the tape off, and iron the other side'] },
+          { type: 'callout', variant: 'warning', title: 'Choosing the Tape', text: 'You must use masking tape. Ordinary clear tape melts in the heat, leaves sticky residue, and ruins the work. Perler also warns that the tape method is not suitable for 2.6mm mini beads — they are too small and get pulled up with the tape.' },
+          { type: 'bulletList', items: ['Made for large designs that span several pegboards', 'Works best combined with the weighted pressing method', 'The more firmly you press the tape down, the less likely the design is to come apart when you lift it'] },
+          { type: 'keyPoint', text: 'The complete anti-warp combo for oversized pieces: lift the whole design with the tape method + iron both sides + cool under weight overnight. All three are essential.' }
         ],
         content: '', steps: [], tips: ''
       }
@@ -213,7 +213,7 @@ export const TUTORIALS_EN = [
         blocks: [
           { type: 'paragraph', text: 'Converting a favorite image into a fuse bead pattern is a core need for most crafters. Master this skill and you\'re no longer limited to ready-made patterns — you can freely create any design you want.' },
           { type: 'heading2', text: 'The Conversion Process' },
-          { type: 'numberedList', items: ['Choose your image: prefer images with bold, clear colors and crisp outlines, avoiding too many midtones', 'Adjust the size: crop the image to match the proportions of your target pegboard', 'Reduce colors: use software (like Photoshop, Webp-gif) or online tools (like Beadify) to bring the image down to your target color count', 'Match to the palette: map each pixel of the reduced image to a bead color — this tool can do the conversion automatically', 'Fine-tune: review the auto-converted result and manually adjust any colors that look off'] },
+          { type: 'numberedList', items: ['Choose your image: prefer images with bold, clear colors and crisp outlines, avoiding too many midtones', 'Adjust the size: crop the image to match the proportions of your target pegboard', 'Reduce colors: use software such as Photoshop, or an online tool such as Beadify, to bring the image down to your target color count', 'Match to the palette: map each pixel of the reduced image to a bead color — this tool can do the conversion automatically', 'Fine-tune: review the auto-converted result and manually adjust any colors that look off'] },
           { type: 'heading2', text: 'Things to Keep in Mind' },
           { type: 'bulletList', items: ['The simpler the image colors, the better the result (cartoon and pixel-art images work best)', 'For photos, try an oil-painting or pop-art filter first, then convert', 'This tool automatically maps to the six supported palettes: COCO, MARD, MARD291, Perler, Hama, and Artkal'] },
           { type: 'callout', variant: 'tip', title: 'Recommended Image Types', text: 'High-contrast cartoons, pixel art, emoji, and simple logos are the easiest to convert. Landscape and portrait photos are much harder — save them for when you\'ve leveled up.' },
@@ -234,11 +234,11 @@ export const TUTORIALS_EN = [
         blocks: [
           { type: 'paragraph', text: 'When a piece grows beyond what a single Pegboard can hold, sectioned joining is the only solution. Smart sectioning keeps even large projects looking perfect as a whole.' },
           { type: 'heading2', text: 'Sectioning Principles' },
-          { type: 'bulletList', items: ['Keep each section at 57×57 or smaller (a rule of thumb — never exceed 87×87)', 'Cut along color boundaries or natural seams in the design — never slice through important details', 'Leave a 1-2 bead overlap along the joining edges (trim it after ironing) so sections connect firmly', 'Make each section on its own pegboard, then join them at the end'] },
+          { type: 'bulletList', items: ['Keep each section within what one pegboard can hold (a 29×29 large square) — don\'t get greedy', 'Cut along color boundaries or natural seams in the design — never slice through important details', 'Keep the cut lines straight, so the two sections can be aligned row-for-row and column-for-column when you join them', 'Make each section on its own pegboard, then join them at the end'] },
           { type: 'heading2', text: 'How to Join' },
           { type: 'numberedList', items: ['Finish the bead layout and double-sided ironing for each section separately', 'Align the edges to be joined and press the sections tightly together', 'Cover the seam with ironing paper and press gently with the iron at low heat (around 130°C) for 20-30 seconds', 'Flip and repeat so the seam fuses completely', 'After joining, cool the whole piece under weight for at least 30 minutes'] },
           { type: 'callout', variant: 'warning', title: 'Handling the Seams', text: 'Seams are where warping and breaking most often happen. Make sure the joint fuses completely — a few extra seconds of ironing and a longer pressing time are worth it. Ideally, place seams away from the visual focus of the design.' },
-          { type: 'keyPoint', text: 'Sectioning rules for large pieces: no section over 57×57, cut along natural boundaries, leave overlap zones, and reinforce seams with low-heat re-ironing.' }
+          { type: 'keyPoint', text: 'Sectioning rules for large pieces: keep each section within one board, cut along natural boundaries, align rows and columns when joining, and reinforce seams with low-heat re-ironing.' }
         ],
         content: '', steps: [], tips: ''
       },
@@ -251,7 +251,7 @@ export const TUTORIALS_EN = [
           { type: 'paragraph', text: 'A gradient is essentially a series of tiny color steps that fool the eye into seeing smooth change. Prepare several shades of one color family (say, 5-7 colors from dark to light), then arrange them in order.' },
           { type: 'heading2', text: 'Steps' },
           { type: 'numberedList', items: ['Decide the start and end colors of the gradient (for example, dark blue → light blue)', 'Find the intermediate shades that exist in the brand palette between those two', 'Lay the beads from one end to the other in shade order, keeping each step\'s color difference as small as possible', 'The wider the transition zone (the more beads it spans), the more natural the gradient', 'If an intermediate shade is missing, weave in a neighboring color family (like blue + purple + blue)'] },
-          { type: 'callout', variant: 'tip', title: 'Perler Gradient Sets', text: 'Perler sells dedicated gradient sets containing 12 shades of one color family from dark to light — a one-stop solution to the gradient shade problem.' },
+          { type: 'callout', variant: 'tip', title: 'Check the Color Chart First', text: 'Before you start, look through your brand\'s color chart and line up the shades of one color family from dark to light. Most brands\' core ranges already cover this — you usually do not need to buy a special set.' },
           { type: 'bulletList', items: ['The smaller the gradient area, the fewer shades you need', 'Horizontal gradients are easier to handle than diagonal ones', 'If a shade is missing, alternating the two neighboring colors eases the visual break'] },
           { type: 'keyPoint', text: 'Gradient essentials: have several shades of the same color family ready (5-7 is ideal), arrange them in shade order, the wider the transition the smoother it is, and horizontal gradients are the easiest.' }
         ],
@@ -261,18 +261,18 @@ export const TUTORIALS_EN = [
         id: 'multi-brand-mix',
         title: 'Mixing Brands',
         blocks: [
-          { type: 'paragraph', text: 'Each brand has its own character: Perler has the most colors, Hama is soft and fresh, Artkal\'s metallics are stunning. Mixing brands lets you combine the strengths of each — but a few technical points are worth knowing.' },
+          { type: 'paragraph', text: 'Each brand has its own character: Perler has a wide color range, Hama is soft and fresh, Artkal\'s metallics stand out. Mixing lets you combine their strengths — but a few technical points are worth settling first.' },
           { type: 'heading2', text: 'Why Mix?' },
-          { type: 'bulletList', items: ['Pair Perler\'s base colors with Artkal\'s metallic and fluorescent colors', 'Use Hama\'s soft tones for large background areas and Perler\'s vivid colors as accents', 'Expand your overall color range with each brand\'s unique shades'] },
+          { type: 'bulletList', items: ['Pair Perler\'s base colors with Artkal\'s metallic and fluorescent colors (as long as both are the same bead size)', 'Use Hama\'s soft tones for large background areas and Perler\'s vivid colors as accents', 'Expand your overall color range with each brand\'s unique shades'] },
           { type: 'heading2', text: 'Key Technical Points' },
           { type: 'table', headers: ['Watch Out For', 'What It Means', 'How to Handle It'], rows: [
-            ['Bead size differences', 'Artkal beads are about 0.3mm finer than Perler/Hama', 'Avoid mixing within the same area, or choose color families of similar size'],
-            ['Different ironing temperatures', 'Artkal prefers low heat; Perler/Hama take medium heat', 'Use the lower temperature as the baseline (130°C) and iron for a bit longer'],
+            ['Bead size differences', 'Mainstream brands come in both 5mm and 2.6mm, and the two will not mix', 'Check whether your beads are 5mm or 2.6mm, and use only one size per board'],
+            ['Different ironing temperatures', 'Artkal prefers low heat; Perler/Hama take medium heat', 'Use whichever brand needs the lower temperature as your baseline, and iron for a little longer'],
             ['Different melting points', 'One brand may over-melt when mixed with another', 'Test on a small area first, and only iron the whole piece once the temperature is confirmed'],
             ['Different aging rates', 'The plastics of different brands age at slightly different speeds', 'For pieces you want to keep long-term, use beads from one brand throughout']
           ] },
           { type: 'callout', variant: 'info', title: 'Best Practice', text: 'Beginners should stick to one brand to build experience before trying to mix. When you do mix, use each brand in its own sections (rather than placing different brands right next to each other) to reduce temperature and size compatibility issues.' },
-          { type: 'keyPoint', text: 'The core tricks for mixing brands: use the lowest brand temperature as the baseline (≤130°C), keep brands in separate sections, and test before ironing the whole piece.' }
+          { type: 'keyPoint', text: 'The core tricks for mixing brands: match the bead size first, use the lowest temperature as your baseline, keep brands in separate sections, and test a small area before ironing the whole piece.' }
         ],
         content: '', steps: [], tips: ''
       }
@@ -291,7 +291,7 @@ export const TUTORIALS_EN = [
           { type: 'heading2', text: 'Standard Cooling Process' },
           { type: 'numberedList', items: ['After ironing, carefully lift the piece off together with the ironing paper (don\'t remove the paper while the beads are still very hot)', 'Lay the piece face-up on a flat, heat-resistant surface (glass, wood board, or tile all work)', 'Cover with ironing paper, press down with something heavy (books, a cutting board, etc.), about 3-5 kg', 'Keep the weight on and wait at least 30 minutes for the piece to cool to room temperature', 'After 30 minutes you can remove the weight; once fully cool (at least 2 hours), display or store the piece'] },
           { type: 'heading2', text: 'What Affects Cooling Time' },
-          { type: 'bulletList', items: ['The bigger the piece, the longer the cooling (allow 1-2 hours for large pieces)', 'Lower room temperature cools faster; higher room temperature cools slower', 'In winter, you can speed cooling near a heater (but avoid direct AC airflow)'] },
+          { type: 'bulletList', items: ['The bigger the piece, the longer the cooling (allow 1-2 hours for multi-board designs)', 'Lower room temperature cools faster; higher room temperature cools slower', 'In winter, you can speed cooling near a heater (but avoid direct AC airflow)'] },
           { type: 'callout', variant: 'warning', title: 'Don\'t Peel the Paper Too Early', text: 'Some crafters get impatient and remove the weight and paper 5 minutes after ironing. At that point the beads haven\'t fully set, so even slight movement will warp them. Always wait at least 30 minutes.' },
           { type: 'keyPoint', text: 'Cooling essentials: lay flat, press under weight, and wait at least 30 minutes. Better to press one extra hour than to release the pressure too early.' }
         ],
@@ -301,7 +301,7 @@ export const TUTORIALS_EN = [
         id: 'display-storage',
         title: 'Display and Storage',
         blocks: [
-          { type: 'paragraph', text: 'How you display and store a finished piece decides how long it stays with you. With the right care, a piece can keep its colors and shape for decades.' },
+          { type: 'paragraph', text: 'How you display and store a finished piece decides how long it stays with you. Treated well, a piece will keep its colors and shape for many years without obvious fading or warping.' },
           { type: 'heading2', text: 'Display Ideas' },
           { type: 'bulletList', items: ['Acrylic display box: dust-proof, clear, and beautiful on a desk — the most recommended option', 'Wall frame: a glass-fronted frame lets you display and hang the piece — add a moisture barrier to the back', 'Magnetic display: stick a thin magnet strip to the back and attach it to the fridge or any metal surface', 'Floating stand: a clear acrylic stand, great for small pieces'] },
           { type: 'heading2', text: 'Storage Care' },
