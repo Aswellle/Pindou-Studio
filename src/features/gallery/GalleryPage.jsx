@@ -25,7 +25,7 @@ import { useToast } from '../../components/Toast'
 import ThumbnailCanvas from '../../components/ThumbnailCanvas'
 import { useGalleryQuery, COLOR_COUNT_TIERS } from './hooks/useGalleryQuery'
 import { useGalleryTemplates } from './hooks/useGalleryTemplates'
-import useDownloadCounts from './hooks/useDownloadCounts'
+import useDownloadCounts, { formatDownloadCount } from './hooks/useDownloadCounts'
 import { useGalleryContent } from '../../hooks/useGalleryContent'
 import { useScrollLock } from '../../hooks/useScrollLock'
 import { placePopupMenu } from '../../hooks/viewportGeometry'
@@ -636,7 +636,21 @@ export default function GalleryPage({ onLoadTemplate, cloudStore }) {
                         </svg>
                       )}
                     </button>
-                    <span className="download-count" title={t('gallery.downloadCount')}>{getDownloadCount(template)}</span>
+                    {/* 下载图标与计数合成同一个胶囊:此前图标画在导出按钮里、
+                        数字单独挂在旁边,视觉上是两块东西,读起来像「导出」和
+                        「另一个数字」。合并后图标只作计数前缀,不再是可点区域 ——
+                        导出仍然由左侧的圆形按钮承担。 */}
+                    <span
+                      className="download-count"
+                      title={`${t('gallery.downloadCount')}: ${getDownloadCount(template)}`}
+                    >
+                      <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                        <polyline points="7 10 12 15 17 10"/>
+                        <line x1="12" y1="15" x2="12" y2="3"/>
+                      </svg>
+                      <span className="download-count-value">{formatDownloadCount(getDownloadCount(template))}</span>
+                    </span>
                   </div>
                 </div>
               </div>
