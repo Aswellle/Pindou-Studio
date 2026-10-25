@@ -49,65 +49,46 @@ describe('GalleryPage V2 — 本地模式', () => {
     expect(screen.getByText('没有找到匹配的模板')).toBeTruthy()
   })
 
-  it('点击收藏后写入 localStorage 并更新收藏页签计数', () => {
+  it('点击收藏后写入 localStorage(收藏列表本身在个人中心展示)', () => {
     const { container } = setup({ savedWorks: [] })
     const firstCard = container.querySelector('.template-card')
     fireEvent.click(firstCard.querySelector('.favorite-btn'))
     // 与 V1 一致:内置模板 id 原样存储(数字),跨类型收藏靠 String() 协同比较
     expect(JSON.parse(localStorage.getItem('gallery-favorites'))).toContain(TEMPLATES[0].id)
-    expect(screen.getByText(/我的收藏 \(1\)/)).toBeTruthy()
+    // 图库不再有收藏页签:收藏后本页不出现任何计数/页签变化
+    expect(screen.queryByText(/我的收藏 \(\d+\)/)).toBeNull()
+    expect(container.querySelector('.filter-tabs')).toBeNull()
   })
 
-  it('我的作品视图:空态与作品卡片渲染', () => {
-    const first = setup({ savedWorks: [] })
-    fireEvent.click(screen.getByText(/我的作品 \(0\)/))
-    expect(screen.getByText('还没有保存的作品')).toBeTruthy()
-    first.unmount()
-
-    const { container: c2 } = setup({
-      savedWorks: [{ id: 'w1', name: '我的小鸭', canvasData: [[null, '#FFD700']], gridSize: 2, gridWidth: 2, gridHeight: 1, savedAt: '2026-10-01T00:00:00Z' }],
-    })
-    fireEvent.click(screen.getByText(/我的作品 \(1\)/))
-    expect(c2.querySelectorAll('.work-card').length).toBe(1)
-    expect(screen.getByText('我的小鸭')).toBeTruthy()
-  })
-
-  it('我的作品:已持久化的来源类别显示为徽标,无来源的旧作品不显示', () => {
+  it('图库只有模板库:不渲染收藏/作品页签,也不渲染作品卡片', () => {
     const { container } = setup({
-      savedWorks: [
-        { id: 'w1', name: '导入的图纸', canvasData: [[null, '#FFD700']], gridSize: 2, gridWidth: 2, gridHeight: 1,
-          savedAt: '2026-10-01T00:00:00Z', sourceKind: 'chart-import' },
-        { id: 'w2', name: '手绘', canvasData: [[null, '#FFD700']], gridSize: 2, gridWidth: 2, gridHeight: 1,
-          savedAt: '2026-10-02T00:00:00Z' },
-      ],
+      savedWorks: [{ id: 'w1', name: '我的小鸭', canvasData: [[null, '#FFD700']], gridSize: 2 }],
     })
-    fireEvent.click(screen.getByText(/我的作品 \(2\)/))
-
-    const badges = [...container.querySelectorAll('.work-source')]
-    // 旧作品(无 sourceKind)不得凭空显示来源
-    expect(badges).toHaveLength(1)
-    expect(badges[0].textContent).toBe('图纸导入')
-    expect(badges[0].className).toContain('source-chart-import')
+    // 视图页签整体消失
+    expect(container.querySelector('.filter-tabs')).toBeNull()
+    expect(screen.queryByText(/我的作品/)).toBeNull()
+    expect(screen.queryByText(/我的收藏/)).toBeNull()
+    // 作品卡片不再出现在图库(已移到个人中心)
+    expect(container.querySelectorAll('.work-card').length).toBe(0)
+    expect(screen.queryByText('我的小鸭')).toBeNull()
+    // 模板仍然正常渲染
+    expect(container.querySelectorAll('.template-card').length).toBe(TEMPLATES.length)
   })
 
-  it('?view=works 深链接直达我的作品页签(个人中心快捷入口依赖它)', () => {
+  it('老链接 ?view=works 不再切换到作品视图,而是被静默清掉', () => {
     const { container } = setup({
-      savedWorks: [{ id: 'w1', name: '深链接作品', canvasData: [[null, '#FFD700']], gridSize: 2, gridWidth: 2, gridHeight: 1, savedAt: '2026-10-01T00:00:00Z' }],
+      savedWorks: [{ id: 'w1', name: '深链接作品', canvasData: [[null, '#FFD700']], gridSize: 2 }],
     }, ['/gallery?view=works'])
 
-    // 无需点击任何页签,作品卡已直接渲染
-    expect(container.querySelectorAll('.work-card').length).toBe(1)
-    expect(screen.getByText('深链接作品')).toBeTruthy()
-    // 页签自身也要处于选中态,否则用户会以为还在「全部模板」
-    const activeTab = container.querySelector('.filter-tab.active')
-    expect(activeTab.textContent).toContain('我的作品')
+    // 仍显示模板库,作品不出现
+    expect(container.querySelectorAll('.template-card').length).toBe(TEMPLATES.length)
+    expect(screen.queryByText('深链接作品')).toBeNull()
   })
 
-  it('?view= 非法值时回落到全部模板,不出现空白页', () => {
+  it('?view= 任意值都不影响模板渲染(参数已废弃)', () => {
     const { container } = setup({ savedWorks: [] }, ['/gallery?view=不存在的页签'])
 
     expect(container.querySelectorAll('.template-card').length).toBe(TEMPLATES.length)
-    expect(container.querySelector('.filter-tab.active').textContent).toContain('全部')
   })
 
   it('点击卡片弹出填充确认弹窗,确认后回调携带模板 pattern', () => {

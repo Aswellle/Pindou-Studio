@@ -14,7 +14,8 @@ import App from './App'
  *   - 再保存沿用同一套错误尺寸 → 错误被固化。
  * 修复后两端都走 normalizeLegacyWork,尺寸以数据实际形状为准。
  *
- * 这里把 Canvas 与 GalleryPage 换成最小桩,只断言 App 的接线与落库结果。
+ * 这里把 Canvas 与 ProfilePage 换成最小桩,只断言 App 的接线与落库结果。
+ * 作品的载入入口已从图库搬到个人中心,所以桩的是 ProfilePage。
  */
 
 const { loadWorkSpy, canvasProps } = vi.hoisted(() => ({
@@ -36,8 +37,8 @@ vi.mock('./components/Canvas', async () => {
   return { default: MockCanvas }
 })
 
-// GalleryPage 桩:提供「载入这个错位作品」按钮,触发 App.handleLoadWork
-vi.mock('./features/gallery/GalleryPage', async () => {
+// ProfilePage 桩:提供「载入这个错位作品」按钮,触发 App.handleLoadWork
+vi.mock('./components/ProfilePage', async () => {
   const React = await import('react')
   const badWork = {
     id: 'w-bad',
@@ -93,14 +94,14 @@ const readStored = () => JSON.parse(localStorage.getItem('saved-works') || '[]')
 describe('App · 作品载入 → 保存 尺寸一致性(M3)', () => {
   it('错位作品载入后按实际形状建网格,再保存写入正确尺寸', async () => {
     const { findByTestId, findByText, findByPlaceholderText } = render(
-      <MemoryRouter initialEntries={['/gallery']}>
+      <MemoryRouter initialEntries={['/profile']}>
         <HelmetProvider>
           <App />
         </HelmetProvider>
       </MemoryRouter>
     )
 
-    // 1) 载入错位作品(声明 29×29,实际 12×10);GalleryPage 为 lazy 组件需等待
+    // 1) 载入错位作品(声明 29×29,实际 12×10)
     fireEvent.click(await findByTestId('load-work'))
     await waitFor(() => expect(loadWorkSpy).toHaveBeenCalledTimes(1))
 

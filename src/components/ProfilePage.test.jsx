@@ -7,6 +7,17 @@ import ProfilePage from './ProfilePage'
 // jsdom 下 navigator.language 解析为 en-US;断言统一按基准语言 zh-CN
 beforeAll(async () => {
   await i18n.changeLanguage('zh-CN')
+  // jsdom 无 canvas 实现:「我的作品」分区的 WorkThumbnail 会在 ref 里直接绘制
+  const ctx = {
+    fillStyle: '', strokeStyle: '', lineWidth: 1,
+    fillRect: () => {}, strokeRect: () => {}, clearRect: () => {},
+    beginPath: () => {}, closePath: () => {}, moveTo: () => {}, lineTo: () => {},
+    stroke: () => {}, fill: () => {}, arc: () => {}, save: () => {}, restore: () => {},
+    clip: () => {}, translate: () => {}, scale: () => {}, drawImage: () => {},
+    setTransform: () => {}, fillText: () => {},
+    createRadialGradient: () => ({ addColorStop: () => {} }),
+  }
+  HTMLCanvasElement.prototype.getContext = () => ctx
 })
 
 afterEach(cleanup)
@@ -92,6 +103,44 @@ describe('ProfilePage', () => {
     gotoSection('偏好设置')
     expect(screen.getByText('界面语言')).toBeTruthy()
     expect(screen.queryByLabelText('昵称')).toBeNull()
+  })
+
+  it('作品与收藏已是本页分区,不再跳转图库', () => {
+    const { container } = renderPage({
+      works: [{
+        id: 'w1', name: '小鸭', canvasData: [[null, '#FFD700']],
+        gridSize: 2, gridWidth: 2, gridHeight: 2, savedAt: '2026-10-01T00:00:00Z',
+      }],
+      favorites: [],
+      isFavorite: () => false,
+      removeFavorite: () => {},
+    })
+
+    // 分区导航里两项都在
+    expect(screen.getByRole('button', { name: '我的作品' })).toBeTruthy()
+    expect(screen.getByRole('button', { name: '我的收藏' })).toBeTruthy()
+
+    gotoSection('我的作品')
+    expect(container.querySelectorAll('.pf-work-card').length).toBe(1)
+    expect(screen.queryByText('最近作品')).toBeNull()
+
+    gotoSection('我的收藏')
+    expect(screen.getByText('还没有收藏任何模板')).toBeTruthy()
+    expect(container.querySelectorAll('.pf-work-card').length).toBe(0)
+  })
+
+  it('概览快捷入口切到本页分区,不产生路由跳转', () => {
+    const { container } = renderPage({ works: [], favorites: [] })
+
+    fireEvent.click(screen.getByRole('button', { name: /管理我的作品/ }))
+    expect(container.querySelector('.pf-work-card, .pf-empty')).toBeTruthy()
+    expect(screen.queryByText('gallery-marker')).toBeNull()
+
+    gotoSection('概览')
+    // 分区导航里也有一个「我的收藏」,用快捷入口的说明文字定位到卡片按钮
+    fireEvent.click(screen.getByRole('button', { name: /收藏过的模板/ }))
+    expect(screen.getByText('还没有收藏任何模板')).toBeTruthy()
+    expect(screen.queryByText('gallery-marker')).toBeNull()
   })
 
   it('自动保存开关用的是 App 下传的状态,勾选后回调给上层', () => {
