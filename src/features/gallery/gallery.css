@@ -286,61 +286,54 @@
         .favorite-btn:hover {
           transform: scale(1.1);
         }
-        .export-btn-wrap {
-          display: flex;
+        /* 导出 + 下载量胶囊:左侧是可点的圆形导出按钮,右侧是下载计数。
+           两者共用同一层边框与底色,视觉上是一个整体 —— 此前按钮和数字
+           各自带边框、中间隔着 4px 间隙,读起来像两个无关的控件。
+           胶囊本身不可点,只有左侧按钮响应点击。 */
+        .export-count-capsule {
+          display: inline-flex;
           align-items: center;
-          gap: 4px;
+          gap: 5px;
+          padding: 1px 8px 1px 1px;
+          border: 1px solid var(--border-color);
+          border-radius: 999px;
+          background: var(--bg-secondary);
           flex-shrink: 0;
         }
         .export-btn {
-          width: 28px;
-          height: 28px;
+          width: 26px;
+          height: 26px;
           border-radius: 50%;
-          background: var(--bg-secondary);
-          border: 1px solid var(--border-color);
+          background: var(--bg-primary);
+          border: none;
           display: flex;
           align-items: center;
           justify-content: center;
-          transition: transform 0.15s, border-color 0.15s, color 0.15s;
+          transition: transform 0.15s, color 0.15s, background 0.15s;
           cursor: pointer;
           color: var(--text-secondary);
           flex-shrink: 0;
         }
         .export-btn:hover:not(:disabled) {
-          transform: scale(1.08);
-          border-color: var(--accent);
+          transform: scale(1.06);
+          background: var(--bg-tertiary);
           color: var(--accent);
         }
         .export-btn:disabled {
           opacity: 0.6;
           cursor: default;
         }
-        /* 模板下载量:图标 + 数字合成一个胶囊,便于看出哪个模板更受欢迎。
-           图标不再是可点区域(导出由左侧圆形按钮承担),所以这里只做展示;
-           计数超过 99 由 formatDownloadCount 收敛成 "99+",宽度不会继续涨。 */
+        /* 下载量:胶囊右半部分的纯展示数字,不再自带边框与底色(已由胶囊承担)。
+           超过 99 由 formatDownloadCount 收敛成 "99+",宽度不会继续涨。 */
         .download-count {
-          display: inline-flex;
-          align-items: center;
-          gap: 3px;
           font-size: 10px;
           line-height: 1.4;
           color: var(--text-muted);
-          background: var(--bg-secondary);
-          border: 1px solid var(--border-color);
-          border-radius: 999px;
-          padding: 0 7px 0 5px;
-          height: 18px;
-          flex-shrink: 0;
-        }
-        .download-count svg {
-          flex-shrink: 0;
-          opacity: 0.85;
-        }
-        /* 数字本身不换行:三格宽度的 "99+" 必须整体保持一行,
-           否则窄卡会把 "+" 挤到第二行,胶囊被撑高 */
-        .download-count-value {
           white-space: nowrap;
           font-variant-numeric: tabular-nums;
+          /* 位数变化时按钮不跟着左右跳:预留 "99+" 的宽度 */
+          min-width: 20px;
+          text-align: center;
         }
         /* 导出菜单:portal 到 body,useLayoutEffect 按导出按钮位置贴近定位;
            遮罩仅拦截点击(透明),菜单为固定定位下拉框 */

@@ -601,14 +601,18 @@ export default function GalleryPage({ onLoadTemplate, cloudStore }) {
                   </div>,
                   document.body
                 )}
-                {/* 卡片页脚:颜色圆点 + 导出(含下载量)。
+                {/* 卡片页脚:颜色圆点 + 导出胶囊(导出按钮 + 下载量)。
                     导出原本浮在缩略图右下角,既压住图案,又让预览区必须留 40px 底边;
                     放进页脚后预览区是干净的正方形,操作也有了明确的落点。 */}
                 <div className="template-footer">
                   <div className="template-colors">
                     <ColorDots pattern={template.pattern} />
                   </div>
-                  <div className="export-btn-wrap">
+                  {/* 卡片页脚右侧:导出按钮与下载量同处一个胶囊。
+                      左侧是可点的导出按钮(圆形,内含下载箭头图标),
+                      右侧是纯展示的下载计数,两者共用一层边框与底色,
+                      一眼就能看出这个数字属于「下载」而不是别的东西。 */}
+                  <div className="export-count-capsule">
                     <button
                       className="export-btn"
                       onClick={e => {
@@ -636,20 +640,11 @@ export default function GalleryPage({ onLoadTemplate, cloudStore }) {
                         </svg>
                       )}
                     </button>
-                    {/* 下载图标与计数合成同一个胶囊:此前图标画在导出按钮里、
-                        数字单独挂在旁边,视觉上是两块东西,读起来像「导出」和
-                        「另一个数字」。合并后图标只作计数前缀,不再是可点区域 ——
-                        导出仍然由左侧的圆形按钮承担。 */}
                     <span
                       className="download-count"
                       title={`${t('gallery.downloadCount')}: ${getDownloadCount(template)}`}
                     >
-                      <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
-                        <polyline points="7 10 12 15 17 10"/>
-                        <line x1="12" y1="15" x2="12" y2="3"/>
-                      </svg>
-                      <span className="download-count-value">{formatDownloadCount(getDownloadCount(template))}</span>
+                      {formatDownloadCount(getDownloadCount(template))}
                     </span>
                   </div>
                 </div>
