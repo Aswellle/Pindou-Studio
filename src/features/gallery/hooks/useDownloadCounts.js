@@ -10,6 +10,18 @@ import { supabase } from '../../../services/supabase'
 
 const DOWNLOAD_KEY = 'template-downloads'
 
+/**
+ * 卡片上展示的下载量文案:超过 99 一律显示 "99+"。
+ *
+ * 卡片页脚的宽度是固定的,三、四位数会把色点挤掉;而且这个数字只用于
+ * 「这个模板比那个受欢迎」的粗略比较,精确到个位没有意义。
+ */
+export function formatDownloadCount(n) {
+  const value = Number(n)
+  if (!Number.isFinite(value) || value <= 0) return '0'
+  return value > 99 ? '99+' : String(Math.floor(value))
+}
+
 export default function useDownloadCounts({ cloudEnabled = false, onCloudSync } = {}) {
   const [localDownloads, setLocalDownloads] = useState(() => {
     try { return JSON.parse(localStorage.getItem(DOWNLOAD_KEY) || '{}') } catch { return {} }

@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { renderHook, act } from '@testing-library/react'
-import useDownloadCounts from './useDownloadCounts'
+import useDownloadCounts, { formatDownloadCount } from './useDownloadCounts'
 
 vi.mock('../../../services/supabase', () => ({
   supabase: { rpc: vi.fn() },
@@ -69,5 +69,34 @@ describe('脏数据容错', () => {
     localStorage.setItem('template-downloads', '{oops')
     const { result } = renderHook(() => useDownloadCounts({}))
     expect(result.current.getDownloadCount({ id: 'x' })).toBe(0)
+  })
+})
+
+describe('formatDownloadCount · 卡片展示用计数', () => {
+  it('0–99 原样显示', () => {
+    expect(formatDownloadCount(0)).toBe('0')
+    expect(formatDownloadCount(1)).toBe('1')
+    expect(formatDownloadCount(42)).toBe('42')
+    expect(formatDownloadCount(99)).toBe('99')
+  })
+
+  it('超过 99 一律收敛成 "99+",继续增长也不变宽', () => {
+    expect(formatDownloadCount(100)).toBe('99+')
+    expect(formatDownloadCount(250)).toBe('99+')
+    expect(formatDownloadCount(123456)).toBe('99+')
+  })
+
+  it('负值 / 非数字 / 缺失一律按 0 处理', () => {
+    // 计数来自 localStorage 与云端两处,历史脏数据可能带负数或字符串
+    expect(formatDownloadCount(-5)).toBe('0')
+    expect(formatDownloadCount(NaN)).toBe('0')
+    expect(formatDownloadCount(undefined)).toBe('0')
+    expect(formatDownloadCount(null)).toBe('0')
+    expect(formatDownloadCount('abc')).toBe('0')
+  })
+
+  it('数字字符串按数值处理(云端 download_count 可能是字符串)', () => {
+    expect(formatDownloadCount('7')).toBe('7')
+    expect(formatDownloadCount('150')).toBe('99+')
   })
 })
