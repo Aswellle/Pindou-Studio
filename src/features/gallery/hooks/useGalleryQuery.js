@@ -10,6 +10,7 @@
  * 只是作用在各自范围内的模板列表上。
  */
 
+import { useCallback } from 'react'
 import { useSearchParams } from 'react-router-dom'
 
 /**
@@ -22,10 +23,12 @@ export const COLOR_COUNT_TIERS = Object.freeze([4, 8, 12, 16, 24, 32])
 
 /**
  * 视图页签(全部 / 收藏 / 我的作品)。
- * 只有个人中心的「管理我的作品」需要深链直达,所以这里只暴露这一个键,
- * 不把收藏页签也做成可分享链接 —— 收藏是个人状态,深链没有意义。
+ *
+ * 收藏与我的作品已移到个人中心(/profile),图库不再有视图页签。
+ * 这里保留该常量只为一件事:老链接里的 ?view= 参数必须被识别并丢弃,
+ * 不能让它继续留在地址栏里,也不能让非法值把页面顶成空白。
  */
-export const GALLERY_VIEWS = Object.freeze(['all', 'favorites', 'works'])
+export const LEGACY_VIEW_PARAM = 'view'
 
 /**
  * @returns {{ searchTerm, category, difficulty, setSearchTerm, setCategory, setDifficulty }}
@@ -39,9 +42,9 @@ export function useGalleryQuery() {
   // 用色数量上限:空 = 不限。只接受正整数,非法值当不限处理。
   const rawColors = searchParams.get('colors') || ''
   const maxColors = /^\d+$/.test(rawColors) && Number(rawColors) > 0 ? Number(rawColors) : null
-  // 视图页签:非法值一律回落到 'all',避免 URL 拼错把页面顶成空白
-  const rawView = searchParams.get('view') || ''
-  const view = GALLERY_VIEWS.includes(rawView) ? rawView : 'all'
+  // 老链接的 ?view=works / ?view=favorites:收藏与作品已搬到个人中心,
+  // 这里只读取出来用于「静默清掉」,不再参与任何筛选。
+  const legacyView = searchParams.get(LEGACY_VIEW_PARAM) || ''
 
   const setSearchTerm = (value) => {
     const params = new URLSearchParams(searchParams)
@@ -72,12 +75,16 @@ export function useGalleryQuery() {
     setSearchParams(params, { replace: true })
   }
 
-  const setView = (value) => {
+  /**
+   * 清掉老链接里的 ?view= 参数。
+   * 收藏与我的作品已搬到个人中心,旧链接不应再带着这个键;
+   * 用 replace 写入,不在浏览历史里留下一条无意义的记录。
+   */
+  const clearLegacyView = useCallback(() => {
     const params = new URLSearchParams(searchParams)
-    if (value && value !== 'all') params.set('view', value)
-    else params.delete('view')
+    params.delete(LEGACY_VIEW_PARAM)
     setSearchParams(params, { replace: true })
-  }
+  }, [searchParams, setSearchParams])
 
   /**
    * 一次写入多个筛选值。
@@ -104,10 +111,6 @@ export function useGalleryQuery() {
       if (patch.colors && Number.isFinite(n) && n > 0) params.set('colors', String(Math.trunc(n)))
       else params.delete('colors')
     }
-    if ('view' in patch) {
-      if (patch.view && patch.view !== 'all') params.set('view', patch.view)
-      else params.delete('view')
-    }
     setSearchParams(params, { replace: true })
   }
 
@@ -116,12 +119,12 @@ export function useGalleryQuery() {
     category,
     difficulty,
     maxColors,
-    view,
+    legacyView,
     setSearchTerm,
     setCategory,
     setDifficulty,
     setMaxColors,
-    setView,
+    clearLegacyView,
     setFilters,
   }
 }

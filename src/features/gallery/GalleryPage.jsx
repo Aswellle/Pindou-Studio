@@ -7,10 +7,11 @@
  * 与 V1 的差异:
  *  - 搜索词/分类/难度经 useGalleryQuery 同步到 URLSearchParams
  *    (/gallery?q=…&cat=…&diff=…),刷新恢复、前进后退、可分享
- *  - 「全部模板 / 我的收藏 / 我的作品」三视图与 V1 一致(组件内状态)
+ *  - 本页只呈现「模板库」:全部模板即默认视图,靠筛选器收窄。
+ *    收藏与我的作品已移到个人中心(/profile),本页不再有视图页签。
  *  - 复用 V1 抽出的共享样式(gallery.css)与下载计数 hook(useDownloadCounts)
  *
- * 载入模板/我的作品等回调由 App.jsx 传入。
+ * 载入模板等回调由 App.jsx 传入。
  */
 import { useState, useEffect, useMemo, useRef, useLayoutEffect } from 'react'
 import { createPortal } from 'react-dom'
@@ -29,9 +30,9 @@ import { useGalleryContent } from '../../hooks/useGalleryContent'
 import { useScrollLock } from '../../hooks/useScrollLock'
 import { placePopupMenu } from '../../hooks/viewportGeometry'
 import { useDialogA11y } from '../../hooks/useDialogA11y'
+import useGalleryFavorites from '../../hooks/useGalleryFavorites'
 import { buildDiscoverySections } from './discovery'
 import DiscoveryRails from './components/DiscoveryRails'
-import WorkThumbnail from './components/WorkThumbnail'
 // 与 V1 共享的全部图库样式(卡片/菜单/横幅/弹窗)
 import './gallery.css'
 
@@ -50,7 +51,7 @@ function ColorDots({ pattern }) {
   )
 }
 
-export default function GalleryPage({ onLoadTemplate, onDeleteWork, onLoadWork, onShowVersions, savedWorks = [], worksLoading, cloudMirrorCount = 0, cloudStore, user, onLogin, onRegister }) {
+export default function GalleryPage({ onLoadTemplate, cloudStore }) {
   const { t } = useTranslation()
   const toast = useToast()
   const navigate = useNavigate()
@@ -60,9 +61,15 @@ export default function GalleryPage({ onLoadTemplate, onDeleteWork, onLoadWork, 
     category, setCategory,
     difficulty, setDifficulty,
     maxColors, setMaxColors,
-    view, setView,
+    legacyView, clearLegacyView,
     setFilters,
   } = useGalleryQuery()
+
+  // 旧链接 ?view=works / ?view=favorites 指向的视图已搬到个人中心。
+  // 静默清掉参数(保留其余筛选),用户看到的仍是模板库,不会被顶成空白。
+  useEffect(() => {
+    if (legacyView) clearLegacyView()
+  }, [legacyView, clearLegacyView])
 
   // 云端启用时,模板库完全来自云端(RLS 公开只读);未启用时回退本地模式
   // (内置模板 + localStorage 自定义模板,自定义在前)
@@ -82,11 +89,8 @@ export default function GalleryPage({ onLoadTemplate, onDeleteWork, onLoadWork, 
     return custom ? custom.label : t(`gallery.categories.${cat}`, cat)
   }
 
-  const [favorites, setFavorites] = useState(() => {
-    const saved = localStorage.getItem('gallery-favorites')
-    if (!saved) return []
-    try { return JSON.parse(saved) } catch { return [] } // 脏数据不白屏
-  })
+  // 收藏:与个人中心的「我的收藏」分区共用同一份数据(useGalleryFavorites)
+  const { favorites, isFavorite, toggleFavorite } = useGalleryFavorites()
   const [exportMenuId, setExportMenuId] = useState(null)
   const [exportingId, setExportingId] = useState(null)
   // 品牌徽章:当前展开品牌菜单的模板 id + 每模板用户选定的转换品牌(不改云端模板本身)
@@ -183,19 +187,6 @@ export default function GalleryPage({ onLoadTemplate, onDeleteWork, onLoadWork, 
     menu.style.top = `${top}px`
   }, [exportMenuId])
 
-  // 「我的作品」注册软引导:可关闭,关闭后本机记住不再打扰
-  const [localWorksHintDismissed, setLocalWorksHintDismissed] = useState(
-    () => localStorage.getItem('auth-hint-local-works-dismissed') === '1'
-  )
-  const dismissLocalWorksHint = () => {
-    localStorage.setItem('auth-hint-local-works-dismissed', '1')
-    setLocalWorksHintDismissed(true)
-  }
-
-  useEffect(() => {
-    localStorage.setItem('gallery-favorites', JSON.stringify(favorites))
-  }, [favorites])
-
   useEffect(() => {
     if (!exportMenuId) return
     const close = () => setExportMenuId(null)
@@ -224,17 +215,14 @@ export default function GalleryPage({ onLoadTemplate, onDeleteWork, onLoadWork, 
     const matchesSearch = (displayName || translatedName).includes(searchTerm.toLowerCase())
     const matchesCategory = category === 'all' || template.category === category
     const matchesDifficulty = difficulty === 'all' || template.difficulty === difficulty
-    const matchesFavorite = view !== 'favorites' || favorites.some(f => String(f) === String(template.id))
     // 用色数上限:按 pattern 实际出现的唯一颜色数计算(与卡片色点、详情页口径一致)
     const matchesColors = !maxColors || extractPatternColors(template.pattern).length <= maxColors
-    return matchesSearch && matchesCategory && matchesDifficulty && matchesFavorite && matchesColors
-  }), [allTemplates, searchTerm, category, difficulty, view, favorites, maxColors, t])
+    return matchesSearch && matchesCategory && matchesDifficulty && matchesColors
+  }), [allTemplates, searchTerm, category, difficulty, maxColors, t])
 
-  const toggleFavorite = (id, e) => {
+  const handleToggleFavorite = (id, e) => {
     e.stopPropagation()
-    setFavorites(prev =>
-      prev.some(f => String(f) === String(id)) ? prev.filter(f => String(f) !== String(id)) : [...prev, id]
-    )
+    toggleFavorite(id)
   }
 
   const getDifficultyColor = (difficulty) => {
@@ -333,27 +321,6 @@ export default function GalleryPage({ onLoadTemplate, onDeleteWork, onLoadWork, 
             className="search-input"
           />
         </div>
-
-        <div className="filter-tabs">
-          <button
-            className={`filter-tab ${view === 'all' ? 'active' : ''}`}
-            onClick={() => setView('all')}
-          >
-            {t('gallery.allTemplates')}
-          </button>
-          <button
-            className={`filter-tab ${view === 'favorites' ? 'active' : ''}`}
-            onClick={() => setView('favorites')}
-          >
-            {t('gallery.myFavorites')} ({favorites.length})
-          </button>
-          <button
-            className={`filter-tab ${view === 'works' ? 'active' : ''}`}
-            onClick={() => setView('works')}
-          >
-            {t('gallery.myWorks')} ({savedWorks.length})
-          </button>
-        </div>
       </div>
 
       <div className="category-bar">
@@ -414,7 +381,7 @@ export default function GalleryPage({ onLoadTemplate, onDeleteWork, onLoadWork, 
       <div className="gallery-content">
         {/* 策展区块:仅在「全部模板」视图、无筛选、云端可用且确实有内容时出现。
             数据为空 / 加载失败 → 整块不渲染,下方旧图库网格不受影响。 */}
-        {view === 'all' && !filtersActive && discoveryEnabled && (
+        {!filtersActive && discoveryEnabled && (
           <DiscoveryRails
             sections={discoverySections}
             loading={galleryContent.loading}
@@ -428,7 +395,7 @@ export default function GalleryPage({ onLoadTemplate, onDeleteWork, onLoadWork, 
           />
         )}
         {/* 云端不可用:横幅说明 + 已回退本地/内置模板;网络恢复后自动重试(useCloudTemplates) */}
-        {cloudDown && view !== 'works' && (
+        {cloudDown && (
           <div className="cloud-offline-banner" role="status">
             <div className="cloud-offline-text">
               <strong>{t('gallery.cloudLoadError')}</strong>
@@ -446,121 +413,7 @@ export default function GalleryPage({ onLoadTemplate, onDeleteWork, onLoadWork, 
             </button>
           </div>
         )}
-        {view === 'works' ? (
-          <div className="works-section">
-            <h2 className="section-title">{t('gallery.myWorksSectionTitle')}</h2>
-            {/* 匿名用户且有本地作品时的注册软引导:强调本机保存的丢失风险,可关闭 */}
-            {!user && savedWorks.length > 0 && !localWorksHintDismissed && (
-              <div className="local-works-banner" role="note">
-                <svg className="banner-icon" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                  <rect x="3" y="11" width="18" height="11" rx="2"/>
-                  <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
-                </svg>
-                <div className="banner-text">
-                  <p className="banner-title">{t('gallery.localWorksTitle')}</p>
-                  <p className="banner-body">{t('gallery.localWorksBody', { n: savedWorks.length })}</p>
-                </div>
-                {onRegister && (
-                  <button className="btn btn-primary banner-register" onClick={onRegister}>
-                    {t('gallery.localWorksRegister')}
-                  </button>
-                )}
-                <button
-                  className="banner-dismiss"
-                  onClick={dismissLocalWorksHint}
-                  aria-label={t('gallery.localWorksDismiss')}
-                  title={t('gallery.localWorksDismiss')}
-                >
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                    <line x1="18" y1="6" x2="6" y2="18"/>
-                    <line x1="6" y1="6" x2="18" y2="18"/>
-                  </svg>
-                </button>
-              </div>
-            )}
-            {worksLoading ? (
-              <div className="empty-state">
-                <p>{t('gallery.worksLoading')}</p>
-              </div>
-            ) : savedWorks.length === 0 ? (
-              !user && cloudMirrorCount > 0 ? (
-                /* 登出但云端有作品:提示登录查看(避免"作品消失了"的误解) */
-                <div className="empty-state">
-                  <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
-                    <path d="M17.5 19H9a7 7 0 1 1 6.71-9h1.79a4.5 4.5 0 1 1 0 9Z"/>
-                  </svg>
-                  <p>{t('gallery.cloudWorksEmptyTitle')}</p>
-                  <span>{t('gallery.cloudWorksEmptyBody')}</span>
-                  {onLogin && (
-                    <button className="btn btn-primary empty-login-btn" onClick={onLogin}>
-                      {t('auth.login')}
-                    </button>
-                  )}
-                </div>
-              ) : (
-                <div className="empty-state">
-                  <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
-                    <rect x="3" y="3" width="18" height="18" rx="2"/>
-                    <path d="M3 9h18"/>
-                    <path d="M9 21V9"/>
-                  </svg>
-                  <p>{t('gallery.noWorks')}</p>
-                  <span>{t('gallery.noWorksHint')}</span>
-                </div>
-              )
-            ) : (
-              <div className="works-grid">
-                {savedWorks.map((work, index) => {
-                  const w = work.gridWidth || work.gridSize
-                  const h = work.gridHeight || work.gridSize
-                  const displayName = work.name || `${t('gallery.workName')} ${index + 1}`
-                  const displayDate = work.savedAt ? work.savedAt.slice(0, 10) : ''
-                  return (
-                    <div key={work.id ?? index} className="work-card">
-                      <div className="work-thumbnail">
-                        <WorkThumbnail work={work} />
-                      </div>
-                      <div className="work-info">
-                        <span className="work-name">{displayName}</span>
-                        <span className="work-size">{w} × {h}</span>
-                        {work.sourceKind && (
-                          <span className={`work-source source-${work.sourceKind}`}>
-                            {t(`gallery.workSource.${work.sourceKind}`, '')}
-                          </span>
-                        )}
-                        {displayDate && <span className="work-date">{displayDate}</span>}
-                      </div>
-                      <div className="work-actions">
-                        <button
-                          className="work-btn load"
-                          onClick={() => onLoadWork ? onLoadWork(work) : onLoadTemplate(work.canvasData, work.gridSize)}
-                        >
-                          {t('gallery.load')}
-                        </button>
-                        {/* 历史入口只在有回调时出现:本地模式才有版本时间线,
-                            云端作品的版本策略未定,不显示一个点了没反应的按钮 */}
-                        {onShowVersions && (
-                          <button
-                            className="work-btn history"
-                            onClick={() => onShowVersions(work)}
-                          >
-                            {t('versions.open')}
-                          </button>
-                        )}
-                        <button
-                          className="work-btn delete"
-                          onClick={() => onDeleteWork(work)}
-                        >
-                          {t('gallery.delete')}
-                        </button>
-                      </div>
-                    </div>
-                  )
-                })}
-              </div>
-            )}
-          </div>
-        ) : cloudEnabled && cloudStore?.loading ? (
+        {cloudEnabled && cloudStore?.loading ? (
           <div className="empty-state">
             <p>{t('gallery.cloudLoading')}</p>
           </div>
@@ -614,12 +467,12 @@ export default function GalleryPage({ onLoadTemplate, onDeleteWork, onLoadWork, 
                 <div className="template-thumbnail">
                   <ThumbnailCanvas pattern={template.pattern} size={template.size} gridWidth={templateDimensions(template).width} gridHeight={templateDimensions(template).height} />
                   <button
-                    className={`favorite-btn ${favorites.some(f => String(f) === String(template.id)) ? 'active' : ''}`}
-                    onClick={(e) => toggleFavorite(template.id, e)}
+                    className={`favorite-btn ${isFavorite(template.id) ? 'active' : ''}`}
+                    onClick={(e) => handleToggleFavorite(template.id, e)}
                     aria-label={t('gallery.myFavorites')}
-                    aria-pressed={favorites.some(f => String(f) === String(template.id))}
+                    aria-pressed={isFavorite(template.id)}
                   >
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill={favorites.includes(template.id) ? 'var(--accent)' : 'none'} stroke="var(--accent)" strokeWidth="2">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill={isFavorite(template.id) ? 'var(--accent)' : 'none'} stroke="var(--accent)" strokeWidth="2">
                       <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
                     </svg>
                   </button>
