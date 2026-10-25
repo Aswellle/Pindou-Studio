@@ -130,4 +130,23 @@ describe('ThumbnailCanvas 渲染契约', () => {
   it('列数取最大行长,参差 pattern 不丢右侧格子', () => {
     expect(THUMB_JSX).toMatch(/derived\.width\s*\|\|/)
   })
+
+  it('画布盒子比例由逻辑网格决定,不由位图决定', () => {
+    // canvas 是替换元素,固有尺寸就是位图的 width/height 属性。只约束一维
+    // (max-width/max-height)时,浏览器会拿位图比例算出另一维;而 effect 又按
+    // 量到的盒子设位图 —— 两者互相喂养,一次被压扁就再也回不来(竖长图案在
+    // 方形预览区里只剩一条细缝)。style 上的 aspect-ratio 让逻辑网格单方面
+    // 决定盒子形状,位图只是往里填像素。
+    expect(THUMB_JSX).toMatch(/aspectRatio/)
+    expect(THUMB_JSX).toMatch(/`\$\{width\}\s*\/\s*\$\{height\}`/)
+  })
+
+  it('画布不铺不透明底色,容器底色才是纸', () => {
+    // 曾经这里 fillRect 刷满白色,非正方形图案四周就多出一圈白边,
+    // 在米色的预览区里看着像图片没对齐。
+    // 断言前先剥掉注释 —— 组件头注释里就写着这条历史,不能当成代码命中。
+    const code = THUMB_JSX.replace(/\/\/.*$/gm, '').replace(/\/\*[\s\S]*?\*\//g, '')
+    expect(code).not.toMatch(/fillStyle\s*=\s*['"]#fff/i)
+    expect(code).toMatch(/clearRect/)
+  })
 })
