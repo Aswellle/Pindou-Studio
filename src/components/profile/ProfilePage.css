@@ -9,6 +9,10 @@
   flex: 1;
   min-height: 0;
   overflow-y: auto;
+  /* 切分区时内容高度差异很大:长分区(作品网格)出滚动条、短分区不出。
+     没有这一行,滚动条的出现/消失会改变内容区宽度,整页跟着横向抖一下。
+     预留槽位后,两种状态的可视宽度一致,切换不再跳动。 */
+  scrollbar-gutter: stable;
   -webkit-overflow-scrolling: touch;
   background: var(--bg-secondary);
 }
@@ -728,6 +732,11 @@
   font-size: var(--text-sm);
   outline: none;
 }
+/* 焦点环由外层 .pf-search:focus-within 承担(描边 + 底色变化)。
+   内层 input 必须显式在 :focus 上关掉 —— 只写基础选择器的 outline:none
+   与 index.css 的全局 input:focus 同为 (0,1,1),谁后加载谁赢,
+   构建产物里全局规则会赢,于是搜索框里多出一圈橘色方框。 */
+.pf-search input:focus { outline: none; }
 .pf-works-count {
   flex: 0 0 auto;
   margin-left: auto;
