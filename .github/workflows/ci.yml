@@ -80,31 +80,27 @@ jobs:
             indexnow-state-
 
       - name: Wait for deployment
+        id: deploy
         run: |
           set -euo pipefail
-          target="${{ github.sha }}"
+          target="${GITHUB_SHA:0:12}"
           echo "等待线上出现本次构建 $target …"
           for i in $(seq 1 60); do
             body=$(curl -sS --max-time 10 "https://tangnotes.site/?deploy-probe=$target" || true)
-            if echo "$body" | grep -q "content=\"${target:0:12}\""; then
+            if echo "$body" | grep -q "content=\"$target\""; then
               echo "线上已是本次构建(第 $i 次探测)"
+              echo "live=true" >> "$GITHUB_OUTPUT"
               exit 0
             fi
             sleep 10
           done
           echo "::warning::10 分钟内未确认部署上线,本次跳过 IndexNow 提交"
-          exit 0
+          echo "live=false" >> "$GITHUB_OUTPUT"
 
       - name: Submit changed URLs
+        if: steps.deploy.outputs.live == 'true'
         continue-on-error: true
-        run: |
-          set -euo pipefail
-          body=$(curl -sS --max-time 10 "https://tangnotes.site/?deploy-probe=${{ github.sha }}")
-          if ! echo "$body" | grep -q "content=\"${GITHUB_SHA:0:12}\""; then
-            echo "部署未上线,跳过提交"
-            exit 0
-          fi
-          node scripts/indexnow-submit.mjs --sitemap=https://tangnotes.site/sitemap.xml
+        run: node scripts/indexnow-submit.mjs --sitemap=https://tangnotes.site/sitemap.xml
 
       - name: Save IndexNow state
         if: always()
