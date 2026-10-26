@@ -14,41 +14,50 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, interactive-widget=resizes-content" />
 
   <!-- ── 基础 SEO ────────────────────────────────────────────── -->
-  <title>拼豆Studio - 免费在线拼豆图纸生成,图片转像素拼豆|COCO/MARD/Artkal等6大色卡</title>
-  <meta name="description" content="免费的在线拼豆图纸生成工具：自由绘制或上传图片一键转像素拼豆，CIEDE2000精准配色；支持 COCO/MARD/Artkal 等 6 大品牌色卡与专业 PNG/SVG 图纸导出，新手与亲子友好。" />
-  <meta name="keywords" content="拼豆,拼豆图纸,拼豆图纸生成,拼豆图纸生成器,拼豆设计,免费拼豆工具,在线拼豆,图片转拼豆,照片转拼豆,像素画,像素拼豆,像素图,拼豆配色,COCO拼豆,MARD拼豆,MARD291拼豆,Perler拼豆,Hama拼豆,Artkal拼豆,拼豆品牌色卡,拼豆教程,拼豆图纸导出,bead pattern,perler beads,bead art,pixel art" />
+  <!-- data-rh="true" 标记:react-helmet-async 的 updateTags 只清理
+       head.querySelectorAll('meta[data-rh]') / ('link[data-rh]') 命中的旧标签。
+       预渲染写死在 HTML 里的这几个标签若不带该属性,Helmet 首帧提交时会再追加一份,
+       页面就出现两条 canonical / 两条 robots / 两条 description。只给 Helmet
+       真正会渲染的标签打标(见 App.jsx 的 seoHelmet 与 ContentSeo.jsx);
+       keywords / og:locale / og:image:* / twitter:title 等 Helmet 不渲染的保持不带,
+       否则会被当成「Helmet 上一轮留下的标签」删掉。 -->
+  <title>拼豆Studio - 免费在线拼豆图纸生成与图片转拼豆</title>
+  <meta name="description" content="免费在线拼豆图纸生成工具：自由绘制或上传图片一键转像素拼豆，按 CIEDE2000 精准匹配 COCO/MARD/Perler 等六大品牌色卡，导出带色号的 PNG/SVG 图纸。" data-rh="true" />
+  <meta name="keywords" content="拼豆,拼豆图纸,拼豆图纸生成器,图片转拼豆,像素画,COCO拼豆,MARD拼豆,Perler拼豆" />
   <meta name="author" content="拼豆Studio" />
-  <meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1" />
-  <link rel="canonical" href="https://tangnotes.site/" />
+  <meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1" data-rh="true" />
+  <link rel="canonical" href="https://tangnotes.site/" data-rh="true" />
 
   <!-- ── 多语言 hreflang ────────────────────────────────────── -->
-  <link rel="alternate" hreflang="zh-CN" href="https://tangnotes.site/" />
-  <link rel="alternate" hreflang="en" href="https://tangnotes.site/?lang=en" />
-  <link rel="alternate" hreflang="ja" href="https://tangnotes.site/?lang=ja" />
-  <link rel="alternate" hreflang="ko" href="https://tangnotes.site/?lang=ko" />
-  <link rel="alternate" hreflang="x-default" href="https://tangnotes.site/" />
+  <link rel="alternate" hreflang="zh-CN" href="https://tangnotes.site/" data-rh="true" />
+  <link rel="alternate" hreflang="en" href="https://tangnotes.site/?lang=en" data-rh="true" />
+  <link rel="alternate" hreflang="ja" href="https://tangnotes.site/?lang=ja" data-rh="true" />
+  <link rel="alternate" hreflang="ko" href="https://tangnotes.site/?lang=ko" data-rh="true" />
+  <link rel="alternate" hreflang="x-default" href="https://tangnotes.site/" data-rh="true" />
 
   <!-- ── Open Graph (微信/微博/Facebook 分享预览) ───────────── -->
-  <meta property="og:type" content="website" />
+  <!-- 文案与 App.jsx 的 SEO_CONFIG.canvas 逐字一致:Helmet 首帧会用同一份配置重写
+       这几个标签,内容不同就等于首屏闪一次 —— 抓取端与用户看到的两套文案也会不一致。 -->
+  <meta property="og:type" content="website" data-rh="true" />
   <meta property="og:site_name" content="拼豆Studio" />
-  <meta property="og:title" content="拼豆Studio | 免费在线拼豆图纸生成·图片转像素拼豆" />
-  <meta property="og:description" content="免费的在线拼豆图纸生成工具：上传图片一键转像素拼豆，CIEDE2000精准配色，支持COCO/MARD/Artkal等6大品牌色卡，导出带色号的专业PNG/SVG图纸。" />
-  <meta property="og:url" content="https://tangnotes.site/" />
+  <meta property="og:title" content="拼豆Studio - 免费在线拼豆图纸生成与图片转拼豆" data-rh="true" />
+  <meta property="og:description" content="免费在线拼豆图纸生成工具：自由绘制或上传图片一键转像素拼豆，按 CIEDE2000 精准匹配 COCO/MARD/Perler 等六大品牌色卡，导出带色号的 PNG/SVG 图纸。" data-rh="true" />
+  <meta property="og:url" content="https://tangnotes.site/" data-rh="true" />
   <meta property="og:locale" content="zh_CN" />
   <meta property="og:locale:alternate" content="en_US" />
   <meta property="og:locale:alternate" content="ja_JP" />
   <meta property="og:locale:alternate" content="ko_KR" />
-  <meta property="og:image" content="https://tangnotes.site/og-image.png" />
+  <meta property="og:image" content="https://tangnotes.site/og-image.png" data-rh="true" />
   <meta property="og:image:type" content="image/png" />
   <meta property="og:image:width" content="1200" />
   <meta property="og:image:height" content="630" />
   <meta property="og:image:alt" content="拼豆Studio - 在线拼豆图纸设计工具" />
 
   <!-- ── Twitter Card ───────────────────────────────────────── -->
-  <meta name="twitter:card" content="summary_large_image" />
-  <meta name="twitter:title" content="拼豆Studio | 免费在线拼豆图纸生成·图片转像素拼豆" />
-  <meta name="twitter:description" content="免费的在线拼豆图纸生成工具：上传图片一键转像素拼豆，支持COCO/MARD/Artkal等6大品牌色卡，导出带色号的专业PNG/SVG图纸。" />
-  <meta name="twitter:image" content="https://tangnotes.site/og-image.png" />
+  <meta name="twitter:card" content="summary_large_image" data-rh="true" />
+  <meta name="twitter:title" content="拼豆Studio - 免费在线拼豆图纸生成与图片转拼豆" data-rh="true" />
+  <meta name="twitter:description" content="免费在线拼豆图纸生成工具：自由绘制或上传图片一键转像素拼豆，按 CIEDE2000 精准匹配 COCO/MARD/Perler 等六大品牌色卡，导出带色号的 PNG/SVG 图纸。" data-rh="true" />
+  <meta name="twitter:image" content="https://tangnotes.site/og-image.png" data-rh="true" />
 
   <!-- ── 浏览器 / PWA ───────────────────────────────────────── -->
   <meta name="theme-color" content="#fdfbf7" />
