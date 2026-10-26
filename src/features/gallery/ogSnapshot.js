@@ -298,6 +298,44 @@ const SEO_STYLE = `<style>
 const HREFLANG_LANGS = ['zh-CN', 'en', 'ja', 'ko', 'x-default']
 
 /**
+ * 面包屑结构化数据(与 generate-prerender-html.js 的 breadcrumbScript 同形)。
+ *
+ * 主题 / 合集 / 图纸详情此前只有站点级的三种 schema,没有 BreadcrumbList ——
+ * 搜索结果里拿不到「首页 › 图库 › 图纸」这条路径,Google 也无法据此理解层级。
+ * 面包屑里的每一级都必须是真实可达的页面,否则会被判为误导性标记。
+ */
+function breadcrumbJsonLd(crumbs) {
+  const items = crumbs.map((c, i) => [
+    '  {',
+    '    "@type": "ListItem",',
+    `    "position": ${i + 1},`,
+    `    "name": ${JSON.stringify(c.name)},`,
+    `    "item": ${JSON.stringify(c.item)}`,
+    '  }',
+  ].join('\n'))
+  return [
+    '<script type="application/ld+json">',
+    '{',
+    '  "@context": "https://schema.org",',
+    '  "@type": "BreadcrumbList",',
+    '  "itemListElement": [',
+    items.join(',\n'),
+    '  ]',
+    '}',
+    '</script>',
+  ].join('\n')
+}
+
+/** 各内容类型对应的面包屑(第 2 级都是 /gallery,真实存在) */
+function crumbsFor(path, title) {
+  return [
+    { name: '首页', item: `${SITE}/` },
+    { name: '拼豆图库与模板', item: `${SITE}/gallery` },
+    { name: title, item: `${SITE}${path}` },
+  ]
+}
+
+/**
  * 把首页模板改写成快照页。
  *
  * 只改 head 里的 meta/hreflang 与 #root 内的静态正文,脚本、字体、JSON-LD 全部保留 ——
@@ -314,17 +352,23 @@ export function renderSnapshotHtml(indexHtml, snap, canonicalUrl, { noindex = fa
   const robots = noindex
     ? 'noindex, nofollow'
     : 'index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1'
+  // 改写出来的标签一律保留 data-rh="true"(与 index.html 一致):
+  // react-helmet-async 只清理带该属性的旧标签,缺了它首帧会再追加一份,
+  // 页面出现两条 canonical / 两条 robots —— 快照页的 canonical 指向自己的 URL,
+  // 重复声明时搜索引擎可能取到其中任意一条。
+  // 匹配式用 `[^"]*"[^>]*>` 收尾,容忍结尾的 data-rh 及其他属性。
+  const RH = ' data-rh="true"'
 
   let out = indexHtml
     .replace(/<title>.*?<\/title>/s, `<title>${snap.title}</title>`)
-    .replace(/<meta name="description" content="[^"]*"\s*\/?>/, `<meta name="description" content="${snap.description}" />`)
-    .replace(/<meta name="robots" content="[^"]*"\s*\/?>/, `<meta name="robots" content="${robots}" />`)
-    .replace(/<link rel="canonical" href="[^"]*"\s*\/?>/, `<link rel="canonical" href="${canonicalUrl}" />`)
-    .replace(/<meta property="og:url" content="[^"]*"\s*\/?>/, `<meta property="og:url" content="${canonicalUrl}" />`)
-    .replace(/<meta property="og:title" content="[^"]*"\s*\/?>/, `<meta property="og:title" content="${snap.title}" />`)
-    .replace(/<meta property="og:description" content="[^"]*"\s*\/?>/, `<meta property="og:description" content="${snap.description}" />`)
-    .replace(/<meta name="twitter:title" content="[^"]*"\s*\/?>/, `<meta name="twitter:title" content="${snap.title}" />`)
-    .replace(/<meta name="twitter:description" content="[^"]*"\s*\/?>/, `<meta name="twitter:description" content="${snap.description}" />`)
+    .replace(/<meta name="description" content="[^"]*"[^>]*>/, `<meta name="description" content="${snap.description}"${RH} />`)
+    .replace(/<meta name="robots" content="[^"]*"[^>]*>/, `<meta name="robots" content="${robots}"${RH} />`)
+    .replace(/<link rel="canonical" href="[^"]*"[^>]*>/, `<link rel="canonical" href="${canonicalUrl}"${RH} />`)
+    .replace(/<meta property="og:url" content="[^"]*"[^>]*>/, `<meta property="og:url" content="${canonicalUrl}"${RH} />`)
+    .replace(/<meta property="og:title" content="[^"]*"[^>]*>/, `<meta property="og:title" content="${snap.title}"${RH} />`)
+    .replace(/<meta property="og:description" content="[^"]*"[^>]*>/, `<meta property="og:description" content="${snap.description}"${RH} />`)
+    .replace(/<meta name="twitter:title" content="[^"]*"[^>]*>/, `<meta name="twitter:title" content="${snap.title}"${RH} />`)
+    .replace(/<meta name="twitter:description" content="[^"]*"[^>]*>/, `<meta name="twitter:description" content="${snap.description}"${RH} />`)
 
   // 封面:有则替换;无则保留站点默认图(空 content 会让社交平台显示无图卡片)
   //
@@ -334,32 +378,51 @@ export function renderSnapshotHtml(indexHtml, snap, canonicalUrl, { noindex = fa
   // 图纸卡片确实是 1200×630(见 ogCard.OG_CARD_WIDTH),由调用方显式声明。
   if (snap.image) {
     out = out
-      .replace(/<meta property="og:image" content="[^"]*"\s*\/?>/, `<meta property="og:image" content="${snap.image}" />`)
-      .replace(/<meta name="twitter:image" content="[^"]*"\s*\/?>/, `<meta name="twitter:image" content="${snap.image}" />`)
+      .replace(/<meta property="og:image" content="[^"]*"[^>]*>/, `<meta property="og:image" content="${snap.image}"${RH} />`)
+      .replace(/<meta name="twitter:image" content="[^"]*"[^>]*>/, `<meta name="twitter:image" content="${snap.image}"${RH} />`)
       // alt 描述的是「这张图是什么」。换成内容自己的图后仍留着站点级 alt,
       // 无障碍与部分平台的图片描述会张冠李戴。
-      .replace(/<meta property="og:image:alt" content="[^"]*"\s*\/?>/, `<meta property="og:image:alt" content="${snap.title}" />`)
+      .replace(/<meta property="og:image:alt" content="[^"]*"[^>]*>/, `<meta property="og:image:alt" content="${snap.title}" />`)
 
     // 尺寸未知的封面(主题/合集)直接删掉这两行 —— 缺元数据时平台会自己探测
     // 图片尺寸,比声明一个错误的尺寸更安全。
     if (!imageSize) {
       out = out
-        .replace(/\s*<meta property="og:image:width" content="[^"]*"\s*\/?>/g, '')
-        .replace(/\s*<meta property="og:image:height" content="[^"]*"\s*\/?>/g, '')
+        .replace(/\s*<meta property="og:image:width" content="[^"]*"[^>]*>/g, '')
+        .replace(/\s*<meta property="og:image:height" content="[^"]*"[^>]*>/g, '')
     } else {
       out = out
-        .replace(/<meta property="og:image:width" content="[^"]*"\s*\/?>/, `<meta property="og:image:width" content="${imageSize.width}" />`)
-        .replace(/<meta property="og:image:height" content="[^"]*"\s*\/?>/, `<meta property="og:image:height" content="${imageSize.height}" />`)
+        .replace(/<meta property="og:image:width" content="[^"]*"[^>]*>/, `<meta property="og:image:width" content="${imageSize.width}" />`)
+        .replace(/<meta property="og:image:height" content="[^"]*"[^>]*>/, `<meta property="og:image:height" content="${imageSize.height}" />`)
     }
   }
 
   // hreflang:首页那 5 行指向 /,留着会让每个快照页都声称自己是首页的语言变体
   const hreflangBlock = HREFLANG_LANGS.map((lang) => {
     const href = lang === 'zh-CN' || lang === 'x-default' ? canonicalUrl : `${canonicalUrl}?lang=${lang}`
-    return `  <link rel="alternate" hreflang="${lang}" href="${href}" />${EOL}`
+    return `  <link rel="alternate" hreflang="${lang}" href="${href}"${RH} />${EOL}`
   }).join('')
-  const existingHreflang = /(?: {2}<link rel="alternate" hreflang="[^"]+" href="https:\/\/tangnotes\.site[^"]*" \/>\r?\n){5}/
+  const existingHreflang = /(?: {2}<link rel="alternate" hreflang="[^"]+" href="https:\/\/tangnotes\.site[^"]*"(?: data-rh="true")? \/>\r?\n){5}/
   out = out.replace(existingHreflang, hreflangBlock)
+
+  // 面包屑:标题取 snap.title 去掉「 - 拼豆Studio」后缀,读起来才是页面名而不是完整标题。
+  // 只在未 noindex 的内容页注入(noindex 的页面不该出现在搜索结果里,也就不需要面包屑)。
+  if (!noindex && out.includes('</head>')) {
+    // snap.title 在 build*Snapshot 里已经过 escapeHtml,JSON-LD 里要的是原文,
+    // 否则名称里出现「&amp;」这种实体,富媒体结果会原样显示。
+    const crumbTitle = String(snap.title || '')
+      .replace(/\s*-\s*拼豆Studio\s*$/, '')
+      .replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&quot;/g, '"')
+    let crumbPath = '/'
+    try {
+      crumbPath = new URL(canonicalUrl).pathname
+    } catch {
+      // canonicalUrl 理论上总是绝对地址;真出问题就不注入面包屑,不影响其余 meta
+      return out
+    }
+    const crumb = breadcrumbJsonLd(crumbsFor(crumbPath, crumbTitle)).replace(/\n/g, EOL)
+    out = out.replace('</head>', `${crumb}${EOL}</head>`)
+  }
 
   // 首帧前隐藏静态正文(与 generate-prerender-html.js 同一机制):
   // 抓取端不执行 JS,读得到;用户不会先看到一屏纯文字再被应用替换。

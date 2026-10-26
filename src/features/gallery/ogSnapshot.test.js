@@ -212,30 +212,33 @@ describe('appendToSitemap', () => {
 })
 
 describe('renderSnapshotHtml', () => {
-  // 贴近真实的 index.html 结构(含 CRLF、5 行 hreflang、空 #root)
+  // 贴近真实的 index.html 结构(含 CRLF、5 行 hreflang、空 #root)。
+  // 关键:index.html 里 Helmet 会渲染的那些标签带 data-rh="true" —— 这是
+  // react-helmet-async 识别「上一轮自己写下的标签」的唯一依据,改写时丢了它,
+  // 首帧就会再追加一份同名标签。fixture 必须照实带上,否则测不出这个回归。
   const INDEX = [
     '<!DOCTYPE html>',
     '<html lang="zh-CN">',
     '<head>',
     '  <title>拼豆Studio - 首页</title>',
-    '  <meta name="description" content="首页描述" />',
-    '  <meta name="robots" content="index, follow" />',
-    '  <link rel="canonical" href="https://tangnotes.site/" />',
-    '  <link rel="alternate" hreflang="zh-CN" href="https://tangnotes.site/" />',
-    '  <link rel="alternate" hreflang="en" href="https://tangnotes.site/?lang=en" />',
-    '  <link rel="alternate" hreflang="ja" href="https://tangnotes.site/?lang=ja" />',
-    '  <link rel="alternate" hreflang="ko" href="https://tangnotes.site/?lang=ko" />',
-    '  <link rel="alternate" hreflang="x-default" href="https://tangnotes.site/" />',
-    '  <meta property="og:title" content="OG 首页" />',
-    '  <meta property="og:description" content="OG 描述" />',
-    '  <meta property="og:url" content="https://tangnotes.site/" />',
-    '  <meta property="og:image" content="https://tangnotes.site/og-image.png" />',
+    '  <meta name="description" content="首页描述" data-rh="true" />',
+    '  <meta name="robots" content="index, follow" data-rh="true" />',
+    '  <link rel="canonical" href="https://tangnotes.site/" data-rh="true" />',
+    '  <link rel="alternate" hreflang="zh-CN" href="https://tangnotes.site/" data-rh="true" />',
+    '  <link rel="alternate" hreflang="en" href="https://tangnotes.site/?lang=en" data-rh="true" />',
+    '  <link rel="alternate" hreflang="ja" href="https://tangnotes.site/?lang=ja" data-rh="true" />',
+    '  <link rel="alternate" hreflang="ko" href="https://tangnotes.site/?lang=ko" data-rh="true" />',
+    '  <link rel="alternate" hreflang="x-default" href="https://tangnotes.site/" data-rh="true" />',
+    '  <meta property="og:title" content="OG 首页" data-rh="true" />',
+    '  <meta property="og:description" content="OG 描述" data-rh="true" />',
+    '  <meta property="og:url" content="https://tangnotes.site/" data-rh="true" />',
+    '  <meta property="og:image" content="https://tangnotes.site/og-image.png" data-rh="true" />',
     '  <meta property="og:image:width" content="1200" />',
     '  <meta property="og:image:height" content="630" />',
     '  <meta property="og:image:alt" content="拼豆Studio - 在线拼豆图纸设计工具" />',
-    '  <meta name="twitter:title" content="TW 首页" />',
-    '  <meta name="twitter:description" content="TW 描述" />',
-    '  <meta name="twitter:image" content="https://tangnotes.site/og-image.png" />',
+    '  <meta name="twitter:title" content="TW 首页" data-rh="true" />',
+    '  <meta name="twitter:description" content="TW 描述" data-rh="true" />',
+    '  <meta name="twitter:image" content="https://tangnotes.site/og-image.png" data-rh="true" />',
     '</head>',
     '<body>',
     '  <div id="root"></div>',
@@ -255,10 +258,25 @@ describe('renderSnapshotHtml', () => {
   it('改写 title / description / canonical / og / twitter', () => {
     const out = renderSnapshotHtml(INDEX, snap, 'https://tangnotes.site/gallery/pattern/t1')
     expect(out).toContain('<title>小鸭 拼豆图纸 - 拼豆Studio</title>')
-    expect(out).toContain('<meta name="description" content="小鸭拼豆图纸" />')
-    expect(out).toContain('<link rel="canonical" href="https://tangnotes.site/gallery/pattern/t1" />')
-    expect(out).toContain('<meta property="og:url" content="https://tangnotes.site/gallery/pattern/t1" />')
-    expect(out).toContain('<meta name="twitter:title" content="小鸭 拼豆图纸 - 拼豆Studio" />')
+    expect(out).toContain('<meta name="description" content="小鸭拼豆图纸" data-rh="true" />')
+    expect(out).toContain('<link rel="canonical" href="https://tangnotes.site/gallery/pattern/t1" data-rh="true" />')
+    expect(out).toContain('<meta property="og:url" content="https://tangnotes.site/gallery/pattern/t1" data-rh="true" />')
+    expect(out).toContain('<meta name="twitter:title" content="小鸭 拼豆图纸 - 拼豆Studio" data-rh="true" />')
+  })
+
+  it('改写后的 Helmet 标签保留 data-rh(否则首帧会再追加一份)', () => {
+    const out = renderSnapshotHtml(INDEX, snap, 'https://tangnotes.site/gallery/pattern/t1')
+    // 每个标签在全文只应出现一次
+    for (const re of [
+      /<meta name="description"/g,
+      /<meta name="robots"/g,
+      /<link rel="canonical"/g,
+      /<meta property="og:url"/g,
+      /<meta property="og:title"/g,
+      /<meta name="twitter:title"/g,
+    ]) {
+      expect(out.match(re) || []).toHaveLength(1)
+    }
   })
 
   it('hreflang 指向本页而不是首页', () => {
@@ -271,7 +289,7 @@ describe('renderSnapshotHtml', () => {
 
   it('无封面时保留站点默认 og:image(不留空 content)', () => {
     const out = renderSnapshotHtml(INDEX, snap, 'https://tangnotes.site/gallery/pattern/t1')
-    expect(out).toContain('<meta property="og:image" content="https://tangnotes.site/og-image.png" />')
+    expect(out).toContain('<meta property="og:image" content="https://tangnotes.site/og-image.png" data-rh="true" />')
   })
 
   it('有封面时替换 og:image 与 twitter:image', () => {
@@ -280,8 +298,8 @@ describe('renderSnapshotHtml', () => {
       { ...snap, image: 'https://tangnotes.site/covers/a.png' },
       'https://tangnotes.site/gallery/pattern/t1',
     )
-    expect(out).toContain('<meta property="og:image" content="https://tangnotes.site/covers/a.png" />')
-    expect(out).toContain('<meta name="twitter:image" content="https://tangnotes.site/covers/a.png" />')
+    expect(out).toContain('<meta property="og:image" content="https://tangnotes.site/covers/a.png" data-rh="true" />')
+    expect(out).toContain('<meta name="twitter:image" content="https://tangnotes.site/covers/a.png" data-rh="true" />')
   })
 
   it('封面尺寸未知时删除 og:image:width/height(避免按错误比例裁切)', () => {
@@ -349,7 +367,7 @@ describe('renderSnapshotHtml', () => {
 
   it('noindex 时 robots 改为 noindex', () => {
     const out = renderSnapshotHtml(INDEX, snap, 'https://tangnotes.site/gallery/pattern/t1', { noindex: true })
-    expect(out).toContain('<meta name="robots" content="noindex, nofollow" />')
+    expect(out).toContain('<meta name="robots" content="noindex, nofollow" data-rh="true" />')
   })
 
   it('CRLF 模板保持 CRLF(不把换行风格改混)', () => {
