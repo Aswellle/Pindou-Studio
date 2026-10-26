@@ -1882,5 +1882,12 @@
     "storage": "Versions use about {{size}}",
     "close": "Close",
     "limitHint": "Only the latest {{n}} versions are kept locally; older ones are removed automatically."
+  },
+  "notFound": {
+    "title": "Page not found",
+    "lead": "Nothing lives at this address. The link may be out of date, or the pattern was removed by its author.",
+    "toCanvas": "Back to the canvas",
+    "toGallery": "Browse the gallery",
+    "toTutorials": "Read the tutorials"
   }
 }
