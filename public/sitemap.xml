@@ -55,7 +55,9 @@
     <xhtml:link rel="alternate" hreflang="x-default" href="https://tangnotes.site/tutorials"/>
   </url>
 
-  <!-- 隐私政策 — 正文为中文单语,不提供 ?lang= 变体,故无 hreflang alternate -->
+  <!-- 隐私政策 — 正文写死在 LegalPages.jsx 里,只有中文,不提供 ?lang= 变体。
+       页面内 hreflang 也只声明 zh-CN 与 x-default;此处保持一致,否则 sitemap
+       声明四种语言、页面只认一种,两边互相矛盾会被判为 hreflang 组无效。 -->
   <url>
     <loc>https://tangnotes.site/privacy</loc>
     <lastmod>2026-10-12</lastmod>

@@ -7,15 +7,15 @@
 # - AI「训练」型爬虫(GPTBot、ClaudeBot、anthropic-ai、CCBot、Google-Extended 等)→ 一律禁止
 # 依据:aaron-marketing seo-geo llm-crawler-handling(允许检索、禁训练的 split 模板)
 #
-# 注意:/login 不在此屏蔽 —— 该页用 <meta name="robots" content="noindex"> 处理,
-# 屏蔽抓取反而会让搜索引擎读不到 noindex(robots.txt 只控制抓取,不控制索引)。
+# 注意:/login、/admin、/profile 等私有页**不在 robots.txt 屏蔽**,一律用
+# <meta name="robots" content="noindex"> 处理。robots.txt 只控制抓取、不控制索引:
+# 一旦屏蔽抓取,爬虫读不到页面里的 noindex,页面反而可能因为外链被收录成一个
+# 没有任何信息的空条目(Google 官方明确不支持在 robots.txt 里写 noindex)。
 
 # 全站通用:仅排除敏感/重复路径(未单独声明的爬虫也遵循此组)
 User-agent: *
 Disallow: /api/
 Disallow: /_vercel/
-Disallow: /admin
-Disallow: /profile
 
 # ── 搜索引擎(收录) ─────────────────────────────
 User-agent: Googlebot
@@ -25,8 +25,6 @@ User-agent: Sogou web spider
 User-agent: Sogou inst spider
 Disallow: /api/
 Disallow: /_vercel/
-Disallow: /admin
-Disallow: /profile
 
 # ── 360 搜索:独立分组,以便使用其扩展命令 ─────────────
 # Indexpage 是 360 搜索的扩展指令(标准 robots 无此字段,其他引擎会忽略):
@@ -34,8 +32,6 @@ Disallow: /profile
 User-agent: 360Spider
 Disallow: /api/
 Disallow: /_vercel/
-Disallow: /admin
-Disallow: /profile
 Indexpage: https://tangnotes.site/
 Indexpage: https://tangnotes.site/gallery
 Indexpage: https://tangnotes.site/tutorials
@@ -49,8 +45,6 @@ User-agent: Claude-SearchBot
 User-agent: Claude-User
 Disallow: /api/
 Disallow: /_vercel/
-Disallow: /admin
-Disallow: /profile
 
 # ── AI 训练型爬虫(禁止抓取,仅用于训练) ─────────────
 User-agent: GPTBot
