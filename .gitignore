@@ -86,3 +86,7 @@ PHASE_A_REPORT.md
 
 # Legacy source archive (V1 components kept as local history backup, never committed/pushed)
 _legacy/
+
+# IndexNow 增量提交记录:记录上次通知过的 URL 及其 lastmod,只在本机/CI 缓存有意义。
+# 不同机器各自维护自己的基线,提交上来反而会让别人漏报。
+.indexnow-state.json
