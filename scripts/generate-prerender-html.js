@@ -27,15 +27,19 @@ const EOL = indexHtml.includes('\r\n') ? '\r\n' : '\n'
 
 // ── 部署标识 ────────────────────────────────────────────────
 //
-// 构建产物里写一个只有本次构建才有的随机串,部署后可以用它确认
+// 构建产物里写一个只有本次构建才有的标识,部署后可以用它确认
 // 「这份 dist 已经在线上」—— IndexNow 提交脚本靠它判断是否可以开始通知。
 // 若只看 sitemap 是否可达,旧部署同样能返回 200,新内容却还没上线,
 // 提交过去只会让搜索引擎抓到 404 或旧页面。
 //
-// 生成方式:优先用 CI 提供的 commit sha(可回溯到具体提交),本地构建退回随机串。
-const BUILD_ID = (process.env.GITHUB_SHA || '').slice(0, 12)
+// 取值优先级:
+//   1. VERCEL_GIT_COMMIT_SHA —— 实际部署由 Vercel 构建,只有它带着 commit sha。
+//      用 GitHub Actions 的 GITHUB_SHA 是错的:CI 里那个构建产物并不上线,
+//      Vercel 重新构建时没有这个变量,两边算出来的标识永远对不上。
+//   2. GITHUB_SHA —— 非 Vercel 环境(本地模拟 CI)时可用。
+//   3. 随机串 —— 本地构建。
+const BUILD_ID = (process.env.VERCEL_GIT_COMMIT_SHA || process.env.GITHUB_SHA || '').slice(0, 12)
   || `${Date.now().toString(36)}${Math.random().toString(36).slice(2, 8)}`
-const BUILD_MARKER = `build-id: ${BUILD_ID}`
 const BUILD_META = `<meta name="build-id" content="${BUILD_ID}" />`
 
 // 先把标识写进 index.html,后续所有派生页面都从它复制,不会漏页。
