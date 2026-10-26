@@ -66,6 +66,15 @@ describe('IndexNow · 部署就绪门禁', () => {
     expect(PRERENDER).toContain('build-id')
   })
 
+  it('build-id 优先取 VERCEL_GIT_COMMIT_SHA', () => {
+    // 实际部署由 Vercel 构建,只有它带着 commit sha。用 GITHUB_SHA 会让
+    // CI 算出的标识与线上永远对不上 —— 上一版就是这么错的。
+    expect(PRERENDER).toContain('process.env.VERCEL_GIT_COMMIT_SHA')
+    expect(PRERENDER.indexOf('VERCEL_GIT_COMMIT_SHA')).toBeLessThan(
+      PRERENDER.indexOf('process.env.GITHUB_SHA'),
+    )
+  })
+
   it('所有派生页面都从带 build-id 的版本复制', () => {
     // 漏一处就会出现「首页有标识、子页没有」,探测随机命中时会误判未部署
     expect(PRERENDER).not.toMatch(/injectRoot\(indexHtml,/)
@@ -94,6 +103,12 @@ describe('IndexNow · CI 接线', () => {
   it('先等部署上线再提交', () => {
     expect(CI).toContain('Wait for deployment')
     expect(CI).toContain('deploy-probe')
+  })
+
+  it('等待结果通过 step output 传给提交步骤,不重复探测', () => {
+    expect(CI).toContain('id: deploy')
+    expect(CI).toContain('live=true')
+    expect(CI).toContain("steps.deploy.outputs.live == 'true'")
   })
 
   it('跨次构建保留增量基线', () => {
