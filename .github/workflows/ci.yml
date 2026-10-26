@@ -47,3 +47,68 @@ jobs:
 
       - name: Verify generated fonts CSS in sync
         run: git diff --exit-code -- src/styles/fonts-all.css || (echo "::error::src/styles/fonts-all.css 与生成器输出不一致,请重新运行 node scripts/generate-fonts-css.js 并提交"; exit 1)
+
+  # ── IndexNow:通知 Bing / Yandex / Seznam / Naver ────────────
+  #
+  # 只在本仓库推 main 且上面全部通过后执行。Bing 指南要求 URL 新增 / 内容更新 /
+  # URL 移除时主动通知,可显著缩短重新抓取时间。
+  #
+  # 为什么放在 CI 而不是 Vercel 构建:Vercel 构建里没有本仓库的 workflow,
+  # 且构建期提交会早于部署完成。这里先等线上 sitemap 出现本次 commit,
+  # 再读线上那份 sitemap 做增量比对 —— 读得到就说明部署已完成。
+  #
+  # 失败不阻断:IndexNow 是加速通道,提交失败不该让「代码已经构建通过」这件事变红。
+  indexnow:
+    needs: build-and-test
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: .nvmrc
+
+      # 增量基线:记录上次通知过的 URL 及其 lastmod。缓存丢失时脚本自动退化为全量。
+      - name: Restore IndexNow state
+        uses: actions/cache/restore@v4
+        with:
+          path: .indexnow-state.json
+          key: indexnow-state-${{ github.run_id }}
+          restore-keys: |
+            indexnow-state-
+
+      - name: Wait for deployment
+        run: |
+          set -euo pipefail
+          target="${{ github.sha }}"
+          echo "等待线上出现本次构建 $target …"
+          for i in $(seq 1 60); do
+            body=$(curl -sS --max-time 10 "https://tangnotes.site/?deploy-probe=$target" || true)
+            if echo "$body" | grep -q "content=\"${target:0:12}\""; then
+              echo "线上已是本次构建(第 $i 次探测)"
+              exit 0
+            fi
+            sleep 10
+          done
+          echo "::warning::10 分钟内未确认部署上线,本次跳过 IndexNow 提交"
+          exit 0
+
+      - name: Submit changed URLs
+        continue-on-error: true
+        run: |
+          set -euo pipefail
+          body=$(curl -sS --max-time 10 "https://tangnotes.site/?deploy-probe=${{ github.sha }}")
+          if ! echo "$body" | grep -q "content=\"${GITHUB_SHA:0:12}\""; then
+            echo "部署未上线,跳过提交"
+            exit 0
+          fi
+          node scripts/indexnow-submit.mjs --sitemap=https://tangnotes.site/sitemap.xml
+
+      - name: Save IndexNow state
+        if: always()
+        uses: actions/cache/save@v4
+        with:
+          path: .indexnow-state.json
+          key: indexnow-state-${{ github.run_id }}
