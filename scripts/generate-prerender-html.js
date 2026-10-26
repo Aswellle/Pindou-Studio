@@ -25,6 +25,29 @@ const indexHtml = fs.readFileSync(path.join(dist, 'index.html'), 'utf-8')
 // 保持源文件换行风格(index.html 在仓库中为 CRLF),避免注入段落与全文件换行不一致
 const EOL = indexHtml.includes('\r\n') ? '\r\n' : '\n'
 
+// ── 部署标识 ────────────────────────────────────────────────
+//
+// 构建产物里写一个只有本次构建才有的随机串,部署后可以用它确认
+// 「这份 dist 已经在线上」—— IndexNow 提交脚本靠它判断是否可以开始通知。
+// 若只看 sitemap 是否可达,旧部署同样能返回 200,新内容却还没上线,
+// 提交过去只会让搜索引擎抓到 404 或旧页面。
+//
+// 生成方式:优先用 CI 提供的 commit sha(可回溯到具体提交),本地构建退回随机串。
+const BUILD_ID = (process.env.GITHUB_SHA || '').slice(0, 12)
+  || `${Date.now().toString(36)}${Math.random().toString(36).slice(2, 8)}`
+const BUILD_MARKER = `build-id: ${BUILD_ID}`
+const BUILD_META = `<meta name="build-id" content="${BUILD_ID}" />`
+
+// 先把标识写进 index.html,后续所有派生页面都从它复制,不会漏页。
+// 放在 charset 之后:解析器在读到 charset 前不该遇到非 ASCII,这里虽全是 ASCII,
+// 但保持「charset 尽量靠前」的既有结构更稳。
+const indexWithBuildId = indexHtml.includes('<meta charset="UTF-8" />')
+  ? indexHtml.replace('<meta charset="UTF-8" />', `<meta charset="UTF-8" />${EOL}  ${BUILD_META}`)
+  : indexHtml
+if (!indexWithBuildId.includes(BUILD_META)) {
+  throw new Error('预渲染中止:无法写入 build-id 标识(meta charset 结构可能已变化)')
+}
+
 // 预检:index.html 必须包含全部待替换标签,否则预渲染页面会静默缺失 SEO meta(构建失败优于收录退化)
 //
 // 匹配式一律写成 `...content="..."[^>]*>` —— index.html 里的这些标签带
@@ -320,7 +343,7 @@ const PAGES = [
 ]
 
 // 首页:注入静态正文(与 /gallery、/tutorials 同一套首帧守卫机制)
-const homeHtml = injectRoot(indexHtml, ROOT_STATIC['/'])
+const homeHtml = injectRoot(indexWithBuildId, ROOT_STATIC['/'])
 fs.writeFileSync(path.join(dist, 'index.html'), homeHtml)
 console.log('prerendered: index.html -> / (with static body)')
 
@@ -341,7 +364,7 @@ console.log('prerendered: index.html -> / (with static body)')
 // (新发布的图纸、新主题、/login 等)。声明 canonical=https://tangnotes.site/ 等于
 // 告诉搜索引擎「这些页面都是首页的副本」,新内容会被直接排除索引;删掉之后
 // 抓取端按自指处理,React 挂载后 Helmet 再写入真正的 canonical。
-const spaHtml = indexHtml
+const spaHtml = indexWithBuildId
   .replace(/<title>.*?<\/title>/s, '<title>拼豆Studio - 免费在线拼豆图纸生成</title>')
   .replace(
     /<meta name="description" content="[^"]*"[^>]*>/,
@@ -367,7 +390,7 @@ const notFoundBody = staticShell([
   '<p class="lead">这个地址没有对应的内容。可能是链接过期,或者图纸已被作者删除。</p>',
   `<p>${link('/', '返回拼豆画布工具')} · ${link('/gallery', '浏览拼豆图库')} · ${link('/tutorials', '阅读拼豆教程')}</p>`,
 ].join('\n'))
-const notFoundHtml = indexHtml
+const notFoundHtml = indexWithBuildId
   .replace(/<title>.*?<\/title>/s, '<title>页面不存在 - 拼豆Studio</title>')
   .replace(
     /<meta name="description" content="[^"]*"[^>]*>/,
@@ -387,7 +410,7 @@ for (const page of PAGES) {
     ? `<meta name="robots" content="noindex, nofollow"${HEAD_ATTR} />`
     : `<meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1"${HEAD_ATTR} />`
 
-  let out = indexHtml
+  let out = indexWithBuildId
     .replace(/<title>.*?<\/title>/s, `<title>${page.title}</title>`)
     .replace(/<meta name="description" content="[^"]*"[^>]*>/, `<meta name="description" content="${page.desc}"${HEAD_ATTR} />`)
     .replace(/<meta name="robots" content="[^"]*"[^>]*>/, robots)
