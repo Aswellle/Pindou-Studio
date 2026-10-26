@@ -1,7 +1,7 @@
 import { useState, useEffect, lazy, Suspense, useRef, useCallback } from 'react'
 import { createPortal } from 'react-dom'
 import useKeyboardSafe from './hooks/useKeyboardSafe'
-import { Routes, Route, useNavigate, useLocation, Navigate } from 'react-router-dom'
+import { Routes, Route, useNavigate, useLocation } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { LANGUAGES, initialLangParam } from './i18n'
 import { Helmet } from 'react-helmet-async'
@@ -56,7 +56,7 @@ import { useHistory } from './hooks/useHistory'
 import { useSavedWorks } from './hooks/useSavedWorks'
 import { useScrollLock } from './hooks/useScrollLock'
 import { useDialogA11y } from './hooks/useDialogA11y'
-import { canonicalPathFor } from './utils/seoPath'
+import { canonicalPathFor, isKnownPath } from './utils/seoPath'
 import { planBrandSwitch, applyBrandSwitch } from './utils/brandSwitch'
 import { canvasToLegacyWork, normalizeLegacyWork } from './services/project/adapters'
 import ImportPage from './components/ImportPage'
@@ -66,6 +66,7 @@ import useGalleryFavorites from './hooks/useGalleryFavorites'
 import MobileColorPalette from './components/ColorPalette/MobileColorPalette'
 import { getPalette, PALETTES } from './data/palettes'
 import { PrivacyPolicy, TermsOfService } from './components/LegalPages'
+import NotFoundPage from './components/NotFoundPage'
 import MobileCanvasInfoBar from './components/MobileCanvasInfoBar'
 const CreateImagePage = lazy(() => import('./components/CreateImagePage'))
 import ProfilePage from './components/ProfilePage'
@@ -237,6 +238,10 @@ export default function App() {
     : location.pathname.startsWith('/contact') ? 'contact'
     : location.pathname.startsWith('/profile') ? 'profile'
     : 'canvas'
+  // 404 判定独立于 currentPage:上面是按前缀归组的(/gallery/whatever 仍算 gallery),
+  // 这里要求路径形状**确实存在**。两者分开,才能让「渲染 404 页」与「meta 标 noindex」
+  // 始终一致 —— 否则 /gallery/whatever 会渲染 404 页却带着图库页的 index,follow。
+  const isNotFound = !isKnownPath(location.pathname)
   // 核心功能页不继承站点导航，页面内部提供自己的返回与操作层。
   const isStandalonePage = currentPage === 'login' || currentPage === 'adminLogin' || currentPage === 'privacy' || currentPage === 'terms' || currentPage === 'createImage' || currentPage === 'import' || currentPage === 'profile' || currentPage === 'myBeads' || currentPage === 'contact'
 
@@ -1067,7 +1072,8 @@ export default function App() {
           <Route path="/privacy/:versionId" element={<PrivacyPolicy onBack={handleLegalBack} />} />
           <Route path="/terms" element={<TermsOfService onBack={handleLegalBack} />} />
           <Route path="/terms/:versionId" element={<TermsOfService onBack={handleLegalBack} />} />
-          <Route path="*" element={<Navigate to="/" replace />} />
+          {/* 未匹配路由:渲染 404 页,不再静默改写地址栏跳回首页(软 404) */}
+          <Route path="*" element={<NotFoundPage />} />
         </Routes>
       </main>
 
@@ -1480,7 +1486,8 @@ export default function App() {
         <Route path="/privacy/:versionId" element={<PrivacyPolicy onBack={handleLegalBack} />} />
         <Route path="/terms" element={<TermsOfService onBack={handleLegalBack} />} />
         <Route path="/terms/:versionId" element={<TermsOfService onBack={handleLegalBack} />} />
-        <Route path="*" element={<Navigate to="/" replace />} />
+        {/* 未匹配路由:渲染 404 页,不再静默改写地址栏跳回首页(软 404) */}
+        <Route path="*" element={<NotFoundPage />} />
       </Routes>
 
       {showExport && (
@@ -1636,16 +1643,18 @@ export default function App() {
   // ── 每页动态 SEO(不改变功能与界面)───────────────────────
   const SEO_CONFIG = {
     canvas: {
-      title: '拼豆Studio - 免费在线拼豆图纸生成,图片转像素拼豆|COCO/MARD/Artkal等6大色卡',
-      desc: '免费的在线拼豆图纸生成工具：自由绘制或上传图片一键转像素拼豆，CIEDE2000精准配色；支持 COCO/MARD/Artkal 等 6 大品牌色卡与专业 PNG/SVG 图纸导出，新手与亲子友好。',
+      // 标题长度按「百度 PC 约 30 汉字截断、Google 约 60 字符」收敛:
+      // 此前 51 字,品牌名 + 后半段色卡清单都会被切掉,只剩前半句。
+      title: '拼豆Studio - 免费在线拼豆图纸生成与图片转拼豆',
+      desc: '免费在线拼豆图纸生成工具：自由绘制或上传图片一键转像素拼豆，按 CIEDE2000 精准匹配 COCO/MARD/Perler 等六大品牌色卡，导出带色号的 PNG/SVG 图纸。',
     },
     gallery: {
       title: '拼豆图库与模板 - 拼豆Studio',
-      desc: '浏览并收藏拼豆图案模板，按分类与难度筛选，一键载入画布开始创作。支持收藏与作品管理，适合拼豆爱好者和手工达人。',
+      desc: '浏览拼豆图案模板库：按主题、分类与难度筛选，一键载入画布开始创作，也能把图纸颜色一键重映射到手上的品牌色卡，支持收藏与云端作品管理。',
     },
     tutorials: {
       title: '拼豆教程 - 从入门到进阶 · 拼豆Studio',
-      desc: '系统学习拼豆制作：入门指南、熨烫全解、防变形技巧、配色设计、进阶技巧与作品保护，配有图示与温度对照表，新手友好。',
+      desc: '系统学习拼豆制作：入门工具与第一个作品、熨烫温度全解、防变形技巧、配色设计、进阶技巧与成品保护，配有图示与温度对照表，新手与进阶玩家都适用。',
     },
     // ── 工具页 / 私有页 ────────────────────────────────────
     // 这些页面此前没有独立配置,会回退到首页的 title/description 且 index,follow,
@@ -1693,14 +1702,27 @@ export default function App() {
     privacy: {
       title: '隐私政策 - 拼豆Studio',
       desc: '了解拼豆Studio如何收集、使用和保护您的个人信息，以及账号验证、云端存储与第三方服务的详细说明。',
+      // 正文写死在 LegalPages.jsx 里、只有中文,?lang=en 返回的仍是中文内容。
+      // 声明 en/ja/ko 变体等于让 hreflang 指向语言不符的页面,Google 会整组忽略 ——
+      // 预渲染的 privacy.html 也只写 zh-CN 与 x-default,两边必须一致。
+      singleLanguage: true,
     },
     terms: {
       title: '服务条款 - 拼豆Studio',
       desc: '使用拼豆Studio在线拼豆图纸设计工具的服务条款：账户安全、用户内容、模板库与使用规范。',
+      singleLanguage: true,
+    },
+    // 404:不存在的地址。必须 noindex —— 让搜索引擎知道这些 URL 不该被收录,
+    // 否则每个乱路径都会作为「标题描述与首页相同」的副本进索引。
+    notFound: {
+      title: '页面不存在 - 拼豆Studio',
+      desc: '该地址没有对应的内容。',
+      noindex: true,
     },
   }
 
-  const seo = SEO_CONFIG[currentPage] || SEO_CONFIG.canvas
+  // 404 覆盖:路径形状不存在时,不论 currentPage 归到哪一组,都改用 notFound 的 meta
+  const seo = isNotFound ? SEO_CONFIG.notFound : (SEO_CONFIG[currentPage] || SEO_CONFIG.canvas)
 
   // 各页面对应的规范路径(privacy/terms 的 :versionId 历史版本归并到父路径)
   const CANONICAL_PATH = {
@@ -1712,7 +1734,11 @@ export default function App() {
   const SITE_ORIGIN = 'https://tangnotes.site'
   // 主题/合集/图纸详情是动态内容页,canonical 自指;其余 /gallery/* 子路径
   // 仍归并到 /gallery,避免把未知路径当作可收录页面。
-  const baseUrl = `${SITE_ORIGIN}${canonicalPathFor(location.pathname, CANONICAL_PATH[currentPage] || '/')}`
+  // 404 页没有自己的规范地址:一律指向站点根,配合 noindex 让搜索引擎把它当作
+  // 一个不应存在的入口,而不是某个真实页面的别名。
+  const baseUrl = isNotFound
+    ? `${SITE_ORIGIN}/`
+    : `${SITE_ORIGIN}${canonicalPathFor(location.pathname, CANONICAL_PATH[currentPage] || '/')}`
 
   // hreflang 值统一为「语言子标签」(zh-CN 除外),与预渲染 HTML、sitemap.xml 保持一致。
   // 此前 Helmet 输出 en-US/ja-JP/ko-KR 而静态文件写 en/ja/ko,同一语言两个值,
@@ -1734,7 +1760,10 @@ export default function App() {
       <meta name="description" content={seo.desc} />
       <meta name="robots" content={seo.noindex ? 'noindex, nofollow' : 'index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1'} />
       <link rel="canonical" href={canonical} />
-      {LANGUAGES.map(l => (
+      {/* 单语页(隐私 / 条款)只声明 zh-CN 与 x-default —— 与构建期产出的
+          privacy.html / terms.html 及 sitemap.xml 保持一致。多声明 en/ja/ko 会
+          让 hreflang 指向内容仍是中文的页面,整组被 Google 判为无效。 */}
+      {(seo.singleLanguage ? LANGUAGES.filter(l => l.code === 'zh-CN') : LANGUAGES).map(l => (
         <link key={l.code} rel="alternate" hrefLang={HREFLANG[l.code]} href={hreflangHref(l.code)} />
       ))}
       <link rel="alternate" hrefLang="x-default" href={baseUrl} />
@@ -1744,6 +1773,13 @@ export default function App() {
       <meta property="og:type" content="website" />
       <meta property="og:image" content="https://tangnotes.site/og-image.png" />
       <meta name="twitter:card" content="summary_large_image" />
+      {/* twitter 三件套必须由 Helmet 统一托管:预渲染 HTML 里写死的同名标签带着
+          data-rh 标记,凡是不在 Helmet 渲染集合里的标签,首帧提交时都会被当作
+          「上一轮留下的旧标签」删掉。这里补齐后,首页与内容页的 twitter 卡片
+          在预渲染、客户端两个阶段都是同一套。 */}
+      <meta name="twitter:title" content={seo.title} />
+      <meta name="twitter:description" content={seo.desc} />
+      <meta name="twitter:image" content="https://tangnotes.site/og-image.png" />
     </Helmet>
   )
 
