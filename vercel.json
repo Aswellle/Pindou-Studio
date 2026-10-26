@@ -63,8 +63,58 @@
       "destination": "/terms.html"
     },
     {
-      "source": "/:path*",
-      "destination": "/index.html"
+      "source": "/privacy/:versionId",
+      "destination": "/privacy.html"
+    },
+    {
+      "source": "/terms/:versionId",
+      "destination": "/terms.html"
+    },
+
+    {
+      "source": "/gallery/theme/:slug",
+      "destination": "/spa.html"
+    },
+    {
+      "source": "/gallery/collection/:slug",
+      "destination": "/spa.html"
+    },
+    {
+      "source": "/gallery/pattern/:id",
+      "destination": "/spa.html"
+    },
+
+    {
+      "source": "/login",
+      "destination": "/spa.html"
+    },
+    {
+      "source": "/profile",
+      "destination": "/spa.html"
+    },
+    {
+      "source": "/create/image",
+      "destination": "/spa.html"
+    },
+    {
+      "source": "/import",
+      "destination": "/spa.html"
+    },
+    {
+      "source": "/my/beads",
+      "destination": "/spa.html"
+    },
+    {
+      "source": "/contact",
+      "destination": "/spa.html"
+    },
+    {
+      "source": "/admin/login",
+      "destination": "/spa.html"
+    },
+    {
+      "source": "/admin/dashboard",
+      "destination": "/spa.html"
     }
   ],
   "headers": [
