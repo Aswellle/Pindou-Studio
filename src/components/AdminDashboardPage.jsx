@@ -14,7 +14,7 @@
  * 门禁:与 /admin 共用 AdminGate(未登录/非管理员不可见)。
  */
 
-import { useMemo } from 'react'
+import { useCallback, useEffect, useMemo } from 'react'
 import { useNavigate } from 'react-router-dom'
 import {
   ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend,
@@ -28,6 +28,11 @@ import { templateDimensions } from '../data/templates'
 
 const VALID_PALETTE_IDS = Object.keys(PALETTES)
 const TREND_DAYS = TREND_WINDOW_DAYS
+
+// 概览自动刷新间隔。后台页面停留期间注册/留言/下载都在持续变化,
+// recharts 图表与各 KPI 全部派生自 overview + cloudStore 两份数据,
+// 定时把两路一起刷掉才能让图表始终显示最新有效数据。
+const REFRESH_INTERVAL_MS = 60_000
 
 const PALETTE_NAMES = {
   coco: 'COCO', mard: 'MARD', mard291: 'MARD 291', perler: 'Perler', hama: 'Hama', artkal: 'Artkal',
@@ -152,10 +157,19 @@ export default function AdminDashboardPage({ cloudStore, user, isAdmin, authLoad
   const paletteLabel = (id) => PALETTE_NAMES[id] || id
   const difficultyLabel = (id) => DIFFICULTY_NAMES[id] || id
 
-  const refreshAll = () => {
+  const refreshAll = useCallback(() => {
     reload()
     cloudStore?.refresh?.()
-  }
+  }, [reload, cloudStore?.refresh])
+
+  // 授权后每隔 REFRESH_INTERVAL_MS 自动刷新一次;依赖落到 reload / refresh
+  // 这两个稳定引用上,避免因父组件重渲染重置计时器导致定时器永不触发。
+  useEffect(() => {
+    if (!authorized) return undefined
+    const timer = setInterval(refreshAll, REFRESH_INTERVAL_MS)
+    return () => clearInterval(timer)
+  }, [authorized, refreshAll])
+
   const openPanel = (tab) => navigate(tab ? `/admin?tab=${tab}` : '/admin')
 
   return (
@@ -175,6 +189,7 @@ export default function AdminDashboardPage({ cloudStore, user, isAdmin, authLoad
             <p>
               用户增长、内容库与待办一屏总览
               {loadedAt ? ` · 更新于 ${formatDateTime(loadedAt)}` : ''}
+              {` · 每隔 ${Math.round(REFRESH_INTERVAL_MS / 1000)} 秒自动刷新`}
             </p>
           </div>
           <div className="adash-header-actions">

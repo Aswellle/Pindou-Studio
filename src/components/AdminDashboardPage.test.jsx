@@ -270,3 +270,49 @@ describe('AdminDashboardPage — 门禁两步验证分支', () => {
     expect(await screen.findByText('42')).toBeTruthy()
   })
 })
+
+describe('AdminDashboardPage — 定时自动刷新', () => {
+  const mockRpc = () => {
+    rpc.mockImplementation((fn) => {
+      if (fn === 'admin_overview') return Promise.resolve({ data: OVERVIEW, error: null })
+      return Promise.resolve({ data: [], error: null })
+    })
+  }
+
+  it('头部小字标明自动刷新间隔', async () => {
+    mockRpc()
+    setup()
+    expect(await screen.findByText(/每隔 60 秒自动刷新/)).toBeTruthy()
+  })
+
+  it('每 60 秒自动重拉概览 RPC 与内容库,无需手动点刷新', async () => {
+    mockRpc()
+    vi.useFakeTimers()
+    try {
+      setup()
+      // 等初始加载的 promise 链落定
+      await vi.advanceTimersByTimeAsync(0)
+      const rpcBefore = rpc.mock.calls.length
+      const refreshBefore = CLOUD_STORE.refresh.mock.calls.length
+
+      await vi.advanceTimersByTimeAsync(60_000)
+
+      expect(rpc.mock.calls.length).toBeGreaterThan(rpcBefore)
+      expect(CLOUD_STORE.refresh.mock.calls.length).toBeGreaterThan(refreshBefore)
+    } finally {
+      vi.useRealTimers()
+    }
+  })
+
+  it('未授权(门禁拦截)时不启动定时器', async () => {
+    mockRpc()
+    vi.useFakeTimers()
+    try {
+      setup({ isAdmin: false })
+      await vi.advanceTimersByTimeAsync(60_000)
+      expect(rpc).not.toHaveBeenCalled()
+    } finally {
+      vi.useRealTimers()
+    }
+  })
+})
