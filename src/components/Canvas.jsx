@@ -741,6 +741,16 @@ const Canvas = forwardRef(function Canvas({
     onSelectionMove?.({ dx, dy, selection: base, copy })
   }, [painter, onSelectionMove])
 
+  // 桌面兜底:拖动选区时若指针越过工具抽屉/页头等覆盖在容器上方的兄弟元素,
+  // 容器既收不到 mousemove 也收不到 mouseleave(指针仍在容器几何范围内),
+  // mouseup 落在容器外 → 拖动一直挂着,直到下一次点击才提交到错误位置。
+  // window 级监听保证任何位置松手都能收尾;endMove 对非拖动状态是幂等空操作,
+  // 与容器的 onMouseUp 双触发无害。
+  useEffect(() => {
+    window.addEventListener('mouseup', endMove)
+    return () => window.removeEventListener('mouseup', endMove)
+  }, [endMove])
+
   // ─────────────────────────────────────────────────────────────────
   // 选区 resize(A1):按住手柄拖动改尺寸
   // ─────────────────────────────────────────────────────────────────
@@ -1138,14 +1148,11 @@ const Canvas = forwardRef(function Canvas({
 
     if (e.touches.length >= 2) {
       // 双指及以上 → 开始pinch,同时清除单指点击状态
-      // 若此时正在拖拽移动,第二根手指意味着用户要缩放,丢弃移动预览而不是在松手时误提交
+      // 若此时正在拖拽移动,按所见即所得原则先提交已拖出的偏移:预览里的
+      // 内容已经跟手走到了新位置,丢弃等于把选区「弹回原位」;偏移为 0 时
+      // endMove 是空操作,行为与直接取消完全一致。
       if (moveDraggingRef.current) {
-        moveDraggingRef.current = false
-        moveStartRef.current = null
-        moveBaseSelRef.current = null
-        moveOffsetRef.current = { dx: 0, dy: 0 }
-        painter.clearOverlay()
-        setOverlayTick(n => n + 1)
+        endMove()
       }
       pinchRef.current = {
         startDist: Math.hypot(
@@ -1209,7 +1216,7 @@ const Canvas = forwardRef(function Canvas({
         touchPanCanvasStartRef.current = { x: transform.cx, y: transform.cy }
       }
     }
-  }, [stopMomentum, getGridPos, getGridPoint, transform, tool, startSelection, startMove, selection, painter, handleAtPoint, startResize, copyDrag, scheduleLongPress, startLasso])
+  }, [stopMomentum, getGridPos, getGridPoint, transform, tool, startSelection, startMove, selection, endMove, handleAtPoint, startResize, copyDrag, scheduleLongPress, startLasso])
 
   const handleTouchMove = useCallback((e) => {
     e.preventDefault()
@@ -1456,12 +1463,10 @@ const Canvas = forwardRef(function Canvas({
       painter.clearOverlay()
     }
     if (moveDraggingRef.current) {
-      // 取消手势:丢弃移动预览,保留原选区与原矩阵
-      moveDraggingRef.current = false
-      moveStartRef.current = null
-      moveBaseSelRef.current = null
-      moveOffsetRef.current = { dx: 0, dy: 0 }
-      painter.clearOverlay()
+      // 系统取消手势(来电/通知/浏览器接管):用户已看到的预览偏移按所见即所得
+      // 提交 —— touchcancel 之后不会再有 touchmove,丢弃只会把选区弹回原位,
+      // 用户留下的只有「明明拖过去了却又回去了」的困惑。偏移为 0 时空操作。
+      endMove()
     }
     if (selDraggingRef.current) {
       // 取消手势:丢弃半成品选区,保留父组件已有的选区
@@ -1476,7 +1481,7 @@ const Canvas = forwardRef(function Canvas({
     wasPinchingRef.current = false
     setHoverCell(null)
     setOverlayTick(n => n + 1)
-  }, [stopMomentum, painter, cancelLongPress])
+  }, [stopMomentum, painter, cancelLongPress, endMove])
 
   // 双击重置(仅鼠标语义):触屏快速连点(移动端连续填珠)会由浏览器合成 dblclick,不触发重置
   const handleDoubleClick = useCallback(() => {

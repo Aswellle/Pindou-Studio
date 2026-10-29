@@ -1074,7 +1074,7 @@ describe('Canvas 拖拽移动 · 手势互斥(M5.2)', () => {
   beforeEach(() => { mock = installCanvasMocks() })
   afterEach(() => mock.restore())
 
-  test('移动过程中第二根手指按下 → 丢弃预览,松手不提交', () => {
+  test('移动过程中第二根手指按下 → 已拖出的偏移按所见即所得提交,再进入 pinch', () => {
     const onSelectionMove = vi.fn()
     const data = blankGrid(3)
     data[0][0] = '#E53935'
@@ -1095,7 +1095,8 @@ describe('Canvas 拖拽移动 · 手势互斥(M5.2)', () => {
 
     fireEvent.touchStart(c, { touches: [{ clientX: 8, clientY: 8, identifier: 0 }] })
     fireEvent.touchMove(c, { touches: [{ clientX: 24, clientY: 24, identifier: 0 }] })
-    // 第二根手指按下 → 进入 pinch,移动被丢弃
+    // 第二根手指按下 → 进入 pinch,但用户已看到的移动预览按原样提交:
+    // 丢弃等于把选区弹回原位(用户报告的「拖过去又弹回来」来源之一)。
     fireEvent.touchStart(c, {
       touches: [
         { clientX: 24, clientY: 24, identifier: 0 },
@@ -1104,7 +1105,10 @@ describe('Canvas 拖拽移动 · 手势互斥(M5.2)', () => {
     })
     fireEvent.touchEnd(c, { touches: [] })
 
-    expect(onSelectionMove).not.toHaveBeenCalled()
+    expect(onSelectionMove).toHaveBeenCalledTimes(1)
+    expect(onSelectionMove).toHaveBeenCalledWith(
+      expect.objectContaining({ dx: 1, dy: 1, selection: { x: 0, y: 0, w: 2, h: 1 }, copy: false }),
+    )
   })
 })
 
