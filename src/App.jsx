@@ -45,6 +45,7 @@ import {
   cutLasso,
   pasteLasso,
 } from './utils/lassoCommands'
+import { selectionBounds } from './utils/lassoSelection'
 import { loadFillIncludeEmpty, saveFillIncludeEmpty, loadDeductInventory, saveDeductInventory } from './utils/editorPrefs'
 import useAutoSave, { useAutoSaveEnabled } from './hooks/useAutoSave'
 import { runInventoryDeduction } from './services/beads/inventoryDeduction'
@@ -640,9 +641,12 @@ export default function App() {
     }
 
     if (command === 'paste') {
-      // 落点:有选区贴到选区左上角,否则贴到画布左上角
-      const ox = selection ? selection.x : 0
-      const oy = selection ? selection.y : 0
+      // 落点:有选区贴到选区左上角,否则贴到画布左上角。
+      // 套索选区没有 x/y 字段(形状在掩码里),必须统一走 selectionBounds ——
+      // 直接读 selection.x 会拿到 undefined,pasteLasso 内部按 NaN 寻址直接崩。
+      const bounds = selectionBounds(selection)
+      const ox = bounds ? bounds.x : 0
+      const oy = bounds ? bounds.y : 0
       // 套索剪贴板带掩码,必须按掩码贴 —— 否则矩形块里的占位 null
       // 会把落点处原有的珠子抹掉。矩形剪贴板走原来的 pasteBlock。
       const pasted = clipboard.mask
@@ -1152,7 +1156,10 @@ export default function App() {
         open={showReplace}
         canvasData={canvasData}
         paletteId={currentPalette}
-        initialFrom={selection ? canvasData?.[selection.y]?.[selection.x] : null}
+        initialFrom={(() => {
+          const b = selectionBounds(selection)
+          return b ? canvasData?.[b.y]?.[b.x] ?? null : null
+        })()}
         onClose={() => setShowReplace(false)}
         onConfirm={handleConfirmReplace}
       />
@@ -1565,7 +1572,10 @@ export default function App() {
         open={showReplace}
         canvasData={canvasData}
         paletteId={currentPalette}
-        initialFrom={selection ? canvasData?.[selection.y]?.[selection.x] : null}
+        initialFrom={(() => {
+          const b = selectionBounds(selection)
+          return b ? canvasData?.[b.y]?.[b.x] ?? null : null
+        })()}
         onClose={() => setShowReplace(false)}
         onConfirm={handleConfirmReplace}
       />

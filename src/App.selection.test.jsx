@@ -338,6 +338,52 @@ describe('App · 拖拽移动选区(M5.2)', () => {
  *   - 粘贴只产生一条历史,一次撤销回到粘贴前;
  *   - 空剪贴板时「粘贴」按钮禁用。
  */
+/**
+ * 套索粘贴回归:粘贴落点必须走 selectionBounds 取外接矩形。
+ *
+ * 套索选区没有 x/y 字段(形状在掩码里),粘贴分支曾直接读 selection.x/y,
+ * 得到 undefined 后 pasteLasso 按 NaN 寻址抛
+ * 「Cannot set properties of undefined (setting 'NaN')」——
+ * 表现为套索选区下粘贴按钮完全失效且无任何提示。
+ */
+describe('App · 套索粘贴落点(NaN 回归)', () => {
+  it('套索选区下复制→清空→粘贴,内容按掩码原位还原', async () => {
+    const { getByTestId } = renderApp()
+    await waitFor(() => expect(canvasProps.current?.committedData).toBeTruthy())
+
+    const size = 29
+    const withBeads = Array.from({ length: size }, () => Array(size).fill(null))
+    withBeads[0][0] = '#E53935'
+    withBeads[0][1] = '#E53935'
+    withBeads[1][0] = '#E53935'
+    canvasProps.current.onCanvasChange(withBeads)
+    await waitFor(() => expect(canvasProps.current.committedData[0][0]).toBe('#E53935'))
+
+    const mask = new Uint8Array(size * size)
+    mask[0] = 1
+    mask[1] = 1
+    mask[size] = 1
+    mask[size + 1] = 1
+    selectRegion({ kind: 'lasso', mask, cols: size, rows: size, bounds: { x: 0, y: 0, w: 2, h: 2 } })
+    await waitFor(() => expect(canvasProps.current.selection?.kind).toBe('lasso'))
+
+    fireEvent.click(getByTestId('copy'))
+    await waitFor(() => expect(getByTestId('paste').disabled).toBe(false))
+
+    // 清空画布等价于剪切后的状态:剪贴板里有内容、画布上没有
+    const emptied = Array.from({ length: size }, () => Array(size).fill(null))
+    canvasProps.current.onCanvasChange(emptied)
+    await waitFor(() => expect(canvasProps.current.committedData[0][0]).toBeNull())
+
+    fireEvent.click(getByTestId('paste'))
+    await waitFor(() => {
+      expect(canvasProps.current.committedData[0][0]).toBe('#E53935')
+      expect(canvasProps.current.committedData[0][1]).toBe('#E53935')
+      expect(canvasProps.current.committedData[1][0]).toBe('#E53935')
+    })
+  })
+})
+
 describe('App · 选区复制 / 粘贴(规格 04 §2)', () => {
   /** 画一块 2×2 内容并返回当时的矩阵快照 */
   async function fillBlock(getByTestId) {
