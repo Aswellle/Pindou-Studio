@@ -341,7 +341,7 @@ CI(`.github/workflows/ci.yml`)在 push / PR 到 `main` 时依次运行:`test:run
 
 ## 📄 License
 
-[MIT](LICENSE) © 2026 Aswellle
+[MIT](LICENSE) © 2026 Aswellle (clarkyoung2022@163.com)
 
 ---
 

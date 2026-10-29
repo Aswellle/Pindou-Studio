@@ -341,7 +341,7 @@ CI (`.github/workflows/ci.yml`) runs on push / PR to `main`: `test:run` → `che
 
 ## 📄 License
 
-[MIT](LICENSE) © 2026 Aswellle
+[MIT](LICENSE) © 2026 Aswellle (clarkyoung2022@163.com)
 
 ---
 
