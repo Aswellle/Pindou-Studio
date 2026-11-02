@@ -96,5 +96,8 @@ if (!viteNode) {
 run('V2 PatternDocument 像素断言', process.execPath, [
   viteNode, path.join(ROOT, 'scripts', 'verify-v2-png.mjs'),
 ])
+run('高级熨烫效果像素断言', process.execPath, [
+  viteNode, path.join(ROOT, 'scripts', 'verify-ironing.mjs'),
+])
 
 console.log('\n导出质量门禁通过。')
