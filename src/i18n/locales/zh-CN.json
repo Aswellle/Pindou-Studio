@@ -734,7 +734,37 @@
     "qualityHigh": "高分辨率",
     "qualityPrint": "打印 / 高 DPI",
     "scaleDegraded": "实际 ×{{actual}}（已从 ×{{requested}} 降级）",
-    "beadUnit": "颗"
+    "beadUnit": "颗",
+    "ironing": {
+      "title": "高级熨烫效果",
+      "description": "熨烫后的成品效果预览,选择材质后可导出效果图",
+      "expand": "展开高级熨烫效果",
+      "collapse": "收起高级熨烫效果",
+      "previewAlt": "熨烫效果预览:{{material}}",
+      "previewLoading": "正在生成熨烫效果预览…",
+      "previewFailed": "预览生成失败",
+      "retry": "重试",
+      "empty": "暂无图案,先在画布上拼一些豆子吧",
+      "exportPng": "导出熨烫效果 PNG",
+      "exportDescription": "导出仅保存效果图,不影响图纸导出与库存记录",
+      "selectedMaterial": "当前材质:{{material}}",
+      "material": {
+        "noHole": "无孔烫",
+        "linen": "麻布烫",
+        "towel": "毛巾烫",
+        "bathMesh": "澡巾烫",
+        "fineGlitter": "细闪烫",
+        "coarseGlitter": "粗闪烫"
+      },
+      "hint": {
+        "noHole": "细密均匀的微网格压纹,表面平整,忠实呈现每颗豆子的颜色",
+        "linen": "亚麻织纹,横纵纤维交织,自然质朴的手作质感",
+        "towel": "毛圈绒面,绒圈簇起伏明显,蓬松柔软",
+        "bathMesh": "斜向交叉网纹,网眼细密,轻薄透气",
+        "fineGlitter": "深蓝底布缀满细闪粉,冷色星光点点",
+        "coarseGlitter": "浅粉底布缀大颗粒亮片,闪烁明显更夺目"
+      }
+    }
   },
   "quantizer": {
     "title": "图片转拼豆",

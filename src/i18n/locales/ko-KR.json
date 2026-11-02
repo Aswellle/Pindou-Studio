@@ -734,7 +734,37 @@
     "qualityHigh": "고해상도",
     "qualityPrint": "인쇄 / 고 DPI",
     "scaleDegraded": "실제 ×{{actual}} (×{{requested}}에서 저하됨)",
-    "beadUnit": "개"
+    "beadUnit": "개",
+    "ironing": {
+      "title": "고급 다림질 효과",
+      "description": "다림질 후 완성 모습을 미리 보고, 소재를 골라 효과 이미지를 내보내세요",
+      "expand": "고급 다림질 효과 펼치기",
+      "collapse": "고급 다림질 효과 접기",
+      "previewAlt": "다림질 효과 미리보기: {{material}}",
+      "previewLoading": "미리보기를 생성하는 중…",
+      "previewFailed": "미리보기 생성에 실패했습니다",
+      "retry": "다시 시도",
+      "empty": "아직 도안이 없어요. 캔버스에 먼저 조각을 놓아 주세요",
+      "exportPng": "다림질 효과 PNG 내보내기",
+      "exportDescription": "효과 이미지만 저장하며, 도안과 재고에는 영향을 주지 않습니다",
+      "selectedMaterial": "현재 소재: {{material}}",
+      "material": {
+        "noHole": "무구멍 다림질",
+        "linen": "리넨",
+        "towel": "타올",
+        "bathMesh": "바스 메시",
+        "fineGlitter": "잔글리터",
+        "coarseGlitter": "굵은 글리터"
+      },
+      "hint": {
+        "noHole": "촘촘하고 균일한 미세 격자 압축 무늬, 표면이 평평해 색이 충실하게 전달됩니다",
+        "linen": "세로·가로 섬유가 교차하는 리넨 직조 무늬, 자연스러운 수공예 질감",
+        "towel": "봉긋한 루프 표면이 살아 있는 폭신하고 부드러운 질감",
+        "bathMesh": "사선으로 교차하는 그물 무늬, 촘촘한 망으로 가볍고 시원한 느낌",
+        "fineGlitter": "남색 천에 잘게 뿌린 글리터가 차가운 별빛처럼 반짝입니다",
+        "coarseGlitter": "연분홍 천에 굵은 글리터가 박혀 눈에 띄게 반짝입니다"
+      }
+    }
   },
   "quantizer": {
     "title": "이미지를 비드로",

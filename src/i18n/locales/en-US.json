@@ -734,7 +734,37 @@
     "qualityHigh": "High resolution",
     "qualityPrint": "Print / high DPI",
     "scaleDegraded": "actual ×{{actual}} (downgraded from ×{{requested}})",
-    "beadUnit": "bead"
+    "beadUnit": "bead",
+    "ironing": {
+      "title": "Advanced Ironing Effects",
+      "description": "Preview the finished look after ironing; pick a material and export the mockup",
+      "expand": "Show advanced ironing effects",
+      "collapse": "Hide advanced ironing effects",
+      "previewAlt": "Ironing effect preview: {{material}}",
+      "previewLoading": "Generating ironing effect preview…",
+      "previewFailed": "Failed to generate preview",
+      "retry": "Retry",
+      "empty": "Nothing here yet — place some beads on the canvas first",
+      "exportPng": "Export Ironing Effect PNG",
+      "exportDescription": "Exports the mockup image only; patterns and inventory are untouched",
+      "selectedMaterial": "Current material: {{material}}",
+      "material": {
+        "noHole": "Holeless",
+        "linen": "Linen",
+        "towel": "Terry Towel",
+        "bathMesh": "Bath Mesh",
+        "fineGlitter": "Fine Glitter",
+        "coarseGlitter": "Coarse Glitter"
+      },
+      "hint": {
+        "noHole": "Fine, even micro-grid texture with a flat surface that stays true to every bead color",
+        "linen": "Woven linen fibers crossing warp and weft for a natural handcrafted feel",
+        "towel": "Looped terry pile with visible raised curls — plush and soft",
+        "bathMesh": "Diagonal cross mesh with fine openings, light and airy",
+        "fineGlitter": "Navy fabric dusted with dense fine glitter — cool starlight sparkles",
+        "coarseGlitter": "Blush fabric with large glitter flakes — bold, eye-catching sparkle"
+      }
+    }
   },
   "quantizer": {
     "title": "Image to Beads",

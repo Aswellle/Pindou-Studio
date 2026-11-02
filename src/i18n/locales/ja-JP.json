@@ -734,7 +734,37 @@
     "qualityHigh": "高解像度",
     "qualityPrint": "印刷 / 高 DPI",
     "scaleDegraded": "実際 ×{{actual}}（×{{requested}} から低下）",
-    "beadUnit": "個"
+    "beadUnit": "個",
+    "ironing": {
+      "title": "アイロン仕上げエフェクト",
+      "description": "アイロン後の完成イメージをプレビュー。素材を選んで画像を書き出せます",
+      "expand": "アイロン仕上げエフェクトを開く",
+      "collapse": "アイロン仕上げエフェクトを閉じる",
+      "previewAlt": "アイロン効果プレビュー:{{material}}",
+      "previewLoading": "プレビューを生成中…",
+      "previewFailed": "プレビューの生成に失敗しました",
+      "retry": "再試行",
+      "empty": "まだ図案がありません。キャンバスにビーズを置いてください",
+      "exportPng": "アイロン効果 PNG を書き出す",
+      "exportDescription": "書き出すのは効果画像のみで、図紙や在庫には影響しません",
+      "selectedMaterial": "現在の素材:{{material}}",
+      "material": {
+        "noHole": "穴なしアイロン",
+        "linen": "リネン",
+        "towel": "タオル",
+        "bathMesh": "バスメッシュ",
+        "fineGlitter": "細粒ラメ",
+        "coarseGlitter": "粗粒ラメ"
+      },
+      "hint": {
+        "noHole": "細かく均一なマイクロ格子の圧紋。表面がフラットで豆の色を忠実に再現します",
+        "linen": "タテヨコに交差するリネン織り模様。自然で手づくりらしい風合い",
+        "towel": "ループ状のパイルが立つ、ふんわり柔らかな肌ざわり",
+        "bathMesh": "斜めに交差するメッシュ編み。細かい網目で軽やか",
+        "fineGlitter": "紺の生地に細かいラメが散りばめられた冷色のきらめき",
+        "coarseGlitter": "淡いピンクの生地に大きめラメ。存在感のある輝き"
+      }
+    }
   },
   "quantizer": {
     "title": "画像をビードに",
