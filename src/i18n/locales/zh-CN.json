@@ -103,6 +103,7 @@
     "accountDeleted": "该账号因违反站内服务条款或相关不当行为已被删除,无法登录。",
     "invalidSecurityKey": "安全密钥不正确哦,再回忆一下当初设置的那颗“安全珠”?~",
     "generic": "操作失败,请重试",
+    "sessionUserMismatch": "验证码对应的账号与当前操作不一致,已中止并退出登录",
     "passwordRepeat": "密码不能全是同一个字符哦,像拼豆配色一样丰富一点更稳妥~",
     "passwordSequence": "密码不能是连续数字或字母(如 123/abc)哦,换个组合更安心~",
     "passwordMix": "密码需要同时包含字母和数字,像拼豆红绿搭配那样混搭更稳妥~"

@@ -26,6 +26,7 @@ export default function AuthPage({
   resetPassword: _resetPassword,
   onSendOtp,
   onVerifyOtp,
+  onVerifyForgotOtp,
   onSetPassword,
   usernameExists: _usernameExists,
   onUpdateProfile,
@@ -96,6 +97,7 @@ export default function AuthPage({
       INVALID_SECURITY_KEY: 'errors.invalidSecurityKey',
       ACCOUNT_DELETED: 'errors.accountDeleted',
       INVALID_CREDENTIALS: 'errors.invalidCredentials',
+      SESSION_USER_MISMATCH: 'errors.sessionUserMismatch',
     }
     const key = map[code]
     return key ? t(key) : (t('errors.generic') + (code ? ` (${code})` : ''))
@@ -154,7 +156,8 @@ export default function AuthPage({
     setLoading(true)
     try {
       await onVerifyOtp(pendingEmail, verifyCode)
-      await onSetPassword(pendingPassword)
+      // 设置新密码前断言会话仍属于 pendingEmail(注册验证码建立的会话)
+      await onSetPassword(pendingPassword, pendingEmail)
       if (pendingNickname) { try { await onUpdateProfile({ nickname: pendingNickname }) } catch {} }
       go('/')
     } catch (err) {
@@ -190,12 +193,12 @@ export default function AuthPage({
     finally { setLoading(false) }
   }
 
-  // 忘记密码(邮箱):校验验证码 → 进入设置新密码
+  // 忘记密码(邮箱):校验验证码(含会话归属断言)→ 进入设置新密码
   const handleForgotVerify = async (e) => {
     e.preventDefault()
     setLoading(true)
     try {
-      await onVerifyOtp(pendingEmail, verifyCode)
+      await (onVerifyForgotOtp || onVerifyOtp)(pendingEmail, verifyCode)
       setMode('setNewPwd')
     } catch (err) { toastError(err?.message || '') }
     finally { setLoading(false) }
@@ -217,14 +220,14 @@ export default function AuthPage({
     } finally { setLoading(false) }
   }
 
-  // 邮箱找回密码:设置新密码
+  // 邮箱找回密码:设置新密码(带会话归属断言,防多标签页换会话)
   const handleSetNewPwd = async (e) => {
     e.preventDefault()
     if (newPassword !== newPassword2) return toastError('PASSWORD_MISMATCH')
     if (!checkPwd(newPassword)) return
     setLoading(true)
     try {
-      await onSetPassword(newPassword)
+      await onSetPassword(newPassword, pendingEmail)
       toast(t('auth.resetDone'), 'success')
       setMode('login')
     } catch (err) { toastError(err?.message || '') }

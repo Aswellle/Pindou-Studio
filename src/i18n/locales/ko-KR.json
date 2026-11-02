@@ -103,6 +103,7 @@
     "accountDeleted": "이 계정은 서비스 약관 위반 또는 부적절한 행위로 삭제되어 로그인할 수 없습니다.",
     "invalidSecurityKey": "보안 키가 올바르지 않습니다~",
     "generic": "작업에 실패했습니다",
+    "sessionUserMismatch": "코드가 다른 계정에 해당하여 작업을 중단하고 로그아웃했습니다.",
     "passwordRepeat": "같은 문자만으로 된 비밀번호는 사용할 수 없습니다(비즈 색상처럼 다양하게)~",
     "passwordSequence": "연속된 숫자/문자열(예: 123/abc)은 사용할 수 없습니다~",
     "passwordMix": "영문과 숫자를 모두 포함해야 합니다(비즈 색상 조합처럼)~"

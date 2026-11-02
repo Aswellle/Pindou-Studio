@@ -103,7 +103,7 @@ export default function App() {
   // 同时更新 --vh 与 --visible-vh),此处不再重复注册。
 
   const { user, isAdmin, loading: authLoading, login, register, resetPassword, logout, updateProfile,
-    sendOtp, verifyOtp, setPassword, setPasswordWithOtp, changeEmail, verifyPassword, setSecurityKey,
+    sendOtp, verifyOtp, verifyForgotOtp, setPassword, setPasswordWithOtp, changeEmail, verifyPassword, setSecurityKey,
     changePassword, registerUsername, loginByUsername, forgotPasswordCustom, usernameExists } = useAuth()
   const cloudStore = useCloudTemplates()
   // 收藏在 App 层持有:图库卡片的心形按钮与个人中心的收藏分区是两条路由,
@@ -851,6 +851,7 @@ export default function App() {
       resetPassword={resetPassword}
       onSendOtp={sendOtp}
       onVerifyOtp={verifyOtp}
+      onVerifyForgotOtp={verifyForgotOtp}
       onSetPassword={setPassword}
       usernameExists={usernameExists}
       onUpdateProfile={updateProfile}

@@ -103,6 +103,7 @@
     "accountDeleted": "This account has been deleted for violating the terms of service or other misconduct and can no longer sign in.",
     "invalidSecurityKey": "Security key is incorrect — recall the one you set? ~",
     "generic": "Operation failed, please retry",
+    "sessionUserMismatch": "The code belongs to a different account. Operation aborted and you have been signed out.",
     "passwordRepeat": "Password can't be all the same character — mix it up like your bead colors! ~",
     "passwordSequence": "Password can't be sequential (e.g. 123/abc) — pick a fresh combo! ~",
     "passwordMix": "Password must contain both letters and numbers — blend them like your beads! ~"

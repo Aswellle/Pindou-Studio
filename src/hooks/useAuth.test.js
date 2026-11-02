@@ -290,6 +290,67 @@ describe('useAuth · 账号操作', () => {
     expect(state.lastUpdateUser).toEqual({ password: 'NewPass123' })
   })
 
+  it('setPassword:期望邮箱与会话不符时中止、登出且不设置密码', async () => {
+    state.session = emailSession
+    state.profile = { role: 'user', nickname: '', avatar_url: '' }
+    const { result } = await mount()
+    await waitFor(() => expect(result.current.user?.id).toBe('u-email'))
+
+    // 两步之间会话被替换成别的账号(共享浏览器/多标签页)
+    state.getUserResult = { id: 'someone-else', email: 'other@example.com' }
+
+    await act(async () => {
+      await expect(
+        result.current.setPassword('NewPass123', 'alice@example.com')
+      ).rejects.toThrow('SESSION_USER_MISMATCH')
+    })
+    expect(state.lastUpdateUser).toBeUndefined()
+    expect(state.signOutCalls).toBe(1)
+  })
+
+  it('setPassword:期望邮箱一致时正常设置密码(大小写不敏感)', async () => {
+    state.session = emailSession
+    state.profile = { role: 'user', nickname: '', avatar_url: '' }
+    const { result } = await mount()
+    await waitFor(() => expect(result.current.user?.id).toBe('u-email'))
+
+    state.getUserResult = { id: 'u-email', email: 'Alice@Example.com' }
+
+    await act(async () => {
+      await result.current.setPassword('NewPass123', 'alice@example.com')
+    })
+    expect(state.lastUpdateUser).toEqual({ password: 'NewPass123' })
+    expect(state.signOutCalls).toBe(0)
+  })
+
+  it('verifyForgotOtp:验证后的会话邮箱与发起邮箱不符时登出并中止', async () => {
+    state.session = null
+    const { result } = await mount()
+
+    // verifyOtp 成功但建立的会话不是发起找回的那个邮箱
+    state.getUserResult = { id: 'u-verified', email: 'someone-else@example.com' }
+
+    await act(async () => {
+      await expect(
+        result.current.verifyForgotOtp('alice@example.com', '123456')
+      ).rejects.toThrow('SESSION_USER_MISMATCH')
+    })
+    expect(state.lastUpdateUser).toBeUndefined()
+    expect(state.signOutCalls).toBe(1)
+  })
+
+  it('verifyForgotOtp:会话邮箱与发起邮箱一致时放行', async () => {
+    state.session = null
+    const { result } = await mount()
+
+    state.getUserResult = { id: 'u-verified', email: 'alice@example.com' }
+
+    await act(async () => {
+      await result.current.verifyForgotOtp('alice@example.com', '123456')
+    })
+    expect(state.signOutCalls).toBe(0)
+  })
+
   it('setSecurityKey 调用 RPC,不读取也不回显哈希', async () => {
     state.session = usernameSession
     state.profile = { role: 'user', nickname: '', avatar_url: '' }

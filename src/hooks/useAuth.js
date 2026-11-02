@@ -198,9 +198,22 @@ export function useAuth() {
     // 会话状态由 onAuthStateChange 统一更新
   }, [])
 
-  // 设置/更新密码(需要会话:验证码验证后或已登录)
-  const setPassword = useCallback(async (password) => {
+  // 设置/更新密码(需要会话:验证码验证后或已登录)。
+  //
+  // expectedEmail 存在时做会话归属断言:验证码验证(verifyOtp)建立的是
+  // 「发起流程那个邮箱」的新会话,但共享浏览器 / 多标签页下,会话可能在
+  // 「验证」与「设置密码」两步之间被替换成别的账号 —— 不校验就会把新密码
+  // 设到别人头上。不一致立即登出并中止,不改任何东西。
+  const setPassword = useCallback(async (password, expectedEmail) => {
     if (!supabase) throw new Error('CLOUD_NOT_CONFIGURED')
+    if (expectedEmail) {
+      const { data } = await supabase.auth.getUser()
+      const sessionEmail = String(data?.user?.email || '').toLowerCase()
+      if (!data?.user || sessionEmail !== String(expectedEmail).toLowerCase()) {
+        try { await supabase.auth.signOut() } catch { /* 忽略 */ }
+        throw new Error('SESSION_USER_MISMATCH')
+      }
+    }
     const { error } = await supabase.auth.updateUser({ password })
     if (error) throw error
   }, [])
@@ -240,6 +253,25 @@ export function useAuth() {
     }
     await setPassword(password)
   }, [verifyOtp, setPassword])
+
+  /**
+   * 忘记密码(邮箱):验证验证码并断言会话归属。
+   *
+   * verifyOtp 成功即建立**新会话**;紧接着比对会话邮箱与发起找回的邮箱,
+   * 不一致立即登出并中止 —— 后续的「设置新密码」不会再执行。与
+   * setPasswordWithOtp 同一防御模式,只是找回流程没有已登录的期望用户,
+   * 以「验证码发往的邮箱」作为期望身份。
+   */
+  const verifyForgotOtp = useCallback(async (email, token) => {
+    if (!supabase) throw new Error('CLOUD_NOT_CONFIGURED')
+    await verifyOtp(email, token)
+    const { data } = await supabase.auth.getUser()
+    const sessionEmail = String(data?.user?.email || '').toLowerCase()
+    if (!data?.user || sessionEmail !== String(email || '').toLowerCase()) {
+      try { await supabase.auth.signOut() } catch { /* 忽略 */ }
+      throw new Error('SESSION_USER_MISMATCH')
+    }
+  }, [verifyOtp])
 
   /**
    * 发起邮箱变更(Supabase Auth 官方流程)。
@@ -391,6 +423,8 @@ export function useAuth() {
     changePassword,
     // 邮箱验证码重设密码(验证后校验会话归属,防止改到别人账号)
     setPasswordWithOtp,
+    // 忘记密码:验证验证码并断言会话邮箱与发起邮箱一致
+    verifyForgotOtp,
     // 更换邮箱(Supabase Auth 确认流程;确认前 user.email 不变)
     changeEmail,
     // 安全密钥(仅用户名账号;只写不读,哈希永不出现在前端)
