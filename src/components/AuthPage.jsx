@@ -142,6 +142,10 @@ export default function AuthPage({
         setRegCooldown(RESEND_COOLDOWN)
         setMode('verify')
       } else {
+        // 安全密钥是用户名账号找回密码的唯一因子:过短的密钥在服务端
+        // (set_security_key)会被拒绝,而注册路径里 RPC 失败是静默忽略的,
+        // 用户会以为设置成功、实际没有 —— 这里在提交前先拦下。
+        if (securityKey && securityKey.trim().length < 6) return toastError('', t('errors.securityKeyTooShort'))
         await registerUsername({ username, nickname, password: regPassword, securityKey })
         go('/')
       }

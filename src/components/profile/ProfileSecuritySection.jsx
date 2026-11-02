@@ -225,6 +225,10 @@ export default function ProfileSecuritySection({
       setKeyError(t('profile.center.errors.securityKeyRequired'))
       return
     }
+    if (secKey.trim().length < 6) {
+      setKeyError(t('errors.securityKeyTooShort'))
+      return
+    }
     if (secKey !== secKey2) {
       setKeyError(t('errors.passwordMismatch'))
       return

@@ -102,6 +102,7 @@
     "accountFrozen": "This account has been frozen for {{days}} day(s) for violating the terms of service or other misconduct. Please try again after it expires, or contact the administrator.",
     "accountDeleted": "This account has been deleted for violating the terms of service or other misconduct and can no longer sign in.",
     "invalidSecurityKey": "Security key is incorrect — recall the one you set? ~",
+    "securityKeyTooShort": "Security key must be at least 6 characters — shorter keys are too easy to guess.",
     "generic": "Operation failed, please retry",
     "sessionUserMismatch": "The code belongs to a different account. Operation aborted and you have been signed out.",
     "passwordRepeat": "Password can't be all the same character — mix it up like your bead colors! ~",

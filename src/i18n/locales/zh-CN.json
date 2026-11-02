@@ -102,6 +102,7 @@
     "accountFrozen": "该账号因违反站内服务条款或相关不当行为已被冻结 {{days}} 天,请到期后再试,或联系管理员。",
     "accountDeleted": "该账号因违反站内服务条款或相关不当行为已被删除,无法登录。",
     "invalidSecurityKey": "安全密钥不正确哦,再回忆一下当初设置的那颗“安全珠”?~",
+    "securityKeyTooShort": "安全密钥至少需要 6 位,太短容易被猜到哦~",
     "generic": "操作失败,请重试",
     "sessionUserMismatch": "验证码对应的账号与当前操作不一致,已中止并退出登录",
     "passwordRepeat": "密码不能全是同一个字符哦,像拼豆配色一样丰富一点更稳妥~",
