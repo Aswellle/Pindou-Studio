@@ -43,8 +43,12 @@ const QUALITY_ORDER = ['screen', 'high', 'print']
  * (Windows 保留字符 + 控制字符),并去掉结尾的空白/点(Windows 不允许)。
  */
 function sanitizeFileNamePart(part) {
+  // 逐字符替换,不用 \u0000-\u001f 正则(控制字符转义触发 noControlCharactersInRegex)
   const cleaned = String(part || '')
-    .replace(/[\\/:*?"<>|\u0000-\u001f]+/g, ' ')
+    .split('')
+    .map((ch) => (ch.charCodeAt(0) < 32 || '\\/:*?"<>|'.includes(ch) ? ' ' : ch))
+    .join('')
+    .replace(/\s+/g, ' ')
     .trim()
     .replace(/[\s.]+$/g, '')
   return cleaned || 'pattern'
@@ -1015,12 +1019,7 @@ export default function ExportPanel({
   // ── 导出确认 / 空画布提示 模态框(PC 与移动端共用) ─────────
   const confirmDialog = confirmExport && (
     <div className="modal-overlay export-confirm-overlay" onClick={() => setConfirmExport(null)}>
-      <div
-        className="export-confirm-dialog"
-        ref={confirmRef}
-        {...confirmDialogProps}
-        onClick={e => e.stopPropagation()}
-      >
+      <div className="export-confirm-dialog" ref={confirmRef} {...confirmDialogProps} onClick={e => e.stopPropagation()}>
         {confirmExport.type === 'empty' ? (
           <>
             <div className="export-confirm-icon empty">✕</div>
@@ -1159,12 +1158,7 @@ export default function ExportPanel({
   return createPortal(
     <>
       <div className="modal-overlay" onClick={onClose}>
-        <div
-          className="export-modal-content"
-          ref={modalRef}
-          {...modalDialogProps}
-          onClick={e => e.stopPropagation()}
-        >
+        <div className="export-modal-content" ref={modalRef} {...modalDialogProps} onClick={e => e.stopPropagation()}>
           {panel}
         </div>
       </div>
