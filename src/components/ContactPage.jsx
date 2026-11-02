@@ -50,18 +50,32 @@ const LOGO_SVG = (
 /**
  * 线程身份:登录用户用 user.id;访客用 localStorage 持久 UUID。
  * 持久化的意义是「关掉页面再回来还能看到自己的历史与管理员回复」——
- * 访客没有账号可查,这个 UUID 就是他的线程凭证。
+ * 访客没有账号可查,这个 UUID 就是他的线程凭证(get_contact_thread
+ * 只凭 participant_id 放行),所以熵不能低:Math.random 只有约 41 位,
+ * 理论上可枚举,同毫秒生成的两个 id 还可能撞车。randomUUID 之外
+ * 一律走 CSPRNG(getRandomValues 在所有浏览器都有);两者都没有的
+ * 环境才退回时间戳 + Math.random 拼接。
  */
+const randomGuestId = () => {
+  try {
+    if (typeof crypto === 'object' && typeof crypto.getRandomValues === 'function') {
+      const bytes = crypto.getRandomValues(new Uint8Array(16))
+      return Array.from(bytes, (b) => b.toString(16).padStart(2, '0')).join('')
+    }
+  } catch { /* 继续走最后兜底 */ }
+  return `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`
+}
+
 const getAnonParticipant = () => {
   try {
     let id = localStorage.getItem('contact-participant-id')
     if (!id) {
-      id = crypto.randomUUID?.() || `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`
+      id = crypto.randomUUID?.() || randomGuestId()
       localStorage.setItem('contact-participant-id', id)
     }
     return id
   } catch {
-    return `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`
+    return randomGuestId()
   }
 }
 
