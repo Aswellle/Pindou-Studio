@@ -1,0 +1,292 @@
+import { useEffect, useMemo, useRef, useState } from 'react'
+import { useTranslation } from 'react-i18next'
+import { createPatternDocument } from '../../services/export/PatternDocument'
+import { renderIroningEffect } from '../../services/export/IroningEffectRenderer'
+import { IRONING_EFFECT_PRESETS, DEFAULT_IRONING_PRESET_ID } from '../../services/export/ironingEffectPresets'
+
+/** 图案变更后的防抖:连续绘制时不逐笔触发预览重渲染 */
+const PREVIEW_DEBOUNCE_MS = 250
+
+/**
+ * IroningEffectSection — 「高级熨烫效果」预览与导出区块(规格 08 §4)。
+ *
+ * 职责边界(03 文档):
+ *   - 只负责材质选择、预览生命周期(Object URL 创建/替换/撤销、进行中渲染的取消)
+ *     和导出按钮的发起;下载、确认框、库存记账全部由父级 ExportPanel 处理;
+ *   - presetId 只是本区块内的 UI 临时状态,不写入任何持久化数据;
+ *   - 预览与导出共用同一渲染器(仅 mode 不同),杜绝「预览≠成品」。
+ */
+export default function IroningEffectSection({
+  canvasData,
+  gridSize,
+  gridWidth,
+  gridHeight,
+  paletteId = 'perler',
+  designName,
+  // 导出进行中(父级共享状态):禁用材质切换与导出按钮,防止并发导出
+  isExporting = false,
+  /** (presetId) => void — 父级接入 requestExport 确认流程 */
+  onRequestExport,
+}) {
+  const { t } = useTranslation()
+  const [expanded, setExpanded] = useState(false)
+  const [presetId, setPresetId] = useState(DEFAULT_IRONING_PRESET_ID)
+  const [retryNonce, setRetryNonce] = useState(0)
+  const [previewUrl, setPreviewUrl] = useState(null)
+  // idle:未展开;loading;ready;error;empty(整张图纸没有已绘制格子)
+  const [previewState, setPreviewState] = useState('idle')
+
+  const preset = useMemo(
+    () => IRONING_EFFECT_PRESETS.find((p) => p.id === presetId) || IRONING_EFFECT_PRESETS[0],
+    [presetId],
+  )
+
+  const hasPaintedCells = useMemo(
+    () => Boolean(canvasData?.some((row) => row.some((cell) => cell))),
+    [canvasData],
+  )
+
+  // PatternDocument v2 只读快照:图案变化(含防抖)才重建;渲染器不回写
+  const doc = useMemo(() => {
+    if (!canvasData) return null
+    try {
+      return createPatternDocument({
+        canvasData,
+        gridSize,
+        gridWidth,
+        gridHeight,
+        paletteId,
+        designName: designName || '',
+      })
+    } catch {
+      return null
+    }
+  }, [canvasData, gridSize, gridWidth, gridHeight, paletteId, designName])
+
+  // Object URL 生命周期:替换时撤销旧 URL;卸载时撤销最后一个
+  const previewUrlRef = useRef(null)
+  useEffect(() => () => {
+    if (previewUrlRef.current) URL.revokeObjectURL(previewUrlRef.current)
+  }, [])
+
+  // 预览渲染:展开 + 材质/图纸变化 → 防抖后渲染;切换/卸载取消进行中的渲染
+  useEffect(() => {
+    if (!expanded) {
+      setPreviewState('idle')
+      return undefined
+    }
+    if (!doc || !hasPaintedCells) {
+      setPreviewState('empty')
+      return undefined
+    }
+    let cancelled = false
+    const controller = new AbortController()
+    setPreviewState('loading')
+    const timer = setTimeout(async () => {
+      try {
+        const { blob } = await renderIroningEffect(doc, {
+          presetId,
+          mode: 'preview',
+          signal: controller.signal,
+        })
+        const url = URL.createObjectURL(blob)
+        if (cancelled) {
+          URL.revokeObjectURL(url)
+          return
+        }
+        if (previewUrlRef.current) URL.revokeObjectURL(previewUrlRef.current)
+        previewUrlRef.current = url
+        setPreviewUrl(url)
+        setPreviewState('ready')
+      } catch (err) {
+        if (err?.name === 'AbortError' || cancelled) return
+        setPreviewState('error')
+      }
+    }, PREVIEW_DEBOUNCE_MS)
+    return () => {
+      cancelled = true
+      clearTimeout(timer)
+      // 已发出的渲染也要中止:大图预览不能在切换材质/关闭区块后继续空转
+      controller.abort()
+    }
+  }, [expanded, presetId, doc, hasPaintedCells, retryNonce])
+
+  const handleRetry = () => setRetryNonce((n) => n + 1)
+
+  return (
+    <div className="export-section ironing-section">
+      <style>{`
+        .ironing-toggle {
+          width: 100%;
+          display: flex;
+          align-items: baseline;
+          gap: 6px;
+          text-align: left;
+          background: none;
+          border: none;
+          padding: 4px 2px;
+          cursor: pointer;
+        }
+        .ironing-toggle:hover .section-title {
+          color: var(--text-primary);
+        }
+        .ironing-toggle .arrow {
+          margin-left: auto;
+          font-size: var(--text-xs);
+          transition: transform 0.2s;
+        }
+        .ironing-toggle .arrow.up {
+          transform: rotate(180deg);
+        }
+        .ironing-body {
+          display: flex;
+          flex-direction: column;
+          gap: 8px;
+          padding-top: 6px;
+        }
+        .ironing-material-grid {
+          display: grid;
+          grid-template-columns: repeat(3, minmax(0, 1fr));
+          gap: 6px;
+        }
+        .ironing-material-btn {
+          display: flex;
+          align-items: center;
+          gap: 6px;
+          padding: 7px 8px;
+          border: 1px solid var(--border-color);
+          border-radius: 8px;
+          background: var(--bg-secondary);
+          color: var(--text-primary);
+          font-size: var(--text-xs);
+          cursor: pointer;
+          transition: border-color 0.15s, background 0.15s;
+        }
+        .ironing-material-btn:disabled {
+          opacity: 0.55;
+          cursor: not-allowed;
+        }
+        .ironing-material-btn.active {
+          border-color: var(--secondary-accent);
+          background: var(--bg-tertiary);
+          font-weight: var(--font-weight-semibold);
+        }
+        .ironing-swatch {
+          width: 14px;
+          height: 14px;
+          border-radius: 4px;
+          border: 1px solid var(--border-color);
+          flex: none;
+        }
+        .ironing-material-label {
+          overflow: hidden;
+          text-overflow: ellipsis;
+          white-space: nowrap;
+        }
+        .ironing-preview {
+          min-height: 160px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          background: var(--bg-secondary);
+          border: 1px solid var(--border-color);
+          border-radius: 8px;
+          overflow: hidden;
+        }
+        .ironing-placeholder {
+          font-size: var(--text-xs);
+          color: var(--text-muted);
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          gap: 8px;
+          padding: 12px;
+          text-align: center;
+        }
+        .ironing-retry {
+          padding: 4px 12px;
+          font-size: var(--text-xs);
+          border: 1px solid var(--border-color);
+          border-radius: 6px;
+          background: var(--bg-primary);
+          color: var(--text-primary);
+          cursor: pointer;
+        }
+        .ironing-preview-img {
+          max-width: 100%;
+          max-height: 320px;
+          object-fit: contain;
+        }
+        .ironing-export-btn {
+          width: 100%;
+        }
+      `}</style>
+
+      <button
+        type="button"
+        className="section-heading ironing-toggle"
+        aria-expanded={expanded}
+        onClick={() => setExpanded((v) => !v)}
+      >
+        <span className="section-title">{t('export.ironing.title')}</span>
+        <span className="section-hint">{t('export.ironing.description')}</span>
+        <span className={`arrow ${expanded ? 'up' : ''}`} aria-hidden="true">▼</span>
+      </button>
+
+      {expanded && (
+        <div className="ironing-body">
+          <div className="ironing-material-grid" role="group" aria-label={t('export.ironing.title')}>
+            {IRONING_EFFECT_PRESETS.map((p) => (
+              <button
+                key={p.id}
+                type="button"
+                className={`ironing-material-btn ${p.id === presetId ? 'active' : ''}`}
+                aria-pressed={p.id === presetId}
+                disabled={isExporting}
+                onClick={() => setPresetId(p.id)}
+              >
+                <span className="ironing-swatch" style={{ background: p.swatchColor }} aria-hidden="true" />
+                <span className="ironing-material-label">{t(p.labelKey)}</span>
+              </button>
+            ))}
+          </div>
+          <span className="setting-hint">{t(preset.hintKey)}</span>
+
+          <div className="ironing-preview" data-state={previewState}>
+            {previewState === 'empty' && (
+              <div className="ironing-placeholder">{t('export.ironing.empty')}</div>
+            )}
+            {previewState === 'loading' && (
+              <div className="ironing-placeholder">{t('export.ironing.previewLoading')}</div>
+            )}
+            {previewState === 'error' && (
+              <div className="ironing-placeholder">
+                <span>{t('export.ironing.previewFailed')}</span>
+                <button type="button" className="ironing-retry" onClick={handleRetry}>
+                  {t('export.ironing.retry')}
+                </button>
+              </div>
+            )}
+            {previewState === 'ready' && previewUrl && (
+              <img
+                className="ironing-preview-img"
+                src={previewUrl}
+                alt={t('export.ironing.previewAlt', { material: t(preset.labelKey) })}
+              />
+            )}
+          </div>
+
+          <button
+            type="button"
+            className="btn btn-secondary ironing-export-btn"
+            disabled={isExporting || previewState === 'empty'}
+            onClick={() => onRequestExport?.(presetId)}
+          >
+            {t('export.ironing.exportPng')}
+          </button>
+          <span className="setting-hint">{t('export.ironing.exportDescription')}</span>
+        </div>
+      )}
+    </div>
+  )
+}
