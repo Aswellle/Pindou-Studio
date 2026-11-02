@@ -80,11 +80,17 @@ describe('IroningEffectSection · 材质选择器', () => {
     setup()
     fireEvent.click(screen.getByRole('button', { name: /高级熨烫/ }))
     await waitFor(() => expect(screen.getByRole('button', { name: /麻布烫/ })).toBeTruthy())
-    const buttons = ['无孔烫', '麻布烫', '毛巾烫', '澡巾烫', '细闪烫', '粗闪烫']
-      .map((label) => screen.getByRole('button', { name: new RegExp(label) }))
+    const buttons = ['无孔烫', '麻布烫', '毛巾烫', '澡巾烫', '细闪烫', '粗闪烫'].map(label =>
+      screen.getByRole('button', { name: new RegExp(label) })
+    )
     expect(buttons).toHaveLength(6)
-    expect(buttons.map((b) => b.getAttribute('aria-pressed'))).toEqual([
-      'false', 'true', 'false', 'false', 'false', 'false',
+    expect(buttons.map(b => b.getAttribute('aria-pressed'))).toEqual([
+      'false',
+      'true',
+      'false',
+      'false',
+      'false',
+      'false',
     ])
   })
 
@@ -93,14 +99,14 @@ describe('IroningEffectSection · 材质选择器', () => {
     await expandAndSettle()
     expect(renderIroningEffect).toHaveBeenCalledWith(
       expect.anything(),
-      expect.objectContaining({ presetId: 'linen', mode: 'preview' }),
+      expect.objectContaining({ presetId: 'linen', mode: 'preview' })
     )
     fireEvent.click(screen.getByRole('button', { name: /毛巾烫/ }))
     await waitFor(() =>
       expect(renderIroningEffect).toHaveBeenCalledWith(
         expect.anything(),
-        expect.objectContaining({ presetId: 'towel', mode: 'preview' }),
-      ),
+        expect.objectContaining({ presetId: 'towel', mode: 'preview' })
+      )
     )
     expect(screen.getByRole('button', { name: /毛巾烫/ }).getAttribute('aria-pressed')).toBe('true')
     expect(screen.getByRole('button', { name: /麻布烫/ }).getAttribute('aria-pressed')).toBe('false')
@@ -117,7 +123,13 @@ describe('IroningEffectSection · 材质选择器', () => {
 
 describe('IroningEffectSection · 预览状态', () => {
   it('整张图纸无内容时显示空态,不调用渲染器', () => {
-    setup({ canvasData: [[null, null], [null, null]], gridSize: 2 })
+    setup({
+      canvasData: [
+        [null, null],
+        [null, null],
+      ],
+      gridSize: 2,
+    })
     fireEvent.click(screen.getByRole('button', { name: /高级熨烫/ }))
     expect(screen.getByText(/暂无图案/)).toBeTruthy()
     expect(renderIroningEffect).not.toHaveBeenCalled()
@@ -169,7 +181,7 @@ describe('IroningEffectSection · Object URL 生命周期', () => {
         gridWidth={3}
         gridHeight={3}
         designName="测试图纸"
-      />,
+      />
     )
     fireEvent.click(screen.getByRole('button', { name: /高级熨烫/ }))
     await waitFor(() => expect(URL.createObjectURL).toHaveBeenCalled())
@@ -190,7 +202,7 @@ describe('IroningEffectSection · 防抖与取消', () => {
           gridWidth={3}
           gridHeight={3}
           designName="测试图纸"
-        />,
+        />
       )
       fireEvent.click(screen.getByRole('button', { name: /高级熨烫/ }))
       // 三个材质快速切换:每次切换都重置 250ms 计时
@@ -203,7 +215,7 @@ describe('IroningEffectSection · 防抖与取消', () => {
       expect(renderIroningEffect).toHaveBeenCalledTimes(1)
       expect(renderIroningEffect).toHaveBeenCalledWith(
         expect.anything(),
-        expect.objectContaining({ presetId: 'coarse-glitter' }),
+        expect.objectContaining({ presetId: 'coarse-glitter' })
       )
     } finally {
       vi.useRealTimers()
@@ -223,7 +235,7 @@ describe('IroningEffectSection · 防抖与取消', () => {
         gridWidth={3}
         gridHeight={3}
         designName="测试图纸"
-      />,
+      />
     )
     fireEvent.click(screen.getByRole('button', { name: /高级熨烫/ }))
     await vi.waitFor(() => expect(renderIroningEffect).toHaveBeenCalled(), { timeout: 3000 })

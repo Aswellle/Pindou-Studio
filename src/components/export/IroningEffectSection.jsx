@@ -37,13 +37,13 @@ export default function IroningEffectSection({
   const [previewState, setPreviewState] = useState('idle')
 
   const preset = useMemo(
-    () => IRONING_EFFECT_PRESETS.find((p) => p.id === presetId) || IRONING_EFFECT_PRESETS[0],
-    [presetId],
+    () => IRONING_EFFECT_PRESETS.find(p => p.id === presetId) || IRONING_EFFECT_PRESETS[0],
+    [presetId]
   )
 
   const hasPaintedCells = useMemo(
-    () => Boolean(canvasData?.some((row) => row.some((cell) => cell))),
-    [canvasData],
+    () => Boolean(canvasData?.some(row => row.some(cell => cell))),
+    [canvasData]
   )
 
   // PatternDocument v2 只读快照:图案变化(含防抖)才重建;渲染器不回写
@@ -65,9 +65,12 @@ export default function IroningEffectSection({
 
   // Object URL 生命周期:替换时撤销旧 URL;卸载时撤销最后一个
   const previewUrlRef = useRef(null)
-  useEffect(() => () => {
-    if (previewUrlRef.current) URL.revokeObjectURL(previewUrlRef.current)
-  }, [])
+  useEffect(
+    () => () => {
+      if (previewUrlRef.current) URL.revokeObjectURL(previewUrlRef.current)
+    },
+    []
+  )
 
   // 预览渲染:展开 + 材质/图纸变化 → 防抖后渲染;切换/卸载取消进行中的渲染
   useEffect(() => {
@@ -111,7 +114,7 @@ export default function IroningEffectSection({
     }
   }, [expanded, presetId, doc, hasPaintedCells, retryNonce])
 
-  const handleRetry = () => setRetryNonce((n) => n + 1)
+  const handleRetry = () => setRetryNonce(n => n + 1)
 
   return (
     <div className="export-section ironing-section">
@@ -226,17 +229,19 @@ export default function IroningEffectSection({
         type="button"
         className="section-heading ironing-toggle"
         aria-expanded={expanded}
-        onClick={() => setExpanded((v) => !v)}
+        onClick={() => setExpanded(v => !v)}
       >
         <span className="section-title">{t('export.ironing.title')}</span>
         <span className="section-hint">{t('export.ironing.description')}</span>
-        <span className={`arrow ${expanded ? 'up' : ''}`} aria-hidden="true">▼</span>
+        <span className={`arrow ${expanded ? 'up' : ''}`} aria-hidden="true">
+          ▼
+        </span>
       </button>
 
       {expanded && (
         <div className="ironing-body">
           <div className="ironing-material-grid" role="group" aria-label={t('export.ironing.title')}>
-            {IRONING_EFFECT_PRESETS.map((p) => (
+            {IRONING_EFFECT_PRESETS.map(p => (
               <button
                 key={p.id}
                 type="button"
