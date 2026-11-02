@@ -23,6 +23,21 @@ export function escapeHtml(value) {
     .replace(/</g, '&lt;')
     .replace(/>/g, '&gt;')
     .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;')
+}
+
+/**
+ * 把值序列化成可以安全嵌进 <script> 的 JSON。
+ *
+ * JSON.stringify 不会转义 `<`,所以内容里的 `</script>` 会提前结束脚本元素 ——
+ * 这是把任意标题写进 ld+json 时的经典逃逸点。转成 < 后 JSON.parse 仍得到
+ * 原字符,但解析器不会再把它当成标签。
+ */
+export function jsonForScript(value) {
+  return JSON.stringify(value)
+    .replace(/</g, '\\u003c')
+    .replace(/>/g, '\\u003e')
+    .replace(/&/g, '\\u0026')
 }
 
 /**
@@ -309,8 +324,8 @@ function breadcrumbJsonLd(crumbs) {
     '  {',
     '    "@type": "ListItem",',
     `    "position": ${i + 1},`,
-    `    "name": ${JSON.stringify(c.name)},`,
-    `    "item": ${JSON.stringify(c.item)}`,
+    `    "name": ${jsonForScript(c.name)},`,
+    `    "item": ${jsonForScript(c.item)}`,
     '  }',
   ].join('\n'))
   return [
@@ -359,16 +374,19 @@ export function renderSnapshotHtml(indexHtml, snap, canonicalUrl, { noindex = fa
   // 匹配式用 `[^"]*"[^>]*>` 收尾,容忍结尾的 data-rh 及其他属性。
   const RH = ' data-rh="true"'
 
+  // 替换值一律用函数返回：字符串形式的替换值会把 $&、$' 和 $` 当成
+  // 「匹配到的内容 / 其后内容 / 其前内容」展开，标题里出现这些字符时
+  // 会把整份文档片段拼进 head。
   let out = indexHtml
-    .replace(/<title>.*?<\/title>/s, `<title>${snap.title}</title>`)
-    .replace(/<meta name="description" content="[^"]*"[^>]*>/, `<meta name="description" content="${snap.description}"${RH} />`)
-    .replace(/<meta name="robots" content="[^"]*"[^>]*>/, `<meta name="robots" content="${robots}"${RH} />`)
-    .replace(/<link rel="canonical" href="[^"]*"[^>]*>/, `<link rel="canonical" href="${canonicalUrl}"${RH} />`)
-    .replace(/<meta property="og:url" content="[^"]*"[^>]*>/, `<meta property="og:url" content="${canonicalUrl}"${RH} />`)
-    .replace(/<meta property="og:title" content="[^"]*"[^>]*>/, `<meta property="og:title" content="${snap.title}"${RH} />`)
-    .replace(/<meta property="og:description" content="[^"]*"[^>]*>/, `<meta property="og:description" content="${snap.description}"${RH} />`)
-    .replace(/<meta name="twitter:title" content="[^"]*"[^>]*>/, `<meta name="twitter:title" content="${snap.title}"${RH} />`)
-    .replace(/<meta name="twitter:description" content="[^"]*"[^>]*>/, `<meta name="twitter:description" content="${snap.description}"${RH} />`)
+    .replace(/<title>.*?<\/title>/s, () => `<title>${snap.title}</title>`)
+    .replace(/<meta name="description" content="[^"]*"[^>]*>/, () => `<meta name="description" content="${snap.description}"${RH} />`)
+    .replace(/<meta name="robots" content="[^"]*"[^>]*>/, () => `<meta name="robots" content="${robots}"${RH} />`)
+    .replace(/<link rel="canonical" href="[^"]*"[^>]*>/, () => `<link rel="canonical" href="${canonicalUrl}"${RH} />`)
+    .replace(/<meta property="og:url" content="[^"]*"[^>]*>/, () => `<meta property="og:url" content="${canonicalUrl}"${RH} />`)
+    .replace(/<meta property="og:title" content="[^"]*"[^>]*>/, () => `<meta property="og:title" content="${snap.title}"${RH} />`)
+    .replace(/<meta property="og:description" content="[^"]*"[^>]*>/, () => `<meta property="og:description" content="${snap.description}"${RH} />`)
+    .replace(/<meta name="twitter:title" content="[^"]*"[^>]*>/, () => `<meta name="twitter:title" content="${snap.title}"${RH} />`)
+    .replace(/<meta name="twitter:description" content="[^"]*"[^>]*>/, () => `<meta name="twitter:description" content="${snap.description}"${RH} />`)
 
   // 封面:有则替换;无则保留站点默认图(空 content 会让社交平台显示无图卡片)
   //
@@ -377,12 +395,15 @@ export function renderSnapshotHtml(indexHtml, snap, canonicalUrl, { noindex = fa
   // 1200×630、图片却是别的比例时,部分平台会按声明比例裁切,或直接不渲染大图。
   // 图纸卡片确实是 1200×630(见 ogCard.OG_CARD_WIDTH),由调用方显式声明。
   if (snap.image) {
+    // cover_url 来自管理员可编辑的内容表,只做过「以 / 开头」这类 URL 形状校验,
+    // 从未限制过引号/尖括号。这里必须转义,否则它会把 content 属性提前闭合。
+    const image = escapeHtml(snap.image)
     out = out
-      .replace(/<meta property="og:image" content="[^"]*"[^>]*>/, `<meta property="og:image" content="${snap.image}"${RH} />`)
-      .replace(/<meta name="twitter:image" content="[^"]*"[^>]*>/, `<meta name="twitter:image" content="${snap.image}"${RH} />`)
+      .replace(/<meta property="og:image" content="[^"]*"[^>]*>/, () => `<meta property="og:image" content="${image}"${RH} />`)
+      .replace(/<meta name="twitter:image" content="[^"]*"[^>]*>/, () => `<meta name="twitter:image" content="${image}"${RH} />`)
       // alt 描述的是「这张图是什么」。换成内容自己的图后仍留着站点级 alt,
       // 无障碍与部分平台的图片描述会张冠李戴。
-      .replace(/<meta property="og:image:alt" content="[^"]*"[^>]*>/, `<meta property="og:image:alt" content="${snap.title}" />`)
+      .replace(/<meta property="og:image:alt" content="[^"]*"[^>]*>/, () => `<meta property="og:image:alt" content="${snap.title}" />`)
 
     // 尺寸未知的封面(主题/合集)直接删掉这两行 —— 缺元数据时平台会自己探测
     // 图片尺寸,比声明一个错误的尺寸更安全。
@@ -403,7 +424,7 @@ export function renderSnapshotHtml(indexHtml, snap, canonicalUrl, { noindex = fa
     return `  <link rel="alternate" hreflang="${lang}" href="${href}"${RH} />${EOL}`
   }).join('')
   const existingHreflang = /(?: {2}<link rel="alternate" hreflang="[^"]+" href="https:\/\/tangnotes\.site[^"]*"(?: data-rh="true")? \/>\r?\n){5}/
-  out = out.replace(existingHreflang, hreflangBlock)
+  out = out.replace(existingHreflang, () => hreflangBlock)
 
   // 面包屑:标题取 snap.title 去掉「 - 拼豆Studio」后缀,读起来才是页面名而不是完整标题。
   // 只在未 noindex 的内容页注入(noindex 的页面不该出现在搜索结果里,也就不需要面包屑)。
@@ -421,7 +442,7 @@ export function renderSnapshotHtml(indexHtml, snap, canonicalUrl, { noindex = fa
       return out
     }
     const crumb = breadcrumbJsonLd(crumbsFor(crumbPath, crumbTitle)).replace(/\n/g, EOL)
-    out = out.replace('</head>', `${crumb}${EOL}</head>`)
+    out = out.replace('</head>', () => `${crumb}${EOL}</head>`)
   }
 
   // 首帧前隐藏静态正文(与 generate-prerender-html.js 同一机制):

@@ -16,7 +16,7 @@ import {
 describe('ogSnapshot · 基础工具', () => {
   it('escapeHtml 转义全部五个字符(静态正文是拼字符串,漏一个就能注入)', () => {
     expect(escapeHtml('<img src=x onerror="alert(1)"> & \'')).toBe(
-      '&lt;img src=x onerror=&quot;alert(1)&quot;&gt; &amp; \'',
+      '&lt;img src=x onerror=&quot;alert(1)&quot;&gt; &amp; &#39;',
     )
     expect(escapeHtml(null)).toBe('')
     expect(escapeHtml(undefined)).toBe('')
@@ -375,5 +375,39 @@ describe('renderSnapshotHtml', () => {
     const out = renderSnapshotHtml(crlf, snap, 'https://tangnotes.site/gallery/pattern/t1')
     expect(out).toContain('\r\n')
     expect(out).not.toMatch(/[^\r]\n/)
+  })
+
+  // 管理员可编辑的标题/封面会进入预渲染快照,而快照是构建产物、由站点源直接返回。
+  // 这两条覆盖的是「内容里的 HTML 元字符逃出所在位置」这一类缺陷。
+  it('标题里的 </script> 不会终结 ld+json 脚本块', () => {
+    const hostile = '</script><script>alert(1)</script>'
+    // 生产路径里 build*Snapshot 会先 escapeHtml,这里照做(标题进 <title>/og:title 时是转义态)
+    const out = renderSnapshotHtml(
+      INDEX,
+      { ...snap, title: escapeHtml(`${hostile} - 拼豆Studio`) },
+      'https://tangnotes.site/gallery/theme/x',
+    )
+    expect(out).toContain('\\u003c/script\\u003e')
+    expect(out).not.toContain('<script>alert(1)</script>')
+  })
+
+  it('封面 URL 里的引号不会闭合 og:image 的 content 属性', () => {
+    const out = renderSnapshotHtml(
+      INDEX,
+      { ...snap, image: '/c.png" /><script>alert(1)</script><meta x="' },
+      'https://tangnotes.site/gallery/theme/x',
+    )
+    expect(out).not.toContain('<script>alert(1)</script>')
+    expect(out).toContain('&quot;')
+  })
+
+  it('标题里的 $& 与 $\' 不被当成替换模式展开', () => {
+    const out = renderSnapshotHtml(
+      INDEX,
+      { ...snap, title: "A $& B $' C $` D - 拼豆Studio" },
+      'https://tangnotes.site/gallery/theme/x',
+    )
+    expect(out).toContain("<title>A $& B $' C $` D - 拼豆Studio</title>")
+    expect(out.match(/<head>/g)).toHaveLength(1)
   })
 })
