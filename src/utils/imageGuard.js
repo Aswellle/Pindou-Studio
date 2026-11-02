@@ -45,7 +45,7 @@ export function isHeicFile(file) {
 }
 
 /**
- * 读文件前若干字节,并按格式给出像素门控所需的输入。
+ * 读文件内容,并按格式给出像素门控所需的输入。
  *
  * SVG 是文本,必须解码成字符串才能读根元素尺寸;PNG/JPEG 传字节即可。
  * 读失败返回 null —— 调用方应放行,交由解码阶段自然报错。
@@ -54,8 +54,17 @@ export function isHeicFile(file) {
  */
 export async function readImageHead(file, { bytes = 65536 } = {}) {
   try {
+    // SVG 的根 <svg> 标签前可以塞任意长的注释 / DOCTYPE —— 只读前 64KB 时,
+    // 「头部解析不出 <svg>」会被当成「没有尺寸信息」放行,一个几 KB(头部
+    // 之外再声明上万像素)的 SVG 就能绕过像素门控。因此 SVG 一律读全文:
+    // 文件已先过 checkImageFile 的字节上限,读取成本有界,且解码阶段
+    // (ensureSvgSize)本来也要读全文。
+    if (isSvgFile(file)) {
+      const buf = await file.arrayBuffer()
+      return new TextDecoder().decode(buf)
+    }
     const buf = await file.slice(0, bytes).arrayBuffer()
-    return isSvgFile(file) ? new TextDecoder().decode(buf) : new Uint8Array(buf)
+    return new Uint8Array(buf)
   } catch {
     return null
   }
@@ -94,8 +103,9 @@ export function checkImageFile(file, { maxBytes = MAX_IMAGE_BYTES, allowPdf = fa
  * 脚本/外部引用的清洗。若将来有人把 SVG 直接插进 DOM,这个前提就失效了,
  * 那时必须另做清洗(白名单标签 + 移除 on* 属性 + 剥离外部 href)。
  *
- * 只读前若干个 KB 已经够:根 `<svg>` 标签必然在文件开头(前面只可能有
- * XML 声明、注释、DOCTYPE)。解析不出尺寸时返回 null(交给调用方放行)——
+ * 只读前若干个 KB 曾经是够的 —— 但根标签前可以塞任意长的注释,把
+ * `<svg>` 推到头部之外;调用方(readImageHead)对 SVG 读的是**全文**,
+ * 这里不再对输入长度做假设。解析不出尺寸时返回 null(交给调用方放行)——
  * 没有 width/height 也没有 viewBox 的 SVG 会按容器默认尺寸渲染,不会爆内存。
  *
  * @param {string} text SVG 文本(文件前若干 KB 即可)
@@ -212,7 +222,7 @@ export function readImageSize(bytes) {
  * 会走 PNG/JPEG 分支、解析不出尺寸,等于对 SVG 完全失去像素门控 ——
  * 一个几 KB 的 `width="50000"` SVG 就能解出上百亿像素。
  *
- * @param {Uint8Array|ArrayBuffer|string} bytes 文件前若干 KB;SVG 传文本
+ * @param {Uint8Array|ArrayBuffer|string} bytes 文件内容;SVG 传全文文本
  * @returns {null|'tooManyPixels'} null 表示通过
  */
 export function checkImagePixels(bytes, { maxPixels = MAX_IMAGE_PIXELS } = {}) {

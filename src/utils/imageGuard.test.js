@@ -274,6 +274,18 @@ describe('isSvgFile / readImageHead', () => {
     expect(pngHead).toBeInstanceOf(Uint8Array)
   })
 
+  it('根标签被超长注释推到 64KB 之外的 SVG 也能量出尺寸(只读头部会被绕过)', async () => {
+    // 恶意文件可以在 <svg> 前垫 70KB 注释:旧实现只读前 64KB,头部里没有
+    // 根标签 → readSvgSize 返回 null → 像素门控放行 → 解码按声明的
+    // 50000×50000 分配位图直接 OOM。SVG 必须读全文。
+    const padded = `<!--${'x'.repeat(70000)}-->\n<svg width="50000" height="50000"></svg>`
+    expect(padded.length).toBeGreaterThan(65536)
+
+    const head = await readImageHead(makeFile(padded))
+    expect(typeof head).toBe('string')
+    expect(checkImagePixels(head)).toBe('tooManyPixels')
+  })
+
   it('读失败返回 null(调用方放行,不阻断)', async () => {
     expect(await readImageHead({ slice: () => { throw new Error('boom') } })).toBeNull()
   })

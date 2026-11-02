@@ -369,8 +369,9 @@ export default function ImageQuantizer({ onApply, onClose }) {
       return
     }
     let pixelCode = null
-    // 只需文件头:PNG 的 IHDR 与绝大多数 JPEG 的 SOF 都在前 64KB 内;
-    // SVG 读成文本才能拿到根元素尺寸(几 KB 的 SVG 可以声明上万像素)
+    // PNG/JPEG 只需文件头:IHDR 与绝大多数 JPEG 的 SOF 都在前 64KB 内;
+    // SVG 读成全文文本才能拿到根元素尺寸(几 KB 的 SVG 可以声明上万像素,
+    // 且根标签前可以塞超长注释把标签推到头部之外)
     const head = await readImageHead(file)
     if (head) pixelCode = checkImagePixels(head)
     if (pixelCode) {
