@@ -74,7 +74,32 @@ const AVATAR_STORAGE_PATH = '/storage/v1/object/public/avatars/'
  * - 历史数据里存的是直连域名,代理生效后改写为同源基址,否则受限网络下加载不出来
  */
 export function toStorageUrl(raw, currentBase = SUPABASE_URL, directBase = SUPABASE_DIRECT_URL) {
-  if (typeof raw !== 'string' || !raw.includes(AVATAR_STORAGE_PATH)) return null
-  const base = [currentBase, directBase].filter(Boolean).find((b) => raw.startsWith(b))
-  return base ? `${currentBase}${raw.slice(base.length)}` : null
+  if (typeof raw !== 'string' || !currentBase) return null
+  // 用解析后的 origin 比较,而不是 startsWith:a.b.supabase.co.evil.example
+  // 同样以配置基址开头,前缀匹配会把外部域名当成自家存储。
+  let parsed
+  try {
+    parsed = new URL(raw)
+  } catch {
+    return null
+  }
+  const bases = [currentBase, directBase]
+    .filter(Boolean)
+    .map((base) => {
+      try {
+        const u = new URL(base)
+        return { origin: u.origin, path: u.pathname.replace(/\/+$/, '') }
+      } catch {
+        return null
+      }
+    })
+    .filter(Boolean)
+  const matched = bases.find(
+    (b) => b.origin === parsed.origin && (parsed.pathname === b.path || parsed.pathname.startsWith(`${b.path}/`)),
+  )
+  if (!matched) return null
+  // 基址本身可能带路径(同域代理的 /sb),先剥掉再判定 avatars 公共路径。
+  const rest = parsed.pathname.slice(matched.path.length)
+  if (!rest.startsWith(AVATAR_STORAGE_PATH)) return null
+  return `${currentBase.replace(/\/+$/, '')}${rest}${parsed.search}`
 }

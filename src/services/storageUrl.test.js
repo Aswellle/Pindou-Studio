@@ -53,6 +53,12 @@ describe('toStorageUrl', () => {
     expect(toStorageUrl(`https://evil.example.com/avatars/x.webp`, proxied, SUPABASE)).toBeNull()
   })
 
+  it('拒绝以配置域名为前缀的外部域名(前缀匹配会放行,origin 比较不会)', () => {
+    const lookalike = `https://gcpjxxxx.supabase.co.evil.example${AVATAR_PATH}`
+    expect(toStorageUrl(lookalike, proxied, SUPABASE)).toBeNull()
+    expect(toStorageUrl(lookalike, SUPABASE, SUPABASE)).toBeNull()
+  })
+
   it('拒绝非 avatars 公共路径与脏值', () => {
     expect(toStorageUrl(`${SUPABASE}/storage/v1/object/private/avatars/x.webp`, proxied, SUPABASE)).toBeNull()
     expect(toStorageUrl(`${SUPABASE}/rest/v1/templates`, proxied, SUPABASE)).toBeNull()
