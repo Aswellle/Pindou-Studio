@@ -3,11 +3,23 @@ import { createPortal } from 'react-dom'
 import { useTranslation } from 'react-i18next'
 import { useDialogA11y } from '../hooks/useDialogA11y'
 import { getPalette } from '../data/palettes'
-import { createPatternDocument, calculateColorStats, createBrandColorResolver } from '../services/export/PatternDocument'
+import {
+  createPatternDocument,
+  calculateColorStats,
+  createBrandColorResolver,
+} from '../services/export/PatternDocument'
 import { renderPatternDocumentToPNG } from '../services/export/RasterRenderer'
 import { renderPatternDocumentToSVG, svgStringToBlob } from '../services/export/VectorRenderer'
+import { renderIroningEffect } from '../services/export/IroningEffectRenderer'
+import { getIroningEffectPreset } from '../services/export/ironingEffectPresets'
+import IroningEffectSection from './export/IroningEffectSection'
 import { resolveToHex } from '../services/colorUtils'
-import { exportAsPNG, exportAsSVG, createScaledCanvas, calculatePhysicalSize } from '../services/BeadPatternExporter'
+import {
+  exportAsPNG,
+  exportAsSVG,
+  createScaledCanvas,
+  calculatePhysicalSize,
+} from '../services/BeadPatternExporter'
 import { canvasToLegacyWork } from '../services/project/adapters'
 import { legacyWorkToProject } from '../services/project/adapters'
 import { projectToFileText, projectFileName, downloadProjectFile } from '../services/project/exportProject'
@@ -26,8 +38,26 @@ const QUALITY_PRESETS = {
 }
 const QUALITY_ORDER = ['screen', 'high', 'print']
 
+/**
+ * 文件名片段净化:作品名来自用户输入,替换各平台文件名非法字符
+ * (Windows 保留字符 + 控制字符),并去掉结尾的空白/点(Windows 不允许)。
+ */
+function sanitizeFileNamePart(part) {
+  const cleaned = String(part || '')
+    .replace(/[\\/:*?"<>|\u0000-\u001f]+/g, ' ')
+    .trim()
+    .replace(/[\s.]+$/g, '')
+  return cleaned || 'pattern'
+}
+
 export default function ExportPanel({
-  canvasData, gridSize, gridWidth, gridHeight, designName, paletteId = 'perler', onClose,
+  canvasData,
+  gridSize,
+  gridWidth,
+  gridHeight,
+  designName,
+  paletteId = 'perler',
+  onClose,
   // 规格 05 §3:只有用户主动开启「导出后记账」才扣减库存;默认关闭
   deductInventory = false,
   onToggleDeductInventory,
@@ -106,7 +136,6 @@ export default function ExportPanel({
     setExportError(null)
     setScaleInfo(null) // 每次导出重置:上一次的降级提示不能留在这一次
     try {
-
       // V2 导出路径 (PatternDocument → RasterRenderer):分帧 + 可取消
       if (useExportV2) {
         const doc = createPatternDocument({
@@ -186,12 +215,7 @@ export default function ExportPanel({
           if (hex) {
             ctx.fillStyle = hex
             ctx.beginPath()
-            ctx.arc(
-              x * CELL_SIZE + CELL_SIZE / 2,
-              y * CELL_SIZE + CELL_SIZE / 2,
-              BEAD_RADIUS,
-              0, Math.PI * 2
-            )
+            ctx.arc(x * CELL_SIZE + CELL_SIZE / 2, y * CELL_SIZE + CELL_SIZE / 2, BEAD_RADIUS, 0, Math.PI * 2)
             ctx.fill()
           }
           if (++drawn % BATCH === 0) await new Promise(r => requestAnimationFrame(r))
@@ -200,8 +224,8 @@ export default function ExportPanel({
 
       setExportInfo(`${canvas.width}×${canvas.height}`)
       // toBlob 替代 toDataURL:高 scale 大画布时避免 base64 内存峰值翻倍
-      const blob = await new Promise((resolve) => {
-        canvas.toBlob((b) => resolve(b), 'image/png')
+      const blob = await new Promise(resolve => {
+        canvas.toBlob(b => resolve(b), 'image/png')
       })
       if (!blob) throw new Error('PNG encoding failed')
       const url = URL.createObjectURL(blob)
@@ -250,7 +274,7 @@ export default function ExportPanel({
     // 列编号
     text += '   '
     for (let x = 0; x < actualWidth; x++) {
-      text += String.fromCharCode(65 + (x % 26))  // A, B, C... 循环
+      text += String.fromCharCode(65 + (x % 26)) // A, B, C... 循环
     }
     text += '\n'
 
@@ -382,7 +406,7 @@ export default function ExportPanel({
         signal: abortCtrl.signal,
         onProgress: (_phase, pct) => setExportProgress(Math.round(pct * 100)),
         onResolution: (w, h) => setExportInfo(`${w}×${h}`),
-        onScale: (actual, requested) => setScaleInfo(actual < requested ? { actual, requested } : null)
+        onScale: (actual, requested) => setScaleInfo(actual < requested ? { actual, requested } : null),
       })
       markExportOk()
     } catch (err) {
@@ -402,6 +426,54 @@ export default function ExportPanel({
     markExportOk()
   }
 
+  // ── 高级熨烫效果导出 ─────────────────────────────────────
+  // 独立于图纸导出链路:只产出效果图,不经过 markExportOk/notifyExported,
+  // 因此永远不会触发 onExportComplete(库存记账只针对图纸导出)。
+  const handleExportIroningEffect = async presetId => {
+    if (!canvasData || isExporting) return
+    setIsExporting(true)
+    setExportProgress(0)
+    setExportError(null)
+    setScaleInfo(null)
+    setExportInfo('')
+    try {
+      const doc = createPatternDocument({
+        canvasData,
+        gridSize,
+        gridWidth,
+        gridHeight,
+        paletteId,
+        designName: effectiveName,
+      })
+      const abortCtrl = new AbortController()
+      exportAbortRef.current = abortCtrl
+      const { blob } = await renderIroningEffect(doc, {
+        presetId,
+        mode: 'export',
+        quality,
+        signal: abortCtrl.signal,
+        onProgress: setExportProgress,
+        onResolution: (w, h) => setExportInfo(`${w}×${h}`),
+        onScale: (actual, requested) => setScaleInfo(actual < requested ? { actual, requested } : null),
+      })
+      const materialLabel = t(getIroningEffectPreset(presetId).labelKey)
+      const url = URL.createObjectURL(blob)
+      const link = document.createElement('a')
+      link.download = `${sanitizeFileNamePart(effectiveName)}-${t('export.ironing.title')}-${materialLabel}-${actualWidth}x${actualHeight}.png`
+      link.href = url
+      link.click()
+      setTimeout(() => URL.revokeObjectURL(url), 1000)
+    } catch (err) {
+      if (err?.name === 'AbortError') return // 组件卸载取消,非错误
+      console.error('Ironing effect export failed:', err)
+      setExportError(t('export.exportFailed'))
+    } finally {
+      exportAbortRef.current = null
+      setIsExporting(false)
+      setExportProgress(0)
+    }
+  }
+
   // ── 导出确认流程:空画布拦截 + 有内容时确认 ──────────────
   const [confirmExport, setConfirmExport] = useState(null) // { type: 'empty' } | { type: 'confirm', label, handler }
 
@@ -415,14 +487,16 @@ export default function ExportPanel({
   // 导出成功后回调父组件(用于库存扣减);只有导出真正完成才触发
   // 导出成功标记:各 handler 内部 catch 错误后正常返回,不能靠 promise 是否 resolve 判断
   const exportOkRef = useRef(false)
-  const markExportOk = () => { exportOkRef.current = true }
+  const markExportOk = () => {
+    exportOkRef.current = true
+  }
   const notifyExported = () => {
     if (!exportOkRef.current) return
     exportOkRef.current = false
     onExportComplete?.()
   }
-  const hasPaintedCells = useMemo(() =>
-    canvasData?.some(row => row.some(cell => cell)) || false,
+  const hasPaintedCells = useMemo(
+    () => canvasData?.some(row => row.some(cell => cell)) || false,
     [canvasData]
   )
 
@@ -436,20 +510,16 @@ export default function ExportPanel({
   }
 
   // 专业图纸当前风格名称(用于确认框展示)
-  const currentStyleName = beadStyle === 'professional'
-    ? t('gallery.exportProfessional')
-    : t('gallery.exportRealistic')
+  const currentStyleName =
+    beadStyle === 'professional' ? t('gallery.exportProfessional') : t('gallery.exportRealistic')
 
   const panel = (
     <div className="export-panel" ref={panelRef}>
-      <button
-        className="export-toggle"
-        onClick={() => setShowExport(!showExport)}
-      >
+      <button className="export-toggle" onClick={() => setShowExport(!showExport)}>
         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-          <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
-          <polyline points="7,10 12,15 17,10"/>
-          <line x1="12" y1="15" x2="12" y2="3"/>
+          <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+          <polyline points="7,10 12,15 17,10" />
+          <line x1="12" y1="15" x2="12" y2="3" />
         </svg>
         {t('export.title')}
         {!isModal && <span className={`arrow ${showExport ? 'up' : ''}`}>▼</span>}
@@ -458,11 +528,14 @@ export default function ExportPanel({
             className="export-modal-close"
             role="button"
             aria-label={t('common.close')}
-            onClick={(e) => { e.stopPropagation(); onClose() }}
+            onClick={e => {
+              e.stopPropagation()
+              onClose()
+            }}
           >
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <line x1="18" y1="6" x2="6" y2="18"/>
-              <line x1="6" y1="6" x2="18" y2="18"/>
+              <line x1="18" y1="6" x2="6" y2="18" />
+              <line x1="6" y1="6" x2="18" y2="18" />
             </svg>
           </span>
         )}
@@ -476,38 +549,86 @@ export default function ExportPanel({
               <span className="section-hint">{t('export.quickSectionHint')}</span>
             </div>
             <div className="export-buttons">
-              <button onClick={() => requestExport(t('export.png'), t('export.pngDesc'), null, handleExportImage)} className="btn btn-secondary" disabled={isExporting}>
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                  <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
-                  <circle cx="8.5" cy="8.5" r="1.5"/>
-                  <polyline points="21,15 16,10 5,21"/>
+              <button
+                onClick={() => requestExport(t('export.png'), t('export.pngDesc'), null, handleExportImage)}
+                className="btn btn-secondary"
+                disabled={isExporting}
+              >
+                <svg
+                  width="16"
+                  height="16"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                >
+                  <rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
+                  <circle cx="8.5" cy="8.5" r="1.5" />
+                  <polyline points="21,15 16,10 5,21" />
                 </svg>
                 {t('export.png')}
               </button>
-              <button onClick={() => requestExport(t('export.svg'), t('export.svgDesc'), null, handleExportSVG)} className="btn btn-secondary">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                  <polygon points="12,2 2,7 12,12 22,7 12,2"/>
-                  <polyline points="2,17 12,22 22,17"/>
-                  <polyline points="2,12 12,17 22,12"/>
+              <button
+                onClick={() => requestExport(t('export.svg'), t('export.svgDesc'), null, handleExportSVG)}
+                className="btn btn-secondary"
+              >
+                <svg
+                  width="16"
+                  height="16"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                >
+                  <polygon points="12,2 2,7 12,12 22,7 12,2" />
+                  <polyline points="2,17 12,22 22,17" />
+                  <polyline points="2,12 12,17 22,12" />
                 </svg>
                 {t('export.svg')}
               </button>
-              <button onClick={() => requestExport(t('export.text'), t('export.textDesc'), null, handleExportText)} className="btn btn-secondary">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                  <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
-                  <polyline points="14,2 14,8 20,8"/>
-                  <line x1="16" y1="13" x2="8" y2="13"/>
-                  <line x1="16" y1="17" x2="8" y2="17"/>
+              <button
+                onClick={() => requestExport(t('export.text'), t('export.textDesc'), null, handleExportText)}
+                className="btn btn-secondary"
+              >
+                <svg
+                  width="16"
+                  height="16"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                >
+                  <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+                  <polyline points="14,2 14,8 20,8" />
+                  <line x1="16" y1="13" x2="8" y2="13" />
+                  <line x1="16" y1="17" x2="8" y2="17" />
                 </svg>
                 {t('export.text')}
               </button>
               {/* 工程文件:可重新导入继续编辑(与 PNG/SVG 成品导出互补) */}
-              <button onClick={() => requestExport(t('export.projectFile'), t('export.projectFileDesc'), null, handleExportProjectFile)} className="btn btn-secondary">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                  <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
-                  <polyline points="14,2 14,8 20,8"/>
-                  <line x1="12" y1="12" x2="12" y2="18"/>
-                  <polyline points="15,15 12,18 9,15"/>
+              <button
+                onClick={() =>
+                  requestExport(
+                    t('export.projectFile'),
+                    t('export.projectFileDesc'),
+                    null,
+                    handleExportProjectFile
+                  )
+                }
+                className="btn btn-secondary"
+              >
+                <svg
+                  width="16"
+                  height="16"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                >
+                  <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+                  <polyline points="14,2 14,8 20,8" />
+                  <line x1="12" y1="12" x2="12" y2="18" />
+                  <polyline points="15,15 12,18 9,15" />
                 </svg>
                 {t('export.projectFile')}
               </button>
@@ -523,18 +644,12 @@ export default function ExportPanel({
             </div>
             <div className="export-style-group">
               <label className="style-label">{t('export.styleLabel')}</label>
-              <select
-                value={beadStyle}
-                onChange={e => setBeadStyle(e.target.value)}
-                className="style-select"
-              >
+              <select value={beadStyle} onChange={e => setBeadStyle(e.target.value)} className="style-select">
                 <option value="professional">{t('gallery.exportProfessional')}</option>
                 <option value="realistic">{t('gallery.exportRealistic')}</option>
               </select>
               <span className="setting-hint">
-                {beadStyle === 'professional'
-                  ? t('export.professionalHint')
-                  : t('export.realisticHint')}
+                {beadStyle === 'professional' ? t('export.professionalHint') : t('export.realisticHint')}
               </span>
             </div>
 
@@ -543,13 +658,11 @@ export default function ExportPanel({
                 降级时下方会显示真实结果,不会假装达标。 */}
             <div className="export-style-group">
               <label className="style-label">{t('export.qualityLabel')}</label>
-              <select
-                value={quality}
-                onChange={e => setQuality(e.target.value)}
-                className="style-select"
-              >
-                {QUALITY_ORDER.map((key) => (
-                  <option key={key} value={key}>{t(QUALITY_PRESETS[key].labelKey)}</option>
+              <select value={quality} onChange={e => setQuality(e.target.value)} className="style-select">
+                {QUALITY_ORDER.map(key => (
+                  <option key={key} value={key}>
+                    {t(QUALITY_PRESETS[key].labelKey)}
+                  </option>
                 ))}
               </select>
               <span className="setting-hint">{t('export.qualityHint')}</span>
@@ -582,19 +695,47 @@ export default function ExportPanel({
               </div>
             )}
             <div className="export-buttons">
-              <button onClick={() => requestExport(t('export.patternSheet'), beadStyle === 'professional' ? t('export.professionalDesc') : t('export.realisticDesc'), currentStyleName, handleExportPatternSheet)} className="btn btn-primary btn-pattern" disabled={isExporting}>
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                  <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
-                  <line x1="3" y1="9" x2="21" y2="9"/>
-                  <line x1="3" y1="15" x2="21" y2="15"/>
-                  <line x1="9" y1="3" x2="9" y2="21"/>
-                  <line x1="15" y1="3" x2="15" y2="21"/>
+              <button
+                onClick={() =>
+                  requestExport(
+                    t('export.patternSheet'),
+                    beadStyle === 'professional' ? t('export.professionalDesc') : t('export.realisticDesc'),
+                    currentStyleName,
+                    handleExportPatternSheet
+                  )
+                }
+                className="btn btn-primary btn-pattern"
+                disabled={isExporting}
+              >
+                <svg
+                  width="16"
+                  height="16"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                >
+                  <rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
+                  <line x1="3" y1="9" x2="21" y2="9" />
+                  <line x1="3" y1="15" x2="21" y2="15" />
+                  <line x1="9" y1="3" x2="9" y2="21" />
+                  <line x1="15" y1="3" x2="15" y2="21" />
                 </svg>
                 {isExporting ? `${t('export.exporting')} ${exportProgress}%` : t('export.patternSheet')}
               </button>
               {isExporting && (
-                <div style={{ height: 4, background: 'var(--bg-tertiary)', borderRadius: 2, margin: '4px 0' }}>
-                  <div style={{ height: '100%', width: `${exportProgress}%`, background: 'var(--secondary-accent)', borderRadius: 2, transition: 'width 0.1s' }} />
+                <div
+                  style={{ height: 4, background: 'var(--bg-tertiary)', borderRadius: 2, margin: '4px 0' }}
+                >
+                  <div
+                    style={{
+                      height: '100%',
+                      width: `${exportProgress}%`,
+                      background: 'var(--secondary-accent)',
+                      borderRadius: 2,
+                      transition: 'width 0.1s',
+                    }}
+                  />
                 </div>
               )}
               {exportError && (
@@ -603,12 +744,23 @@ export default function ExportPanel({
                 </div>
               )}
               {exportInfo && (
-                <div style={{ fontSize: 11, color: 'var(--secondary-accent)', padding: '4px 2px', lineHeight: 1.4 }}>
+                <div
+                  style={{
+                    fontSize: 11,
+                    color: 'var(--secondary-accent)',
+                    padding: '4px 2px',
+                    lineHeight: 1.4,
+                  }}
+                >
                   ✓ {t('export.resolution')}: {exportInfo}
                   {scaleInfo && (
                     /* 规格 09 §4.3:降级必须报告真实结果,不能只显示分辨率假装达标 */
                     <span style={{ color: 'var(--warning)', marginLeft: 6 }}>
-                      · {t('export.scaleDegraded', { actual: scaleInfo.actual, requested: scaleInfo.requested })}
+                      ·{' '}
+                      {t('export.scaleDegraded', {
+                        actual: scaleInfo.actual,
+                        requested: scaleInfo.requested,
+                      })}
                     </span>
                   )}
                 </div>
@@ -622,23 +774,67 @@ export default function ExportPanel({
                 const phys = calculatePhysicalSize(actualWidth, actualHeight, beadSizeMm)
                 return (
                   <div style={{ fontSize: 11, color: 'var(--text-secondary)', padding: '4px 2px' }}>
-                    ✓ {t('export.physicalSize', '物理尺寸')}: {phys.widthMm}×{phys.heightMm}mm ({phys.widthInch}×{phys.heightInch}in)
-                    <span style={{ color: 'var(--text-muted)' }}> · {beadSizeMm}mm/{t('export.beadUnit', '颗')}</span>
+                    ✓ {t('export.physicalSize', '物理尺寸')}: {phys.widthMm}×{phys.heightMm}mm (
+                    {phys.widthInch}×{phys.heightInch}in)
+                    <span style={{ color: 'var(--text-muted)' }}>
+                      {' '}
+                      · {beadSizeMm}mm/{t('export.beadUnit', '颗')}
+                    </span>
                   </div>
                 )
               })()}
-              <button onClick={() => requestExport(t('export.patternSheetSVG'), beadStyle === 'professional' ? t('export.professionalDesc') : t('export.realisticDesc'), currentStyleName, handleExportPatternSheetSVG)} className="btn btn-secondary">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                  <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
-                  <line x1="3" y1="9" x2="21" y2="9"/>
-                  <line x1="3" y1="15" x2="21" y2="15"/>
-                  <line x1="9" y1="3" x2="9" y2="21"/>
-                  <line x1="15" y1="3" x2="15" y2="21"/>
+              <button
+                onClick={() =>
+                  requestExport(
+                    t('export.patternSheetSVG'),
+                    beadStyle === 'professional' ? t('export.professionalDesc') : t('export.realisticDesc'),
+                    currentStyleName,
+                    handleExportPatternSheetSVG
+                  )
+                }
+                className="btn btn-secondary"
+              >
+                <svg
+                  width="16"
+                  height="16"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                >
+                  <rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
+                  <line x1="3" y1="9" x2="21" y2="9" />
+                  <line x1="3" y1="15" x2="21" y2="15" />
+                  <line x1="9" y1="3" x2="9" y2="21" />
+                  <line x1="15" y1="3" x2="15" y2="21" />
                 </svg>
                 {t('export.patternSheetSVG')}
               </button>
             </div>
           </div>
+
+          {/* 高级熨烫效果:成品效果模拟(规格 08 §4)。默认折叠;
+              预览与导出共用同一渲染器,只产出效果图、不走库存记账。 */}
+          <div className="export-divider" />
+
+          <IroningEffectSection
+            canvasData={canvasData}
+            gridSize={gridSize}
+            gridWidth={gridWidth}
+            gridHeight={gridHeight}
+            paletteId={paletteId}
+            designName={effectiveName}
+            isExporting={isExporting}
+            onRequestExport={presetId => {
+              const materialLabel = t(getIroningEffectPreset(presetId).labelKey)
+              requestExport(
+                t('export.ironing.exportPng'),
+                t('export.ironing.exportDescription'),
+                materialLabel,
+                () => handleExportIroningEffect(presetId)
+              )
+            }}
+          />
         </div>
       )}
 
@@ -819,7 +1015,12 @@ export default function ExportPanel({
   // ── 导出确认 / 空画布提示 模态框(PC 与移动端共用) ─────────
   const confirmDialog = confirmExport && (
     <div className="modal-overlay export-confirm-overlay" onClick={() => setConfirmExport(null)}>
-      <div className="export-confirm-dialog" ref={confirmRef} {...confirmDialogProps} onClick={e => e.stopPropagation()}>
+      <div
+        className="export-confirm-dialog"
+        ref={confirmRef}
+        {...confirmDialogProps}
+        onClick={e => e.stopPropagation()}
+      >
         {confirmExport.type === 'empty' ? (
           <>
             <div className="export-confirm-icon empty">✕</div>
@@ -945,19 +1146,25 @@ export default function ExportPanel({
     </div>
   )
 
-  if (!isModal) return (
-    <>
-      {panel}
-      {confirmDialog}
-    </>
-  )
+  if (!isModal)
+    return (
+      <>
+        {panel}
+        {confirmDialog}
+      </>
+    )
 
   // portal 到 body:导出浮层含输入项,移出 .app 挂载到 body 下,避免 iOS 上
   // 滚动容器/祖先 stacking context 影响 fixed 定位(键盘弹出错位)
   return createPortal(
     <>
       <div className="modal-overlay" onClick={onClose}>
-        <div className="export-modal-content" ref={modalRef} {...modalDialogProps} onClick={(e) => e.stopPropagation()}>
+        <div
+          className="export-modal-content"
+          ref={modalRef}
+          {...modalDialogProps}
+          onClick={e => e.stopPropagation()}
+        >
           {panel}
         </div>
       </div>

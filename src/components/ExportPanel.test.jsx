@@ -13,7 +13,7 @@ import i18n from '../i18n'
  * 让它在转交真实实现之前先以「被预算降级」的形态回报 onScale。
  */
 const rasterControl = vi.hoisted(() => ({ forcedScale: null, hang: false }))
-vi.mock('../services/export/RasterRenderer', async (importOriginal) => {
+vi.mock('../services/export/RasterRenderer', async importOriginal => {
   const actual = await importOriginal()
   return {
     ...actual,
@@ -28,6 +28,14 @@ vi.mock('../services/export/RasterRenderer', async (importOriginal) => {
     },
   }
 })
+
+// 熨烫效果渲染器整体 mock:组件测试只验证接线(参数/下载/记账隔离),
+// 像素行为由 IroningEffectRenderer 自身的单测与 verify-ironing.mjs 覆盖
+vi.mock('../services/export/IroningEffectRenderer', () => ({
+  renderIroningEffect: vi.fn(),
+}))
+
+import { renderIroningEffect } from '../services/export/IroningEffectRenderer'
 
 /**
  * ExportPanel 组件级回归测试。
@@ -47,17 +55,35 @@ beforeAll(async () => {
 // jsdom 无 canvas 实现:提供可调用的 2D 上下文 + toBlob,并拦截 a.click()
 function installExportMocks() {
   const ctx = {
-    fillStyle: '', strokeStyle: '', lineWidth: 1, font: '', textAlign: '', textBaseline: '',
-    scale: () => {}, fillRect: () => {}, strokeRect: () => {}, beginPath: () => {},
-    closePath: () => {}, moveTo: () => {}, lineTo: () => {}, stroke: () => {},
-    clearRect: () => {}, fillText: () => {}, arc: () => {}, fill: () => {},
-    save: () => {}, restore: () => {}, clip: () => {}, translate: () => {},
-    drawImage: () => {}, setTransform: () => {},
+    fillStyle: '',
+    strokeStyle: '',
+    lineWidth: 1,
+    font: '',
+    textAlign: '',
+    textBaseline: '',
+    scale: () => {},
+    fillRect: () => {},
+    strokeRect: () => {},
+    beginPath: () => {},
+    closePath: () => {},
+    moveTo: () => {},
+    lineTo: () => {},
+    stroke: () => {},
+    clearRect: () => {},
+    fillText: () => {},
+    arc: () => {},
+    fill: () => {},
+    save: () => {},
+    restore: () => {},
+    clip: () => {},
+    translate: () => {},
+    drawImage: () => {},
+    setTransform: () => {},
     createRadialGradient: () => ({ addColorStop: () => {} }),
     getImageData: () => ({ data: new Uint8ClampedArray(4) }),
   }
   const getContextSpy = vi.spyOn(HTMLCanvasElement.prototype, 'getContext').mockImplementation(() => ctx)
-  const toBlobSpy = vi.spyOn(HTMLCanvasElement.prototype, 'toBlob').mockImplementation((cb) => {
+  const toBlobSpy = vi.spyOn(HTMLCanvasElement.prototype, 'toBlob').mockImplementation(cb => {
     cb(new Blob(['png'], { type: 'image/png' }))
   })
   // jsdom 点击 <a download> 会尝试导航并打印 "Not implemented"
@@ -89,7 +115,7 @@ const CANVAS_DATA = [
   [null, '#F2F2F2'],
 ]
 
-function setup() {
+function setup(overrides = {}) {
   return render(
     <ExportPanel
       canvasData={CANVAS_DATA}
@@ -99,6 +125,7 @@ function setup() {
       designName="测试图纸"
       paletteId="perler"
       onClose={() => {}}
+      {...overrides}
     />
   )
 }
@@ -112,7 +139,16 @@ function requestQuickExport(labelText) {
 }
 
 let mock
-beforeEach(() => { mock = installExportMocks() })
+beforeEach(() => {
+  mock = installExportMocks()
+  renderIroningEffect.mockReset().mockResolvedValue({
+    blob: new Blob(['png'], { type: 'image/png' }),
+    width: 96,
+    height: 84,
+    actualScale: 6,
+    requestedScale: 6,
+  })
+})
 afterEach(() => {
   cleanup()
   mock.restore()
@@ -183,7 +219,7 @@ describe('导出成功回调(库存扣减的触发点)', () => {
     requestQuickExport('PNG 图片')
     await waitFor(() => expect(onExportComplete).toHaveBeenCalledTimes(1))
     // 再等一拍,确认没有重复触发(确认框关闭/状态更新不会再回调)
-    await new Promise((r) => setTimeout(r, 20))
+    await new Promise(r => setTimeout(r, 20))
     expect(onExportComplete).toHaveBeenCalledTimes(1)
   })
 
@@ -204,7 +240,7 @@ describe('导出成功回调(库存扣减的触发点)', () => {
     )
     fireEvent.click(screen.getByText('PNG 图片'))
     fireEvent.click(document.querySelector('.export-confirm-overlay'))
-    await new Promise((r) => setTimeout(r, 20))
+    await new Promise(r => setTimeout(r, 20))
     expect(onExportComplete).not.toHaveBeenCalled()
   })
 
@@ -212,7 +248,10 @@ describe('导出成功回调(库存扣减的触发点)', () => {
     const onExportComplete = vi.fn()
     render(
       <ExportPanel
-        canvasData={[[null, null], [null, null]]}
+        canvasData={[
+          [null, null],
+          [null, null],
+        ]}
         gridSize={2}
         gridWidth={2}
         gridHeight={2}
@@ -225,7 +264,7 @@ describe('导出成功回调(库存扣减的触发点)', () => {
     )
     fireEvent.click(screen.getByText('PNG 图片'))
     // 空画布走「empty」确认框,没有导出动作
-    await new Promise((r) => setTimeout(r, 20))
+    await new Promise(r => setTimeout(r, 20))
     expect(onExportComplete).not.toHaveBeenCalled()
   })
 
@@ -310,17 +349,18 @@ describe('导出确认框的关闭语义', () => {
 
 describe('物理尺寸按品牌珠径计算(规格 09 §5)', () => {
   // 29×29 Perler(5mm/颗)= 145mm;此前固定按 2.6mm 算成 75.4mm
-  const renderWithPalette = (paletteId) => render(
-    <ExportPanel
-      canvasData={CANVAS_DATA}
-      gridSize={29}
-      gridWidth={29}
-      gridHeight={29}
-      designName="物理尺寸测试"
-      paletteId={paletteId}
-      onClose={() => {}}
-    />
-  )
+  const renderWithPalette = paletteId =>
+    render(
+      <ExportPanel
+        canvasData={CANVAS_DATA}
+        gridSize={29}
+        gridWidth={29}
+        gridHeight={29}
+        designName="物理尺寸测试"
+        paletteId={paletteId}
+        onClose={() => {}}
+      />
+    )
 
   // 注意:传了 onClose 的实例是移动端 modal,会 portal 到 document.body,
   // 不在 render() 返回的 container 里 —— 断言必须查 document.body。
@@ -388,5 +428,85 @@ describe('超采样降级反馈(规格 09 §4.3)', () => {
     requestQuickExport('PNG 图片')
     await waitFor(() => expect(mock.createObjectURL).toHaveBeenCalled())
     expect(document.body.textContent).toMatch(/实际 ×2/)
+  })
+})
+
+describe('高级熨烫效果接入', () => {
+  // 展开高级熨烫效果区块(默认折叠),等待预览渲染请求发出
+  async function expandIroningSection() {
+    fireEvent.click(screen.getByRole('button', { name: /高级熨烫效果/ }))
+    await waitFor(() => expect(renderIroningEffect).toHaveBeenCalled())
+  }
+
+  it('默认折叠;展开后出现六个材质选项且预览走 preview 模式', async () => {
+    setup()
+    expect(renderIroningEffect).not.toHaveBeenCalled()
+    await expandIroningSection()
+    expect(screen.getByRole('button', { name: '无孔烫' }).getAttribute('aria-pressed')).toBe('false')
+    expect(screen.getByRole('button', { name: '麻布烫' }).getAttribute('aria-pressed')).toBe('true')
+    for (const call of renderIroningEffect.mock.calls) {
+      expect(call[1].mode).toBe('preview')
+    }
+  })
+
+  it('熨烫效果导出:走确认流程、以 export 模式调用渲染器并触发下载', async () => {
+    setup()
+    await expandIroningSection()
+    fireEvent.click(screen.getByRole('button', { name: /导出熨烫效果 PNG/ }))
+    const confirmBtn = document.querySelector('.export-confirm-actions .btn-primary')
+    expect(confirmBtn).toBeTruthy()
+    fireEvent.click(confirmBtn)
+
+    await waitFor(() =>
+      expect(renderIroningEffect).toHaveBeenCalledWith(
+        expect.anything(),
+        expect.objectContaining({ presetId: 'linen', mode: 'export', quality: 'screen' })
+      )
+    )
+    await waitFor(() => expect(mock.createObjectURL).toHaveBeenCalled())
+    expect(screen.queryByText(/导出失败/)).toBeNull()
+  })
+
+  it('熨烫效果导出从不触发库存记账回调(onExportComplete 不被调用)', async () => {
+    const onExportComplete = vi.fn()
+    setup({ onExportComplete })
+    await expandIroningSection()
+    fireEvent.click(screen.getByRole('button', { name: /导出熨烫效果 PNG/ }))
+    fireEvent.click(document.querySelector('.export-confirm-actions .btn-primary'))
+    await waitFor(() => expect(mock.createObjectURL).toHaveBeenCalled())
+    // handler 已 resolve(notifyExported 的触发时机),但未 markExportOk → 不回调
+    await waitFor(() =>
+      expect(renderIroningEffect.mock.calls.some(([, opts]) => opts.mode === 'export')).toBe(true)
+    )
+    expect(onExportComplete).not.toHaveBeenCalled()
+  })
+
+  it('导出文件名为「作品名-高级熨烫效果-材质-宽x高.png」且净化非法字符', async () => {
+    setup({ designName: '我的<图纸>:"A*?"' })
+    const createSpy = vi.spyOn(document, 'createElement')
+    await expandIroningSection()
+    fireEvent.click(screen.getByRole('button', { name: /导出熨烫效果 PNG/ }))
+    fireEvent.click(document.querySelector('.export-confirm-actions .btn-primary'))
+    await waitFor(() => expect(mock.createObjectURL).toHaveBeenCalled())
+    const anchors = createSpy.mock.results.map(r => r.value).filter(el => el instanceof HTMLAnchorElement)
+    const ironingAnchor = anchors.find(el => el.download.includes('高级熨烫效果'))
+    expect(ironingAnchor).toBeTruthy()
+    expect(ironingAnchor.download).toBe('我的 图纸 A-高级熨烫效果-麻布烫-2x2.png')
+    createSpy.mockRestore()
+  })
+
+  it('切换材质后导出,文件名与渲染参数都跟随所选材质', async () => {
+    setup()
+    await expandIroningSection()
+    fireEvent.click(screen.getByRole('button', { name: '粗闪烫' }))
+    fireEvent.click(screen.getByRole('button', { name: /导出熨烫效果 PNG/ }))
+    fireEvent.click(document.querySelector('.export-confirm-actions .btn-primary'))
+    await waitFor(() =>
+      expect(renderIroningEffect).toHaveBeenCalledWith(
+        expect.anything(),
+        expect.objectContaining({ presetId: 'coarse-glitter', mode: 'export' })
+      )
+    )
+    expect(document.body.textContent).toContain('粗闪烫')
   })
 })
