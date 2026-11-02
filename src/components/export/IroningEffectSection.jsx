@@ -73,6 +73,7 @@ export default function IroningEffectSection({
   )
 
   // 预览渲染:展开 + 材质/图纸变化 → 防抖后渲染;切换/卸载取消进行中的渲染
+  // biome-ignore lint/correctness/useExhaustiveDependencies: retryNonce 是「重试」触发器,刻意不参与渲染参数
   useEffect(() => {
     if (!expanded) {
       setPreviewState('idle')

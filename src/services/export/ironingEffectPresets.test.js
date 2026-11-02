@@ -72,9 +72,8 @@ describe('ironingEffectPresets · 预设契约', () => {
     const preset = getIroningEffectPreset('towel')
     expect(Object.isFrozen(preset)).toBe(true)
     expect(Object.isFrozen(preset.sparkleSize)).toBe(true)
-    // 严格模式下改写冻结对象抛 TypeError(模块默认严格);至少值不得变
+    // ESM 模块代码本身就是严格模式:改写冻结对象抛 TypeError;至少值不得变
     expect(() => {
-      'use strict'
       preset.roughness = 0.01
     }).toThrow()
     expect(getIroningEffectPreset('towel').roughness).not.toBe(0.01)
