@@ -101,8 +101,13 @@ Deno.serve(async (req) => {
     return json({ ok: false, reason: 'invalid_participant' }, 400)
   }
   const email = emailRaw === '' ? null : emailRaw
-  if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-    return json({ ok: false, reason: 'invalid_email' }, 400)
+  if (email) {
+    // 长度上限:RFC 5321 允许的最长地址是 254 字符;前端输入框限 120,
+    // 服务端不设上限的话,超长字符串会原样落库
+    if (email.length > 254) return json({ ok: false, reason: 'invalid_email' }, 400)
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      return json({ ok: false, reason: 'invalid_email' }, 400)
+    }
   }
 
   // Turnstile token 一次性:仅当本次带了 token 才校验(消费它);不带 token 时
@@ -110,10 +115,14 @@ Deno.serve(async (req) => {
   const rawToken = String(body?.token || '')
   let verifiedNow = false
   if (rawToken) {
+    // remoteip 是 siteverify 的可选一致性信号。x-forwarded-for 采用
+    // **最后一个**条目:代理网关把真实客户端 IP 追加在链尾,最左边的
+    // 条目是客户端自己带的、可以随意伪造 —— 取左边等于把伪造值交给
+    // Cloudflare 校验。cf-connecting-ip 存在时(前置 CF)优先用它。
+    const xff = req.headers.get('x-forwarded-for')
     const remoteIp =
       req.headers.get('cf-connecting-ip') ||
-      req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ||
-      undefined
+      (xff ? xff.split(',').map((s) => s.trim()).filter(Boolean).pop() : undefined)
     verifiedNow = await verifyTurnstile(rawToken, remoteIp)
     if (!verifiedNow) return json({ ok: false, reason: 'captcha_failed' }, 400)
   }
