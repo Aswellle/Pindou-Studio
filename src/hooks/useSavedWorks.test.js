@@ -29,6 +29,11 @@ const blank = (w, h) => Array.from({ length: h }, () => Array.from({ length: w }
  * 不能只等 worksLoading 变 false:它初值是 true,但异步链(迁移 → 读库)
  * 跨多个微任务,waitFor 的轮询可能在 setWorks 生效之前就看到 false。
  * 这里显式把整个异步链推完再断言。
+ *
+ * 满载并行时(全量测试套件),迁移写库可能落后 loading 落地不止一个宏任务,
+ * 单个 setTimeout tick 不够 —— 改为轮询直到连续两次采样 works 数量一致
+ * (works 数稳定 = 异步链推完)。期望空列表的用例会在两个 tick 后稳定退出,
+ * 与旧行为等价。
  */
 const waitForLoad = async (result) => {
   await act(async () => {
@@ -39,7 +44,13 @@ const waitForLoad = async (result) => {
     await new Promise((r) => setTimeout(r, 0))
   })
   await waitFor(() => expect(result.current.worksLoading).toBe(false))
-  await act(async () => { await new Promise((r) => setTimeout(r, 0)) })
+  let prev = null
+  for (let i = 0; i < 10; i++) {
+    await act(async () => { await new Promise((r) => setTimeout(r, 0)) })
+    const count = String(result.current.works.length)
+    if (prev === count) break
+    prev = count
+  }
 }
 
 /**
