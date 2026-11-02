@@ -116,6 +116,13 @@ const dedupKey = (w) => `${w.savedAt}|${w.name}`
  * - 登出 / 未登录 / 云端未配置时:回到本机模式(原有行为)。
  * - cloudMirrorCount:最近一次登录态下的云端作品数(登出后空态提示用)。
  */
+/** 创建可手动完成的 Promise:云端迁移要等本机装载结束(见 useSavedWorks) */
+function createDeferred() {
+  let resolve
+  const promise = new Promise((r) => { resolve = r })
+  return { promise, resolve }
+}
+
 export function useSavedWorks(user) {
   const toast = useToast()
   const [works, setWorks] = useState([])
@@ -136,9 +143,19 @@ export function useSavedWorks(user) {
 
   const isCloud = useCallback(() => !!user && !!supabase, [user])
 
+  // 本机装载完成信号。云端登录迁移在 listWorks() 前必须等它:
+  // 两个 effect 并发时,云端分支可能在本机旧作品(localStorage)搬进
+  // IndexedDB 之前读到空列表,随后的 clearWorks() 会把还没上传的作品清掉。
+  const localReadyRef = useRef(null)
+  if (localReadyRef.current === null) localReadyRef.current = createDeferred()
+
+  // 登录态切换的上一轮 user id:用于识别「登录 → 登出」的转换
+  // (初始挂载 user 本来就是 null,不算登出)。
+  const prevUserIdRef = useRef(null)
+
   // 本地作品首次加载(IndexedDB 主存;首次运行把 localStorage 旧数据搬过来)。
-  // 这是**唯一**的本地加载入口 —— 登录态 effect 的 else 分支不再重复读,
-  // 否则两个 effect 并发时,先跑完的那个会用空列表覆盖另一个的结果。
+  // 这是**唯一**的本地加载入口 —— 登录态 effect 的 else 分支只在登出转换时
+  // 重读本机,避免两个 effect 并发时互相覆盖。
   useEffect(() => {
     let cancelled = false
     ;(async () => {
@@ -152,6 +169,8 @@ export function useSavedWorks(user) {
         if (!cancelled) setWorks([])
       } finally {
         if (!cancelled) setWorksLoading(false)
+        // 登录迁移可以开始了
+        localReadyRef.current.resolve()
       }
     })()
     return () => { cancelled = true }
@@ -170,6 +189,10 @@ export function useSavedWorks(user) {
   useEffect(() => {
     let cancelled = false
     const cloud = !!user && !!supabase
+    // 登出转换:上一轮还是登录态、这一轮 user 变空。初始挂载 user 本来就
+    // 是 null(会话恢复异步完成),不算登出。
+    const loggingOut = !cloud && prevUserIdRef.current != null
+    prevUserIdRef.current = user?.id || null
     if (cloud) {
       setWorksLoading(true)
       setWorksError(null)
@@ -184,7 +207,11 @@ export function useSavedWorks(user) {
           if (cancelled) return
           const cloudWorks = (data || []).map(rowToWork)
 
-          // 本机作品一次性合并进云端:savedAt+name 去重,upsert 幂等
+          // 本机作品一次性合并进云端:savedAt+name 去重,upsert 幂等。
+          // 必须等首屏的本机装载(含 localStorage 旧数据搬运)完成,
+          // 否则这里读到空列表、后面的 clearWorks() 会丢掉没上传的旧作品。
+          await localReadyRef.current.promise
+          if (cancelled) return
           const local = await listWorks()
           const existing = new Set(cloudWorks.map(dedupKey))
           const seen = new Set()
@@ -232,11 +259,26 @@ export function useSavedWorks(user) {
         }
       })()
     } else {
-      // 登出 / 未登录:本机作品已由首次加载 effect 读好。
-      // 这里只把 loading 收掉,不再重复读库 —— 重复读会在两个 effect
-      // 并发时互相覆盖。
-      setWorksLoading(false)
       setWorksError(null)
+      if (loggingOut) {
+        // 登出:state 里还挂着上一个账号的云端作品列表 —— 共用电脑的
+        // 下一位使用者打开「我的作品」会直接看到。重新读本机作品
+        // (登录迁移已清空本机,通常为空,配合 mirror 计数提示空态)。
+        setWorksLoading(true)
+        ;(async () => {
+          try {
+            const local = await listWorks()
+            if (!cancelled) setWorks(local.map(normalizeLegacyWork))
+          } catch {
+            if (!cancelled) setWorks([])
+          } finally {
+            if (!cancelled) setWorksLoading(false)
+          }
+        })()
+      } else {
+        // 初始挂载:本机作品已由首次加载 effect 读好,只收 loading。
+        setWorksLoading(false)
+      }
     }
     return () => { cancelled = true }
     // 依赖 user?.id:昵称/头像等资料刷新(refreshProfile 生成新对象)不触发重拉

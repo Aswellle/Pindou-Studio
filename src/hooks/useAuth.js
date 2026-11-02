@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import { supabase } from '../services/supabase'
 import { normalizeAuthUser } from '../utils/normalizeAuthUser'
+import { clearDraft } from '../services/project/worksStore'
 
 /**
  * 真实账号体系(Supabase Auth):
@@ -340,12 +341,17 @@ export function useAuth() {
     if (error) throw error
   }, [])
 
-  const logout = useCallback(async () => {    if (supabase) {
+  const logout = useCallback(async () => {
+    if (supabase) {
       const { error } = await supabase.auth.signOut()
       if (error) console.warn('signOut failed:', error.message) // 服务端失败也清本地状态,留可观测信号
     }
     setUser(null)
     setIsAdmin(false)
+    // 共用电脑:自动保存草稿是上个会话未完成的画布(从未上云,只在本机),
+    // 退出后留在 IndexedDB 会让下一位使用者在「恢复草稿」里看到上一位的内容。
+    // 登出即结束这台设备上的会话,草稿随之丢弃;已保存的作品都在云端,不受影响。
+    try { await clearDraft() } catch { /* 清不掉不阻塞登出 */ }
   }, [])
 
   // ── 后台用户管理:删除 / 锁定 / 解锁(仅管理员;服务端 security definer + is_admin 校验,
