@@ -23,8 +23,8 @@ function getSecretKey(): string {
       const keys = JSON.parse(keysRaw)
       const k = keys?.['default']
       if (k) return String(k)
-    } catch (e) {
-      console.warn('[contact-us] 解析 SUPABASE_SECRET_KEYS 失败:', e)
+    } catch {
+      console.warn('[contact-us] 解析 SUPABASE_SECRET_KEYS 失败')
     }
   }
   return Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || ''
@@ -33,9 +33,14 @@ function getSecretKey(): string {
 const verifyTurnstile = async (token: string, remoteIp?: string): Promise<boolean> => {
   const secret = Deno.env.get('TURNSTILE_SECRET_KEY')
   if (!secret) {
-    // 未配置密钥(本地开发):跳过人机验证,交由后端写入。生产必须配置。
-    console.warn('[contact-us] TURNSTILE_SECRET_KEY 未设置,跳过人机验证')
-    return true
+    // 缺配置必须「失败关闭」:把未设置当成验证通过,等于用一次遗漏就
+    // 悄悄关掉了整个防滥用闸门。本地开发需要跳过时显式打开开关。
+    if (Deno.env.get('ALLOW_TURNSTILE_SKIP') === 'true') {
+      console.warn('[contact-us] TURNSTILE_SECRET_KEY 未设置且 ALLOW_TURNSTILE_SKIP=true,仅本地开发跳过')
+      return true
+    }
+    console.error('[contact-us] TURNSTILE_SECRET_KEY 未配置,拒绝请求')
+    return false
   }
   if (!token) return false
   const body = new FormData()
