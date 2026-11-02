@@ -31,6 +31,9 @@ import { templateById } from './discovery'
 import ContentSeo from './components/ContentSeo'
 import './gallery.css'
 
+/** 只接受 CSS 颜色形状的 hex(#RGB / #RRGGBB / #RRGGBBAA),其余形状不进 style */
+const HEX_COLOR_RE = /^#[0-9a-f]{3,8}$/i
+
 export default function PatternDetailPage({ cloudStore, onSaveProject, onLoadTemplate }) {
   const { t } = useTranslation()
   const navigate = useNavigate()
@@ -226,7 +229,14 @@ export default function PatternDetailPage({ cloudStore, onSaveProject, onLoadTem
           <ul className="detail-color-grid">
             {makingInfo.list.map((c) => (
               <li key={c.hex} className="detail-color-item">
-                <span className="detail-color-swatch" style={{ background: c.hex }} aria-hidden="true" />
+                {/* backgroundColor(单值属性)+ hex 形状校验:pattern 数据
+                    经数据库与复制链路流转,残值/畸形串不该原样进 style ——
+                    background 简写属性接受 url(),backgroundColor 只接受颜色 */}
+                <span
+                  className="detail-color-swatch"
+                  style={{ backgroundColor: HEX_COLOR_RE.test(c.hex) ? c.hex : undefined }}
+                  aria-hidden="true"
+                />
                 <span className="detail-color-text">
                   {c.code && <code className="detail-color-code">{c.code}</code>}
                   <span className="detail-color-hex">{c.hex}</span>

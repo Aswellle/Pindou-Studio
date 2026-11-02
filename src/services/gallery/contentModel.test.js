@@ -169,6 +169,18 @@ describe('contentToRow / rowToContent 往返', () => {
     expect(minimal.coverUrl).toBe('')
     expect(minimal.sortOrder).toBe(0)
   })
+
+  it('rowToContent 对不安全/畸形 cover_url 按无封面处理(读取侧兜底)', () => {
+    // 写入路径校验过协议,但直改数据库或未来的写入口不受它约束;
+    // 封面会直接进 <img src>,读取时必须再拦一次
+    expect(rowToContent({ id: 'x', slug: 's', title: 'T', cover_url: 'javascript:alert(1)' }).coverUrl).toBe('')
+    expect(rowToContent({ id: 'x', slug: 's', title: 'T', cover_url: 'data:text/html,x' }).coverUrl).toBe('')
+    expect(rowToContent({ id: 'x', slug: 's', title: 'T', cover_url: 'not a url' }).coverUrl).toBe('')
+    // 合法形状保持原样
+    expect(rowToContent({ id: 'x', slug: 's', title: 'T', cover_url: '/c.png' }).coverUrl).toBe('/c.png')
+    expect(rowToContent({ id: 'x', slug: 's', title: 'T', cover_url: 'https://cdn.example.com/c.png' }).coverUrl)
+      .toBe('https://cdn.example.com/c.png')
+  })
 })
 
 describe('localizedContentText', () => {

@@ -189,7 +189,10 @@ export function rowToContent(row, kind = 'theme') {
     title: row.title,
     description: row.description || '',
     ...(kind === 'collection' ? { curationNote: row.curation_note || '' } : {}),
-    coverUrl: row.cover_url || '',
+    // 封面直接进 <img src>:写入路径(normalizeContentInput)校验过协议,
+    // 但直改数据库 / 未来新增的写入口不受它约束 —— 读取侧再校验一次,
+    // javascript: / data: 这类可执行协议与畸形形状一律按无封面处理。
+    coverUrl: isSafeCoverUrl(row.cover_url) ? row.cover_url : '',
     status: row.status || CONTENT_STATUS.DRAFT,
     isFeatured: !!row.is_featured,
     sortOrder: Number(row.sort_order) || 0,
