@@ -160,7 +160,9 @@ export function ensureSvgSize(text) {
   let patched = attrs
   if (!hasW) patched = patched.replace(/<svg\b/i, `<svg width="${size.width}"`)
   if (!hasH) patched = patched.replace(/<svg\b/i, `<svg height="${size.height}"`)
-  return text.replace(tag[0], patched)
+  // 替换值用函数返回:patched 里可能含 $& / $' 这类序列,
+  // 作为字符串替换值会被当成「匹配内容」展开,把标签改坏。
+  return text.replace(tag[0], () => patched)
 }
 
 /**

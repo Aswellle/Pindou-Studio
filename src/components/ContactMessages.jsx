@@ -125,7 +125,7 @@ export default function ContactMessages() {
       toast(t('admin.contact.replySent'), 'success')
       setReplyState(prev => ({ ...prev, [conv.participantId]: { text: '', busy: false } }))
       await load()
-    } catch {
+    } catch (e) {
       toast(e?.message || t('admin.users.opFailed'), 'error')
       setReplyState(prev => ({ ...prev, [conv.participantId]: { ...prev[conv.participantId], busy: false } }))
     }
