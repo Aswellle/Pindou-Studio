@@ -316,8 +316,8 @@ describe('renderIroningEffect · 绘制行为', () => {
     await render(doc, 'linen')
     const radii = ops.filter(([op]) => op === 'path.arcTo').map(entry => entry[5])
     expect(radii).toHaveLength(4) // 圆角矩形的四个角
-    // 1×1 预览 cellSize 为 12;圆角半径由 edgeRadius 推导
-    const expected = Math.max(0.5, 12 * (0.05 + getIroningEffectPreset('linen').edgeRadius * 0.2))
+    // edgeRadius 是逻辑像素级细圆角:直接取预设值(下限 0.35),不随 cellSize 放大
+    const expected = Math.max(0.35, getIroningEffectPreset('linen').edgeRadius)
     for (const r of radii) expect(r).toBeCloseTo(expected, 5)
   })
 

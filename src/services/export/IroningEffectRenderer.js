@@ -636,9 +636,11 @@ export async function renderIroningEffect(doc, options = {}) {
   // 熨烫后的色块应当彼此熔融贴合,只留发丝级分界。
   const gap = preset.cellGap
   const inset = gap / 2
-  // edgeRadius 控制熔融方块的圆角大小;edgeSoftness 控制边缘融合强度(描边浓度)。
-  // 两者都是 preset 契约的一部分,不能只校验不消费。
-  const blockR = Math.max(0.5, cellSize * (0.05 + preset.edgeRadius * 0.2))
+  // edgeRadius 与 cellGap 同为单位逻辑像素的细圆角(0.42–0.55 px):
+  // 熨烫后的色块是「方形/像素块」,圆角只做边缘柔化。若把它放大成 cellSize 比例,
+  // 四格交界会被圆弧切出可见的底布针孔(满色图案上呈规则亮点)。
+  // edgeSoftness 仍控制边缘融合强度(描边浓度)。
+  const blockR = Math.max(0.35, preset.edgeRadius)
   const cells = grid.cells
   let processed = 0
   const total = grid.width * grid.height
