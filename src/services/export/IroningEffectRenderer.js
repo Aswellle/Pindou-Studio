@@ -603,7 +603,9 @@ export async function renderIroningEffect(doc, options = {}) {
   // 熨烫后的色块应当彼此熔融贴合,只留发丝级分界。
   const gap = preset.cellGap
   const inset = gap / 2
-  const blockR = Math.max(0.5, cellSize * (0.08 + preset.edgeSoftness * 0.22))
+  // edgeRadius 控制熔融方块的圆角大小;edgeSoftness 控制边缘融合强度(描边浓度)。
+  // 两者都是 preset 契约的一部分,不能只校验不消费。
+  const blockR = Math.max(0.5, cellSize * (0.05 + preset.edgeRadius * 0.2))
   const cells = grid.cells
   let processed = 0
   const total = grid.width * grid.height
@@ -623,9 +625,9 @@ export async function renderIroningEffect(doc, options = {}) {
       roundedRectPath(block, px, py, side, side, blockR)
       ctx.fillStyle = cell
       ctx.fill(block)
-      // 方块轮廓:1 逻辑px 的低对比描边,让相邻同色块可分辨(参考图观感)
-      ctx.lineWidth = 1
-      ctx.strokeStyle = 'rgba(0,0,0,0.08)'
+      // 方块轮廓:低对比描边,浓度由 edgeSoftness(边缘融合程度)决定
+      ctx.lineWidth = Math.max(0.5, cellSize * 0.05)
+      ctx.strokeStyle = `rgba(0,0,0,${0.03 + preset.edgeSoftness * 0.14})`
       ctx.stroke(block)
       processed += 1
       if (processed % BATCH_SIZE === 0) {

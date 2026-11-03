@@ -19,6 +19,7 @@ import {
   __resetIroningTileCacheForTests,
 } from './IroningEffectRenderer'
 import { createScaledCanvas } from '../BeadPatternExporter'
+import { getIroningEffectPreset } from './ironingEffectPresets'
 
 // ── 录制基础设施 ────────────────────────────────────────────
 
@@ -307,6 +308,16 @@ describe('renderIroningEffect · 绘制行为', () => {
     const fillCalls = ops.filter(([op]) => op === 'fill')
     // 底板 1 次 + 两个合法色块
     expect(fillCalls).toHaveLength(3)
+  })
+
+  it('edgeRadius 参与方块圆角计算(预设参数不再无消费)', async () => {
+    const doc = makeDoc(1, 1, solid('#3366CC'))
+    await render(doc, 'linen')
+    const radii = ops.filter(([op]) => op === 'path.arcTo').map(entry => entry[5])
+    expect(radii).toHaveLength(4) // 圆角矩形的四个角
+    // 1×1 预览 cellSize 为 12;圆角半径由 edgeRadius 推导
+    const expected = Math.max(0.5, 12 * (0.05 + getIroningEffectPreset('linen').edgeRadius * 0.2))
+    for (const r of radii) expect(r).toBeCloseTo(expected, 5)
   })
 
   it('全空图纸也能渲染(只有底板,无色块)', async () => {
