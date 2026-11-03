@@ -191,6 +191,15 @@ describe('IroningEffectSection · Object URL 生命周期', () => {
     expect(URL.revokeObjectURL).toHaveBeenCalledWith(firstUrl)
   })
 
+  it('折叠区块时立即撤销预览 URL,blob 不常驻', async () => {
+    setup()
+    await expandAndSettle()
+    const url = URL.createObjectURL.mock.results[0].value
+    fireEvent.click(screen.getByRole('button', { name: /高级熨烫/ })) // 收起
+    await waitFor(() => expect(URL.revokeObjectURL).toHaveBeenCalledWith(url))
+    expect(screen.queryByRole('img')).toBeNull()
+  })
+
   it('卸载时撤销最后一个 URL', async () => {
     const { unmount } = render(
       <IroningEffectSection

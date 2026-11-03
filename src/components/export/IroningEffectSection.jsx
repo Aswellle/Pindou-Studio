@@ -48,28 +48,11 @@ export default function IroningEffectSection({
     [canvasData]
   )
 
-  // PatternDocument v2 只读快照:图案变化(含防抖)才重建;渲染器不回写。
-  // 历史作品的品牌色号('P18')在这里归一为 hex —— 渲染器只认 hex,
+  // 历史作品的品牌色号('P18')在构建文档时归一为 hex —— 渲染器只认 hex,
   // 不能把可解析的旧数据当成空格丢掉。
   const palette = useMemo(() => getPalette(paletteId), [paletteId])
-  const doc = useMemo(() => {
-    if (!canvasData) return null
-    try {
-      return createPatternDocument({
-        canvasData: normalizeCellsToHex(canvasData, palette),
-        gridSize,
-        gridWidth,
-        gridHeight,
-        paletteId,
-        designName: designName || '',
-        palette,
-      })
-    } catch {
-      return null
-    }
-  }, [canvasData, gridSize, gridWidth, gridHeight, paletteId, designName, palette])
 
-  // Object URL 生命周期:替换时撤销旧 URL;卸载时撤销最后一个
+  // Object URL 生命周期:替换时撤销旧 URL;卸载、折叠或空态时也撤销。
   const previewUrlRef = useRef(null)
   useEffect(
     () => () => {
@@ -78,15 +61,19 @@ export default function IroningEffectSection({
     []
   )
 
-  // 预览渲染:展开 + 材质/图纸变化 → 防抖后渲染;切换/卸载取消进行中的渲染
+  // 预览渲染:展开 + 材质/图纸变化 → 防抖后构建文档并渲染。
+  // 文档构建放在防抖之后:区块折叠时完全不构建(此前每个提交笔画都会做
+  // 两次全网格扫描,折叠状态下白付成本)。
   // biome-ignore lint/correctness/useExhaustiveDependencies: retryNonce 是「重试」触发器,刻意不参与渲染参数
   useEffect(() => {
-    if (!expanded) {
-      setPreviewState('idle')
-      return undefined
-    }
-    if (!doc || !hasPaintedCells) {
-      setPreviewState('empty')
+    if (!expanded || !hasPaintedCells) {
+      // 折叠或图纸变空:释放旧预览,blob URL 不常驻
+      if (previewUrlRef.current) {
+        URL.revokeObjectURL(previewUrlRef.current)
+        previewUrlRef.current = null
+      }
+      setPreviewUrl(null)
+      setPreviewState(expanded ? 'empty' : 'idle')
       return undefined
     }
     let cancelled = false
@@ -94,6 +81,15 @@ export default function IroningEffectSection({
     setPreviewState('loading')
     const timer = setTimeout(async () => {
       try {
+        const doc = createPatternDocument({
+          canvasData: normalizeCellsToHex(canvasData, palette),
+          gridSize,
+          gridWidth,
+          gridHeight,
+          paletteId,
+          designName: designName || '',
+          palette,
+        })
         const { blob } = await renderIroningEffect(doc, {
           presetId,
           mode: 'preview',
@@ -110,6 +106,11 @@ export default function IroningEffectSection({
         setPreviewState('ready')
       } catch (err) {
         if (err?.name === 'AbortError' || cancelled) return
+        if (previewUrlRef.current) {
+          URL.revokeObjectURL(previewUrlRef.current)
+          previewUrlRef.current = null
+        }
+        setPreviewUrl(null)
         setPreviewState('error')
       }
     }, PREVIEW_DEBOUNCE_MS)
@@ -119,7 +120,19 @@ export default function IroningEffectSection({
       // 已发出的渲染也要中止:大图预览不能在切换材质/关闭区块后继续空转
       controller.abort()
     }
-  }, [expanded, presetId, doc, hasPaintedCells, retryNonce])
+  }, [
+    expanded,
+    presetId,
+    canvasData,
+    gridSize,
+    gridWidth,
+    gridHeight,
+    paletteId,
+    designName,
+    palette,
+    hasPaintedCells,
+    retryNonce,
+  ])
 
   const handleRetry = () => setRetryNonce(n => n + 1)
 
