@@ -681,6 +681,7 @@ export async function renderIroningEffect(doc, options = {}) {
   // 编码大画布可能持续数秒:期间用户关闭面板会 abort,编码完成后必须再检查,
   // 否则调用方会继续创建 URL 并下载一个「已被取消」的文件。
   throwIfAborted(signal)
+  onProgress?.(1)
   return {
     blob,
     width: canvas.width,

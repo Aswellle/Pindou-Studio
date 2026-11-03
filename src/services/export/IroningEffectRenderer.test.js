@@ -340,6 +340,8 @@ describe('renderIroningEffect · 绘制行为', () => {
     expect(result.blob.type).toBe('image/png')
     expect(onProgress.mock.calls.length).toBeGreaterThan(0)
     expect(onProgress.mock.calls[0][0]).toBeLessThanOrEqual(onProgress.mock.calls.at(-1)[0])
+    // 进度以 0–1 回调,结束时必须到 1(UI 换算为 100%)
+    expect(onProgress).toHaveBeenLastCalledWith(1)
   })
 
   it('export 模式把质量映射为请求倍率传给 createScaledCanvas', async () => {

@@ -160,7 +160,7 @@ export default function ExportPanel({
             // 质量预设 → DPI。screen 传 300 走固定 3×(现状不变);
             // high/print 换算成更高倍率(432→6×、576→8×)。
             dpi: QUALITY_PRESETS[quality]?.dpi ?? 300,
-            onProgress: setExportProgress,
+            onProgress: p => setExportProgress(Math.round(p * 100)),
             // 与 V1 路径一致:回传实际导出分辨率,UI 显示确认超采样生效
             onResolution: (w, h) => setExportInfo(`${w}×${h}`),
             // 面积预算降级时把实际倍率带回来(规格 09 §4.3:必须报告真实结果)
@@ -458,7 +458,7 @@ export default function ExportPanel({
         mode: 'export',
         quality,
         signal: abortCtrl.signal,
-        onProgress: setExportProgress,
+        onProgress: p => setExportProgress(Math.round(p * 100)),
         onResolution: (w, h) => setExportInfo(`${w}×${h}`),
         onScale: (actual, requested) => setScaleInfo(actual < requested ? { actual, requested } : null),
       })
