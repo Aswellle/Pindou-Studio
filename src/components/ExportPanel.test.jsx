@@ -98,6 +98,7 @@ function installExportMocks() {
 
   return {
     createObjectURL,
+    click: clickSpy,
     restore() {
       getContextSpy.mockRestore()
       toBlobSpy.mockRestore()
@@ -463,7 +464,7 @@ describe('高级熨烫效果接入', () => {
         expect.objectContaining({ presetId: 'linen', mode: 'export', quality: 'screen' })
       )
     )
-    await waitFor(() => expect(mock.createObjectURL).toHaveBeenCalled())
+    await waitFor(() => expect(mock.click).toHaveBeenCalledTimes(1))
     expect(screen.queryByText(/导出失败/)).toBeNull()
   })
 
@@ -473,7 +474,7 @@ describe('高级熨烫效果接入', () => {
     await expandIroningSection()
     fireEvent.click(screen.getByRole('button', { name: /导出熨烫效果 PNG/ }))
     fireEvent.click(document.querySelector('.export-confirm-actions .btn-primary'))
-    await waitFor(() => expect(mock.createObjectURL).toHaveBeenCalled())
+    await waitFor(() => expect(mock.click).toHaveBeenCalledTimes(1))
     // handler 已 resolve(notifyExported 的触发时机),但未 markExportOk → 不回调
     await waitFor(() =>
       expect(renderIroningEffect.mock.calls.some(([, opts]) => opts.mode === 'export')).toBe(true)
@@ -484,15 +485,38 @@ describe('高级熨烫效果接入', () => {
   it('导出文件名为「作品名-高级熨烫效果-材质-宽x高.png」且净化非法字符', async () => {
     setup({ designName: '我的<图纸>:"A*?"' })
     const createSpy = vi.spyOn(document, 'createElement')
+    try {
+      await expandIroningSection()
+      fireEvent.click(screen.getByRole('button', { name: /导出熨烫效果 PNG/ }))
+      fireEvent.click(document.querySelector('.export-confirm-actions .btn-primary'))
+      await waitFor(() => expect(mock.click).toHaveBeenCalledTimes(1))
+      const anchors = createSpy.mock.results.map(r => r.value).filter(el => el instanceof HTMLAnchorElement)
+      const ironingAnchor = anchors.find(el => el.download.includes('高级熨烫效果'))
+      expect(ironingAnchor).toBeTruthy()
+      expect(ironingAnchor.download).toBe('我的 图纸 A-高级熨烫效果-麻布烫-2x2.png')
+    } finally {
+      createSpy.mockRestore()
+    }
+  })
+
+  it('熨烫导出回报分辨率与倍率降级提示', async () => {
+    renderIroningEffect.mockImplementation(async (_doc, options) => {
+      options.onResolution?.(1200, 960)
+      options.onScale?.(2, 3)
+      return {
+        blob: new Blob(['png'], { type: 'image/png' }),
+        width: 1200,
+        height: 960,
+        actualScale: 2,
+        requestedScale: 3,
+      }
+    })
+    setup()
     await expandIroningSection()
     fireEvent.click(screen.getByRole('button', { name: /导出熨烫效果 PNG/ }))
     fireEvent.click(document.querySelector('.export-confirm-actions .btn-primary'))
-    await waitFor(() => expect(mock.createObjectURL).toHaveBeenCalled())
-    const anchors = createSpy.mock.results.map(r => r.value).filter(el => el instanceof HTMLAnchorElement)
-    const ironingAnchor = anchors.find(el => el.download.includes('高级熨烫效果'))
-    expect(ironingAnchor).toBeTruthy()
-    expect(ironingAnchor.download).toBe('我的 图纸 A-高级熨烫效果-麻布烫-2x2.png')
-    createSpy.mockRestore()
+    await waitFor(() => expect(document.body.textContent).toContain('1200×960'))
+    expect(document.body.textContent).toMatch(/已从 ×3 降级/)
   })
 
   it('切换材质后导出,文件名与渲染参数都跟随所选材质', async () => {
@@ -507,6 +531,6 @@ describe('高级熨烫效果接入', () => {
         expect.objectContaining({ presetId: 'coarse-glitter', mode: 'export' })
       )
     )
-    expect(document.body.textContent).toContain('粗闪烫')
+    expect(screen.getByRole('button', { name: '粗闪烫' }).getAttribute('aria-pressed')).toBe('true')
   })
 })

@@ -266,6 +266,47 @@ describe('IroningEffectSection · 防抖与取消', () => {
     }
   })
 
+  it('旧材质晚返回的预览不会覆盖新材质的结果', async () => {
+    const resolvers = []
+    renderIroningEffect.mockImplementation(
+      () =>
+        new Promise(resolve => {
+          resolvers.push(resolve)
+        })
+    )
+    render(
+      <IroningEffectSection
+        canvasData={CANVAS_DATA}
+        gridSize={3}
+        gridWidth={3}
+        gridHeight={3}
+        designName="测试图纸"
+      />
+    )
+    fireEvent.click(screen.getByRole('button', { name: /高级熨烫/ }))
+    await vi.waitFor(() => expect(renderIroningEffect).toHaveBeenCalledTimes(1), { timeout: 3000 })
+    fireEvent.click(screen.getByRole('button', { name: /毛巾烫/ }))
+    await vi.waitFor(() => expect(renderIroningEffect).toHaveBeenCalledTimes(2), { timeout: 3000 })
+
+    const makeResult = seed => ({
+      blob: new Blob([seed], { type: 'image/png' }),
+      width: 1,
+      height: 1,
+      actualScale: 1,
+      requestedScale: 1,
+    })
+    // 新材质先完成
+    resolvers[1](makeResult('new'))
+    await waitFor(() => expect(URL.createObjectURL).toHaveBeenCalledTimes(1))
+    const newUrl = URL.createObjectURL.mock.results[0].value
+    // 旧材质随后完成:其结果必须被丢弃并撤销 URL,不能覆盖当前预览
+    resolvers[0](makeResult('old'))
+    await waitFor(() => expect(URL.createObjectURL).toHaveBeenCalledTimes(2))
+    const staleUrl = URL.createObjectURL.mock.results[1].value
+    expect(URL.revokeObjectURL).toHaveBeenCalledWith(staleUrl)
+    expect(screen.getByRole('img').getAttribute('src')).toBe(newUrl)
+  })
+
   it('卸载取消进行中的渲染(signal.aborted)', async () => {
     let capturedSignal = null
     renderIroningEffect.mockImplementation((_doc, options) => {
