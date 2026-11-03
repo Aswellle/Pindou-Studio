@@ -13,6 +13,7 @@ import { renderPatternDocumentToSVG, svgStringToBlob } from '../services/export/
 import { renderIroningEffect } from '../services/export/IroningEffectRenderer'
 import { getIroningEffectPreset } from '../services/export/ironingEffectPresets'
 import IroningEffectSection from './export/IroningEffectSection'
+import AuthPromptDialog from './auth/AuthPromptDialog'
 import { resolveToHex, normalizeCellsToHex } from '../services/colorUtils'
 import {
   exportAsPNG,
@@ -66,6 +67,11 @@ export default function ExportPanel({
   deductInventory = false,
   onToggleDeductInventory,
   onExportComplete,
+  // 高级导出守卫:游客只开放屏幕画质;熨烫效果整体需登录。
+  // authEnabled=false(站点未配置账号系统)时不做限制,避免出现无法注册的死胡同。
+  isAuthenticated = false,
+  authEnabled = false,
+  onRequireAuth,
 }) {
   const { t } = useTranslation()
   const effectiveName = designName || t('export.defaultName')
@@ -84,6 +90,14 @@ export default function ExportPanel({
   // 导出质量预设:screen 走现有 3× 超采样(默认),high/print 走 DPI 路径。
   // 只影响 PNG 专业图纸;SVG 是矢量,不需要倍率。
   const [quality, setQuality] = useState('screen')
+  // 游客(且站点启用账号系统)被限制在屏幕画质;高分辨率/打印与熨烫效果引导登录
+  const needsAuth = authEnabled && !isAuthenticated
+  const effectiveQuality = needsAuth ? 'screen' : quality
+  const [authPrompt, setAuthPrompt] = useState(null) // 'quality' | 'ironing' | null
+  // 登录态切换(如退出登录)时把已选的高画质收回,避免状态绕过守卫
+  useEffect(() => {
+    if (needsAuth && quality !== 'screen') setQuality('screen')
+  }, [needsAuth, quality])
   // 导出引擎:V2(PatternDocument 统一渲染,完整 sheet 版式)为默认,
   // 开关保留作为回退旧路径(BeadPatternExporter)的出口
   const [useExportV2, setUseExportV2] = useState(true)
@@ -159,7 +173,7 @@ export default function ExportPanel({
           const blob = await renderPatternDocumentToPNG(doc, {
             // 质量预设 → DPI。screen 传 300 走固定 3×(现状不变);
             // high/print 换算成更高倍率(432→6×、576→8×)。
-            dpi: QUALITY_PRESETS[quality]?.dpi ?? 300,
+            dpi: QUALITY_PRESETS[effectiveQuality]?.dpi ?? 300,
             onProgress: p => setExportProgress(Math.round(p * 100)),
             // 与 V1 路径一致:回传实际导出分辨率,UI 显示确认超采样生效
             onResolution: (w, h) => setExportInfo(`${w}×${h}`),
@@ -406,7 +420,7 @@ export default function ExportPanel({
         gridHeight,
         beadStyle,
         // 质量预设同样作用于完整版式图纸 PNG(否则选了「打印」仍按 3× 出图)
-        dpi: QUALITY_PRESETS[quality]?.dpi ?? 300,
+        dpi: QUALITY_PRESETS[effectiveQuality]?.dpi ?? 300,
         signal: abortCtrl.signal,
         onProgress: (_phase, pct) => setExportProgress(Math.round(pct * 100)),
         onResolution: (w, h) => setExportInfo(`${w}×${h}`),
@@ -456,7 +470,7 @@ export default function ExportPanel({
       const { blob } = await renderIroningEffect(doc, {
         presetId,
         mode: 'export',
-        quality,
+        quality: effectiveQuality,
         signal: abortCtrl.signal,
         onProgress: p => setExportProgress(Math.round(p * 100)),
         onResolution: (w, h) => setExportInfo(`${w}×${h}`),
@@ -518,6 +532,20 @@ export default function ExportPanel({
   // 专业图纸当前风格名称(用于确认框展示)
   const currentStyleName =
     beadStyle === 'professional' ? t('gallery.exportProfessional') : t('gallery.exportRealistic')
+
+  // 高级导出守卫:先解释解锁内容与登录收益,再分流到注册/登录;「稍后再说」不阻断游客创作
+  const authPromptDialog = (
+    <AuthPromptDialog
+      open={!!authPrompt}
+      reason={authPrompt || 'ironing'}
+      onClose={() => setAuthPrompt(null)}
+      onGoAuth={mode => {
+        const reason = authPrompt
+        setAuthPrompt(null)
+        onRequireAuth?.(reason, mode)
+      }}
+    />
+  )
 
   const panel = (
     <div className="export-panel" ref={panelRef}>
@@ -664,14 +692,28 @@ export default function ExportPanel({
                 降级时下方会显示真实结果,不会假装达标。 */}
             <div className="export-style-group">
               <label className="style-label">{t('export.qualityLabel')}</label>
-              <select value={quality} onChange={e => setQuality(e.target.value)} className="style-select">
+              <select
+                value={quality}
+                onChange={e => {
+                  const next = e.target.value
+                  if (needsAuth && next !== 'screen') {
+                    // 不静默改值:打开引导浮层解释原因,选择仍停在屏幕画质
+                    setAuthPrompt('quality')
+                    return
+                  }
+                  setQuality(next)
+                }}
+                className="style-select"
+              >
                 {QUALITY_ORDER.map(key => (
                   <option key={key} value={key}>
                     {t(QUALITY_PRESETS[key].labelKey)}
+                    {needsAuth && key !== 'screen' ? ` · ${t('auth.gate.locked')}` : ''}
                   </option>
                 ))}
               </select>
               <span className="setting-hint">{t('export.qualityHint')}</span>
+              {needsAuth && <span className="setting-hint">{t('auth.gate.qualityHint')}</span>}
             </div>
 
             {/* Feature Flag: 新导出路径开关（默认关闭） */}
@@ -831,6 +873,8 @@ export default function ExportPanel({
             paletteId={paletteId}
             designName={effectiveName}
             isExporting={isExporting}
+            locked={needsAuth}
+            onRequireAuth={() => setAuthPrompt('ironing')}
             onRequestExport={presetId => {
               const materialLabel = t(getIroningEffectPreset(presetId).labelKey)
               requestExport(
@@ -1152,6 +1196,7 @@ export default function ExportPanel({
       <>
         {panel}
         {confirmDialog}
+        {authPromptDialog}
       </>
     )
 
@@ -1168,6 +1213,7 @@ export default function ExportPanel({
           的遮罩(关闭确认框)会冒泡到外层 onClick 把整个导出面板一起关掉,
           用户取消导出后要重新打开面板再选一遍参数。 */}
       {confirmDialog}
+      {authPromptDialog}
       <style>{`
         .export-modal-content {
           width: min(420px, 92vw);

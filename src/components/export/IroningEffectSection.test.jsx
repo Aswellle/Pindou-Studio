@@ -188,6 +188,16 @@ describe('IroningEffectSection · 预览状态', () => {
     expect(props.onRequestExport).toHaveBeenCalledWith('coarse-glitter')
   })
 
+  it('locked 时显示需登录,点击入口交给父级引导,不渲染预览', () => {
+    const onRequireAuth = vi.fn()
+    setup({ locked: true, onRequireAuth })
+    expect(screen.getByText('需登录')).toBeTruthy()
+    fireEvent.click(screen.getByRole('button', { name: /高级熨烫效果需要登录/ }))
+    expect(onRequireAuth).toHaveBeenCalledTimes(1)
+    expect(renderIroningEffect).not.toHaveBeenCalled()
+    expect(screen.queryByText('麻布烫')).toBeNull()
+  })
+
   it('isExporting 时材质与导出按钮禁用', () => {
     setup({ isExporting: true })
     fireEvent.click(screen.getByRole('button', { name: /高级熨烫/ }))

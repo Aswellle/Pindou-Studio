@@ -410,6 +410,8 @@ export function useAuth() {
     user,
     isAdmin,
     loading,
+    // 站点是否启用账号系统(false = 纯本地模式:不做登录守卫,避免无法注册的死胡同)
+    authAvailable: !!supabase,
     login,
     register,
     resetPassword,

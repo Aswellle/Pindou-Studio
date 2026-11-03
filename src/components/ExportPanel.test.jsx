@@ -406,6 +406,84 @@ describe('导出质量预设(规格 09 §2)', () => {
   })
 })
 
+describe('高级导出登录守卫', () => {
+  const qualitySelect = () => {
+    const selects = [...document.body.querySelectorAll('.style-select')]
+    return selects[selects.length - 1]
+  }
+
+  function setupGuest(overrides = {}) {
+    const onRequireAuth = vi.fn()
+    setup({ authEnabled: true, isAuthenticated: false, onRequireAuth, ...overrides })
+    return onRequireAuth
+  }
+
+  it('游客选择高分辨率:画质保持不变并弹出登录引导', () => {
+    setupGuest()
+    fireEvent.change(qualitySelect(), { target: { value: 'high' } })
+    expect(qualitySelect().value).toBe('screen')
+    expect(document.querySelector('.auth-prompt-panel')).toBeTruthy()
+    expect(screen.getByText('高分辨率导出需要登录')).toBeTruthy()
+    // 锁定的档位在选项里标注需登录,游客能理解为什么点不动
+    expect(qualitySelect().textContent).toContain('需登录')
+  })
+
+  it('引导浮层点「免费注册」把原因与模式交给父级', () => {
+    const onRequireAuth = setupGuest()
+    fireEvent.change(qualitySelect(), { target: { value: 'print' } })
+    fireEvent.click(screen.getByRole('button', { name: '免费注册' }))
+    expect(onRequireAuth).toHaveBeenCalledWith('quality', 'register')
+    expect(document.querySelector('.auth-prompt-panel')).toBeNull()
+  })
+
+  it('引导浮层点「已有账号」进入登录模式', () => {
+    const onRequireAuth = setupGuest()
+    fireEvent.change(qualitySelect(), { target: { value: 'high' } })
+    fireEvent.click(screen.getByRole('button', { name: '已有账号，去登录' }))
+    expect(onRequireAuth).toHaveBeenCalledWith('quality', 'login')
+  })
+
+  it('游客无法展开熨烫效果:点击入口打开引导,不调用渲染器', () => {
+    setupGuest()
+    expect(renderIroningEffect).not.toHaveBeenCalled()
+    fireEvent.click(screen.getByRole('button', { name: /高级熨烫效果/ }))
+    expect(renderIroningEffect).not.toHaveBeenCalled()
+    expect(screen.getByText('高级熨烫效果需要登录')).toBeTruthy()
+  })
+
+  it('登录用户不受限制:高画质可选择、熨烫可展开', async () => {
+    setup({ authEnabled: true, isAuthenticated: true })
+    fireEvent.change(qualitySelect(), { target: { value: 'print' } })
+    expect(qualitySelect().value).toBe('print')
+    fireEvent.click(screen.getByRole('button', { name: /高级熨烫效果/ }))
+    await waitFor(() => expect(renderIroningEffect).toHaveBeenCalled())
+  })
+
+  it('站点未启用账号系统时不做限制(避免无法注册的死胡同)', () => {
+    setup({ authEnabled: false, isAuthenticated: false })
+    fireEvent.change(qualitySelect(), { target: { value: 'high' } })
+    expect(qualitySelect().value).toBe('high')
+  })
+
+  it('退出登录后已选的高画质被收回', () => {
+    const baseProps = {
+      canvasData: CANVAS_DATA,
+      gridSize: 2,
+      gridWidth: 2,
+      gridHeight: 2,
+      designName: '测试图纸',
+      paletteId: 'perler',
+      authEnabled: true,
+      onClose: () => {},
+    }
+    const { rerender } = render(<ExportPanel {...baseProps} isAuthenticated />)
+    fireEvent.change(qualitySelect(), { target: { value: 'print' } })
+    expect(qualitySelect().value).toBe('print')
+    rerender(<ExportPanel {...baseProps} isAuthenticated={false} />)
+    expect(qualitySelect().value).toBe('screen')
+  })
+})
+
 describe('超采样降级反馈(规格 09 §4.3)', () => {
   it('未降级时不显示降级提示', async () => {
     setup()

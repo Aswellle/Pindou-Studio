@@ -102,7 +102,7 @@ export default function App() {
   // iOS Safari 视口测量已由 useKeyboardSafe 统一处理(监听 visualViewport + 键盘 focusin/focusout,
   // 同时更新 --vh 与 --visible-vh),此处不再重复注册。
 
-  const { user, isAdmin, loading: authLoading, login, register, resetPassword, logout, updateProfile,
+  const { user, isAdmin, loading: authLoading, authAvailable, login, register, resetPassword, logout, updateProfile,
     sendOtp, verifyOtp, verifyForgotOtp, setPassword, setPasswordWithOtp, changeEmail, verifyPassword, setSecurityKey,
     changePassword, registerUsername, loginByUsername, forgotPasswordCustom, usernameExists } = useAuth()
   const cloudStore = useCloudTemplates()
@@ -389,6 +389,17 @@ export default function App() {
   }
 
   const openLogin = () => navigate('/login', { state: { mode: 'login' } })
+
+  // 高级导出守卫:带上回跳路径与原因,登录/注册成功后回到当前页面
+  const handleRequireAuth = (reason, mode = 'register') => {
+    navigate('/login', {
+      state: {
+        mode: mode === 'login' ? 'login' : 'register',
+        next: location.pathname + location.search,
+        reason: reason || 'ironing',
+      },
+    })
+  }
 
   const openRegister = () => navigate('/login', { state: { mode: 'register' } })
 
@@ -908,6 +919,9 @@ export default function App() {
             deductInventory={deductInventory}
             onToggleDeductInventory={handleToggleDeductInventory}
             onExportComplete={handleExportComplete}
+            isAuthenticated={!!user}
+            authEnabled={authAvailable}
+            onRequireAuth={handleRequireAuth}
           />
         </div>
       </aside>
@@ -1093,6 +1107,9 @@ export default function App() {
           deductInventory={deductInventory}
           onToggleDeductInventory={handleToggleDeductInventory}
           onExportComplete={handleExportComplete}
+          isAuthenticated={!!user}
+          authEnabled={authAvailable}
+          onRequireAuth={handleRequireAuth}
           onClose={() => setShowExport(false)}
         />
       )}

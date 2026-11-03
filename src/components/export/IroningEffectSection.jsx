@@ -27,6 +27,9 @@ export default function IroningEffectSection({
   designName,
   // 导出进行中(父级共享状态):禁用材质切换与导出按钮,防止并发导出
   isExporting = false,
+  // 高级导出守卫:游客不可展开/预览/导出,点击入口改为打开登录引导
+  locked = false,
+  onRequireAuth,
   /** (presetId) => void — 父级接入 requestExport 确认流程 */
   onRequestExport,
 }) {
@@ -66,14 +69,14 @@ export default function IroningEffectSection({
   // 两次全网格扫描,折叠状态下白付成本)。
   // biome-ignore lint/correctness/useExhaustiveDependencies: retryNonce 是「重试」触发器,刻意不参与渲染参数
   useEffect(() => {
-    if (!expanded || !hasPaintedCells) {
+    if (!expanded || locked || !hasPaintedCells) {
       // 折叠或图纸变空:释放旧预览,blob URL 不常驻
       if (previewUrlRef.current) {
         URL.revokeObjectURL(previewUrlRef.current)
         previewUrlRef.current = null
       }
       setPreviewUrl(null)
-      setPreviewState(expanded ? 'empty' : 'idle')
+      setPreviewState(expanded && !locked ? 'empty' : 'idle')
       return undefined
     }
     let cancelled = false
@@ -122,6 +125,7 @@ export default function IroningEffectSection({
     }
   }, [
     expanded,
+    locked,
     presetId,
     canvasData,
     gridSize,
@@ -160,6 +164,15 @@ export default function IroningEffectSection({
         }
         .ironing-toggle .arrow.up {
           transform: rotate(180deg);
+        }
+        .ironing-lock {
+          flex: none;
+          padding: 1px 6px;
+          border: 1px solid var(--border-color);
+          border-radius: 999px;
+          font-size: 10px;
+          color: var(--text-muted);
+          background: var(--bg-secondary);
         }
         .ironing-body {
           display: flex;
@@ -259,18 +272,25 @@ export default function IroningEffectSection({
       <button
         type="button"
         className="section-heading ironing-toggle"
-        aria-expanded={expanded}
-        aria-label={expanded ? t('export.ironing.collapse') : t('export.ironing.expand')}
-        onClick={() => setExpanded(v => !v)}
+        aria-expanded={locked ? false : expanded}
+        aria-label={locked ? t('auth.gate.ironingTitle') : expanded ? t('export.ironing.collapse') : t('export.ironing.expand')}
+        onClick={() => {
+          if (locked) {
+            onRequireAuth?.()
+            return
+          }
+          setExpanded(v => !v)
+        }}
       >
         <span className="section-title">{t('export.ironing.title')}</span>
+        {locked && <span className="ironing-lock">{t('auth.gate.locked')}</span>}
         <span className="section-hint">{t('export.ironing.description')}</span>
         <span className={`arrow ${expanded ? 'up' : ''}`} aria-hidden="true">
           ▼
         </span>
       </button>
 
-      {expanded && (
+      {expanded && !locked && (
         <div className="ironing-body">
           <div className="ironing-material-grid" role="group" aria-label={t('export.ironing.title')}>
             {IRONING_EFFECT_PRESETS.map(p => (
