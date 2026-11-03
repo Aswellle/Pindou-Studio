@@ -39,8 +39,6 @@ const PREVIEW_CELL_MIN = 3
 const PREVIEW_CELL_MAX = 12
 /** 逐格绘制的分帧批量 */
 const BATCH_SIZE = 2000
-/** tile 缓存上限(轻量小画布;超出按插入顺序淘汰) */
-const TILE_CACHE_LIMIT = 24
 
 // ── 确定性随机 ──────────────────────────────────────────────
 
@@ -437,9 +435,32 @@ function tileSizeFor(preset) {
 // ── tile 缓存(轻量小画布,LRU) ─────────────────────────────
 
 const tileCache = new Map()
+/** 缓存按「字节预算」而不是条目数限制:print 档单 tile 可达 6 MB,条目数上限会留下上百 MB 常驻内存 */
+const TILE_CACHE_BYTES = 24 * 1024 * 1024
+let tileCacheBytes = 0
+
+const tileBytes = tile => tile.width * tile.height * 4
+
+/** 预设指纹:参数被调整(未来调参 UI / HMR)后不得命中旧 tile */
+const presetFingerprints = new WeakMap()
+function presetFingerprint(preset) {
+  let fp = presetFingerprints.get(preset)
+  if (!fp) {
+    fp = [
+      preset.textureType,
+      preset.textureScale,
+      preset.textureOpacity,
+      preset.sparkleDensity,
+      preset.sparkleSize.join(','),
+      preset.seedSalt,
+    ].join('|')
+    presetFingerprints.set(preset, fp)
+  }
+  return fp
+}
 
 function getTextureTile(preset, scale, seed, variant) {
-  const key = `${preset.id}:${scale}:${seed}:${variant}`
+  const key = `${preset.id}:${presetFingerprint(preset)}:${scale}:${seed}:${variant}`
   const cached = tileCache.get(key)
   if (cached) {
     // 触碰一次实现 LRU 语义(Map 按插入序迭代)
@@ -459,9 +480,12 @@ function getTextureTile(preset, scale, seed, variant) {
   const rnd = mulberry32((seed ^ preset.seedSalt ^ (variant * 0x9e3779b9)) >>> 0)
   TEXTURE_GENERATORS[preset.textureType](g, logical, rnd, preset)
   tileCache.set(key, tile)
-  while (tileCache.size > TILE_CACHE_LIMIT) {
-    const oldest = tileCache.keys().next().value
-    tileCache.delete(oldest)
+  tileCacheBytes += tileBytes(tile)
+  while (tileCacheBytes > TILE_CACHE_BYTES && tileCache.size > 1) {
+    const oldestKey = tileCache.keys().next().value
+    const oldestTile = tileCache.get(oldestKey)
+    tileCache.delete(oldestKey)
+    tileCacheBytes -= tileBytes(oldestTile)
   }
   return tile
 }
@@ -469,6 +493,12 @@ function getTextureTile(preset, scale, seed, variant) {
 /** 供测试清理缓存(避免用例间状态串扰) */
 export function __resetIroningTileCacheForTests() {
   tileCache.clear()
+  tileCacheBytes = 0
+}
+
+/** 供测试断言字节预算(缓存是轻量小画布,不允许无界常驻) */
+export function __getIroningTileCacheStatsForTests() {
+  return { entries: tileCache.size, bytes: tileCacheBytes }
 }
 
 /**

@@ -17,6 +17,7 @@ import {
   renderIroningEffect,
   computeIroningGeometry,
   __resetIroningTileCacheForTests,
+  __getIroningTileCacheStatsForTests,
 } from './IroningEffectRenderer'
 import { createScaledCanvas } from '../BeadPatternExporter'
 import { getIroningEffectPreset } from './ironingEffectPresets'
@@ -342,6 +343,20 @@ describe('renderIroningEffect · 绘制行为', () => {
     expect(onProgress.mock.calls[0][0]).toBeLessThanOrEqual(onProgress.mock.calls.at(-1)[0])
     // 进度以 0–1 回调,结束时必须到 1(UI 换算为 100%)
     expect(onProgress).toHaveBeenLastCalledWith(1)
+  })
+
+  it('tile 缓存按字节预算淘汰,print 档不会无界常驻', async () => {
+    for (const hex of ['#111111', '#222222', '#333333', '#444444']) {
+      await renderIroningEffect(makeDoc(4, 4, solid(hex)), {
+        presetId: 'coarse-glitter',
+        mode: 'export',
+        quality: 'print',
+      })
+    }
+    const stats = __getIroningTileCacheStatsForTests()
+    expect(stats.bytes).toBeLessThanOrEqual(24 * 1024 * 1024)
+    expect(stats.entries).toBeLessThanOrEqual(4)
+    expect(stats.bytes).toBeGreaterThan(0)
   })
 
   it('export 模式把质量映射为请求倍率传给 createScaledCanvas', async () => {
