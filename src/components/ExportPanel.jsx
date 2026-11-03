@@ -13,7 +13,7 @@ import { renderPatternDocumentToSVG, svgStringToBlob } from '../services/export/
 import { renderIroningEffect } from '../services/export/IroningEffectRenderer'
 import { getIroningEffectPreset } from '../services/export/ironingEffectPresets'
 import IroningEffectSection from './export/IroningEffectSection'
-import { resolveToHex } from '../services/colorUtils'
+import { resolveToHex, normalizeCellsToHex } from '../services/colorUtils'
 import {
   exportAsPNG,
   exportAsSVG,
@@ -442,12 +442,14 @@ export default function ExportPanel({
     setExportInfo('')
     try {
       const doc = createPatternDocument({
-        canvasData,
+        // 旧作品可能保留品牌色号('P18'):渲染器只认 hex,先按当前色卡归一
+        canvasData: normalizeCellsToHex(canvasData, palette),
         gridSize,
         gridWidth,
         gridHeight,
         paletteId,
         designName: effectiveName,
+        palette,
       })
       const abortCtrl = new AbortController()
       exportAbortRef.current = abortCtrl

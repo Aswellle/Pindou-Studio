@@ -1,5 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
+import { getPalette } from '../../data/palettes'
+import { normalizeCellsToHex } from '../../services/colorUtils'
 import { createPatternDocument } from '../../services/export/PatternDocument'
 import { renderIroningEffect } from '../../services/export/IroningEffectRenderer'
 import { IRONING_EFFECT_PRESETS, DEFAULT_IRONING_PRESET_ID } from '../../services/export/ironingEffectPresets'
@@ -46,22 +48,26 @@ export default function IroningEffectSection({
     [canvasData]
   )
 
-  // PatternDocument v2 只读快照:图案变化(含防抖)才重建;渲染器不回写
+  // PatternDocument v2 只读快照:图案变化(含防抖)才重建;渲染器不回写。
+  // 历史作品的品牌色号('P18')在这里归一为 hex —— 渲染器只认 hex,
+  // 不能把可解析的旧数据当成空格丢掉。
+  const palette = useMemo(() => getPalette(paletteId), [paletteId])
   const doc = useMemo(() => {
     if (!canvasData) return null
     try {
       return createPatternDocument({
-        canvasData,
+        canvasData: normalizeCellsToHex(canvasData, palette),
         gridSize,
         gridWidth,
         gridHeight,
         paletteId,
         designName: designName || '',
+        palette,
       })
     } catch {
       return null
     }
-  }, [canvasData, gridSize, gridWidth, gridHeight, paletteId, designName])
+  }, [canvasData, gridSize, gridWidth, gridHeight, paletteId, designName, palette])
 
   // Object URL 生命周期:替换时撤销旧 URL;卸载时撤销最后一个
   const previewUrlRef = useRef(null)

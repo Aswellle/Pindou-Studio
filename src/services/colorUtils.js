@@ -14,6 +14,37 @@ export function resolveToHex(colorVal, palette) {
   return found ? found.hex : null
 }
 
+const HEX6_RE = /^#[0-9a-fA-F]{6}$/
+
+/**
+ * 把画布矩阵中可解析的品牌色号归一为 hex。
+ *
+ * 历史作品的 canvasData 会保留 'P18' 之类的品牌色号(见 project/adapters),
+ * 而 PatternDocument v2 与导出渲染器约定 cells 为 hex。仅在确有非 hex 值时
+ * 复制矩阵;全 hex 的常见路径原样返回,避免无谓的整表复制。
+ *
+ * @param {Array<Array<string|null>>} canvasData
+ * @param {{colors?: Array<{id:string, hex:string}>}} palette
+ * @returns {Array<Array<string|null>>} hex 矩阵(无法解析的值归一为 null)
+ */
+export function normalizeCellsToHex(canvasData, palette) {
+  if (!Array.isArray(canvasData)) return canvasData
+  let changed = false
+  const next = canvasData.map(row => {
+    if (!Array.isArray(row)) return row
+    let rowChanged = false
+    const cells = row.map(cell => {
+      if (typeof cell !== 'string' || HEX6_RE.test(cell)) return cell
+      rowChanged = true
+      return resolveToHex(cell, palette)
+    })
+    if (!rowChanged) return row
+    changed = true
+    return cells
+  })
+  return changed ? next : canvasData
+}
+
 /**
  * Convert hex color to RGB
  */

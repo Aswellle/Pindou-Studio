@@ -2,6 +2,7 @@ import { describe, it, expect, beforeAll, beforeEach, afterEach, vi } from 'vite
 import { render, screen, fireEvent, waitFor, cleanup } from '@testing-library/react'
 import IroningEffectSection from './IroningEffectSection'
 import i18n from '../../i18n'
+import { getPalette } from '../../data/palettes'
 
 /**
  * IroningEffectSection 组件测试(07 文档 §5)。
@@ -122,6 +123,23 @@ describe('IroningEffectSection · 材质选择器', () => {
 })
 
 describe('IroningEffectSection · 预览状态', () => {
+  it('历史作品的品牌色号先归一为 hex,不会被当作空格丢弃', async () => {
+    const palette = getPalette('perler')
+    const code = palette.colors[0].id
+    const hex = palette.colors[0].hex
+    setup({
+      canvasData: [
+        [code, null],
+        [null, hex],
+      ],
+    })
+    fireEvent.click(screen.getByRole('button', { name: /高级熨烫/ }))
+    await waitFor(() => expect(renderIroningEffect).toHaveBeenCalled())
+    const doc = renderIroningEffect.mock.calls[0][0]
+    expect(doc.grid.cells[0][0]).toBe(hex)
+    expect(doc.grid.cells[1][0]).toBeNull()
+  })
+
   it('整张图纸无内容时显示空态,不调用渲染器', () => {
     setup({
       canvasData: [

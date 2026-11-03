@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { resolveToHex, hexToRgb, rgbToHex, getTextColor } from './colorUtils'
+import { resolveToHex, normalizeCellsToHex, hexToRgb, rgbToHex, getTextColor } from './colorUtils'
 
 const mockPalette = {
   colors: [
@@ -93,5 +93,31 @@ describe('getTextColor', () => {
 
   it('returns dark text for yellow (high luminance)', () => {
     expect(getTextColor('#ffff00')).toBe('#000000')
+  })
+})
+
+describe('normalizeCellsToHex', () => {
+  it('把品牌色号归一为 hex,保留 hex 与 null', () => {
+    const cells = [
+      ['P18', '#F2F2F2'],
+      [null, 'P77'],
+    ]
+    expect(normalizeCellsToHex(cells, mockPalette)).toEqual([
+      ['#F0B08A', '#F2F2F2'],
+      [null, '#1A1A1A'],
+    ])
+  })
+
+  it('无品牌色号时原样返回同一个引用(避免无谓的整表复制)', () => {
+    const cells = [['#F2F2F2', null]]
+    expect(normalizeCellsToHex(cells, mockPalette)).toBe(cells)
+  })
+
+  it('无法解析的色号归一为 null,不让脏值进入渲染器', () => {
+    expect(normalizeCellsToHex([['NOT_A_COLOR']], mockPalette)).toEqual([[null]])
+  })
+
+  it('非数组输入原样返回', () => {
+    expect(normalizeCellsToHex(null, mockPalette)).toBeNull()
   })
 })
