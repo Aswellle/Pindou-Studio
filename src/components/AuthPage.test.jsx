@@ -21,7 +21,7 @@ afterEach(() => {
 
 const noop = () => {}
 
-function renderAuth(entry, onLogin = vi.fn().mockResolvedValue()) {
+function renderAuth(entry, onLogin = vi.fn().mockResolvedValue(), authProps = {}) {
   render(
     <MemoryRouter initialEntries={[entry]}>
       <Routes>
@@ -41,6 +41,7 @@ function renderAuth(entry, onLogin = vi.fn().mockResolvedValue()) {
               onSetPassword={vi.fn()}
               usernameExists={vi.fn()}
               onUpdateProfile={vi.fn()}
+              {...authProps}
             />
           }
         />
@@ -92,5 +93,32 @@ describe('AuthPage · 守卫回跳', () => {
   it('无守卫来源时不显示提示条', () => {
     renderAuth({ pathname: '/login' })
     expect(document.querySelector('.auth-gate-notice')).toBeNull()
+  })
+})
+
+describe('AuthPage · 已登录反向守卫', () => {
+  it('已登录用户访问 /login 时回跳 next,不再渲染登录表单', () => {
+    renderAuth(
+      { pathname: '/login', state: { next: '/profile', reason: 'profile' } },
+      undefined,
+      { user: { id: 'user-1' }, authLoading: false }
+    )
+    expect(screen.getByText('PROFILE_PAGE')).toBeTruthy()
+    expect(document.querySelector('.auth-form')).toBeNull()
+  })
+
+  it('next 指向登录页自身时回首页,不会原地循环', () => {
+    renderAuth(
+      { pathname: '/login', search: '?next=%2Flogin' },
+      undefined,
+      { user: { id: 'user-1' }, authLoading: false }
+    )
+    expect(screen.getByText('HOME_PAGE')).toBeTruthy()
+  })
+
+  it('会话恢复期间显示加载态,不闪登录表单', () => {
+    renderAuth({ pathname: '/login' }, undefined, { user: null, authLoading: true })
+    expect(document.querySelector('.auth-form')).toBeNull()
+    expect(document.querySelector('.loading-screen')).toBeTruthy()
   })
 })

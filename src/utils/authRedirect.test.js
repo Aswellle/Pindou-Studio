@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { safeNextPath, resolveAuthRedirect, DEFAULT_NEXT_PATH } from './authRedirect'
+import { safeNextPath, resolveAuthRedirect, signedInRedirectTarget, DEFAULT_NEXT_PATH } from './authRedirect'
 
 describe('safeNextPath', () => {
   it('接受站内绝对路径', () => {
@@ -54,5 +54,26 @@ describe('resolveAuthRedirect', () => {
   it('空 location 安全退化', () => {
     expect(resolveAuthRedirect(null)).toEqual({ next: '/', reason: null })
     expect(resolveAuthRedirect(undefined)).toEqual({ next: '/', reason: null })
+  })
+})
+
+describe('signedInRedirectTarget', () => {
+  it('已登录用户回到守卫来源', () => {
+    expect(signedInRedirectTarget({
+      state: { next: '/profile', reason: 'profile' },
+    })).toBe('/profile')
+    expect(signedInRedirectTarget({ search: '?next=%2Fgallery' })).toBe('/gallery')
+  })
+
+  it('目标仍是登录页时回首页,避免原地循环', () => {
+    expect(signedInRedirectTarget({ state: { next: '/login' } })).toBe(DEFAULT_NEXT_PATH)
+    expect(signedInRedirectTarget({ search: '?next=%2Flogin%3Fnext%3D%252Flogin' })).toBe(DEFAULT_NEXT_PATH)
+    expect(signedInRedirectTarget({ state: { next: '/login/history' } })).toBe(DEFAULT_NEXT_PATH)
+    expect(signedInRedirectTarget({ state: { next: '/login#top' } })).toBe(DEFAULT_NEXT_PATH)
+  })
+
+  it('无回跳地址时回首页', () => {
+    expect(signedInRedirectTarget(null)).toBe(DEFAULT_NEXT_PATH)
+    expect(signedInRedirectTarget({})).toBe(DEFAULT_NEXT_PATH)
   })
 })

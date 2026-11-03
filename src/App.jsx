@@ -854,6 +854,9 @@ export default function App() {
   const renderAuthPage = () => (
     <AuthPage
       initialMode={location.state?.mode === 'register' ? 'register' : 'login'}
+      // 反向守卫:已登录用户访问 /login 时直接回跳,不再展示表单
+      user={user}
+      authLoading={authLoading}
       onLogin={login}
       onRegister={register}
       loginByUsername={loginByUsername}

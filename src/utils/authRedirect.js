@@ -48,3 +48,18 @@ export function resolveAuthRedirect(location) {
   const reason = GATE_REASONS.has(state.reason) ? state.reason : null
   return { next, reason }
 }
+
+/**
+ * 已登录用户访问登录页时的去向:优先回到守卫来源,但目标不能仍是登录页,
+ * 否则 replace 之后会再次命中反向守卫,在原地循环。
+ *
+ * @param {{state?: object, search?: string}} location - react-router 的 location
+ * @returns {string} 可安全用于 Navigate 的站内路径
+ */
+export function signedInRedirectTarget(location) {
+  const { next } = resolveAuthRedirect(location)
+  if (next === '/login' || next.startsWith('/login?') || next.startsWith('/login#') || next.startsWith('/login/')) {
+    return DEFAULT_NEXT_PATH
+  }
+  return next
+}

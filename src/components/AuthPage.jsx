@@ -7,11 +7,12 @@
  */
 import { useState, useEffect } from 'react'
 import { useTranslation, Trans } from 'react-i18next'
-import { useNavigate, useLocation, Link } from 'react-router-dom'
+import { useNavigate, useLocation, Link, Navigate } from 'react-router-dom'
 import BackButton from './BackButton'
+import LoadingScreen from './LoadingScreen'
 import { useToast } from './Toast'
 import { passwordWeakness } from '../utils/password'
-import { resolveAuthRedirect } from '../utils/authRedirect'
+import { resolveAuthRedirect, signedInRedirectTarget } from '../utils/authRedirect'
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 const RESEND_COOLDOWN = 60
@@ -31,6 +32,9 @@ export default function AuthPage({
   onSetPassword,
   usernameExists: _usernameExists,
   onUpdateProfile,
+  // 登录态由上层注入:登录页只负责渲染表单,不自行订阅 auth
+  user = null,
+  authLoading = false,
 }) {
   const { t } = useTranslation()
   const navigate = useNavigate()
@@ -87,6 +91,19 @@ export default function AuthPage({
     return () => clearTimeout(timer)
   }, [forgotCooldown])
 
+  // 已登录用户不需要再看到登录表单(反向守卫):
+  //   - authLoading 期间 user 仍为 null,先等会话恢复,避免已登录用户先闪一下表单;
+  //   - 直接回跳到守卫来源(如 /profile)或首页,replace 不把登录页留在历史里;
+  //   - 目标仍是 /login 时退回首页,避免原地循环。
+  if (authLoading) {
+    return (
+      <div className="auth-page">
+        <LoadingScreen />
+      </div>
+    )
+  }
+  if (user) return <Navigate to={signedInRedirectTarget(location)} replace />
+
   const errMsg = (code) => {
     // 冻结账号:给出冻结期限(如 ACCOUNT_FROZEN:7)
     if (code?.startsWith('ACCOUNT_FROZEN:')) {
@@ -115,7 +132,9 @@ export default function AuthPage({
 
   const go = (p) => navigate(p)
   const goBack = () => go('/')
-  const goAfterAuth = () => go(nextPath)
+  // 登录/注册成功后用 replace:登录页不应留在历史里,否则按返回键又回到表单
+  // (此时已登录,反向守卫会再次把它弹走,形成一次可见的往返)
+  const goAfterAuth = () => navigate(nextPath, { replace: true })
 
   // ── 登录 ──
   const handleLogin = async (e) => {
