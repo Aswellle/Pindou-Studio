@@ -23,6 +23,8 @@ import { createScaledCanvas } from '../BeadPatternExporter'
 // ── 录制基础设施 ────────────────────────────────────────────
 
 const ops = []
+// 纹理 tile 画布上的绘制序列(与主画布分开录制,用于跨倍率一致性断言)
+const tileOps = []
 
 const CTX_METHODS = [
   'scale',
@@ -57,15 +59,15 @@ function normalizeArg(a) {
   return a
 }
 
-function makeCtx() {
+function makeCtx(sink = ops) {
   const ctx = {}
   for (const m of CTX_METHODS) {
-    ctx[m] = vi.fn((...args) => ops.push([m, ...args.map(normalizeArg)]))
+    ctx[m] = vi.fn((...args) => sink.push([m, ...args.map(normalizeArg)]))
   }
   ctx.createLinearGradient = vi.fn((...args) => {
-    ops.push(['createLinearGradient', ...args])
+    sink.push(['createLinearGradient', ...args])
     return {
-      addColorStop: vi.fn((...a) => ops.push(['addColorStop', ...a])),
+      addColorStop: vi.fn((...a) => sink.push(['addColorStop', ...a])),
     }
   })
   for (const p of CTX_PROPS) {
@@ -74,7 +76,7 @@ function makeCtx() {
       get: () => v,
       set: nv => {
         v = nv
-        ops.push([`set:${p}`, nv])
+        sink.push([`set:${p}`, nv])
       },
     })
   }
@@ -85,11 +87,11 @@ function makeBlob() {
   return new Blob([new Uint8Array([0x89, 0x50])], { type: 'image/png' })
 }
 
-function makeCanvas(width = 0, height = 0) {
+function makeCanvas(width = 0, height = 0, sink = ops) {
   return {
     width,
     height,
-    getContext: vi.fn(() => makeCtx()),
+    getContext: vi.fn(() => makeCtx(sink)),
     toBlob: vi.fn(cb => cb(makeBlob())),
   }
 }
@@ -140,12 +142,14 @@ const solid = hex => () => hex
 beforeEach(() => {
   __resetIroningTileCacheForTests()
   ops.length = 0
+  tileOps.length = 0
   createScaledCanvas.mockReset().mockImplementation((w, h, s) => ({
     canvas: makeCanvas(Math.round(w * s), Math.round(h * s)),
     scale: s,
   }))
   createElementSpy = vi.spyOn(document, 'createElement').mockImplementation(tag => {
-    if (tag === 'canvas') return makeCanvas()
+    // 主画布走 createScaledCanvas mock;document.createElement 只用于纹理 tile
+    if (tag === 'canvas') return makeCanvas(0, 0, tileOps)
     return originalCreateElement(tag)
   })
   vi.stubGlobal('Path2D', FakePath2D)
@@ -265,6 +269,18 @@ describe('renderIroningEffect · 确定性', () => {
       logs.add(JSON.stringify(ops))
     }
     expect(logs.size).toBe(6)
+  })
+
+  it('纹理按逻辑像素生成:preview 与 export 的 tile 绘制序列一致(与倍率无关)', async () => {
+    const doc = makeDoc(4, 4, solid('#3366CC'))
+    await render(doc) // preview 1×
+    const previewTileOps = JSON.stringify(tileOps.filter(([op]) => op !== 'scale'))
+    tileOps.length = 0
+    __resetIroningTileCacheForTests()
+    await renderIroningEffect(doc, { presetId: 'linen', mode: 'export', quality: 'screen' })
+    // 生成器内部坐标不随倍率变化,唯一差异是 tile 上下文自身的 scale
+    expect(tileOps[0]).toEqual(['scale', 3, 3])
+    expect(JSON.stringify(tileOps.filter(([op]) => op !== 'scale'))).toBe(previewTileOps)
   })
 
   it('未知 presetId 确定性回退 linen', async () => {

@@ -177,7 +177,6 @@ console.log('\n[determinism]')
 
 // ══ 4/5. 像素抽查 ══
 console.log('\n[pixels]')
-const padPx = 40 * 3 // export cellSize 20 × 3× 超采样,pad=40 逻辑px
 for (const preset of IRONING_EFFECT_PRESETS) {
   const ctx = await loadCtx(buffers[preset.id].buffer)
   const scale = buffers[preset.id].actualScale
@@ -205,14 +204,32 @@ for (const preset of IRONING_EFFECT_PRESETS) {
     `median lum ${lum(cell.median).toFixed(0)} vs ${cellLum.toFixed(0)}`)
 }
 
-// 闪粉可见性:细闪烫的深蓝底布上必须采到明显亮于基色的闪点
+// 闪粉可见性与密度:用「全空白底板」在大区域统计亮于基色的像素占比,
+// 不再依赖固定采样点是否恰好命中一颗闪点(L4)。
 {
-  const ctx = await loadCtx(buffers['fine-glitter'].buffer)
-  const scale = buffers['fine-glitter'].actualScale
+  const blankCells = Array.from({ length: N }, () => Array(N).fill(null))
+  const blankDoc = createPatternDocument({
+    canvasData: blankCells, gridSize: N, gridWidth: N, gridHeight: N, paletteId: 'perler', designName: '闪粉密度',
+  })
   const baseLum = lum(hexToRgb('#063D78'))
-  const blank = patchStats(ctx, (15.5 * 20 + 40) * scale, (15.5 * 20 + 40) * scale, 1, 12)
-  check('细闪烫:闪点明显亮于深蓝底布', blank.maxL > baseLum + 25,
-    `max ${blank.maxL.toFixed(0)} vs base ${baseLum.toFixed(0)}`)
+  const brightFraction = async (mode, quality) => {
+    const r = await renderIroningEffect(blankDoc, { presetId: 'fine-glitter', mode, quality })
+    const c = await loadCtx(Buffer.from(await r.blob.arrayBuffer()))
+    // 取画布中部 50% 区域,避开波浪边与留白
+    const x0 = Math.round(r.width * 0.25)
+    const y0 = Math.round(r.height * 0.25)
+    const size = Math.round(r.width * 0.5)
+    const d = c.getImageData(x0, y0, size, size).data
+    let bright = 0
+    const total = d.length / 4
+    for (let i = 0; i < d.length; i += 4) {
+      if (0.299 * d[i] + 0.587 * d[i + 1] + 0.114 * d[i + 2] > baseLum + 25) bright += 1
+    }
+    return bright / total
+  }
+  const fine3x = await brightFraction('export', 'screen')
+  check('细闪烫:闪点覆盖率可感知(>0.2% 像素明显亮于底布)', fine3x > 0.002,
+    `fraction ${(fine3x * 100).toFixed(2)}%`)
 }
 
 // ══ 6. preview 与 export 同源 ══
@@ -232,6 +249,36 @@ console.log('\n[preview/export parity]')
   const g = computeIroningGeometry({ width: N, height: N }, { mode: 'preview' })
   check('preview 分辨率与几何一致', width === g.width && height === g.height && actualScale === 1,
     `${width}×${height} vs ${g.width}×${g.height}`)
+
+  // 纹理尺度一致性(03/04:textureScale 单位为 logical px):
+  // 同一空白底板下,「每逻辑像素的总变差」(纹理能量)必须与倍率无关。
+  // 修复前 tile 按物理像素生成,能量会随倍率成倍放大;修复后 1×/3×/6× 应在同一量级。
+  const blankCells = Array.from({ length: N }, () => Array(N).fill(null))
+  const blankDoc = createPatternDocument({
+    canvasData: blankCells, gridSize: N, gridWidth: N, gridHeight: N, paletteId: 'perler', designName: '纹理尺度',
+  })
+  const textureEnergy = async (mode, quality) => {
+    const r = await renderIroningEffect(blankDoc, { presetId: 'linen', mode, quality })
+    const c = await loadCtx(Buffer.from(await r.blob.arrayBuffer()))
+    const y = Math.round(r.height / 2)
+    const row = c.getImageData(0, y, r.width, 1).data
+    let tv = 0
+    let prev = null
+    for (let i = 0; i < row.length; i += 4) {
+      const v = 0.299 * row[i] + 0.587 * row[i + 1] + 0.114 * row[i + 2]
+      if (prev !== null) tv += Math.abs(v - prev)
+      prev = v
+    }
+    return tv / (r.width / r.actualScale)
+  }
+  const energyPreview = await textureEnergy('preview')
+  const energy3 = await textureEnergy('export', 'screen')
+  const energy6 = await textureEnergy('export', 'high')
+  const ratio3 = energy3 / energyPreview
+  const ratio6 = energy6 / energyPreview
+  check(`纹理能量与倍率无关(preview ${energyPreview.toFixed(2)} / 3× ${energy3.toFixed(2)} / 6× ${energy6.toFixed(2)})`,
+    ratio3 > 0.7 && ratio3 < 1.4 && ratio6 > 0.7 && ratio6 < 1.4,
+    `比值 3×=${ratio3.toFixed(2)} 6×=${ratio6.toFixed(2)},应在 0.7–1.4`)
 }
 
 // ══ 7. 输入只读 ══

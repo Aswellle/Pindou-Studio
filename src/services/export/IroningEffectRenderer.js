@@ -452,8 +452,12 @@ function getTextureTile(preset, scale, seed, variant) {
   tile.width = logical * scale
   tile.height = logical * scale
   const g = tile.getContext('2d')
+  // 生成器一律按「逻辑像素」绘制:tile 的 backing store 随倍率放大以保持锐利,
+  // 但 textureScale / sparkleSize 等参数不能跟着倍率变 —— 否则导出倍率越高,
+  // 纹理相对底板越细密,预览与导出就不再是同一材质(03/04 规定单位为 logical px)。
+  g.scale(scale, scale)
   const rnd = mulberry32((seed ^ preset.seedSalt ^ (variant * 0x9e3779b9)) >>> 0)
-  TEXTURE_GENERATORS[preset.textureType](g, tile.width, rnd, preset)
+  TEXTURE_GENERATORS[preset.textureType](g, logical, rnd, preset)
   tileCache.set(key, tile)
   while (tileCache.size > TILE_CACHE_LIMIT) {
     const oldest = tileCache.keys().next().value
