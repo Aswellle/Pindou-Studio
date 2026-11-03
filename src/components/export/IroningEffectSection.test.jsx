@@ -113,6 +113,20 @@ describe('IroningEffectSection · 材质选择器', () => {
     expect(screen.getByRole('button', { name: /麻布烫/ }).getAttribute('aria-pressed')).toBe('false')
   })
 
+  it('折叠按钮的 accessible name 随展开状态切换', () => {
+    setup()
+    fireEvent.click(screen.getByRole('button', { name: '展开高级熨烫效果' }))
+    expect(screen.getByRole('button', { name: '收起高级熨烫效果' })).toBeTruthy()
+  })
+
+  it('预览状态通过 aria-live 区域播报', async () => {
+    setup()
+    await expandAndSettle()
+    const status = screen.getByRole('status')
+    expect(status.getAttribute('aria-live')).toBe('polite')
+    expect(status.textContent).toContain('当前材质:麻布烫')
+  })
+
   it('渲染器永不收到 export 模式(预览专用)', async () => {
     setup()
     await expandAndSettle()
@@ -149,7 +163,8 @@ describe('IroningEffectSection · 预览状态', () => {
       gridSize: 2,
     })
     fireEvent.click(screen.getByRole('button', { name: /高级熨烫/ }))
-    expect(screen.getByText(/暂无图案/)).toBeTruthy()
+    // 可见占位与读屏播报各一份,这里断言可见占位
+    expect(document.querySelector('.ironing-placeholder')?.textContent).toMatch(/暂无图案/)
     expect(renderIroningEffect).not.toHaveBeenCalled()
   })
 
@@ -157,7 +172,9 @@ describe('IroningEffectSection · 预览状态', () => {
     renderIroningEffect.mockRejectedValueOnce(new Error('boom'))
     setup()
     fireEvent.click(screen.getByRole('button', { name: /高级熨烫/ }))
-    await waitFor(() => expect(screen.getByText(/预览生成失败/)).toBeTruthy())
+    await waitFor(() =>
+      expect(document.querySelector('.ironing-placeholder')?.textContent).toMatch(/预览生成失败/)
+    )
     fireEvent.click(screen.getByRole('button', { name: '重试' }))
     await waitFor(() => expect(screen.getByRole('img', { name: /麻布烫/ })).toBeTruthy())
     expect(renderIroningEffect).toHaveBeenCalledTimes(2)

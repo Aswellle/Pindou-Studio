@@ -243,12 +243,24 @@ export default function IroningEffectSection({
         .ironing-export-btn {
           width: 100%;
         }
+        .ironing-sr-only {
+          position: absolute;
+          width: 1px;
+          height: 1px;
+          padding: 0;
+          margin: -1px;
+          overflow: hidden;
+          clip: rect(0 0 0 0);
+          white-space: nowrap;
+          border: 0;
+        }
       `}</style>
 
       <button
         type="button"
         className="section-heading ironing-toggle"
         aria-expanded={expanded}
+        aria-label={expanded ? t('export.ironing.collapse') : t('export.ironing.expand')}
         onClick={() => setExpanded(v => !v)}
       >
         <span className="section-title">{t('export.ironing.title')}</span>
@@ -300,6 +312,19 @@ export default function IroningEffectSection({
               />
             )}
           </div>
+
+          {/* 读屏播报:预览状态变化走 aria-live;放在独立节点上,不包可交互元素 */}
+          <span className="ironing-sr-only" role="status" aria-live="polite">
+            {previewState === 'loading'
+              ? t('export.ironing.previewLoading')
+              : previewState === 'error'
+                ? t('export.ironing.previewFailed')
+                : previewState === 'empty'
+                  ? t('export.ironing.empty')
+                  : previewState === 'ready'
+                    ? t('export.ironing.selectedMaterial', { material: t(preset.labelKey) })
+                    : ''}
+          </span>
 
           <button
             type="button"
