@@ -232,6 +232,36 @@ for (const preset of IRONING_EFFECT_PRESETS) {
     `fraction ${(fine3x * 100).toFixed(2)}%`)
 }
 
+// 色块熔融贴合:相邻同色块之间的缝隙不得超过 1 逻辑px(03 §5)。
+// 取边框上相邻两颗蓝珠,沿格子中心行扫描两格边界附近的「非珠色」像素数。
+{
+  const preset = IRONING_EFFECT_PRESETS.find(p => p.id === 'linen') // cellGap 0.35,最大缝隙档
+  const ctx = await loadCtx(buffers.linen.buffer)
+  const scale = buffers.linen.actualScale
+  const boundaryX = 40 + 20 // pad + 1 格:两颗蓝珠的交界
+  const y = Math.round((40 + 10) * scale)
+  const halfLogical = 3
+  const d = ctx.getImageData(
+    Math.round((boundaryX - halfLogical) * scale),
+    y,
+    Math.round(halfLogical * 2 * scale),
+    1
+  ).data
+  const blue = hexToRgb(BLUE)
+  let offPx = 0
+  for (let i = 0; i < d.length; i += 4) {
+    const dist = Math.max(Math.abs(d[i] - blue[0]), Math.abs(d[i + 1] - blue[1]), Math.abs(d[i + 2] - blue[2]))
+    // 方块边缘的 8% 暗描边仍属「珠色」;明显偏底色才算缝隙
+    if (dist > 70) offPx += 1
+  }
+  const gapLogical = offPx / scale
+  check(
+    `色块熔融贴合(${preset.id} 缝隙 ${gapLogical.toFixed(2)} 逻辑px ≤ 1.5)`,
+    gapLogical <= 1.5,
+    `扫描到 ${offPx} 个底色像素(${(gapLogical).toFixed(2)} 逻辑px)`
+  )
+}
+
 // ══ 6. preview 与 export 同源 ══
 console.log('\n[preview/export parity]')
 {

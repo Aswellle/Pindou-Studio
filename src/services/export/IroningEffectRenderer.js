@@ -599,7 +599,9 @@ export async function renderIroningEffect(doc, options = {}) {
   throwIfAborted(signal)
 
   // ── Layer D:图案色块(熔融方块;空白格保留底纹) ──
-  const gap = cellSize * preset.cellGap
+  // cellGap 是「逻辑像素」缝隙(03 §5:0–1 px),不是 cellSize 的比例:
+  // 熨烫后的色块应当彼此熔融贴合,只留发丝级分界。
+  const gap = preset.cellGap
   const inset = gap / 2
   const blockR = Math.max(0.5, cellSize * (0.08 + preset.edgeSoftness * 0.22))
   const cells = grid.cells

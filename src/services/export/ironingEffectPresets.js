@@ -27,8 +27,8 @@ export const IRONING_TEXTURE_TYPES = Object.freeze([
  * 六种材质预设。
  *
  * 参数单位:
- *   - textureScale / sparkleSize 为逻辑像素(样片坐标系,与 cellSize 无关,
- *     材质颗粒相对底板恒定,预览与导出观感一致);
+ *   - textureScale / sparkleSize / cellGap 为逻辑像素(样片坐标系,与 cellSize
+ *     无关,材质颗粒与缝隙相对底板恒定,预览与导出观感一致);
  *   - textureOpacity / roughness / sheen / cellGap / edgeSoftness / edgeRadius /
  *     shadowOpacity / sparkleDensity 均为 0–1 强度或比例;
  *   - sparkleSize 为 [min, max] 区间;非闪粉材质 density/size 为 0,
