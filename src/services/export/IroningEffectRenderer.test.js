@@ -370,4 +370,24 @@ describe('renderIroningEffect · AbortSignal', () => {
       renderIroningEffect(doc, { mode: 'preview', signal: controller.signal, onProgress })
     ).rejects.toMatchObject({ name: 'AbortError' })
   })
+
+  it('PNG 编码期间取消:编码完成后仍以 AbortError 拒绝,不返回 blob', async () => {
+    const controller = new AbortController()
+    let pendingCallback = null
+    createScaledCanvas.mockImplementationOnce((w, h, s) => {
+      const canvas = makeCanvas(Math.round(w * s), Math.round(h * s))
+      canvas.toBlob = vi.fn(cb => {
+        pendingCallback = cb // 挂起编码,模拟大画布 toBlob 耗时
+      })
+      return { canvas, scale: s }
+    })
+    const promise = renderIroningEffect(makeDoc(4, 4, solid('#3366CC')), {
+      mode: 'preview',
+      signal: controller.signal,
+    })
+    await vi.waitFor(() => expect(pendingCallback).toBeTruthy())
+    controller.abort()
+    pendingCallback(makeBlob()) // 编码在取消之后才完成
+    await expect(promise).rejects.toMatchObject({ name: 'AbortError' })
+  })
 })
