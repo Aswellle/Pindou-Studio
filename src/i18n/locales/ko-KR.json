@@ -744,7 +744,7 @@
       "previewLoading": "미리보기를 생성하는 중…",
       "previewFailed": "미리보기 생성에 실패했습니다",
       "retry": "다시 시도",
-      "empty": "아직 도안이 없어요. 캔버스에 먼저 조각을 놓아 주세요",
+      "empty": "아직 도안이 없어요. 캔버스에 먼저 비즈를 놓아 주세요",
       "exportPng": "다림질 효과 PNG 내보내기",
       "exportDescription": "효과 이미지만 저장하며, 도안과 재고에는 영향을 주지 않습니다",
       "selectedMaterial": "현재 소재: {{material}}",
