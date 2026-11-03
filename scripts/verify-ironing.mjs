@@ -259,8 +259,8 @@ for (const preset of IRONING_EFFECT_PRESETS) {
   }
   const gapLogical = offPx / scale
   check(
-    `色块熔融贴合(${preset.id} 缝隙 ${gapLogical.toFixed(2)} 逻辑px ≤ 1.5)`,
-    gapLogical <= 1.5,
+    `色块熔融贴合(${preset.id} 缝隙 ${gapLogical.toFixed(2)} 逻辑px ≤ 1.0)`,
+    gapLogical <= 1.0,
     `扫描到 ${offPx} 个底色像素(${(gapLogical).toFixed(2)} 逻辑px)`
   )
 }
