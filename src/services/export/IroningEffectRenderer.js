@@ -454,6 +454,7 @@ function presetFingerprint(preset) {
       preset.textureOpacity,
       preset.sparkleDensity,
       preset.sparkleSize.join(','),
+      preset.sparkleColors.join(','),
       preset.seedSalt,
     ].join('|')
     presetFingerprints.set(preset, fp)
