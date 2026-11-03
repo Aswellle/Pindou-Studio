@@ -128,8 +128,11 @@ export default function ProfilePage({
     )
   }
 
-  // 未登录:本页不提供登录入口(登录是 /login 的职责)
-  if (!user) return <Navigate to="/login" replace />
+  // 未登录:本页不提供登录入口(登录是 /login 的职责)。
+  // 带上原因与回跳路径:登录页说明「为什么需要登录」,成功后回到个人中心。
+  if (!user) {
+    return <Navigate to="/login" replace state={{ next: '/profile', reason: 'profile' }} />
+  }
 
   // 返回上一页;深链接直达(无浏览历史)时兜底回首页
   const handleBack = () => {

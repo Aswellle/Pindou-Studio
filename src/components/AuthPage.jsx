@@ -7,10 +7,11 @@
  */
 import { useState, useEffect } from 'react'
 import { useTranslation, Trans } from 'react-i18next'
-import { useNavigate, Link } from 'react-router-dom'
+import { useNavigate, useLocation, Link } from 'react-router-dom'
 import BackButton from './BackButton'
 import { useToast } from './Toast'
 import { passwordWeakness } from '../utils/password'
+import { resolveAuthRedirect } from '../utils/authRedirect'
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 const RESEND_COOLDOWN = 60
@@ -33,6 +34,9 @@ export default function AuthPage({
 }) {
   const { t } = useTranslation()
   const navigate = useNavigate()
+  const location = useLocation()
+  // 守卫入口带来的回跳路径与原因:登录/注册成功后回到原页面,而不是一律回首页
+  const { next: nextPath, reason: gateReason } = resolveAuthRedirect(location)
   const toast = useToast()
   const [mode, setMode] = useState(initialMode === 'register' ? 'register' : 'login')
   const [method, setMethod] = useState('email')
@@ -111,6 +115,7 @@ export default function AuthPage({
 
   const go = (p) => navigate(p)
   const goBack = () => go('/')
+  const goAfterAuth = () => go(nextPath)
 
   // ── 登录 ──
   const handleLogin = async (e) => {
@@ -119,7 +124,7 @@ export default function AuthPage({
       saveRemember(remember)
       if (isEmailInput(account)) await onLogin(account, password)
       else await loginByUsername(account, password)
-      go('/')
+      goAfterAuth()
     } catch (err) {
       const msg = err?.message || ''
       toastError(/invalid login credentials/i.test(msg) ? 'INVALID_CREDENTIALS' : (msg === 'USERNAME_NOT_FOUND' ? 'USERNAME_NOT_FOUND' : msg))
@@ -147,7 +152,7 @@ export default function AuthPage({
         // 用户会以为设置成功、实际没有 —— 这里在提交前先拦下。
         if (securityKey && securityKey.trim().length < 6) return toastError('', t('errors.securityKeyTooShort'))
         await registerUsername({ username, nickname, password: regPassword, securityKey })
-        go('/')
+        goAfterAuth()
       }
     } catch (err) {
       toastError(err?.message || '')
@@ -163,7 +168,7 @@ export default function AuthPage({
       // 设置新密码前断言会话仍属于 pendingEmail(注册验证码建立的会话)
       await onSetPassword(pendingPassword, pendingEmail)
       if (pendingNickname) { try { await onUpdateProfile({ nickname: pendingNickname }) } catch {} }
-      go('/')
+      goAfterAuth()
     } catch (err) {
       toastError(err?.message || '')
     } finally { setLoading(false) }
@@ -264,6 +269,14 @@ export default function AuthPage({
       </Link>
       <div className="auth-card">
         <BackButton className="auth-back" onClick={goBack} />
+
+        {/* 由守卫入口跳转而来:说明为什么需要登录,避免用户以为走错了页面 */}
+        {gateReason && (
+          <div className="auth-gate-notice" role="status">
+            <strong>{t(`auth.gate.${gateReason}Title`)}</strong>
+            <p>{t(`auth.gate.${gateReason}Description`)}</p>
+          </div>
+        )}
 
         {mode === 'login' || mode === 'register' ? (
           <div className="auth-mode-switch">
@@ -438,6 +451,26 @@ export default function AuthPage({
       </div>
 
       <style>{`
+        .auth-gate-notice {
+          margin: 4px 0 14px;
+          padding: 10px 12px;
+          border: 1px solid var(--border-color);
+          border-left: 3px solid var(--secondary-accent);
+          border-radius: 8px;
+          background: var(--bg-secondary);
+        }
+        .auth-gate-notice strong {
+          display: block;
+          font-size: var(--text-sm);
+          color: var(--text-primary);
+          margin-bottom: 4px;
+        }
+        .auth-gate-notice p {
+          margin: 0;
+          font-size: var(--text-xs);
+          line-height: 1.5;
+          color: var(--text-secondary);
+        }
         .auth-page {
           /* iOS 键盘弹起时随 --visible-vh 收缩(旧 100% 基于 --vh 布局视口不变 → 白板根因);
              overscroll-behavior 防滚动穿透;兜底用 100vh(恒合法,不依赖 dvh 支持) */
