@@ -12,6 +12,21 @@
     "myBeads": "我的色卡"
   },
   "auth": {
+    "gate": {
+      "title": "登录后解锁高级导出",
+      "description": "注册账号即可使用高级熨烫效果与高分辨率/打印导出；作品还会自动同步到云端，换设备也能继续。",
+      "locked": "需登录",
+      "register": "免费注册",
+      "login": "已有账号，去登录",
+      "later": "稍后再说",
+      "qualityHint": "高分辨率与打印导出需登录后使用，当前为屏幕分享画质。",
+      "ironingTitle": "高级熨烫效果需要登录",
+      "ironingDescription": "登录后可预览并导出六种熨烫材质效果图。",
+      "qualityTitle": "高分辨率导出需要登录",
+      "qualityDescription": "登录后可选择高分辨率与打印画质，导出更清晰的效果图。",
+      "profileTitle": "登录后查看个人中心",
+      "profileDescription": "个人中心用于管理账号、云端作品与收藏。"
+    },
     "login": "登录",
     "register": "注册",
     "logout": "退出登录",

@@ -12,6 +12,21 @@
     "myBeads": "My Beads"
   },
   "auth": {
+    "gate": {
+      "title": "Sign in to unlock advanced export",
+      "description": "Create an account to use advanced ironing effects and high-resolution/print export. Your works also sync to the cloud, so you can continue on any device.",
+      "locked": "Sign-in required",
+      "register": "Create free account",
+      "login": "I already have an account",
+      "later": "Maybe later",
+      "qualityHint": "High-resolution and print export require sign-in; screen quality is available now.",
+      "ironingTitle": "Sign in to use advanced ironing effects",
+      "ironingDescription": "Sign in to preview and export the six ironing material effects.",
+      "qualityTitle": "Sign in to export in high resolution",
+      "qualityDescription": "Sign in to choose high-resolution or print quality for sharper exports.",
+      "profileTitle": "Sign in to view your profile",
+      "profileDescription": "Your profile manages your account, cloud works and favorites."
+    },
     "login": "Login",
     "register": "Register",
     "logout": "Logout",
