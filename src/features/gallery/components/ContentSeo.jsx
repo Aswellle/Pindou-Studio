@@ -10,8 +10,8 @@
  */
 
 import { Helmet } from 'react-helmet-async'
+import { SITE_NAME } from '../../../data/site'
 
-const SITE_NAME = '拼豆Studio'
 // canonical 站点:OG 图片必须是绝对地址,社交平台不会解析相对路径
 const SITE = 'https://tangnotes.site'
 

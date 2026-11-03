@@ -14,6 +14,7 @@ import { useTranslation } from 'react-i18next'
 import { useNavigate, Link } from 'react-router-dom'
 import BackButton from './BackButton'
 import { supabase } from '../services/supabase'
+import { SITE_NAME } from '../data/site'
 
 export default function AdminLoginPage({ onLogin }) {
   const { t } = useTranslation()
@@ -156,7 +157,7 @@ export default function AdminLoginPage({ onLogin }) {
 
   return (
     <div className="auth-page admin-login-page">
-      <Link to="/" className="auth-logo" aria-label={t('app.title')}>
+      <Link to="/" className="auth-logo" aria-label={SITE_NAME}>
         <svg width="32" height="32" viewBox="0 0 32 32" fill="none" aria-hidden="true">
           <rect width="8" height="8" x="0" y="0" fill="#E53935"/><rect width="8" height="8" x="8" y="0" fill="#FDD835"/>
           <rect width="8" height="8" x="16" y="0" fill="#32CD32"/><rect width="8" height="8" x="24" y="0" fill="#1976D2"/>
@@ -167,7 +168,7 @@ export default function AdminLoginPage({ onLogin }) {
           <rect width="8" height="8" x="0" y="24" fill="#8D6E63"/><rect width="8" height="8" x="8" y="24" fill="#A1887F"/>
           <rect width="8" height="8" x="16" y="24" fill="#BDBDBD"/><rect width="8" height="8" x="24" y="24" fill="#6D4C41"/>
         </svg>
-        <span className="auth-logo-text">{t('app.title')}</span>
+        <span className="auth-logo-text">{SITE_NAME}</span>
       </Link>
       <div className="auth-card">
         <BackButton className="auth-back" onClick={() => navigate('/')} />

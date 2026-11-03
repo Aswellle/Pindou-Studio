@@ -1,6 +1,7 @@
 import { Link, useParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import BackButton from './BackButton';
+import { SITE_NAME } from '../data/site';
 
 /* ═════════════════════════════════════════════════════════════
    法律文档版本化渲染
@@ -18,7 +19,7 @@ function LegalDocument({ versions, type, onBack }) {
   return (
     <div className="legal-page">
       {/* 站点 LOGO(独立页标识,点击回首页) */}
-      <Link to="/" className="legal-logo" aria-label={t('app.title')}>
+      <Link to="/" className="legal-logo" aria-label={SITE_NAME}>
         <svg width="32" height="32" viewBox="0 0 32 32" fill="none" aria-hidden="true">
           <rect width="8" height="8" x="0" y="0" fill="#E53935"/><rect width="8" height="8" x="8" y="0" fill="#FDD835"/>
           <rect width="8" height="8" x="16" y="0" fill="#32CD32"/><rect width="8" height="8" x="24" y="0" fill="#1976D2"/>
@@ -29,7 +30,7 @@ function LegalDocument({ versions, type, onBack }) {
           <rect width="8" height="8" x="0" y="24" fill="#8D6E63"/><rect width="8" height="8" x="8" y="24" fill="#A1887F"/>
           <rect width="8" height="8" x="16" y="24" fill="#BDBDBD"/><rect width="8" height="8" x="24" y="24" fill="#6D4C41"/>
         </svg>
-        <span className="legal-logo-text">{t('app.title')}</span>
+        <span className="legal-logo-text">{SITE_NAME}</span>
       </Link>
       <BackButton className="legal-back-btn" onClick={onBack} label={t('legal.back')} />
       <div className="legal-container">

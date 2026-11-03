@@ -122,3 +122,16 @@ describe('AuthPage · 已登录反向守卫', () => {
     expect(document.querySelector('.loading-screen')).toBeTruthy()
   })
 })
+
+describe('AuthPage · 品牌名', () => {
+  it('品牌名固定为简体中文,不随界面语言切换', async () => {
+    await i18n.changeLanguage('en-US')
+    try {
+      renderAuth({ pathname: '/login' })
+      expect(screen.getByRole('link', { name: '拼豆Studio' })).toBeTruthy()
+      expect(screen.getByText('拼豆Studio')).toBeTruthy()
+    } finally {
+      await i18n.changeLanguage('zh-CN')
+    }
+  })
+})

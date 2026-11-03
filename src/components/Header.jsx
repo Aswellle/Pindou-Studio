@@ -3,6 +3,7 @@ import { NavLink, useNavigate } from 'react-router-dom'
 import { PenTool, LayoutGrid, BookOpen, Palette } from 'lucide-react'
 import LanguageSelector from './Header/LanguageSelector'
 import Avatar from './Avatar'
+import { SITE_NAME } from '../data/site'
 
 export default function Header({ user, onLogin, onRegister: _onRegister, onLogout: _onLogout, onSave, currentPage, onPageChange: _onPageChange, simplified, saveState, autoSaveState }) {
   const { t } = useTranslation()
@@ -46,7 +47,7 @@ export default function Header({ user, onLogin, onRegister: _onRegister, onLogou
             <rect width="8" height="8" x="16" y="24" fill="#BDBDBD"/>
             <rect width="8" height="8" x="24" y="24" fill="#6D4C41"/>
           </svg>
-          {!simplified && <span className="logo-text">{t('app.title')}</span>}
+          {!simplified && <span className="logo-text">{SITE_NAME}</span>}
         </NavLink>
       </div>
 
