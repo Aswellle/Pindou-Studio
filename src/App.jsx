@@ -388,7 +388,11 @@ export default function App() {
     setTimeout(() => setSaveToast(false), 1500)
   }
 
-  const openLogin = () => navigate('/login', { state: { mode: 'login' } })
+  // 顶部登录/注册入口:带上当前路径,成功后回到原页面,而不是一律回首页。
+  // 与守卫入口(handleRequireAuth)保持一致,search 也保留(如图库的筛选条件)。
+  const openLogin = () => navigate('/login', {
+    state: { mode: 'login', next: location.pathname + location.search },
+  })
 
   // 高级导出守卫:带上回跳路径与原因,登录/注册成功后回到当前页面
   const handleRequireAuth = (reason, mode = 'register') => {
@@ -401,7 +405,9 @@ export default function App() {
     })
   }
 
-  const openRegister = () => navigate('/login', { state: { mode: 'register' } })
+  const openRegister = () => navigate('/login', {
+    state: { mode: 'register', next: location.pathname + location.search },
+  })
 
   const handleGridSizeChange = (newSize) => {
     setGridSize(newSize)
