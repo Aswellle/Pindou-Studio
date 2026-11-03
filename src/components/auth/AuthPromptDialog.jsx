@@ -48,13 +48,8 @@ export default function AuthPromptDialog({ open, reason = 'ironing', onClose, on
       </div>
       <style>{`
         .auth-prompt-overlay {
-          position: fixed;
-          inset: 0;
+          /* 定位/高度/内边距/居中由 index.css 共享浮层组提供;这里只留视觉差异 */
           z-index: 1300;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          padding: 16px;
           background: rgba(0, 0, 0, 0.45);
         }
         .auth-prompt-panel {

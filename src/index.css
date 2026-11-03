@@ -258,6 +258,7 @@ input:focus, textarea:focus, button:focus {
 .profile-confirm-overlay,
 .load-confirm-overlay,
 .my-beads-modal-overlay,
+.auth-prompt-overlay,
 .quantizer-zoom {
   position: fixed;
   /* 同 .modal-overlay:盖满布局视口(inset:0),视觉视口滚动也不露白 */
@@ -288,7 +289,8 @@ input:focus, textarea:focus, button:focus {
 .users-confirm-overlay,
 .profile-confirm-overlay,
 .load-confirm-overlay,
-.my-beads-modal-overlay {
+.my-beads-modal-overlay,
+.auth-prompt-overlay {
   display: grid;
   /* 与 .modal-overlay 同理:auto 行会随内容长高,子元素的高度约束全部失效;
      锁成 1fr 后行恒等于 overlay 内容区(已扣掉键盘与 safe-area 内边距)。 */
@@ -300,7 +302,8 @@ input:focus, textarea:focus, button:focus {
 .users-confirm-overlay > *,
 .profile-confirm-overlay > *,
 .load-confirm-overlay > *,
-.my-beads-modal-overlay > * {
+.my-beads-modal-overlay > *,
+.auth-prompt-overlay > * {
   margin: auto;
 }
 /* 确认框类子元素自身没有高度上限:横屏 / 键盘弹起后可视高度不足时,
@@ -334,6 +337,7 @@ body:has(.users-confirm-overlay) .mobile-toolbar,
 body:has(.profile-confirm-overlay) .mobile-toolbar,
 body:has(.load-confirm-overlay) .mobile-toolbar,
 body:has(.my-beads-modal-overlay) .mobile-toolbar,
+body:has(.auth-prompt-overlay) .mobile-toolbar,
 body:has(.quantizer-zoom) .mobile-toolbar {
   opacity: 0;
   pointer-events: none;

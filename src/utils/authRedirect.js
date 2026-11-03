@@ -21,7 +21,9 @@ export function safeNextPath(next) {
   if (value.startsWith('//')) return DEFAULT_NEXT_PATH
   if (value.includes('\\')) return DEFAULT_NEXT_PATH
   // 控制字符(含换行)可被用于绕过前缀检查
-  if (/[\u0000-\u001f\u007f]/.test(value)) return DEFAULT_NEXT_PATH
+  if ([...value].some((ch) => ch.charCodeAt(0) < 32 || ch.charCodeAt(0) === 127)) {
+    return DEFAULT_NEXT_PATH
+  }
   return value
 }
 
