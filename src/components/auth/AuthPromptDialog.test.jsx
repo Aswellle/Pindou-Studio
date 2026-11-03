@@ -55,6 +55,6 @@ describe('AuthPromptDialog · 登录引导浮层', () => {
     render(<AuthPromptDialog open reason="ironing" onClose={() => {}} />)
     const dialog = screen.getByRole('dialog')
     expect(dialog.getAttribute('aria-modal')).toBe('true')
-    expect(dialog.getAttribute('aria-label')).toBe('登录后解锁高级导出')
+    expect(dialog.getAttribute('aria-label')).toBe('高级熨烫效果需要登录')
   })
 })

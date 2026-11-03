@@ -15,16 +15,12 @@ import { useDialogA11y } from '../../hooks/useDialogA11y'
  */
 export default function AuthPromptDialog({ open, reason = 'ironing', onClose, onGoAuth }) {
   const { t } = useTranslation()
-  const { ref, dialogProps } = useDialogA11y({
-    open,
-    onClose,
-    label: t('auth.gate.title'),
-  })
-
-  if (!open) return null
-
   const title = reason === 'quality' ? t('auth.gate.qualityTitle') : t('auth.gate.ironingTitle')
   const description = reason === 'quality' ? t('auth.gate.qualityDescription') : t('auth.gate.ironingDescription')
+  // 可访问名称用具体标题,读屏用户听到的是「为什么要登录」而不是泛泛的引导语
+  const { ref, dialogProps } = useDialogA11y({ open, onClose, label: title })
+
+  if (!open) return null
 
   return createPortal(
     <div className="auth-prompt-overlay" onClick={onClose}>
