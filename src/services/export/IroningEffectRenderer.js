@@ -91,6 +91,8 @@ function mulberry32(seed) {
  * - export:cellSize 固定 20,请求倍率按质量预设(screen 3×/high 6×/print 8×),
  *   实际倍率由 createScaledCanvas 的面积预算决定;
  * - preview:cellSize 由 maxPreviewEdge 反推并 clamp 在 3–12,固定 1×。
+ *   maxPreviewEdge 是「目标」上限而非硬上限:cellSize 有 3 的可辨识下限,
+ *   长边超过约 316 格时会略超该值(当前作品尺寸上限 200 使 UI 不可达)。
  * 两种模式都用「图案 + 四周 PAD_CELLS 格留白」构图,宽高比与图纸一致。
  */
 export function computeIroningGeometry(
@@ -557,7 +559,7 @@ function toPngBlob(canvas) {
  * @param {string} [options.presetId] - 材质 ID(未知回退 linen)
  * @param {'preview'|'export'} [options.mode] - preview 限最大边,export 走质量预设
  * @param {'screen'|'high'|'print'} [options.quality] - 导出质量(请求倍率 3/6/8)
- * @param {number} [options.maxPreviewEdge] - 预览最大边(默认 960)
+ * @param {number} [options.maxPreviewEdge] - 预览目标最大边(默认 960;受 cellSize 下限影响可能略超)
  * @param {AbortSignal} [options.signal] - 取消信号(分帧与编码前检查)
  * @param {Function} [options.onProgress] - 进度 0–1
  * @param {Function} [options.onResolution] - (物理宽, 物理高)
