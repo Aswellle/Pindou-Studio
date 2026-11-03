@@ -171,6 +171,9 @@ for (const preset of IRONING_EFFECT_PRESETS) {
 // ══ 3. 确定性 ══
 console.log('\n[determinism]')
 {
+  // 必须先清空 tile 缓存:否则第二次渲染直接复用同一批 tile,
+  // 即使纹理生成器用了随机数也会字节一致,断言无法发现非确定性(M8)。
+  __resetIroningTileCacheForTests()
   const again = await renderMaterial('linen')
   check('同图纸同材质两次渲染字节级一致', again.buffer.equals(buffers.linen.buffer))
 }
