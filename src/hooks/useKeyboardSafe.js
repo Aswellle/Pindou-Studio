@@ -14,6 +14,7 @@ const OVERLAY_SELECTOR = [
   '.load-confirm-overlay',
   '.my-beads-modal-overlay',
   '.auth-prompt-overlay',
+  '.logout-confirm-overlay',
   '.quantizer-zoom',
 ].join(',')
 

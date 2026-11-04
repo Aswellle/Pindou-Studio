@@ -259,6 +259,7 @@ input:focus, textarea:focus, button:focus {
 .load-confirm-overlay,
 .my-beads-modal-overlay,
 .auth-prompt-overlay,
+.logout-confirm-overlay,
 .quantizer-zoom {
   position: fixed;
   /* 同 .modal-overlay:盖满布局视口(inset:0),视觉视口滚动也不露白 */
@@ -284,13 +285,20 @@ input:focus, textarea:focus, button:focus {
   z-index: 1200;
 }
 
+/* 顶栏账号菜单的退出登录确认框:层级高于菜单本身(1200) */
+.logout-confirm-overlay {
+  background: rgba(43, 36, 32, 0.45);
+  z-index: 1300;
+}
+
 /* 居中组(确认框 / 后台模态):内容放得下居中、超高可滚到底 */
 .admin-modal-overlay,
 .users-confirm-overlay,
 .profile-confirm-overlay,
 .load-confirm-overlay,
 .my-beads-modal-overlay,
-.auth-prompt-overlay {
+.auth-prompt-overlay,
+.logout-confirm-overlay {
   display: grid;
   /* 与 .modal-overlay 同理:auto 行会随内容长高,子元素的高度约束全部失效;
      锁成 1fr 后行恒等于 overlay 内容区(已扣掉键盘与 safe-area 内边距)。 */
@@ -303,14 +311,16 @@ input:focus, textarea:focus, button:focus {
 .profile-confirm-overlay > *,
 .load-confirm-overlay > *,
 .my-beads-modal-overlay > *,
-.auth-prompt-overlay > * {
+.auth-prompt-overlay > *,
+.logout-confirm-overlay > * {
   margin: auto;
 }
 /* 确认框类子元素自身没有高度上限:横屏 / 键盘弹起后可视高度不足时,
    不加上限会上下同时溢出、顶部被裁且无法滚动(load-confirm 的方形预览尤其高)。 */
 .users-confirm-overlay > *,
 .profile-confirm-overlay > *,
-.load-confirm-overlay > * {
+.load-confirm-overlay > *,
+.logout-confirm-overlay > * {
   max-height: 100%;
   overflow-y: auto;
   overscroll-behavior: contain;
@@ -338,6 +348,7 @@ body:has(.profile-confirm-overlay) .mobile-toolbar,
 body:has(.load-confirm-overlay) .mobile-toolbar,
 body:has(.my-beads-modal-overlay) .mobile-toolbar,
 body:has(.auth-prompt-overlay) .mobile-toolbar,
+body:has(.logout-confirm-overlay) .mobile-toolbar,
 body:has(.quantizer-zoom) .mobile-toolbar {
   opacity: 0;
   pointer-events: none;
