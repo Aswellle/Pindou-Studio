@@ -1,13 +1,58 @@
+import { useEffect, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { NavLink, useNavigate } from 'react-router-dom'
-import { PenTool, LayoutGrid, BookOpen, Palette } from 'lucide-react'
+import { NavLink, useLocation, useNavigate } from 'react-router-dom'
+import { PenTool, LayoutGrid, BookOpen, Palette, ChevronDown, LogOut, UserRound } from 'lucide-react'
 import LanguageSelector from './Header/LanguageSelector'
 import Avatar from './Avatar'
+import LogoutConfirmDialog from './auth/LogoutConfirmDialog'
+import { useScrollLock } from '../hooks/useScrollLock'
 import { SITE_NAME } from '../data/site'
 
-export default function Header({ user, onLogin, onRegister: _onRegister, onLogout: _onLogout, onSave, currentPage, onPageChange: _onPageChange, simplified, saveState, autoSaveState }) {
+export default function Header({ user, onLogin, onRegister: _onRegister, onLogout, onSave, currentPage, onPageChange: _onPageChange, simplified, saveState, autoSaveState }) {
   const { t } = useTranslation()
   const navigate = useNavigate()
+  const location = useLocation()
+  const [userMenuOpen, setUserMenuOpen] = useState(false)
+  const [confirmLogout, setConfirmLogout] = useState(false)
+  const userMenuRef = useRef(null)
+  const userMenuTriggerRef = useRef(null)
+
+  useScrollLock(confirmLogout)
+
+  // 切换页面或退出登录后收起菜单:菜单是浮层,不该跟着路由残留在新页面上
+  // biome-ignore lint/correctness/useExhaustiveDependencies: pathname 只作为「路由变化」信号,effect 内不读取它
+  useEffect(() => {
+    setUserMenuOpen(false)
+  }, [location.pathname])
+
+  useEffect(() => {
+    if (!user) {
+      setUserMenuOpen(false)
+      setConfirmLogout(false)
+    }
+  }, [user])
+
+  // 点击菜单外部关闭;Escape 关闭并把焦点还给触发按钮
+  useEffect(() => {
+    if (!userMenuOpen) return undefined
+    const handleClick = (e) => {
+      if (userMenuRef.current && !userMenuRef.current.contains(e.target)) {
+        setUserMenuOpen(false)
+      }
+    }
+    const handleKeyDown = (e) => {
+      if (e.key === 'Escape') {
+        setUserMenuOpen(false)
+        userMenuTriggerRef.current?.focus()
+      }
+    }
+    document.addEventListener('click', handleClick)
+    document.addEventListener('keydown', handleKeyDown)
+    return () => {
+      document.removeEventListener('click', handleClick)
+      document.removeEventListener('keydown', handleKeyDown)
+    }
+  }, [userMenuOpen])
 
   // 自动保存状态:只在「保存中 / 已保存 / 失败」时显示。
   // 与 saveState 的未保存圆点是两件事 —— 一个是「要不要手动存」,
@@ -108,16 +153,57 @@ export default function Header({ user, onLogin, onRegister: _onRegister, onLogou
         {/* 移动端:非画布页在导航与用户区之间显示语言切换按钮(🌐) */}
         {simplified && currentPage !== 'canvas' && <LanguageSelector compact />}
         {user ? (
-          /* 已登录:圆形头像(邮箱首字符,橙色底白字)为入口,点击进入 /profile 个人资料页 */
-          <button
-            className="avatar-entry"
-            onClick={() => navigate('/profile')}
-            aria-label={t('profile.title')}
-            title={t('profile.title')}
-          >
-            <Avatar user={user} size={simplified ? 32 : 36} />
-            {!simplified && <span className="user-name">{user.nickname || user.name}</span>}
-          </button>
+          /* 已登录:头像作为账号菜单入口(个人中心 / 退出登录)。
+             登出在桌面与手机上都从这里进入,不再依赖个人中心内被移动端隐藏的按钮。 */
+          <div className="user-menu" ref={userMenuRef}>
+            <button
+              ref={userMenuTriggerRef}
+              type="button"
+              className="avatar-entry"
+              aria-haspopup="menu"
+              aria-expanded={userMenuOpen}
+              aria-controls="user-account-menu"
+              aria-label={t('profile.center.title')}
+              title={t('profile.center.title')}
+              onClick={() => setUserMenuOpen(open => !open)}
+            >
+              <Avatar user={user} size={simplified ? 32 : 36} />
+              {!simplified && <span className="user-name">{user.nickname || user.name}</span>}
+              <ChevronDown
+                size={14}
+                className={`user-menu-caret${userMenuOpen ? ' open' : ''}`}
+                aria-hidden="true"
+              />
+            </button>
+            {userMenuOpen && (
+              <div className="user-menu-pop" id="user-account-menu" role="menu">
+                <button
+                  type="button"
+                  role="menuitem"
+                  className="user-menu-item"
+                  onClick={() => {
+                    setUserMenuOpen(false)
+                    navigate('/profile')
+                  }}
+                >
+                  <UserRound size={16} aria-hidden="true" />
+                  <span>{t('profile.center.title')}</span>
+                </button>
+                <button
+                  type="button"
+                  role="menuitem"
+                  className="user-menu-item danger"
+                  onClick={() => {
+                    setUserMenuOpen(false)
+                    setConfirmLogout(true)
+                  }}
+                >
+                  <LogOut size={16} aria-hidden="true" />
+                  <span>{t('auth.logout')}</span>
+                </button>
+              </div>
+            )}
+          </div>
         ) : (
           <div className="auth-buttons">
             {simplified ? (
@@ -261,12 +347,62 @@ export default function Header({ user, onLogin, onRegister: _onRegister, onLogou
           color: var(--accent);
         }
         .user-menu {
-          display: flex;
+          position: relative;
+          display: inline-flex;
           align-items: center;
           gap: 12px;
         }
         .header.simplified .user-menu {
           gap: 4px;
+        }
+        .user-menu-caret {
+          color: var(--text-secondary);
+          transition: transform 0.15s ease;
+        }
+        .user-menu-caret.open {
+          transform: rotate(180deg);
+        }
+        .user-menu-pop {
+          position: absolute;
+          right: 0;
+          top: calc(100% + 8px);
+          min-width: 180px;
+          padding: 6px;
+          background: var(--bg-primary);
+          border: 1px solid var(--border-color);
+          border-radius: 12px;
+          box-shadow: 0 8px 32px rgba(43, 36, 32, 0.16);
+          z-index: 1200;
+          animation: userMenuIn 0.15s ease;
+        }
+        @keyframes userMenuIn {
+          from { opacity: 0; transform: translateY(-4px); }
+          to { opacity: 1; transform: none; }
+        }
+        .user-menu-item {
+          display: flex;
+          align-items: center;
+          gap: 10px;
+          width: 100%;
+          padding: 9px 12px;
+          border: none;
+          border-radius: 8px;
+          background: transparent;
+          color: var(--text-primary);
+          font-family: inherit;
+          font-size: var(--text-md);
+          text-align: left;
+          cursor: pointer;
+        }
+        .user-menu-item:hover {
+          background: var(--bg-secondary);
+        }
+        .user-menu-item.danger {
+          color: var(--error);
+        }
+        .user-menu-item:focus-visible {
+          outline: 2px solid var(--accent);
+          outline-offset: 2px;
         }
         .user-name {
           font-size: var(--text-md);
@@ -332,6 +468,16 @@ export default function Header({ user, onLogin, onRegister: _onRegister, onLogou
           }
         }
       `}</style>
+
+      {/* 退出登录二次确认:退出会清掉本机未完成的自动保存草稿,不能一键误触 */}
+      <LogoutConfirmDialog
+        open={confirmLogout}
+        onClose={() => setConfirmLogout(false)}
+        onConfirm={() => {
+          setConfirmLogout(false)
+          onLogout?.()
+        }}
+      />
     </header>
   )
 }
