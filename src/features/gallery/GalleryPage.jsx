@@ -13,43 +13,28 @@
  *
  * 载入模板等回调由 App.jsx 传入。
  */
-import { useState, useEffect, useMemo, useRef, useLayoutEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { createPortal } from 'react-dom'
 import { useNavigate } from 'react-router-dom'
 import { Home, MessageCircle } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { CATEGORIES, DIFFICULTIES, extractPatternColors, convertTemplateToBrand, templateDimensions } from '../../data/templates'
-import { getPalette, PALETTE_LIST } from '../../data/palettes'
+import { getPalette } from '../../data/palettes'
 import { exportAsPNG } from '../../services/BeadPatternExporter'
 import { useToast } from '../../components/Toast'
 import ThumbnailCanvas from '../../components/ThumbnailCanvas'
 import { useGalleryQuery, COLOR_COUNT_TIERS } from './hooks/useGalleryQuery'
 import { useGalleryTemplates } from './hooks/useGalleryTemplates'
-import useDownloadCounts, { formatDownloadCount } from './hooks/useDownloadCounts'
+import useDownloadCounts from './hooks/useDownloadCounts'
 import { useGalleryContent } from '../../hooks/useGalleryContent'
 import { useScrollLock } from '../../hooks/useScrollLock'
-import { placePopupMenu } from '../../hooks/viewportGeometry'
 import { useDialogA11y } from '../../hooks/useDialogA11y'
 import useGalleryFavorites from '../../hooks/useGalleryFavorites'
 import { buildDiscoverySections } from './discovery'
 import DiscoveryRails from './components/DiscoveryRails'
+import GalleryTemplateCard, { getDifficultyColor } from './components/GalleryTemplateCard'
 // 与 V1 共享的全部图库样式(卡片/菜单/横幅/弹窗)
 import './gallery.css'
-
-const MAX_VISIBLE_DOTS = 7
-function ColorDots({ pattern }) {
-  const colors = extractPatternColors(pattern)
-  const visible = colors.slice(0, MAX_VISIBLE_DOTS)
-  const extra = colors.length - visible.length
-  return (
-    <>
-      {visible.map((color, i) => (
-        <span key={i} className="color-dot" style={{ backgroundColor: color }} title={color} />
-      ))}
-      {extra > 0 && <span className="color-dot-more" title={`+${extra}`}>+{extra}</span>}
-    </>
-  )
-}
 
 export default function GalleryPage({ onLoadTemplate, cloudStore }) {
   const { t } = useTranslation()
@@ -90,11 +75,9 @@ export default function GalleryPage({ onLoadTemplate, cloudStore }) {
   }
 
   // 收藏:与个人中心的「我的收藏」分区共用同一份数据(useGalleryFavorites)
-  const { favorites, isFavorite, toggleFavorite } = useGalleryFavorites()
-  const [exportMenuId, setExportMenuId] = useState(null)
+  const { isFavorite, toggleFavorite } = useGalleryFavorites()
   const [exportingId, setExportingId] = useState(null)
-  // 品牌徽章:当前展开品牌菜单的模板 id + 每模板用户选定的转换品牌(不改云端模板本身)
-  const [brandMenuId, setBrandMenuId] = useState(null)
+  // 每模板用户选定的转换品牌(不改云端模板本身;跨卡片/跨 feed 持久)
   const [brandOverride, setBrandOverride] = useState({})
   // 待确认填充到画布的模板(卡片点击不再直接填充,弹窗让用户确认,避免误触)
   const [pendingLoad, setPendingLoad] = useState(null)
@@ -139,104 +122,8 @@ export default function GalleryPage({ onLoadTemplate, cloudStore }) {
     return template.pattern
   }
 
-  // 品牌/导出菜单:记录触发按钮位置 + 菜单元素,用 useLayoutEffect 贴近按钮定位(避免居中)
-  // 同时记录触发按钮本身,Escape 关闭后把焦点还回去(键盘用户不会丢位置)
-  const exportTriggerEl = useRef(null)
-  const brandTriggerEl = useRef(null)
-  const brandTriggerRect = useRef(null)
-  const brandMenuRef = useRef(null)
-  const exportTriggerRect = useRef(null)
-  const exportMenuRef = useRef(null)
-  useLayoutEffect(() => {
-    if (!brandMenuId || !brandMenuRef.current || !brandTriggerRect.current) return
-    const menu = brandMenuRef.current
-    const r = brandTriggerRect.current
-    // 菜单是 position:fixed,坐标系是视觉视口。键盘弹起时 window.innerHeight 仍是
-    // 布局视口(不收缩),且 iOS 会自动平移视觉视口(offsetTop > 0),
-    // 只取 height 会把菜单摆到键盘上方偏高处。定位与双向夹紧在纯函数里,可单测。
-    const vv = window.visualViewport
-    const { left, top } = placePopupMenu({
-      rect: r,
-      menuWidth: menu.offsetWidth,
-      menuHeight: menu.offsetHeight,
-      vTop: vv ? Math.max(0, vv.offsetTop) : 0,
-      vBottom: vv ? vv.offsetTop + vv.height : window.innerHeight,
-      viewportWidth: window.innerWidth,
-      prefer: 'below',
-    })
-    menu.style.left = `${left}px`
-    menu.style.top = `${top}px`
-  }, [brandMenuId])
-  useLayoutEffect(() => {
-    if (!exportMenuId || !exportMenuRef.current || !exportTriggerRect.current) return
-    const menu = exportMenuRef.current
-    const r = exportTriggerRect.current
-    // 同 brandMenu:fixed 定位要用视觉视口的上下沿,offsetTop > 0 时不能只看 height。
-    // 导出按钮在卡片右下角,右对齐并优先向上展开。
-    const vv = window.visualViewport
-    const { left, top } = placePopupMenu({
-      rect: r,
-      menuWidth: menu.offsetWidth,
-      menuHeight: menu.offsetHeight,
-      vTop: vv ? Math.max(0, vv.offsetTop) : 0,
-      vBottom: vv ? vv.offsetTop + vv.height : window.innerHeight,
-      viewportWidth: window.innerWidth,
-      prefer: 'above',
-    })
-    menu.style.left = `${left}px`
-    menu.style.top = `${top}px`
-  }, [exportMenuId])
-
-  useEffect(() => {
-    if (!exportMenuId) return
-    const close = () => setExportMenuId(null)
-    document.addEventListener('click', close)
-    return () => document.removeEventListener('click', close)
-  }, [exportMenuId])
-
-  // 菜单键盘可关闭:Esc 关闭并把焦点还给触发按钮(规格 07 §8)
-  useEffect(() => {
-    if (!exportMenuId && !brandMenuId) return undefined
-    const onKeyDown = (e) => {
-      if (e.key !== 'Escape') return
-      const trigger = exportMenuId ? exportTriggerEl.current : brandTriggerEl.current
-      if (exportMenuId) setExportMenuId(null)
-      if (brandMenuId) setBrandMenuId(null)
-      // 下一帧再聚焦:菜单卸载后再 focus 才能稳定落到按钮上
-      requestAnimationFrame(() => trigger?.focus?.())
-    }
-    document.addEventListener('keydown', onKeyDown)
-    return () => document.removeEventListener('keydown', onKeyDown)
-  }, [exportMenuId, brandMenuId])
-
-  const filteredTemplates = useMemo(() => allTemplates.filter(template => {
-    const displayName = (template.nameZh || template.name || '').toLowerCase()
-    const translatedName = t(`templates.names.${template.nameKey}`, template.nameKey).toLowerCase()
-    const matchesSearch = (displayName || translatedName).includes(searchTerm.toLowerCase())
-    const matchesCategory = category === 'all' || template.category === category
-    const matchesDifficulty = difficulty === 'all' || template.difficulty === difficulty
-    // 用色数上限:按 pattern 实际出现的唯一颜色数计算(与卡片色点、详情页口径一致)
-    const matchesColors = !maxColors || extractPatternColors(template.pattern).length <= maxColors
-    return matchesSearch && matchesCategory && matchesDifficulty && matchesColors
-  }), [allTemplates, searchTerm, category, difficulty, maxColors, t])
-
-  const handleToggleFavorite = (id, e) => {
-    e.stopPropagation()
-    toggleFavorite(id)
-  }
-
-  const getDifficultyColor = (difficulty) => {
-    switch (difficulty) {
-      case 'easy': return 'var(--secondary-accent)'
-      case 'medium': return 'var(--warning)'
-      case 'hard': return 'var(--error)'
-      default: return 'var(--text-muted)'
-    }
-  }
-
   const handleExportTemplate = async (template, beadStyle, e) => {
     e.stopPropagation()
-    setExportMenuId(null)
     setExportingId(template.id)
     try {
       const brand = templateBrandId(template)
@@ -259,6 +146,22 @@ export default function GalleryPage({ onLoadTemplate, cloudStore }) {
     } finally {
       setExportingId(null)
     }
+  }
+
+  const filteredTemplates = useMemo(() => allTemplates.filter(template => {
+    const displayName = (template.nameZh || template.name || '').toLowerCase()
+    const translatedName = t(`templates.names.${template.nameKey}`, template.nameKey).toLowerCase()
+    const matchesSearch = (displayName || translatedName).includes(searchTerm.toLowerCase())
+    const matchesCategory = category === 'all' || template.category === category
+    const matchesDifficulty = difficulty === 'all' || template.difficulty === difficulty
+    // 用色数上限:按 pattern 实际出现的唯一颜色数计算(与卡片色点、详情页口径一致)
+    const matchesColors = !maxColors || extractPatternColors(template.pattern).length <= maxColors
+    return matchesSearch && matchesCategory && matchesDifficulty && matchesColors
+  }), [allTemplates, searchTerm, category, difficulty, maxColors, t])
+
+  const handleToggleFavorite = (id, e) => {
+    e.stopPropagation()
+    toggleFavorite(id)
   }
 
   // 载入模板:有品牌(模板自带或用户覆盖)时转换 pattern 并通知 App 同步切换色卡;
@@ -448,207 +351,25 @@ export default function GalleryPage({ onLoadTemplate, cloudStore }) {
         ) : (
           <div className="templates-grid">
             {filteredTemplates.map(template => (
-              <div
+              <GalleryTemplateCard
                 key={template.id}
-                className="template-card"
-                role="button"
-                tabIndex={0}
-                onClick={() => setPendingLoad(template)}
-                onKeyDown={(e) => {
-                  // 键盘可达:卡片本身是 div(内部还有收藏/导出/品牌三个按钮),
-                  // 只在焦点落在卡片自身时才响应,避免 Enter 冒泡触发两次。
-                  if (e.target !== e.currentTarget) return
-                  if (e.key === 'Enter' || e.key === ' ') {
-                    e.preventDefault()
-                    setPendingLoad(template)
-                  }
-                }}
-              >
-                <div className="template-thumbnail">
-                  <ThumbnailCanvas pattern={template.pattern} size={template.size} gridWidth={templateDimensions(template).width} gridHeight={templateDimensions(template).height} />
-                  <button
-                    className={`favorite-btn ${isFavorite(template.id) ? 'active' : ''}`}
-                    onClick={(e) => handleToggleFavorite(template.id, e)}
-                    aria-label={t('gallery.myFavorites')}
-                    aria-pressed={isFavorite(template.id)}
-                  >
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill={isFavorite(template.id) ? 'var(--accent)' : 'none'} stroke="var(--accent)" strokeWidth="2">
-                      <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
-                    </svg>
-                  </button>
-
-                  {exportMenuId === template.id && createPortal(
-                    // portal 到 document.body:彻底脱离模板卡片的 overflow:hidden 与
-                    // 任何祖先 transform/包含块陷阱,对话框永不被卡片边框裁剪
-                    <div
-                      className="export-menu-overlay"
-                      onClick={e => { e.stopPropagation(); setExportMenuId(null) }}
-                    >
-                      <div className="export-menu" ref={exportMenuRef} role="menu" onClick={e => e.stopPropagation()}>
-                        <div className="export-menu-header">
-                          <span className="export-menu-title">{t('gallery.exportTitle')}</span>
-                          <span className="export-menu-name">
-                            {template.name ? (template.nameZh || template.name) : t(`templates.names.${template.nameKey}`, template.nameKey)}
-                          </span>
-                        </div>
-                        <div className="export-menu-hint">{t('gallery.exportHint')}</div>
-                        <button role="menuitem" className="export-format-item" onClick={e => handleExportTemplate(template, 'professional', e)}>
-                          <span className="export-format-icon" aria-hidden="true">
-                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                              <path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/>
-                            </svg>
-                          </span>
-                          <span className="export-format-text">
-                            <span className="export-format-name">{t('gallery.exportProfessional')}</span>
-                            <span className="export-format-desc">{t('gallery.exportProfessionalDesc')}</span>
-                          </span>
-                        </button>
-                        <button role="menuitem" className="export-format-item" onClick={e => handleExportTemplate(template, 'realistic', e)}>
-                          <span className="export-format-icon" aria-hidden="true">
-                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                              <path d="M12 2c1.5 3 4 4 4 7a4 4 0 0 1-8 0c0-3 2.5-4 4-7z"/><path d="M12 15v4"/><path d="M8 22h8"/>
-                            </svg>
-                          </span>
-                          <span className="export-format-text">
-                            <span className="export-format-name">{t('gallery.exportRealistic')}</span>
-                            <span className="export-format-desc">{t('gallery.exportRealisticDesc')}</span>
-                          </span>
-                        </button>
-                      </div>
-                    </div>,
-                    document.body
-                  )}
-                </div>
-                <div className="template-info">
-                  <h3 className="template-name">
-                    {template.name ? (template.nameZh || template.name) : t(`templates.names.${template.nameKey}`, template.nameKey)}
-                  </h3>
-                  <div className="template-meta">
-                    {/* 真实宽高:矩形模板显示 W × H,方形显示 N × N */}
-                    {(() => {
-                      const { width, height } = templateDimensions(template)
-                      return <span className="template-size">{width} x {height}</span>
-                    })()}
-                    {/* 拼豆品牌徽章:显示模板所属色卡品牌;点击可切换并转换为指定品牌 */}
-                    <button
-                      className={`template-brand${brandOverride[template.id] ? ' overridden' : ''}`}
-                      onClick={(e) => { e.stopPropagation(); brandTriggerRect.current = e.currentTarget.getBoundingClientRect(); brandTriggerEl.current = e.currentTarget; setExportMenuId(null); setBrandMenuId(brandMenuId === template.id ? null : template.id) }}
-                      title={t('gallery.brandConvert')}
-                      aria-label={t('gallery.brandConvert')}
-                      aria-expanded={brandMenuId === template.id}
-                      aria-haspopup="menu"
-                    >
-                      {t(`palette.brand.${templateBrandId(template)}`)}
-                      {brandOverride[template.id] && (
-                        /* 调色板图标:表示该模板已转换到指定品牌的色卡 */
-                        <svg className="brand-convert-icon" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                          <path d="M12 22a10 10 0 1 1 10-10c0 1.66-1.34 3-3 3h-2.3a2.4 2.4 0 0 0-1.8 3.94c.3.37.35.87.07 1.3-.38.7-.9 1.76-.97 1.76z"/>
-                          <circle cx="7.5" cy="11.5" r="1"/><circle cx="11.5" cy="7.5" r="1"/><circle cx="16" cy="9.5" r="1"/>
-                        </svg>
-                      )}
-                      {/* 向下箭头:标示该徽章是可展开的下拉按钮 */}
-                      <svg className="brand-chevron" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                        <path d="M6 9l6 6 6-6"/>
-                      </svg>
-                    </button>
-                    <span
-                      className="template-difficulty"
-                      style={{ '--diff-color': getDifficultyColor(template.difficulty) }}
-                    >
-                      {t(`gallery.difficulties.${template.difficulty}`)}
-                    </span>
-                  </div>
-                  <span className="template-category">{getCategoryLabel(template.category)}</span>
-                </div>
-                {/* 品牌切换菜单(portal 到 body,避免卡片 overflow:hidden 裁剪) */}
-                {brandMenuId === template.id && createPortal(
-                  <div
-                    className="brand-menu-overlay"
-                    onClick={(e) => { e.stopPropagation(); setBrandMenuId(null) }}
-                  >
-                    <div className="brand-menu" ref={brandMenuRef} role="menu" onClick={e => e.stopPropagation()}>
-                      <button
-                        role="menuitem"
-                        className={!brandOverride[template.id] ? 'active' : ''}
-                        onClick={(e) => {
-                          e.stopPropagation()
-                          setBrandOverride(prev => { const n = { ...prev }; delete n[template.id]; return n })
-                          setBrandMenuId(null)
-                        }}
-                      >
-                        {t('gallery.brandDefault')}
-                      </button>
-                      {PALETTE_LIST.map(brand => (
-                        <button
-                          key={brand.id}
-                          role="menuitem"
-                          className={templateBrandId(template) === brand.id && brandOverride[template.id] ? 'active' : ''}
-                          onClick={(e) => {
-                            e.stopPropagation()
-                            if (brand.id === template.paletteId) {
-                              // 选中模板原始品牌 → 等价于跟随模板,清空覆盖
-                              setBrandOverride(prev => { const n = { ...prev }; delete n[template.id]; return n })
-                            } else {
-                              setBrandOverride(prev => ({ ...prev, [template.id]: brand.id }))
-                            }
-                            setBrandMenuId(null)
-                          }}
-                        >
-                          {t(`palette.brand.${brand.id}`)}
-                        </button>
-                      ))}
-                    </div>
-                  </div>,
-                  document.body
-                )}
-                {/* 卡片页脚:颜色圆点 + 导出胶囊(导出按钮 + 下载量)。
-                    导出原本浮在缩略图右下角,既压住图案,又让预览区必须留 40px 底边;
-                    放进页脚后预览区是干净的正方形,操作也有了明确的落点。 */}
-                <div className="template-footer">
-                  <div className="template-colors">
-                    <ColorDots pattern={template.pattern} />
-                  </div>
-                  {/* 卡片页脚右侧:导出按钮与下载量同处一个胶囊。
-                      左侧是可点的导出按钮(圆形,内含下载箭头图标),
-                      右侧是纯展示的下载计数,两者共用一层边框与底色,
-                      一眼就能看出这个数字属于「下载」而不是别的东西。 */}
-                  <div className="export-count-capsule">
-                    <button
-                      className="export-btn"
-                      onClick={e => {
-                        e.stopPropagation()
-                        exportTriggerRect.current = e.currentTarget.getBoundingClientRect()
-                        exportTriggerEl.current = e.currentTarget
-                        setBrandMenuId(null)
-                        setExportMenuId(exportMenuId === template.id ? null : template.id)
-                      }}
-                      disabled={exportingId === template.id}
-                      title={t('export.title')}
-                      aria-expanded={exportMenuId === template.id}
-                      aria-haspopup="menu"
-                      aria-label={t('export.title')}
-                    >
-                      {exportingId === template.id ? (
-                        <svg className="spinning" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                          <path d="M21 12a9 9 0 1 1-6.219-8.56"/>
-                        </svg>
-                      ) : (
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                          <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
-                          <polyline points="7 10 12 15 17 10"/>
-                          <line x1="12" y1="15" x2="12" y2="3"/>
-                        </svg>
-                      )}
-                    </button>
-                    <span
-                      className="download-count"
-                      title={`${t('gallery.downloadCount')}: ${getDownloadCount(template)}`}
-                    >
-                      {formatDownloadCount(getDownloadCount(template))}
-                    </span>
-                  </div>
-                </div>
-              </div>
+                template={template}
+                categoryLabel={getCategoryLabel(template.category)}
+                favorite={isFavorite(template.id)}
+                onToggleFavorite={(e) => handleToggleFavorite(template.id, e)}
+                onOpen={() => setPendingLoad(template)}
+                exporting={exportingId === template.id}
+                onExportTemplate={handleExportTemplate}
+                brandId={templateBrandId(template)}
+                brandOverridden={Boolean(brandOverride[template.id])}
+                onBrandSelect={(brandId) => setBrandOverride(prev => {
+                  const next = { ...prev }
+                  if (!brandId || brandId === template.paletteId) delete next[template.id]
+                  else next[template.id] = brandId
+                  return next
+                })}
+                getDownloadCount={getDownloadCount}
+              />
             ))}
           </div>
         )}
