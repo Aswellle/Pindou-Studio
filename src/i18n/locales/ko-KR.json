@@ -1269,7 +1269,12 @@
       "manageChildThemes": "하위 테마",
       "manageThemeCollections": "관련 컬렉션",
       "childThemesHint": "하위 테마는 이 테마 페이지의 보조 진입점으로 표시됩니다. 계층은 2단계까지만 허용되며, 이미 하위 테마인 테마는 상위가 될 수 없습니다.",
-      "themeCollectionsHint": "이 컬렉션은 이 테마 페이지의 \"관련 컬렉션\" 영역에 표시됩니다."
+      "themeCollectionsHint": "이 컬렉션은 이 테마 페이지의 \"관련 컬렉션\" 영역에 표시됩니다.",
+      "featuredTemplates": "에디터 추천",
+      "featuredHint": "추천 피드 상단에 표시되는 수동 선택 도안 목록",
+      "editFeatured": "에디터 추천 편집",
+      "featuredEmpty": "아직 추천 도안이 없습니다. \"편집\"에서 추가하세요.",
+      "featuredEditorHint": "표시할 도안을 고르고 화살표로 순서를 조정하세요."
     }
   },
   "profile": {

@@ -29,6 +29,9 @@ const TABLES = {
 
 const HOME_SECTIONS_TABLE = 'gallery_home_sections'
 
+// 精选资源关系(0032):管理员人工挑选的单张图纸,按 sort_order 展示
+const FEATURED_TEMPLATES_TABLE = 'gallery_featured_templates'
+
 // 主题嵌套(0027):子主题与主题下的合集
 const NESTING_TABLES = {
   children: 'gallery_theme_children',
@@ -60,6 +63,7 @@ export function createGalleryContentStore(client = supabase) {
         return {
           themes: [], collections: [], themeLinks: [], collectionLinks: [],
           homeSections: [], themeChildren: [], themeCollections: [],
+          featuredTemplateRows: [],
         }
       },
       async createContent() { return fail([{ code: 'cloudNotConfigured' }]) },
@@ -69,6 +73,7 @@ export function createGalleryContentStore(client = supabase) {
       async saveHomeSections() { return fail([{ code: 'cloudNotConfigured' }]) },
       async setThemeChildren() { return fail([{ code: 'cloudNotConfigured' }]) },
       async setThemeCollections() { return fail([{ code: 'cloudNotConfigured' }]) },
+      async saveFeaturedTemplates() { return fail([{ code: 'cloudNotConfigured' }]) },
     }
   }
 
@@ -140,7 +145,7 @@ export function createGalleryContentStore(client = supabase) {
      * 「内容暂不可用」并继续使用旧图库 —— 不在这里静默吞掉。
      */
     async load() {
-      const [themes, collections, themeLinks, collectionLinks, homeSections, themeChildren, themeCollections] =
+      const [themes, collections, themeLinks, collectionLinks, homeSections, themeChildren, themeCollections, featuredTemplateRows] =
         await Promise.all([
           listOf(TABLES.theme, 'sort_order'),
           listOf(TABLES.collection, 'sort_order'),
@@ -152,6 +157,8 @@ export function createGalleryContentStore(client = supabase) {
           // 同理:0027 未执行时返回空数组,主题页不显示子主题区块。
           listOptional(NESTING_TABLES.children, 'sort_order'),
           listOptional(NESTING_TABLES.collections, 'sort_order'),
+          // 0032 未执行时精选资源为空,精选视图不渲染该区块,其余一切照常。
+          listOptional(FEATURED_TEMPLATES_TABLE, 'sort_order'),
         ])
       return {
         themes: themes.map((row) => rowToContent(row, 'theme')),
@@ -161,6 +168,7 @@ export function createGalleryContentStore(client = supabase) {
         homeSections,
         themeChildren,
         themeCollections,
+        featuredTemplateRows,
       }
     },
 
@@ -288,6 +296,29 @@ export function createGalleryContentStore(client = supabase) {
         .select()
       if (error) { remember({ code: 'cloud', detail: error.message }); return fromDbError(error) }
       return { ok: true, sections: (data || []).map(rowToHomeSection) }
+    },
+
+    /**
+     * 整组替换精选资源关系(后台保存,管理员;RLS 强制)。
+     * 与 setLinks 同一策略:先删后插,任一步失败都返回错误,不做部分成功的假象。
+     * 只接受云端 templates 的 UUID;去重保序,顺序即展示顺序。
+     */
+    async saveFeaturedTemplates(templateIds = []) {
+      const ids = [...new Set((templateIds || []).map(String).filter(Boolean))]
+
+      const del = await client.from(FEATURED_TEMPLATES_TABLE).delete().not('template_id', 'is', null)
+      if (del.error) { remember({ code: 'cloud', detail: del.error.message }); return fromDbError(del.error) }
+      if (ids.length === 0) return { ok: true, rows: [] }
+
+      const { data, error } = await client
+        .from(FEATURED_TEMPLATES_TABLE)
+        .insert(ids.map((templateId, index) => ({
+          template_id: templateId,
+          sort_order: index,
+        })))
+        .select()
+      if (error) { remember({ code: 'cloud', detail: error.message }); return fromDbError(error) }
+      return { ok: true, rows: data || [] }
     },
   }
 }

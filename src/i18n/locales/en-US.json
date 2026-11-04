@@ -1269,7 +1269,12 @@
       "manageChildThemes": "Sub-themes",
       "manageThemeCollections": "Related collections",
       "childThemesHint": "Sub-themes appear as secondary entries on this theme page. Only two levels are allowed: a theme that is already a sub-theme cannot have children.",
-      "themeCollectionsHint": "These collections appear in the \"Related collections\" section of this theme page."
+      "themeCollectionsHint": "These collections appear in the \"Related collections\" section of this theme page.",
+      "featuredTemplates": "Editors picks",
+      "featuredHint": "Hand-picked, ordered templates shown at the top of the Featured feed",
+      "editFeatured": "Edit editors picks",
+      "featuredEmpty": "No featured templates yet. Use \"Edit editors picks\" to add some.",
+      "featuredEditorHint": "Pick the templates to feature; reorder them with the arrows."
     }
   },
   "profile": {

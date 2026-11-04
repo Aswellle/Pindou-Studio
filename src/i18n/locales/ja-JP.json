@@ -1269,7 +1269,12 @@
       "manageChildThemes": "サブテーマ",
       "manageThemeCollections": "関連コレクション",
       "childThemesHint": "サブテーマはこのテーマページの二次入口として表示されます。階層は 2 レベルまでです。すでにサブテーマであるテーマは親になれません。",
-      "themeCollectionsHint": "これらのコレクションはこのテーマページの「関連コレクション」に表示されます。"
+      "themeCollectionsHint": "これらのコレクションはこのテーマページの「関連コレクション」に表示されます。",
+      "featuredTemplates": "編集部のおすすめ",
+      "featuredHint": "厳選フィードの先頭に表示される、手動選択・順序付きの図案",
+      "editFeatured": "おすすめを編集",
+      "featuredEmpty": "おすすめの図案はまだありません。「編集」から追加してください。",
+      "featuredEditorHint": "表示する図案を選び、矢印で順序を調整できます。"
     }
   },
   "profile": {

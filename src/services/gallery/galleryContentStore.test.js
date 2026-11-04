@@ -71,6 +71,7 @@ describe('galleryContentStore · 读取', () => {
     await expect(store.load()).resolves.toEqual({
       themes: [], collections: [], themeLinks: [], collectionLinks: [],
       homeSections: [], themeChildren: [], themeCollections: [],
+      featuredTemplateRows: [],
     })
   })
 })
@@ -135,5 +136,102 @@ describe('galleryContentStore · 写入', () => {
     const store = createGalleryContentStore(null)
     expect((await store.createContent('theme', { slug: 'a', title: 'A' })).errors[0].code).toBe('cloudNotConfigured')
     expect((await store.setLinks('theme', 't1', [])).errors[0].code).toBe('cloudNotConfigured')
+  })
+})
+
+describe('galleryContentStore · 精选资源(0032)', () => {
+  it('load 读取精选关系;缺表(0032 未执行)返回空数组不抛错', async () => {
+    // 正常路径:关系行按原样返回,排序归 hook 处理
+    const rows = { gallery_featured_templates: [{ template_id: 'tpl-9', sort_order: 0 }] }
+    const client = {
+      from(table) {
+        const builder = {
+          select() { return builder },
+          order() { return builder },
+          then(resolve) { return Promise.resolve({ data: rows[table] || [], error: null }).then(resolve) },
+        }
+        return builder
+      },
+    }
+    const store = createGalleryContentStore(client)
+    const data = await store.load()
+    expect(data.featuredTemplateRows).toEqual([{ template_id: 'tpl-9', sort_order: 0 }])
+
+    // 缺表降级:42P01 → 空数组,主图库不受影响
+    const missing = {
+      from(table) {
+        const builder = {
+          select() { return builder },
+          order() { return builder },
+          then(resolve) {
+            const error = table === 'gallery_featured_templates'
+              ? { code: '42P01', message: 'relation "gallery_featured_templates" does not exist' }
+              : null
+            return Promise.resolve({ data: null, error }).then(resolve)
+          },
+        }
+        return builder
+      },
+    }
+    const store2 = createGalleryContentStore(missing)
+    const data2 = await store2.load()
+    expect(data2.featuredTemplateRows).toEqual([])
+  })
+
+  it('saveFeaturedTemplates 先删后插,按数组顺序写 sort_order 并去重', async () => {
+    const calls = []
+    const client = {
+      from(table) {
+        const state = { ops: [] }
+        calls.push({ table, state })
+        const builder = {
+          delete() { state.ops.push('delete'); return builder },
+          not() { return builder },
+          insert(payload) { state.ops.push(['insert', payload]); return builder },
+          select() { return builder },
+          then(resolve) { return Promise.resolve({ data: [], error: null }).then(resolve) },
+        }
+        return builder
+      },
+    }
+    const store = createGalleryContentStore(client)
+    const res = await store.saveFeaturedTemplates(['b', 'a', 'b', ''])
+    expect(res.ok).toBe(true)
+    // 先删后插:delete 与 insert 是两次独立的 from() 调用
+    expect(calls[0].state.ops[0]).toBe('delete')
+    expect(calls[1].state.ops[0][0]).toBe('insert')
+    expect(calls[1].state.ops[0][1]).toEqual([
+      { template_id: 'b', sort_order: 0 },
+      { template_id: 'a', sort_order: 1 },
+    ])
+  })
+
+  it('saveFeaturedTemplates 空数组只清空,不再 insert', async () => {
+    const calls = []
+    const client = {
+      from() {
+        const state = { ops: [] }
+        calls.push(state)
+        const builder = {
+          delete() { state.ops.push('delete'); return builder },
+          not() { return builder },
+          insert(payload) { state.ops.push(['insert', payload]); return builder },
+          select() { return builder },
+          then(resolve) { return Promise.resolve({ data: [], error: null }).then(resolve) },
+        }
+        return builder
+      },
+    }
+    const store = createGalleryContentStore(client)
+    const res = await store.saveFeaturedTemplates([])
+    expect(res.ok).toBe(true)
+    expect(calls[0].ops).toEqual(['delete'])
+  })
+
+  it('未配置云端时精选写入返回 cloudNotConfigured', async () => {
+    const store = createGalleryContentStore(null)
+    const res = await store.saveFeaturedTemplates(['x'])
+    expect(res.ok).toBe(false)
+    expect(res.errors[0].code).toBe('cloudNotConfigured')
   })
 })

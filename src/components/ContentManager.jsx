@@ -429,6 +429,79 @@ function ContentRelationEditor({
   )
 }
 
+/**
+ * FeaturedTemplatesPanel — 精选资源(人工策展单张图纸)的后台编辑卡(0032)。
+ *
+ * 复用 ContentRelationEditor 的「已选列表 + 搜索候选」交互:草稿在编辑器内,
+ * 保存时整组提交(setFeaturedTemplates),失败保留草稿不假成功。
+ * 模板候选来自 cloudStore.templates(不重复发模板查询);关系只存 id+排序,
+ * 删除的模板经 cascade 清理,重载后列表如实反映。
+ */
+function FeaturedTemplatesPanel({ content, templates, templateName }) {
+  const { t } = useTranslation()
+  const [editing, setEditing] = useState(false)
+  const [busy, setBusy] = useState(false)
+
+  // 云端未配置:精选是云端运营数据,不渲染写入口(避免本地误以为可编辑)
+  if (!content.enabled) return null
+
+  const ordered = content.featuredTemplateIds || []
+
+  const save = async (ids) => {
+    setBusy(true)
+    try {
+      const res = await content.setFeaturedTemplates(ids)
+      if (res.ok) setEditing(false)
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  return (
+    <div className="admin-card content-featured">
+      <div className="admin-actions" style={{ justifyContent: 'space-between', flexWrap: 'wrap' }}>
+        <div>
+          <strong>{t('admin.content.featuredTemplates')}</strong>
+          <p className="admin-hint">{t('admin.content.featuredHint')}</p>
+        </div>
+        <button className="admin-btn primary" onClick={() => setEditing(true)}>
+          <Plus size={14} aria-hidden="true" />
+          {t('admin.content.editFeatured')}
+        </button>
+      </div>
+
+      {ordered.length === 0 ? (
+        <div className="admin-empty">{t('admin.content.featuredEmpty')}</div>
+      ) : (
+        <ul className="content-link-current">
+          {ordered.map((id, index) => {
+            const item = (templates || []).find((x) => String(x.id) === String(id))
+            return (
+              <li key={id} className="content-link-row">
+                <span>{index + 1}. {item ? templateName(item) : id}</span>
+              </li>
+            )
+          })}
+        </ul>
+      )}
+
+      {editing && (
+        <ContentModal title={t('admin.content.editFeatured')} onClose={() => { if (!busy) setEditing(false) }}>
+          <ContentRelationEditor
+            hint={t('admin.content.featuredEditorHint')}
+            selectedIds={ordered}
+            candidates={templates}
+            resolveLabel={templateName}
+            busy={busy}
+            onClose={() => setEditing(false)}
+            onSave={save}
+          />
+        </ContentModal>
+      )}
+    </div>
+  )
+}
+
 export default function ContentManager({ cloudStore }) {
   const { t, i18n } = useTranslation()
   const content = useGalleryContent()
@@ -561,6 +634,12 @@ export default function ContentManager({ cloudStore }) {
         content={content}
         themes={content.themes}
         collections={content.collections}
+      />
+
+      <FeaturedTemplatesPanel
+        content={content}
+        templates={templates}
+        templateName={templateName}
       />
 
       <HealthPanel

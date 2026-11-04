@@ -1269,7 +1269,12 @@
       "manageChildThemes": "子主题",
       "manageThemeCollections": "相关合集",
       "childThemesHint": "子主题会显示在该主题页的二级入口里。只能两层:已经是别人子主题的主题不能再作为父主题。",
-      "themeCollectionsHint": "这些合集会显示在该主题页的「相关合集」区块。"
+      "themeCollectionsHint": "这些合集会显示在该主题页的「相关合集」区块。",
+      "featuredTemplates": "精选资源",
+      "featuredHint": "人工挑选并排序的单张图纸,展示在图库「精选」feed 顶部",
+      "editFeatured": "编辑精选资源",
+      "featuredEmpty": "还没有精选资源。点击「编辑精选资源」添加。",
+      "featuredEditorHint": "按顺序挑选要精选的图纸;可上移/下移调整展示顺序。"
     }
   },
   "profile": {

@@ -27,7 +27,7 @@ const publishedOnly = (list) => (list || []).filter((item) => item?.status === C
 
 const EMPTY = {
   themes: [], collections: [], themeLinks: [], collectionLinks: [], homeSections: [],
-  themeChildren: [], themeCollections: [],
+  themeChildren: [], themeCollections: [], featuredTemplateRows: [],
 }
 
 const CONTENT_TIMEOUT_MS = 15000
@@ -71,6 +71,7 @@ export function useGalleryContent({ active = true } = {}) {
         homeSections: Array.isArray(data.homeSections) ? data.homeSections : [],
         themeChildren: Array.isArray(data.themeChildren) ? data.themeChildren : [],
         themeCollections: Array.isArray(data.themeCollections) ? data.themeCollections : [],
+        featuredTemplateRows: Array.isArray(data.featuredTemplateRows) ? data.featuredTemplateRows : [],
       })
       setError('')
     } catch (e) {
@@ -166,6 +167,16 @@ export function useGalleryContent({ active = true } = {}) {
   // 首页区块:无配置时回退到默认顺序(未执行 0026 的项目行为不变)
   const homeSections = useMemo(() => resolveHomeSections(state.homeSections), [state.homeSections])
 
+  // 精选资源:按 sort_order 排好的 templateId 列表(0032;未执行时为空数组)。
+  // 关系只存 id + 排序,标题/图案等由调用方从模板数据源解析,不复制数据。
+  const featuredTemplateIds = useMemo(
+    () => state.featuredTemplateRows
+      .slice()
+      .sort((a, b) => (Number(a.sort_order) || 0) - (Number(b.sort_order) || 0))
+      .map((row) => String(row.template_id)),
+    [state.featuredTemplateRows]
+  )
+
   /**
    * 公开路由专用:只返回已发布对象。
    *
@@ -241,6 +252,13 @@ export function useGalleryContent({ active = true } = {}) {
     return res
   }, [store, load, fail])
 
+  const setFeaturedTemplates = useCallback(async (templateIds) => {
+    const res = await store.saveFeaturedTemplates(templateIds)
+    if (!res.ok) return fail(res.errors)
+    await load()
+    return res
+  }, [store, load, fail])
+
   return {
     enabled: store.enabled,
     loading,
@@ -265,6 +283,8 @@ export function useGalleryContent({ active = true } = {}) {
     saveHomeSections,
     setThemeChildren,
     setThemeCollections,
+    setFeaturedTemplates,
+    featuredTemplateIds,
   }
 }
 

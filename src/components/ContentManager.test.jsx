@@ -28,6 +28,9 @@ const contentState = {
   saveHomeSections: vi.fn(),
   setThemeChildren: vi.fn(),
   setThemeCollections: vi.fn(),
+  setFeaturedTemplates: vi.fn(),
+  featuredTemplateIds: [],
+  enabled: true,
   reload: vi.fn(),
 }
 
@@ -50,6 +53,8 @@ afterEach(() => {
   contentState.saveHomeSections = vi.fn()
   contentState.childThemeIds = new Map()
   contentState.themeCollectionIds = new Map()
+  contentState.featuredTemplateIds = []
+  contentState.setFeaturedTemplates = vi.fn()
 })
 
 const theme = (id, over = {}) => ({
@@ -349,5 +354,43 @@ describe('ContentManager · 主题嵌套', () => {
 
     await waitFor(() => expect(contentState.setThemeCollections).toHaveBeenCalledTimes(1))
     expect(contentState.setThemeCollections.mock.calls[0][1]).toEqual(['c1'])
+  })
+})
+
+describe('ContentManager · 精选资源(0032)', () => {
+  it('显示已选精选资源及其顺序;空时显示空态', () => {
+    contentState.featuredTemplateIds = ['t2', 't1']
+    const { container } = setup()
+    expect(screen.getByText('精选资源')).toBeTruthy()
+    const rows = [...container.querySelectorAll('.content-featured .content-link-row')]
+    // 按 sort_order 展示:featuredTemplateIds 顺序即展示顺序
+    expect(rows.map((r) => r.textContent)).toEqual(['1. 猫', '2. 鸭子'])
+  })
+
+  it('编辑器增删排序后保存,整组提交 setFeaturedTemplates', async () => {
+    contentState.featuredTemplateIds = ['t1']
+    contentState.setFeaturedTemplates.mockResolvedValue({ ok: true })
+    setup()
+    fireEvent.click(screen.getByText('编辑精选资源'))
+    // 搜索并添加 t2
+    fireEvent.change(screen.getByPlaceholderText('搜索模板加入'), { target: { value: '猫' } })
+    fireEvent.click(screen.getByText('+ 猫'))
+    // 上移 t2 到第一位:行顺序 [t1, t2] → 上移第二行
+    const upButtons = screen.getAllByRole('button', { name: '上移' })
+    fireEvent.click(upButtons[upButtons.length - 1])
+    fireEvent.click(screen.getByText('保存'))
+    await waitFor(() => expect(contentState.setFeaturedTemplates).toHaveBeenCalledTimes(1))
+    expect(contentState.setFeaturedTemplates).toHaveBeenCalledWith(['t2', 't1'])
+  })
+
+  it('保存失败时编辑器保留草稿不关闭', async () => {
+    contentState.featuredTemplateIds = ['t1']
+    contentState.setFeaturedTemplates.mockResolvedValue({ ok: false, errors: [{ code: 'cloud', detail: 'RLS denied' }] })
+    setup()
+    fireEvent.click(screen.getByText('编辑精选资源'))
+    fireEvent.click(screen.getByText('保存'))
+    await waitFor(() => expect(contentState.setFeaturedTemplates).toHaveBeenCalledTimes(1))
+    // 编辑器仍打开(草稿不丢)
+    expect(screen.getByPlaceholderText('搜索模板加入')).toBeTruthy()
   })
 })
