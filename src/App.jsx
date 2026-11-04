@@ -1012,7 +1012,6 @@ export default function App() {
             <ProfilePage
               user={user}
               authLoading={authLoading}
-              onLogout={logout}
               onUpdateProfile={updateProfile}
               onChangePassword={changePassword}
               works={savedWorks}
@@ -1423,7 +1422,6 @@ export default function App() {
             <ProfilePage
               user={user}
               authLoading={authLoading}
-              onLogout={logout}
               onUpdateProfile={updateProfile}
               onChangePassword={changePassword}
               works={savedWorks}

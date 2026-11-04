@@ -19,15 +19,12 @@
  */
 
 import { useEffect, useMemo, useState } from 'react'
-import { createPortal } from 'react-dom'
 import { Navigate, useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import {
   LayoutDashboard, UserRound, ShieldCheck, Boxes, Settings2, LayoutGrid, Heart,
 } from 'lucide-react'
 import BackButton from './BackButton'
-import { useScrollLock } from '../hooks/useScrollLock'
-import { useDialogA11y } from '../hooks/useDialogA11y'
 import { buildProfileSummary } from './profile/profileSummary'
 import ProfileOverview from './profile/ProfileOverview'
 import ProfileInfoSection from './profile/ProfileInfoSection'
@@ -52,7 +49,6 @@ const SECTIONS = [
 export default function ProfilePage({
   user,
   authLoading,
-  onLogout,
   onUpdateProfile,
   onChangePassword,
   // 资产(App 持有的同一份实例)
@@ -88,16 +84,6 @@ export default function ProfilePage({
 
   const [section, setSection] = useState('overview')
   const [message, setMessage] = useState(null) // { text, tone: 'success' | 'error' }
-  const [confirmLogout, setConfirmLogout] = useState(false)
-
-  useScrollLock(confirmLogout)
-
-  const { ref: confirmRef, dialogProps: confirmDialogProps } = useDialogA11y({
-    open: confirmLogout,
-    onClose: () => setConfirmLogout(false),
-    label: t('profile.confirmLogoutTitle'),
-    role: 'alertdialog',
-  })
 
   // 消息条 4 秒后自动收起;出错时保留更久,避免用户还没读完就消失
   useEffect(() => {
@@ -201,16 +187,6 @@ export default function ProfilePage({
                 </button>
               ))}
             </nav>
-
-            <div className="pf-rail-footer">
-              <button
-                type="button"
-                className="pf-btn danger block"
-                onClick={() => setConfirmLogout(true)}
-              >
-                {t('auth.logout')}
-              </button>
-            </div>
           </aside>
 
           {/* ── 右:分区内容 ─────────────────────────────────── */}
@@ -275,25 +251,6 @@ export default function ProfilePage({
           </main>
         </div>
       </div>
-
-      {/* 退出登录确认(防误触)—— portal 到 body,复用共享浮层契约 */}
-      {confirmLogout && createPortal(
-        <div className="profile-confirm-overlay" onClick={() => setConfirmLogout(false)}>
-          <div className="modal-content confirm-box" ref={confirmRef} {...confirmDialogProps} onClick={(e) => e.stopPropagation()}>
-            <h3>{t('profile.confirmLogoutTitle')}</h3>
-            <p>{t('profile.confirmLogoutBody')}</p>
-            <div className="confirm-actions">
-              <button type="button" className="pf-btn ghost" onClick={() => setConfirmLogout(false)}>
-                {t('common.cancel')}
-              </button>
-              <button type="button" className="pf-btn danger" onClick={() => { setConfirmLogout(false); onLogout() }}>
-                {t('common.confirm')}
-              </button>
-            </div>
-          </div>
-        </div>,
-        document.body,
-      )}
     </div>
   )
 }

@@ -288,10 +288,6 @@
 .pf-nav-item.active { background: var(--accent-soft); color: var(--accent-hover); font-weight: var(--font-weight-medium); }
 .pf-nav-item:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 
-/* 退出登录必须在手机上也可达:个人中心是独立页(不渲染顶栏账号菜单),
-   此前这里 display:none,导致移动端完全没有登出入口。 */
-.pf-rail-footer { display: block; }
-
 .pf-main { min-width: 0; }
 
 /* ── 分区堆叠 ─────────────────────────────────────────────── */

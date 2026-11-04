@@ -41,7 +41,6 @@ function renderPage(overrides = {}, { initialEntries = ['/profile'], initialInde
         <Route path="/profile" element={
           <ProfilePage
             user={mockUser}
-            onLogout={() => {}}
             onUpdateProfile={async () => {}}
             onChangePassword={async () => {}}
             {...overrides}
@@ -84,7 +83,8 @@ describe('ProfilePage', () => {
     expect(screen.queryByText(/保存到图库|导出/)).toBeNull()
     // 只保留个人资料自身的操作入口
     expect(screen.getByText('test@example.com')).toBeTruthy()
-    expect(screen.getByText(/退出登录/)).toBeTruthy()
+    // 退出登录只从顶栏头像菜单进入:个人中心不再重复放一个按钮
+    expect(screen.queryByRole('button', { name: '退出登录' })).toBeNull()
     gotoSection('账号与安全')
     expect(screen.getByText(/修改密码/)).toBeTruthy()
   })
@@ -300,29 +300,21 @@ describe('ProfilePage', () => {
     expect(container.querySelector('.pf-avatar-editor input[type="file"]')).toBeTruthy()
   })
 
-  it('退出登录需二次确认', () => {
-    const onLogout = vi.fn()
-    render(
-      <MemoryRouter initialEntries={['/profile']}>
-        <Routes>
-          <Route path="/profile" element={
-            <ProfilePage user={mockUser} onLogout={onLogout} onUpdateProfile={async () => {}} onChangePassword={async () => {}} />
-          } />
-        </Routes>
-      </MemoryRouter>,
-    )
+  it('退出登录只在顶栏头像菜单里,个人中心内不再提供按钮', () => {
+    const { container } = renderPage()
 
-    fireEvent.click(screen.getByRole('button', { name: '退出登录' }))
-    expect(onLogout).not.toHaveBeenCalled()
-    fireEvent.click(screen.getByRole('button', { name: '确认' }))
-    expect(onLogout).toHaveBeenCalledTimes(1)
+    // 个人中心是独立页(不渲染顶栏),这里不该出现任何登出入口;
+    // 登出统一由 Header 的头像菜单负责(见 Header.test.jsx)。
+    expect(screen.queryByRole('button', { name: '退出登录' })).toBeNull()
+    expect(container.querySelector('.pf-rail-footer')).toBeNull()
+    expect(container.querySelector('.profile-confirm-overlay')).toBeNull()
   })
 
   it('资料异步到达时昵称输入框跟随同步,已编辑内容不被覆盖', async () => {
     const tree = (user) => (
       <MemoryRouter initialEntries={['/profile']}>
         <Routes>
-          <Route path="/profile" element={<ProfilePage user={user} onLogout={vi.fn()} onUpdateProfile={async () => {}} onChangePassword={async () => {}} />} />
+          <Route path="/profile" element={<ProfilePage user={user} onUpdateProfile={async () => {}} onChangePassword={async () => {}} />} />
         </Routes>
       </MemoryRouter>
     )
@@ -346,7 +338,7 @@ describe('ProfilePage', () => {
     render(
       <MemoryRouter initialEntries={['/profile']}>
         <Routes>
-          <Route path="/profile" element={<ProfilePage user={null} onLogout={vi.fn()} onUpdateProfile={async () => {}} onChangePassword={async () => {}} />} />
+          <Route path="/profile" element={<ProfilePage user={null} onUpdateProfile={async () => {}} onChangePassword={async () => {}} />} />
           <Route path="/login" element={<div>login-marker</div>} />
         </Routes>
       </MemoryRouter>,
@@ -360,7 +352,7 @@ describe('ProfilePage', () => {
     render(
       <MemoryRouter initialEntries={['/profile']}>
         <Routes>
-          <Route path="/profile" element={<ProfilePage user={null} authLoading onLogout={vi.fn()} onUpdateProfile={async () => {}} onChangePassword={async () => {}} />} />
+          <Route path="/profile" element={<ProfilePage user={null} authLoading onUpdateProfile={async () => {}} onChangePassword={async () => {}} />} />
           <Route path="/login" element={<div>login-marker</div>} />
         </Routes>
       </MemoryRouter>,
