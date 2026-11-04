@@ -111,6 +111,14 @@ describe('移动端整页滚动', () => {
     expect(inner).toContain('overflow: visible')
     expect(inner).not.toContain('overflow-y: auto')
   })
+
+  it('移动端 profile-page 至少铺满滚动容器(短内容也不露底)', () => {
+    // 内层改成 flex:none 后只剩内容高度。个人中心自带 --bg-secondary 底色,
+    // 内容短(只收藏了几张图)时会在半途结束,下方由无背景的 .mobile-page-area
+    // 透出 body 的 --bg-primary —— 页面底部出现一条两种底色的硬边。
+    const inner = ruleBody(INDEX_CSS, '.mobile-page-area > .profile-page {')
+    expect(inner).toMatch(/min-height:\s*100%/)
+  })
 })
 
 describe('常驻 fixed chrome 跟随视觉视口', () => {

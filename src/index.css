@@ -858,6 +858,11 @@ body:has(.quantizer-zoom) .mobile-toolbar {
 .mobile-page-area > .profile-page {
   overflow: visible;
   flex: none;
+  /* 这里不能再靠 flex 撑高(改成 none 了),但 .profile-page 自带 --bg-secondary
+     底色。短内容(比如只收藏了几张图)时它停在内容高度就结束,下方由没有背景的
+     .mobile-page-area 透出 body 的 --bg-primary,两段底色在页面底部形成一条硬边。
+     min-height:100% 让页面至少盖满滚动容器,底色一直铺到真正的页面底部。 */
+  min-height: 100%;
 }
 
 
