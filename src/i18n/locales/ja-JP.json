@@ -780,7 +780,11 @@
         "bathMesh": "斜めに交差するメッシュ編み。細かい網目で軽やか",
         "fineGlitter": "紺の生地に細かいラメが散りばめられた冷色のきらめき",
         "coarseGlitter": "淡いピンクの生地に大きめラメ。存在感のある輝き"
-      }
+      },
+      "studioTitle": "高度アイロンスタジオ",
+      "studioSubtitle": "素材を選んで、仕上がりをその場でプレビュー",
+      "studioOpen": "高度アイロンスタジオを開く",
+      "stylesLabel": "アイロン素材"
     }
   },
   "quantizer": {

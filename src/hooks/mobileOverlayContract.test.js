@@ -222,7 +222,7 @@ const DIALOG_CONTAINERS = new Set([
   'export-modal-content', 'admin-modal', 'admin-gate-confirm',
   'users-confirm', 'modal-content', 'load-confirm-modal', 'my-beads-modal',
   'save-dialog', 'export-confirm-dialog', 'brand-switch-dialog', 'replace-dialog',
-  'quantizer-zoom', 'logout-confirm-panel',
+  'quantizer-zoom', 'logout-confirm-panel', 'ironing-studio-panel',
 ])
 
 /**

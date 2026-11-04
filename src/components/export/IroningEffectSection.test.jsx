@@ -5,10 +5,12 @@ import i18n from '../../i18n'
 import { getPalette } from '../../data/palettes'
 
 /**
- * IroningEffectSection 组件测试(07 文档 §5)。
+ * IroningEffectSection / IroningStudioDialog 组件测试。
  *
- * 渲染器整体 mock(预览生命周期不真画布);Object URL 与 AbortController
- * 用计数 spy 验证生命周期契约:替换撤销、卸载撤销、切换材质取消进行中渲染。
+ * 入口只负责打开工作室;预览生命周期全部在 IroningStudioDialog 内。
+ * 渲染器整体 mock(jsdom 无 canvas);Object URL 与 AbortController
+ * 用 spy 验证生命周期契约:替换撤销旧 URL、关闭/卸载撤销当前 URL、
+ * 切换材质取消进行中的渲染。
  */
 
 vi.mock('../../services/export/IroningEffectRenderer', () => ({
@@ -42,10 +44,14 @@ function setup(overrides = {}) {
   return props
 }
 
-async function expandAndSettle() {
-  fireEvent.click(screen.getByRole('button', { name: /高级熨烫/ }))
+function openStudio() {
+  fireEvent.click(screen.getByRole('button', { name: /打开高级熨烫效果工作室/ }))
+}
+
+/** 点开入口,等待工作室挂载且首帧预览渲染完成 */
+async function openStudioAndSettle() {
+  openStudio()
   await waitFor(() => expect(renderIroningEffect).toHaveBeenCalled())
-  // blob URL 就绪(防抖后渲染完成)
   await waitFor(() => expect(URL.createObjectURL).toHaveBeenCalled())
 }
 
@@ -68,24 +74,39 @@ afterEach(() => {
   delete URL.revokeObjectURL
 })
 
-describe('IroningEffectSection · 材质选择器', () => {
-  it('折叠时只渲染标题,不触发任何预览渲染', () => {
+describe('IroningEffectSection · 入口', () => {
+  it('入口带三张材质样张缩略,工作室未打开时不触发渲染', () => {
     setup()
     expect(screen.getByText('高级熨烫效果')).toBeTruthy()
+    expect(document.querySelectorAll('.ironing-entry-thumbs img')).toHaveLength(3)
     expect(renderIroningEffect).not.toHaveBeenCalled()
-    // 六个材质按钮都在折叠体里,不可见
+    // 工作室的材质卡不可见
     expect(screen.queryByRole('button', { name: /麻布烫/ })).toBeNull()
   })
 
-  it('展开后渲染六个材质按钮,默认选中麻布烫(aria-pressed)', async () => {
+  it('locked 时点击入口交给父级引导,工作室不挂载', () => {
+    const onRequireAuth = vi.fn()
+    setup({ locked: true, onRequireAuth })
+    fireEvent.click(screen.getByRole('button', { name: /高级熨烫效果需要登录/ }))
+    expect(onRequireAuth).toHaveBeenCalledTimes(1)
+    expect(renderIroningEffect).not.toHaveBeenCalled()
+    expect(screen.queryByText('选择材质,实时预览图纸熨烫后的成品效果')).toBeNull()
+  })
+
+  it('isExporting 期间入口禁用', () => {
+    setup({ isExporting: true })
+    expect(screen.getByRole('button', { name: /打开高级熨烫效果工作室/ }).disabled).toBe(true)
+  })
+})
+
+describe('IroningStudioDialog · 材质样张墙', () => {
+  it('打开后出现六个材质卡(样张墙),默认选中麻布烫', async () => {
     setup()
-    fireEvent.click(screen.getByRole('button', { name: /高级熨烫/ }))
-    await waitFor(() => expect(screen.getByRole('button', { name: /麻布烫/ })).toBeTruthy())
-    const buttons = ['无孔烫', '麻布烫', '毛巾烫', '澡巾烫', '细闪烫', '粗闪烫'].map(label =>
-      screen.getByRole('button', { name: new RegExp(label) })
-    )
-    expect(buttons).toHaveLength(6)
-    expect(buttons.map(b => b.getAttribute('aria-pressed'))).toEqual([
+    await openStudioAndSettle()
+    const labels = ['无孔烫', '麻布烫', '毛巾烫', '澡巾烫', '细闪烫', '粗闪烫']
+    const cards = labels.map(label => screen.getByRole('button', { name: new RegExp(label) }))
+    expect(cards).toHaveLength(6)
+    expect(cards.map(c => c.getAttribute('aria-pressed'))).toEqual([
       'false',
       'true',
       'false',
@@ -93,11 +114,15 @@ describe('IroningEffectSection · 材质选择器', () => {
       'false',
       'false',
     ])
+    // 每张卡都带样张图(实拍样片裁剪版,是材质的第一印象)
+    for (const card of cards) {
+      expect(card.querySelector('img')).toBeTruthy()
+    }
   })
 
-  it('点击材质切换选中态并以新 presetId 重新渲染预览', async () => {
+  it('点击材质卡切换选中态并以新 presetId 重新渲染预览', async () => {
     setup()
-    await expandAndSettle()
+    await openStudioAndSettle()
     expect(renderIroningEffect).toHaveBeenCalledWith(
       expect.anything(),
       expect.objectContaining({ presetId: 'linen', mode: 'preview' })
@@ -113,30 +138,24 @@ describe('IroningEffectSection · 材质选择器', () => {
     expect(screen.getByRole('button', { name: /麻布烫/ }).getAttribute('aria-pressed')).toBe('false')
   })
 
-  it('折叠按钮的 accessible name 随展开状态切换', () => {
-    setup()
-    fireEvent.click(screen.getByRole('button', { name: '展开高级熨烫效果' }))
-    expect(screen.getByRole('button', { name: '收起高级熨烫效果' })).toBeTruthy()
-  })
-
-  it('预览状态通过 aria-live 区域播报', async () => {
-    setup()
-    await expandAndSettle()
-    const status = screen.getByRole('status')
-    expect(status.getAttribute('aria-live')).toBe('polite')
-    expect(status.textContent).toContain('当前材质:麻布烫')
-  })
-
   it('渲染器永不收到 export 模式(预览专用)', async () => {
     setup()
-    await expandAndSettle()
+    await openStudioAndSettle()
     for (const call of renderIroningEffect.mock.calls) {
       expect(call[1].mode).toBe('preview')
     }
   })
+
+  it('预览状态通过 aria-live 区域播报', async () => {
+    setup()
+    await openStudioAndSettle()
+    const status = screen.getByRole('status')
+    expect(status.getAttribute('aria-live')).toBe('polite')
+    expect(status.textContent).toContain('当前材质:麻布烫')
+  })
 })
 
-describe('IroningEffectSection · 预览状态', () => {
+describe('IroningStudioDialog · 预览状态', () => {
   it('历史作品的品牌色号先归一为 hex,不会被当作空格丢弃', async () => {
     const palette = getPalette('perler')
     const code = palette.colors[0].id
@@ -146,8 +165,11 @@ describe('IroningEffectSection · 预览状态', () => {
         [code, null],
         [null, hex],
       ],
+      gridSize: 2,
+      gridWidth: 2,
+      gridHeight: 2,
     })
-    fireEvent.click(screen.getByRole('button', { name: /高级熨烫/ }))
+    openStudio()
     await waitFor(() => expect(renderIroningEffect).toHaveBeenCalled())
     const doc = renderIroningEffect.mock.calls[0][0]
     expect(doc.grid.cells[0][0]).toBe(hex)
@@ -161,9 +183,10 @@ describe('IroningEffectSection · 预览状态', () => {
         [null, null],
       ],
       gridSize: 2,
+      gridWidth: 2,
+      gridHeight: 2,
     })
-    fireEvent.click(screen.getByRole('button', { name: /高级熨烫/ }))
-    // 可见占位与读屏播报各一份,这里断言可见占位
+    openStudio()
     expect(document.querySelector('.ironing-placeholder')?.textContent).toMatch(/暂无图案/)
     expect(renderIroningEffect).not.toHaveBeenCalled()
   })
@@ -171,7 +194,7 @@ describe('IroningEffectSection · 预览状态', () => {
   it('渲染失败显示错误态与重试按钮,点击重试重新渲染', async () => {
     renderIroningEffect.mockRejectedValueOnce(new Error('boom'))
     setup()
-    fireEvent.click(screen.getByRole('button', { name: /高级熨烫/ }))
+    openStudio()
     await waitFor(() =>
       expect(document.querySelector('.ironing-placeholder')?.textContent).toMatch(/预览生成失败/)
     )
@@ -180,49 +203,32 @@ describe('IroningEffectSection · 预览状态', () => {
     expect(renderIroningEffect).toHaveBeenCalledTimes(2)
   })
 
-  it('导出按钮把当前 presetId 交给父级 onRequestExport', async () => {
+  it('导出按钮把当前 presetId 交给父级确认流程,工作室保持打开', async () => {
     const props = setup()
-    await expandAndSettle()
+    await openStudioAndSettle()
     fireEvent.click(screen.getByRole('button', { name: /粗闪烫/ }))
     fireEvent.click(screen.getByRole('button', { name: /导出熨烫效果/ }))
     expect(props.onRequestExport).toHaveBeenCalledWith('coarse-glitter')
-  })
-
-  it('locked 时显示需登录,点击入口交给父级引导,不渲染预览', () => {
-    const onRequireAuth = vi.fn()
-    setup({ locked: true, onRequireAuth })
-    expect(screen.getByText('需登录')).toBeTruthy()
-    fireEvent.click(screen.getByRole('button', { name: /高级熨烫效果需要登录/ }))
-    expect(onRequireAuth).toHaveBeenCalledTimes(1)
-    expect(renderIroningEffect).not.toHaveBeenCalled()
-    expect(screen.queryByText('麻布烫')).toBeNull()
-  })
-
-  it('isExporting 时材质与导出按钮禁用', () => {
-    setup({ isExporting: true })
-    fireEvent.click(screen.getByRole('button', { name: /高级熨烫/ }))
-    for (const label of ['无孔烫', '麻布烫', '毛巾烫', '澡巾烫', '细闪烫', '粗闪烫']) {
-      expect(screen.getByRole('button', { name: new RegExp(label) }).disabled).toBe(true)
-    }
-    expect(screen.getByRole('button', { name: /导出熨烫效果/ }).disabled).toBe(true)
+    // 确认框(父级,1200)盖在工作室(1190)上;取消导出后用户回到工作室
+    expect(screen.getByRole('button', { name: '粗闪烫' }).getAttribute('aria-pressed')).toBe('true')
   })
 })
 
-describe('IroningEffectSection · Object URL 生命周期', () => {
+describe('IroningStudioDialog · Object URL 生命周期', () => {
   it('切换材质时撤销旧 URL、挂载新 URL', async () => {
     setup()
-    await expandAndSettle()
+    await openStudioAndSettle()
     const firstUrl = URL.createObjectURL.mock.results[0].value
     fireEvent.click(screen.getByRole('button', { name: /细闪烫/ }))
     await waitFor(() => expect(URL.createObjectURL).toHaveBeenCalledTimes(2))
     expect(URL.revokeObjectURL).toHaveBeenCalledWith(firstUrl)
   })
 
-  it('折叠区块时立即撤销预览 URL,blob 不常驻', async () => {
+  it('关闭工作室时撤销预览 URL,blob 不常驻', async () => {
     setup()
-    await expandAndSettle()
+    await openStudioAndSettle()
     const url = URL.createObjectURL.mock.results[0].value
-    fireEvent.click(screen.getByRole('button', { name: /高级熨烫/ })) // 收起
+    fireEvent.click(screen.getByRole('button', { name: '关闭' }))
     await waitFor(() => expect(URL.revokeObjectURL).toHaveBeenCalledWith(url))
     expect(screen.queryByRole('img')).toBeNull()
   })
@@ -237,7 +243,7 @@ describe('IroningEffectSection · Object URL 生命周期', () => {
         designName="测试图纸"
       />
     )
-    fireEvent.click(screen.getByRole('button', { name: /高级熨烫/ }))
+    openStudio()
     await waitFor(() => expect(URL.createObjectURL).toHaveBeenCalled())
     const url = URL.createObjectURL.mock.results[0].value
     unmount()
@@ -245,8 +251,8 @@ describe('IroningEffectSection · Object URL 生命周期', () => {
   })
 })
 
-describe('IroningEffectSection · 防抖与取消', () => {
-  it('快速切换材质只渲染最后一个(防抖 + 取消旧任务)', async () => {
+describe('IroningStudioDialog · 防抖与取消', () => {
+  it('快速切换材质只渲染最后一个(防抖)', async () => {
     vi.useFakeTimers()
     try {
       render(
@@ -258,8 +264,8 @@ describe('IroningEffectSection · 防抖与取消', () => {
           designName="测试图纸"
         />
       )
-      fireEvent.click(screen.getByRole('button', { name: /高级熨烫/ }))
-      // 三个材质快速切换:每次切换都重置 250ms 计时
+      fireEvent.click(screen.getByRole('button', { name: /打开高级熨烫效果工作室/ }))
+      // 三次快速切换:每次切换都重置 250ms 计时
       await vi.advanceTimersByTimeAsync(100)
       fireEvent.click(screen.getByRole('button', { name: /毛巾烫/ }))
       await vi.advanceTimersByTimeAsync(100)
@@ -293,7 +299,7 @@ describe('IroningEffectSection · 防抖与取消', () => {
         designName="测试图纸"
       />
     )
-    fireEvent.click(screen.getByRole('button', { name: /高级熨烫/ }))
+    openStudio()
     await vi.waitFor(() => expect(renderIroningEffect).toHaveBeenCalledTimes(1), { timeout: 3000 })
     fireEvent.click(screen.getByRole('button', { name: /毛巾烫/ }))
     await vi.waitFor(() => expect(renderIroningEffect).toHaveBeenCalledTimes(2), { timeout: 3000 })
@@ -332,7 +338,7 @@ describe('IroningEffectSection · 防抖与取消', () => {
         designName="测试图纸"
       />
     )
-    fireEvent.click(screen.getByRole('button', { name: /高级熨烫/ }))
+    openStudio()
     await vi.waitFor(() => expect(renderIroningEffect).toHaveBeenCalled(), { timeout: 3000 })
     unmount()
     expect(capturedSignal?.aborted).toBe(true)

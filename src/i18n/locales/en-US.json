@@ -780,7 +780,11 @@
         "bathMesh": "Diagonal cross mesh with fine openings, light and airy",
         "fineGlitter": "Navy fabric dusted with dense fine glitter — cool starlight sparkles",
         "coarseGlitter": "Blush fabric with large glitter flakes — bold, eye-catching sparkle"
-      }
+      },
+      "studioTitle": "Advanced Ironing Studio",
+      "studioSubtitle": "Pick a material and preview the finished piece in real time",
+      "studioOpen": "Open the advanced ironing studio",
+      "stylesLabel": "Ironing materials"
     }
   },
   "quantizer": {

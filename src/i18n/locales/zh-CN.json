@@ -780,7 +780,11 @@
         "bathMesh": "斜向交叉网纹,网眼细密,轻薄透气",
         "fineGlitter": "深蓝底布缀满细闪粉,冷色星光点点",
         "coarseGlitter": "浅粉底布缀大颗粒亮片,闪烁明显更夺目"
-      }
+      },
+      "studioTitle": "高级熨烫效果工作室",
+      "studioSubtitle": "选择材质,实时预览图纸熨烫后的成品效果",
+      "studioOpen": "打开高级熨烫效果工作室",
+      "stylesLabel": "熨烫材质"
     }
   },
   "quantizer": {

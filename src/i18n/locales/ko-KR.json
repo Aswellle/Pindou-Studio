@@ -780,7 +780,11 @@
         "bathMesh": "사선으로 교차하는 그물 무늬, 촘촘한 망으로 가볍고 시원한 느낌",
         "fineGlitter": "남색 천에 잘게 뿌린 글리터가 차가운 별빛처럼 반짝입니다",
         "coarseGlitter": "연분홍 천에 굵은 글리터가 박혀 눈에 띄게 반짝입니다"
-      }
+      },
+      "studioTitle": "고급 다림질 스튜디오",
+      "studioSubtitle": "소재를 고르고 완성품을 실시간으로 미리 보기",
+      "studioOpen": "고급 다림질 스튜디오 열기",
+      "stylesLabel": "다림질 소재"
     }
   },
   "quantizer": {
