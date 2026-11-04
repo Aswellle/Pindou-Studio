@@ -67,12 +67,10 @@ describe('GalleryPage V2 — 本地模式', () => {
     // 视图页签整体消失
     expect(container.querySelector('.filter-tabs')).toBeNull()
     expect(screen.queryByText(/我的作品/)).toBeNull()
-    expect(screen.queryByText(/我的收藏/)).toBeNull()
-    // 作品卡片不再出现在图库(已移到个人中心)
+    // 作品卡片不再出现在图库(已移到个人中心);侧栏的「我的收藏」只是导航入口
     expect(container.querySelectorAll('.work-card').length).toBe(0)
-    expect(screen.queryByText('我的小鸭')).toBeNull()
-    // 模板仍然正常渲染
     expect(container.querySelectorAll('.template-card').length).toBe(TEMPLATES.length)
+    expect(screen.queryByText('我的小鸭')).toBeNull()
   })
 
   it('老链接 ?view=works 不再切换到作品视图,而是被静默清掉', () => {
@@ -202,24 +200,39 @@ describe('GalleryPage V2 — 用色数筛选', () => {
     ...overrides,
   })
 
-  it('筛选栏渲染档位按钮,默认「不限」为激活态', () => {
+  /** 打开筛选面板(分类/难度/用色数收纳在此,工具栏只留入口按钮) */
+  function openFilterPanel() {
+    const trigger = document.querySelector('.gallery-filter-trigger')
+    fireEvent.click(trigger)
+    return document.querySelector('.gallery-filter-pop')
+  }
+
+  it('筛选面板收纳三组条件,用色数默认「不限」为激活态', () => {
     const { container } = setup({ savedWorks: [], cloudStore: threeColorStore() })
-    const buttons = [...container.querySelectorAll('.colors-btn')]
+    // 默认关闭:面板不在 DOM,旧的大块筛选栏也不存在
+    expect(document.querySelector('.gallery-filter-pop')).toBeNull()
+    expect(container.querySelector('.category-bar')).toBeNull()
+    const panel = openFilterPanel()
+    expect(panel).toBeTruthy()
+    const buttons = [...panel.querySelectorAll('.gallery-filter-group')].at(-1)
+      .querySelectorAll('.gallery-filter-opt')
     // 1 个「不限」+ COLOR_COUNT_TIERS.length 个上限档
     expect(buttons.length).toBe(1 + 6)
     expect(buttons[0].className).toContain('active')
     expect(buttons[0].textContent).toBe('不限')
   })
 
-  it('选择上限后按 pattern 唯一颜色数过滤', () => {
+  it('面板内选择用色数上限后按 pattern 唯一颜色数过滤', () => {
     const { container } = setup({ savedWorks: [], cloudStore: threeColorStore() })
+    openFilterPanel()
     fireEvent.click(screen.getByText('≤ 4 色'))
+    // 选择立即生效(URL 即状态),结果在面板背后同步更新
     expect(container.querySelectorAll('.template-card').length).toBe(1)
     expect(screen.getByText('两色')).toBeTruthy()
     expect(screen.queryByText('五色')).toBe(null)
   })
 
-  it('筛选状态写进 URL(可分享/刷新恢复)', () => {
+  it('筛选状态写进 URL(可分享/刷新恢复),激活数显示在入口按钮上', () => {
     // setup 的 MemoryRouter 不暴露 location;改用带 initialEntries 的独立渲染
     const { container } = render(
       <MemoryRouter initialEntries={['/gallery?colors=4']}>
@@ -227,20 +240,104 @@ describe('GalleryPage V2 — 用色数筛选', () => {
       </MemoryRouter>
     )
     expect(container.querySelectorAll('.template-card').length).toBe(1)
+    // 激活筛选数徽标:用色数 1 项
+    expect(screen.getByText('1')).toBeTruthy()
+    openFilterPanel()
     expect(screen.getByText('≤ 4 色').className).toContain('active')
   })
 
-  it('筛选无结果时提供一键清除,点击后恢复全部模板', () => {
-    // 搜索词与用色数叠加制造空结果
+  it('激活筛选以 chips 呈现,可逐项移除与一键清除', () => {
     const { container } = render(
       <MemoryRouter initialEntries={['/gallery?q=zzz&colors=4']}>
         <GalleryPage onLoadTemplate={vi.fn()} savedWorks={[]} cloudStore={threeColorStore()} />
       </MemoryRouter>
     )
     expect(container.querySelectorAll('.template-card').length).toBe(0)
-
-    fireEvent.click(screen.getByText('清除筛选'))
-    // 清除后 URL 参数一并清空 → 两个模板都回来
+    // 两个 chip:搜索 + 用色数
+    expect(container.querySelectorAll('.gallery-chip').length).toBe(2)
+    // 移除搜索 chip → 只剩用色数上限,「两色」回到结果里
+    fireEvent.click(container.querySelector('.gallery-chip-remove'))
+    expect(container.querySelectorAll('.gallery-chip').length).toBe(1)
+    expect(container.querySelectorAll('.template-card').length).toBe(1)
+    // chips 行的「清除全部」→ 全部模板回来,chips 消失
+    fireEvent.click(screen.getByText('清除全部'))
+    expect(container.querySelectorAll('.gallery-chip').length).toBe(0)
     expect(container.querySelectorAll('.template-card').length).toBe(2)
+  })
+})
+
+describe('GalleryPage V3 — 一级 feed(精选/热门/最新)', () => {
+  // 云端夹具:downloadCount / createdAt 可控,验证热门与最新的数据口径
+  const feedStore = (overrides = {}) => ({
+    enabled: true, loading: false, error: null,
+    templates: [
+      { id: 't-a', name: 'A', nameZh: '图纸A', category: 'animal', difficulty: 'easy', size: 4,
+        pattern: [['#FF0000', '#00FF00'], [null, null]],
+        downloadCount: 9, createdAt: '2026-01-02T00:00:00Z' },
+      { id: 't-b', name: 'B', nameZh: '图纸B', category: 'food', difficulty: 'easy', size: 4,
+        pattern: [['#FF0000', '#00FF00'], [null, null]],
+        downloadCount: 5, createdAt: '2026-03-01T00:00:00Z' },
+      { id: 't-c', name: 'C', nameZh: '图纸C', category: 'animal', difficulty: 'easy', size: 4,
+        pattern: [['#FF0000', '#00FF00'], [null, null]],
+        downloadCount: 0, createdAt: null },
+    ],
+    categories: [], refresh: vi.fn(), loadAll: vi.fn(),
+    ...overrides,
+  })
+
+  it('默认精选 feed;tabs 切换写入 ?feed= 且保留筛选', () => {
+    const { container } = setup({ savedWorks: [], cloudStore: feedStore() }, ['/gallery?q=图纸A'])
+    // 精选 tabs 为当前项
+    expect(document.getElementById('gallery-tab-featured').getAttribute('aria-selected')).toBe('true')
+    // 切到热门:URL 带 feed=popular,q 保留
+    fireEvent.click(document.getElementById('gallery-tab-popular'))
+    expect(document.getElementById('gallery-tab-popular').getAttribute('aria-selected')).toBe('true')
+    expect(document.getElementById('gallery-tab-popular').className).toContain('active')
+  })
+
+  it('热门 feed 按真实下载量排序,零下载不进入', () => {
+    const { container } = setup({ savedWorks: [], cloudStore: feedStore() }, ['/gallery?feed=popular'])
+    const cards = container.querySelectorAll('.template-card')
+    // 图纸C 下载量为 0,不进入热门
+    expect(cards.length).toBe(2)
+    expect(cards[0].textContent).toContain('图纸A')
+    expect(cards[1].textContent).toContain('图纸B')
+  })
+
+  it('最新 feed 只含有可信创建时间的模板,按时间倒序', () => {
+    const { container } = setup({ savedWorks: [], cloudStore: feedStore() }, ['/gallery?feed=latest'])
+    const cards = container.querySelectorAll('.template-card')
+    expect(cards.length).toBe(2)
+    expect(cards[0].textContent).toContain('图纸B')
+    expect(cards[1].textContent).toContain('图纸A')
+  })
+
+  it('热门/最新为空时显示诚实空态而不是伪造数据', () => {
+    const { container } = setup({ savedWorks: [], cloudStore: feedStore() }, ['/gallery?feed=popular&q=不存在'])
+    expect(container.querySelectorAll('.template-card').length).toBe(0)
+    expect(screen.getByText('没有找到匹配的模板')).toBeTruthy()
+  })
+
+  it('精选 feed 带筛选时退化为筛选结果,并明确提示这不是人工精选', () => {
+    const { container } = setup({ savedWorks: [], cloudStore: feedStore() }, ['/gallery?cat=animal'])
+    expect(container.querySelectorAll('.template-card').length).toBe(2)
+    expect(screen.getByText('匹配结果')).toBeTruthy()
+  })
+
+  it('切换 feed 不清空搜索词与筛选', () => {
+    const { container } = setup({ savedWorks: [], cloudStore: feedStore() }, ['/gallery?q=图纸A'])
+    fireEvent.click(document.getElementById('gallery-tab-latest'))
+    expect(screen.getByRole('searchbox').value).toBe('图纸A')
+  })
+
+  it('侧栏分类入口只改 cat,feed 保持不变', () => {
+    const { container } = setup({ savedWorks: [], cloudStore: feedStore() }, ['/gallery?feed=popular'])
+    // 侧栏与移动分类条都渲染食物项;点第一个(计数 1)
+    fireEvent.click(screen.getAllByRole('button', { name: /食物/ })[0])
+    expect(document.getElementById('gallery-tab-popular').getAttribute('aria-selected')).toBe('true')
+    // 分类生效:热门 feed 只剩 food 分类下有下载的图纸B
+    const cards = container.querySelectorAll('.template-card')
+    expect(cards.length).toBe(1)
+    expect(cards[0].textContent).toContain('图纸B')
   })
 })

@@ -1,135 +1,6 @@
         .gallery-page {
-          max-width: 1200px;
-          margin: 0 auto;
           padding: 24px;
-        }
-        .gallery-header {
-          text-align: center;
-          margin-bottom: 32px;
-        }
-        .gallery-title {
-          font-size: var(--text-3xl);
-          font-weight: var(--font-weight-semibold);
-          margin-bottom: 8px;
-        }
-        .gallery-subtitle {
-          color: var(--text-secondary);
-          font-size: var(--text-md);
-        }
-        .gallery-toolbar {
-          display: flex;
-          flex-direction: column;
-          gap: 16px;
-          margin-bottom: 20px;
-        }
-        .search-box {
-          position: relative;
-          max-width: 400px;
-          margin: 0 auto;
-          width: 100%;
-        }
-        .search-icon {
-          position: absolute;
-          left: 12px;
-          top: 50%;
-          transform: translateY(-50%);
-          color: var(--text-muted);
-        }
-        .search-input {
-          width: 100%;
-          padding: 12px 12px 12px 40px;
-          border: 2px solid var(--border-color);
-          border-radius: 8px;
-          font-size: var(--text-md);
-          background: var(--bg-secondary);
-          transition: border-color 0.2s;
-        }
-        .search-input:focus {
-          border-color: var(--accent);
-          background: var(--bg-primary);
-        }
-        .filter-tabs {
-          display: flex;
-          gap: 8px;
-          justify-content: center;
-          flex-wrap: wrap;
-        }
-        .filter-tab {
-          padding: 8px 16px;
-          border: 2px solid var(--border-color);
-          border-radius: 6px;
-          font-size: var(--text-base);
-          background: transparent;
-          color: var(--text-secondary);
-          transition: all 0.2s;
-        }
-        .filter-tab:hover {
-          border-color: var(--accent);
-        }
-        .filter-tab.active {
-          background: var(--accent);
-          border-color: var(--accent);
-          color: white;
-        }
-        .category-bar {
-          display: flex;
-          gap: 24px;
-          flex-wrap: wrap;
-          margin-bottom: 24px;
-          padding: 16px;
-          background: var(--bg-secondary);
-          border-radius: 8px;
-        }
-        .category-group, .difficulty-group, .colors-group {
-          display: flex;
-          align-items: flex-start;
-          gap: 10px;
-        }
-        .category-label {
-          flex-shrink: 0;
-          padding-top: 6px; /* 与按钮首行文字对齐 */
-          font-size: var(--text-sm);
-          color: var(--text-secondary);
-          font-weight: var(--font-weight-semibold);
-        }
-        /* 按钮独立 flex-wrap 容器:换行后各行与首行按钮对齐(不以容器左缘起) */
-        .filter-buttons {
-          display: flex;
-          flex-wrap: wrap;
-          gap: 8px;
-          flex: 1;
-          min-width: 0;
-        }
-        .category-btn, .difficulty-btn, .colors-btn {
-          padding: 6px 12px;
-          border: 1px solid var(--border-color);
-          border-radius: 4px;
-          font-size: var(--text-sm);
-          background: var(--bg-primary);
-          color: var(--text-secondary);
-          transition: all 0.2s;
-        }
-        .category-btn:hover, .difficulty-btn:hover, .colors-btn:hover {
-          border-color: var(--accent);
-        }
-        .category-btn.active, .difficulty-btn.active, .colors-btn.active {
-          background: var(--accent);
-          border-color: var(--accent);
-          color: white;
-        }
-        /* 分类数量徽标:与收藏/作品计数一致 */
-        .category-count {
-          margin-left: 6px;
-          font-size: var(--text-xs);
-          color: var(--text-muted);
-          opacity: 0.9;
-        }
-        .category-btn.active .category-count {
-          color: rgba(255, 255, 255, 0.85);
-        }
-        .difficulty-btn.active {
-          background: var(--diff-color);
-          border-color: var(--diff-color);
+          /* 探索器布局(gallery.explorer.css)接管版心与两列栅格 */
         }
         .gallery-content {
           min-height: 400px;
@@ -200,17 +71,6 @@
           .template-brand {
             max-width: 88px;
             min-width: 0;
-          }
-          /* 分类/难度筛选间距收紧 */
-          .category-bar {
-            gap: 14px;
-            padding: 12px;
-          }
-          .category-group, .difficulty-group, .colors-group {
-            gap: 6px;
-          }
-          .filter-buttons {
-            gap: 6px;
           }
         }
         .template-card {
@@ -768,7 +628,6 @@
           transform: translateY(2px);
           box-shadow: 0 1px 0 rgba(43, 36, 32, 0.28);
         }
-        .gallery-float-btn.home { background: var(--accent); border-color: #b65a38; }
         .gallery-float-btn.contact { background: var(--secondary-accent); border-color: #38766c; }
         .empty-login-btn {
           margin-top: 16px;

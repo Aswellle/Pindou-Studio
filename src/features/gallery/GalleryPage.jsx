@@ -1,51 +1,66 @@
 /**
- * GalleryPage — Gallery V2(/gallery 主路由)
+ * GalleryPage — Gallery V3(/gallery 主路由):资源发现中心。
  *
- * 与 V1(components/Gallery.jsx,已归档于 _legacy/Gallery.v1.jsx)功能完全对齐,
- * 布局升级为「发现页」形态(Hero + URL 可分享/可回退的筛选状态)。
+ * 信息架构(重构文档 03):
+ *   .gallery-explorer
+ *   ├── GallerySidebar(桌面 ≥1100px:发现/策展锚点/动态分类/创作入口)
+ *   └── .gallery-main
+ *       ├── 页头(左对齐) + 紧凑工具栏(搜索 + 筛选入口 + 结果数)
+ *       ├── ActiveFilterChips(有筛选才渲染)
+ *       ├── GalleryFeedTabs(精选/热门/最新,一级互斥 feed)
+ *       └── feed 面板:精选=策展布局(资源/主题/合集),热门/最新=排序网格
  *
- * 与 V1 的差异:
- *  - 搜索词/分类/难度经 useGalleryQuery 同步到 URLSearchParams
- *    (/gallery?q=…&cat=…&diff=…),刷新恢复、前进后退、可分享
- *  - 本页只呈现「模板库」:全部模板即默认视图,靠筛选器收窄。
- *    收藏与我的作品已移到个人中心(/profile),本页不再有视图页签。
- *  - 复用 V1 抽出的共享样式(gallery.css)与下载计数 hook(useDownloadCounts)
+ * 状态契约(04 §2):
+ *   - feed 与 q/cat/diff/colors 全部走 URL(useGalleryQuery),刷新/前进后退/分享可用;
+ *   - 切 feed 不清筛选,筛选不改 feed;
+ *   - 精选视图在有筛选时退化为「筛选结果」网格,不再展示无关策展封面。
+ * 数据口径:热门=pickPopular 真实下载量;最新=pickLatest 可信 createdAt;
+ * 精选资源=后台 gallery_featured_templates 人工策展关系(M5)。
  *
- * 载入模板等回调由 App.jsx 传入。
+ * 模板动作(收藏/导出/品牌转换/载入画布)沿用既有链路,卡片见 GalleryTemplateCard。
  */
-import { useState, useEffect, useMemo } from 'react'
+import { useState, useEffect, useMemo, useRef } from 'react'
 import { createPortal } from 'react-dom'
 import { useNavigate } from 'react-router-dom'
-import { Home, MessageCircle } from 'lucide-react'
+import { MessageCircle, Search, SlidersHorizontal, X } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
-import { CATEGORIES, DIFFICULTIES, extractPatternColors, convertTemplateToBrand, templateDimensions } from '../../data/templates'
+import { CATEGORIES, extractPatternColors, convertTemplateToBrand, templateDimensions } from '../../data/templates'
 import { getPalette } from '../../data/palettes'
 import { exportAsPNG } from '../../services/BeadPatternExporter'
 import { useToast } from '../../components/Toast'
 import ThumbnailCanvas from '../../components/ThumbnailCanvas'
-import { useGalleryQuery, COLOR_COUNT_TIERS } from './hooks/useGalleryQuery'
+import { useGalleryQuery } from './hooks/useGalleryQuery'
 import { useGalleryTemplates } from './hooks/useGalleryTemplates'
 import useDownloadCounts from './hooks/useDownloadCounts'
 import { useGalleryContent } from '../../hooks/useGalleryContent'
 import { useScrollLock } from '../../hooks/useScrollLock'
 import { useDialogA11y } from '../../hooks/useDialogA11y'
 import useGalleryFavorites from '../../hooks/useGalleryFavorites'
-import { buildDiscoverySections } from './discovery'
+import { buildDiscoverySections, pickPopular, pickLatest, resolveTemplatesByIds } from './discovery'
 import DiscoveryRails from './components/DiscoveryRails'
-import GalleryTemplateCard, { getDifficultyColor } from './components/GalleryTemplateCard'
-// 与 V1 共享的全部图库样式(卡片/菜单/横幅/弹窗)
+import GalleryTemplateCard from './components/GalleryTemplateCard'
+import GallerySidebar from './components/GallerySidebar'
+import GalleryFilterPanel from './components/GalleryFilterPanel'
+import GalleryFeedTabs from './components/GalleryFeedTabs'
+// 与详情页共享的卡片/菜单/横幅/弹窗样式
 import './gallery.css'
+// 探索器布局(侧栏/工具栏/tabs/筛选面板)专属作用域样式
+import './gallery.explorer.css'
+
+/** feed 视图的结果上限(横向 rail 时代是 12;主网格放大到 48) */
+const FEED_LIMIT = 48
 
 export default function GalleryPage({ onLoadTemplate, cloudStore }) {
   const { t } = useTranslation()
   const toast = useToast()
   const navigate = useNavigate()
-  // 搜索/分类/难度/用色数走 URL 状态(V2 核心差异),回退逻辑与 V1 一致
+  // feed 与筛选全部走 URL 状态:刷新恢复、前进后退、可分享
   const {
     searchTerm, setSearchTerm,
     category, setCategory,
     difficulty, setDifficulty,
     maxColors, setMaxColors,
+    feed, setFeed,
     legacyView, clearLegacyView,
     setFilters,
   } = useGalleryQuery()
@@ -63,7 +78,7 @@ export default function GalleryPage({ onLoadTemplate, cloudStore }) {
     () => [...new Set([...CATEGORIES, ...customCategories.map(c => c.id)])],
     [customCategories]
   )
-  // 每个分类下的模板总数(含"全部");与收藏/作品计数一致
+  // 每个分类下的模板总数;侧栏/筛选面板的计数取同一份
   const categoryCounts = useMemo(() => {
     const counts = {}
     for (const tpl of allTemplates) counts[tpl.category] = (counts[tpl.category] || 0) + 1
@@ -81,6 +96,11 @@ export default function GalleryPage({ onLoadTemplate, cloudStore }) {
   const [brandOverride, setBrandOverride] = useState({})
   // 待确认填充到画布的模板(卡片点击不再直接填充,弹窗让用户确认,避免误触)
   const [pendingLoad, setPendingLoad] = useState(null)
+  // 筛选面板开关(触发按钮引用用于锚定定位与焦点归还)
+  const [filterOpen, setFilterOpen] = useState(false)
+  const filterTriggerRef = useRef(null)
+  // 侧栏策展锚点:切到精选 feed 并滚动到对应区块
+  const [pendingAnchor, setPendingAnchor] = useState(null)
   // 载入确认弹层打开时锁背景滚动(引用计数)
   useScrollLock(!!pendingLoad)
 
@@ -98,7 +118,6 @@ export default function GalleryPage({ onLoadTemplate, cloudStore }) {
   })
 
   // 策展内容(主题/合集):与模板数据相互独立,失败时为空集合,旧图库照常可用。
-  // active 只在本页挂载时加载 —— 主题/详情页各自调用同一 hook。
   const galleryContent = useGalleryContent()
   const discoverySections = useMemo(() => buildDiscoverySections({
     templates: allTemplates,
@@ -110,8 +129,52 @@ export default function GalleryPage({ onLoadTemplate, cloudStore }) {
     homeSections: galleryContent.homeSections,
   }), [allTemplates, getDownloadCount, galleryContent.themes, galleryContent.collections, galleryContent.themeTemplateIds, galleryContent.collectionTemplateIds, galleryContent.homeSections])
   const discoveryEnabled = galleryContent.enabled && !cloudDown
-  // 搜索/分类/难度/用色数任一激活时隐藏发现区块,避免「筛选了却还看到无关推荐」
+  // 搜索/分类/难度/用色数任一激活时隐藏策展区块,避免「筛选了却还看到无关推荐」
   const filtersActive = !!searchTerm || category !== 'all' || difficulty !== 'all' || !!maxColors
+  const activeFilterCount = [
+    searchTerm ? 1 : 0,
+    category !== 'all' ? 1 : 0,
+    difficulty !== 'all' ? 1 : 0,
+    maxColors ? 1 : 0,
+  ].reduce((a, b) => a + b, 0)
+
+  // ── feed 数据(04 §3):过滤先收窄集合,再按 feed 各自的排序派生 ──
+  const filteredTemplates = useMemo(() => allTemplates.filter(template => {
+    const displayName = (template.nameZh || template.name || '').toLowerCase()
+    const translatedName = t(`templates.names.${template.nameKey}`, template.nameKey).toLowerCase()
+    const matchesSearch = (displayName || translatedName).includes(searchTerm.toLowerCase())
+    const matchesCategory = category === 'all' || template.category === category
+    const matchesDifficulty = difficulty === 'all' || template.difficulty === difficulty
+    // 用色数上限:按 pattern 实际出现的唯一颜色数计算(与卡片色点、详情页口径一致)
+    const matchesColors = !maxColors || extractPatternColors(template.pattern).length <= maxColors
+    return matchesSearch && matchesCategory && matchesDifficulty && matchesColors
+  }), [allTemplates, searchTerm, category, difficulty, maxColors, t])
+  // 热门:过滤后按真实下载量降序(0 下载不进入);最新:过滤后按可信 createdAt 降序
+  const popularTemplates = useMemo(
+    () => pickPopular(filteredTemplates, getDownloadCount, FEED_LIMIT),
+    [filteredTemplates, getDownloadCount]
+  )
+  const latestTemplates = useMemo(
+    () => pickLatest(filteredTemplates, FEED_LIMIT),
+    [filteredTemplates]
+  )
+  // 精选资源:后台人工策展关系(gallery_featured_templates),按 sort_order 解析、
+  // 跳过已删除/不可读的 id。关系未加载/为空时整段隐藏,不渲染占位壳。
+  const featuredTemplates = useMemo(
+    () => resolveTemplatesByIds(allTemplates, galleryContent.featuredTemplateIds || []).templates,
+    [allTemplates, galleryContent.featuredTemplateIds]
+  )
+  // 精选视图区块:popular/latest 已升级为一级 feed,不再作为纵向区块堆在精选下方
+  const featuredBlocks = useMemo(
+    () => discoverySections.blocks.filter(b => b.kind !== 'popular' && b.kind !== 'latest'),
+    [discoverySections]
+  )
+
+  // 精选视图是否有可展示的策展内容:没有(本地模式/未配置云端/全部为空)时
+  // 退化为完整模板网格 —— 不能让默认首屏变成一片空白。
+  const featuredViewHasCuration = featuredTemplates.length > 0 || featuredBlocks.length > 0
+  // 精选视图的最终形态:有策展内容且无筛选 → 策展布局;否则按结果网格处理
+  const showCurationView = feed === 'featured' && !filtersActive && featuredViewHasCuration
 
   // 模板生效品牌:优先用户覆盖,否则模板自带 paletteId(缺省 perler)
   const templateBrandId = (template) => brandOverride[template.id] || template.paletteId || 'perler'
@@ -148,17 +211,6 @@ export default function GalleryPage({ onLoadTemplate, cloudStore }) {
     }
   }
 
-  const filteredTemplates = useMemo(() => allTemplates.filter(template => {
-    const displayName = (template.nameZh || template.name || '').toLowerCase()
-    const translatedName = t(`templates.names.${template.nameKey}`, template.nameKey).toLowerCase()
-    const matchesSearch = (displayName || translatedName).includes(searchTerm.toLowerCase())
-    const matchesCategory = category === 'all' || template.category === category
-    const matchesDifficulty = difficulty === 'all' || template.difficulty === difficulty
-    // 用色数上限:按 pattern 实际出现的唯一颜色数计算(与卡片色点、详情页口径一致)
-    const matchesColors = !maxColors || extractPatternColors(template.pattern).length <= maxColors
-    return matchesSearch && matchesCategory && matchesDifficulty && matchesColors
-  }), [allTemplates, searchTerm, category, difficulty, maxColors, t])
-
   const handleToggleFavorite = (id, e) => {
     e.stopPropagation()
     toggleFavorite(id)
@@ -166,7 +218,6 @@ export default function GalleryPage({ onLoadTemplate, cloudStore }) {
 
   // 载入模板:有品牌(模板自带或用户覆盖)时转换 pattern 并通知 App 同步切换色卡;
   // 无品牌(内置通用模板)则原样载入,不打扰用户当前色卡。
-  // 方形模板保持旧调用形态(不传 options),矩形模板才附带真实宽高。
   const handleTemplateLoad = (template) => {
     const brand = brandOverride[template.id] || template.paletteId
     const { width, height } = templateDimensions(template)
@@ -183,18 +234,78 @@ export default function GalleryPage({ onLoadTemplate, cloudStore }) {
     )
   }
 
+  const clearAllFilters = () => setFilters({ q: '', cat: 'all', diff: 'all', colors: '' })
+
+  // 侧栏意图(状态在 GalleryPage:侧栏不持有第二份筛选状态)
+  const handleDiscover = () => setFeed('featured')
+  const handleAllTemplates = () => clearAllFilters()
+  const handleCurationAnchor = (kind) => {
+    // 策展区块只在「精选 feed + 无筛选」时渲染,先恢复该状态再定位
+    clearAllFilters()
+    setFeed('featured')
+    setPendingAnchor(kind)
+  }
+  // 侧栏分类只改 cat:feed 与其它条件保持不动(单一分类状态源)
+  const handleSidebarCategory = (cat) => setCategory(cat === 'all' ? 'all' : cat)
+
+  // 策展锚点定位:目标区块渲染完成后滚动(尊重 reduced-motion 由浏览器处理)
+  useEffect(() => {
+    if (!pendingAnchor || feed !== 'featured' || filtersActive) return
+    const el = document.getElementById(`gallery-section-${pendingAnchor}`)
+    if (el) {
+      el.scrollIntoView({ behavior: 'smooth', block: 'start' })
+      setPendingAnchor(null)
+    }
+  }, [pendingAnchor, feed, filtersActive])
+
+  // feed 面板的网格结果:每个 feed 用自己的集合与空态
+  const feedResults = feed === 'popular' ? popularTemplates
+    : feed === 'latest' ? latestTemplates
+      : filteredTemplates // featured + 筛选 → 筛选结果全集
+  const feedEmptyHint = feed === 'popular'
+    ? t('gallery.explorer.popularEmpty')
+    : feed === 'latest'
+      ? t('gallery.explorer.latestEmpty')
+      : t('gallery.noResultsHint')
+
+  /** 卡片公共回调包(feed 网格与精选资源网格共用同一套动作) */
+  const renderTemplateGrid = (templates) => (
+    <div className="templates-grid">
+      {templates.map(template => (
+        <GalleryTemplateCard
+          key={template.id}
+          template={template}
+          categoryLabel={getCategoryLabel(template.category)}
+          favorite={isFavorite(template.id)}
+          onToggleFavorite={(e) => handleToggleFavorite(template.id, e)}
+          onOpen={() => setPendingLoad(template)}
+          exporting={exportingId === template.id}
+          onExportTemplate={handleExportTemplate}
+          brandId={templateBrandId(template)}
+          brandOverridden={Boolean(brandOverride[template.id])}
+          onBrandSelect={(brandId) => setBrandOverride(prev => {
+            const next = { ...prev }
+            if (!brandId || brandId === template.paletteId) delete next[template.id]
+            else next[template.id] = brandId
+            return next
+          })}
+          getDownloadCount={getDownloadCount}
+        />
+      ))}
+    </div>
+  )
+
+  // 激活筛选 chips(逐项移除;搜索词 chip 与输入框并存)
+  const chips = []
+  if (searchTerm) chips.push({ key: 'q', label: t('gallery.explorer.chipSearch', { q: searchTerm }), remove: () => setSearchTerm('') })
+  if (category !== 'all') chips.push({ key: 'cat', label: t('gallery.explorer.chipCategory', { label: getCategoryLabel(category) }), remove: () => setCategory('all') })
+  if (difficulty !== 'all') chips.push({ key: 'diff', label: t('gallery.explorer.chipDifficulty', { label: t(`gallery.difficulties.${difficulty}`) }), remove: () => setDifficulty('all') })
+  if (maxColors) chips.push({ key: 'colors', label: t('gallery.explorer.chipColors', { n: maxColors }), remove: () => setMaxColors('') })
+
   return (
     <div className="gallery-page">
-      {/* 右侧悬浮按钮:返回首页 + 联系我们(仅图库页出现) */}
+      {/* 悬浮按钮:联系我们(站内无其它固定入口;返回首页由站点 Header 的 LOGO 覆盖) */}
       <div className="gallery-floating">
-        <button
-          className="gallery-float-btn home"
-          onClick={() => navigate('/')}
-          aria-label={t('gallery.backHome')}
-          title={t('gallery.backHome')}
-        >
-          <Home size={20} />
-        </button>
         <button
           className="gallery-float-btn contact"
           onClick={() => navigate('/contact')}
@@ -205,175 +316,211 @@ export default function GalleryPage({ onLoadTemplate, cloudStore }) {
         </button>
       </div>
 
-      <div className="gallery-header">
-        <h1 className="gallery-title">{t('gallery.title')}</h1>
-        <p className="gallery-subtitle">{t('gallery.subtitle')}</p>
-      </div>
+      <div className="gallery-explorer">
+        <GallerySidebar
+          feed={feed}
+          filtersActive={filtersActive}
+          category={category}
+          categoryOptions={categoryOptions}
+          categoryCounts={categoryCounts}
+          getCategoryLabel={getCategoryLabel}
+          onSelectCategory={handleSidebarCategory}
+          onDiscover={handleDiscover}
+          onAllTemplates={handleAllTemplates}
+          onCurationAnchor={handleCurationAnchor}
+          onCreate={() => navigate('/')}
+          onOpenProfile={() => navigate('/profile')}
+        />
 
-      <div className="gallery-toolbar">
-        <div className="search-box">
-          <svg className="search-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-            <circle cx="11" cy="11" r="8"/>
-            <path d="M21 21l-4.35-4.35"/>
-          </svg>
-          <input
-            type="text"
-            placeholder={t('gallery.search')}
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="search-input"
-          />
-        </div>
-      </div>
+        <div className="gallery-main">
+          <header className="gallery-explorer-head">
+            <h1 className="gallery-title">{t('gallery.title')}</h1>
+            <p className="gallery-subtitle">{t('gallery.subtitle')}</p>
+          </header>
 
-      <div className="category-bar">
-        <div className="category-group">
-          <span className="category-label">{t('gallery.category')}</span>
-          <div className="filter-buttons">
+          {/* 紧凑工具栏:搜索 + 筛选入口 + 结果数,同一视觉层级 */}
+          <div className="gallery-toolbar">
+            <div className="gallery-search">
+              <Search size={15} className="gallery-search-icon" aria-hidden="true" />
+              <input
+                type="search"
+                placeholder={t('gallery.search')}
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                aria-label={t('gallery.search')}
+              />
+            </div>
+            <button
+              ref={filterTriggerRef}
+              type="button"
+              className="gallery-filter-trigger"
+              aria-haspopup="dialog"
+              aria-expanded={filterOpen}
+              aria-label={activeFilterCount > 0 ? t('gallery.explorer.filterCount', { n: activeFilterCount }) : t('gallery.explorer.filter')}
+              onClick={() => setFilterOpen(v => !v)}
+            >
+              <SlidersHorizontal size={14} aria-hidden="true" />
+              <span>{t('gallery.explorer.filter')}</span>
+              {activeFilterCount > 0 && <span className="gallery-filter-badge">{activeFilterCount}</span>}
+            </button>
+            <span className="gallery-result-count" role="status">
+              {t('gallery.explorer.resultCount', { n: feedResults.length })}
+            </span>
+          </div>
+
+          {/* 激活筛选 chips:逐项移除 + 清除全部;无筛选时不渲染(不留空高度) */}
+          {chips.length > 0 && (
+            <div className="gallery-chips" aria-label={t('gallery.explorer.filter')}>
+              {chips.map(chip => (
+                <span key={chip.key} className="gallery-chip">
+                  <span className="gallery-chip-label">{chip.label}</span>
+                  <button
+                    type="button"
+                    className="gallery-chip-remove"
+                    onClick={chip.remove}
+                    aria-label={t('gallery.explorer.removeFilter', { label: chip.label })}
+                  >
+                    <X size={12} aria-hidden="true" />
+                  </button>
+                </span>
+              ))}
+              <button type="button" className="gallery-chips-clear" onClick={clearAllFilters}>
+                {t('gallery.explorer.clearAll')}
+              </button>
+            </div>
+          )}
+
+          {/* 移动端/平板分类横条(桌面由 CSS 隐藏,分类入口在侧栏) */}
+          <div className="gallery-catnav" role="navigation" aria-label={t('gallery.explorer.navCategories')}>
             {categoryOptions.map(cat => (
               <button
                 key={cat}
-                className={`category-btn ${category === cat ? 'active' : ''}`}
-                onClick={() => setCategory(cat)}
+                type="button"
+                className={`gallery-catnav-btn${category === cat ? ' active' : ''}`}
+                aria-pressed={category === cat}
+                onClick={() => handleSidebarCategory(cat)}
               >
                 {getCategoryLabel(cat)}
-                <span className="category-count">{cat === 'all' ? allTemplates.length : (categoryCounts[cat] || 0)}</span>
+                <span className="gallery-catnav-count">{cat === 'all' ? allTemplates.length : (categoryCounts[cat] || 0)}</span>
               </button>
             ))}
           </div>
-        </div>
-        <div className="difficulty-group">
-          <span className="category-label">{t('gallery.difficulty')}</span>
-          <div className="filter-buttons">
-            {DIFFICULTIES.map(diff => (
-              <button
-                key={diff}
-                className={`difficulty-btn ${difficulty === diff ? 'active' : ''}`}
-                onClick={() => setDifficulty(diff)}
-                style={{ '--diff-color': getDifficultyColor(diff) }}
-              >
-                {t(`gallery.difficulties.${diff}`)}
-              </button>
-            ))}
-          </div>
-        </div>
-        {/* 用色数:新手最关心的「这图纸要买几种豆」,按上限分档。
-            档位与主题页/合集页共用 COLOR_COUNT_TIERS,同一链接到哪都筛出同样结果。 */}
-        <div className="colors-group">
-          <span className="category-label">{t('gallery.discovery.filterColors')}</span>
-          <div className="filter-buttons">
-            <button
-              className={`colors-btn ${!maxColors ? 'active' : ''}`}
-              onClick={() => setMaxColors('')}
-            >
-              {t('gallery.discovery.filterColorsAny')}
-            </button>
-            {COLOR_COUNT_TIERS.map(n => (
-              <button
-                key={n}
-                className={`colors-btn ${maxColors === n ? 'active' : ''}`}
-                onClick={() => setMaxColors(n)}
-              >
-                {t('gallery.discovery.filterColorsMax', { n })}
-              </button>
-            ))}
+
+          <GalleryFeedTabs feed={feed} onFeedChange={setFeed} />
+
+          <div
+            className="gallery-feed-panel"
+            id="gallery-feed-panel"
+            role="tabpanel"
+            aria-labelledby={`gallery-tab-${feed}`}
+          >
+            {/* 云端不可用:横幅说明 + 已回退本地/内置模板;网络恢复后自动重试 */}
+            {cloudDown && (
+              <div className="cloud-offline-banner" role="status">
+                <div className="cloud-offline-text">
+                  <strong>{t('gallery.cloudLoadError')}</strong>
+                  <span>{t('gallery.cloudFallbackNotice')}</span>
+                  <span className="cloud-offline-reason">
+                    {cloudStore?.error === 'timeout'
+                      ? t('gallery.cloudErrorTimeout')
+                      : t('gallery.cloudLoadErrorHint')}
+                  </span>
+                </div>
+                <button className="retry-btn" onClick={() => cloudStore.loadAll()}>
+                  {t('gallery.retry')}
+                </button>
+              </div>
+            )}
+
+            {showCurationView ? (
+              /* ── 精选视图:策展布局(数据缺失/失败 → 整块隐藏,不渲染空壳) ── */
+              <>
+                {featuredTemplates.length > 0 && (
+                  <section className="gallery-section" aria-label={t('gallery.explorer.featuredResources')}>
+                    <div className="gallery-section-head">
+                      <h2>{t('gallery.explorer.featuredResources')}</h2>
+                      <span className="gallery-section-hint">{t('gallery.explorer.featuredResourcesHint')}</span>
+                    </div>
+                    {renderTemplateGrid(featuredTemplates)}
+                  </section>
+                )}
+                {discoveryEnabled && (
+                  <DiscoveryRails
+                    sections={{ ...discoverySections, blocks: featuredBlocks }}
+                    loading={galleryContent.loading}
+                    error={galleryContent.error}
+                    onOpenTheme={(theme) => navigate(`/gallery/theme/${encodeURIComponent(theme.slug)}`)}
+                    onOpenCollection={(collection) => navigate(`/gallery/collection/${encodeURIComponent(collection.slug)}`)}
+                    onOpenPattern={(template) => navigate(`/gallery/pattern/${encodeURIComponent(template.id)}`)}
+                    onViewAllThemes={clearAllFilters}
+                    onViewAllCollections={clearAllFilters}
+                  />
+                )}
+              </>
+            ) : (
+              /* ── 热门/最新/筛选结果:同一网格,各自的数据口径与空态 ── */
+              <>
+                {feed === 'featured' && filtersActive && (
+                  <div className="gallery-feed-note" role="note">
+                    <strong>{t('gallery.explorer.resultsTitle')}</strong>
+                    <span>{t('gallery.explorer.resultsHint')}</span>
+                  </div>
+                )}
+                {cloudEnabled && cloudStore?.loading ? (
+                  <div className="empty-state">
+                    <p>{t('gallery.cloudLoading')}</p>
+                  </div>
+                ) : cloudEnabled && allTemplates.length === 0 ? (
+                  <div className="empty-state">
+                    <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+                      <circle cx="12" cy="12" r="10"/>
+                      <path d="M12 8v8"/>
+                      <path d="M12 16.5v.01"/>
+                    </svg>
+                    <p>{t('gallery.cloudEmpty')}</p>
+                    <span>{t('gallery.cloudEmptyHint')}</span>
+                  </div>
+                ) : feedResults.length === 0 ? (
+                  <div className="empty-state">
+                    <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+                      <circle cx="11" cy="11" r="8"/>
+                      <path d="M21 21l-4.35-4.35"/>
+                    </svg>
+                    <p>{t('gallery.noResults')}</p>
+                    <span>{feedEmptyHint}</span>
+                    {filtersActive && (
+                      <button type="button" className="btn btn-primary empty-login-btn" onClick={clearAllFilters}>
+                        {t('gallery.discovery.filterReset')}
+                      </button>
+                    )}
+                  </div>
+                ) : (
+                  renderTemplateGrid(feedResults)
+                )}
+              </>
+            )}
           </div>
         </div>
       </div>
 
-      <div className="gallery-content">
-        {/* 策展区块:仅在「全部模板」视图、无筛选、云端可用且确实有内容时出现。
-            数据为空 / 加载失败 → 整块不渲染,下方旧图库网格不受影响。 */}
-        {!filtersActive && discoveryEnabled && (
-          <DiscoveryRails
-            sections={discoverySections}
-            loading={galleryContent.loading}
-            error={galleryContent.error}
-            onOpenTheme={(theme) => navigate(`/gallery/theme/${encodeURIComponent(theme.slug)}`)}
-            onOpenCollection={(collection) => navigate(`/gallery/collection/${encodeURIComponent(collection.slug)}`)}
-            onOpenPattern={(template) => navigate(`/gallery/pattern/${encodeURIComponent(template.id)}`)}
-            // 「查看全部」:主题/合集没有独立索引页,回到图库并清空筛选
-            onViewAllThemes={() => { setFilters({ q: '', cat: 'all', diff: 'all', colors: '' }) }}
-            onViewAllCollections={() => { setFilters({ q: '', cat: 'all', diff: 'all', colors: '' }) }}
-          />
-        )}
-        {/* 云端不可用:横幅说明 + 已回退本地/内置模板;网络恢复后自动重试(useCloudTemplates) */}
-        {cloudDown && (
-          <div className="cloud-offline-banner" role="status">
-            <div className="cloud-offline-text">
-              <strong>{t('gallery.cloudLoadError')}</strong>
-              <span>{t('gallery.cloudFallbackNotice')}</span>
-              {/* 只给可读的原因,不把底层错误文本(含表名/堆栈/URL)暴露到界面上。
-                  完整错误仍保留在 console 里供排查。 */}
-              <span className="cloud-offline-reason">
-                {cloudStore?.error === 'timeout'
-                  ? t('gallery.cloudErrorTimeout')
-                  : t('gallery.cloudLoadErrorHint')}
-              </span>
-            </div>
-            <button className="retry-btn" onClick={() => cloudStore.loadAll()}>
-              {t('gallery.retry')}
-            </button>
-          </div>
-        )}
-        {cloudEnabled && cloudStore?.loading ? (
-          <div className="empty-state">
-            <p>{t('gallery.cloudLoading')}</p>
-          </div>
-        ) : cloudEnabled && allTemplates.length === 0 ? (
-          <div className="empty-state">
-            <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
-              <circle cx="12" cy="12" r="10"/>
-              <path d="M12 8v8"/>
-              <path d="M12 16.5v.01"/>
-            </svg>
-            <p>{t('gallery.cloudEmpty')}</p>
-            <span>{t('gallery.cloudEmptyHint')}</span>
-          </div>
-        ) : filteredTemplates.length === 0 ? (
-          <div className="empty-state">
-            <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
-              <circle cx="11" cy="11" r="8"/>
-              <path d="M21 21l-4.35-4.35"/>
-            </svg>
-            <p>{t('gallery.noResults')}</p>
-            <span>{t('gallery.noResultsHint')}</span>
-            {/* 筛选条件(尤其新增的用色数)可能藏在下方不可见处,给一个一键清除 */}
-            {filtersActive && (
-              <button
-                className="btn btn-primary empty-login-btn"
-                onClick={() => setFilters({ q: '', cat: 'all', diff: 'all', colors: '' })}
-              >
-                {t('gallery.discovery.filterReset')}
-              </button>
-            )}
-          </div>
-        ) : (
-          <div className="templates-grid">
-            {filteredTemplates.map(template => (
-              <GalleryTemplateCard
-                key={template.id}
-                template={template}
-                categoryLabel={getCategoryLabel(template.category)}
-                favorite={isFavorite(template.id)}
-                onToggleFavorite={(e) => handleToggleFavorite(template.id, e)}
-                onOpen={() => setPendingLoad(template)}
-                exporting={exportingId === template.id}
-                onExportTemplate={handleExportTemplate}
-                brandId={templateBrandId(template)}
-                brandOverridden={Boolean(brandOverride[template.id])}
-                onBrandSelect={(brandId) => setBrandOverride(prev => {
-                  const next = { ...prev }
-                  if (!brandId || brandId === template.paletteId) delete next[template.id]
-                  else next[template.id] = brandId
-                  return next
-                })}
-                getDownloadCount={getDownloadCount}
-              />
-            ))}
-          </div>
-        )}
-      </div>
+      <GalleryFilterPanel
+        open={filterOpen}
+        onClose={() => {
+          setFilterOpen(false)
+          requestAnimationFrame(() => filterTriggerRef.current?.focus?.())
+        }}
+        triggerRef={filterTriggerRef}
+        categoryOptions={categoryOptions}
+        categoryCounts={categoryCounts}
+        getCategoryLabel={getCategoryLabel}
+        category={category}
+        onCategory={setCategory}
+        difficulty={difficulty}
+        onDifficulty={setDifficulty}
+        maxColors={maxColors}
+        onMaxColors={setMaxColors}
+        onReset={clearAllFilters}
+      />
 
       {/* 填充模板到画布:点击卡片后弹出确认,避免误触直接填充+跳转 */}
       {pendingLoad && createPortal(

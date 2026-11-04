@@ -24,7 +24,7 @@ function RailThumb({ template }) {
   )
 }
 
-function Rail({ id, title, hint, viewAll, onViewAll, children }) {
+function Rail({ id, title, hint, viewAll, onViewAll, sectionId, children }) {
   // 桌面滚轮:横向 rail 默认只能拖滚动条或按 Shift+滚轮。
   // 这里把纵向滚轮转成横向滚动,但不劫持「已经能横向滚」或「滚到边界」的情况 ——
   // 否则用户会被卡在 rail 里滚不动页面。
@@ -41,7 +41,7 @@ function Rail({ id, title, hint, viewAll, onViewAll, children }) {
   }
 
   return (
-    <section className="discovery-rail" aria-labelledby={`rail-${id}`}>
+    <section className="discovery-rail" aria-labelledby={`rail-${id}`} id={sectionId}>
       <div className="rail-head">
         <h2 id={`rail-${id}`} className="rail-title">{title}</h2>
         {hint && <span className="rail-hint">{hint}</span>}
@@ -272,6 +272,8 @@ export default function DiscoveryRails({
           <Rail
             key={key}
             id={`themes-${index}`}
+            // 侧栏「精选主题」锚点定位目标(同 kind 多区块时定位首个)
+            sectionId={index === 0 || !blocks.slice(0, index).some(b => b.kind === 'themes') ? 'gallery-section-themes' : undefined}
             title={titleFor(block, 'gallery.discovery.themes')}
             hint={hintFor(block, null)}
             viewAll={t('gallery.discovery.viewAll')}
@@ -285,6 +287,7 @@ export default function DiscoveryRails({
           <Rail
             key={key}
             id={`collections-${index}`}
+            sectionId={!blocks.slice(0, index).some(b => b.kind === 'collections') ? 'gallery-section-collections' : undefined}
             title={titleFor(block, 'gallery.discovery.collections')}
             hint={hintFor(block, null)}
             viewAll={t('gallery.discovery.viewAll')}
