@@ -31,7 +31,22 @@ export const COLOR_COUNT_TIERS = Object.freeze([4, 8, 12, 16, 24, 32])
 export const LEGACY_VIEW_PARAM = 'view'
 
 /**
- * @returns {{ searchTerm, category, difficulty, setSearchTerm, setCategory, setDifficulty }}
+ * 一级 feed(精选 / 热门 / 最新)。
+ *
+ * 只由 Gallery 首页消费:主题页/合集页复用本 hook 读取筛选参数,
+ * 但完全忽略 feed 字段 —— 它们的模板范围是各自的关联列表,没有 feed 语义。
+ * 新参数用 feed 而不复用已废弃的 view,避免新旧语义互相污染。
+ */
+export const GALLERY_FEEDS = Object.freeze(['featured', 'popular', 'latest'])
+export const DEFAULT_GALLERY_FEED = 'featured'
+
+/** 非法/缺失 feed 归一化为默认值(纯函数,便于单测) */
+export function normalizeGalleryFeed(value) {
+  return GALLERY_FEEDS.includes(value) ? value : DEFAULT_GALLERY_FEED
+}
+
+/**
+ * @returns {{ searchTerm, category, difficulty, feed, setSearchTerm, setCategory, setDifficulty, setFeed, … }}
  */
 export function useGalleryQuery() {
   const [searchParams, setSearchParams] = useSearchParams()
@@ -45,6 +60,8 @@ export function useGalleryQuery() {
   // 老链接的 ?view=works / ?view=favorites:收藏与作品已搬到个人中心,
   // 这里只读取出来用于「静默清掉」,不再参与任何筛选。
   const legacyView = searchParams.get(LEGACY_VIEW_PARAM) || ''
+  // 一级 feed:非法值(含 ?feed=)归一化为 featured,不写回 URL(与 cat/diff 同策略)
+  const feed = normalizeGalleryFeed(searchParams.get('feed'))
 
   const setSearchTerm = (value) => {
     const params = new URLSearchParams(searchParams)
@@ -76,6 +93,19 @@ export function useGalleryQuery() {
   }
 
   /**
+   * 切换一级 feed。
+   * 用 push 写入历史:浏览器后退可以回到上一个 feed(筛选与搜索都保留在
+   * 同一条 URL 里,后退不会丢条件)。默认 feed 不写入参数,保持地址栏干净。
+   */
+  const setFeed = (value) => {
+    const params = new URLSearchParams(searchParams)
+    const next = normalizeGalleryFeed(value)
+    if (next !== DEFAULT_GALLERY_FEED) params.set('feed', next)
+    else params.delete('feed')
+    setSearchParams(params)
+  }
+
+  /**
    * 清掉老链接里的 ?view= 参数。
    * 收藏与我的作品已搬到个人中心,旧链接不应再带着这个键;
    * 用 replace 写入,不在浏览历史里留下一条无意义的记录。
@@ -87,7 +117,7 @@ export function useGalleryQuery() {
   }, [searchParams, setSearchParams])
 
   /**
-   * 一次写入多个筛选值。
+   * 一次写入多个筛选值(feed 不在此列:切 feed 走 setFeed)。
    * 连续调用单个 setter 时,每个 setter 都从「当前渲染的 searchParams」构造,
    * 同一 tick 内后一次会覆盖前一次(例如重置三个筛选只剩最后一个生效)。
    * 需要同时改多项时用这个。
@@ -119,11 +149,13 @@ export function useGalleryQuery() {
     category,
     difficulty,
     maxColors,
+    feed,
     legacyView,
     setSearchTerm,
     setCategory,
     setDifficulty,
     setMaxColors,
+    setFeed,
     clearLegacyView,
     setFilters,
   }

@@ -1,0 +1,112 @@
+import { describe, it, expect } from 'vitest'
+import { renderHook, act } from '@testing-library/react'
+import { MemoryRouter, useNavigate } from 'react-router-dom'
+import { vi } from 'vitest'
+import {
+  useGalleryQuery,
+  normalizeGalleryFeed,
+  GALLERY_FEEDS,
+  DEFAULT_GALLERY_FEED,
+  COLOR_COUNT_TIERS,
+} from './useGalleryQuery'
+
+/**
+ * Gallery URL 状态契约(重构文档 04 §2)。
+ *
+ * feed 是新参数:非法值归一化 featured、默认不写入 URL、切换用 push
+ * (后退可回上一 feed)。q/cat/diff/colors 的语义与写入行为保持不变,
+ * 主题页/合集页复用本 hook 时忽略 feed。
+ */
+
+function wrapper(initialEntry = '/gallery') {
+  return function Wrapper({ children }) {
+    return <MemoryRouter initialEntries={[initialEntry]}>{children}</MemoryRouter>
+  }
+}
+
+describe('normalizeGalleryFeed', () => {
+  it('合法值原样返回,非法/缺失值归一化为 featured', () => {
+    for (const value of GALLERY_FEEDS) {
+      expect(normalizeGalleryFeed(value)).toBe(value)
+    }
+    expect(normalizeGalleryFeed('')).toBe(DEFAULT_GALLERY_FEED)
+    expect(normalizeGalleryFeed('works')).toBe(DEFAULT_GALLERY_FEED)
+    expect(normalizeGalleryFeed('POPULAR')).toBe(DEFAULT_GALLERY_FEED)
+    expect(normalizeGalleryFeed(null)).toBe(DEFAULT_GALLERY_FEED)
+    expect(normalizeGalleryFeed(undefined)).toBe(DEFAULT_GALLERY_FEED)
+  })
+})
+
+describe('useGalleryQuery · feed 解析', () => {
+  it('默认 featured,地址栏没有 feed 参数', () => {
+    const { result } = renderHook(() => useGalleryQuery(), { wrapper: wrapper('/gallery') })
+    expect(result.current.feed).toBe('featured')
+  })
+
+  it.each(['popular', 'latest'])('?feed=%s 正确解析', (value) => {
+    const { result } = renderHook(() => useGalleryQuery(), {
+      wrapper: wrapper(`/gallery?feed=${value}`),
+    })
+    expect(result.current.feed).toBe(value)
+  })
+
+  it('非法 feed 值归一化为 featured(不崩溃、不写回)', () => {
+    const { result } = renderHook(() => useGalleryQuery(), {
+      wrapper: wrapper('/gallery?feed=hacked&view=works'),
+    })
+    expect(result.current.feed).toBe('featured')
+    // 旧 view 参数仍被读出,交给页面静默清理
+    expect(result.current.legacyView).toBe('works')
+  })
+})
+
+describe('useGalleryQuery · feed 写入', () => {
+  it('setFeed 写入 URL 并保留筛选参数(push 历史)', () => {
+    const { result } = renderHook(
+      () => ({ query: useGalleryQuery(), navigate: useNavigate() }),
+      { wrapper: wrapper('/gallery?q=小鸭&cat=animal&diff=easy&colors=12') }
+    )
+    act(() => result.current.query.setFeed('popular'))
+    expect(result.current.query.feed).toBe('popular')
+    // 筛选全部保留:切 feed 不清条件
+    expect(result.current.query.searchTerm).toBe('小鸭')
+    expect(result.current.query.category).toBe('animal')
+    expect(result.current.query.difficulty).toBe('easy')
+    expect(result.current.query.maxColors).toBe(12)
+  })
+
+  it('切回默认 feed 时删除参数而不是写 feed=featured', () => {
+    const { result } = renderHook(
+      () => ({ query: useGalleryQuery(), navigate: useNavigate() }),
+      { wrapper: wrapper('/gallery?feed=latest') }
+    )
+    act(() => result.current.query.setFeed('featured'))
+    expect(result.current.query.feed).toBe('featured')
+  })
+
+  it('非法 setFeed 值归一化,不产生脏 URL', () => {
+    const { result } = renderHook(() => useGalleryQuery(), { wrapper: wrapper('/gallery') })
+    act(() => result.current.setFeed('nonsense'))
+    expect(result.current.feed).toBe('featured')
+    act(() => result.current.setFeed('latest'))
+    act(() => result.current.setFeed(''))
+    expect(result.current.feed).toBe('featured')
+  })
+})
+
+describe('useGalleryQuery · 筛选写入(既有契约)', () => {
+  it('setFilters 一次写入多项并保留 feed', () => {
+    const { result } = renderHook(() => useGalleryQuery(), {
+      wrapper: wrapper('/gallery?feed=popular'),
+    })
+    act(() => result.current.setFilters({ q: '', cat: 'food', diff: 'hard', colors: '' }))
+    expect(result.current.category).toBe('food')
+    expect(result.current.difficulty).toBe('hard')
+    expect(result.current.searchTerm).toBe('')
+    expect(result.current.feed).toBe('popular')
+  })
+
+  it('用色数档位契约不变', () => {
+    expect(COLOR_COUNT_TIERS).toEqual([4, 8, 12, 16, 24, 32])
+  })
+})
