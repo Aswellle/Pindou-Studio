@@ -63,28 +63,28 @@ export function useGalleryQuery() {
   // 一级 feed:非法值(含 ?feed=)归一化为 featured,不写回 URL(与 cat/diff 同策略)
   const feed = normalizeGalleryFeed(searchParams.get('feed'))
 
-  const setSearchTerm = (value) => {
+  const setSearchTerm = value => {
     const params = new URLSearchParams(searchParams)
     if (value) params.set('q', value)
     else params.delete('q')
     setSearchParams(params, { replace: true })
   }
 
-  const setCategory = (value) => {
+  const setCategory = value => {
     const params = new URLSearchParams(searchParams)
     if (value && value !== 'all') params.set('cat', value)
     else params.delete('cat')
     setSearchParams(params, { replace: true })
   }
 
-  const setDifficulty = (value) => {
+  const setDifficulty = value => {
     const params = new URLSearchParams(searchParams)
     if (value && value !== 'all') params.set('diff', value)
     else params.delete('diff')
     setSearchParams(params, { replace: true })
   }
 
-  const setMaxColors = (value) => {
+  const setMaxColors = value => {
     const params = new URLSearchParams(searchParams)
     const n = Number(value)
     if (value && Number.isFinite(n) && n > 0) params.set('colors', String(Math.trunc(n)))
@@ -97,7 +97,7 @@ export function useGalleryQuery() {
    * 用 push 写入历史:浏览器后退可以回到上一个 feed(筛选与搜索都保留在
    * 同一条 URL 里,后退不会丢条件)。默认 feed 不写入参数,保持地址栏干净。
    */
-  const setFeed = (value) => {
+  const setFeed = value => {
     const params = new URLSearchParams(searchParams)
     const next = normalizeGalleryFeed(value)
     if (next !== DEFAULT_GALLERY_FEED) params.set('feed', next)

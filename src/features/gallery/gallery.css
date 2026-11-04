@@ -69,7 +69,7 @@
             gap: 4px;
           }
           .template-brand {
-            max-width: 88px;
+            max-width: 72px;
             min-width: 0;
           }
         }
@@ -315,6 +315,9 @@
         .template-size {
           font-size: var(--text-sm);
           color: var(--text-muted);
+          /* 尺寸文字自身不折行:窄卡(手机两列 ~170px)里「29 x 29」折成两行
+             会把 meta 行撑高,同排卡片高度参差。折行只允许发生在条目之间。 */
+          white-space: nowrap;
         }
         .template-difficulty {
           font-size: var(--text-xs);

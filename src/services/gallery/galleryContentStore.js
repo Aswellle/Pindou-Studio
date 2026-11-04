@@ -61,24 +61,48 @@ export function createGalleryContentStore(client = supabase) {
       enabled: false,
       async load() {
         return {
-          themes: [], collections: [], themeLinks: [], collectionLinks: [],
-          homeSections: [], themeChildren: [], themeCollections: [],
+          themes: [],
+          collections: [],
+          themeLinks: [],
+          collectionLinks: [],
+          homeSections: [],
+          themeChildren: [],
+          themeCollections: [],
           featuredTemplateRows: [],
         }
       },
-      async createContent() { return fail([{ code: 'cloudNotConfigured' }]) },
-      async updateContent() { return fail([{ code: 'cloudNotConfigured' }]) },
-      async deleteContent() { return fail([{ code: 'cloudNotConfigured' }]) },
-      async setLinks() { return fail([{ code: 'cloudNotConfigured' }]) },
-      async saveHomeSections() { return fail([{ code: 'cloudNotConfigured' }]) },
-      async setThemeChildren() { return fail([{ code: 'cloudNotConfigured' }]) },
-      async setThemeCollections() { return fail([{ code: 'cloudNotConfigured' }]) },
-      async saveFeaturedTemplates() { return fail([{ code: 'cloudNotConfigured' }]) },
+      async createContent() {
+        return fail([{ code: 'cloudNotConfigured' }])
+      },
+      async updateContent() {
+        return fail([{ code: 'cloudNotConfigured' }])
+      },
+      async deleteContent() {
+        return fail([{ code: 'cloudNotConfigured' }])
+      },
+      async setLinks() {
+        return fail([{ code: 'cloudNotConfigured' }])
+      },
+      async saveHomeSections() {
+        return fail([{ code: 'cloudNotConfigured' }])
+      },
+      async setThemeChildren() {
+        return fail([{ code: 'cloudNotConfigured' }])
+      },
+      async setThemeCollections() {
+        return fail([{ code: 'cloudNotConfigured' }])
+      },
+      async saveFeaturedTemplates() {
+        return fail([{ code: 'cloudNotConfigured' }])
+      },
     }
   }
 
   let lastError = null
-  const remember = (e) => { lastError = e; return e }
+  const remember = e => {
+    lastError = e
+    return e
+  }
 
   const listOf = async (table, orderColumn) => {
     const { data, error } = await client.from(table).select('*').order(orderColumn, { ascending: true })
@@ -94,14 +118,12 @@ export function createGalleryContentStore(client = supabase) {
    * 用于「新迁移尚未执行」也能正常浏览的向前兼容场景。
    */
   async function listOptional(table, orderColumn) {
-    const { data, error } = await client
-      .from(table)
-      .select('*')
-      .order(orderColumn, { ascending: true })
+    const { data, error } = await client.from(table).select('*').order(orderColumn, { ascending: true })
     if (error) {
-      const missingTable = error.code === '42P01'
-        || error.code === 'PGRST205'
-        || /does not exist|schema cache/i.test(error.message || '')
+      const missingTable =
+        error.code === '42P01' ||
+        error.code === 'PGRST205' ||
+        /does not exist|schema cache/i.test(error.message || '')
       if (missingTable) return []
       remember({ code: 'cloud', detail: error.message })
       throw error
@@ -120,9 +142,10 @@ export function createGalleryContentStore(client = supabase) {
       .order('sort_order', { ascending: true })
     if (error) {
       // 42P01 = undefined_table;PostgREST 也返回 PGRST205
-      const missingTable = error.code === '42P01'
-        || error.code === 'PGRST205'
-        || /does not exist|schema cache/i.test(error.message || '')
+      const missingTable =
+        error.code === '42P01' ||
+        error.code === 'PGRST205' ||
+        /does not exist|schema cache/i.test(error.message || '')
       if (missingTable) return []
       remember({ code: 'cloud', detail: error.message })
       throw error
@@ -145,24 +168,32 @@ export function createGalleryContentStore(client = supabase) {
      * 「内容暂不可用」并继续使用旧图库 —— 不在这里静默吞掉。
      */
     async load() {
-      const [themes, collections, themeLinks, collectionLinks, homeSections, themeChildren, themeCollections, featuredTemplateRows] =
-        await Promise.all([
-          listOf(TABLES.theme, 'sort_order'),
-          listOf(TABLES.collection, 'sort_order'),
-          listOf(LINK_TABLES.theme.table, 'sort_order'),
-          listOf(LINK_TABLES.collection.table, 'sort_order'),
-          // 区块配置表可能尚未创建(0026 未执行):此时不阻断整个图库,
-          // 返回空数组让前端回退到默认区块。
-          listHomeSections(),
-          // 同理:0027 未执行时返回空数组,主题页不显示子主题区块。
-          listOptional(NESTING_TABLES.children, 'sort_order'),
-          listOptional(NESTING_TABLES.collections, 'sort_order'),
-          // 0032 未执行时精选资源为空,精选视图不渲染该区块,其余一切照常。
-          listOptional(FEATURED_TEMPLATES_TABLE, 'sort_order'),
-        ])
+      const [
+        themes,
+        collections,
+        themeLinks,
+        collectionLinks,
+        homeSections,
+        themeChildren,
+        themeCollections,
+        featuredTemplateRows,
+      ] = await Promise.all([
+        listOf(TABLES.theme, 'sort_order'),
+        listOf(TABLES.collection, 'sort_order'),
+        listOf(LINK_TABLES.theme.table, 'sort_order'),
+        listOf(LINK_TABLES.collection.table, 'sort_order'),
+        // 区块配置表可能尚未创建(0026 未执行):此时不阻断整个图库,
+        // 返回空数组让前端回退到默认区块。
+        listHomeSections(),
+        // 同理:0027 未执行时返回空数组,主题页不显示子主题区块。
+        listOptional(NESTING_TABLES.children, 'sort_order'),
+        listOptional(NESTING_TABLES.collections, 'sort_order'),
+        // 0032 未执行时精选资源为空,精选视图不渲染该区块,其余一切照常。
+        listOptional(FEATURED_TEMPLATES_TABLE, 'sort_order'),
+      ])
       return {
-        themes: themes.map((row) => rowToContent(row, 'theme')),
-        collections: collections.map((row) => rowToContent(row, 'collection')),
+        themes: themes.map(row => rowToContent(row, 'theme')),
+        collections: collections.map(row => rowToContent(row, 'collection')),
         themeLinks,
         collectionLinks,
         homeSections,
@@ -181,7 +212,10 @@ export function createGalleryContentStore(client = supabase) {
         .insert(contentToRow(res.content, kind))
         .select()
         .single()
-      if (error) { remember({ code: 'cloud', detail: error.message }); return fromDbError(error) }
+      if (error) {
+        remember({ code: 'cloud', detail: error.message })
+        return fromDbError(error)
+      }
       return { ok: true, content: rowToContent(data, kind) }
     },
 
@@ -195,7 +229,10 @@ export function createGalleryContentStore(client = supabase) {
         .eq('id', id)
         .select()
         .single()
-      if (error) { remember({ code: 'cloud', detail: error.message }); return fromDbError(error) }
+      if (error) {
+        remember({ code: 'cloud', detail: error.message })
+        return fromDbError(error)
+      }
       return { ok: true, content: rowToContent(data, kind) }
     },
 
@@ -203,7 +240,10 @@ export function createGalleryContentStore(client = supabase) {
       if (!assertKind(kind)) return fail([{ code: 'invalidKind' }])
       // 关联由 on delete cascade 清理,不复制 pattern 数据
       const { error } = await client.from(TABLES[kind]).delete().eq('id', id)
-      if (error) { remember({ code: 'cloud', detail: error.message }); return fromDbError(error) }
+      if (error) {
+        remember({ code: 'cloud', detail: error.message })
+        return fromDbError(error)
+      }
       return { ok: true }
     },
 
@@ -219,7 +259,10 @@ export function createGalleryContentStore(client = supabase) {
       const ids = [...new Set((templateIds || []).map(String).filter(Boolean))]
 
       const del = await client.from(table).delete().eq(parentColumn, parentId)
-      if (del.error) { remember({ code: 'cloud', detail: del.error.message }); return fromDbError(del.error) }
+      if (del.error) {
+        remember({ code: 'cloud', detail: del.error.message })
+        return fromDbError(del.error)
+      }
       if (ids.length === 0) return { ok: true, links: [] }
 
       const rows = ids.map((templateId, index) => ({
@@ -228,7 +271,10 @@ export function createGalleryContentStore(client = supabase) {
         sort_order: index,
       }))
       const { data, error } = await client.from(table).insert(rows).select()
-      if (error) { remember({ code: 'cloud', detail: error.message }); return fromDbError(error) }
+      if (error) {
+        remember({ code: 'cloud', detail: error.message })
+        return fromDbError(error)
+      }
       return { ok: true, links: data || [] }
     },
 
@@ -238,18 +284,29 @@ export function createGalleryContentStore(client = supabase) {
      */
     async setThemeChildren(themeId, childIds = []) {
       if (!themeId) return fail([{ code: 'notFound' }])
-      const ids = [...new Set((childIds || []).map(String).filter(Boolean))]
-        .filter((id) => id !== String(themeId)) // 自己不能是自己的子主题
+      const ids = [...new Set((childIds || []).map(String).filter(Boolean))].filter(
+        id => id !== String(themeId)
+      ) // 自己不能是自己的子主题
       const del = await client.from(NESTING_TABLES.children).delete().eq('parent_id', themeId)
-      if (del.error) { remember({ code: 'cloud', detail: del.error.message }); return fromDbError(del.error) }
+      if (del.error) {
+        remember({ code: 'cloud', detail: del.error.message })
+        return fromDbError(del.error)
+      }
       if (ids.length === 0) return { ok: true, children: [] }
       const { data, error } = await client
         .from(NESTING_TABLES.children)
-        .insert(ids.map((childId, index) => ({
-          parent_id: themeId, child_id: childId, sort_order: index,
-        })))
+        .insert(
+          ids.map((childId, index) => ({
+            parent_id: themeId,
+            child_id: childId,
+            sort_order: index,
+          }))
+        )
         .select()
-      if (error) { remember({ code: 'cloud', detail: error.message }); return fromDbError(error) }
+      if (error) {
+        remember({ code: 'cloud', detail: error.message })
+        return fromDbError(error)
+      }
       return { ok: true, children: data || [] }
     },
 
@@ -258,15 +315,25 @@ export function createGalleryContentStore(client = supabase) {
       if (!themeId) return fail([{ code: 'notFound' }])
       const ids = [...new Set((collectionIds || []).map(String).filter(Boolean))]
       const del = await client.from(NESTING_TABLES.collections).delete().eq('theme_id', themeId)
-      if (del.error) { remember({ code: 'cloud', detail: del.error.message }); return fromDbError(del.error) }
+      if (del.error) {
+        remember({ code: 'cloud', detail: del.error.message })
+        return fromDbError(del.error)
+      }
       if (ids.length === 0) return { ok: true, collections: [] }
       const { data, error } = await client
         .from(NESTING_TABLES.collections)
-        .insert(ids.map((collectionId, index) => ({
-          theme_id: themeId, collection_id: collectionId, sort_order: index,
-        })))
+        .insert(
+          ids.map((collectionId, index) => ({
+            theme_id: themeId,
+            collection_id: collectionId,
+            sort_order: index,
+          }))
+        )
         .select()
-      if (error) { remember({ code: 'cloud', detail: error.message }); return fromDbError(error) }
+      if (error) {
+        remember({ code: 'cloud', detail: error.message })
+        return fromDbError(error)
+      }
       return { ok: true, collections: data || [] }
     },
 
@@ -278,7 +345,7 @@ export function createGalleryContentStore(client = supabase) {
       const normalized = []
       for (let i = 0; i < sections.length; i++) {
         const res = normalizeHomeSectionInput(sections[i])
-        if (!res.ok) return { ok: false, errors: res.errors.map((e) => ({ ...e, index: i })) }
+        if (!res.ok) return { ok: false, errors: res.errors.map(e => ({ ...e, index: i })) }
         normalized.push({ ...res.section, sortOrder: i })
       }
 
@@ -294,7 +361,10 @@ export function createGalleryContentStore(client = supabase) {
         .from(HOME_SECTIONS_TABLE)
         .insert(normalized.map(homeSectionToRow))
         .select()
-      if (error) { remember({ code: 'cloud', detail: error.message }); return fromDbError(error) }
+      if (error) {
+        remember({ code: 'cloud', detail: error.message })
+        return fromDbError(error)
+      }
       return { ok: true, sections: (data || []).map(rowToHomeSection) }
     },
 
@@ -307,17 +377,25 @@ export function createGalleryContentStore(client = supabase) {
       const ids = [...new Set((templateIds || []).map(String).filter(Boolean))]
 
       const del = await client.from(FEATURED_TEMPLATES_TABLE).delete().not('template_id', 'is', null)
-      if (del.error) { remember({ code: 'cloud', detail: del.error.message }); return fromDbError(del.error) }
+      if (del.error) {
+        remember({ code: 'cloud', detail: del.error.message })
+        return fromDbError(del.error)
+      }
       if (ids.length === 0) return { ok: true, rows: [] }
 
       const { data, error } = await client
         .from(FEATURED_TEMPLATES_TABLE)
-        .insert(ids.map((templateId, index) => ({
-          template_id: templateId,
-          sort_order: index,
-        })))
+        .insert(
+          ids.map((templateId, index) => ({
+            template_id: templateId,
+            sort_order: index,
+          }))
+        )
         .select()
-      if (error) { remember({ code: 'cloud', detail: error.message }); return fromDbError(error) }
+      if (error) {
+        remember({ code: 'cloud', detail: error.message })
+        return fromDbError(error)
+      }
       return { ok: true, rows: data || [] }
     },
   }

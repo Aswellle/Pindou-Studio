@@ -16,18 +16,20 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { supabase } from '../services/supabase'
 import { createGalleryContentStore } from '../services/gallery/galleryContentStore'
-import {
-  CONTENT_STATUS,
-  sortContent,
-  resolveHomeSections,
-} from '../services/gallery/contentModel'
+import { CONTENT_STATUS, sortContent, resolveHomeSections } from '../services/gallery/contentModel'
 
 /** 只保留已发布对象(公开路由用;与 discovery.publishedOnly 同一语义) */
-const publishedOnly = (list) => (list || []).filter((item) => item?.status === CONTENT_STATUS.PUBLISHED)
+const publishedOnly = list => (list || []).filter(item => item?.status === CONTENT_STATUS.PUBLISHED)
 
 const EMPTY = {
-  themes: [], collections: [], themeLinks: [], collectionLinks: [], homeSections: [],
-  themeChildren: [], themeCollections: [], featuredTemplateRows: [],
+  themes: [],
+  collections: [],
+  themeLinks: [],
+  collectionLinks: [],
+  homeSections: [],
+  themeChildren: [],
+  themeCollections: [],
+  featuredTemplateRows: [],
 }
 
 const CONTENT_TIMEOUT_MS = 15000
@@ -50,7 +52,9 @@ export function useGalleryContent({ active = true } = {}) {
 
   useEffect(() => {
     aliveRef.current = true
-    return () => { aliveRef.current = false }
+    return () => {
+      aliveRef.current = false
+    }
   }, [])
 
   const load = useCallback(async () => {
@@ -78,7 +82,7 @@ export function useGalleryContent({ active = true } = {}) {
       if (!aliveRef.current) return
       // 保留空集合,让旧图库继续可用;错误交给调用方显示降级提示
       setState(EMPTY)
-      setError(e?.message === 'timeout' ? 'timeout' : (e?.message || String(e)))
+      setError(e?.message === 'timeout' ? 'timeout' : e?.message || String(e))
     } finally {
       if (aliveRef.current) setLoading(false)
     }
@@ -93,8 +97,12 @@ export function useGalleryContent({ active = true } = {}) {
   // 网络恢复 / 页面重新可见时自动重试(与 useCloudTemplates 同一策略)
   useEffect(() => {
     if (!store.enabled || !active) return undefined
-    const retry = () => { if (error) load() }
-    const onVisible = () => { if (document.visibilityState === 'visible') retry() }
+    const retry = () => {
+      if (error) load()
+    }
+    const onVisible = () => {
+      if (document.visibilityState === 'visible') retry()
+    }
     window.addEventListener('online', retry)
     document.addEventListener('visibilitychange', onVisible)
     return () => {
@@ -103,7 +111,7 @@ export function useGalleryContent({ active = true } = {}) {
     }
   }, [store.enabled, active, error, load])
 
-  const reload = useCallback(() => setReloadKey((k) => k + 1), [])
+  const reload = useCallback(() => setReloadKey(k => k + 1), [])
 
   // 已排序视图:精选优先 + sort_order(公开侧与管理侧共用同一规则)
   const themes = useMemo(() => sortContent(state.themes), [state.themes])
@@ -119,7 +127,7 @@ export function useGalleryContent({ active = true } = {}) {
     for (const list of m.values()) {
       list.sort((a, b) => (Number(a.sort_order) || 0) - (Number(b.sort_order) || 0))
     }
-    return new Map([...m.entries()].map(([k, v]) => [k, v.map((l) => String(l.template_id))]))
+    return new Map([...m.entries()].map(([k, v]) => [k, v.map(l => String(l.template_id))]))
   }, [state.themeLinks])
 
   const collectionTemplateIds = useMemo(() => {
@@ -131,12 +139,12 @@ export function useGalleryContent({ active = true } = {}) {
     for (const list of m.values()) {
       list.sort((a, b) => (Number(a.sort_order) || 0) - (Number(b.sort_order) || 0))
     }
-    return new Map([...m.entries()].map(([k, v]) => [k, v.map((l) => String(l.template_id))]))
+    return new Map([...m.entries()].map(([k, v]) => [k, v.map(l => String(l.template_id))]))
   }, [state.collectionLinks])
 
   const findBySlug = useCallback((list, slug) => {
     const key = String(slug || '').toLowerCase()
-    return list.find((item) => String(item.slug || '').toLowerCase() === key) || null
+    return list.find(item => String(item.slug || '').toLowerCase() === key) || null
   }, [])
 
   // 主题嵌套:parentId → 有序子 id 列表(0027;未执行时为空 Map)
@@ -149,7 +157,7 @@ export function useGalleryContent({ active = true } = {}) {
     for (const list of m.values()) {
       list.sort((a, b) => (Number(a.sort_order) || 0) - (Number(b.sort_order) || 0))
     }
-    return new Map([...m.entries()].map(([k, v]) => [k, v.map((r) => String(r.child_id))]))
+    return new Map([...m.entries()].map(([k, v]) => [k, v.map(r => String(r.child_id))]))
   }, [state.themeChildren])
 
   const themeCollectionIds = useMemo(() => {
@@ -161,7 +169,7 @@ export function useGalleryContent({ active = true } = {}) {
     for (const list of m.values()) {
       list.sort((a, b) => (Number(a.sort_order) || 0) - (Number(b.sort_order) || 0))
     }
-    return new Map([...m.entries()].map(([k, v]) => [k, v.map((r) => String(r.collection_id))]))
+    return new Map([...m.entries()].map(([k, v]) => [k, v.map(r => String(r.collection_id))]))
   }, [state.themeCollections])
 
   // 首页区块:无配置时回退到默认顺序(未执行 0026 的项目行为不变)
@@ -170,10 +178,11 @@ export function useGalleryContent({ active = true } = {}) {
   // 精选资源:按 sort_order 排好的 templateId 列表(0032;未执行时为空数组)。
   // 关系只存 id + 排序,标题/图案等由调用方从模板数据源解析,不复制数据。
   const featuredTemplateIds = useMemo(
-    () => state.featuredTemplateRows
-      .slice()
-      .sort((a, b) => (Number(a.sort_order) || 0) - (Number(b.sort_order) || 0))
-      .map((row) => String(row.template_id)),
+    () =>
+      state.featuredTemplateRows
+        .slice()
+        .sort((a, b) => (Number(a.sort_order) || 0) - (Number(b.sort_order) || 0))
+        .map(row => String(row.template_id)),
     [state.featuredTemplateRows]
   )
 
@@ -186,78 +195,102 @@ export function useGalleryContent({ active = true } = {}) {
    * 公开页一律走这里,后台编辑走 themes/collections 原始列表。
    */
   const getPublishedThemeBySlug = useCallback(
-    (slug) => findBySlug(publishedOnly(themes), slug),
+    slug => findBySlug(publishedOnly(themes), slug),
     [themes, findBySlug]
   )
   const getPublishedCollectionBySlug = useCallback(
-    (slug) => findBySlug(publishedOnly(collections), slug),
+    slug => findBySlug(publishedOnly(collections), slug),
     [collections, findBySlug]
   )
 
-  const getThemeBySlug = useCallback((slug) => findBySlug(themes, slug), [themes, findBySlug])
-  const getCollectionBySlug = useCallback((slug) => findBySlug(collections, slug), [collections, findBySlug])
+  const getThemeBySlug = useCallback(slug => findBySlug(themes, slug), [themes, findBySlug])
+  const getCollectionBySlug = useCallback(slug => findBySlug(collections, slug), [collections, findBySlug])
 
-  const fail = useCallback((errors) => {
+  const fail = useCallback(errors => {
     setError(errors?.[0]?.detail || errors?.[0]?.code || 'failed')
     return { ok: false, errors }
   }, [])
 
   // ── 管理写入(RLS 限制管理员;失败不乐观更新) ──────────────
-  const createContent = useCallback(async (kind, input) => {
-    const res = await store.createContent(kind, input)
-    if (!res.ok) return fail(res.errors)
-    await load()
-    return res
-  }, [store, load, fail])
+  const createContent = useCallback(
+    async (kind, input) => {
+      const res = await store.createContent(kind, input)
+      if (!res.ok) return fail(res.errors)
+      await load()
+      return res
+    },
+    [store, load, fail]
+  )
 
-  const updateContent = useCallback(async (kind, id, input) => {
-    const res = await store.updateContent(kind, id, input)
-    if (!res.ok) return fail(res.errors)
-    await load()
-    return res
-  }, [store, load, fail])
+  const updateContent = useCallback(
+    async (kind, id, input) => {
+      const res = await store.updateContent(kind, id, input)
+      if (!res.ok) return fail(res.errors)
+      await load()
+      return res
+    },
+    [store, load, fail]
+  )
 
-  const deleteContent = useCallback(async (kind, id) => {
-    const res = await store.deleteContent(kind, id)
-    if (!res.ok) return fail(res.errors)
-    await load()
-    return res
-  }, [store, load, fail])
+  const deleteContent = useCallback(
+    async (kind, id) => {
+      const res = await store.deleteContent(kind, id)
+      if (!res.ok) return fail(res.errors)
+      await load()
+      return res
+    },
+    [store, load, fail]
+  )
 
-  const setLinks = useCallback(async (kind, parentId, templateIds) => {
-    const res = await store.setLinks(kind, parentId, templateIds)
-    if (!res.ok) return fail(res.errors)
-    await load()
-    return res
-  }, [store, load, fail])
+  const setLinks = useCallback(
+    async (kind, parentId, templateIds) => {
+      const res = await store.setLinks(kind, parentId, templateIds)
+      if (!res.ok) return fail(res.errors)
+      await load()
+      return res
+    },
+    [store, load, fail]
+  )
 
-  const saveHomeSections = useCallback(async (sections) => {
-    const res = await store.saveHomeSections(sections)
-    if (!res.ok) return fail(res.errors)
-    await load()
-    return res
-  }, [store, load, fail])
+  const saveHomeSections = useCallback(
+    async sections => {
+      const res = await store.saveHomeSections(sections)
+      if (!res.ok) return fail(res.errors)
+      await load()
+      return res
+    },
+    [store, load, fail]
+  )
 
-  const setThemeChildren = useCallback(async (themeId, childIds) => {
-    const res = await store.setThemeChildren(themeId, childIds)
-    if (!res.ok) return fail(res.errors)
-    await load()
-    return res
-  }, [store, load, fail])
+  const setThemeChildren = useCallback(
+    async (themeId, childIds) => {
+      const res = await store.setThemeChildren(themeId, childIds)
+      if (!res.ok) return fail(res.errors)
+      await load()
+      return res
+    },
+    [store, load, fail]
+  )
 
-  const setThemeCollections = useCallback(async (themeId, collectionIds) => {
-    const res = await store.setThemeCollections(themeId, collectionIds)
-    if (!res.ok) return fail(res.errors)
-    await load()
-    return res
-  }, [store, load, fail])
+  const setThemeCollections = useCallback(
+    async (themeId, collectionIds) => {
+      const res = await store.setThemeCollections(themeId, collectionIds)
+      if (!res.ok) return fail(res.errors)
+      await load()
+      return res
+    },
+    [store, load, fail]
+  )
 
-  const setFeaturedTemplates = useCallback(async (templateIds) => {
-    const res = await store.saveFeaturedTemplates(templateIds)
-    if (!res.ok) return fail(res.errors)
-    await load()
-    return res
-  }, [store, load, fail])
+  const setFeaturedTemplates = useCallback(
+    async templateIds => {
+      const res = await store.saveFeaturedTemplates(templateIds)
+      if (!res.ok) return fail(res.errors)
+      await load()
+      return res
+    },
+    [store, load, fail]
+  )
 
   return {
     enabled: store.enabled,

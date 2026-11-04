@@ -10,7 +10,9 @@ import { renderHook, act, waitFor, cleanup } from '@testing-library/react'
 const state = { client: null }
 
 vi.mock('../services/supabase', () => ({
-  get supabase() { return state.client },
+  get supabase() {
+    return state.client
+  },
 }))
 
 import { useGalleryContent } from './useGalleryContent'
@@ -19,8 +21,12 @@ function makeClient(rowsByTable) {
   return {
     from(table) {
       const builder = {
-        select() { return builder },
-        order() { return builder },
+        select() {
+          return builder
+        },
+        order() {
+          return builder
+        },
         then(resolve, reject) {
           const rows = rowsByTable[table]
           if (rows instanceof Error) return Promise.reject(rows).then(resolve, reject)
@@ -33,13 +39,23 @@ function makeClient(rowsByTable) {
 }
 
 const theme = (id, over = {}) => ({
-  id, slug: `theme-${id}`, title: `主题${id}`, status: 'published', sort_order: 0,
-  is_featured: false, translations: {},
+  id,
+  slug: `theme-${id}`,
+  title: `主题${id}`,
+  status: 'published',
+  sort_order: 0,
+  is_featured: false,
+  translations: {},
   ...over,
 })
 
-beforeEach(() => { state.client = null })
-afterEach(() => { cleanup(); vi.restoreAllMocks() })
+beforeEach(() => {
+  state.client = null
+})
+afterEach(() => {
+  cleanup()
+  vi.restoreAllMocks()
+})
 
 describe('useGalleryContent', () => {
   it('云端未配置:enabled=false,不加载、不报错', async () => {
@@ -62,12 +78,14 @@ describe('useGalleryContent', () => {
     })
     const { result } = renderHook(() => useGalleryContent())
     await waitFor(() => expect(result.current.loading).toBe(false))
-    expect(result.current.themes.map((t) => t.id)).toEqual(['b', 'a'])
+    expect(result.current.themes.map(t => t.id)).toEqual(['b', 'a'])
   })
 
   it('关联索引按 sort_order 展开为 templateId 列表', async () => {
     state.client = makeClient({
-      gallery_themes: [{ id: 't1', slug: 'spring', title: '春', status: 'published', sort_order: 0, is_featured: false }],
+      gallery_themes: [
+        { id: 't1', slug: 'spring', title: '春', status: 'published', sort_order: 0, is_featured: false },
+      ],
       gallery_collections: [],
       gallery_theme_templates: [
         { theme_id: 't1', template_id: 'tpl-b', sort_order: 1 },
@@ -106,8 +124,12 @@ describe('useGalleryContent', () => {
     state.client = {
       from(table) {
         const builder = {
-          select() { return builder },
-          order() { return builder },
+          select() {
+            return builder
+          },
+          order() {
+            return builder
+          },
           then(resolve) {
             calls++
             return Promise.resolve({ data: rows[table], error: null }).then(resolve)
@@ -116,10 +138,9 @@ describe('useGalleryContent', () => {
         return builder
       },
     }
-    const { result, rerender } = renderHook(
-      ({ active }) => useGalleryContent({ active }),
-      { initialProps: { active: false } },
-    )
+    const { result, rerender } = renderHook(({ active }) => useGalleryContent({ active }), {
+      initialProps: { active: false },
+    })
     await act(async () => {})
     expect(calls).toBe(0)
     expect(result.current.loading).toBe(false)
@@ -127,8 +148,8 @@ describe('useGalleryContent', () => {
 
     rerender({ active: true })
     await waitFor(() => expect(result.current.themes).toHaveLength(1))
-    // 7 张表:主题 / 合集 / 两张关联表 / 首页区块(0026) / 子主题 / 主题合集(0027)
-    expect(calls).toBe(7)
+    // 8 张表:主题 / 合集 / 两张关联表 / 首页区块(0026) / 子主题 / 主题合集(0027) / 精选资源(0032)
+    expect(calls).toBe(8)
   })
 
   it('reload 重新拉取', async () => {
@@ -143,7 +164,9 @@ describe('useGalleryContent', () => {
     const { result } = renderHook(() => useGalleryContent())
     await waitFor(() => expect(result.current.themes).toHaveLength(1))
     rows.gallery_themes = [theme('t1'), theme('t2')]
-    await act(async () => { result.current.reload() })
+    await act(async () => {
+      result.current.reload()
+    })
     await waitFor(() => expect(result.current.themes).toHaveLength(2))
   })
 })

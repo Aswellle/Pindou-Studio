@@ -37,7 +37,7 @@ function ContentModal({ title, onClose, children }) {
   const { ref, dialogProps } = useDialogA11y({ open: true, onClose, label: title })
   return createPortal(
     <div className="admin-modal-overlay" onClick={onClose}>
-      <div className="admin-modal wide" ref={ref} {...dialogProps} onClick={(e) => e.stopPropagation()}>
+      <div className="admin-modal wide" ref={ref} {...dialogProps} onClick={e => e.stopPropagation()}>
         <div className="admin-modal-header">
           <h3>{title}</h3>
           <button className="admin-modal-close" onClick={onClose} aria-label="close">
@@ -47,11 +47,11 @@ function ContentModal({ title, onClose, children }) {
         <div className="admin-modal-body">{children}</div>
       </div>
     </div>,
-    document.body,
+    document.body
   )
 }
 
-const emptyForm = (kind) => ({
+const emptyForm = kind => ({
   slug: '',
   title: '',
   description: '',
@@ -60,11 +60,16 @@ const emptyForm = (kind) => ({
   status: CONTENT_STATUS.DRAFT,
   isFeatured: false,
   sortOrder: 0,
-  translations: Object.fromEntries(TRANSLATION_LANGS.map((lang) => [lang, {
-    title: '',
-    description: '',
-    ...(kind === 'collection' ? { curationNote: '' } : {}),
-  }])),
+  translations: Object.fromEntries(
+    TRANSLATION_LANGS.map(lang => [
+      lang,
+      {
+        title: '',
+        description: '',
+        ...(kind === 'collection' ? { curationNote: '' } : {}),
+      },
+    ])
+  ),
 })
 
 /** UI 表单 → normalizeContentInput 的输入(空翻译字段转成 null 由模型处理) */
@@ -87,14 +92,19 @@ function contentToForm(content) {
     status: content.status || CONTENT_STATUS.DRAFT,
     isFeatured: !!content.isFeatured,
     sortOrder: content.sortOrder ?? 0,
-    translations: Object.fromEntries(TRANSLATION_LANGS.map((lang) => {
-      const tr = content.translations?.[lang] || {}
-      return [lang, {
-        title: tr.title || '',
-        description: tr.description || '',
-        ...('curationNote' in content ? { curationNote: tr.curationNote || '' } : {}),
-      }]
-    })),
+    translations: Object.fromEntries(
+      TRANSLATION_LANGS.map(lang => {
+        const tr = content.translations?.[lang] || {}
+        return [
+          lang,
+          {
+            title: tr.title || '',
+            description: tr.description || '',
+            ...('curationNote' in content ? { curationNote: tr.curationNote || '' } : {}),
+          },
+        ]
+      })
+    ),
   }
 }
 
@@ -111,7 +121,7 @@ function HealthPanel({ themes, collections, templates, themeTemplateIds, collect
     return checkContentHealth({
       themes,
       collections,
-      templateIds: templates.map((tpl) => tpl.id),
+      templateIds: templates.map(tpl => tpl.id),
       links,
     })
   }, [themes, collections, templates, themeTemplateIds, collectionTemplateIds])
@@ -143,7 +153,6 @@ function HealthPanel({ themes, collections, templates, themeTemplateIds, collect
     </div>
   )
 }
-
 
 /** 区块类型 → i18n 后缀(与 admin.content.kind* 对应) */
 const SECTION_KIND_LABEL = {
@@ -199,7 +208,7 @@ function HomeSectionsPanel({ content, themes, collections }) {
     ])
   }
 
-  const remove = (index) => {
+  const remove = index => {
     setDraft(sections.filter((_, i) => i !== index).map((s, i) => ({ ...s, sortOrder: i })))
   }
 
@@ -219,7 +228,7 @@ function HomeSectionsPanel({ content, themes, collections }) {
     }
   }
 
-  const sourceOptions = (kind) => (kind === 'theme' ? themes : collections)
+  const sourceOptions = kind => (kind === 'theme' ? themes : collections)
 
   return (
     <div className="admin-card content-sections">
@@ -247,14 +256,20 @@ function HomeSectionsPanel({ content, themes, collections }) {
                     <span>{t('admin.content.sectionKind')}</span>
                     <select
                       value={section.kind}
-                      onChange={(e) => update(index, {
-                        kind: e.target.value,
-                        // 切到聚合型时清掉 sourceId,避免违反 DB 约束
-                        sourceId: HOME_SECTION_SOURCE_KINDS.includes(e.target.value) ? section.sourceId : null,
-                      })}
+                      onChange={e =>
+                        update(index, {
+                          kind: e.target.value,
+                          // 切到聚合型时清掉 sourceId,避免违反 DB 约束
+                          sourceId: HOME_SECTION_SOURCE_KINDS.includes(e.target.value)
+                            ? section.sourceId
+                            : null,
+                        })
+                      }
                     >
-                      {HOME_SECTION_KINDS.map((k) => (
-                        <option key={k} value={k}>{t(`admin.content.${SECTION_KIND_LABEL[k]}`)}</option>
+                      {HOME_SECTION_KINDS.map(k => (
+                        <option key={k} value={k}>
+                          {t(`admin.content.${SECTION_KIND_LABEL[k]}`)}
+                        </option>
                       ))}
                     </select>
                   </label>
@@ -264,10 +279,10 @@ function HomeSectionsPanel({ content, themes, collections }) {
                       <span>{t('admin.content.sectionSource')}</span>
                       <select
                         value={section.sourceId || ''}
-                        onChange={(e) => update(index, { sourceId: e.target.value || null })}
+                        onChange={e => update(index, { sourceId: e.target.value || null })}
                       >
                         <option value="">—</option>
-                        {sourceOptions(section.kind).map((item) => (
+                        {sourceOptions(section.kind).map(item => (
                           <option key={item.id} value={item.id}>
                             {localizedContentText(item, i18n.language).title}
                             {item.status !== CONTENT_STATUS.PUBLISHED ? ' (draft)' : ''}
@@ -283,7 +298,7 @@ function HomeSectionsPanel({ content, themes, collections }) {
                       className="admin-input"
                       value={section.title || ''}
                       placeholder={t('admin.content.sectionTitleHint')}
-                      onChange={(e) => update(index, { title: e.target.value })}
+                      onChange={e => update(index, { title: e.target.value })}
                     />
                   </label>
 
@@ -295,7 +310,7 @@ function HomeSectionsPanel({ content, themes, collections }) {
                       min="1"
                       max="50"
                       value={section.limitCount}
-                      onChange={(e) => update(index, { limitCount: e.target.value })}
+                      onChange={e => update(index, { limitCount: e.target.value })}
                     />
                   </label>
 
@@ -303,20 +318,34 @@ function HomeSectionsPanel({ content, themes, collections }) {
                     <input
                       type="checkbox"
                       checked={section.isEnabled !== false}
-                      onChange={(e) => update(index, { isEnabled: e.target.checked })}
+                      onChange={e => update(index, { isEnabled: e.target.checked })}
                     />
                     <span>{t('admin.content.sectionEnabled')}</span>
                   </label>
                 </div>
 
                 <div className="content-section-actions">
-                  <button className="admin-btn secondary small" onClick={() => move(index, -1)} disabled={index === 0} aria-label={t('admin.content.moveUp')}>
+                  <button
+                    className="admin-btn secondary small"
+                    onClick={() => move(index, -1)}
+                    disabled={index === 0}
+                    aria-label={t('admin.content.moveUp')}
+                  >
                     <ArrowUp size={14} />
                   </button>
-                  <button className="admin-btn secondary small" onClick={() => move(index, 1)} disabled={index === sections.length - 1} aria-label={t('admin.content.moveDown')}>
+                  <button
+                    className="admin-btn secondary small"
+                    onClick={() => move(index, 1)}
+                    disabled={index === sections.length - 1}
+                    aria-label={t('admin.content.moveDown')}
+                  >
                     <ArrowDown size={14} />
                   </button>
-                  <button className="admin-btn secondary small" onClick={() => remove(index)} aria-label={t('admin.content.removeSection')}>
+                  <button
+                    className="admin-btn secondary small"
+                    onClick={() => remove(index)}
+                    aria-label={t('admin.content.removeSection')}
+                  >
                     <Trash2 size={14} />
                   </button>
                 </div>
@@ -326,7 +355,11 @@ function HomeSectionsPanel({ content, themes, collections }) {
         </ul>
       )}
 
-      {error && <p className="content-section-error" role="alert">{error}</p>}
+      {error && (
+        <p className="content-section-error" role="alert">
+          {error}
+        </p>
+      )}
 
       <div className="admin-actions" style={{ justifyContent: 'flex-end' }}>
         <button className="admin-btn primary" onClick={save} disabled={saving || draft === null}>
@@ -336,7 +369,6 @@ function HomeSectionsPanel({ content, themes, collections }) {
     </div>
   )
 }
-
 
 /**
  * 关联对象编辑器(子主题 / 相关合集共用)。
@@ -350,7 +382,14 @@ function HomeSectionsPanel({ content, themes, collections }) {
  *     避免用户点了保存才看到数据库报错)。
  */
 function ContentRelationEditor({
-  title: _title, hint, selectedIds, candidates, resolveLabel, onSave, onClose, busy,
+  title: _title,
+  hint,
+  selectedIds,
+  candidates,
+  resolveLabel,
+  onSave,
+  onClose,
+  busy,
 }) {
   const { t } = useTranslation()
   const [ids, setIds] = useState(selectedIds)
@@ -359,8 +398,8 @@ function ContentRelationEditor({
   const chosen = new Set(ids.map(String))
   const q = search.trim().toLowerCase()
   const visible = (candidates || [])
-    .filter((item) => !chosen.has(String(item.id)))
-    .filter((item) => !q || resolveLabel(item).toLowerCase().includes(q))
+    .filter(item => !chosen.has(String(item.id)))
+    .filter(item => !q || resolveLabel(item).toLowerCase().includes(q))
     .slice(0, 30)
 
   const move = (index, delta) => {
@@ -378,18 +417,32 @@ function ContentRelationEditor({
         <strong>{t('admin.content.selected', { n: ids.length })}</strong>
         {ids.length === 0 && <span className="admin-template-sub">{t('admin.content.noLinks')}</span>}
         {ids.map((id, index) => {
-          const item = (candidates || []).find((x) => String(x.id) === String(id))
+          const item = (candidates || []).find(x => String(x.id) === String(id))
           return (
             <div key={id} className="content-link-row">
               <span>{item ? resolveLabel(item) : id}</span>
               <span className="content-link-actions">
-                <button className="admin-btn secondary small" onClick={() => move(index, -1)} disabled={index === 0} aria-label={t('admin.content.moveUp')}>
+                <button
+                  className="admin-btn secondary small"
+                  onClick={() => move(index, -1)}
+                  disabled={index === 0}
+                  aria-label={t('admin.content.moveUp')}
+                >
                   <ArrowUp size={12} />
                 </button>
-                <button className="admin-btn secondary small" onClick={() => move(index, 1)} disabled={index === ids.length - 1} aria-label={t('admin.content.moveDown')}>
+                <button
+                  className="admin-btn secondary small"
+                  onClick={() => move(index, 1)}
+                  disabled={index === ids.length - 1}
+                  aria-label={t('admin.content.moveDown')}
+                >
                   <ArrowDown size={12} />
                 </button>
-                <button className="admin-btn secondary small" onClick={() => setIds(ids.filter((x) => x !== id))} aria-label={t('admin.content.removeSection')}>
+                <button
+                  className="admin-btn secondary small"
+                  onClick={() => setIds(ids.filter(x => x !== id))}
+                  aria-label={t('admin.content.removeSection')}
+                >
                   <X size={12} />
                 </button>
               </span>
@@ -401,26 +454,30 @@ function ContentRelationEditor({
       <input
         className="admin-input"
         value={search}
-        onChange={(e) => setSearch(e.target.value)}
+        onChange={e => setSearch(e.target.value)}
         placeholder={t('admin.content.searchTemplates')}
         aria-label={t('admin.content.searchTemplates')}
       />
       <div className="content-link-candidates">
         {visible.length === 0 ? (
           <span className="admin-template-sub">{t('admin.content.noCandidates')}</span>
-        ) : visible.map((item) => (
-          <button
-            key={item.id}
-            className="admin-btn secondary small"
-            onClick={() => setIds([...ids, String(item.id)])}
-          >
-            + {resolveLabel(item)}
-          </button>
-        ))}
+        ) : (
+          visible.map(item => (
+            <button
+              key={item.id}
+              className="admin-btn secondary small"
+              onClick={() => setIds([...ids, String(item.id)])}
+            >
+              + {resolveLabel(item)}
+            </button>
+          ))
+        )}
       </div>
 
       <div className="admin-actions" style={{ justifyContent: 'flex-end' }}>
-        <button className="admin-btn secondary" onClick={onClose}>{t('admin.cancel')}</button>
+        <button className="admin-btn secondary" onClick={onClose}>
+          {t('admin.cancel')}
+        </button>
         <button className="admin-btn primary" onClick={() => onSave(ids)} disabled={busy}>
           {t('admin.save')}
         </button>
@@ -447,7 +504,7 @@ function FeaturedTemplatesPanel({ content, templates, templateName }) {
 
   const ordered = content.featuredTemplateIds || []
 
-  const save = async (ids) => {
+  const save = async ids => {
     setBusy(true)
     try {
       const res = await content.setFeaturedTemplates(ids)
@@ -475,10 +532,12 @@ function FeaturedTemplatesPanel({ content, templates, templateName }) {
       ) : (
         <ul className="content-link-current">
           {ordered.map((id, index) => {
-            const item = (templates || []).find((x) => String(x.id) === String(id))
+            const item = (templates || []).find(x => String(x.id) === String(id))
             return (
               <li key={id} className="content-link-row">
-                <span>{index + 1}. {item ? templateName(item) : id}</span>
+                <span>
+                  {index + 1}. {item ? templateName(item) : id}
+                </span>
               </li>
             )
           })}
@@ -486,7 +545,12 @@ function FeaturedTemplatesPanel({ content, templates, templateName }) {
       )}
 
       {editing && (
-        <ContentModal title={t('admin.content.editFeatured')} onClose={() => { if (!busy) setEditing(false) }}>
+        <ContentModal
+          title={t('admin.content.editFeatured')}
+          onClose={() => {
+            if (!busy) setEditing(false)
+          }}
+        >
           <ContentRelationEditor
             hint={t('admin.content.featuredEditorHint')}
             selectedIds={ordered}
@@ -522,15 +586,14 @@ export default function ContentManager({ cloudStore }) {
   const list = kind === 'theme' ? content.themes : content.collections
   const linkMap = kind === 'theme' ? content.themeTemplateIds : content.collectionTemplateIds
 
-  const templateName = (tpl) => tpl.name
-    ? (tpl.nameZh || tpl.name)
-    : t(`templates.names.${tpl.nameKey}`, tpl.nameKey)
+  const templateName = tpl =>
+    tpl.name ? tpl.nameZh || tpl.name : t(`templates.names.${tpl.nameKey}`, tpl.nameKey)
 
   const openCreate = () => {
     setFormError('')
     setEditing({ kind, id: null, form: emptyForm(kind) })
   }
-  const openEdit = (item) => {
+  const openEdit = item => {
     setFormError('')
     setEditing({ kind, id: item.id, form: contentToForm(item) })
   }
@@ -565,7 +628,7 @@ export default function ContentManager({ cloudStore }) {
   }
 
   const moveLink = (index, delta) => {
-    setLinksFor((prev) => {
+    setLinksFor(prev => {
       if (!prev) return prev
       const next = [...prev.ids]
       const target = index + delta
@@ -586,18 +649,21 @@ export default function ContentManager({ cloudStore }) {
       for (const id of ids) takenAsChild.add(String(id))
     }
     return (content.themes || [])
-      .filter((item) => String(item.id) !== String(nestingFor.id))
-      .filter((item) => !takenAsChild.has(String(item.id)))
-      .filter((item) => !(content.childThemeIds?.get(nestingFor.id) || []).map(String).includes(String(item.id)))
+      .filter(item => String(item.id) !== String(nestingFor.id))
+      .filter(item => !takenAsChild.has(String(item.id)))
+      .filter(
+        item => !(content.childThemeIds?.get(nestingFor.id) || []).map(String).includes(String(item.id))
+      )
   }, [nestingFor, content.themes, content.childThemeIds])
 
-  const saveNesting = async (ids) => {
+  const saveNesting = async ids => {
     if (!nestingFor) return
     setNestingBusy(true)
     try {
-      const res = nestingFor.mode === 'children'
-        ? await content.setThemeChildren(nestingFor.id, ids)
-        : await content.setThemeCollections(nestingFor.id, ids)
+      const res =
+        nestingFor.mode === 'children'
+          ? await content.setThemeChildren(nestingFor.id, ids)
+          : await content.setThemeCollections(nestingFor.id, ids)
       if (res.ok) setNestingFor(null)
     } finally {
       setNestingBusy(false)
@@ -610,8 +676,8 @@ export default function ContentManager({ cloudStore }) {
     const chosen = new Set(linksFor.ids.map(String))
     const q = linkSearch.trim().toLowerCase()
     return templates
-      .filter((tpl) => !chosen.has(String(tpl.id)))
-      .filter((tpl) => !q || templateName(tpl).toLowerCase().includes(q))
+      .filter(tpl => !chosen.has(String(tpl.id)))
+      .filter(tpl => !q || templateName(tpl).toLowerCase().includes(q))
       .slice(0, 30)
   }, [linksFor, linkSearch, templates])
 
@@ -620,27 +686,15 @@ export default function ContentManager({ cloudStore }) {
       {snapshotStale && (
         <div className="admin-notice" role="status">
           <span>{t('admin.content.snapshotStale')}</span>
-          <button
-            type="button"
-            className="admin-btn secondary"
-            onClick={() => setSnapshotStale(false)}
-          >
+          <button type="button" className="admin-btn secondary" onClick={() => setSnapshotStale(false)}>
             {t('admin.content.snapshotStaleDismiss')}
           </button>
         </div>
       )}
 
-      <HomeSectionsPanel
-        content={content}
-        themes={content.themes}
-        collections={content.collections}
-      />
+      <HomeSectionsPanel content={content} themes={content.themes} collections={content.collections} />
 
-      <FeaturedTemplatesPanel
-        content={content}
-        templates={templates}
-        templateName={templateName}
-      />
+      <FeaturedTemplatesPanel content={content} templates={templates} templateName={templateName} />
 
       <HealthPanel
         themes={content.themes}
@@ -680,7 +734,7 @@ export default function ContentManager({ cloudStore }) {
         <div className="admin-empty">{t('admin.content.empty')}</div>
       ) : (
         <div className="admin-list">
-          {list.map((item) => {
+          {list.map(item => {
             const text = localizedContentText(item, i18n.language)
             const ids = linkMap.get(item.id) || []
             return (
@@ -703,7 +757,10 @@ export default function ContentManager({ cloudStore }) {
                 <div className="admin-actions">
                   <button
                     className="admin-btn secondary small"
-                    onClick={() => { setLinkSearch(''); setLinksFor({ kind, id: item.id, ids: [...ids] }) }}
+                    onClick={() => {
+                      setLinkSearch('')
+                      setLinksFor({ kind, id: item.id, ids: [...ids] })
+                    }}
                   >
                     {t('admin.content.manageLinks')}
                   </button>
@@ -726,7 +783,10 @@ export default function ContentManager({ cloudStore }) {
                   <button className="admin-btn secondary small" onClick={() => openEdit(item)}>
                     {t('admin.editTemplate')}
                   </button>
-                  <button className="admin-btn danger small" onClick={() => setDeleting({ kind, id: item.id, title: text.title })}>
+                  <button
+                    className="admin-btn danger small"
+                    onClick={() => setDeleting({ kind, id: item.id, title: text.title })}
+                  >
                     {t('admin.delete')}
                   </button>
                 </div>
@@ -738,20 +798,34 @@ export default function ContentManager({ cloudStore }) {
 
       {editing && (
         <ContentModal
-          title={editing.id
-            ? (editing.kind === 'theme' ? t('admin.content.editTheme') : t('admin.content.editCollection'))
-            : (editing.kind === 'theme' ? t('admin.content.addTheme') : t('admin.content.addCollection'))}
+          title={
+            editing.id
+              ? editing.kind === 'theme'
+                ? t('admin.content.editTheme')
+                : t('admin.content.editCollection')
+              : editing.kind === 'theme'
+                ? t('admin.content.addTheme')
+                : t('admin.content.addCollection')
+          }
           onClose={() => setEditing(null)}
         >
           <ContentForm
             kind={editing.kind}
             form={editing.form}
-            onChange={(form) => setEditing((prev) => ({ ...prev, form }))}
+            onChange={form => setEditing(prev => ({ ...prev, form }))}
           />
-          {formError && <div className="admin-error" role="alert">{formError}</div>}
+          {formError && (
+            <div className="admin-error" role="alert">
+              {formError}
+            </div>
+          )}
           <div className="admin-actions" style={{ justifyContent: 'flex-end' }}>
-            <button className="admin-btn secondary" onClick={() => setEditing(null)}>{t('admin.cancel')}</button>
-            <button className="admin-btn primary" onClick={submit}>{t('admin.save')}</button>
+            <button className="admin-btn secondary" onClick={() => setEditing(null)}>
+              {t('admin.cancel')}
+            </button>
+            <button className="admin-btn primary" onClick={submit}>
+              {t('admin.save')}
+            </button>
           </div>
         </ContentModal>
       )}
@@ -760,29 +834,39 @@ export default function ContentManager({ cloudStore }) {
         <ContentModal title={t('admin.delete')} onClose={() => setDeleting(null)}>
           <p>{t('admin.content.deleteHint', { name: deleting.title })}</p>
           <div className="admin-actions" style={{ justifyContent: 'flex-end' }}>
-            <button className="admin-btn secondary" onClick={() => setDeleting(null)}>{t('admin.cancel')}</button>
-            <button className="admin-btn danger" onClick={confirmDelete}>{t('admin.delete')}</button>
+            <button className="admin-btn secondary" onClick={() => setDeleting(null)}>
+              {t('admin.cancel')}
+            </button>
+            <button className="admin-btn danger" onClick={confirmDelete}>
+              {t('admin.delete')}
+            </button>
           </div>
         </ContentModal>
       )}
 
       {nestingFor && (
         <ContentModal
-          title={nestingFor.mode === 'children'
-            ? t('admin.content.manageChildThemes')
-            : t('admin.content.manageThemeCollections')}
+          title={
+            nestingFor.mode === 'children'
+              ? t('admin.content.manageChildThemes')
+              : t('admin.content.manageThemeCollections')
+          }
           onClose={() => setNestingFor(null)}
         >
           <p className="admin-template-sub">{nestingFor.title}</p>
           <ContentRelationEditor
-            selectedIds={nestingFor.mode === 'children'
-              ? (content.childThemeIds?.get(nestingFor.id) || [])
-              : (content.themeCollectionIds?.get(nestingFor.id) || [])}
-            candidates={nestingFor.mode === 'children' ? childThemeCandidates : (content.collections || [])}
-            resolveLabel={(item) => localizedContentText(item, i18n.language).title}
-            hint={nestingFor.mode === 'children'
-              ? t('admin.content.childThemesHint')
-              : t('admin.content.themeCollectionsHint')}
+            selectedIds={
+              nestingFor.mode === 'children'
+                ? content.childThemeIds?.get(nestingFor.id) || []
+                : content.themeCollectionIds?.get(nestingFor.id) || []
+            }
+            candidates={nestingFor.mode === 'children' ? childThemeCandidates : content.collections || []}
+            resolveLabel={item => localizedContentText(item, i18n.language).title}
+            hint={
+              nestingFor.mode === 'children'
+                ? t('admin.content.childThemesHint')
+                : t('admin.content.themeCollectionsHint')
+            }
             onSave={saveNesting}
             onClose={() => setNestingFor(null)}
             busy={nestingBusy}
@@ -795,22 +879,34 @@ export default function ContentManager({ cloudStore }) {
           <div className="content-link-editor">
             <div className="content-link-current">
               <strong>{t('admin.content.selected', { n: linksFor.ids.length })}</strong>
-              {linksFor.ids.length === 0 && <span className="admin-template-sub">{t('admin.content.noLinks')}</span>}
+              {linksFor.ids.length === 0 && (
+                <span className="admin-template-sub">{t('admin.content.noLinks')}</span>
+              )}
               {linksFor.ids.map((templateId, index) => {
-                const tpl = templates.find((x) => String(x.id) === String(templateId))
+                const tpl = templates.find(x => String(x.id) === String(templateId))
                 return (
                   <div key={templateId} className="content-link-row">
                     <span>{tpl ? templateName(tpl) : templateId}</span>
                     <span className="content-link-actions">
-                      <button className="admin-btn secondary small" onClick={() => moveLink(index, -1)} aria-label="up">
+                      <button
+                        className="admin-btn secondary small"
+                        onClick={() => moveLink(index, -1)}
+                        aria-label="up"
+                      >
                         <ArrowUp size={13} />
                       </button>
-                      <button className="admin-btn secondary small" onClick={() => moveLink(index, 1)} aria-label="down">
+                      <button
+                        className="admin-btn secondary small"
+                        onClick={() => moveLink(index, 1)}
+                        aria-label="down"
+                      >
                         <ArrowDown size={13} />
                       </button>
                       <button
                         className="admin-btn danger small"
-                        onClick={() => setLinksFor((prev) => ({ ...prev, ids: prev.ids.filter((x) => x !== templateId) }))}
+                        onClick={() =>
+                          setLinksFor(prev => ({ ...prev, ids: prev.ids.filter(x => x !== templateId) }))
+                        }
                         aria-label="remove"
                       >
                         <Trash2 size={13} />
@@ -825,14 +921,14 @@ export default function ContentManager({ cloudStore }) {
               className="admin-input"
               placeholder={t('admin.content.searchTemplates')}
               value={linkSearch}
-              onChange={(e) => setLinkSearch(e.target.value)}
+              onChange={e => setLinkSearch(e.target.value)}
             />
             <div className="content-link-candidates">
-              {linkCandidates.map((tpl) => (
+              {linkCandidates.map(tpl => (
                 <button
                   key={tpl.id}
                   className="admin-btn secondary small"
-                  onClick={() => setLinksFor((prev) => ({ ...prev, ids: [...prev.ids, String(tpl.id)] }))}
+                  onClick={() => setLinksFor(prev => ({ ...prev, ids: [...prev.ids, String(tpl.id)] }))}
                 >
                   + {templateName(tpl)}
                 </button>
@@ -843,8 +939,12 @@ export default function ContentManager({ cloudStore }) {
             </div>
           </div>
           <div className="admin-actions" style={{ justifyContent: 'flex-end' }}>
-            <button className="admin-btn secondary" onClick={() => setLinksFor(null)}>{t('admin.cancel')}</button>
-            <button className="admin-btn primary" onClick={saveLinks}>{t('admin.save')}</button>
+            <button className="admin-btn secondary" onClick={() => setLinksFor(null)}>
+              {t('admin.cancel')}
+            </button>
+            <button className="admin-btn primary" onClick={saveLinks}>
+              {t('admin.save')}
+            </button>
           </div>
         </ContentModal>
       )}
@@ -854,11 +954,12 @@ export default function ContentManager({ cloudStore }) {
 
 function ContentForm({ kind, form, onChange }) {
   const { t } = useTranslation()
-  const set = (patch) => onChange({ ...form, ...patch })
-  const setTr = (lang, patch) => onChange({
-    ...form,
-    translations: { ...form.translations, [lang]: { ...form.translations[lang], ...patch } },
-  })
+  const set = patch => onChange({ ...form, ...patch })
+  const setTr = (lang, patch) =>
+    onChange({
+      ...form,
+      translations: { ...form.translations, [lang]: { ...form.translations[lang], ...patch } },
+    })
 
   return (
     <div className="content-form">
@@ -867,14 +968,14 @@ function ContentForm({ kind, form, onChange }) {
         <input
           className="admin-input"
           value={form.slug}
-          onChange={(e) => set({ slug: e.target.value })}
+          onChange={e => set({ slug: e.target.value })}
           placeholder="spring-animals"
         />
         <span className="admin-template-sub">{t('admin.content.slugHint')}</span>
       </div>
       <div className="admin-field">
         <label>{t('admin.content.title')}</label>
-        <input className="admin-input" value={form.title} onChange={(e) => set({ title: e.target.value })} />
+        <input className="admin-input" value={form.title} onChange={e => set({ title: e.target.value })} />
       </div>
       <div className="admin-field">
         <label>{t('admin.content.description')}</label>
@@ -882,7 +983,7 @@ function ContentForm({ kind, form, onChange }) {
           className="admin-input"
           rows={2}
           value={form.description}
-          onChange={(e) => set({ description: e.target.value })}
+          onChange={e => set({ description: e.target.value })}
         />
       </div>
       {kind === 'collection' && (
@@ -892,19 +993,23 @@ function ContentForm({ kind, form, onChange }) {
             className="admin-input"
             rows={2}
             value={form.curationNote}
-            onChange={(e) => set({ curationNote: e.target.value })}
+            onChange={e => set({ curationNote: e.target.value })}
           />
         </div>
       )}
       <div className="admin-field">
         <label>{t('admin.content.coverUrl')}</label>
-        <input className="admin-input" value={form.coverUrl} onChange={(e) => set({ coverUrl: e.target.value })} />
+        <input
+          className="admin-input"
+          value={form.coverUrl}
+          onChange={e => set({ coverUrl: e.target.value })}
+        />
         <span className="admin-template-sub">{t('admin.content.coverHint')}</span>
       </div>
       <div className="content-form-row">
         <div className="admin-field">
           <label>{t('admin.content.statusLabel')}</label>
-          <select className="admin-input" value={form.status} onChange={(e) => set({ status: e.target.value })}>
+          <select className="admin-input" value={form.status} onChange={e => set({ status: e.target.value })}>
             <option value={CONTENT_STATUS.DRAFT}>{t('admin.content.status.draft')}</option>
             <option value={CONTENT_STATUS.PUBLISHED}>{t('admin.content.status.published')}</option>
           </select>
@@ -915,14 +1020,14 @@ function ContentForm({ kind, form, onChange }) {
             className="admin-input"
             type="number"
             value={form.sortOrder}
-            onChange={(e) => set({ sortOrder: e.target.value })}
+            onChange={e => set({ sortOrder: e.target.value })}
           />
         </div>
         <label className="admin-checkbox">
           <input
             type="checkbox"
             checked={form.isFeatured}
-            onChange={(e) => set({ isFeatured: e.target.checked })}
+            onChange={e => set({ isFeatured: e.target.checked })}
           />
           {t('admin.content.featured')}
         </label>
@@ -936,7 +1041,7 @@ function ContentForm({ kind, form, onChange }) {
             <input
               className="admin-input"
               value={form.translations[code]?.title || ''}
-              onChange={(e) => setTr(code, { title: e.target.value })}
+              onChange={e => setTr(code, { title: e.target.value })}
             />
           </div>
           <div className="admin-field">
@@ -945,7 +1050,7 @@ function ContentForm({ kind, form, onChange }) {
               className="admin-input"
               rows={2}
               value={form.translations[code]?.description || ''}
-              onChange={(e) => setTr(code, { description: e.target.value })}
+              onChange={e => setTr(code, { description: e.target.value })}
             />
           </div>
           {kind === 'collection' && (
@@ -955,7 +1060,7 @@ function ContentForm({ kind, form, onChange }) {
                 className="admin-input"
                 rows={2}
                 value={form.translations[code]?.curationNote || ''}
-                onChange={(e) => setTr(code, { curationNote: e.target.value })}
+                onChange={e => setTr(code, { curationNote: e.target.value })}
               />
             </div>
           )}

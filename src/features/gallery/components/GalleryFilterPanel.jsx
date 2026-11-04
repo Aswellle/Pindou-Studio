@@ -66,7 +66,7 @@ export default function GalleryFilterPanel({
 
   if (!open) return null
 
-  const setRef = (el) => {
+  const setRef = el => {
     panelRef.current = el
     dialogRef.current = el
   }
@@ -74,12 +74,12 @@ export default function GalleryFilterPanel({
   return createPortal(
     <div
       className="gallery-filter-layer"
-      onClick={(e) => { e.stopPropagation(); onClose() }}
+      onClick={e => {
+        e.stopPropagation()
+        onClose()
+      }}
     >
-      <div
-        className="gallery-filter-pop" ref={setRef} {...dialogProps}
-        onClick={(e) => e.stopPropagation()}
-      >
+      <div className="gallery-filter-pop" ref={setRef} {...dialogProps} onClick={e => e.stopPropagation()}>
         <header className="gallery-filter-head">
           <h3 className="gallery-filter-title">{t('gallery.explorer.filterTitle')}</h3>
         </header>
@@ -87,7 +87,7 @@ export default function GalleryFilterPanel({
         <fieldset className="gallery-filter-group">
           <legend className="gallery-filter-label">{t('gallery.category')}</legend>
           <div className="gallery-filter-options">
-            {categoryOptions.map((cat) => (
+            {categoryOptions.map(cat => (
               <button
                 key={cat}
                 type="button"
@@ -97,7 +97,9 @@ export default function GalleryFilterPanel({
               >
                 {getCategoryLabel(cat)}
                 <span className="gallery-filter-count">
-                  {cat === 'all' ? Object.values(categoryCounts).reduce((a, b) => a + b, 0) : (categoryCounts[cat] || 0)}
+                  {cat === 'all'
+                    ? Object.values(categoryCounts).reduce((a, b) => a + b, 0)
+                    : categoryCounts[cat] || 0}
                 </span>
               </button>
             ))}
@@ -107,7 +109,7 @@ export default function GalleryFilterPanel({
         <fieldset className="gallery-filter-group">
           <legend className="gallery-filter-label">{t('gallery.difficulty')}</legend>
           <div className="gallery-filter-options">
-            {DIFFICULTIES.map((diff) => (
+            {DIFFICULTIES.map(diff => (
               <button
                 key={diff}
                 type="button"
@@ -133,7 +135,7 @@ export default function GalleryFilterPanel({
             >
               {t('gallery.discovery.filterColorsAny')}
             </button>
-            {COLOR_COUNT_TIERS.map((n) => (
+            {COLOR_COUNT_TIERS.map(n => (
               <button
                 key={n}
                 type="button"
@@ -157,6 +159,6 @@ export default function GalleryFilterPanel({
         </footer>
       </div>
     </div>,
-    document.body,
+    document.body
   )
 }

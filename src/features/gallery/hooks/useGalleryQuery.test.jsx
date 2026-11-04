@@ -43,7 +43,7 @@ describe('useGalleryQuery · feed 解析', () => {
     expect(result.current.feed).toBe('featured')
   })
 
-  it.each(['popular', 'latest'])('?feed=%s 正确解析', (value) => {
+  it.each(['popular', 'latest'])('?feed=%s 正确解析', value => {
     const { result } = renderHook(() => useGalleryQuery(), {
       wrapper: wrapper(`/gallery?feed=${value}`),
     })
@@ -62,10 +62,9 @@ describe('useGalleryQuery · feed 解析', () => {
 
 describe('useGalleryQuery · feed 写入', () => {
   it('setFeed 写入 URL 并保留筛选参数(push 历史)', () => {
-    const { result } = renderHook(
-      () => ({ query: useGalleryQuery(), navigate: useNavigate() }),
-      { wrapper: wrapper('/gallery?q=小鸭&cat=animal&diff=easy&colors=12') }
-    )
+    const { result } = renderHook(() => ({ query: useGalleryQuery(), navigate: useNavigate() }), {
+      wrapper: wrapper('/gallery?q=小鸭&cat=animal&diff=easy&colors=12'),
+    })
     act(() => result.current.query.setFeed('popular'))
     expect(result.current.query.feed).toBe('popular')
     // 筛选全部保留:切 feed 不清条件
@@ -76,10 +75,9 @@ describe('useGalleryQuery · feed 写入', () => {
   })
 
   it('切回默认 feed 时删除参数而不是写 feed=featured', () => {
-    const { result } = renderHook(
-      () => ({ query: useGalleryQuery(), navigate: useNavigate() }),
-      { wrapper: wrapper('/gallery?feed=latest') }
-    )
+    const { result } = renderHook(() => ({ query: useGalleryQuery(), navigate: useNavigate() }), {
+      wrapper: wrapper('/gallery?feed=latest'),
+    })
     act(() => result.current.query.setFeed('featured'))
     expect(result.current.query.feed).toBe('featured')
   })

@@ -40,11 +40,7 @@ export default function GallerySidebar({
           <Compass size={16} aria-hidden="true" />
           <span>{t('gallery.explorer.navDiscover')}</span>
         </button>
-        <button
-          type="button"
-          className="gallery-side-item"
-          onClick={onAllTemplates}
-        >
+        <button type="button" className="gallery-side-item" onClick={onAllTemplates}>
           <LayoutGrid size={16} aria-hidden="true" />
           <span>{t('gallery.explorer.navAll')}</span>
         </button>
@@ -65,7 +61,7 @@ export default function GallerySidebar({
       <nav className="gallery-side-group" aria-label={t('gallery.explorer.navCategories')}>
         <p className="gallery-side-title">{t('gallery.explorer.navCategories')}</p>
         <div className="gallery-side-cats">
-          {categoryOptions.map((cat) => (
+          {categoryOptions.map(cat => (
             <button
               key={cat}
               type="button"
@@ -76,7 +72,9 @@ export default function GallerySidebar({
               <Palette size={15} aria-hidden="true" />
               <span className="gallery-side-cat-label">{getCategoryLabel(cat)}</span>
               <span className="gallery-side-count">
-                {cat === 'all' ? Object.values(categoryCounts).reduce((a, b) => a + b, 0) : (categoryCounts[cat] || 0)}
+                {cat === 'all'
+                  ? Object.values(categoryCounts).reduce((a, b) => a + b, 0)
+                  : categoryCounts[cat] || 0}
               </span>
             </button>
           ))}

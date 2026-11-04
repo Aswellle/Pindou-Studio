@@ -5,7 +5,17 @@ const TAB_ICONS = { featured: 'sparkles', popular: 'flame', latest: 'clock' }
 
 /** 三个一级 feed 的图标(内联 SVG,避免引入额外图标依赖) */
 function TabIcon({ kind }) {
-  const common = { width: 14, height: 14, viewBox: '0 0 24 24', fill: 'none', stroke: 'currentColor', strokeWidth: 2, strokeLinecap: 'round', strokeLinejoin: 'round', 'aria-hidden': true }
+  const common = {
+    width: 14,
+    height: 14,
+    viewBox: '0 0 24 24',
+    fill: 'none',
+    stroke: 'currentColor',
+    strokeWidth: 2,
+    strokeLinecap: 'round',
+    strokeLinejoin: 'round',
+    'aria-hidden': true,
+  }
   if (kind === 'featured') {
     return (
       <svg {...common}>
@@ -35,11 +45,15 @@ function TabIcon({ kind }) {
  */
 export default function GalleryFeedTabs({ feed, onFeedChange }) {
   const { t } = useTranslation()
-  const labelFor = { featured: t('gallery.explorer.tabFeatured'), popular: t('gallery.explorer.tabPopular'), latest: t('gallery.explorer.tabLatest') }
+  const labelFor = {
+    featured: t('gallery.explorer.tabFeatured'),
+    popular: t('gallery.explorer.tabPopular'),
+    latest: t('gallery.explorer.tabLatest'),
+  }
 
   return (
     <div className="gallery-feed-tabs" role="tablist" aria-label={t('gallery.explorer.tabsLabel')}>
-      {GALLERY_FEEDS.map((value) => (
+      {GALLERY_FEEDS.map(value => (
         <button
           key={value}
           type="button"

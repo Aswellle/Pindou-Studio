@@ -9,12 +9,28 @@ beforeAll(async () => {
   await i18n.changeLanguage('zh-CN')
   // jsdom 无 canvas 实现:复用 App.test 的 2D 上下文 mock(缩略图直绘不崩即可)
   const ctx = {
-    fillStyle: '', strokeStyle: '', lineWidth: 1,
-    fillRect: () => {}, strokeRect: () => {}, beginPath: () => {}, closePath: () => {},
-    moveTo: () => {}, lineTo: () => {}, stroke: () => {}, clearRect: () => {},
-    fillText: () => {}, arc: () => {}, fill: () => {}, save: () => {}, restore: () => {},
-    clip: () => {}, translate: () => {}, scale: () => {}, drawImage: () => {},
-    setTransform: () => {}, createRadialGradient: () => ({ addColorStop: () => {} }),
+    fillStyle: '',
+    strokeStyle: '',
+    lineWidth: 1,
+    fillRect: () => {},
+    strokeRect: () => {},
+    beginPath: () => {},
+    closePath: () => {},
+    moveTo: () => {},
+    lineTo: () => {},
+    stroke: () => {},
+    clearRect: () => {},
+    fillText: () => {},
+    arc: () => {},
+    fill: () => {},
+    save: () => {},
+    restore: () => {},
+    clip: () => {},
+    translate: () => {},
+    scale: () => {},
+    drawImage: () => {},
+    setTransform: () => {},
+    createRadialGradient: () => ({ addColorStop: () => {} }),
     getImageData: () => ({ data: new Uint8ClampedArray(4) }),
   }
   HTMLCanvasElement.prototype.getContext = () => ctx
@@ -25,16 +41,12 @@ afterEach(() => {
   localStorage.clear()
 })
 
-const setup = (props = {}, initialEntries = ['/gallery']) => render(
-  <MemoryRouter initialEntries={initialEntries}>
-    <GalleryPage
-      onLoadTemplate={vi.fn()}
-      onDeleteWork={vi.fn()}
-      onLoadWork={vi.fn()}
-      {...props}
-    />
-  </MemoryRouter>
-)
+const setup = (props = {}, initialEntries = ['/gallery']) =>
+  render(
+    <MemoryRouter initialEntries={initialEntries}>
+      <GalleryPage onLoadTemplate={vi.fn()} onDeleteWork={vi.fn()} onLoadWork={vi.fn()} {...props} />
+    </MemoryRouter>
+  )
 
 describe('GalleryPage V2 — 本地模式', () => {
   it('渲染全部内置模板卡片', () => {
@@ -44,7 +56,9 @@ describe('GalleryPage V2 — 本地模式', () => {
 
   it('搜索过滤生效(无匹配时显示空状态)', () => {
     const { container } = setup({ savedWorks: [] })
-    fireEvent.change(screen.getByPlaceholderText(/搜索|模板|Search/i), { target: { value: 'zzz-不存在的模板' } })
+    fireEvent.change(screen.getByPlaceholderText(/搜索|模板|Search/i), {
+      target: { value: 'zzz-不存在的模板' },
+    })
     expect(container.querySelectorAll('.template-card').length).toBe(0)
     expect(screen.getByText('没有找到匹配的模板')).toBeTruthy()
   })
@@ -74,9 +88,12 @@ describe('GalleryPage V2 — 本地模式', () => {
   })
 
   it('老链接 ?view=works 不再切换到作品视图,而是被静默清掉', () => {
-    const { container } = setup({
-      savedWorks: [{ id: 'w1', name: '深链接作品', canvasData: [[null, '#FFD700']], gridSize: 2 }],
-    }, ['/gallery?view=works'])
+    const { container } = setup(
+      {
+        savedWorks: [{ id: 'w1', name: '深链接作品', canvasData: [[null, '#FFD700']], gridSize: 2 }],
+      },
+      ['/gallery?view=works']
+    )
 
     // 仍显示模板库,作品不出现
     expect(container.querySelectorAll('.template-card').length).toBe(TEMPLATES.length)
@@ -105,9 +122,26 @@ describe('GalleryPage V2 — 本地模式', () => {
 
 describe('GalleryPage V2 — 云端模式', () => {
   const cloudStore = (overrides = {}) => ({
-    enabled: true, loading: false, error: null,
-    templates: [{ id: 'cloud-1', name: 'Cloud Duck', nameZh: '云端小鸭', category: 'animal', difficulty: 'easy', size: 9, pattern: [[null, '#FFD700'], ['#FFD700', null]] }],
-    categories: [], refresh: vi.fn(), loadAll: vi.fn(),
+    enabled: true,
+    loading: false,
+    error: null,
+    templates: [
+      {
+        id: 'cloud-1',
+        name: 'Cloud Duck',
+        nameZh: '云端小鸭',
+        category: 'animal',
+        difficulty: 'easy',
+        size: 9,
+        pattern: [
+          [null, '#FFD700'],
+          ['#FFD700', null],
+        ],
+      },
+    ],
+    categories: [],
+    refresh: vi.fn(),
+    loadAll: vi.fn(),
     ...overrides,
   })
 
@@ -139,16 +173,20 @@ describe('GalleryPage V2 — 矩形模板(M2 / R3)', () => {
     nameZh: '宽图',
     category: 'animal',
     difficulty: 'easy',
-    size: 4,                    // 旧协议只有单值 max
+    size: 4, // 旧协议只有单值 max
     pattern: [
       ['#FFD700', '#FFD700', '#FFD700', '#FFD700'],
       [null, '#FFD700', '#FFD700', null],
     ],
   }
   const rectStore = {
-    enabled: true, loading: false, error: null,
+    enabled: true,
+    loading: false,
+    error: null,
     templates: [rectTemplate],
-    categories: [], refresh: vi.fn(), loadAll: vi.fn(),
+    categories: [],
+    refresh: vi.fn(),
+    loadAll: vi.fn(),
   }
 
   it('卡片显示真实 W × H,而不是 size × size', () => {
@@ -164,7 +202,7 @@ describe('GalleryPage V2 — 矩形模板(M2 / R3)', () => {
 
     const [pattern, size, opts] = onLoadTemplate.mock.calls[0]
     expect(pattern).toHaveLength(2)
-    expect(size).toBe(4)                 // 兼容参数仍是 max
+    expect(size).toBe(4) // 兼容参数仍是 max
     expect(opts.gridWidth).toBe(4)
     expect(opts.gridHeight).toBe(2)
   })
@@ -189,14 +227,38 @@ describe('GalleryPage V2 — 矩形模板(M2 / R3)', () => {
 describe('GalleryPage V2 — 用色数筛选', () => {
   // 3 色模板:超过「≤ 2 色」档位应被筛掉
   const threeColorStore = (overrides = {}) => ({
-    enabled: true, loading: false, error: null,
+    enabled: true,
+    loading: false,
+    error: null,
     templates: [
-      { id: 'c-1', name: 'Two', nameZh: '两色', category: 'animal', difficulty: 'easy', size: 2,
-        pattern: [['#FF0000', '#00FF00'], [null, null]] },
-      { id: 'c-2', name: 'Five', nameZh: '五色', category: 'animal', difficulty: 'easy', size: 3,
-        pattern: [['#FF0000', '#00FF00', '#0000FF'], ['#FFFF00', '#FF00FF', null]] },
+      {
+        id: 'c-1',
+        name: 'Two',
+        nameZh: '两色',
+        category: 'animal',
+        difficulty: 'easy',
+        size: 2,
+        pattern: [
+          ['#FF0000', '#00FF00'],
+          [null, null],
+        ],
+      },
+      {
+        id: 'c-2',
+        name: 'Five',
+        nameZh: '五色',
+        category: 'animal',
+        difficulty: 'easy',
+        size: 3,
+        pattern: [
+          ['#FF0000', '#00FF00', '#0000FF'],
+          ['#FFFF00', '#FF00FF', null],
+        ],
+      },
     ],
-    categories: [], refresh: vi.fn(), loadAll: vi.fn(),
+    categories: [],
+    refresh: vi.fn(),
+    loadAll: vi.fn(),
     ...overrides,
   })
 
@@ -214,7 +276,8 @@ describe('GalleryPage V2 — 用色数筛选', () => {
     expect(container.querySelector('.category-bar')).toBeNull()
     const panel = openFilterPanel()
     expect(panel).toBeTruthy()
-    const buttons = [...panel.querySelectorAll('.gallery-filter-group')].at(-1)
+    const buttons = [...panel.querySelectorAll('.gallery-filter-group')]
+      .at(-1)
       .querySelectorAll('.gallery-filter-opt')
     // 1 个「不限」+ COLOR_COUNT_TIERS.length 个上限档
     expect(buttons.length).toBe(1 + 6)
@@ -269,19 +332,56 @@ describe('GalleryPage V2 — 用色数筛选', () => {
 describe('GalleryPage V3 — 一级 feed(精选/热门/最新)', () => {
   // 云端夹具:downloadCount / createdAt 可控,验证热门与最新的数据口径
   const feedStore = (overrides = {}) => ({
-    enabled: true, loading: false, error: null,
+    enabled: true,
+    loading: false,
+    error: null,
     templates: [
-      { id: 't-a', name: 'A', nameZh: '图纸A', category: 'animal', difficulty: 'easy', size: 4,
-        pattern: [['#FF0000', '#00FF00'], [null, null]],
-        downloadCount: 9, createdAt: '2026-01-02T00:00:00Z' },
-      { id: 't-b', name: 'B', nameZh: '图纸B', category: 'food', difficulty: 'easy', size: 4,
-        pattern: [['#FF0000', '#00FF00'], [null, null]],
-        downloadCount: 5, createdAt: '2026-03-01T00:00:00Z' },
-      { id: 't-c', name: 'C', nameZh: '图纸C', category: 'animal', difficulty: 'easy', size: 4,
-        pattern: [['#FF0000', '#00FF00'], [null, null]],
-        downloadCount: 0, createdAt: null },
+      {
+        id: 't-a',
+        name: 'A',
+        nameZh: '图纸A',
+        category: 'animal',
+        difficulty: 'easy',
+        size: 4,
+        pattern: [
+          ['#FF0000', '#00FF00'],
+          [null, null],
+        ],
+        downloadCount: 9,
+        createdAt: '2026-01-02T00:00:00Z',
+      },
+      {
+        id: 't-b',
+        name: 'B',
+        nameZh: '图纸B',
+        category: 'food',
+        difficulty: 'easy',
+        size: 4,
+        pattern: [
+          ['#FF0000', '#00FF00'],
+          [null, null],
+        ],
+        downloadCount: 5,
+        createdAt: '2026-03-01T00:00:00Z',
+      },
+      {
+        id: 't-c',
+        name: 'C',
+        nameZh: '图纸C',
+        category: 'animal',
+        difficulty: 'easy',
+        size: 4,
+        pattern: [
+          ['#FF0000', '#00FF00'],
+          [null, null],
+        ],
+        downloadCount: 0,
+        createdAt: null,
+      },
     ],
-    categories: [], refresh: vi.fn(), loadAll: vi.fn(),
+    categories: [],
+    refresh: vi.fn(),
+    loadAll: vi.fn(),
     ...overrides,
   })
 
@@ -313,7 +413,9 @@ describe('GalleryPage V3 — 一级 feed(精选/热门/最新)', () => {
   })
 
   it('热门/最新为空时显示诚实空态而不是伪造数据', () => {
-    const { container } = setup({ savedWorks: [], cloudStore: feedStore() }, ['/gallery?feed=popular&q=不存在'])
+    const { container } = setup({ savedWorks: [], cloudStore: feedStore() }, [
+      '/gallery?feed=popular&q=不存在',
+    ])
     expect(container.querySelectorAll('.template-card').length).toBe(0)
     expect(screen.getByText('没有找到匹配的模板')).toBeTruthy()
   })

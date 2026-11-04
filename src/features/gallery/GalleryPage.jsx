@@ -24,7 +24,12 @@ import { createPortal } from 'react-dom'
 import { useNavigate } from 'react-router-dom'
 import { MessageCircle, Search, SlidersHorizontal, X } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
-import { CATEGORIES, extractPatternColors, convertTemplateToBrand, templateDimensions } from '../../data/templates'
+import {
+  CATEGORIES,
+  extractPatternColors,
+  convertTemplateToBrand,
+  templateDimensions,
+} from '../../data/templates'
 import { getPalette } from '../../data/palettes'
 import { exportAsPNG } from '../../services/BeadPatternExporter'
 import { useToast } from '../../components/Toast'
@@ -56,12 +61,18 @@ export default function GalleryPage({ onLoadTemplate, cloudStore }) {
   const navigate = useNavigate()
   // feed 与筛选全部走 URL 状态:刷新恢复、前进后退、可分享
   const {
-    searchTerm, setSearchTerm,
-    category, setCategory,
-    difficulty, setDifficulty,
-    maxColors, setMaxColors,
-    feed, setFeed,
-    legacyView, clearLegacyView,
+    searchTerm,
+    setSearchTerm,
+    category,
+    setCategory,
+    difficulty,
+    setDifficulty,
+    maxColors,
+    setMaxColors,
+    feed,
+    setFeed,
+    legacyView,
+    clearLegacyView,
     setFilters,
   } = useGalleryQuery()
 
@@ -84,7 +95,7 @@ export default function GalleryPage({ onLoadTemplate, cloudStore }) {
     for (const tpl of allTemplates) counts[tpl.category] = (counts[tpl.category] || 0) + 1
     return counts
   }, [allTemplates])
-  const getCategoryLabel = (cat) => {
+  const getCategoryLabel = cat => {
     const custom = customCategories.find(c => c.id === cat)
     return custom ? custom.label : t(`gallery.categories.${cat}`, cat)
   }
@@ -119,15 +130,27 @@ export default function GalleryPage({ onLoadTemplate, cloudStore }) {
 
   // 策展内容(主题/合集):与模板数据相互独立,失败时为空集合,旧图库照常可用。
   const galleryContent = useGalleryContent()
-  const discoverySections = useMemo(() => buildDiscoverySections({
-    templates: allTemplates,
-    downloadCountOf: getDownloadCount,
-    themes: galleryContent.themes,
-    collections: galleryContent.collections,
-    themeTemplateIds: galleryContent.themeTemplateIds,
-    collectionTemplateIds: galleryContent.collectionTemplateIds,
-    homeSections: galleryContent.homeSections,
-  }), [allTemplates, getDownloadCount, galleryContent.themes, galleryContent.collections, galleryContent.themeTemplateIds, galleryContent.collectionTemplateIds, galleryContent.homeSections])
+  const discoverySections = useMemo(
+    () =>
+      buildDiscoverySections({
+        templates: allTemplates,
+        downloadCountOf: getDownloadCount,
+        themes: galleryContent.themes,
+        collections: galleryContent.collections,
+        themeTemplateIds: galleryContent.themeTemplateIds,
+        collectionTemplateIds: galleryContent.collectionTemplateIds,
+        homeSections: galleryContent.homeSections,
+      }),
+    [
+      allTemplates,
+      getDownloadCount,
+      galleryContent.themes,
+      galleryContent.collections,
+      galleryContent.themeTemplateIds,
+      galleryContent.collectionTemplateIds,
+      galleryContent.homeSections,
+    ]
+  )
   const discoveryEnabled = galleryContent.enabled && !cloudDown
   // 搜索/分类/难度/用色数任一激活时隐藏策展区块,避免「筛选了却还看到无关推荐」
   const filtersActive = !!searchTerm || category !== 'all' || difficulty !== 'all' || !!maxColors
@@ -139,25 +162,26 @@ export default function GalleryPage({ onLoadTemplate, cloudStore }) {
   ].reduce((a, b) => a + b, 0)
 
   // ── feed 数据(04 §3):过滤先收窄集合,再按 feed 各自的排序派生 ──
-  const filteredTemplates = useMemo(() => allTemplates.filter(template => {
-    const displayName = (template.nameZh || template.name || '').toLowerCase()
-    const translatedName = t(`templates.names.${template.nameKey}`, template.nameKey).toLowerCase()
-    const matchesSearch = (displayName || translatedName).includes(searchTerm.toLowerCase())
-    const matchesCategory = category === 'all' || template.category === category
-    const matchesDifficulty = difficulty === 'all' || template.difficulty === difficulty
-    // 用色数上限:按 pattern 实际出现的唯一颜色数计算(与卡片色点、详情页口径一致)
-    const matchesColors = !maxColors || extractPatternColors(template.pattern).length <= maxColors
-    return matchesSearch && matchesCategory && matchesDifficulty && matchesColors
-  }), [allTemplates, searchTerm, category, difficulty, maxColors, t])
+  const filteredTemplates = useMemo(
+    () =>
+      allTemplates.filter(template => {
+        const displayName = (template.nameZh || template.name || '').toLowerCase()
+        const translatedName = t(`templates.names.${template.nameKey}`, template.nameKey).toLowerCase()
+        const matchesSearch = (displayName || translatedName).includes(searchTerm.toLowerCase())
+        const matchesCategory = category === 'all' || template.category === category
+        const matchesDifficulty = difficulty === 'all' || template.difficulty === difficulty
+        // 用色数上限:按 pattern 实际出现的唯一颜色数计算(与卡片色点、详情页口径一致)
+        const matchesColors = !maxColors || extractPatternColors(template.pattern).length <= maxColors
+        return matchesSearch && matchesCategory && matchesDifficulty && matchesColors
+      }),
+    [allTemplates, searchTerm, category, difficulty, maxColors, t]
+  )
   // 热门:过滤后按真实下载量降序(0 下载不进入);最新:过滤后按可信 createdAt 降序
   const popularTemplates = useMemo(
     () => pickPopular(filteredTemplates, getDownloadCount, FEED_LIMIT),
     [filteredTemplates, getDownloadCount]
   )
-  const latestTemplates = useMemo(
-    () => pickLatest(filteredTemplates, FEED_LIMIT),
-    [filteredTemplates]
-  )
+  const latestTemplates = useMemo(() => pickLatest(filteredTemplates, FEED_LIMIT), [filteredTemplates])
   // 精选资源:后台人工策展关系(gallery_featured_templates),按 sort_order 解析、
   // 跳过已删除/不可读的 id。关系未加载/为空时整段隐藏,不渲染占位壳。
   const featuredTemplates = useMemo(
@@ -177,9 +201,9 @@ export default function GalleryPage({ onLoadTemplate, cloudStore }) {
   const showCurationView = feed === 'featured' && !filtersActive && featuredViewHasCuration
 
   // 模板生效品牌:优先用户覆盖,否则模板自带 paletteId(缺省 perler)
-  const templateBrandId = (template) => brandOverride[template.id] || template.paletteId || 'perler'
+  const templateBrandId = template => brandOverride[template.id] || template.paletteId || 'perler'
   // 用户指定了不同于模板原始品牌的转换 → 载入/导出前把 pattern 颜色重映射到该品牌
-  const templateConvertedPattern = (template) => {
+  const templateConvertedPattern = template => {
     const override = brandOverride[template.id]
     if (override && override !== template.paletteId) return convertTemplateToBrand(template.pattern, override)
     return template.pattern
@@ -218,7 +242,7 @@ export default function GalleryPage({ onLoadTemplate, cloudStore }) {
 
   // 载入模板:有品牌(模板自带或用户覆盖)时转换 pattern 并通知 App 同步切换色卡;
   // 无品牌(内置通用模板)则原样载入,不打扰用户当前色卡。
-  const handleTemplateLoad = (template) => {
+  const handleTemplateLoad = template => {
     const brand = brandOverride[template.id] || template.paletteId
     const { width, height } = templateDimensions(template)
     const options = {}
@@ -239,14 +263,14 @@ export default function GalleryPage({ onLoadTemplate, cloudStore }) {
   // 侧栏意图(状态在 GalleryPage:侧栏不持有第二份筛选状态)
   const handleDiscover = () => setFeed('featured')
   const handleAllTemplates = () => clearAllFilters()
-  const handleCurationAnchor = (kind) => {
+  const handleCurationAnchor = kind => {
     // 策展区块只在「精选 feed + 无筛选」时渲染,先恢复该状态再定位
     clearAllFilters()
     setFeed('featured')
     setPendingAnchor(kind)
   }
   // 侧栏分类只改 cat:feed 与其它条件保持不动(单一分类状态源)
-  const handleSidebarCategory = (cat) => setCategory(cat === 'all' ? 'all' : cat)
+  const handleSidebarCategory = cat => setCategory(cat === 'all' ? 'all' : cat)
 
   // 策展锚点定位:目标区块渲染完成后滚动(尊重 reduced-motion 由浏览器处理)
   useEffect(() => {
@@ -259,17 +283,17 @@ export default function GalleryPage({ onLoadTemplate, cloudStore }) {
   }, [pendingAnchor, feed, filtersActive])
 
   // feed 面板的网格结果:每个 feed 用自己的集合与空态
-  const feedResults = feed === 'popular' ? popularTemplates
-    : feed === 'latest' ? latestTemplates
-      : filteredTemplates // featured + 筛选 → 筛选结果全集
-  const feedEmptyHint = feed === 'popular'
-    ? t('gallery.explorer.popularEmpty')
-    : feed === 'latest'
-      ? t('gallery.explorer.latestEmpty')
-      : t('gallery.noResultsHint')
+  const feedResults =
+    feed === 'popular' ? popularTemplates : feed === 'latest' ? latestTemplates : filteredTemplates // featured + 筛选 → 筛选结果全集
+  const feedEmptyHint =
+    feed === 'popular'
+      ? t('gallery.explorer.popularEmpty')
+      : feed === 'latest'
+        ? t('gallery.explorer.latestEmpty')
+        : t('gallery.noResultsHint')
 
   /** 卡片公共回调包(feed 网格与精选资源网格共用同一套动作) */
-  const renderTemplateGrid = (templates) => (
+  const renderTemplateGrid = templates => (
     <div className="templates-grid">
       {templates.map(template => (
         <GalleryTemplateCard
@@ -277,18 +301,20 @@ export default function GalleryPage({ onLoadTemplate, cloudStore }) {
           template={template}
           categoryLabel={getCategoryLabel(template.category)}
           favorite={isFavorite(template.id)}
-          onToggleFavorite={(e) => handleToggleFavorite(template.id, e)}
+          onToggleFavorite={e => handleToggleFavorite(template.id, e)}
           onOpen={() => setPendingLoad(template)}
           exporting={exportingId === template.id}
           onExportTemplate={handleExportTemplate}
           brandId={templateBrandId(template)}
           brandOverridden={Boolean(brandOverride[template.id])}
-          onBrandSelect={(brandId) => setBrandOverride(prev => {
-            const next = { ...prev }
-            if (!brandId || brandId === template.paletteId) delete next[template.id]
-            else next[template.id] = brandId
-            return next
-          })}
+          onBrandSelect={brandId =>
+            setBrandOverride(prev => {
+              const next = { ...prev }
+              if (!brandId || brandId === template.paletteId) delete next[template.id]
+              else next[template.id] = brandId
+              return next
+            })
+          }
           getDownloadCount={getDownloadCount}
         />
       ))}
@@ -297,10 +323,30 @@ export default function GalleryPage({ onLoadTemplate, cloudStore }) {
 
   // 激活筛选 chips(逐项移除;搜索词 chip 与输入框并存)
   const chips = []
-  if (searchTerm) chips.push({ key: 'q', label: t('gallery.explorer.chipSearch', { q: searchTerm }), remove: () => setSearchTerm('') })
-  if (category !== 'all') chips.push({ key: 'cat', label: t('gallery.explorer.chipCategory', { label: getCategoryLabel(category) }), remove: () => setCategory('all') })
-  if (difficulty !== 'all') chips.push({ key: 'diff', label: t('gallery.explorer.chipDifficulty', { label: t(`gallery.difficulties.${difficulty}`) }), remove: () => setDifficulty('all') })
-  if (maxColors) chips.push({ key: 'colors', label: t('gallery.explorer.chipColors', { n: maxColors }), remove: () => setMaxColors('') })
+  if (searchTerm)
+    chips.push({
+      key: 'q',
+      label: t('gallery.explorer.chipSearch', { q: searchTerm }),
+      remove: () => setSearchTerm(''),
+    })
+  if (category !== 'all')
+    chips.push({
+      key: 'cat',
+      label: t('gallery.explorer.chipCategory', { label: getCategoryLabel(category) }),
+      remove: () => setCategory('all'),
+    })
+  if (difficulty !== 'all')
+    chips.push({
+      key: 'diff',
+      label: t('gallery.explorer.chipDifficulty', { label: t(`gallery.difficulties.${difficulty}`) }),
+      remove: () => setDifficulty('all'),
+    })
+  if (maxColors)
+    chips.push({
+      key: 'colors',
+      label: t('gallery.explorer.chipColors', { n: maxColors }),
+      remove: () => setMaxColors(''),
+    })
 
   return (
     <div className="gallery-page">
@@ -346,7 +392,7 @@ export default function GalleryPage({ onLoadTemplate, cloudStore }) {
                 type="search"
                 placeholder={t('gallery.search')}
                 value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
+                onChange={e => setSearchTerm(e.target.value)}
                 aria-label={t('gallery.search')}
               />
             </div>
@@ -356,7 +402,11 @@ export default function GalleryPage({ onLoadTemplate, cloudStore }) {
               className="gallery-filter-trigger"
               aria-haspopup="dialog"
               aria-expanded={filterOpen}
-              aria-label={activeFilterCount > 0 ? t('gallery.explorer.filterCount', { n: activeFilterCount }) : t('gallery.explorer.filter')}
+              aria-label={
+                activeFilterCount > 0
+                  ? t('gallery.explorer.filterCount', { n: activeFilterCount })
+                  : t('gallery.explorer.filter')
+              }
               onClick={() => setFilterOpen(v => !v)}
             >
               <SlidersHorizontal size={14} aria-hidden="true" />
@@ -401,7 +451,9 @@ export default function GalleryPage({ onLoadTemplate, cloudStore }) {
                 onClick={() => handleSidebarCategory(cat)}
               >
                 {getCategoryLabel(cat)}
-                <span className="gallery-catnav-count">{cat === 'all' ? allTemplates.length : (categoryCounts[cat] || 0)}</span>
+                <span className="gallery-catnav-count">
+                  {cat === 'all' ? allTemplates.length : categoryCounts[cat] || 0}
+                </span>
               </button>
             ))}
           </div>
@@ -439,7 +491,9 @@ export default function GalleryPage({ onLoadTemplate, cloudStore }) {
                   <section className="gallery-section" aria-label={t('gallery.explorer.featuredResources')}>
                     <div className="gallery-section-head">
                       <h2>{t('gallery.explorer.featuredResources')}</h2>
-                      <span className="gallery-section-hint">{t('gallery.explorer.featuredResourcesHint')}</span>
+                      <span className="gallery-section-hint">
+                        {t('gallery.explorer.featuredResourcesHint')}
+                      </span>
                     </div>
                     {renderTemplateGrid(featuredTemplates)}
                   </section>
@@ -449,9 +503,13 @@ export default function GalleryPage({ onLoadTemplate, cloudStore }) {
                     sections={{ ...discoverySections, blocks: featuredBlocks }}
                     loading={galleryContent.loading}
                     error={galleryContent.error}
-                    onOpenTheme={(theme) => navigate(`/gallery/theme/${encodeURIComponent(theme.slug)}`)}
-                    onOpenCollection={(collection) => navigate(`/gallery/collection/${encodeURIComponent(collection.slug)}`)}
-                    onOpenPattern={(template) => navigate(`/gallery/pattern/${encodeURIComponent(template.id)}`)}
+                    onOpenTheme={theme => navigate(`/gallery/theme/${encodeURIComponent(theme.slug)}`)}
+                    onOpenCollection={collection =>
+                      navigate(`/gallery/collection/${encodeURIComponent(collection.slug)}`)
+                    }
+                    onOpenPattern={template =>
+                      navigate(`/gallery/pattern/${encodeURIComponent(template.id)}`)
+                    }
                     onViewAllThemes={clearAllFilters}
                     onViewAllCollections={clearAllFilters}
                   />
@@ -472,24 +530,42 @@ export default function GalleryPage({ onLoadTemplate, cloudStore }) {
                   </div>
                 ) : cloudEnabled && allTemplates.length === 0 ? (
                   <div className="empty-state">
-                    <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
-                      <circle cx="12" cy="12" r="10"/>
-                      <path d="M12 8v8"/>
-                      <path d="M12 16.5v.01"/>
+                    <svg
+                      width="64"
+                      height="64"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="1.5"
+                    >
+                      <circle cx="12" cy="12" r="10" />
+                      <path d="M12 8v8" />
+                      <path d="M12 16.5v.01" />
                     </svg>
                     <p>{t('gallery.cloudEmpty')}</p>
                     <span>{t('gallery.cloudEmptyHint')}</span>
                   </div>
                 ) : feedResults.length === 0 ? (
                   <div className="empty-state">
-                    <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
-                      <circle cx="11" cy="11" r="8"/>
-                      <path d="M21 21l-4.35-4.35"/>
+                    <svg
+                      width="64"
+                      height="64"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="1.5"
+                    >
+                      <circle cx="11" cy="11" r="8" />
+                      <path d="M21 21l-4.35-4.35" />
                     </svg>
                     <p>{t('gallery.noResults')}</p>
                     <span>{feedEmptyHint}</span>
                     {filtersActive && (
-                      <button type="button" className="btn btn-primary empty-login-btn" onClick={clearAllFilters}>
+                      <button
+                        type="button"
+                        className="btn btn-primary empty-login-btn"
+                        onClick={clearAllFilters}
+                      >
                         {t('gallery.discovery.filterReset')}
                       </button>
                     )}
@@ -523,37 +599,49 @@ export default function GalleryPage({ onLoadTemplate, cloudStore }) {
       />
 
       {/* 填充模板到画布:点击卡片后弹出确认,避免误触直接填充+跳转 */}
-      {pendingLoad && createPortal(
-        <div className="load-confirm-overlay" onClick={() => setPendingLoad(null)}>
-          <div className="load-confirm-modal" ref={loadConfirmRef} {...loadConfirmDialogProps} onClick={e => e.stopPropagation()}>
-            <div className="load-confirm-preview">
-              <ThumbnailCanvas pattern={pendingLoad.pattern} size={pendingLoad.size} />
-            </div>
-            <div className="load-confirm-info">
-              <h3 className="load-confirm-title">{t('gallery.loadConfirmTitle')}</h3>
-              <p className="load-confirm-body">
-                {t('gallery.loadConfirmBody', {
-                  name: pendingLoad.name ? (pendingLoad.nameZh || pendingLoad.name) : t(`templates.names.${pendingLoad.nameKey}`, pendingLoad.nameKey),
-                  width: templateDimensions(pendingLoad).width,
-                  height: templateDimensions(pendingLoad).height,
-                })}
-              </p>
-              <div className="load-confirm-actions">
-                <button className="load-confirm-cancel" onClick={() => setPendingLoad(null)}>
-                  {t('common.cancel')}
-                </button>
-                <button
-                  className="load-confirm-ok"
-                  onClick={() => { const tpl = pendingLoad; setPendingLoad(null); handleTemplateLoad(tpl) }}
-                >
-                  {t('gallery.loadToCanvas')}
-                </button>
+      {pendingLoad &&
+        createPortal(
+          <div className="load-confirm-overlay" onClick={() => setPendingLoad(null)}>
+            <div
+              className="load-confirm-modal"
+              ref={loadConfirmRef}
+              {...loadConfirmDialogProps}
+              onClick={e => e.stopPropagation()}
+            >
+              <div className="load-confirm-preview">
+                <ThumbnailCanvas pattern={pendingLoad.pattern} size={pendingLoad.size} />
+              </div>
+              <div className="load-confirm-info">
+                <h3 className="load-confirm-title">{t('gallery.loadConfirmTitle')}</h3>
+                <p className="load-confirm-body">
+                  {t('gallery.loadConfirmBody', {
+                    name: pendingLoad.name
+                      ? pendingLoad.nameZh || pendingLoad.name
+                      : t(`templates.names.${pendingLoad.nameKey}`, pendingLoad.nameKey),
+                    width: templateDimensions(pendingLoad).width,
+                    height: templateDimensions(pendingLoad).height,
+                  })}
+                </p>
+                <div className="load-confirm-actions">
+                  <button className="load-confirm-cancel" onClick={() => setPendingLoad(null)}>
+                    {t('common.cancel')}
+                  </button>
+                  <button
+                    className="load-confirm-ok"
+                    onClick={() => {
+                      const tpl = pendingLoad
+                      setPendingLoad(null)
+                      handleTemplateLoad(tpl)
+                    }}
+                  >
+                    {t('gallery.loadToCanvas')}
+                  </button>
+                </div>
               </div>
             </div>
-          </div>
-        </div>,
-        document.body
-      )}
+          </div>,
+          document.body
+        )}
     </div>
   )
 }

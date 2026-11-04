@@ -58,27 +58,36 @@ afterEach(() => {
 })
 
 const theme = (id, over = {}) => ({
-  id, slug: id, title: `主题${id}`, description: '', coverUrl: '/c.png',
-  status: 'published', isFeatured: false, sortOrder: 0,
+  id,
+  slug: id,
+  title: `主题${id}`,
+  description: '',
+  coverUrl: '/c.png',
+  status: 'published',
+  isFeatured: false,
+  sortOrder: 0,
   translations: { en: { title: 'T' }, ja: { title: 'T' }, ko: { title: 'T' } },
   ...over,
 })
 
 const templates = [
-  { id: 't1', name: '鸭子', nameZh: '鸭子', category: 'animal', difficulty: 'easy', size: 2, pattern: [[null]] },
+  {
+    id: 't1',
+    name: '鸭子',
+    nameZh: '鸭子',
+    category: 'animal',
+    difficulty: 'easy',
+    size: 2,
+    pattern: [[null]],
+  },
   { id: 't2', name: '猫', nameZh: '猫', category: 'animal', difficulty: 'easy', size: 2, pattern: [[null]] },
 ]
 
-const setup = (over = {}) => render(
-  <ContentManager cloudStore={{ templates, ...over }} />,
-)
+const setup = (over = {}) => render(<ContentManager cloudStore={{ templates, ...over }} />)
 
 describe('ContentManager', () => {
   it('健康检查列出问题:缺封面、重复 slug、已发布为空', () => {
-    contentState.themes = [
-      theme('a', { coverUrl: '' }),
-      theme('b', { slug: 'a' }),
-    ]
+    contentState.themes = [theme('a', { coverUrl: '' }), theme('b', { slug: 'a' })]
     setup()
     expect(screen.getByText('内容健康检查')).toBeTruthy()
     expect(screen.getByText('缺封面')).toBeTruthy()
@@ -244,9 +253,9 @@ describe('ContentManager · 首页区块配置', () => {
 
     await waitFor(() => expect(contentState.saveHomeSections).toHaveBeenCalledTimes(1))
     const sent = contentState.saveHomeSections.mock.calls[0][0]
-    expect(sent.map((x) => x.kind)).toEqual(['latest', 'popular'])
+    expect(sent.map(x => x.kind)).toEqual(['latest', 'popular'])
     // sortOrder 按新顺序重排
-    expect(sent.map((x) => x.sortOrder)).toEqual([0, 1])
+    expect(sent.map(x => x.sortOrder)).toEqual([0, 1])
   })
 
   it('保存失败时显示错误,不清空草稿', async () => {
@@ -263,7 +272,9 @@ describe('ContentManager · 首页区块配置', () => {
     })
     fireEvent.click(screen.getByText('保存区块配置'))
     // 错误详情展示在面板里(错误码未知时回退为 detail)
-    await waitFor(() => expect(document.querySelector('.content-sections .content-section-error')).toBeTruthy())
+    await waitFor(() =>
+      expect(document.querySelector('.content-sections .content-section-error')).toBeTruthy()
+    )
     expect(document.querySelector('.content-sections .content-section-error').textContent).toContain('0')
     // 行仍在(草稿没被丢弃)
     expect(document.querySelectorAll('.content-section-row')).toHaveLength(1)
@@ -278,17 +289,26 @@ describe('ContentManager · 首页区块配置', () => {
 
     // 切到 popular 后不再显示「数据来源」下拉
     await waitFor(() => {
-      const labels = Array.from(document.querySelectorAll('.content-section-row label'))
-        .map((l) => l.textContent)
-      expect(labels.some((x) => x.includes('数据来源'))).toBe(false)
+      const labels = Array.from(document.querySelectorAll('.content-section-row label')).map(
+        l => l.textContent
+      )
+      expect(labels.some(x => x.includes('数据来源'))).toBe(false)
     })
   })
 })
 
 describe('ContentManager · 主题嵌套', () => {
   const th = (id, over = {}) => ({
-    id, slug: id, title: `主题${id}`, description: '', coverUrl: '/c.png',
-    status: 'published', isFeatured: false, sortOrder: 0, translations: {}, ...over,
+    id,
+    slug: id,
+    title: `主题${id}`,
+    description: '',
+    coverUrl: '/c.png',
+    status: 'published',
+    isFeatured: false,
+    sortOrder: 0,
+    translations: {},
+    ...over,
   })
 
   it('主题行显示子主题与相关合集入口,合集行不显示', async () => {
@@ -311,10 +331,11 @@ describe('ContentManager · 主题嵌套', () => {
     fireEvent.click(screen.getAllByText('子主题')[0])
     await waitFor(() => expect(document.querySelector('.content-link-editor')).toBeTruthy())
 
-    const candidates = Array.from(document.querySelectorAll('.content-link-candidates button'))
-      .map((b) => b.textContent)
-    expect(candidates.some((x) => x.includes('主题b'))).toBe(true)
-    expect(candidates.some((x) => x.includes('主题c'))).toBe(false)
+    const candidates = Array.from(document.querySelectorAll('.content-link-candidates button')).map(
+      b => b.textContent
+    )
+    expect(candidates.some(x => x.includes('主题b'))).toBe(true)
+    expect(candidates.some(x => x.includes('主题c'))).toBe(false)
   })
 
   it('保存子主题时按顺序整组提交', async () => {
@@ -327,9 +348,12 @@ describe('ContentManager · 主题嵌套', () => {
 
     // 依次加入 b、c
     const addButtons = Array.from(document.querySelectorAll('.content-link-candidates button'))
-    fireEvent.click(addButtons.find((b) => b.textContent.includes('主题b')))
-    fireEvent.click(Array.from(document.querySelectorAll('.content-link-candidates button'))
-      .find((b) => b.textContent.includes('主题c')))
+    fireEvent.click(addButtons.find(b => b.textContent.includes('主题b')))
+    fireEvent.click(
+      Array.from(document.querySelectorAll('.content-link-candidates button')).find(b =>
+        b.textContent.includes('主题c')
+      )
+    )
 
     fireEvent.click(screen.getByText('保存'))
     await waitFor(() => expect(contentState.setThemeChildren).toHaveBeenCalledTimes(1))
@@ -348,8 +372,11 @@ describe('ContentManager · 主题嵌套', () => {
 
     fireEvent.click(screen.getAllByText('相关合集')[0])
     await waitFor(() => expect(document.querySelector('.content-link-editor')).toBeTruthy())
-    fireEvent.click(Array.from(document.querySelectorAll('.content-link-candidates button'))
-      .find((b) => b.textContent.includes('合集一')))
+    fireEvent.click(
+      Array.from(document.querySelectorAll('.content-link-candidates button')).find(b =>
+        b.textContent.includes('合集一')
+      )
+    )
     fireEvent.click(screen.getByText('保存'))
 
     await waitFor(() => expect(contentState.setThemeCollections).toHaveBeenCalledTimes(1))
@@ -364,7 +391,7 @@ describe('ContentManager · 精选资源(0032)', () => {
     expect(screen.getByText('精选资源')).toBeTruthy()
     const rows = [...container.querySelectorAll('.content-featured .content-link-row')]
     // 按 sort_order 展示:featuredTemplateIds 顺序即展示顺序
-    expect(rows.map((r) => r.textContent)).toEqual(['1. 猫', '2. 鸭子'])
+    expect(rows.map(r => r.textContent)).toEqual(['1. 猫', '2. 鸭子'])
   })
 
   it('编辑器增删排序后保存,整组提交 setFeaturedTemplates', async () => {
@@ -385,7 +412,10 @@ describe('ContentManager · 精选资源(0032)', () => {
 
   it('保存失败时编辑器保留草稿不关闭', async () => {
     contentState.featuredTemplateIds = ['t1']
-    contentState.setFeaturedTemplates.mockResolvedValue({ ok: false, errors: [{ code: 'cloud', detail: 'RLS denied' }] })
+    contentState.setFeaturedTemplates.mockResolvedValue({
+      ok: false,
+      errors: [{ code: 'cloud', detail: 'RLS denied' }],
+    })
     setup()
     fireEvent.click(screen.getByText('编辑精选资源'))
     fireEvent.click(screen.getByText('保存'))

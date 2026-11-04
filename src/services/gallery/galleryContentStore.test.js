@@ -9,42 +9,90 @@ import { createGalleryContentStore } from './galleryContentStore'
 
 function fakeClient({ data = null, error = null } = {}) {
   const calls = []
-  const makeBuilder = (table) => {
+  const makeBuilder = table => {
     const op = { table, method: null, payload: null, filters: [], single: false }
     const builder = {
-      insert(payload) { op.method = 'insert'; op.payload = payload; return builder },
-      update(payload) { op.method = 'update'; op.payload = payload; return builder },
-      delete() { op.method = 'delete'; return builder },
-      select() { if (!op.method) op.method = 'select'; return builder },
-      eq(col, val) { op.filters.push([col, val]); return builder },
-      order() { return builder },
-      single() { op.single = true; return builder },
+      insert(payload) {
+        op.method = 'insert'
+        op.payload = payload
+        return builder
+      },
+      update(payload) {
+        op.method = 'update'
+        op.payload = payload
+        return builder
+      },
+      delete() {
+        op.method = 'delete'
+        return builder
+      },
+      select() {
+        if (!op.method) op.method = 'select'
+        return builder
+      },
+      eq(col, val) {
+        op.filters.push([col, val])
+        return builder
+      },
+      order() {
+        return builder
+      },
+      single() {
+        op.single = true
+        return builder
+      },
       then(resolve, reject) {
         calls.push(op)
         let payload = data
         if (!error && payload !== null && !Array.isArray(payload) && !op.single) payload = [payload]
-        return Promise.resolve(error ? { data: null, error } : { data: payload, error: null }).then(resolve, reject)
+        return Promise.resolve(error ? { data: null, error } : { data: payload, error: null }).then(
+          resolve,
+          reject
+        )
       },
     }
     return builder
   }
-  return { calls, from(table) { return makeBuilder(table) } }
+  return {
+    calls,
+    from(table) {
+      return makeBuilder(table)
+    },
+  }
 }
 
 describe('galleryContentStore · 读取', () => {
   it('load 并行拉取四张表并映射为 camelCase', async () => {
     const rows = {
-      gallery_themes: [{ id: 't1', slug: 'spring', title: '春天', status: 'published', sort_order: 2, is_featured: true, title_en: 'Spring' }],
-      gallery_collections: [{ id: 'c1', slug: 'pets', title: '宠物', status: 'draft', sort_order: 0, curation_note: '策展' }],
+      gallery_themes: [
+        {
+          id: 't1',
+          slug: 'spring',
+          title: '春天',
+          status: 'published',
+          sort_order: 2,
+          is_featured: true,
+          title_en: 'Spring',
+        },
+      ],
+      gallery_collections: [
+        { id: 'c1', slug: 'pets', title: '宠物', status: 'draft', sort_order: 0, curation_note: '策展' },
+      ],
       gallery_theme_templates: [{ theme_id: 't1', template_id: 'tpl-1', sort_order: 0 }],
       gallery_collection_templates: [],
     }
     const client = {
       from(table) {
         const builder = {
-          select() { return builder },
-          order() { return builder },
-          then(resolve) { return Promise.resolve({ data: rows[table], error: null }).then(resolve) },
+          select() {
+            return builder
+          },
+          order() {
+            return builder
+          },
+          then(resolve) {
+            return Promise.resolve({ data: rows[table], error: null }).then(resolve)
+          },
         }
         return builder
       },
@@ -69,8 +117,13 @@ describe('galleryContentStore · 读取', () => {
     const store = createGalleryContentStore(null)
     expect(store.enabled).toBe(false)
     await expect(store.load()).resolves.toEqual({
-      themes: [], collections: [], themeLinks: [], collectionLinks: [],
-      homeSections: [], themeChildren: [], themeCollections: [],
+      themes: [],
+      collections: [],
+      themeLinks: [],
+      collectionLinks: [],
+      homeSections: [],
+      themeChildren: [],
+      themeCollections: [],
       featuredTemplateRows: [],
     })
   })
@@ -108,7 +161,7 @@ describe('galleryContentStore · 写入', () => {
     expect(res.ok).toBe(true)
     expect(client.calls[0]).toMatchObject({ table: 'gallery_collection_templates', method: 'delete' })
     expect(client.calls[0].filters).toEqual([['collection_id', 'c1']])
-    const insert = client.calls.find((c) => c.method === 'insert')
+    const insert = client.calls.find(c => c.method === 'insert')
     expect(insert.payload).toEqual([
       { collection_id: 'c1', template_id: 'tpl-2', sort_order: 0 },
       { collection_id: 'c1', template_id: 'tpl-1', sort_order: 1 },
@@ -120,7 +173,7 @@ describe('galleryContentStore · 写入', () => {
     const store = createGalleryContentStore(client)
     const res = await store.setLinks('theme', 't1', [])
     expect(res.ok).toBe(true)
-    expect(client.calls.some((c) => c.method === 'insert')).toBe(false)
+    expect(client.calls.some(c => c.method === 'insert')).toBe(false)
   })
 
   it('数据库错误返回 { ok:false } 并记录原因', async () => {
@@ -134,7 +187,9 @@ describe('galleryContentStore · 写入', () => {
 
   it('未配置云端时写入返回 cloudNotConfigured', async () => {
     const store = createGalleryContentStore(null)
-    expect((await store.createContent('theme', { slug: 'a', title: 'A' })).errors[0].code).toBe('cloudNotConfigured')
+    expect((await store.createContent('theme', { slug: 'a', title: 'A' })).errors[0].code).toBe(
+      'cloudNotConfigured'
+    )
     expect((await store.setLinks('theme', 't1', [])).errors[0].code).toBe('cloudNotConfigured')
   })
 })
@@ -146,9 +201,15 @@ describe('galleryContentStore · 精选资源(0032)', () => {
     const client = {
       from(table) {
         const builder = {
-          select() { return builder },
-          order() { return builder },
-          then(resolve) { return Promise.resolve({ data: rows[table] || [], error: null }).then(resolve) },
+          select() {
+            return builder
+          },
+          order() {
+            return builder
+          },
+          then(resolve) {
+            return Promise.resolve({ data: rows[table] || [], error: null }).then(resolve)
+          },
         }
         return builder
       },
@@ -161,12 +222,17 @@ describe('galleryContentStore · 精选资源(0032)', () => {
     const missing = {
       from(table) {
         const builder = {
-          select() { return builder },
-          order() { return builder },
+          select() {
+            return builder
+          },
+          order() {
+            return builder
+          },
           then(resolve) {
-            const error = table === 'gallery_featured_templates'
-              ? { code: '42P01', message: 'relation "gallery_featured_templates" does not exist' }
-              : null
+            const error =
+              table === 'gallery_featured_templates'
+                ? { code: '42P01', message: 'relation "gallery_featured_templates" does not exist' }
+                : null
             return Promise.resolve({ data: null, error }).then(resolve)
           },
         }
@@ -185,11 +251,23 @@ describe('galleryContentStore · 精选资源(0032)', () => {
         const state = { ops: [] }
         calls.push({ table, state })
         const builder = {
-          delete() { state.ops.push('delete'); return builder },
-          not() { return builder },
-          insert(payload) { state.ops.push(['insert', payload]); return builder },
-          select() { return builder },
-          then(resolve) { return Promise.resolve({ data: [], error: null }).then(resolve) },
+          delete() {
+            state.ops.push('delete')
+            return builder
+          },
+          not() {
+            return builder
+          },
+          insert(payload) {
+            state.ops.push(['insert', payload])
+            return builder
+          },
+          select() {
+            return builder
+          },
+          then(resolve) {
+            return Promise.resolve({ data: [], error: null }).then(resolve)
+          },
         }
         return builder
       },
@@ -213,11 +291,23 @@ describe('galleryContentStore · 精选资源(0032)', () => {
         const state = { ops: [] }
         calls.push(state)
         const builder = {
-          delete() { state.ops.push('delete'); return builder },
-          not() { return builder },
-          insert(payload) { state.ops.push(['insert', payload]); return builder },
-          select() { return builder },
-          then(resolve) { return Promise.resolve({ data: [], error: null }).then(resolve) },
+          delete() {
+            state.ops.push('delete')
+            return builder
+          },
+          not() {
+            return builder
+          },
+          insert(payload) {
+            state.ops.push(['insert', payload])
+            return builder
+          },
+          select() {
+            return builder
+          },
+          then(resolve) {
+            return Promise.resolve({ data: [], error: null }).then(resolve)
+          },
         }
         return builder
       },

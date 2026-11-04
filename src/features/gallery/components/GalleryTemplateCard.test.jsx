@@ -15,12 +15,27 @@ beforeAll(async () => {
   await i18n.changeLanguage('zh-CN')
   // jsdom 无 canvas 实现:缩略图直绘不崩即可(与 GalleryPage.test.jsx 同一套)
   const ctx = {
-    fillStyle: '', strokeStyle: '', lineWidth: 1,
-    fillRect: () => {}, strokeRect: () => {}, clearRect: () => {},
-    beginPath: () => {}, closePath: () => {}, moveTo: () => {}, lineTo: () => {},
-    stroke: () => {}, fill: () => {}, arc: () => {}, save: () => {}, restore: () => {},
-    clip: () => {}, translate: () => {}, scale: () => {}, drawImage: () => {},
-    setTransform: () => {}, fillText: () => {},
+    fillStyle: '',
+    strokeStyle: '',
+    lineWidth: 1,
+    fillRect: () => {},
+    strokeRect: () => {},
+    clearRect: () => {},
+    beginPath: () => {},
+    closePath: () => {},
+    moveTo: () => {},
+    lineTo: () => {},
+    stroke: () => {},
+    fill: () => {},
+    arc: () => {},
+    save: () => {},
+    restore: () => {},
+    clip: () => {},
+    translate: () => {},
+    scale: () => {},
+    drawImage: () => {},
+    setTransform: () => {},
+    fillText: () => {},
     createRadialGradient: () => ({ addColorStop: () => {} }),
   }
   HTMLCanvasElement.prototype.getContext = () => ctx
@@ -86,7 +101,14 @@ describe('GalleryTemplateCard · 打开与收藏', () => {
   })
 
   it('矩形模板显示真实宽高', () => {
-    setup({ template: { ...TEMPLATE, name: '帽子', size: 48, pattern: Array.from({ length: 27 }, () => Array.from({ length: 48 }, () => '#333333')) } })
+    setup({
+      template: {
+        ...TEMPLATE,
+        name: '帽子',
+        size: 48,
+        pattern: Array.from({ length: 27 }, () => Array.from({ length: 48 }, () => '#333333')),
+      },
+    })
     expect(screen.getByText('48 x 27')).toBeTruthy()
   })
 })
@@ -129,11 +151,7 @@ describe('GalleryTemplateCard · 导出菜单', () => {
     expect(menu).toBeTruthy()
     const items = [...menu.querySelectorAll('[role="menuitem"]')]
     fireEvent.click(items[0])
-    expect(props.onExportTemplate).toHaveBeenCalledWith(
-      TEMPLATE,
-      'professional',
-      expect.anything()
-    )
+    expect(props.onExportTemplate).toHaveBeenCalledWith(TEMPLATE, 'professional', expect.anything())
     expect(document.querySelector('.export-menu')).toBeNull()
   })
 
