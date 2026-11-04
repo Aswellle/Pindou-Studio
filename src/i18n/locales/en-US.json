@@ -25,7 +25,9 @@
       "qualityTitle": "Sign in to export in high resolution",
       "qualityDescription": "Sign in to choose high-resolution or print quality for sharper exports.",
       "profileTitle": "Sign in to view your profile",
-      "profileDescription": "Your profile manages your account, cloud works and favorites."
+      "profileDescription": "Your profile manages your account, cloud works and favorites.",
+      "myBeadsTitle": "Sign in to use My Beads",
+      "myBeadsDescription": "My Beads manages your personal palettes and inventory. Sign in to sync them to the cloud and keep them across devices."
     },
     "login": "Login",
     "register": "Register",

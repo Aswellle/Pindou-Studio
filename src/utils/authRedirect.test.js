@@ -44,6 +44,10 @@ describe('resolveAuthRedirect', () => {
 
   it('未知原因不进入文案分支', () => {
     expect(resolveAuthRedirect({ state: { reason: 'unknown' } }).reason).toBeNull()
+    // 每个守卫入口都要能在登录页展示原因文案,新增 reason 时同步 i18n
+    for (const reason of ['profile', 'myBeads', 'ironing', 'quality']) {
+      expect(resolveAuthRedirect({ state: { reason } }).reason).toBe(reason)
+    }
   })
 
   it('非法 next 一律回首页', () => {

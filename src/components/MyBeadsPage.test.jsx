@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeAll, afterEach, vi } from 'vitest'
 import { render, screen, fireEvent, cleanup, waitFor, within } from '@testing-library/react'
-import { MemoryRouter } from 'react-router-dom'
+import { MemoryRouter, Routes, Route } from 'react-router-dom'
 import i18n from '../i18n'
 import MyBeadsPage from './MyBeadsPage'
 
@@ -42,14 +42,33 @@ const CANVAS = [
   ['#FF0000', '#FF0000', null],
 ]
 
+// supabase 被 mock 为 null,传 user 也不会切到云端仓库 —— 各用例仍在本地模式下跑
+const MOCK_USER = { id: 'user-1', email: 'test@example.com', nickname: '测试用户' }
+
 const setup = (props = {}) => render(
   <MemoryRouter initialEntries={['/my/beads']}>
-    <MyBeadsPage user={null} canvasData={CANVAS} onApplyMapping={vi.fn()} {...props} />
+    <Routes>
+      <Route path="/my/beads" element={
+        <MyBeadsPage user={MOCK_USER} canvasData={CANVAS} onApplyMapping={vi.fn()} {...props} />
+      } />
+      <Route path="/login" element={<div>login-marker</div>} />
+    </Routes>
   </MemoryRouter>
 )
 
 describe('MyBeadsPage · 色卡管理(本地模式)', () => {
-  it('未登录也能正常渲染,且不冒充云端', async () => {
+  it('未登录跳转登录页并带上守卫原因,不渲染页面内容', () => {
+    setup({ user: null })
+    // 页面主体不得出现:个人色卡/库存是账号资产
+    expect(screen.getByText('login-marker')).toBeTruthy()
+  })
+
+  it('会话解析中不跳转登录页(已登录用户刷新不被误踢)', () => {
+    setup({ authLoading: true })
+    expect(screen.queryByText('login-marker')).toBeNull()
+  })
+
+  it('已登录正常渲染,且不冒充云端', async () => {
     const { container } = setup()
     await waitFor(() => expect(container.querySelector('.my-beads-inner')).toBeTruthy())
     // 存储模式说明已移除(用户反馈是冗余文案);页面不应再出现任何

@@ -1058,6 +1058,7 @@ export default function App() {
           <Route path="/my/beads" element={
             <MyBeadsPage
               user={user}
+              authLoading={authLoading}
               canvasData={canvasData}
               onApplyMapping={handleApplyBeadMapping}
               works={savedWorks}
@@ -1483,6 +1484,7 @@ export default function App() {
           <div className="mobile-page-area">
             <MyBeadsPage
               user={user}
+              authLoading={authLoading}
               canvasData={canvasData}
               onApplyMapping={handleApplyBeadMapping}
               works={savedWorks}

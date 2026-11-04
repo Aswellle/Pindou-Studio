@@ -27,7 +27,7 @@ export function safeNextPath(next) {
   return value
 }
 
-const GATE_REASONS = new Set(['profile', 'ironing', 'quality'])
+const GATE_REASONS = new Set(['profile', 'myBeads', 'ironing', 'quality'])
 
 /**
  * 从登录页的 location 中解析回跳路径与守卫原因。

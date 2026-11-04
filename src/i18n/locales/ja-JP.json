@@ -25,7 +25,9 @@
       "qualityTitle": "高解像度書き出しにはログインが必要です",
       "qualityDescription": "ログインすると高解像度・印刷画質を選べ、より鮮明に書き出せます。",
       "profileTitle": "ログインしてマイページを表示",
-      "profileDescription": "マイページではアカウント、クラウド作品、お気に入りを管理できます。"
+      "profileDescription": "マイページではアカウント、クラウド作品、お気に入りを管理できます。",
+      "myBeadsTitle": "ログインしてマイビーズを使う",
+      "myBeadsDescription": "マイビーズでは個人パレットと在庫を管理します。ログインするとクラウドに同期され、デバイスを変えても続きから使えます。"
     },
     "login": "ログイン",
     "register": "登録",

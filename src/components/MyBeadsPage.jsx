@@ -17,13 +17,14 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
-import { useNavigate } from 'react-router-dom'
+import { Navigate, useLocation, useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import {
   Plus, Trash2, Pencil, Copy, Search, AlertTriangle,
   Palette as PaletteIcon, Layers, Package, Sparkles, Download, Upload, ClipboardCopy,
 } from 'lucide-react'
 import BackButton from '../components/BackButton'
+import LoadingScreen from './LoadingScreen'
 import { useToast } from '../components/Toast'
 import { useScrollLock } from '../hooks/useScrollLock'
 import { useDialogA11y } from '../hooks/useDialogA11y'
@@ -99,9 +100,10 @@ const PALETTE_ERROR_KEY = {
   [IMPORT_ERRORS.BAD_SHAPE]: 'myBeads.colors.import.errors.badShape',
 }
 
-export default function MyBeadsPage({ user, canvasData, onApplyMapping, works = [], onReassignWorkPalette }) {
+export default function MyBeadsPage({ user, authLoading, canvasData, onApplyMapping, works = [], onReassignWorkPalette }) {
   const { t } = useTranslation()
   const navigate = useNavigate()
+  const location = useLocation()
   const toast = useToast()
   const store = useUserPalettes(user)
 
@@ -617,6 +619,25 @@ export default function MyBeadsPage({ user, canvasData, onApplyMapping, works = 
   const paletteColorCount = selectedPalette
     ? (store.colorsByPalette.get(selectedPalette.id) || []).length
     : 0
+
+  // 与个人中心同一套门禁:会话解析中不判定未登录(否则刷新时已登录用户被误踢);
+  // 未登录跳独立登录页,带上回跳路径与原因,登录页据此展示「为什么需要登录」。
+  if (authLoading) {
+    return (
+      <div className="my-beads-page">
+        <LoadingScreen />
+      </div>
+    )
+  }
+  if (!user) {
+    return (
+      <Navigate
+        to="/login"
+        replace
+        state={{ next: location.pathname + location.search, reason: 'myBeads' }}
+      />
+    )
+  }
 
   return (
     <div className="my-beads-page">

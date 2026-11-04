@@ -25,7 +25,9 @@
       "qualityTitle": "高分辨率导出需要登录",
       "qualityDescription": "登录后可选择高分辨率与打印画质，导出更清晰的效果图。",
       "profileTitle": "登录后查看个人中心",
-      "profileDescription": "个人中心用于管理账号、云端作品与收藏。"
+      "profileDescription": "个人中心用于管理账号、云端作品与收藏。",
+      "myBeadsTitle": "登录后使用我的拼豆",
+      "myBeadsDescription": "我的拼豆用于管理个人色卡与库存，登录后数据同步到云端，换设备也能继续。"
     },
     "login": "登录",
     "register": "注册",
