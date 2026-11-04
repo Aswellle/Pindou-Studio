@@ -72,6 +72,12 @@ function makeCtx(sink = ops) {
       addColorStop: vi.fn((...a) => sink.push(['addColorStop', ...a])),
     }
   })
+  ctx.createRadialGradient = vi.fn((...args) => {
+    sink.push(['createRadialGradient', ...args])
+    return {
+      addColorStop: vi.fn((...a) => sink.push(['addColorStop', ...a])),
+    }
+  })
   for (const p of CTX_PROPS) {
     let v
     Object.defineProperty(ctx, p, {
@@ -307,18 +313,26 @@ describe('renderIroningEffect · 绘制行为', () => {
     ]
     await render(doc)
     const fillCalls = ops.filter(([op]) => op === 'fill')
-    // 底板 1 次 + 两个合法色块
-    expect(fillCalls).toHaveLength(3)
+    // 底板 1 次 + 每颗合法珠「主体 + 软边垫层(若预设启用)」
+    const preset = getIroningEffectPreset('linen')
+    const valid = 2
+    const perBead = 1 + (preset.beadSoftEdge > 0 ? 1 : 0)
+    expect(fillCalls).toHaveLength(1 + valid * perBead)
   })
 
   it('edgeRadius 参与方块圆角计算(预设参数不再无消费)', async () => {
     const doc = makeDoc(1, 1, solid('#3366CC'))
     await render(doc, 'linen')
     const radii = ops.filter(([op]) => op === 'path.arcTo').map(entry => entry[5])
-    expect(radii).toHaveLength(4) // 圆角矩形的四个角
-    // edgeRadius 是逻辑像素级细圆角:直接取预设值(下限 0.35),不随 cellSize 放大
-    const expected = Math.max(0.35, getIroningEffectPreset('linen').edgeRadius)
-    for (const r of radii) expect(r).toBeCloseTo(expected, 5)
+    // 单珠图纸的圆角矩形:软边垫层 + 主体(各 4 角)+ 圆顶精灵的裁剪矩形(4 角)
+    // 熔融珠圆角 = max(edgeRadius 下限, beadRound×cellSize):
+    // edgeRadius 是逻辑像素级下限,beadRound 提供随珠径放大的熔融圆角
+    const preset = getIroningEffectPreset('linen')
+    const beadR = Math.max(0.35, preset.edgeRadius, preset.beadRound * 12)
+    const spriteR = Math.max(0.5, preset.beadRound * 16)
+    expect(radii.filter(r => Math.abs(r - beadR) < 1e-9)).toHaveLength(8)
+    expect(radii.filter(r => Math.abs(r - spriteR) < 1e-9)).toHaveLength(4)
+    expect(radii).toHaveLength(12)
   })
 
   it('全空图纸也能渲染(只有底板,无色块)', async () => {
@@ -368,11 +382,14 @@ describe('renderIroningEffect · 绘制行为', () => {
   it('tile 缓存生效:同一图纸连续渲染两次,第二次不再新建纹理画布', async () => {
     const doc = makeDoc(4, 4, solid('#3366CC'))
     await render(doc)
+    // 2 张纹理 tile + 珠面精灵(圆顶/高光,按需创建)
+    const preset = getIroningEffectPreset('linen')
+    const spriteCount = (preset.beadDome > 0 ? 1 : 0) + (preset.beadSpecular > 0 ? 1 : 0)
     const firstTileCanvases = createElementSpy.mock.calls.filter(([tag]) => tag === 'canvas').length
-    expect(firstTileCanvases).toBe(2)
+    expect(firstTileCanvases).toBe(2 + spriteCount)
     await render(doc)
     const totalTileCanvases = createElementSpy.mock.calls.filter(([tag]) => tag === 'canvas').length
-    expect(totalTileCanvases).toBe(2)
+    expect(totalTileCanvases).toBe(2 + spriteCount)
   })
 })
 

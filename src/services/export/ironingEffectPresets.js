@@ -27,24 +27,37 @@ export const IRONING_TEXTURE_TYPES = Object.freeze([
  * 六种材质预设。
  *
  * 参数单位:
- *   - textureScale / sparkleSize / cellGap 为逻辑像素(样片坐标系,与 cellSize
- *     无关,材质颗粒与缝隙相对底板恒定,预览与导出观感一致);
- *   - textureOpacity / roughness / sheen / cellGap / edgeSoftness / edgeRadius /
- *     shadowOpacity / sparkleDensity 均为 0–1 强度或比例;
+ *   - textureScale / sparkleSize / beadWobble / cellGap 为逻辑像素(样片坐标系,
+ *     与 cellSize 无关,材质颗粒与缝隙相对底板恒定,预览与导出观感一致);
+ *   - meltOverlap / beadRound 为 cellSize 的比例(0–0.5):熔融后珠子互相
+ *     吞并间隙的外扩量与珠面圆角;
+ *   - textureOpacity / surfaceOpacity / roughness / sheen / cellGap /
+ *     edgeSoftness / edgeRadius / shadowOpacity / sparkleDensity /
+ *     beadDome / beadSpecular / beadTint / beadSoftEdge 均为 0–1 强度或比例;
  *   - sparkleSize 为 [min, max] 区间;非闪粉材质 density/size 为 0,
  *     不让织物纹理读取无意义的闪粉参数。
+ *
+ * 熔融组参数(meltOverlap / beadDome 等 melt 与 bead 前缀)是「珠子本身长成材质」的关键:
+ *   - meltOverlap 让相邻珠子互相重叠成连续色域,不再是一格格像素点;
+ *   - beadDome/beadSpecular 给每颗熔珠顶面高光与边缘暗部(soft-light 叠加),
+ *     无孔烫因此读作熔成一体的圆顶塑料,而不是平面色块;
+ *   - beadTint 把织物色罩到珠面上(毛巾烫最重),对应参考图里「颜色被绒面吃掉」;
+ *   - surfaceOpacity 是盖在珠面之上的纹理强度 —— 织物纹理必须横跨珠子与
+ *     底布,珠子才像「烫进布里」而不是「贴在底板上」。
  */
 export const IRONING_EFFECT_PRESETS = Object.freeze([
   Object.freeze({
     id: 'no-hole',
     labelKey: 'export.ironing.material.noHole',
     hintKey: 'export.ironing.hint.noHole',
+    showcaseImage: '/ironing/no-hole.jpg',
     // UI 色块预览代表色(= 材质底色)
     swatchColor: '#CBE4D6',
     fabricBase: '#CBE4D6',
     textureType: 'micro-grid',
     textureScale: 7,
     textureOpacity: 0.12,
+    surfaceOpacity: 0.1,
     roughness: 0.18,
     sheen: 0.08,
     sparkleDensity: 0,
@@ -54,17 +67,26 @@ export const IRONING_EFFECT_PRESETS = Object.freeze([
     edgeSoftness: 0.18,
     edgeRadius: 0.42,
     shadowOpacity: 0.16,
+    meltOverlap: 0.22,
+    beadRound: 0.22,
+    beadDome: 0.9,
+    beadSpecular: 0.5,
+    beadTint: 0,
+    beadWobble: 0.5,
+    beadSoftEdge: 0,
     seedSalt: 0x9e3779b9,
   }),
   Object.freeze({
     id: 'linen',
     labelKey: 'export.ironing.material.linen',
     hintKey: 'export.ironing.hint.linen',
+    showcaseImage: '/ironing/linen.jpg',
     swatchColor: '#EDE8DA',
     fabricBase: '#EDE8DA',
     textureType: 'woven-crosshatch',
     textureScale: 9,
     textureOpacity: 0.16,
+    surfaceOpacity: 0.5,
     roughness: 0.34,
     sheen: 0.05,
     sparkleDensity: 0,
@@ -74,17 +96,26 @@ export const IRONING_EFFECT_PRESETS = Object.freeze([
     edgeSoftness: 0.22,
     edgeRadius: 0.48,
     shadowOpacity: 0.18,
+    meltOverlap: 0.14,
+    beadRound: 0.12,
+    beadDome: 0.35,
+    beadSpecular: 0,
+    beadTint: 0.14,
+    beadWobble: 0.9,
+    beadSoftEdge: 0.25,
     seedSalt: 0x85ebca6b,
   }),
   Object.freeze({
     id: 'towel',
     labelKey: 'export.ironing.material.towel',
     hintKey: 'export.ironing.hint.towel',
+    showcaseImage: '/ironing/towel.jpg',
     swatchColor: '#D8C9E8',
     fabricBase: '#D8C9E8',
     textureType: 'terry-loop',
     textureScale: 11,
     textureOpacity: 0.22,
+    surfaceOpacity: 0.78,
     roughness: 0.72,
     sheen: 0.03,
     sparkleDensity: 0,
@@ -94,17 +125,26 @@ export const IRONING_EFFECT_PRESETS = Object.freeze([
     edgeSoftness: 0.3,
     edgeRadius: 0.52,
     shadowOpacity: 0.2,
+    meltOverlap: 0.16,
+    beadRound: 0.18,
+    beadDome: 0.15,
+    beadSpecular: 0,
+    beadTint: 0.3,
+    beadWobble: 1.6,
+    beadSoftEdge: 0.55,
     seedSalt: 0xc2b2ae35,
   }),
   Object.freeze({
     id: 'bath-mesh',
     labelKey: 'export.ironing.material.bathMesh',
     hintKey: 'export.ironing.hint.bathMesh',
+    showcaseImage: '/ironing/bath-mesh.jpg',
     swatchColor: '#C7E2F0',
     fabricBase: '#C7E2F0',
     textureType: 'bath-mesh',
     textureScale: 10,
     textureOpacity: 0.2,
+    surfaceOpacity: 0.62,
     roughness: 0.64,
     sheen: 0.05,
     sparkleDensity: 0,
@@ -114,17 +154,26 @@ export const IRONING_EFFECT_PRESETS = Object.freeze([
     edgeSoftness: 0.28,
     edgeRadius: 0.55,
     shadowOpacity: 0.2,
+    meltOverlap: 0.14,
+    beadRound: 0.15,
+    beadDome: 0.2,
+    beadSpecular: 0,
+    beadTint: 0.2,
+    beadWobble: 1.2,
+    beadSoftEdge: 0.4,
     seedSalt: 0x27d4eb2f,
   }),
   Object.freeze({
     id: 'fine-glitter',
     labelKey: 'export.ironing.material.fineGlitter',
     hintKey: 'export.ironing.hint.fineGlitter',
+    showcaseImage: '/ironing/fine-glitter.jpg',
     swatchColor: '#063D78',
     fabricBase: '#063D78',
     textureType: 'fine-sparkle',
     textureScale: 5,
     textureOpacity: 0.12,
+    surfaceOpacity: 0.9,
     roughness: 0.12,
     sheen: 0.42,
     sparkleDensity: 0.012,
@@ -134,17 +183,26 @@ export const IRONING_EFFECT_PRESETS = Object.freeze([
     edgeSoftness: 0.12,
     edgeRadius: 0.42,
     shadowOpacity: 0.18,
+    meltOverlap: 0.08,
+    beadRound: 0.1,
+    beadDome: 0.3,
+    beadSpecular: 0,
+    beadTint: 0,
+    beadWobble: 0.6,
+    beadSoftEdge: 0.15,
     seedSalt: 0x165667b1,
   }),
   Object.freeze({
     id: 'coarse-glitter',
     labelKey: 'export.ironing.material.coarseGlitter',
     hintKey: 'export.ironing.hint.coarseGlitter',
+    showcaseImage: '/ironing/coarse-glitter.jpg',
     swatchColor: '#EBCFE0',
     fabricBase: '#EBCFE0',
     textureType: 'coarse-sparkle',
     textureScale: 13,
     textureOpacity: 0.18,
+    surfaceOpacity: 0.85,
     roughness: 0.2,
     sheen: 0.62,
     sparkleDensity: 0.0035,
@@ -154,6 +212,13 @@ export const IRONING_EFFECT_PRESETS = Object.freeze([
     edgeSoftness: 0.16,
     edgeRadius: 0.46,
     shadowOpacity: 0.2,
+    meltOverlap: 0.1,
+    beadRound: 0.1,
+    beadDome: 0.3,
+    beadSpecular: 0,
+    beadTint: 0.14,
+    beadWobble: 0.7,
+    beadSoftEdge: 0.2,
     seedSalt: 0x2545f491,
   }),
 ])
@@ -190,6 +255,7 @@ export function validateIroningPreset(p) {
     if (typeof v !== 'number' || !Number.isFinite(v) || v < 0 || v > 1) errors.push(`${name} out of 0–1: ${v}`)
   }
   unit01('textureOpacity', p.textureOpacity)
+  unit01('surfaceOpacity', p.surfaceOpacity)
   unit01('roughness', p.roughness)
   unit01('sheen', p.sheen)
   unit01('cellGap', p.cellGap)
@@ -197,6 +263,23 @@ export function validateIroningPreset(p) {
   unit01('edgeRadius', p.edgeRadius)
   unit01('shadowOpacity', p.shadowOpacity)
   unit01('sparkleDensity', p.sparkleDensity)
+  unit01('beadDome', p.beadDome)
+  unit01('beadSpecular', p.beadSpecular)
+  unit01('beadTint', p.beadTint)
+  unit01('beadSoftEdge', p.beadSoftEdge)
+
+  const ratio = (name, v, max) => {
+    if (typeof v !== 'number' || !Number.isFinite(v) || v < 0 || v > max) {
+      errors.push(`${name} out of 0–${max}: ${v}`)
+    }
+  }
+  ratio('meltOverlap', p.meltOverlap, 0.5)
+  ratio('beadRound', p.beadRound, 0.5)
+
+  const nonNegative = (name, v) => {
+    if (typeof v !== 'number' || !Number.isFinite(v) || v < 0) errors.push(`${name} must be >= 0: ${v}`)
+  }
+  nonNegative('beadWobble', p.beadWobble)
 
   const positive = (name, v) => {
     if (typeof v !== 'number' || !Number.isFinite(v) || v <= 0) errors.push(`${name} must be positive: ${v}`)

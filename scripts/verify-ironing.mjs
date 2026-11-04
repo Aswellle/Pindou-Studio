@@ -198,13 +198,16 @@ for (const preset of IRONING_EFFECT_PRESETS) {
     blank.minL <= baseLum + 8 && blank.maxL >= baseLum - 8,
     `lum range [${blank.minL.toFixed(0)}, ${blank.maxL.toFixed(0)}], base ${baseLum.toFixed(0)}`)
 
-  // 已绘制格保持原色可辨:边框蓝 (0,0) 格中心
+  // 已绘制格保持原色可辨:边框蓝 (0,0) 格中心。
+  // 熔融版渲染会在珠面叠圆顶明暗与跨珠纹理(设计意图),绝对亮度必然偏移;
+  // 「可辨」改按相对断言:蓝色色相仍占优,且与周围底布保持明暗对比。
   const cellCenter = (0.5 * 20 + 40) * scale
   const cell = patchStats(ctx, cellCenter, cellCenter, 1, 5)
-  const cellLum = lum(hexToRgb(BLUE))
+  const [cr, cg, cb] = cell.median
+  const blankMedian = lum(blank.median)
   check(`${preset.id} 图案格颜色可辨(${BLUE})`,
-    Math.abs(lum(cell.median) - cellLum) <= 26,
-    `median lum ${lum(cell.median).toFixed(0)} vs ${cellLum.toFixed(0)}`)
+    cb - cr >= 40 && cb - cg >= 30 && Math.abs(lum(cell.median) - blankMedian) >= 18,
+    `median rgb [${cr},${cg},${cb}] blue-dominance ${cb - cr}/${cb - cg}, lum ${lum(cell.median).toFixed(0)} vs blank ${blankMedian.toFixed(0)}`)
 }
 
 // 闪粉可见性与密度:用「全空白底板」在大区域统计亮于基色的像素占比,
@@ -276,9 +279,10 @@ console.log('\n[preview/export parity]')
   const bg = pixelAt(ctx, 2, 2)
   check('preview 背景 #FDFBF7', closeTo(bg, hexToRgb('#FDFBF7'), 4), JSON.stringify(bg))
   const cell = patchStats(ctx, 0.5 * 12 + 24, 0.5 * 12 + 24, 1, 2)
-  const cellLum = lum(hexToRgb(BLUE))
-  check('preview 图案格颜色可辨', Math.abs(lum(cell.median) - cellLum) <= 26,
-    `median lum ${lum(cell.median).toFixed(0)} vs ${cellLum.toFixed(0)}`)
+  // 与导出同判:熔融渲染下按蓝色色相占优断言(圆顶/纹理会移动绝对亮度)
+  const [pr, pg, pb] = cell.median
+  check('preview 图案格颜色可辨', pb - pr >= 40 && pb - pg >= 30,
+    `median rgb [${pr},${pg},${pb}] blue-dominance ${pb - pr}/${pb - pg}`)
   const g = computeIroningGeometry({ width: N, height: N }, { mode: 'preview' })
   check('preview 分辨率与几何一致', width === g.width && height === g.height && actualScale === 1,
     `${width}×${height} vs ${g.width}×${g.height}`)

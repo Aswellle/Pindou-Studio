@@ -10,8 +10,9 @@
  *
  * 渲染层级(Layer A–F,顺序不可变):
  *   A 背景 #FDFBF7 → B 材料底板(波浪边 + 柔和投影)→ C 底纹 tile
- *   → D 图案色块(熔融方块,无中心孔)→ E 统一表面纹理覆盖
- *   → F 光泽 / 内阴影 / 边缘亮线。
+ *   → D 熔融珠层(外扩重叠 + wobble + 圆顶明暗精灵,珠子「长在」材料上)
+ *   → E 织物色罩(beadTint)→ F 统一表面纹理覆盖
+ *   → G 光泽 / 内阴影 / 边缘亮线。
  *
  * 性能与内存(09 文档 R4/R9):
  *   - 纹理先画进小尺寸 tile,再按逻辑坐标平铺(drawImage 目标尺寸 = tile 物理
@@ -434,6 +435,80 @@ function tileSizeFor(preset) {
   return Math.max(64, Math.min(160, Math.round(preset.textureScale * 12)))
 }
 
+// ── 珠面精灵(熔融立体感的来源) ─────────────────────────────
+// 每颗熔珠叠一层 soft-light 明暗精灵:左上受光、边缘入暗,把平面色块
+// 变成「熔成一体的圆顶」。精灵按 (presetId, cellSize, scale) 缓存,
+// 数量有限(6 预设 × 少量 cellSize 档),不需要 LRU。
+
+const spriteCache = new Map()
+
+/** 珠面精灵的固定逻辑尺寸:绘制时按珠子实际尺寸缩放,与 cellSize/倍率无关 */
+const SPRITE_LOGICAL = 16
+
+/** 逐珠确定性 wobble:同一颗珠在预览与导出里形状一致 */
+function beadWobblePx(seed, x, y, maxPx) {
+  if (!(maxPx > 0)) return 0
+  const h = fnv1a(`${x},${y}`, fnv1a('wobble', seed))
+  return ((h % 1000) / 999 - 0.5) * 2 * maxPx
+}
+
+/**
+ * 圆顶明暗精灵:径向渐变中心偏向左上 —— soft-light 下白 = 提亮(受光面),
+ * 黑 = 压暗(边缘),中灰不变。圆角裁切让精灵四角透明,不污染珠外底布。
+ */
+function getDomeSprite(preset, scale) {
+  const key = `dome:${preset.id}:${scale}`
+  const cached = spriteCache.get(key)
+  if (cached) return cached
+  const size = SPRITE_LOGICAL
+  const sprite = document.createElement('canvas')
+  sprite.width = size * scale
+  sprite.height = size * scale
+  const g = sprite.getContext('2d')
+  g.scale(scale, scale)
+  const r = Math.max(0.5, preset.beadRound * size)
+  const path = new Path2D()
+  roundedRectPath(path, 0.5, 0.5, size - 1, size - 1, r)
+  g.clip(path)
+  const grad = g.createRadialGradient(
+    size * 0.36, size * 0.32, size * 0.08,
+    size * 0.5, size * 0.5, size * 0.85,
+  )
+  // 受光面只到浅灰(不是纯白)、暗部不到纯黑:soft-light 下位移控制在
+  // 「可辨熔融圆顶」与「图案颜色仍可辨」之间(verify-ironing 的 ±26 容差)
+  grad.addColorStop(0, 'rgb(210,210,210)')
+  grad.addColorStop(0.5, 'rgb(128,128,128)')
+  grad.addColorStop(1, 'rgb(88,88,88)')
+  g.fillStyle = grad
+  g.fillRect(0, 0, size, size)
+  spriteCache.set(key, sprite)
+  return sprite
+}
+
+/** 左上高光点精灵:无孔烫熔珠的镜面反光(普通叠加,自带柔边) */
+function getSpecularSprite(preset, scale) {
+  const key = `spec:${preset.id}:${scale}`
+  const cached = spriteCache.get(key)
+  if (cached) return cached
+  const size = SPRITE_LOGICAL
+  const sprite = document.createElement('canvas')
+  sprite.width = size * scale
+  sprite.height = size * scale
+  const g = sprite.getContext('2d')
+  g.scale(scale, scale)
+  const grad = g.createRadialGradient(
+    size * 0.5, size * 0.5, 0,
+    size * 0.5, size * 0.5, size * 0.5,
+  )
+  grad.addColorStop(0, `rgba(255,255,255,${0.15 + preset.beadSpecular * 0.4})`)
+  grad.addColorStop(0.7, `rgba(255,255,255,${preset.beadSpecular * 0.18})`)
+  grad.addColorStop(1, 'rgba(255,255,255,0)')
+  g.fillStyle = grad
+  g.fillRect(0, 0, size, size)
+  spriteCache.set(key, sprite)
+  return sprite
+}
+
 // ── tile 缓存(轻量小画布,LRU) ─────────────────────────────
 
 const tileCache = new Map()
@@ -497,6 +572,7 @@ function getTextureTile(preset, scale, seed, variant) {
 export function __resetIroningTileCacheForTests() {
   tileCache.clear()
   tileCacheBytes = 0
+  spriteCache.clear()
 }
 
 /** 供测试断言字节预算(缓存是轻量小画布,不允许无界常驻) */
@@ -631,19 +707,52 @@ export async function renderIroningEffect(doc, options = {}) {
   onProgress?.(0.15)
   throwIfAborted(signal)
 
-  // ── Layer D:图案色块(熔融方块;空白格保留底纹) ──
-  // cellGap 是「逻辑像素」缝隙(03 §5:0–1 px),不是 cellSize 的比例:
-  // 熨烫后的色块应当彼此熔融贴合,只留发丝级分界。
-  const gap = preset.cellGap
-  const inset = gap / 2
-  // edgeRadius 与 cellGap 同为单位逻辑像素的细圆角(0.42–0.55 px):
-  // 熨烫后的色块是「方形/像素块」,圆角只做边缘柔化。若把它放大成 cellSize 比例,
-  // 四格交界会被圆弧切出可见的底布针孔(满色图案上呈规则亮点)。
-  // edgeSoftness 仍控制边缘融合强度(描边浓度)。
-  const blockR = Math.max(0.35, preset.edgeRadius)
+  // ── Layer D:熔融珠层( beads 长在材料上,而不是贴在底板上 ) ──
+  // 熨烫后的珠子互相吞并间隙:每珠外扩 meltOverlap×cellSize,相邻珠子重叠
+  // 成连续色域;wobble 打破机械网格;圆顶精灵(soft-light)给珠面受光/入暗。
   const cells = grid.cells
   let processed = 0
   const total = grid.width * grid.height
+  const meltPx = preset.meltOverlap * cellSize
+  const cornerR = Math.max(0.35, preset.edgeRadius, preset.beadRound * cellSize)
+  // 圆顶/高光精灵按需创建:全空图纸(无珠)不多建画布
+  let domeSprite = null
+  let specSprite = null
+  if (preset.beadDome > 0 || preset.beadSpecular > 0) {
+    for (let y = 0; y < grid.height && !domeSprite && !specSprite; y++) {
+      const row = cells[y]
+      for (let x = 0; x < grid.width; x++) {
+        const cell = row?.[x]
+        if (typeof cell === 'string' && HEX_RE.test(cell)) {
+          if (preset.beadDome > 0) domeSprite = getDomeSprite(preset, actualScale)
+          if (preset.beadSpecular > 0) specSprite = getSpecularSprite(preset, actualScale)
+          break
+        }
+      }
+    }
+  }
+
+  // 绒感垫层:高粗糙材质先铺一圈半透明外扩色,珠缘融进织物
+  if (preset.beadSoftEdge > 0) {
+    ctx.globalAlpha = 0.22 + preset.beadSoftEdge * 0.28
+    const softGrow = cellSize * (0.1 + preset.beadSoftEdge * 0.1)
+    for (let y = 0; y < grid.height; y++) {
+      const row = cells[y]
+      for (let x = 0; x < grid.width; x++) {
+        const cell = row?.[x]
+        if (typeof cell !== 'string' || !HEX_RE.test(cell)) continue
+        const side = cellSize + meltPx + softGrow
+        const px = pad + x * cellSize + (cellSize - side) / 2
+        const py = pad + y * cellSize + (cellSize - side) / 2
+        const blob = new Path2D()
+        roundedRectPath(blob, px, py, side, side, cornerR)
+        ctx.fillStyle = cell
+        ctx.fill(blob)
+      }
+    }
+    ctx.globalAlpha = 1
+  }
+
   for (let y = 0; y < grid.height; y++) {
     const row = cells[y]
     for (let x = 0; x < grid.width; x++) {
@@ -653,17 +762,29 @@ export async function renderIroningEffect(doc, options = {}) {
         processed += 1
         continue
       }
-      const px = pad + x * cellSize + inset
-      const py = pad + y * cellSize + inset
-      const side = cellSize - gap
-      const block = new Path2D()
-      roundedRectPath(block, px, py, side, side, blockR)
+      const wobble = beadWobblePx(seed, x, y, preset.beadWobble)
+      const side = cellSize + meltPx + wobble
+      const px = pad + x * cellSize + (cellSize - side) / 2
+      const py = pad + y * cellSize + (cellSize - side) / 2
+      const blob = new Path2D()
+      roundedRectPath(blob, px, py, side, side, cornerR)
       ctx.fillStyle = cell
-      ctx.fill(block)
-      // 方块轮廓:低对比描边,浓度由 edgeSoftness(边缘融合程度)决定
-      ctx.lineWidth = Math.max(0.5, cellSize * 0.05)
-      ctx.strokeStyle = `rgba(0,0,0,${0.03 + preset.edgeSoftness * 0.14})`
-      ctx.stroke(block)
+      ctx.fill(blob)
+      // 珠面立体感:圆顶明暗(soft-light,不改色相)+ 可选镜面高光
+      if (domeSprite) {
+        ctx.globalCompositeOperation = 'soft-light'
+        ctx.drawImage(domeSprite, px, py, side, side)
+        ctx.globalCompositeOperation = 'source-over'
+      }
+      if (specSprite) {
+        ctx.drawImage(
+          specSprite,
+          px + side * 0.14,
+          py + side * 0.12,
+          side * 0.52,
+          side * 0.42,
+        )
+      }
       processed += 1
       if (processed % BATCH_SIZE === 0) {
         throwIfAborted(signal)
@@ -675,10 +796,17 @@ export async function renderIroningEffect(doc, options = {}) {
   throwIfAborted(signal)
   onProgress?.(0.75)
 
+  // 织物色罩:毛巾/麻布的珠面被织物色吃掉一部分(参考图),无孔烫/细闪不上罩
+  if (preset.beadTint > 0) {
+    ctx.globalAlpha = preset.beadTint
+    ctx.fillStyle = preset.fabricBase
+    ctx.fillRect(pad, pad, boardW, boardH)
+    ctx.globalAlpha = 1
+  }
+
   // ── Layer E:统一表面纹理覆盖(第二层 tile,变体 seed + 半格错位) ──
-  // 织物材质用低强度让图案「长在材料上」;闪粉材质的闪点必须可见地
-  // 跨越底色与图案(参考图),保留较高强度。
-  const isSparkle = preset.textureType === 'fine-sparkle' || preset.textureType === 'coarse-sparkle'
+  // 强度 = preset.surfaceOpacity:织物纹理必须可见地横跨珠子与底布
+  // (参考图里绒圈/网纹压在图案上),闪粉材质则几乎全强度。
   const tileB = getTextureTile(preset, actualScale, seed, 1)
   drawTiled(
     ctx,
@@ -687,7 +815,7 @@ export async function renderIroningEffect(doc, options = {}) {
     pad,
     boardW,
     boardH,
-    isSparkle ? Math.min(1, preset.textureOpacity + 0.7) : preset.textureOpacity * 0.65,
+    preset.surfaceOpacity,
     actualScale,
     tileSizeFor(preset) / 2
   )
