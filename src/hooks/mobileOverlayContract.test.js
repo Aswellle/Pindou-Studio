@@ -239,15 +239,28 @@ function scanDialogContainers() {
   const found = []
   for (const file of walk(SRC)) {
     const code = readFileSync(file, 'utf8')
-    for (const line of code.split(/\r?\n/)) {
+    const lines = code.split(/\r?\n/)
+    lines.forEach((line, i) => {
       const m = line.match(/className=(?:"([^"]*)"|\{`([^`]*)`\})/)
-      if (!m) continue
+      if (!m) return
       const raw = m[1] ?? m[2]
       const tokens = raw.match(/[A-Za-z][A-Za-z0-9_-]*/g) || []
-      if (!tokens.some((tk) => DIALOG_CONTAINERS.has(tk))) continue
-      const hasDialog = /[Dd]ialogProps\}/.test(line) || /role="(?:dialog|alertdialog)"/.test(line)
+      if (!tokens.some((tk) => DIALOG_CONTAINERS.has(tk))) return
+
+      // 格式化会把同一元素的属性折成多行(className / ref / {...dialogProps}
+      // 各占一行)。只看 className 所在行会把这类写法误判为「没有 dialog 语义」,
+      // 所以扫描到开标签结束(或下一个 className)为止。
+      const elementLines = [line]
+      for (let j = i + 1; j < Math.min(i + 6, lines.length); j++) {
+        if (/className=/.test(lines[j])) break
+        elementLines.push(lines[j])
+        if (/>\s*$/.test(lines[j])) break
+      }
+      const element = elementLines.join('\n')
+      const hasDialog =
+        /[Dd]ialogProps\}/.test(element) || /role="(?:dialog|alertdialog)"/.test(element)
       found.push({ file: relative(SRC, file), line: line.trim().slice(0, 90), hasDialog })
-    }
+    })
   }
   return found
 }
