@@ -1,74 +1,75 @@
+import { useRef } from 'react'
 import { useTranslation } from 'react-i18next'
+import { Clock, Flame, Sparkles } from 'lucide-react'
 import { GALLERY_FEEDS } from '../hooks/useGalleryQuery'
 
-const TAB_ICONS = { featured: 'sparkles', popular: 'flame', latest: 'clock' }
-
-/** 三个一级 feed 的图标(内联 SVG,避免引入额外图标依赖) */
-function TabIcon({ kind }) {
-  const common = {
-    width: 14,
-    height: 14,
-    viewBox: '0 0 24 24',
-    fill: 'none',
-    stroke: 'currentColor',
-    strokeWidth: 2,
-    strokeLinecap: 'round',
-    strokeLinejoin: 'round',
-    'aria-hidden': true,
-  }
-  if (kind === 'featured') {
-    return (
-      <svg {...common}>
-        <path d="M12 3l1.9 4.6L18.5 9l-4.6 1.9L12 15.5l-1.9-4.6L5.5 9l4.6-1.4L12 3z" />
-        <path d="M19 15l.9 2.1L22 18l-2.1.9L19 21l-.9-2.1L16 18l2.1-.9L19 15z" />
-      </svg>
-    )
-  }
-  if (kind === 'popular') {
-    return (
-      <svg {...common}>
-        <path d="M12 22c4 0 7-2.8 7-7 0-3-2-5.5-3.5-7C14 6 13 4 13 2c-3 2-4.5 4.5-4.5 7 0 0-1.5-1-2-3C4.5 8 5 11 5 15c0 4.2 3 7 7 7z" />
-      </svg>
-    )
-  }
-  return (
-    <svg {...common}>
-      <circle cx="12" cy="12" r="9" />
-      <path d="M12 7v5l3 3" />
-    </svg>
-  )
-}
+/** 三个一级 feed 的图标(项目已依赖 lucide-react,不另写内联 SVG) */
+const TAB_ICONS = { featured: Sparkles, popular: Flame, latest: Clock }
 
 /**
  * GalleryFeedTabs — 一级 feed 切换(精选/热门/最新,顺序固定)。
- * tablist/tab 语义;切换不刷新页面,URL 由父级 setFeed 管理。
+ *
+ * tablist/tab 语义 + roving tabIndex:非活动 tab 不进入 Tab 序,因此必须
+ * 同时提供方向键导航,否则键盘用户只能停留在当前 feed(06 §M6)。
+ * 方向键按自动激活模式切换 feed 并把焦点移到新 tab;Home/End 到首尾。
+ * 切换不刷新页面,URL 由父级 setFeed 管理。
  */
 export default function GalleryFeedTabs({ feed, onFeedChange }) {
   const { t } = useTranslation()
+  const tabRefs = useRef({})
+
   const labelFor = {
     featured: t('gallery.explorer.tabFeatured'),
     popular: t('gallery.explorer.tabPopular'),
     latest: t('gallery.explorer.tabLatest'),
   }
 
+  const handleKeyDown = (event, index) => {
+    const { key } = event
+    let nextIndex
+    if (key === 'ArrowRight') nextIndex = (index + 1) % GALLERY_FEEDS.length
+    else if (key === 'ArrowLeft') nextIndex = (index - 1 + GALLERY_FEEDS.length) % GALLERY_FEEDS.length
+    else if (key === 'Home') nextIndex = 0
+    else if (key === 'End') nextIndex = GALLERY_FEEDS.length - 1
+    else return
+
+    event.preventDefault()
+    const next = GALLERY_FEEDS[nextIndex]
+    onFeedChange(next)
+    // tab 节点不随切换卸载,可以同步聚焦;受控父级下一帧会更新 tabIndex
+    tabRefs.current[next]?.focus()
+  }
+
   return (
-    <div className="gallery-feed-tabs" role="tablist" aria-label={t('gallery.explorer.tabsLabel')}>
-      {GALLERY_FEEDS.map(value => (
-        <button
-          key={value}
-          type="button"
-          role="tab"
-          id={`gallery-tab-${value}`}
-          aria-selected={feed === value}
-          aria-controls="gallery-feed-panel"
-          tabIndex={feed === value ? 0 : -1}
-          className={`gallery-feed-tab${feed === value ? ' active' : ''}`}
-          onClick={() => onFeedChange(value)}
-        >
-          <TabIcon kind={TAB_ICONS[value]} />
-          <span>{labelFor[value]}</span>
-        </button>
-      ))}
+    <div
+      className="gallery-feed-tabs"
+      role="tablist"
+      aria-label={t('gallery.explorer.tabsLabel')}
+      aria-orientation="horizontal"
+    >
+      {GALLERY_FEEDS.map((value, index) => {
+        const Icon = TAB_ICONS[value]
+        return (
+          <button
+            key={value}
+            ref={el => {
+              tabRefs.current[value] = el
+            }}
+            type="button"
+            role="tab"
+            id={`gallery-tab-${value}`}
+            aria-selected={feed === value}
+            aria-controls="gallery-feed-panel"
+            tabIndex={feed === value ? 0 : -1}
+            className={`gallery-feed-tab${feed === value ? ' active' : ''}`}
+            onClick={() => onFeedChange(value)}
+            onKeyDown={e => handleKeyDown(e, index)}
+          >
+            <Icon size={14} aria-hidden="true" />
+            <span>{labelFor[value]}</span>
+          </button>
+        )
+      })}
     </div>
   )
 }
