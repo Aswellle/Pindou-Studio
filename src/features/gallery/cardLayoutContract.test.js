@@ -15,6 +15,7 @@ import { join } from 'node:path'
 const SRC = join(process.cwd(), 'src')
 const GALLERY_CSS = readFileSync(join(SRC, 'features', 'gallery', 'gallery.css'), 'utf8')
 const THUMB_JSX = readFileSync(join(SRC, 'components', 'ThumbnailCanvas.jsx'), 'utf8')
+const TEMPLATES_JS = readFileSync(join(SRC, 'data', 'templates.js'), 'utf8')
 
 /** 提取某个选择器块的内容(简单版:从选择器到匹配的右花括号) */
 function ruleBody(css, selector) {
@@ -48,7 +49,10 @@ function allRuleBodies(css, selector) {
       if (css[i] === '{') depth++
       else if (css[i] === '}') {
         depth--
-        if (depth === 0) { end = i; break }
+        if (depth === 0) {
+          end = i
+          break
+        }
       }
     }
     if (end === -1) break
@@ -103,7 +107,7 @@ describe('图库卡片版式契约', () => {
   it('徽章行不换行(换行会让同排卡片高度不一致)', () => {
     // .template-meta 在移动端媒体查询里也有一条覆盖规则,这里要的是基础规则
     const blocks = allRuleBodies(GALLERY_CSS, '.template-meta {')
-    const base = blocks.find((b) => b.includes('display: flex'))
+    const base = blocks.find(b => b.includes('display: flex'))
     expect(base).toBeTruthy()
     expect(base).toContain('flex-wrap: nowrap')
   })
@@ -148,5 +152,54 @@ describe('ThumbnailCanvas 渲染契约', () => {
     const code = THUMB_JSX.replace(/\/\/.*$/gm, '').replace(/\/\*[\s\S]*?\*\//g, '')
     expect(code).not.toMatch(/fillStyle\s*=\s*['"]#fff/i)
     expect(code).toMatch(/clearRect/)
+  })
+})
+
+describe('模板尺寸以数据实际形状为准', () => {
+  it('ThumbnailCanvas 布局尺寸:pattern 推导优先,声明值只作兜底', () => {
+    // 声明的 gridWidth/gridHeight 与 pattern 形状不符的历史行/外部写入行,
+    // 按声明铺格子会把珠子错位、裁切(数据形状是唯一真相,与作品载入同一纪律)。
+    expect(THUMB_JSX).toMatch(/const width = derived\.width \|\| Number\(gridWidth\)/)
+    expect(THUMB_JSX).toMatch(/const height = derived\.height \|\| Number\(gridHeight\)/)
+    // 旧的「声明优先」顺序不得回归
+    expect(THUMB_JSX).not.toMatch(/Number\(gridWidth\)\s*\|\|\s*derived\.width/)
+    expect(THUMB_JSX).not.toMatch(/Number\(gridHeight\)\s*\|\|\s*derived\.height/)
+  })
+
+  it('铺格只按实际形状(rows × cols)contain,声明尺寸不参与', () => {
+    const code = THUMB_JSX.replace(/\/\/.*$/gm, '')
+    expect(code).toMatch(/Math\.min\(bitmapW \/ cols, bitmapH \/ rows\)/)
+    // 声明网格的 offsetX/offsetY 居中已删除:布局尺寸与数据一致时它恒为 0,
+    // 数据不一致时它正是错位的来源
+    expect(code).not.toMatch(/offsetX|offsetY/)
+  })
+
+  it('templateDimensions 同纪律:pattern 推导优先,声明值兜底', () => {
+    expect(TEMPLATES_JS).toMatch(/derived\.width \|\| Number\(template\?\.gridWidth\)/)
+    expect(TEMPLATES_JS).not.toMatch(/Number\(template\?\.gridWidth\)\s*\|\|\s*derived\.width/)
+  })
+})
+
+describe('载入确认浮窗预览契约', () => {
+  it('桌面预览:高度封顶一致,不再固定 1:1 方格', () => {
+    const preview = ruleBody(GALLERY_CSS, '.load-confirm-preview {')
+    expect(preview).not.toContain('aspect-ratio')
+    expect(preview).toMatch(/height:\s*min\(/)
+    expect(preview).toContain('min-height: 0')
+  })
+
+  it('移动端预览:高度统一封顶(键盘安全视口),画布高度铺满、宽度按比例自适应', () => {
+    // 媒体查询里的是第二条 .load-confirm-preview 规则
+    const blocks = allRuleBodies(GALLERY_CSS, '.load-confirm-preview {')
+    const mobile = blocks.find(b => b.includes('--visible-vh'))
+    expect(mobile).toBeTruthy()
+    expect(mobile).not.toContain('aspect-ratio')
+    expect(mobile).toMatch(/height:\s*calc\(var\(--visible-vh/)
+    const canvasBlocks = allRuleBodies(GALLERY_CSS, '.load-confirm-preview canvas {')
+    const mobileCanvas = canvasBlocks[canvasBlocks.length - 1]
+    expect(mobileCanvas).toContain('height: 100%')
+    expect(mobileCanvas).toContain('width: auto')
+    expect(mobileCanvas).toContain('max-width: 100%')
+    expect(mobileCanvas).toContain('object-fit: contain')
   })
 })
