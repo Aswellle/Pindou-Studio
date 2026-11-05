@@ -427,9 +427,13 @@ export default function GalleryPage({ onLoadTemplate, cloudStore }) {
               <span>{t('gallery.explorer.filter')}</span>
               {activeFilterCount > 0 && <span className="gallery-filter-badge">{activeFilterCount}</span>}
             </button>
-            <span className="gallery-result-count" role="status">
-              {t('gallery.explorer.resultCount', { n: feedResults.length })}
-            </span>
+            {/* 结果数只描述网格结果:策展视图展示的是人工挑选的区块,
+                用全库模板数会显示一个与屏幕内容无关的数字。 */}
+            {!showCurationView && (
+              <span className="gallery-result-count" role="status">
+                {t('gallery.explorer.resultCount', { n: feedResults.length })}
+              </span>
+            )}
           </div>
 
           {/* 激活筛选 chips:逐项移除 + 清除全部;无筛选时不渲染(不留空高度) */}

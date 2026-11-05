@@ -123,6 +123,8 @@ describe('GalleryPage · 精选资源区块', () => {
     const names = [...section.querySelectorAll('.template-name')].map(el => el.textContent)
     // featuredTemplateIds 顺序即展示顺序;tpl-3 未被精选,不在区块里
     expect(names).toEqual(['猫', '鸭子'])
+    // 策展视图不显示「共 N 张图纸」——那个数字统计的是全库网格,与屏幕内容无关
+    expect(screen.queryByText(/共 \d+ 张图纸/)).toBeNull()
   })
 
   it('关系中引用了不存在/已删除的模板时跳过,不渲染断链卡片', () => {
@@ -191,5 +193,7 @@ describe('GalleryPage · 精选资源区块', () => {
     expect(container.querySelector('.gallery-section')).toBeNull()
     // 精选视图无策展资源(主题/合集也为空)→ 回退完整模板网格
     expect(container.querySelectorAll('.template-card').length).toBe(3)
+    // 网格视图继续显示真实结果数
+    expect(screen.getByText('共 3 张图纸')).toBeTruthy()
   })
 })
