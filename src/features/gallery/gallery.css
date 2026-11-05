@@ -420,7 +420,7 @@
   color: var(--accent);
   font-weight: 600;
 }
-/* 填充模板确认对话框:桌面式两栏(左侧方形大预览 | 右侧信息+操作),防误触 */
+/* 填充模板确认对话框:桌面式两栏(左侧大预览 | 右侧信息+操作),防误触 */
 .load-confirm-overlay {
   /* 定位/高度(--visible-vh)/滚动/safe-area/居中由 index.css 全屏浮层基础设施统一提供 */
   background: rgba(0, 0, 0, 0.4);
@@ -444,12 +444,15 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 0; /* 去内边距:预览图铺满预览区,沉浸感;圆角由模态框 overflow:hidden 裁切 */
-  aspect-ratio: 1 / 1; /* 方形预览区,各尺寸模板等大且更大展示 */
+  padding: 20px;
+  /* 统一规矩:预览高度封顶一致,宽度由画布按图案比例自适应 ——
+             细长/扁宽图案等比尽量大,不再被钉进 1:1 方格漂在小角落 */
+  height: min(72vh, 560px);
+  min-height: 0;
 }
 .load-confirm-preview canvas {
   image-rendering: pixelated;
-  /* 双向 contain:方形预览区里,29×29 与 11×37 都完整显示、不变形 */
+  /* 双向 contain:29×29 与 11×37 都完整显示、不变形 */
   max-width: 100%;
   max-height: 100%;
   width: auto;
@@ -514,19 +517,23 @@
   .load-confirm-preview {
     flex: none;
     width: 100%;
-    /* 方形预览区,但上限跟随可视高度:低高度横屏时若仍是满宽正方形,
-               预览就把按钮挤出屏幕(共享组的滚动兜底只能让用户滚,体验很差)。 */
-    aspect-ratio: 1 / 1;
-    max-height: 42vh;
-    max-height: calc(var(--visible-vh, 100vh) * 0.42);
+    /* 与桌面同一条规矩:预览高度统一封顶(键盘安全视口),预览面
+               由画布按图案比例自适应贴合 —— 11×37 的细长条不再漂在
+               一大片空方格中间,29×29 也仍是满幅 */
+    height: 42vh;
+    height: calc(var(--visible-vh, 100vh) * 0.42);
     min-height: 0;
-    padding: 0; /* 去内边距,预览图刚好铺满预览区 */
+    padding: 12px;
     display: flex;
-    align-items: stretch;
-    justify-content: stretch;
+    align-items: center;
+    justify-content: center;
   }
   .load-confirm-preview canvas {
-    /* 预览区被压低时保持等比,不拉伸变形(基础规则已是 contain,这里只需居中对齐) */
+    /* 高度铺满预览区、宽度按逻辑网格比例自适应;超宽图案由
+               max-width 收口,object-fit: contain 保证画布内仍等比居中 */
+    height: 100%;
+    width: auto;
+    max-width: 100%;
     object-fit: contain;
     margin: auto;
   }

@@ -629,45 +629,56 @@ export default function GalleryPage({ onLoadTemplate, cloudStore }) {
       {/* 填充模板到画布:点击卡片后弹出确认,避免误触直接填充+跳转 */}
       {pendingLoad &&
         createPortal(
-          <div className="load-confirm-overlay">
-            <div
-              className="load-confirm-modal"
-              ref={loadConfirmRef}
-              {...loadConfirmDialogProps}
-              onClick={e => e.stopPropagation()}
-            >
-              <div className="load-confirm-preview">
-                <ThumbnailCanvas pattern={pendingLoad.pattern} size={pendingLoad.size} />
-              </div>
-              <div className="load-confirm-info">
-                <h3 className="load-confirm-title">{t('gallery.loadConfirmTitle')}</h3>
-                <p className="load-confirm-body">
-                  {t('gallery.loadConfirmBody', {
-                    name: pendingLoad.name
-                      ? pendingLoad.nameZh || pendingLoad.name
-                      : t(`templates.names.${pendingLoad.nameKey}`, pendingLoad.nameKey),
-                    width: templateDimensions(pendingLoad).width,
-                    height: templateDimensions(pendingLoad).height,
-                  })}
-                </p>
-                <div className="load-confirm-actions">
-                  <button className="load-confirm-cancel" autoFocus onClick={() => setPendingLoad(null)}>
-                    {t('common.cancel')}
-                  </button>
-                  <button
-                    className="load-confirm-ok"
-                    onClick={() => {
-                      const tpl = pendingLoad
-                      setPendingLoad(null)
-                      handleTemplateLoad(tpl)
-                    }}
-                  >
-                    {t('gallery.loadToCanvas')}
-                  </button>
+          (() => {
+            // 预览与文案共用同一份真实宽高(数据形状优先,见 templateDimensions)
+            const pendingDims = templateDimensions(pendingLoad)
+            return (
+              <div className="load-confirm-overlay">
+                <div
+                  className="load-confirm-modal"
+                  ref={loadConfirmRef}
+                  {...loadConfirmDialogProps}
+                  onClick={e => e.stopPropagation()}
+                >
+                  <div className="load-confirm-preview">
+                    <ThumbnailCanvas
+                      pattern={pendingLoad.pattern}
+                      size={pendingLoad.size}
+                      gridWidth={pendingDims.width}
+                      gridHeight={pendingDims.height}
+                    />
+                  </div>
+                  <div className="load-confirm-info">
+                    <h3 className="load-confirm-title">{t('gallery.loadConfirmTitle')}</h3>
+                    <p className="load-confirm-body">
+                      {t('gallery.loadConfirmBody', {
+                        name: pendingLoad.name
+                          ? pendingLoad.nameZh || pendingLoad.name
+                          : t(`templates.names.${pendingLoad.nameKey}`, pendingLoad.nameKey),
+                        width: pendingDims.width,
+                        height: pendingDims.height,
+                      })}
+                    </p>
+                    <div className="load-confirm-actions">
+                      <button className="load-confirm-cancel" autoFocus onClick={() => setPendingLoad(null)}>
+                        {t('common.cancel')}
+                      </button>
+                      <button
+                        className="load-confirm-ok"
+                        onClick={() => {
+                          const tpl = pendingLoad
+                          setPendingLoad(null)
+                          handleTemplateLoad(tpl)
+                        }}
+                      >
+                        {t('gallery.loadToCanvas')}
+                      </button>
+                    </div>
+                  </div>
                 </div>
               </div>
-            </div>
-          </div>,
+            )
+          })(),
           document.body
         )}
     </div>
