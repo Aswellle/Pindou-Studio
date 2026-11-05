@@ -10,14 +10,12 @@ const list = [
   tpl('3', { name: 'Dog', nameZh: '小狗', difficulty: 'hard' }),
 ]
 
-const wrapperFor = (initial = '/gallery') => ({ children }) => (
-  <MemoryRouter initialEntries={[initial]}>{children}</MemoryRouter>
-)
+const wrapperFor =
+  (initial = '/gallery') =>
+  ({ children }) => <MemoryRouter initialEntries={[initial]}>{children}</MemoryRouter>
 
-const renderFilters = (templates = list, initial) => renderHook(
-  () => useFilteredTemplates(templates, (t) => t.nameZh || t.name),
-  { wrapper: wrapperFor(initial) },
-)
+const renderFilters = (templates = list, initial) =>
+  renderHook(() => useFilteredTemplates(templates, t => t.nameZh || t.name), { wrapper: wrapperFor(initial) })
 
 beforeEach(() => {})
 afterEach(() => {})
@@ -25,13 +23,13 @@ afterEach(() => {})
 describe('useFilteredTemplates', () => {
   it('默认返回全部模板', () => {
     const { result } = renderFilters()
-    expect(result.current.filtered.map((t) => t.id)).toEqual(['1', '2', '3'])
+    expect(result.current.filtered.map(t => t.id)).toEqual(['1', '2', '3'])
   })
 
   it('从 URL 恢复搜索词与筛选(刷新/分享/前进后退)', () => {
     const { result } = renderFilters(list, '/gallery?q=%E5%B0%8F&cat=animal&diff=easy')
     // q=小 命中 小鸭/小猫,再叠加 cat=animal → 只剩 1
-    expect(result.current.filtered.map((t) => t.id)).toEqual(['1'])
+    expect(result.current.filtered.map(t => t.id)).toEqual(['1'])
     expect(result.current.searchTerm).toBe('小')
     expect(result.current.category).toBe('animal')
     expect(result.current.difficulty).toBe('easy')
@@ -40,15 +38,15 @@ describe('useFilteredTemplates', () => {
   it('搜索同时匹配原始名与翻译名', () => {
     const { result } = renderFilters()
     act(() => result.current.setSearchTerm('duck'))
-    expect(result.current.filtered.map((t) => t.id)).toEqual(['1'])
+    expect(result.current.filtered.map(t => t.id)).toEqual(['1'])
     act(() => result.current.setSearchTerm('小猫'))
-    expect(result.current.filtered.map((t) => t.id)).toEqual(['2'])
+    expect(result.current.filtered.map(t => t.id)).toEqual(['2'])
   })
 
   it('难度筛选与空结果', () => {
     const { result } = renderFilters()
     act(() => result.current.setDifficulty('hard'))
-    expect(result.current.filtered.map((t) => t.id)).toEqual(['3'])
+    expect(result.current.filtered.map(t => t.id)).toEqual(['3'])
     act(() => result.current.setSearchTerm('zzz'))
     expect(result.current.filtered).toEqual([])
   })
@@ -83,21 +81,17 @@ describe('useFilteredTemplates · 用色数量筛选', () => {
       tpl('many', ['#FF0000', '#00FF00', '#0000FF', '#FFFF00', '#FF00FF']),
     ]
     // colors 只接受受支持档位(4/8/12/16/24/32),4 色上限筛掉 5 色的模板
-    const { result } = renderHook(() => useFilteredTemplates(list, (x) => x.name), {
-      wrapper: ({ children }) => (
-        <MemoryRouter initialEntries={['/?colors=4']}>{children}</MemoryRouter>
-      ),
+    const { result } = renderHook(() => useFilteredTemplates(list, x => x.name), {
+      wrapper: ({ children }) => <MemoryRouter initialEntries={['/?colors=4']}>{children}</MemoryRouter>,
     })
-    expect(result.current.filtered.map((x) => x.id)).toEqual(['few'])
+    expect(result.current.filtered.map(x => x.id)).toEqual(['few'])
     expect(result.current.maxColors).toBe(4)
   })
 
   it('非法 colors 参数当作不限', () => {
     const list = [tpl('a', ['#FF0000', '#00FF00', '#0000FF'])]
-    const { result } = renderHook(() => useFilteredTemplates(list, (x) => x.name), {
-      wrapper: ({ children }) => (
-        <MemoryRouter initialEntries={['/?colors=abc']}>{children}</MemoryRouter>
-      ),
+    const { result } = renderHook(() => useFilteredTemplates(list, x => x.name), {
+      wrapper: ({ children }) => <MemoryRouter initialEntries={['/?colors=abc']}>{children}</MemoryRouter>,
     })
     expect(result.current.maxColors).toBe(null)
     expect(result.current.filtered).toHaveLength(1)
@@ -105,7 +99,7 @@ describe('useFilteredTemplates · 用色数量筛选', () => {
 
   it('resetFilters 一并清掉 colors', () => {
     const list = [tpl('a', ['#FF0000', '#00FF00', '#0000FF', '#FFFF00', '#FF00FF'])]
-    const { result } = renderHook(() => useFilteredTemplates(list, (x) => x.name), {
+    const { result } = renderHook(() => useFilteredTemplates(list, x => x.name), {
       wrapper: ({ children }) => (
         <MemoryRouter initialEntries={['/?colors=4&cat=animal']}>{children}</MemoryRouter>
       ),

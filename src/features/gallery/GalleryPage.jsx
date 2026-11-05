@@ -175,11 +175,7 @@ export default function GalleryPage({ onLoadTemplate, cloudStore }) {
   const filteredTemplates = useMemo(
     () =>
       allTemplates.filter(template =>
-        templateMatchesQuery(
-          template,
-          { searchTerm, category, difficulty, maxColors },
-          resolveTemplateName
-        )
+        templateMatchesQuery(template, { searchTerm, category, difficulty, maxColors }, resolveTemplateName)
       ),
     [allTemplates, searchTerm, category, difficulty, maxColors, resolveTemplateName]
   )
@@ -544,14 +540,10 @@ export default function GalleryPage({ onLoadTemplate, cloudStore }) {
                 {feed === 'featured' && (filtersActive || browse) && (
                   <div className="gallery-feed-note" role="note">
                     <strong>
-                      {filtersActive
-                        ? t('gallery.explorer.resultsTitle')
-                        : t('gallery.explorer.navAll')}
+                      {filtersActive ? t('gallery.explorer.resultsTitle') : t('gallery.explorer.navAll')}
                     </strong>
                     <span>
-                      {filtersActive
-                        ? t('gallery.explorer.resultsHint')
-                        : t('gallery.explorer.allHint')}
+                      {filtersActive ? t('gallery.explorer.resultsHint') : t('gallery.explorer.allHint')}
                     </span>
                   </div>
                 )}

@@ -19,8 +19,7 @@ afterEach(() => {
   cleanup()
 })
 
-const setup = (props = {}) =>
-  render(<GalleryFeedTabs feed="featured" onFeedChange={vi.fn()} {...props} />)
+const setup = (props = {}) => render(<GalleryFeedTabs feed="featured" onFeedChange={vi.fn()} {...props} />)
 
 describe('GalleryFeedTabs', () => {
   it('按固定顺序渲染三个 feed,当前项可聚焦且 aria-selected', () => {
@@ -35,12 +34,8 @@ describe('GalleryFeedTabs', () => {
 
   it('三个 tab 使用不同图标(精选不再与热门共用时钟)', () => {
     setup()
-    expect(
-      document.getElementById('gallery-tab-featured').querySelector('svg.lucide-sparkles')
-    ).toBeTruthy()
-    expect(
-      document.getElementById('gallery-tab-popular').querySelector('svg.lucide-flame')
-    ).toBeTruthy()
+    expect(document.getElementById('gallery-tab-featured').querySelector('svg.lucide-sparkles')).toBeTruthy()
+    expect(document.getElementById('gallery-tab-popular').querySelector('svg.lucide-flame')).toBeTruthy()
     expect(document.getElementById('gallery-tab-latest').querySelector('svg.lucide-clock')).toBeTruthy()
   })
 

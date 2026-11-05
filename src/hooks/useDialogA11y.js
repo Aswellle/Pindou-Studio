@@ -35,14 +35,7 @@ const stack = []
  * @param {boolean} [options.modal] - 桌面锚定浮层等「边操作边看结果」的场景传 false,
  *   避免 aria-modal 让辅助技术把浮层外的结果区当成不可访问
  */
-export function useDialogA11y({
-  open,
-  onClose,
-  label,
-  disabled = false,
-  role = 'dialog',
-  modal = true,
-}) {
+export function useDialogA11y({ open, onClose, label, disabled = false, role = 'dialog', modal = true }) {
   const ref = useRef(null)
   const restoreRef = useRef(null)
   const tokenRef = useRef(null)
@@ -77,7 +70,7 @@ export function useDialogA11y({
 
   useEffect(() => {
     if (!open || disabled) return undefined
-    const onKeyDown = (e) => {
+    const onKeyDown = e => {
       if (e.key !== 'Escape' || e.defaultPrevented) return
       // 输入法组合态:中文/日文输入时 Esc 是「取消候选词」而不是「关闭浮层」。
       // Chrome/Edge 在组合期间仍会派发 keydown(仅 isComposing=true),

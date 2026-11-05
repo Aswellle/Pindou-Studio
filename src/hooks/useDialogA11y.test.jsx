@@ -49,7 +49,12 @@ describe('useDialogA11y', () => {
 
   it('支持 alertdialog 角色', () => {
     function Alert({ onClose }) {
-      const { ref, dialogProps } = useDialogA11y({ open: true, onClose, role: 'alertdialog', label: '确认删除' })
+      const { ref, dialogProps } = useDialogA11y({
+        open: true,
+        onClose,
+        role: 'alertdialog',
+        label: '确认删除',
+      })
       return <div ref={ref} {...dialogProps} data-testid="alert" />
     }
     render(<Alert onClose={() => {}} />)
@@ -108,7 +113,7 @@ describe('useDialogA11y', () => {
       <>
         <Dialog open onClose={outerClose} label="外层" />
         <Dialog open onClose={innerClose} label="内层" />
-      </>,
+      </>
     )
     fireEvent.keyDown(document, { key: 'Escape' })
     expect(innerClose).toHaveBeenCalledTimes(1)
@@ -122,13 +127,13 @@ describe('useDialogA11y', () => {
       <>
         <Dialog open onClose={outerClose} label="外层" />
         <Dialog open onClose={innerClose} label="内层" />
-      </>,
+      </>
     )
     rerender(
       <>
         <Dialog open onClose={outerClose} label="外层" />
         <Dialog open={false} onClose={innerClose} label="内层" />
-      </>,
+      </>
     )
     fireEvent.keyDown(document, { key: 'Escape' })
     expect(outerClose).toHaveBeenCalledTimes(1)

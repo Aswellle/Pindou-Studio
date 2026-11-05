@@ -15,7 +15,9 @@ export function templateMatchesQuery(
   { searchTerm = '', category = 'all', difficulty = 'all', maxColors = null } = {},
   resolveName
 ) {
-  const term = String(searchTerm || '').trim().toLowerCase()
+  const term = String(searchTerm || '')
+    .trim()
+    .toLowerCase()
   if (term) {
     const haystack = [template?.name, template?.nameZh, resolveName ? resolveName(template) : '']
       .filter(Boolean)
@@ -42,16 +44,20 @@ export function templateMatchesQuery(
  */
 export function useFilteredTemplates(templates, resolveName) {
   const {
-    searchTerm, setSearchTerm,
-    category, setCategory,
-    difficulty, setDifficulty,
-    maxColors, setMaxColors,
+    searchTerm,
+    setSearchTerm,
+    category,
+    setCategory,
+    difficulty,
+    setDifficulty,
+    maxColors,
+    setMaxColors,
     setFilters,
   } = useGalleryQuery()
 
   const filtered = useMemo(
     () =>
-      (templates || []).filter((template) =>
+      (templates || []).filter(template =>
         templateMatchesQuery(template, { searchTerm, category, difficulty, maxColors }, resolveName)
       ),
     [templates, searchTerm, category, difficulty, maxColors, resolveName]

@@ -167,9 +167,7 @@ export function useGalleryQuery() {
    * feed 保持 featured,但面板渲染全量网格而不是策展区块;tab 切换会退出该状态。
    */
   const browseAll = () => {
-    writeParams(
-      buildParams({ q: '', cat: 'all', diff: 'all', colors: '', feed: 'featured', browse: true })
-    )
+    writeParams(buildParams({ q: '', cat: 'all', diff: 'all', colors: '', feed: 'featured', browse: true }))
   }
 
   return {

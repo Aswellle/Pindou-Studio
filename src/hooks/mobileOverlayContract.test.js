@@ -23,9 +23,15 @@ const KEYBOARD_SAFE = readFileSync(join(SRC, 'hooks', 'useKeyboardSafe.js'), 'ut
 const CLICK_CATCHERS = new Set(['export-menu-overlay', 'brand-menu-overlay', 'selection-menu-overlay'])
 
 // 自带完整浮层基础的类:其他浮层可以叠加它们获得同一套契约
-const SHARED_BASES = new Set(['modal-overlay', 'admin-modal-overlay',
-  'users-confirm-overlay', 'profile-confirm-overlay', 'load-confirm-overlay',
-  'my-beads-modal-overlay', 'quantizer-zoom'])
+const SHARED_BASES = new Set([
+  'modal-overlay',
+  'admin-modal-overlay',
+  'users-confirm-overlay',
+  'profile-confirm-overlay',
+  'load-confirm-overlay',
+  'my-beads-modal-overlay',
+  'quantizer-zoom',
+])
 
 function walk(dir, out = []) {
   for (const name of readdirSync(dir)) {
@@ -70,7 +76,7 @@ function parseJsxAttrs(tag) {
   // 跳过标签名
   while (i < tag.length && /[A-Za-z0-9]/.test(tag[i])) i++
 
-  const readValue = (j) => {
+  const readValue = j => {
     // 跳过空白与 '='
     while (j < tag.length && /\s/.test(tag[j])) j++
     if (tag[j] !== '=') return { value: '', end: j }
@@ -112,7 +118,10 @@ function parseJsxAttrs(tag) {
     const nameStart = i
     while (i < tag.length && /[A-Za-z0-9_:.-]/.test(tag[i])) i++
     const name = tag.slice(nameStart, i)
-    if (!name) { i++; continue }
+    if (!name) {
+      i++
+      continue
+    }
     const { value, end } = readValue(i)
     i = end
     attrs[name] = value
@@ -173,7 +182,7 @@ function scanOverlayElements(code, file = '<sample>') {
       const parsed = parseJsxAttrs(tag)
       if (!parsed) continue
       const tokens = parsed.className.match(/[A-Za-z][A-Za-z0-9_-]*/g) || []
-      const shared = tokens.filter((tk) => SHARED_BASES.has(tk))
+      const shared = tokens.filter(tk => SHARED_BASES.has(tk))
       if (shared.length === 0) continue
       if (!parsed.style) continue
       hits.push({ file: name, cls: shared.join(' '), style: parsed.style })
@@ -210,7 +219,7 @@ const overlayMap = collectOverlayClasses()
 const overlays = [...overlayMap.keys()].sort()
 
 /** 该类自身或同元素上的共享基类 —— 契约的实际承担者 */
-const contractOwner = (cls) => {
+const contractOwner = cls => {
   if (SHARED_BASES.has(cls)) return cls
   for (const other of overlayMap.get(cls)) if (SHARED_BASES.has(other)) return other
   return cls
@@ -219,10 +228,20 @@ const contractOwner = (cls) => {
 // ── 浮层可访问性契约(规格 08 §5)───────────────────────────
 // 承载内容的浮层容器(遮罩本身不需要 dialog 语义)
 const DIALOG_CONTAINERS = new Set([
-  'export-modal-content', 'admin-modal', 'admin-gate-confirm',
-  'users-confirm', 'modal-content', 'load-confirm-modal', 'my-beads-modal',
-  'save-dialog', 'export-confirm-dialog', 'brand-switch-dialog', 'replace-dialog',
-  'quantizer-zoom', 'logout-confirm-panel', 'ironing-studio-panel',
+  'export-modal-content',
+  'admin-modal',
+  'admin-gate-confirm',
+  'users-confirm',
+  'modal-content',
+  'load-confirm-modal',
+  'my-beads-modal',
+  'save-dialog',
+  'export-confirm-dialog',
+  'brand-switch-dialog',
+  'replace-dialog',
+  'quantizer-zoom',
+  'logout-confirm-panel',
+  'ironing-studio-panel',
 ])
 
 /**
@@ -245,7 +264,7 @@ function scanDialogContainers() {
       if (!m) return
       const raw = m[1] ?? m[2]
       const tokens = raw.match(/[A-Za-z][A-Za-z0-9_-]*/g) || []
-      if (!tokens.some((tk) => DIALOG_CONTAINERS.has(tk))) return
+      if (!tokens.some(tk => DIALOG_CONTAINERS.has(tk))) return
 
       // 格式化会把同一元素的属性折成多行(className / ref / {...dialogProps}
       // 各占一行)。只看 className 所在行会把这类写法误判为「没有 dialog 语义」,
@@ -257,8 +276,7 @@ function scanDialogContainers() {
         if (/>\s*$/.test(lines[j])) break
       }
       const element = elementLines.join('\n')
-      const hasDialog =
-        /[Dd]ialogProps\}/.test(element) || /role="(?:dialog|alertdialog)"/.test(element)
+      const hasDialog = /[Dd]ialogProps\}/.test(element) || /role="(?:dialog|alertdialog)"/.test(element)
       found.push({ file: relative(SRC, file), line: line.trim().slice(0, 90), hasDialog })
     })
   }
@@ -267,22 +285,24 @@ function scanDialogContainers() {
 
 describe('移动端全屏浮层契约', () => {
   it('至少收集到已知的浮层类(防止正则失配导致空跑通过)', () => {
-    expect(overlays).toEqual(expect.arrayContaining([
-      'modal-overlay',
-      'admin-modal-overlay',
-      'users-confirm-overlay',
-      'profile-confirm-overlay',
-      'load-confirm-overlay',
-      'my-beads-modal-overlay',
-      'quantizer-zoom',
-    ]))
+    expect(overlays).toEqual(
+      expect.arrayContaining([
+        'modal-overlay',
+        'admin-modal-overlay',
+        'users-confirm-overlay',
+        'profile-confirm-overlay',
+        'load-confirm-overlay',
+        'my-beads-modal-overlay',
+        'quantizer-zoom',
+      ])
+    )
   })
 
-  it.each(overlays)('%s 已在 useKeyboardSafe 的 OVERLAY_SELECTOR 中', (cls) => {
+  it.each(overlays)('%s 已在 useKeyboardSafe 的 OVERLAY_SELECTOR 中', cls => {
     expect(KEYBOARD_SAFE).toContain(`'.${contractOwner(cls)}'`)
   })
 
-  it.each(overlays)('%s 已加入 index.css 共享浮层组', (cls) => {
+  it.each(overlays)('%s 已加入 index.css 共享浮层组', cls => {
     const owner = contractOwner(cls)
     if (owner === 'modal-overlay') {
       expect(cssBlockFor('.modal-overlay')).toContain('inset: 0')
@@ -294,7 +314,7 @@ describe('移动端全屏浮层契约', () => {
     expect(INDEX_CSS.slice(sharedStart, sharedEnd)).toContain(`.${owner}`)
   })
 
-  it.each(overlays)('%s 打开时淡出移动端底部工具栏', (cls) => {
+  it.each(overlays)('%s 打开时淡出移动端底部工具栏', cls => {
     expect(INDEX_CSS).toContain(`body:has(.${contractOwner(cls)}) .mobile-toolbar`)
   })
 
@@ -332,7 +352,7 @@ describe('移动端全屏浮层契约', () => {
     // overflow:hidden 会把它覆盖掉 —— 低高度视口下按钮被裁且滚不到。
     // 允许 `overflow: hidden auto`(横向裁圆角、纵向可滚)。
     const cssFiles = []
-    const collect = (dir) => {
+    const collect = dir => {
       for (const name of readdirSync(dir)) {
         const full = join(dir, name)
         if (statSync(full).isDirectory()) collect(full)
@@ -344,7 +364,9 @@ describe('移动端全屏浮层契约', () => {
     for (const file of cssFiles) {
       const code = readFileSync(file, 'utf8')
       // 只查「浮层/弹层」相关规则块里的 overflow: hidden(单独出现)
-      for (const m of code.matchAll(/\.([a-z-]*(?:overlay|modal|confirm)[a-z-]*)\s*(?:>\s*\*)?\s*\{([^}]*)\}/gi)) {
+      for (const m of code.matchAll(
+        /\.([a-z-]*(?:overlay|modal|confirm)[a-z-]*)\s*(?:>\s*\*)?\s*\{([^}]*)\}/gi
+      )) {
         const body = m[2]
         if (/overflow\s*:\s*hidden\s*;/.test(body) && !/overflow\s*:\s*hidden\s+auto/.test(body)) {
           // overlay 自身隐藏滚动是刻意的(见 index.css 注释);只约束内层 modal 容器
@@ -386,7 +408,7 @@ describe('移动端全屏浮层契约', () => {
       })
     }
     for (const file of walk(SRC)) check(file, readFileSync(file, 'utf8'))
-    const collectCss = (dir) => {
+    const collectCss = dir => {
       for (const name of readdirSync(dir)) {
         const full = join(dir, name)
         if (statSync(full).isDirectory()) collectCss(full)
@@ -404,7 +426,8 @@ describe('移动端全屏浮层契约', () => {
     // 写成 `padding: 16px` 就绕过去了 —— 同等特异性,且组件 <style> 后加载所以胜出。
     // 这里按「选择器主体是否就是共享浮层类」判断,拦下任意 padding / height /
     // top / bottom / inset 声明;留白只允许通过 --overlay-pad 参数化。
-    const DECL_RE = /(?:^|[;{])\s*(padding|padding-(?:top|right|bottom|left)|height|min-height|max-height|top|bottom|inset|inset-(?:block|inline)(?:-(?:start|end))?)\s*:/gi
+    const DECL_RE =
+      /(?:^|[;{])\s*(padding|padding-(?:top|right|bottom|left)|height|min-height|max-height|top|bottom|inset|inset-(?:block|inline)(?:-(?:start|end))?)\s*:/gi
 
     const collectCss = (dir, out = []) => {
       for (const name of readdirSync(dir)) {
@@ -416,13 +439,12 @@ describe('移动端全屏浮层契约', () => {
     }
 
     /** 取选择器每一段的主体(最后一个组合子之后的部分),判断是否为共享浮层类 */
-    const subjects = (selector) => selector
-      .split(',')
-      .map((part) => part.trim().split(/\s+|>/).filter(Boolean).pop() || '')
+    const subjects = selector =>
+      selector.split(',').map(part => part.trim().split(/\s+|>/).filter(Boolean).pop() || '')
 
-    const isSharedSubject = (compound) => {
+    const isSharedSubject = compound => {
       const tokens = compound.match(/[A-Za-z][A-Za-z0-9_-]*/g) || []
-      return tokens.some((tk) => SHARED_BASES.has(tk))
+      return tokens.some(tk => SHARED_BASES.has(tk))
     }
 
     const offenders = []
@@ -450,13 +472,13 @@ describe('移动端全屏浮层契约', () => {
       '.modal-overlay { top: 0; }',
     ].join('\n')
 
-    const DECL_RE = /(?:^|[;{])\s*(padding|padding-(?:top|right|bottom|left)|height|min-height|max-height|top|bottom|inset|inset-(?:block|inline)(?:-(?:start|end))?)\s*:/gi
-    const subjects = (selector) => selector
-      .split(',')
-      .map((part) => part.trim().split(/\s+|>/).filter(Boolean).pop() || '')
-    const isSharedSubject = (compound) => {
+    const DECL_RE =
+      /(?:^|[;{])\s*(padding|padding-(?:top|right|bottom|left)|height|min-height|max-height|top|bottom|inset|inset-(?:block|inline)(?:-(?:start|end))?)\s*:/gi
+    const subjects = selector =>
+      selector.split(',').map(part => part.trim().split(/\s+|>/).filter(Boolean).pop() || '')
+    const isSharedSubject = compound => {
       const tokens = compound.match(/[A-Za-z][A-Za-z0-9_-]*/g) || []
-      return tokens.some((tk) => SHARED_BASES.has(tk))
+      return tokens.some(tk => SHARED_BASES.has(tk))
     }
 
     let hits = 0
@@ -481,8 +503,8 @@ describe('移动端全屏浮层契约', () => {
     // 规格 08 §5。此前只有三个组件手写 role="dialog",Escape 全站缺失。
     // 现在统一走 hook:承载内容的容器必须展开 *DialogProps 或显式写 role。
     const offenders = scanDialogContainers()
-      .filter((hit) => !hit.hasDialog)
-      .map((hit) => `${hit.file}: ${hit.line}`)
+      .filter(hit => !hit.hasDialog)
+      .map(hit => `${hit.file}: ${hit.line}`)
     expect(offenders).toEqual([])
   })
 
@@ -490,8 +512,8 @@ describe('移动端全屏浮层契约', () => {
     // AdminPanel 的浮层写成 className={`admin-modal${wide ? ' wide' : ''}`},
     // 早期版本只匹配 className="..." 双引号形式,把整个文件漏掉却照样通过。
     // 这条自检保证扫描器永远至少命中它 —— 一旦正则退化,这里先红。
-    const files = scanDialogContainers().map((hit) => hit.file)
-    expect(files.some((f) => f.endsWith('AdminPanel.jsx'))).toBe(true)
+    const files = scanDialogContainers().map(hit => hit.file)
+    expect(files.some(f => f.endsWith('AdminPanel.jsx'))).toBe(true)
   })
 
   it('浮层不得用内联 style 覆盖定位与高度(共享组是唯一来源)', () => {
@@ -544,8 +566,8 @@ describe('移动端全屏浮层契约', () => {
     expect(hits[1].style).toContain('top')
 
     // 再验证断言本身会红:同样两条样本必须被判为违规
-    const heightOffender = hits.filter((h) => /(^|[,{\s])height\s*:/i.test(h.style))
-    const varOffender = hits.filter((h) => /100dvh|--visible-vh/.test(h.style))
+    const heightOffender = hits.filter(h => /(^|[,{\s])height\s*:/i.test(h.style))
+    const varOffender = hits.filter(h => /100dvh|--visible-vh/.test(h.style))
     expect(heightOffender).toHaveLength(1)
     expect(varOffender).toHaveLength(1)
   })
