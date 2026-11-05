@@ -106,6 +106,15 @@ describe('移动端整页滚动', () => {
     expect(inner).not.toContain('overflow-y: auto')
   })
 
+  it('移动端内层 gallery-page 不再自己滚动(侧栏 sticky 依赖真实滚动容器)', () => {
+    // .gallery-page 在块级父容器里高度等于内容,自身的 overflow-y:auto 不会
+    // 产生滚动;sticky 的约束矩形会落在这个「假滚动容器」上而失效。
+    const inner = ruleBody(INDEX_CSS, '.mobile-page-area > .gallery-page {')
+    expect(inner).toContain('overflow: visible')
+    expect(inner).toContain('flex: none')
+    expect(inner).toMatch(/min-height:\s*100%/)
+  })
+
   it('移动端内层 profile-page 同样不再滚动(个人中心与内容页同一处境)', () => {
     const inner = ruleBody(INDEX_CSS, '.mobile-page-area > .profile-page {')
     expect(inner).toContain('overflow: visible')

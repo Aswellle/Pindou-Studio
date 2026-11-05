@@ -865,6 +865,15 @@ body:has(.quantizer-zoom) .mobile-toolbar {
   overflow: visible;
   flex: none;
 }
+/* 图库首页同理:侧栏的 position:sticky 以最近的滚动容器为约束矩形。
+   .gallery-page 自身虽然写了 overflow-y:auto,但它是块级容器、高度等于内容,
+   永远不会滚动 —— sticky 会跟着整页一起滚走。把滚动权交给 .mobile-page-area
+   后,侧栏才真正吸顶。 */
+.mobile-page-area > .gallery-page {
+  overflow: visible;
+  flex: none;
+  min-height: 100%;
+}
 /* 个人中心同理:桌面端 .profile-page 自己滚动,移动端已被 .mobile-page-area
    包住,内层再滚一次同样滑不动。 */
 .mobile-page-area > .profile-page {
