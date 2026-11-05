@@ -300,32 +300,36 @@ export default function Header({
           outline: 2px solid var(--accent);
           outline-offset: 2px;
         }
-        /* 悬浮轻提示:悬停/键盘聚焦 300ms 后淡入,离开即消失,不抢操作 */
-        .nav-link::after {
-          content: attr(data-tip);
-          position: absolute;
-          top: calc(100% + 8px);
-          left: 50%;
-          transform: translate(-50%, -3px);
-          padding: 6px 9px;
-          border-radius: 7px;
-          background: var(--text-primary);
-          color: var(--bg-primary);
-          font-size: var(--text-xs);
-          font-weight: var(--font-weight-normal);
-          line-height: 1.2;
-          white-space: nowrap;
-          opacity: 0;
-          pointer-events: none;
-          z-index: 1400;
-          transition:
-            opacity 0.15s ease 0.3s,
-            transform 0.15s ease 0.3s;
-        }
-        .nav-link:hover::after,
-        .nav-link:focus-visible::after {
-          opacity: 1;
-          transform: translate(-50%, 0);
+        /* 悬浮轻提示:悬停/键盘聚焦 300ms 后淡入,离开即消失,不抢操作。
+           仅限可悬停的精确指针设备 —— 触屏点按不应冒出浮窗(点按会触发
+           模拟 hover,让提示一直挂在图标下方) */
+        @media (hover: hover) and (pointer: fine) {
+          .nav-link::after {
+            content: attr(data-tip);
+            position: absolute;
+            top: calc(100% + 8px);
+            left: 50%;
+            transform: translate(-50%, -3px);
+            padding: 6px 9px;
+            border-radius: 7px;
+            background: var(--text-primary);
+            color: var(--bg-primary);
+            font-size: var(--text-xs);
+            font-weight: var(--font-weight-normal);
+            line-height: 1.2;
+            white-space: nowrap;
+            opacity: 0;
+            pointer-events: none;
+            z-index: 1400;
+            transition:
+              opacity 0.15s ease 0.3s,
+              transform 0.15s ease 0.3s;
+          }
+          .nav-link:hover::after,
+          .nav-link:focus-visible::after {
+            opacity: 1;
+            transform: translate(-50%, 0);
+          }
         }
         @media (prefers-reduced-motion: reduce) {
           .nav-link::after {
