@@ -35,11 +35,14 @@ export default function AdminGate({ cloudEnabled, authLoading, user, isAdmin, on
   // 避免 fixed 浮层嵌套在页面滚动容器内被键盘顶起。
   useScrollLock(confirmSignOut)
 
-  // 可访问性(规格 08 §5)
+  // 可访问性(规格 08 §5)。退出会清掉本机未完成的自动保存草稿,
+  // 因此遮罩与 Escape 都不关闭,必须显式选择取消或退出。
   const { ref: confirmRef, dialogProps: confirmDialogProps } = useDialogA11y({
     open: confirmSignOut,
     onClose: () => setConfirmSignOut(false),
     label: t('admin.confirmSignOutTitle'),
+    role: 'alertdialog',
+    dismissible: false,
   })
 
   useEffect(() => {
@@ -103,12 +106,12 @@ export default function AdminGate({ cloudEnabled, authLoading, user, isAdmin, on
         <p>{t('admin.gate.noPermissionHint')}</p>
         <button type="button" className="admin-gate-btn secondary" onClick={() => setConfirmSignOut(true)}>{t('admin.signOut')}</button>
         {confirmSignOut && createPortal(
-          <div className="admin-modal-overlay" onClick={() => setConfirmSignOut(false)}>
+          <div className="admin-modal-overlay">
             <div className="admin-gate-confirm" ref={confirmRef} {...confirmDialogProps} onClick={(e) => e.stopPropagation()}>
               <h3>{t('admin.confirmSignOutTitle')}</h3>
               <p>{t('admin.confirmSignOutHint')}</p>
               <div className="admin-gate-confirm-actions">
-                <button type="button" className="admin-gate-btn secondary" onClick={() => setConfirmSignOut(false)}>{t('admin.cancel')}</button>
+                <button type="button" className="admin-gate-btn secondary" autoFocus onClick={() => setConfirmSignOut(false)}>{t('admin.cancel')}</button>
                 <button type="button" className="admin-gate-btn danger" onClick={() => { setConfirmSignOut(false); onLogout() }}>{t('admin.signOut')}</button>
               </div>
             </div>
