@@ -39,7 +39,8 @@ export default function UserManager() {
   useScrollLock(!!confirm)
 
   // 可访问性(规格 08 §5):破坏性账号操作,用 alertdialog 让读屏优先播报。
-  // 操作进行中屏蔽 Escape —— 与遮罩点击一致,避免关掉浮层但请求仍在飞。
+  // dismissible=false:遮罩点击与 Escape 都不关闭,必须显式选择「取消」或「确认」;
+  // 请求进行中同样由 disabled 兜底。
   const { ref: confirmRef, dialogProps: confirmDialogProps } = useDialogA11y({
     open: !!confirm,
     onClose: () => { if (!busy) setConfirm(null) },
@@ -48,6 +49,7 @@ export default function UserManager() {
       : confirm?.type === 'lock' ? t('admin.users.confirmLockTitle')
         : t('admin.users.confirmUnlockTitle'),
     role: 'alertdialog',
+    dismissible: false,
   })
 
   const loadStats = useCallback(async () => {
@@ -324,7 +326,7 @@ export default function UserManager() {
           portal 到 body:后台 confirm 浮层位于 .admin-panel 滚动容器内,iOS Safari
           滚动容器内的 fixed 在键盘/滚动后错位 → 移到 body 下稳定相对视口。 */}
       {confirm && createPortal(
-        <div className="users-confirm-overlay" onClick={() => !busy && setConfirm(null)}>
+        <div className="users-confirm-overlay">
           <div className="users-confirm" ref={confirmRef} {...confirmDialogProps} onClick={e => e.stopPropagation()}>
             <h3 className="users-confirm-title">
               {confirm.type === 'delete' ? t('admin.users.confirmDeleteTitle')
@@ -339,7 +341,7 @@ export default function UserManager() {
                   : t('admin.users.confirmUnlockBody', { name: confirm.user.nickname || confirm.user.email })}
             </p>
             <div className="users-confirm-actions">
-              <button className="admin-btn secondary" disabled={busy} onClick={() => setConfirm(null)}>{t('admin.cancel')}</button>
+              <button className="admin-btn secondary" disabled={busy} autoFocus onClick={() => setConfirm(null)}>{t('admin.cancel')}</button>
               <button className="admin-btn danger" disabled={busy} onClick={doAction}>
                 {busy ? t('auth.processing') : t('admin.users.confirmBtn')}
               </button>
