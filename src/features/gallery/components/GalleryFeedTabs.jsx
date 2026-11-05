@@ -1,4 +1,4 @@
-import { useRef } from 'react'
+import { useLayoutEffect, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Clock, Flame, Sparkles } from 'lucide-react'
 import { GALLERY_FEEDS } from '../hooks/useGalleryQuery'
@@ -13,10 +13,42 @@ const TAB_ICONS = { featured: Sparkles, popular: Flame, latest: Clock }
  * 同时提供方向键导航,否则键盘用户只能停留在当前 feed(06 §M6)。
  * 方向键按自动激活模式切换 feed 并把焦点移到新 tab;Home/End 到首尾。
  * 切换不刷新页面,URL 由父级 setFeed 管理。
+ *
+ * 选中态是一块在三个位置间滑动的浅橙胶囊(绝对定位的指示条),
+ * 三个 tab 共同落在一个内凹的底板里,视觉上保持为一个整体控件。
  */
 export default function GalleryFeedTabs({ feed, onFeedChange }) {
   const { t } = useTranslation()
   const tabRefs = useRef({})
+  const listRef = useRef(null)
+  const [indicator, setIndicator] = useState({ left: 0, width: 0, ready: false })
+
+  // 指示条跟随当前 tab:offsetLeft/offsetWidth 相对 tablist 的 padding box,
+  // 正好是绝对定位需要的坐标。窗口/语言/字号变化导致 tab 尺寸变化时重新测量。
+  useLayoutEffect(() => {
+    const list = listRef.current
+    const active = tabRefs.current[feed]
+    if (!list || !active) return undefined
+
+    const measure = () => {
+      setIndicator({ left: active.offsetLeft, width: active.offsetWidth, ready: true })
+    }
+    measure()
+
+    let observer
+    if (typeof ResizeObserver !== 'undefined') {
+      observer = new ResizeObserver(measure)
+      observer.observe(list)
+      for (const el of Object.values(tabRefs.current)) {
+        if (el) observer.observe(el)
+      }
+    }
+    window.addEventListener('resize', measure)
+    return () => {
+      observer?.disconnect()
+      window.removeEventListener('resize', measure)
+    }
+  }, [feed])
 
   const labelFor = {
     featured: t('gallery.explorer.tabFeatured'),
@@ -42,11 +74,21 @@ export default function GalleryFeedTabs({ feed, onFeedChange }) {
 
   return (
     <div
+      ref={listRef}
       className="gallery-feed-tabs"
       role="tablist"
       aria-label={t('gallery.explorer.tabsLabel')}
       aria-orientation="horizontal"
     >
+      <span
+        className="gallery-feed-tab-indicator"
+        aria-hidden="true"
+        data-ready={indicator.ready ? 'true' : 'false'}
+        style={{
+          width: `${indicator.width}px`,
+          transform: `translateX(${indicator.left}px)`,
+        }}
+      />
       {GALLERY_FEEDS.map((value, index) => {
         const Icon = TAB_ICONS[value]
         return (

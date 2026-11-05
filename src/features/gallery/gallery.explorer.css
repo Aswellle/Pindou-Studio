@@ -229,12 +229,16 @@
 
 /* ── feed tabs ────────────────────────────────────────────── */
 .gallery-feed-tabs {
+  position: relative;
   display: flex;
   align-items: center;
-  gap: 2px;
-  padding: 0;
-  border: none;
-  background: transparent;
+  gap: 0;
+  padding: 3px;
+  /* 底板:比页面底色略深 + 内阴影,三个 tab 视觉上是一个内凹的整体控件 */
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+  background: var(--bg-secondary);
+  box-shadow: inset 0 1px 2px var(--shadow-md);
   width: fit-content;
   max-width: 100%;
   margin-bottom: 0;
@@ -243,35 +247,58 @@
   scrollbar-width: none;
   flex: none;
 }
+
+/* 选中胶囊:位置与宽度由组件按当前 tab 测量,切换时滑动到新位置 */
+.gallery-feed-tab-indicator {
+  position: absolute;
+  top: 3px;
+  bottom: 3px;
+  left: 0;
+  width: 0;
+  z-index: 0;
+  border-radius: 9px;
+  background: var(--accent-soft);
+  pointer-events: none;
+  transition:
+    transform 260ms cubic-bezier(0.22, 1, 0.36, 1),
+    width 260ms cubic-bezier(0.22, 1, 0.36, 1);
+  will-change: transform, width;
+}
+/* 首次测量前不要从 0 宽度动画到真实位置 */
+.gallery-feed-tab-indicator[data-ready="false"] {
+  transition: none;
+}
 .gallery-feed-tabs::-webkit-scrollbar {
   display: none;
 }
 .gallery-feed-tab {
+  position: relative;
+  z-index: 1;
   display: inline-flex;
   align-items: center;
   justify-content: center;
   gap: 6px;
-  min-height: 38px;
-  padding: 0 14px;
+  min-height: 30px;
+  padding: 0 16px;
   border: none;
-  border-radius: 10px;
+  border-radius: 9px;
   background: transparent;
   color: var(--text-secondary);
   font-size: var(--text-sm);
+  /* 固定字重:切换时标签宽度不跳,滑动胶囊才稳 */
+  font-weight: var(--font-weight-medium);
   white-space: nowrap;
   cursor: pointer;
-  transition:
-    background 0.15s,
-    color 0.15s;
+  transition: color 0.15s;
 }
 .gallery-feed-tab:hover {
   color: var(--text-primary);
 }
-/* 与左侧栏选中项同一口径:浅橙填充 + 橙色文字,不用描边或阴影强调 */
-.gallery-feed-tab.active {
-  background: var(--accent-soft);
+/* 选中态由底板上的滑动胶囊承担,tab 自身只改文字颜色 */
+.gallery-feed-tab.active,
+.gallery-feed-tab.active:hover {
+  background: transparent;
   color: var(--accent-hover);
-  font-weight: var(--font-weight-medium);
 }
 .gallery-feed-panel {
   min-width: 0;
@@ -586,6 +613,7 @@
   .gallery-filter-opt,
   .gallery-catnav-btn,
   .gallery-feed-tab,
+  .gallery-feed-tab-indicator,
   .gallery-side-item {
     transition: none;
   }

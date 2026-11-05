@@ -17,6 +17,7 @@ beforeAll(async () => {
 
 afterEach(() => {
   cleanup()
+  vi.restoreAllMocks()
 })
 
 const setup = (props = {}) => render(<GalleryFeedTabs feed="featured" onFeedChange={vi.fn()} {...props} />)
@@ -37,6 +38,23 @@ describe('GalleryFeedTabs', () => {
     expect(document.getElementById('gallery-tab-featured').querySelector('svg.lucide-sparkles')).toBeTruthy()
     expect(document.getElementById('gallery-tab-popular').querySelector('svg.lucide-flame')).toBeTruthy()
     expect(document.getElementById('gallery-tab-latest').querySelector('svg.lucide-clock')).toBeTruthy()
+  })
+
+  it('按当前 tab 的位置与宽度测量滑动胶囊(jsdom 无布局,用原型 mock)', () => {
+    vi.spyOn(HTMLElement.prototype, 'offsetLeft', 'get').mockImplementation(function () {
+      return this.id === 'gallery-tab-popular' ? 88 : 0
+    })
+    vi.spyOn(HTMLElement.prototype, 'offsetWidth', 'get').mockImplementation(function () {
+      return this.id === 'gallery-tab-popular' ? 70 : 60
+    })
+
+    setup({ feed: 'popular' })
+    const indicator = document.querySelector('.gallery-feed-tab-indicator')
+    expect(indicator).toBeTruthy()
+    expect(indicator.getAttribute('aria-hidden')).toBe('true')
+    expect(indicator.getAttribute('data-ready')).toBe('true')
+    expect(indicator.style.width).toBe('70px')
+    expect(indicator.style.transform).toBe('translateX(88px)')
   })
 
   it('方向键循环切换 feed 并把焦点移到新 tab', () => {
