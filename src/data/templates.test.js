@@ -107,7 +107,10 @@ describe('normalizeCustomTemplate — unified protocol', () => {
     const res = normalizeCustomTemplate({
       name: 'X',
       category: 'icon',
-      pattern: [[null, null], [null, null]],
+      pattern: [
+        [null, null],
+        [null, null],
+      ],
     })
     expect(res.errors.some(e => e.code === 'emptyPattern')).toBe(true)
   })
@@ -126,7 +129,9 @@ describe('normalizeCustomTemplate — unified protocol', () => {
   test('supports rectangular patterns (size = max dimension)', () => {
     const rows = 4
     const cols = 10
-    const pattern = Array(rows).fill(null).map(() => Array(cols).fill('#FF0000'))
+    const pattern = Array(rows)
+      .fill(null)
+      .map(() => Array(cols).fill('#FF0000'))
     const res = normalizeCustomTemplate({ name: 'Rect', category: 'food', pattern })
     expect(res.template.size).toBe(10)
     expect(res.template.gridWidth).toBe(10)
@@ -152,10 +157,7 @@ describe('normalizeCustomTemplate — unified protocol', () => {
     const res = normalizeCustomTemplate({
       name: 'Ragged',
       category: 'icon',
-      pattern: [
-        ['#FF0000', '#FF0000', '#FF0000'],
-        ['#00FF00'],
-      ],
+      pattern: [['#FF0000', '#FF0000', '#FF0000'], ['#00FF00']],
     })
     expect(res.ok).toBe(true)
     expect(res.template.gridWidth).toBe(3)
@@ -166,7 +168,12 @@ describe('normalizeCustomTemplate — unified protocol', () => {
   })
 
   test('carries paletteId through (defaults to perler when absent)', () => {
-    const withBrand = normalizeCustomTemplate({ name: 'B', category: 'icon', paletteId: 'mard', pattern: [['#FF0000']] })
+    const withBrand = normalizeCustomTemplate({
+      name: 'B',
+      category: 'icon',
+      paletteId: 'mard',
+      pattern: [['#FF0000']],
+    })
     expect(withBrand.template.paletteId).toBe('mard')
     const noBrand = normalizeCustomTemplate({ name: 'N', category: 'icon', pattern: [['#FF0000']] })
     expect(noBrand.template.paletteId).toBe('perler')
@@ -175,14 +182,32 @@ describe('normalizeCustomTemplate — unified protocol', () => {
 
 describe('patternDimensions / templateDimensions', () => {
   test('由 pattern 推导宽高(矩形取最大行长)', () => {
-    expect(patternDimensions([[null, null, null], [null, null]])).toEqual({ width: 3, height: 2 })
+    expect(
+      patternDimensions([
+        [null, null, null],
+        [null, null],
+      ])
+    ).toEqual({ width: 3, height: 2 })
     expect(patternDimensions([])).toEqual({ width: 0, height: 0 })
     expect(patternDimensions(null)).toEqual({ width: 0, height: 0 })
   })
 
-  test('优先使用显式 gridWidth/gridHeight', () => {
-    expect(templateDimensions({ pattern: [['#000000']], gridWidth: 5, gridHeight: 3 }))
-      .toEqual({ width: 5, height: 3 })
+  test('以 pattern 实际形状为准,声明值不符时不采信', () => {
+    // 声明 gridWidth/gridHeight 与数据形状不符的历史行/外部写入行,
+    // 若按声明展示会把矩形模板当方形铺格子 —— 珠子错位、缩略图变形。
+    // 数据形状是唯一真相,声明值只在 pattern 不可用时兜底。
+    expect(templateDimensions({ pattern: [['#000000']], gridWidth: 5, gridHeight: 3 })).toEqual({
+      width: 1,
+      height: 1,
+    })
+  })
+
+  test('pattern 不可用时回退声明的 gridWidth/gridHeight', () => {
+    expect(templateDimensions({ pattern: null, gridWidth: 5, gridHeight: 3 })).toEqual({
+      width: 5,
+      height: 3,
+    })
+    expect(templateDimensions({ gridWidth: 7, gridHeight: 2 })).toEqual({ width: 7, height: 2 })
   })
 
   test('内置模板无显式宽高时由 pattern 推导(全部 29×29)', () => {

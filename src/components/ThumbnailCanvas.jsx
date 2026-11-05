@@ -39,8 +39,11 @@ export default function ThumbnailCanvas({ pattern, size, gridWidth, gridHeight }
   const canvasRef = useRef(null)
 
   const derived = patternDimensions(pattern)
-  const width = Number(gridWidth) || derived.width || size || 0
-  const height = Number(gridHeight) || derived.height || size || 0
+  // 布局尺寸以 pattern 实际形状为准(与作品载入同一纪律:数据形状是唯一真相),
+  // 声明的 gridWidth/gridHeight/size 只在 pattern 不可用时兜底 —— 历史行或外部
+  // 写入的声明值一旦与数据不符,按声明铺格子会把珠子错位、裁切。
+  const width = derived.width || Number(gridWidth) || Number(size) || 0
+  const height = derived.height || Number(gridHeight) || Number(size) || 0
 
   useEffect(() => {
     const canvas = canvasRef.current
@@ -73,14 +76,14 @@ export default function ThumbnailCanvas({ pattern, size, gridWidth, gridHeight }
       // 列数取「最大行长」而不是首行长度:pattern 可能是参差的(某几行更长),
       // 按首行算会把右侧的格子整片漏画。
       const cols = derived.width || pattern[0]?.length || 0
+      if (!rows || !cols) return
 
-      // 逻辑网格(含居中留白)等比铺进位图,与 object-fit: contain 同一语义
-      const scale = Math.min(bitmapW / width, bitmapH / height)
-      const originX = (bitmapW - width * scale) / 2
-      const originY = (bitmapH - height * scale) / 2
-      // 仅当调用方显式给了更大的方形 size 才居中
-      const offsetX = Math.floor((width - cols) / 2)
-      const offsetY = Math.floor((height - rows) / 2)
+      // 铺格只认实际数据形状(rows × cols),声明尺寸不参与 —— 等比 contain
+      // 铺进位图并居中,与 object-fit: contain 同一语义。无论声明值写成什么,
+      // 珠子都落在自己的格点上,不可能错位或被裁。
+      const scale = Math.min(bitmapW / cols, bitmapH / rows)
+      const originX = (bitmapW - cols * scale) / 2
+      const originY = (bitmapH - rows * scale) / 2
 
       const cellPx = scale
       // 珠子之间的间隙:按比例给,避免放大后细线消失、缩小后糊成一片
@@ -94,10 +97,10 @@ export default function ThumbnailCanvas({ pattern, size, gridWidth, gridHeight }
           if (!cell) continue
           ctx.fillStyle = cell
           ctx.fillRect(
-            originX + (x + offsetX) * cellPx,
-            originY + (y + offsetY) * cellPx,
+            originX + x * cellPx,
+            originY + y * cellPx,
             Math.max(1, cellPx - gap),
-            Math.max(1, cellPx - gap),
+            Math.max(1, cellPx - gap)
           )
         }
       }

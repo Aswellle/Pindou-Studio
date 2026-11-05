@@ -445,12 +445,14 @@ export function patternDimensions(pattern) {
   return { width, height: pattern.length }
 }
 
-// 模板真实宽高:优先显式 gridWidth/gridHeight(新协议字段,或未来 DB 列),
-// 否则由 pattern 推导。内置 TEMPLATES 与旧云端行都走推导分支,无需数据迁移。
+// 模板真实宽高:以 pattern 实际形状为准(数据形状是唯一真相,与作品载入、
+// normalizeCustomTemplate 同一纪律),显式 gridWidth/gridHeight 仅在 pattern
+// 不可用时兜底。声明值与数据不符的历史行/外部写入行,若按声明展示,会把
+// 矩形模板当方形铺格子 —— 珠子错位、缩略图变形。
 export function templateDimensions(template) {
   const derived = patternDimensions(template?.pattern)
-  const width = Number(template?.gridWidth) || derived.width
-  const height = Number(template?.gridHeight) || derived.height
+  const width = derived.width || Number(template?.gridWidth) || 0
+  const height = derived.height || Number(template?.gridHeight) || 0
   return { width, height }
 }
 
