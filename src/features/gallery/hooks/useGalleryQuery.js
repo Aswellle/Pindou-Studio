@@ -62,6 +62,9 @@ export function useGalleryQuery() {
   const legacyView = searchParams.get(LEGACY_VIEW_PARAM) || ''
   // 一级 feed:非法值(含 ?feed=)归一化为 featured,不写回 URL(与 cat/diff 同策略)
   const feed = normalizeGalleryFeed(searchParams.get('feed'))
+  // 显式的「全部图纸」浏览态(02 §7):精选 feed 下有策展内容时也能浏览资源全集。
+  // 它是 feed 之外的浏览状态,由侧栏进入,切换 feed 时自动退出。
+  const browse = searchParams.get('browse') === '1'
 
   /**
    * 构造写入后的参数。所有 setter 共用这一处 —— 同一 tick 内连续调用多个
@@ -92,6 +95,10 @@ export function useGalleryQuery() {
       if (next !== DEFAULT_GALLERY_FEED) params.set('feed', next)
       else params.delete('feed')
     }
+    if ('browse' in patch) {
+      if (patch.browse) params.set('browse', '1')
+      else params.delete('browse')
+    }
     return params
   }
 
@@ -115,7 +122,8 @@ export function useGalleryQuery() {
    * 同一条 URL 里,后退不会丢条件)。默认 feed 不写入参数,保持地址栏干净。
    */
   const setFeed = value => {
-    writeParams(buildParams({ feed: value }))
+    // 切 feed 即退出「全部图纸」浏览态
+    writeParams(buildParams({ feed: value, browse: false }))
   }
 
   /**
@@ -144,7 +152,17 @@ export function useGalleryQuery() {
    * 第二次会把筛选原样写回(见 04 §2.2)。
    */
   const clearFiltersAndGoToFeed = value => {
-    writeParams(buildParams({ q: '', cat: 'all', diff: 'all', colors: '', feed: value }))
+    writeParams(buildParams({ q: '', cat: 'all', diff: 'all', colors: '', feed: value, browse: false }))
+  }
+
+  /**
+   * 侧栏「全部图纸」:清空筛选并进入显式浏览态(02 §7)。
+   * feed 保持 featured,但面板渲染全量网格而不是策展区块;tab 切换会退出该状态。
+   */
+  const browseAll = () => {
+    writeParams(
+      buildParams({ q: '', cat: 'all', diff: 'all', colors: '', feed: 'featured', browse: true })
+    )
   }
 
   return {
@@ -153,12 +171,14 @@ export function useGalleryQuery() {
     difficulty,
     maxColors,
     feed,
+    browse,
     legacyView,
     setSearchTerm,
     setCategory,
     setDifficulty,
     setMaxColors,
     setFeed,
+    browseAll,
     clearFiltersAndGoToFeed,
     clearLegacyView,
     setFilters,

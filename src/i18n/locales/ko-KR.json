@@ -662,6 +662,7 @@
       "navLabel": "갤러리 메뉴",
       "navDiscover": "발견",
       "navAll": "전체 도안",
+      "allHint": "전체 도안을 보고 있습니다. 검색과 필터로 범위를 좁힐 수 있습니다",
       "navCuration": "큐레이션",
       "navThemes": "추천 테마",
       "navCollections": "추천 컬렉션",

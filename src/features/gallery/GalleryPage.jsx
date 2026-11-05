@@ -70,7 +70,9 @@ export default function GalleryPage({ onLoadTemplate, cloudStore }) {
     maxColors,
     setMaxColors,
     feed,
+    browse,
     setFeed,
+    browseAll,
     clearFiltersAndGoToFeed,
     legacyView,
     clearLegacyView,
@@ -199,7 +201,8 @@ export default function GalleryPage({ onLoadTemplate, cloudStore }) {
   // 退化为完整模板网格 —— 不能让默认首屏变成一片空白。
   const featuredViewHasCuration = featuredTemplates.length > 0 || featuredBlocks.length > 0
   // 精选视图的最终形态:有策展内容且无筛选 → 策展布局;否则按结果网格处理
-  const showCurationView = feed === 'featured' && !filtersActive && featuredViewHasCuration
+  // 「全部图纸」浏览态(02 §7)显式绕过策展布局,渲染全量网格。
+  const showCurationView = feed === 'featured' && !filtersActive && !browse && featuredViewHasCuration
 
   // 模板生效品牌:优先用户覆盖,否则模板自带 paletteId(缺省 perler)
   const templateBrandId = template => brandOverride[template.id] || template.paletteId || 'perler'
@@ -262,8 +265,9 @@ export default function GalleryPage({ onLoadTemplate, cloudStore }) {
   const clearAllFilters = () => setFilters({ q: '', cat: 'all', diff: 'all', colors: '' })
 
   // 侧栏意图(状态在 GalleryPage:侧栏不持有第二份筛选状态)
-  const handleDiscover = () => setFeed('featured')
-  const handleAllTemplates = () => clearAllFilters()
+  // 发现 = 回到默认的精选视图(清筛选、退出全部浏览态);全部图纸 = 显式浏览全集。
+  const handleDiscover = () => clearFiltersAndGoToFeed('featured')
+  const handleAllTemplates = () => browseAll()
   const handleCurationAnchor = kind => {
     // 策展区块只在「精选 feed + 无筛选」时渲染,先恢复该状态再定位。
     // 必须一次写入:分开清筛选与切 feed 时,第二次导航会以旧参数为基底把筛选写回。
@@ -366,6 +370,7 @@ export default function GalleryPage({ onLoadTemplate, cloudStore }) {
       <div className="gallery-explorer">
         <GallerySidebar
           feed={feed}
+          browse={browse}
           filtersActive={filtersActive}
           category={category}
           categoryOptions={categoryOptions}
@@ -519,10 +524,18 @@ export default function GalleryPage({ onLoadTemplate, cloudStore }) {
             ) : (
               /* ── 热门/最新/筛选结果:同一网格,各自的数据口径与空态 ── */
               <>
-                {feed === 'featured' && filtersActive && (
+                {feed === 'featured' && (filtersActive || browse) && (
                   <div className="gallery-feed-note" role="note">
-                    <strong>{t('gallery.explorer.resultsTitle')}</strong>
-                    <span>{t('gallery.explorer.resultsHint')}</span>
+                    <strong>
+                      {filtersActive
+                        ? t('gallery.explorer.resultsTitle')
+                        : t('gallery.explorer.navAll')}
+                    </strong>
+                    <span>
+                      {filtersActive
+                        ? t('gallery.explorer.resultsHint')
+                        : t('gallery.explorer.allHint')}
+                    </span>
                   </div>
                 )}
                 {cloudEnabled && cloudStore?.loading ? (

@@ -92,6 +92,39 @@ describe('useGalleryQuery · feed 写入', () => {
   })
 })
 
+describe('useGalleryQuery · 全部图纸浏览态', () => {
+  it('默认关闭;?browse=1 解析为浏览态', () => {
+    const { result } = renderHook(() => useGalleryQuery(), { wrapper: wrapper('/gallery') })
+    expect(result.current.browse).toBe(false)
+
+    const { result: onBrowse } = renderHook(() => useGalleryQuery(), {
+      wrapper: wrapper('/gallery?browse=1'),
+    })
+    expect(onBrowse.current.browse).toBe(true)
+  })
+
+  it('browseAll 一次清空筛选并写入 browse=1 + feed=featured', () => {
+    const { result } = renderHook(() => useGalleryQuery(), {
+      wrapper: wrapper('/gallery?feed=popular&q=小鸭&cat=animal&colors=12'),
+    })
+    act(() => result.current.browseAll())
+    expect(result.current.browse).toBe(true)
+    expect(result.current.feed).toBe('featured')
+    expect(result.current.searchTerm).toBe('')
+    expect(result.current.category).toBe('all')
+    expect(result.current.maxColors).toBe(null)
+  })
+
+  it('切换 feed 会退出浏览态', () => {
+    const { result } = renderHook(() => useGalleryQuery(), {
+      wrapper: wrapper('/gallery?browse=1'),
+    })
+    act(() => result.current.setFeed('latest'))
+    expect(result.current.browse).toBe(false)
+    expect(result.current.feed).toBe('latest')
+  })
+})
+
 describe('useGalleryQuery · 原子清筛选', () => {
   it('clearFiltersAndGoToFeed 一次清空全部条件并切到目标 feed', () => {
     const { result } = renderHook(() => useGalleryQuery(), {

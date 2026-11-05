@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeAll, afterEach, vi } from 'vitest'
-import { render, screen, cleanup } from '@testing-library/react'
+import { render, screen, fireEvent, cleanup } from '@testing-library/react'
 import { MemoryRouter } from 'react-router-dom'
 import GalleryPage from './GalleryPage'
 import i18n from '../../i18n'
@@ -126,6 +126,19 @@ describe('GalleryPage · 精选资源区块', () => {
     const { container } = setup()
     const names = [...container.querySelectorAll('.gallery-section .template-name')].map(el => el.textContent)
     expect(names).toEqual(['鸭子', '房子'])
+  })
+
+  it('侧栏「全部图纸」绕过策展视图,展示关系外的全部模板', () => {
+    galleryContentState.featuredTemplateIds = ['tpl-2', 'tpl-1']
+    const { container } = setup()
+    // 默认精选视图只展示人工策展的两张
+    expect(container.querySelectorAll('.template-card').length).toBe(2)
+
+    fireEvent.click(screen.getByRole('button', { name: '全部图纸' }))
+    // 浏览态:精选资源区块隐藏,全量网格(含未精选的 tpl-3)出现
+    expect(screen.queryByText('精选资源')).toBeNull()
+    expect(container.querySelectorAll('.template-card').length).toBe(3)
+    expect(screen.getByText('浏览资源全集，可用搜索与筛选缩小范围')).toBeTruthy()
   })
 
   it('没有精选关系时整段隐藏,不渲染空标题', () => {

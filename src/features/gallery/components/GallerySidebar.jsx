@@ -13,6 +13,7 @@ import { Compass, LayoutGrid, Sparkles, FolderHeart, Palette, Wand2, Heart } fro
  */
 export default function GallerySidebar({
   feed,
+  browse = false,
   filtersActive,
   category,
   categoryOptions,
@@ -33,14 +34,19 @@ export default function GallerySidebar({
         <p className="gallery-side-title">{t('gallery.explorer.navDiscover')}</p>
         <button
           type="button"
-          className={`gallery-side-item${feed === 'featured' && !filtersActive ? ' active' : ''}`}
-          aria-current={feed === 'featured' && !filtersActive ? 'page' : undefined}
+          className={`gallery-side-item${feed === 'featured' && !filtersActive && !browse ? ' active' : ''}`}
+          aria-current={feed === 'featured' && !filtersActive && !browse ? 'page' : undefined}
           onClick={onDiscover}
         >
           <Compass size={16} aria-hidden="true" />
           <span>{t('gallery.explorer.navDiscover')}</span>
         </button>
-        <button type="button" className="gallery-side-item" onClick={onAllTemplates}>
+        <button
+          type="button"
+          className={`gallery-side-item${browse ? ' active' : ''}`}
+          aria-current={browse ? 'page' : undefined}
+          onClick={onAllTemplates}
+        >
           <LayoutGrid size={16} aria-hidden="true" />
           <span>{t('gallery.explorer.navAll')}</span>
         </button>
