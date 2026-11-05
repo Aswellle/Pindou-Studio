@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest'
-import { renderHook, act } from '@testing-library/react'
-import { MemoryRouter } from 'react-router-dom'
+import { render, renderHook, act, fireEvent, screen } from '@testing-library/react'
+import { MemoryRouter, useLocation, useNavigate } from 'react-router-dom'
 import {
   useGalleryQuery,
   normalizeGalleryFeed,
@@ -79,6 +79,36 @@ describe('useGalleryQuery · feed 写入', () => {
     })
     act(() => result.current.setFeed('featured'))
     expect(result.current.feed).toBe('featured')
+  })
+
+  it('切换 feed 写入 push 历史,浏览器后退可回到上一 feed', () => {
+    function Probe() {
+      const query = useGalleryQuery()
+      const location = useLocation()
+      const navigate = useNavigate()
+      return (
+        <div>
+          <span data-testid="search">{location.search}</span>
+          <button type="button" onClick={() => query.setFeed('popular')}>
+            切到热门
+          </button>
+          <button type="button" onClick={() => navigate(-1)}>
+            后退
+          </button>
+        </div>
+      )
+    }
+    render(
+      <MemoryRouter initialEntries={['/gallery?q=小鸭&cat=animal']}>
+        <Probe />
+      </MemoryRouter>
+    )
+    fireEvent.click(screen.getByText('切到热门'))
+    expect(screen.getByTestId('search').textContent).toContain('feed=popular')
+    fireEvent.click(screen.getByText('后退'))
+    // 后退回到切 feed 之前的 URL,筛选保留
+    expect(screen.getByTestId('search').textContent).not.toContain('feed=popular')
+    expect(screen.getByTestId('search').textContent).toContain('cat=animal')
   })
 
   it('非法 setFeed 值归一化,不产生脏 URL', () => {
