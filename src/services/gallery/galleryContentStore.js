@@ -134,23 +134,11 @@ export function createGalleryContentStore(client = supabase) {
   /**
    * 首页区块配置。表不存在(0026 未执行)时返回空数组而不是抛错 ——
    * 首页仍按默认区块渲染,后台的区块标签页会提示「云端未配置」。
+   * 缺表判定复用 listOptional,避免两处规则漂移。
    */
   async function listHomeSections() {
-    const { data, error } = await client
-      .from(HOME_SECTIONS_TABLE)
-      .select('*')
-      .order('sort_order', { ascending: true })
-    if (error) {
-      // 42P01 = undefined_table;PostgREST 也返回 PGRST205
-      const missingTable =
-        error.code === '42P01' ||
-        error.code === 'PGRST205' ||
-        /does not exist|schema cache/i.test(error.message || '')
-      if (missingTable) return []
-      remember({ code: 'cloud', detail: error.message })
-      throw error
-    }
-    return (data || []).map(rowToHomeSection)
+    const rows = await listOptional(HOME_SECTIONS_TABLE, 'sort_order')
+    return rows.map(rowToHomeSection)
   }
 
   return {
