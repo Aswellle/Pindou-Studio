@@ -472,17 +472,21 @@ export default function AuthPage({
 
       <style>{`
         .auth-gate-notice {
-          margin: 4px 0 14px;
-          padding: 10px 12px;
-          border: 1px solid var(--border-color);
-          border-left: 3px solid var(--secondary-accent);
-          border-radius: 8px;
-          background: var(--bg-secondary);
+          /* 手作暖调:浅橙填充 + 内阴影,形成轻微向内凹陷的视觉重量,
+             不用侧边色条也能与下方表单分开 */
+          margin: 4px 0 16px;
+          padding: 12px 14px;
+          border: 1px solid color-mix(in srgb, var(--accent) 14%, var(--border-color));
+          border-radius: 10px;
+          background: var(--accent-soft);
+          box-shadow:
+            inset 0 2px 6px color-mix(in srgb, var(--accent) 18%, transparent),
+            inset 0 1px 1px var(--shadow-sm);
         }
         .auth-gate-notice strong {
           display: block;
           font-size: var(--text-sm);
-          color: var(--text-primary);
+          color: var(--accent-hover);
           margin-bottom: 4px;
         }
         .auth-gate-notice p {
