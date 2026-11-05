@@ -32,8 +32,17 @@ const stack = []
  * @param {string} [options.label] - 可访问名称(读屏播报的浮层标题)
  * @param {boolean} [options.disabled] - 临时屏蔽 Escape(如提交中)
  * @param {'dialog'|'alertdialog'} [options.role] - 破坏性确认用 alertdialog
+ * @param {boolean} [options.modal] - 桌面锚定浮层等「边操作边看结果」的场景传 false,
+ *   避免 aria-modal 让辅助技术把浮层外的结果区当成不可访问
  */
-export function useDialogA11y({ open, onClose, label, disabled = false, role = 'dialog' }) {
+export function useDialogA11y({
+  open,
+  onClose,
+  label,
+  disabled = false,
+  role = 'dialog',
+  modal = true,
+}) {
   const ref = useRef(null)
   const restoreRef = useRef(null)
   const tokenRef = useRef(null)
@@ -87,7 +96,7 @@ export function useDialogA11y({ open, onClose, label, disabled = false, role = '
     ref,
     dialogProps: {
       role,
-      'aria-modal': 'true',
+      'aria-modal': modal ? 'true' : undefined,
       'aria-label': label,
       tabIndex: -1,
     },

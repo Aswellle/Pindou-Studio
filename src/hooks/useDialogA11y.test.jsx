@@ -11,8 +11,8 @@ import { useDialogA11y, __resetDialogStack } from './useDialogA11y'
  *   - 焦点进入容器、关闭后还给触发控件。
  */
 
-function Dialog({ open, onClose, label = '测试浮层', disabled }) {
-  const { ref, dialogProps } = useDialogA11y({ open, onClose, label, disabled })
+function Dialog({ open, onClose, label = '测试浮层', disabled, modal }) {
+  const { ref, dialogProps } = useDialogA11y({ open, onClose, label, disabled, modal })
   if (!open) return null
   return (
     <div ref={ref} {...dialogProps} data-testid="dialog">
@@ -38,6 +38,13 @@ describe('useDialogA11y', () => {
     expect(dialog.getAttribute('aria-modal')).toBe('true')
     expect(dialog.getAttribute('aria-label')).toBe('测试浮层')
     expect(dialog.getAttribute('tabindex')).toBe('-1')
+  })
+
+  it('modal=false 时不标 aria-modal(桌面锚定浮层不阻断其余内容)', () => {
+    render(<Dialog open onClose={() => {}} modal={false} />)
+    const dialog = screen.getByTestId('dialog')
+    expect(dialog.getAttribute('role')).toBe('dialog')
+    expect(dialog.hasAttribute('aria-modal')).toBe(false)
   })
 
   it('支持 alertdialog 角色', () => {

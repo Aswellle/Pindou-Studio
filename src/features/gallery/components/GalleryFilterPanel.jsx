@@ -35,15 +35,19 @@ export default function GalleryFilterPanel({
 }) {
   const { t } = useTranslation()
   const panelRef = useRef(null)
-  const { ref: dialogRef, dialogProps } = useDialogA11y({
-    open,
-    onClose,
-    label: t('gallery.explorer.filterTitle'),
-  })
 
   // 窄屏为底部弹层:锁背景滚动。宽屏是锚定浮层,不锁(用户可能想边筛边看结果)。
   // open 时刻判定视口,面板是瞬态 UI,展开中改变窗口宽度以重新打开为准。
   const isMobile = open && window.innerWidth <= 640
+
+  // 只有移动端底部弹层是模态的;桌面锚定浮层必须让读屏继续访问浮层外的
+  // 结果网格与结果数,否则「边筛边看」对辅助技术用户不成立。
+  const { ref: dialogRef, dialogProps } = useDialogA11y({
+    open,
+    onClose,
+    label: t('gallery.explorer.filterTitle'),
+    modal: isMobile,
+  })
   useScrollLock(isMobile)
 
   // 桌面定位:锚定触发按钮下方(视觉视口坐标,键盘弹起时 iOS 会平移视口)。
