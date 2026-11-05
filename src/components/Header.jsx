@@ -1,4 +1,4 @@
-import { useEffect, useLayoutEffect, useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { NavLink, useLocation, useNavigate } from 'react-router-dom'
 import { PenTool, LayoutGrid, BookOpen, Palette, ChevronDown, LogOut, UserRound } from 'lucide-react'
@@ -26,42 +26,8 @@ export default function Header({
   const [confirmLogout, setConfirmLogout] = useState(false)
   const userMenuTriggerRef = useRef(null)
   const userMenuRef = useRef(null)
-  const headerRef = useRef(null)
-  // 顶栏装不下完整导航时退化为图标模式:先按自然宽度(不换行、不收缩)量一次,
-  // 溢出才隐藏文字。这样中文在 768px 仍保留菜单名,英文/日文等更长的语言
-  // 或更窄的平板则自动切成图标 + title,不会把文字挤成两行。
-  const [compact, setCompact] = useState(false)
 
   useScrollLock(confirmLogout)
-
-  // biome-ignore lint/correctness/useExhaustiveDependencies: user/currentPage/saveState/i18n.language 是「顶栏内容变化」的信号,变化后需要重新测量,效果体内不直接读取
-  useLayoutEffect(() => {
-    if (simplified) {
-      setCompact(false)
-      return
-    }
-    const el = headerRef.current
-    if (!el) return
-    // 先拿掉紧凑类量自然宽度(否则会一直以为已经装得下)
-    el.classList.remove('is-compact')
-    const shouldCompact = el.scrollWidth > el.clientWidth + 1
-    if (shouldCompact) el.classList.add('is-compact')
-    setCompact(shouldCompact)
-  }, [simplified, user, currentPage, saveState, i18n.language])
-
-  useEffect(() => {
-    if (simplified) return undefined
-    const onResize = () => {
-      const el = headerRef.current
-      if (!el) return
-      el.classList.remove('is-compact')
-      const shouldCompact = el.scrollWidth > el.clientWidth + 1
-      if (shouldCompact) el.classList.add('is-compact')
-      setCompact(shouldCompact)
-    }
-    window.addEventListener('resize', onResize)
-    return () => window.removeEventListener('resize', onResize)
-  }, [simplified])
 
   // 切换页面或退出登录后收起菜单:菜单是浮层,不该跟着路由残留在新页面上
   // biome-ignore lint/correctness/useExhaustiveDependencies: pathname 只作为「路由变化」信号,effect 内不读取它
@@ -98,10 +64,6 @@ export default function Header({
     }
   }, [userMenuOpen])
 
-  // 自动保存状态由画布区域的悬浮旁注承载(AutoSaveStatus):
-  // 顶栏在平板宽度下已容纳 LOGO、四项导航、保存、语言与账号,
-  // 再放一条常驻文案会挤压导航导致断行。
-
   // 后台管理(admin)不在导航中显示,仅通过 /admin 路由访问
   const navItems = [
     { id: 'canvas', path: '/', label: t('nav.canvas'), icon: PenTool },
@@ -110,11 +72,30 @@ export default function Header({
     { id: 'myBeads', path: '/my/beads', label: t('nav.myBeads'), icon: Palette },
   ]
 
+  // 顶部导航在两种布局下都是纯图标:名称走 aria-label 与悬浮轻提示(data-tip),
+  // 从根上免除英文/日文等长语言把顶栏挤断行的问题,也不再需要按语言调宽度。
+  const renderNav = iconSize => (
+    <nav className="nav">
+      {navItems.map(item => (
+        <NavLink
+          key={item.id}
+          to={item.path}
+          className={`nav-link ${currentPage === item.id ? 'active' : ''}`}
+          aria-label={item.label}
+          data-tip={item.label}
+        >
+          <item.icon size={iconSize} aria-hidden="true" />
+        </NavLink>
+      ))}
+    </nav>
+  )
+
+  // 圆形登录按钮只放得下一个词:中文显示「登录」,
+  // 其余语言(英/日/韩)统一显示英文 Login,避免长词撑破圆形。
+  const loginText = i18n.language?.startsWith('zh') ? t('auth.login') : 'Login'
+
   return (
-    <header
-      ref={headerRef}
-      className={`header ${simplified ? 'simplified' : ''}${compact ? ' is-compact' : ''}`}
-    >
+    <header className={`header ${simplified ? 'simplified' : ''}`}>
       <div className="header-left">
         <NavLink to="/" className="logo">
           <svg width="32" height="32" viewBox="0 0 32 32" fill="none">
@@ -139,47 +120,25 @@ export default function Header({
         </NavLink>
       </div>
 
-      <div className="header-center">
-        <nav className="nav">
-          {navItems.map(item => (
-            <NavLink
-              key={item.id}
-              to={item.path}
-              className={`nav-link ${currentPage === item.id ? 'active' : ''}`}
-              aria-label={item.label}
-              title={compact ? item.label : undefined}
-            >
-              {simplified ? (
-                <span className="nav-icon">
-                  <item.icon size={18} />
-                </span>
-              ) : (
-                <span className="nav-label">
-                  <item.icon size={16} />
-                  <span className="nav-text">{item.label}</span>
-                </span>
-              )}
-            </NavLink>
-          ))}
-        </nav>
-      </div>
+      {/* 移动端:导航保持居中(50px 矮顶栏,右侧要让给语言与登录) */}
+      {simplified && <div className="header-center">{renderNav(18)}</div>}
 
       <div className="header-right">
+        {/* PC:纯图标导航整体右移,与语言切换、登录同一组水平排布 */}
+        {!simplified && renderNav(20)}
         {currentPage === 'canvas' && onSave && (
           <button
+            type="button"
             onClick={onSave}
-            className={`btn btn-ghost save-work-btn${saveState === 'dirty' ? ' has-unsaved' : ''}`}
+            className={`save-work-btn${saveState === 'dirty' ? ' has-unsaved' : ''}`}
             aria-label={t('gallery.saveTitle')}
-            title={
-              saveState === 'dirty' ? t('gallery.unsavedHint') : compact ? t('gallery.saveTitle') : undefined
-            }
+            data-tip={saveState === 'dirty' ? t('gallery.unsavedHint') : t('gallery.saveTitle')}
           >
-            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
               <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z" />
               <polyline points="17 21 17 13 7 13 7 21" />
               <polyline points="7 3 7 8 15 8" />
             </svg>
-            {!simplified && <span className="save-label">{t('gallery.saveTitle')}</span>}
             {/* 未保存标记:一个不依赖颜色的圆点,窄屏也能看见 */}
             {saveState === 'dirty' && <span className="save-unsaved-dot" aria-hidden="true" />}
           </button>
@@ -252,10 +211,15 @@ export default function Header({
                 {t('auth.login')}
               </button>
             ) : (
-              /* PC 游客:单个「登录」按钮,保留品牌主色填充(网站标志色);
-                 注册在 /login 页顶部切换,入口保留。顶栏右侧留出后续扩展空间 */
-              <button onClick={onLogin} className="btn btn-primary">
-                {t('auth.login')}
+              /* PC 游客:圆形「登录」按钮(品牌主色填充);注册在 /login 页顶部切换,
+                 入口保留。文案规则见 loginText:中文用「登录」,其他语言用 Login */
+              <button
+                type="button"
+                onClick={onLogin}
+                className="auth-circle-btn"
+                aria-label={t('auth.login')}
+              >
+                {loginText}
               </button>
             )}
           </div>
@@ -302,7 +266,7 @@ export default function Header({
         .header-left, .header-right {
           display: flex;
           align-items: center;
-          gap: 16px;
+          gap: 12px;
         }
         /* 顶栏自适应紧凑模式:菜单文字不换行、不收缩 —— 装不下时由 JS 测量
            切到 is-compact(隐藏文字、只留图标 + title),而不是把文字挤成两行 */
@@ -328,76 +292,98 @@ export default function Header({
         }
         .nav {
           display: flex;
-          gap: 8px;
-        }
-        .header.simplified .nav {
-          gap: 2px;
-        }
-        .nav-link {
-          padding: 8px 16px;
-          border-radius: 6px;
-          font-size: var(--text-md);
-          color: var(--text-secondary);
-          transition: all 0.2s;
-          background: transparent;
-          border: none;
-          cursor: pointer;
-          text-decoration: none;
-        }
-        .nav-label {
-          display: inline-flex;
-          align-items: center;
-          gap: 6px;
-        }
-        .header.simplified .nav-link {
-          padding: 8px;
-          min-width: 40px;
-          min-height: 40px;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-        }
-        .nav-icon {
-          display: flex;
-          align-items: center;
-          justify-content: center;
-        }
-        /* 紧凑模式:导航与保存只留图标(名称走 title / aria-label),昵称同样让位 */
-        .header.is-compact .nav-text,
-        .header.is-compact .save-label,
-        .header.is-compact .user-name {
-          display: none;
-        }
-        .header.is-compact .nav-link {
-          padding: 8px;
-          min-width: 40px;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-        }
-        .header.is-compact .nav-label {
-          gap: 0;
-        }
-        .header.is-compact .save-work-btn {
-          padding: 8px;
-          min-width: 40px;
-          justify-content: center;
-        }
-        .header.is-compact .user-menu {
           gap: 4px;
+        }
+        /* 纯图标导航:40px 见方的命中区,名称走 aria-label + 悬浮轻提示。
+           不再渲染文字,任何语言下顶栏都不会被长文本挤断行 */
+        .nav-link {
+          position: relative;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          width: 40px;
+          height: 40px;
+          border-radius: 10px;
+          color: var(--text-secondary);
+          transition: color 0.15s, background 0.15s;
         }
         .nav-link:hover {
           color: var(--text-primary);
           background: var(--bg-secondary);
         }
         .nav-link.active {
-          color: var(--text-primary);
-          font-weight: var(--font-weight-semibold);
-          background: var(--bg-secondary);
+          color: var(--accent-hover);
+          background: var(--accent-soft);
+        }
+        .nav-link:focus-visible {
+          outline: 2px solid var(--accent);
+          outline-offset: 2px;
+        }
+        /* 悬浮轻提示:悬停/键盘聚焦 300ms 后淡入,离开即消失,不抢操作 */
+        .nav-link::after,
+        .save-work-btn::after {
+          content: attr(data-tip);
+          position: absolute;
+          top: calc(100% + 8px);
+          left: 50%;
+          transform: translate(-50%, -3px);
+          padding: 6px 9px;
+          border-radius: 7px;
+          background: var(--text-primary);
+          color: var(--bg-primary);
+          font-size: var(--text-xs);
+          font-weight: var(--font-weight-normal);
+          line-height: 1.2;
+          white-space: nowrap;
+          opacity: 0;
+          pointer-events: none;
+          z-index: 1400;
+          transition:
+            opacity 0.15s ease 0.3s,
+            transform 0.15s ease 0.3s;
+        }
+        .nav-link:hover::after,
+        .nav-link:focus-visible::after,
+        .save-work-btn:hover::after,
+        .save-work-btn:focus-visible::after {
+          opacity: 1;
+          transform: translate(-50%, 0);
+        }
+        @media (prefers-reduced-motion: reduce) {
+          .nav-link::after,
+          .save-work-btn::after {
+            transition: opacity 0.1s ease 0.3s;
+            transform: translate(-50%, 0);
+          }
         }
         .auth-buttons {
           display: flex;
           gap: 8px;
+        }
+        /* PC 游客:圆形登录按钮(品牌主色填充),比旧胶囊按钮更小更克制 */
+        .auth-circle-btn {
+          width: 40px;
+          height: 40px;
+          padding: 0;
+          border: none;
+          border-radius: 50%;
+          background: var(--accent);
+          color: #fff;
+          font-family: inherit;
+          font-size: var(--text-sm);
+          font-weight: var(--font-weight-semibold);
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          cursor: pointer;
+          transition: background 0.15s;
+        }
+        .auth-circle-btn:hover {
+          background: var(--accent-hover);
+        }
+        .auth-circle-btn:focus-visible {
+          outline: 2px solid var(--accent-hover);
+          outline-offset: 2px;
         }
         /* 移动端游客登录:圆框"登录"文字按钮 */
         .mobile-login-btn {
@@ -484,54 +470,38 @@ export default function Header({
           color: var(--text-secondary);
         }
         .save-work-btn {
-          display: flex;
-          align-items: center;
-          gap: 6px;
-          font-size: var(--text-base);
           position: relative;
-        }
-        /* 未保存标记:小圆点,不依赖颜色区分(色弱也能看出形状变化)。
-           定位在图标右上角,简版(仅图标)按钮下同样可见。 */
-        .save-unsaved-dot {
-          width: 6px;
-          height: 6px;
-          border-radius: 50%;
-          background: var(--accent);
-          flex: none;
-        }
-        .header.simplified .save-unsaved-dot {
-          position: absolute;
-          top: 6px;
-          right: 6px;
-          margin: 0;
-        }
-        .icon-only-btn,
-        .header.simplified .save-work-btn {
-          padding: 8px;
-          min-width: 40px;
-          min-height: 40px;
           display: flex;
           align-items: center;
           justify-content: center;
+          width: 40px;
+          height: 40px;
+          border: none;
+          border-radius: 10px;
+          background: transparent;
+          color: var(--text-secondary);
+          cursor: pointer;
+          transition: color 0.15s, background 0.15s;
+          font-family: inherit;
         }
-        /* 平板(640–1023px)使用完整头栏(LOGO + 站点名 + 文字导航),
-           适当收紧间距避免在 768px 宽度下拥挤 */
-        @media (min-width: 640px) and (max-width: 1023px) {
-          .header {
-            padding: 12px 16px;
-          }
-          .header-left,
-          .header-right {
-            gap: 10px;
-          }
-          .nav {
-            gap: 4px;
-          }
-          /* 内边距收窄一档:768px 中文在「未保存圆点」出现后仍留有余量,
-             不会因为 +12px 就触发图标模式(避免首次落笔菜单名突然消失) */
-          .nav-link {
-            padding: 8px 10px;
-          }
+        .save-work-btn:hover {
+          color: var(--text-primary);
+          background: var(--bg-secondary);
+        }
+        .save-work-btn:focus-visible {
+          outline: 2px solid var(--accent);
+          outline-offset: 2px;
+        }
+        /* 未保存标记:小圆点,不依赖颜色区分(色弱也能看出形状变化)。
+           定位在图标右上角,移动端简版顶栏同样可见。 */
+        .save-unsaved-dot {
+          position: absolute;
+          top: 7px;
+          right: 7px;
+          width: 7px;
+          height: 7px;
+          border-radius: 50%;
+          background: var(--accent);
         }
       `}</style>
 

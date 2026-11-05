@@ -121,19 +121,35 @@ describe('Header · 账号菜单', () => {
   })
 })
 
-describe('Header · 导航自适应紧凑模式', () => {
-  it('完整头栏渲染导航文字,链接保留 aria-label(装不下时才由 is-compact 隐藏)', () => {
+describe('Header · 纯图标导航与圆形登录', () => {
+  it('导航只渲染图标:链接带 aria-label 与悬浮提示(data-tip),不再有文字', () => {
     renderHeader({ simplified: false, currentPage: 'canvas', onSave: vi.fn() })
-    const texts = [...document.querySelectorAll('.nav-link .nav-text')]
-    expect(texts.length).toBe(4)
-    expect(texts.map(el => el.textContent)).toContain('画布')
-
     const links = [...document.querySelectorAll('.nav-link')]
+    expect(links.length).toBe(4)
     expect(links.every(link => link.getAttribute('aria-label'))).toBe(true)
+    expect(links.every(link => link.getAttribute('data-tip'))).toBe(true)
+    expect(document.querySelectorAll('.nav-text, .nav-label')).toHaveLength(0)
   })
 
-  it('保存按钮文字独立成 save-label,供紧凑模式整体隐藏', () => {
-    renderHeader({ simplified: false, currentPage: 'canvas', onSave: vi.fn() })
-    expect(document.querySelector('.save-work-btn .save-label')?.textContent).toBe('保存作品')
+  it('保存按钮同为图标按钮,提示跟随未保存状态', () => {
+    renderHeader({ simplified: false, currentPage: 'canvas', onSave: vi.fn(), saveState: 'dirty' })
+    const btn = document.querySelector('.save-work-btn')
+    expect(btn).toBeTruthy()
+    expect(btn.getAttribute('data-tip')).toBe('画布有未保存的修改')
+    expect(btn.querySelector('.save-unsaved-dot')).toBeTruthy()
+    expect(document.querySelector('.save-label')).toBeNull()
+  })
+
+  it('PC 登录按钮是圆形,中文显示「登录」', () => {
+    renderHeader({ simplified: false, user: null, onLogin: vi.fn() })
+    const btn = document.querySelector('.auth-circle-btn')
+    expect(btn?.textContent).toBe('登录')
+  })
+
+  it('非中文语言统一显示英文 Login(圆形放不下长词)', async () => {
+    await i18n.changeLanguage('ja-JP')
+    renderHeader({ simplified: false, user: null, onLogin: vi.fn() })
+    expect(document.querySelector('.auth-circle-btn')?.textContent).toBe('Login')
+    await i18n.changeLanguage('zh-CN')
   })
 })
