@@ -678,6 +678,25 @@ body:has(.quantizer-zoom) .mobile-toolbar {
   bottom: calc(var(--mobile-toolbar-h, 100px) + var(--keyboard-height, 0px));
 }
 
+/* Toast 容器底部偏移:桌面贴底;手机/平板的画布页抬到工具栏与色卡之上。
+   键盘补偿只在这里写一次,组件 CSS 只读取变量。 */
+:root {
+  --toast-bottom-offset: max(24px, calc(env(safe-area-inset-bottom, 0px) + 12px));
+}
+body:has(.mobile-toolbar) {
+  --toast-bottom-offset: calc(var(--mobile-toolbar-h, 100px) + var(--keyboard-height, 0px) + 12px);
+}
+@media (max-width: 1024px) {
+  body:has(.mobile-color-palette) {
+    --toast-bottom-offset: calc(
+      var(--mobile-toolbar-h, 100px) +
+      var(--mobile-palette-h, 0px) +
+      var(--keyboard-height, 0px) +
+      12px
+    );
+  }
+}
+
 .main-content {
   flex: 1;
   display: flex;

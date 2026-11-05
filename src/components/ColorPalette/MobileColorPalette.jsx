@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react'
+import { useEffect, useRef, useState, useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
 import { PALETTE_LIST } from '../../data/palettes'
 import { calculateColorStats } from '../../services/export/PatternDocument'
@@ -13,6 +13,29 @@ export default function MobileColorPalette({
 }) {
   const { t } = useTranslation()
   const [showPalette, setShowPalette] = useState(false)
+  const rootRef = useRef(null)
+
+  // 色卡条实际高度写进 CSS 变量:toast 据此抬到色卡之上,
+  // 避免刚复制/选择颜色时被提示气泡盖住。展开色卡时 ResizeObserver 会更新。
+  useEffect(() => {
+    const el = rootRef.current
+    if (!el) return undefined
+    const apply = () => {
+      document.documentElement.style.setProperty('--mobile-palette-h', `${el.offsetHeight}px`)
+    }
+    apply()
+    let observer
+    if (typeof ResizeObserver !== 'undefined') {
+      observer = new ResizeObserver(apply)
+      observer.observe(el)
+    }
+    window.addEventListener('resize', apply)
+    return () => {
+      observer?.disconnect()
+      window.removeEventListener('resize', apply)
+      document.documentElement.style.removeProperty('--mobile-palette-h')
+    }
+  }, [])
 
   const palette = PALETTE_LIST.find(p => p.id === currentPalette) || PALETTE_LIST[0]
   // 惰性初始化一次(此前每次渲染都 JSON.parse,脏数据还会导致整页崩溃)
@@ -74,7 +97,7 @@ export default function MobileColorPalette({
   }
 
   return (
-    <div className="mobile-color-palette">
+    <div className="mobile-color-palette" ref={rootRef}>
       {/* 当前颜色预览：色块 + 名称 + HEX，普通用户光看色号认不出颜色，这里直接把名字显示出来 */}
       <button className="current-color-btn" onClick={() => setShowPalette(!showPalette)}>
         <div className="color-preview" style={{ backgroundColor: selectedColor }} />
