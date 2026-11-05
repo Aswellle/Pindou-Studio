@@ -124,6 +124,9 @@ export default function MobileCanvasInfoBar({
           cursor: pointer;
           transition: color 0.15s, background 0.15s;
           font-family: inherit;
+          /* 与「重置」拉开间距(容器 gap 6px + 此处 6px = 12px),
+             与适应按钮相对重置的间距一致,减少移动端误触 */
+          margin-right: 6px;
         }
         .info-save-btn:hover {
           color: var(--text-primary);
