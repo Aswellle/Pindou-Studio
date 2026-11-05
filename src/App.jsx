@@ -46,7 +46,12 @@ import {
   pasteLasso,
 } from './utils/lassoCommands'
 import { selectionBounds } from './utils/lassoSelection'
-import { loadFillIncludeEmpty, saveFillIncludeEmpty, loadDeductInventory, saveDeductInventory } from './utils/editorPrefs'
+import {
+  loadFillIncludeEmpty,
+  saveFillIncludeEmpty,
+  loadDeductInventory,
+  saveDeductInventory,
+} from './utils/editorPrefs'
 import useAutoSave, { useAutoSaveEnabled } from './hooks/useAutoSave'
 import { runInventoryDeduction } from './services/beads/inventoryDeduction'
 import { createBrandColorResolver } from './services/export/PatternDocument'
@@ -102,9 +107,30 @@ export default function App() {
   // iOS Safari 视口测量已由 useKeyboardSafe 统一处理(监听 visualViewport + 键盘 focusin/focusout,
   // 同时更新 --vh 与 --visible-vh),此处不再重复注册。
 
-  const { user, isAdmin, loading: authLoading, authAvailable, login, register, resetPassword, logout, updateProfile,
-    sendOtp, verifyOtp, verifyForgotOtp, setPassword, setPasswordWithOtp, changeEmail, verifyPassword, setSecurityKey,
-    changePassword, registerUsername, loginByUsername, forgotPasswordCustom, usernameExists } = useAuth()
+  const {
+    user,
+    isAdmin,
+    loading: authLoading,
+    authAvailable,
+    login,
+    register,
+    resetPassword,
+    logout,
+    updateProfile,
+    sendOtp,
+    verifyOtp,
+    verifyForgotOtp,
+    setPassword,
+    setPasswordWithOtp,
+    changeEmail,
+    verifyPassword,
+    setSecurityKey,
+    changePassword,
+    registerUsername,
+    loginByUsername,
+    forgotPasswordCustom,
+    usernameExists,
+  } = useAuth()
   const cloudStore = useCloudTemplates()
   // 收藏在 App 层持有:图库卡片的心形按钮与个人中心的收藏分区是两条路由,
   // 各自 useState 会导致切回来读到旧值。这份实例同时传给两处。
@@ -153,18 +179,42 @@ export default function App() {
   }, [location.pathname, gridSize, gridWidth, gridHeight])
 
   // 撤销/重做前先丢弃活动笔画,避免笔画进行中 undo 后 mouseUp 时 commitStroke 重推快照回滚
-  const handleUndo = useCallback(() => { canvasRef.current?.cancelStroke?.(); undo() }, [undo])
-  const handleRedo = useCallback(() => { canvasRef.current?.cancelStroke?.(); redo() }, [redo])
+  const handleUndo = useCallback(() => {
+    canvasRef.current?.cancelStroke?.()
+    undo()
+  }, [undo])
+  const handleRedo = useCallback(() => {
+    canvasRef.current?.cancelStroke?.()
+    redo()
+  }, [redo])
 
   // 规格 04 §3:切换网格 / 载入模板 / 载入作品 / 应用量化结果前,必须丢弃
   // 进行中的笔画。否则旧矩阵的累加器会在下一次 pointerup 时被提交,
   // 把刚载入的内容覆盖掉(Canvas 内也监听 cols/rows 变化,这里是同一份保护,
   // 覆盖「尺寸不变但内容被整体替换」的情况)。
-  const replaceCanvas = useCallback((nextData) => {
-    canvasRef.current?.cancelStroke?.()
-    resetCanvas(nextData)
-  }, [resetCanvas])
-  const { works: savedWorks, worksLoading, worksError, syncCount, cloudMirrorCount, saveState, markDirty, saveWork, updateWork, deleteWork, ackSync, reload: reloadWorks, loadVersions, rollbackToVersion } = useSavedWorks(user)
+  const replaceCanvas = useCallback(
+    nextData => {
+      canvasRef.current?.cancelStroke?.()
+      resetCanvas(nextData)
+    },
+    [resetCanvas]
+  )
+  const {
+    works: savedWorks,
+    worksLoading,
+    worksError,
+    syncCount,
+    cloudMirrorCount,
+    saveState,
+    markDirty,
+    saveWork,
+    updateWork,
+    deleteWork,
+    ackSync,
+    reload: reloadWorks,
+    loadVersions,
+    rollbackToVersion,
+  } = useSavedWorks(user)
 
   // 画布内容变化 → 标记「未保存」。
   // 只在 canvasData 真的换了一个矩阵对象时触发(useHistory 每次 PUSH/RESET
@@ -187,14 +237,14 @@ export default function App() {
   // 选区填充是否连空白格一起填(规格 04 §2:默认不填空白)。偏好持久化在
   // bead_studio_settings 里,与语言共用一份设置;切换后立即写回。
   const [fillIncludeEmpty, setFillIncludeEmpty] = useState(loadFillIncludeEmpty)
-  const handleToggleFillIncludeEmpty = useCallback((value) => {
+  const handleToggleFillIncludeEmpty = useCallback(value => {
     setFillIncludeEmpty(value)
     saveFillIncludeEmpty(value)
   }, [])
 
   // 导出后扣减库存(规格 05 §3):默认关闭,偏好持久化在 bead_studio_settings
   const [deductInventory, setDeductInventory] = useState(loadDeductInventory)
-  const handleToggleDeductInventory = useCallback((value) => {
+  const handleToggleDeductInventory = useCallback(value => {
     setDeductInventory(value)
     saveDeductInventory(value)
   }, [])
@@ -203,7 +253,9 @@ export default function App() {
   const [designName, setDesignName] = useState(() => t('export.defaultName'))
   // 语言切换时同步默认导出名(designName 只作默认值,用户自定义名走 saveInputName)
   // biome-ignore lint/correctness/useExhaustiveDependencies: 语言切换时同步默认导出名,i18n.language 只作触发信号
-  useEffect(() => { setDesignName(t('export.defaultName')) }, [i18n.language, t])
+  useEffect(() => {
+    setDesignName(t('export.defaultName'))
+  }, [i18n.language, t])
   const [showSaveDialog, setShowSaveDialog] = useState(false)
   const [saveInputName, setSaveInputName] = useState('')
   // 当前画布内容的来源类别(导入 / 图库复制 / 手绘),随保存一起落库。
@@ -221,30 +273,54 @@ export default function App() {
   useEffect(() => {
     if (syncCount == null) return
     setSyncToast(true)
-    const timer = setTimeout(() => { setSyncToast(false); ackSync() }, 4000)
+    const timer = setTimeout(() => {
+      setSyncToast(false)
+      ackSync()
+    }, 4000)
     return () => clearTimeout(timer)
   }, [syncCount, ackSync])
 
   // 从 URL 路径推导当前页面(用于 Header 高亮与条件渲染)
-  const currentPage = location.pathname.startsWith('/gallery') ? 'gallery'
-    : location.pathname.startsWith('/tutorials') ? 'tutorials'
-    : location.pathname.startsWith('/admin/login') ? 'adminLogin'
-    : location.pathname.startsWith('/admin') ? 'admin'
-    : location.pathname.startsWith('/privacy') ? 'privacy'
-    : location.pathname.startsWith('/terms') ? 'terms'
-    : location.pathname.startsWith('/login') ? 'login'
-    : location.pathname.startsWith('/create/image') ? 'createImage'
-    : location.pathname.startsWith('/import') ? 'import'
-    : location.pathname.startsWith('/my/beads') ? 'myBeads'
-    : location.pathname.startsWith('/contact') ? 'contact'
-    : location.pathname.startsWith('/profile') ? 'profile'
-    : 'canvas'
+  const currentPage = location.pathname.startsWith('/gallery')
+    ? 'gallery'
+    : location.pathname.startsWith('/tutorials')
+      ? 'tutorials'
+      : location.pathname.startsWith('/admin/login')
+        ? 'adminLogin'
+        : location.pathname.startsWith('/admin')
+          ? 'admin'
+          : location.pathname.startsWith('/privacy')
+            ? 'privacy'
+            : location.pathname.startsWith('/terms')
+              ? 'terms'
+              : location.pathname.startsWith('/login')
+                ? 'login'
+                : location.pathname.startsWith('/create/image')
+                  ? 'createImage'
+                  : location.pathname.startsWith('/import')
+                    ? 'import'
+                    : location.pathname.startsWith('/my/beads')
+                      ? 'myBeads'
+                      : location.pathname.startsWith('/contact')
+                        ? 'contact'
+                        : location.pathname.startsWith('/profile')
+                          ? 'profile'
+                          : 'canvas'
   // 404 判定独立于 currentPage:上面是按前缀归组的(/gallery/whatever 仍算 gallery),
   // 这里要求路径形状**确实存在**。两者分开,才能让「渲染 404 页」与「meta 标 noindex」
   // 始终一致 —— 否则 /gallery/whatever 会渲染 404 页却带着图库页的 index,follow。
   const isNotFound = !isKnownPath(location.pathname)
   // 核心功能页不继承站点导航，页面内部提供自己的返回与操作层。
-  const isStandalonePage = currentPage === 'login' || currentPage === 'adminLogin' || currentPage === 'privacy' || currentPage === 'terms' || currentPage === 'createImage' || currentPage === 'import' || currentPage === 'profile' || currentPage === 'myBeads' || currentPage === 'contact'
+  const isStandalonePage =
+    currentPage === 'login' ||
+    currentPage === 'adminLogin' ||
+    currentPage === 'privacy' ||
+    currentPage === 'terms' ||
+    currentPage === 'createImage' ||
+    currentPage === 'import' ||
+    currentPage === 'profile' ||
+    currentPage === 'myBeads' ||
+    currentPage === 'contact'
 
   // iOS Safari 键盘安全(全站统一,防复发机制):
   // 监听 visual viewport 的 resize/scroll 与聚焦,把可视高度写入 --visible-vh、
@@ -267,7 +343,11 @@ export default function App() {
   // biome-ignore lint/correctness/useExhaustiveDependencies: 只在网格尺寸变化时初始化空画布;canvasData 变化不应触发重置(会覆盖用户绘制)
   useEffect(() => {
     if (!canvasData) {
-      resetCanvas(Array(gridSize).fill(null).map(() => Array(gridSize).fill(null)))
+      resetCanvas(
+        Array(gridSize)
+          .fill(null)
+          .map(() => Array(gridSize).fill(null))
+      )
     }
   }, [gridSize])
 
@@ -302,7 +382,9 @@ export default function App() {
       if (cancelled || !draft) return
       setPendingDraft(draft)
     })()
-    return () => { cancelled = true }
+    return () => {
+      cancelled = true
+    }
   }, [readDraft])
 
   const handleRestoreDraft = useCallback(() => {
@@ -329,7 +411,7 @@ export default function App() {
 
   // Keyboard shortcuts: Ctrl+Z undo, Ctrl+Y / Ctrl+Shift+Z redo
   useEffect(() => {
-    const handler = (e) => {
+    const handler = e => {
       // 输入控件聚焦时交还原生文本撤销/重做,不拦截
       const t = e.target
       if (t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA' || t.isContentEditable)) return
@@ -337,8 +419,13 @@ export default function App() {
       if (!ctrl) return
       // Shift+Z 在真实浏览器里 e.key 是大写 'Z'(测试里常写成小写 'z',会漏掉这条路径)
       const key = e.key.toLowerCase()
-      if (key === 'z' && !e.shiftKey) { e.preventDefault(); handleUndo() }
-      else if (key === 'y' || (key === 'z' && e.shiftKey)) { e.preventDefault(); handleRedo() }
+      if (key === 'z' && !e.shiftKey) {
+        e.preventDefault()
+        handleUndo()
+      } else if (key === 'y' || (key === 'z' && e.shiftKey)) {
+        e.preventDefault()
+        handleRedo()
+      }
     }
     window.addEventListener('keydown', handler)
     return () => window.removeEventListener('keydown', handler)
@@ -358,7 +445,11 @@ export default function App() {
     setCanvasSource(null)
     // 清空也是一次画布替换:先丢弃活动笔画,避免它随后把旧内容提交回来
     canvasRef.current?.cancelStroke?.()
-    setCanvas(Array(rows).fill(null).map(() => Array(cols).fill(null)))
+    setCanvas(
+      Array(rows)
+        .fill(null)
+        .map(() => Array(cols).fill(null))
+    )
   }
 
   const handleOpenSaveDialog = () => {
@@ -390,9 +481,10 @@ export default function App() {
 
   // 顶部登录/注册入口:带上当前路径,成功后回到原页面,而不是一律回首页。
   // 与守卫入口(handleRequireAuth)保持一致,search 也保留(如图库的筛选条件)。
-  const openLogin = () => navigate('/login', {
-    state: { mode: 'login', next: location.pathname + location.search },
-  })
+  const openLogin = () =>
+    navigate('/login', {
+      state: { mode: 'login', next: location.pathname + location.search },
+    })
 
   // 高级导出守卫:带上回跳路径与原因,登录/注册成功后回到当前页面
   const handleRequireAuth = (reason, mode = 'register') => {
@@ -405,17 +497,22 @@ export default function App() {
     })
   }
 
-  const openRegister = () => navigate('/login', {
-    state: { mode: 'register', next: location.pathname + location.search },
-  })
+  const openRegister = () =>
+    navigate('/login', {
+      state: { mode: 'register', next: location.pathname + location.search },
+    })
 
-  const handleGridSizeChange = (newSize) => {
+  const handleGridSizeChange = newSize => {
     setGridSize(newSize)
     setGridWidth(null)
     setGridHeight(null)
     // 换网格 = 一张新画布,旧的导入/复制来源不再适用
     setCanvasSource(null)
-    replaceCanvas(Array(newSize).fill(null).map(() => Array(newSize).fill(null)))
+    replaceCanvas(
+      Array(newSize)
+        .fill(null)
+        .map(() => Array(newSize).fill(null))
+    )
   }
 
   const handleGridDimensionsChange = (width, height) => {
@@ -429,7 +526,11 @@ export default function App() {
       setGridHeight(height)
     }
     setCanvasSource(null)
-    replaceCanvas(Array(height).fill(null).map(() => Array(width).fill(null)))
+    replaceCanvas(
+      Array(height)
+        .fill(null)
+        .map(() => Array(width).fill(null))
+    )
   }
 
   const handleLoadTemplate = (pattern, size, options = {}) => {
@@ -453,7 +554,7 @@ export default function App() {
     navigate('/')
   }
 
-  const handleLoadWork = (rawWork) => {
+  const handleLoadWork = rawWork => {
     // 载入前归一:旧作品的声明尺寸可能与 canvasData 实际形状不一致,
     // 直接 setGridSize 会让画布网格与数据错位(多出的行画不出来、少的行越界)。
     const work = normalizeLegacyWork(rawWork)
@@ -476,21 +577,24 @@ export default function App() {
    * 不该在撤销栈里多出一条。同时对齐自动保存基线,否则这次载入
    * 会被当成新改动立刻再写一次草稿。
    */
-  const handleRollbackVersion = useCallback(async (work, version) => {
-    const restored = await rollbackToVersion(work, version)
-    if (!restored) return null
-    setGridSize(restored.gridSize)
-    setGridWidth(restored.gridWidth ?? null)
-    setGridHeight(restored.gridHeight ?? null)
-    setCurrentPalette(restored.paletteId || 'perler')
-    replaceCanvas(restored.canvasData)
-    resetBaseline(restored.canvasData)
-    toast(t('versions.rollbackDone', { time: new Date().toLocaleString() }), 'success')
-    return restored
-  }, [rollbackToVersion, replaceCanvas, resetBaseline, toast, t])
+  const handleRollbackVersion = useCallback(
+    async (work, version) => {
+      const restored = await rollbackToVersion(work, version)
+      if (!restored) return null
+      setGridSize(restored.gridSize)
+      setGridWidth(restored.gridWidth ?? null)
+      setGridHeight(restored.gridHeight ?? null)
+      setCurrentPalette(restored.paletteId || 'perler')
+      replaceCanvas(restored.canvasData)
+      resetBaseline(restored.canvasData)
+      toast(t('versions.rollbackDone', { time: new Date().toLocaleString() }), 'success')
+      return restored
+    },
+    [rollbackToVersion, replaceCanvas, resetBaseline, toast, t]
+  )
 
   // 导入的项目直接进画布继续编辑(不落库;用户可再点保存决定是否留存)
-  const handleLoadImportedProject = (project) => {
+  const handleLoadImportedProject = project => {
     const grid = project?.grid
     if (!grid || !Array.isArray(grid.cells)) return
     const isSquare = grid.width === grid.height
@@ -560,7 +664,7 @@ export default function App() {
     committedData: canvasData,
     onCanvasChange: setCanvas,
     // M5:取色器把颜色写回当前选中色;选区由画布拖出、App 持有
-    onPickColor: (hex) => {
+    onPickColor: hex => {
       setSelectedColor(hex)
       toast(t('tools.pickedColorToast', { hex }), 'success')
     },
@@ -571,7 +675,7 @@ export default function App() {
     // A3:框选吸附到已有珠子的边缘
     snapToEdges,
     // A4:长按选区内部弹出上下文菜单(仅移动端传入,桌面端不启用)
-    onSelectionLongPress: (point) => setSelectionMenu(point),
+    onSelectionLongPress: point => setSelectionMenu(point),
     // M5.2 拖拽移动:画布只在松手时上报一次偏移,这里提交一条历史。
     // 偏移已由画布按 clampMove 钳制,内容不会掉出画布。
     // A2:`copy` 为 true 时是复制拖动(Alt/Option 或移动端开关),原件保留。
@@ -579,153 +683,170 @@ export default function App() {
       // A5:套索选区走掩码版,形状跟着一起搬
       const isLasso = base?.kind === 'lasso'
       const result = isLasso
-        ? (copy ? copyMoveLasso(canvasData, base, dx, dy) : moveLasso(canvasData, base, dx, dy))
-        : (copy ? copyMoveSelection(canvasData, base, dx, dy) : moveSelection(canvasData, base, dx, dy))
+        ? copy
+          ? copyMoveLasso(canvasData, base, dx, dy)
+          : moveLasso(canvasData, base, dx, dy)
+        : copy
+          ? copyMoveSelection(canvasData, base, dx, dy)
+          : moveSelection(canvasData, base, dx, dy)
       if (result.selection) setSelection(result.selection)
       if (!result.data) return
       setCanvas(result.data)
-      toast(t(copy ? 'tools.selectionCopiedDragToast' : 'tools.selectionMovedToast', { n: result.changed }), 'success')
+      toast(
+        t(copy ? 'tools.selectionCopiedDragToast' : 'tools.selectionMovedToast', { n: result.changed }),
+        'success'
+      )
     },
   }
 
   // ── M5 选区命令 ─────────────────────────────────────────────
   // 粘贴块可能伸出画布(越界部分已被 pasteBlock 裁掉),选框本身要收回网格内,
   // 否则框会画到画布外面。normalizeSelection 用左上/右下两角重建矩形即可。
-  const clampSelection = useCallback((sel) => {
-    if (!sel) return null
-    const rows = canvasData?.length || 0
-    const cols = canvasData?.[0]?.length || 0
-    return normalizeSelection(
-      { x: sel.x, y: sel.y },
-      { x: sel.x + sel.w - 1, y: sel.y + sel.h - 1 },
-      cols,
-      rows,
-    )
-  }, [canvasData])
+  const clampSelection = useCallback(
+    sel => {
+      if (!sel) return null
+      const rows = canvasData?.length || 0
+      const cols = canvasData?.[0]?.length || 0
+      return normalizeSelection(
+        { x: sel.x, y: sel.y },
+        { x: sel.x + sel.w - 1, y: sel.y + sel.h - 1 },
+        cols,
+        rows
+      )
+    },
+    [canvasData]
+  )
 
   // 每个命令都只调用一次 setCanvas(单条历史),返回 null 表示无变化、不压栈。
-  const handleSelectionCommand = useCallback((command) => {
-    // 复制不依赖已有剪贴板,但必须有选区;粘贴反过来 —— 先分别守卫,
-    // 否则空剪贴板时点粘贴会得到「请先框选」这种误导性提示。
-    if (command === 'paste') {
-      if (!clipboard) {
-        toast(t('tools.selectionPasteEmpty'), 'error')
+  const handleSelectionCommand = useCallback(
+    command => {
+      // 复制不依赖已有剪贴板,但必须有选区;粘贴反过来 —— 先分别守卫,
+      // 否则空剪贴板时点粘贴会得到「请先框选」这种误导性提示。
+      if (command === 'paste') {
+        if (!clipboard) {
+          toast(t('tools.selectionPasteEmpty'), 'error')
+          return
+        }
+      } else if (!selection) {
+        toast(t('tools.selectionEmpty'), 'error')
         return
       }
-    } else if (!selection) {
-      toast(t('tools.selectionEmpty'), 'error')
-      return
-    }
 
-    // A5:套索与矩形共用同一套命令名,按 selection.kind 选择实现。
-    // 矩形路径(selection 没有 kind)继续走原来的 selectionUtils —— 一个字节都不改。
-    // 套索的剪贴板是掩码块(带 mask),粘贴时按掩码还原形状而不是整块矩形。
-    const isLasso = selection?.kind === 'lasso'
-    const cmd = {
-      fill: isLasso ? fillLasso : fillSelection,
-      erase: isLasso ? clearLasso : clearSelectionRegion,
-      mirrorH: (d, s) => (isLasso ? mirrorLasso(d, s, 'horizontal') : mirrorSelection(d, s, 'horizontal')),
-      mirrorV: (d, s) => (isLasso ? mirrorLasso(d, s, 'vertical') : mirrorSelection(d, s, 'vertical')),
-      rotateCw: (d, s) => (isLasso ? rotateLasso(d, s, 'cw') : rotateSelection(d, s, 'cw')),
-      rotateCcw: (d, s) => (isLasso ? rotateLasso(d, s, 'ccw') : rotateSelection(d, s, 'ccw')),
-    }
+      // A5:套索与矩形共用同一套命令名,按 selection.kind 选择实现。
+      // 矩形路径(selection 没有 kind)继续走原来的 selectionUtils —— 一个字节都不改。
+      // 套索的剪贴板是掩码块(带 mask),粘贴时按掩码还原形状而不是整块矩形。
+      const isLasso = selection?.kind === 'lasso'
+      const cmd = {
+        fill: isLasso ? fillLasso : fillSelection,
+        erase: isLasso ? clearLasso : clearSelectionRegion,
+        mirrorH: (d, s) => (isLasso ? mirrorLasso(d, s, 'horizontal') : mirrorSelection(d, s, 'horizontal')),
+        mirrorV: (d, s) => (isLasso ? mirrorLasso(d, s, 'vertical') : mirrorSelection(d, s, 'vertical')),
+        rotateCw: (d, s) => (isLasso ? rotateLasso(d, s, 'cw') : rotateSelection(d, s, 'cw')),
+        rotateCcw: (d, s) => (isLasso ? rotateLasso(d, s, 'ccw') : rotateSelection(d, s, 'ccw')),
+      }
 
-    if (command === 'copy') {
-      const copied = isLasso ? copyLasso(canvasData, selection) : copySelection(canvasData, selection)
-      if (!copied.block) {
-        // 整片空白:没有可复制的内容,不覆盖已有剪贴板
-        toast(t('tools.selectionCopyEmpty'), 'info')
+      if (command === 'copy') {
+        const copied = isLasso ? copyLasso(canvasData, selection) : copySelection(canvasData, selection)
+        if (!copied.block) {
+          // 整片空白:没有可复制的内容,不覆盖已有剪贴板
+          toast(t('tools.selectionCopyEmpty'), 'info')
+          return
+        }
+        setClipboard(copied)
+        toast(t('tools.selectionCopiedToast', { w: copied.w, h: copied.h }), 'success')
         return
       }
-      setClipboard(copied)
-      toast(t('tools.selectionCopiedToast', { w: copied.w, h: copied.h }), 'success')
-      return
-    }
 
-    if (command === 'cut') {
-      const cut = isLasso ? cutLasso(canvasData, selection) : cutSelection(canvasData, selection)
-      if (!cut.block) {
-        // 整片空白:既没东西可剪,也不该清空已有剪贴板
-        toast(t('tools.selectionCopyEmpty'), 'info')
+      if (command === 'cut') {
+        const cut = isLasso ? cutLasso(canvasData, selection) : cutSelection(canvasData, selection)
+        if (!cut.block) {
+          // 整片空白:既没东西可剪,也不该清空已有剪贴板
+          toast(t('tools.selectionCopyEmpty'), 'info')
+          return
+        }
+        setClipboard(cut)
+        // 剪下与清空是同一条历史:一次撤销回到剪切前,不会先撤出「清空」
+        // 再撤一次「复制」,那样中间态(内容没了、剪贴板还在)反而更让人困惑。
+        if (cut.data) setCanvas(cut.data)
+        toast(t('tools.selectionCutToast', { w: cut.w, h: cut.h }), 'success')
         return
       }
-      setClipboard(cut)
-      // 剪下与清空是同一条历史:一次撤销回到剪切前,不会先撤出「清空」
-      // 再撤一次「复制」,那样中间态(内容没了、剪贴板还在)反而更让人困惑。
-      if (cut.data) setCanvas(cut.data)
-      toast(t('tools.selectionCutToast', { w: cut.w, h: cut.h }), 'success')
-      return
-    }
 
-    if (command === 'paste') {
-      // 落点:有选区贴到选区左上角,否则贴到画布左上角。
-      // 套索选区没有 x/y 字段(形状在掩码里),必须统一走 selectionBounds ——
-      // 直接读 selection.x 会拿到 undefined,pasteLasso 内部按 NaN 寻址直接崩。
-      const bounds = selectionBounds(selection)
-      const ox = bounds ? bounds.x : 0
-      const oy = bounds ? bounds.y : 0
-      // 套索剪贴板带掩码,必须按掩码贴 —— 否则矩形块里的占位 null
-      // 会把落点处原有的珠子抹掉。矩形剪贴板走原来的 pasteBlock。
-      const pasted = clipboard.mask
-        ? pasteLasso(canvasData, clipboard, ox, oy)
-        : pasteBlock(canvasData, clipboard, ox, oy)
-      if (!pasted.data) {
-        toast(t('tools.selectionPasteNoChange'), 'info')
-        if (pasted.selection) {
-          setSelection(clipboard.mask ? pasted.selection : clampSelection(pasted.selection))
+      if (command === 'paste') {
+        // 落点:有选区贴到选区左上角,否则贴到画布左上角。
+        // 套索选区没有 x/y 字段(形状在掩码里),必须统一走 selectionBounds ——
+        // 直接读 selection.x 会拿到 undefined,pasteLasso 内部按 NaN 寻址直接崩。
+        const bounds = selectionBounds(selection)
+        const ox = bounds ? bounds.x : 0
+        const oy = bounds ? bounds.y : 0
+        // 套索剪贴板带掩码,必须按掩码贴 —— 否则矩形块里的占位 null
+        // 会把落点处原有的珠子抹掉。矩形剪贴板走原来的 pasteBlock。
+        const pasted = clipboard.mask
+          ? pasteLasso(canvasData, clipboard, ox, oy)
+          : pasteBlock(canvasData, clipboard, ox, oy)
+        if (!pasted.data) {
+          toast(t('tools.selectionPasteNoChange'), 'info')
+          if (pasted.selection) {
+            setSelection(clipboard.mask ? pasted.selection : clampSelection(pasted.selection))
+          }
+          return
+        }
+        setCanvas(pasted.data)
+        setSelection(clipboard.mask ? pasted.selection : clampSelection(pasted.selection))
+        toast(t('tools.selectionPastedToast', { n: pasted.changed }), 'success')
+        return
+      }
+
+      let result
+      if (command === 'fill')
+        result = cmd.fill(canvasData, selection, selectedColor, { includeEmpty: fillIncludeEmpty })
+      else if (command === 'erase') result = cmd.erase(canvasData, selection)
+      else if (command === 'mirrorH') result = cmd.mirrorH(canvasData, selection)
+      else if (command === 'mirrorV') result = cmd.mirrorV(canvasData, selection)
+      else if (command === 'rotateCw') result = cmd.rotateCw(canvasData, selection)
+      else if (command === 'rotateCcw') result = cmd.rotateCcw(canvasData, selection)
+      else return
+
+      if (!result.data) {
+        // 内容本来就一样:不写历史,但旋转仍需把选框换成新的宽高
+        if (result.selection) setSelection(result.selection)
+        // 填充时若整片选区都是空白格且开关关闭,必须给一句提示 ——
+        // 否则按钮看起来像坏了(默认不填空白后这是新的空操作来源)。
+        if (command === 'fill' && result.skippedEmpty > 0) {
+          toast(t('tools.selectionFillNoBeads'), 'info')
         }
         return
       }
-      setCanvas(pasted.data)
-      setSelection(clipboard.mask ? pasted.selection : clampSelection(pasted.selection))
-      toast(t('tools.selectionPastedToast', { n: pasted.changed }), 'success')
-      return
-    }
-
-    let result
-    if (command === 'fill') result = cmd.fill(canvasData, selection, selectedColor, { includeEmpty: fillIncludeEmpty })
-    else if (command === 'erase') result = cmd.erase(canvasData, selection)
-    else if (command === 'mirrorH') result = cmd.mirrorH(canvasData, selection)
-    else if (command === 'mirrorV') result = cmd.mirrorV(canvasData, selection)
-    else if (command === 'rotateCw') result = cmd.rotateCw(canvasData, selection)
-    else if (command === 'rotateCcw') result = cmd.rotateCcw(canvasData, selection)
-    else return
-
-    if (!result.data) {
-      // 内容本来就一样:不写历史,但旋转仍需把选框换成新的宽高
+      setCanvas(result.data)
       if (result.selection) setSelection(result.selection)
-      // 填充时若整片选区都是空白格且开关关闭,必须给一句提示 ——
-      // 否则按钮看起来像坏了(默认不填空白后这是新的空操作来源)。
-      if (command === 'fill' && result.skippedEmpty > 0) {
-        toast(t('tools.selectionFillNoBeads'), 'info')
-      }
-      return
-    }
-    setCanvas(result.data)
-    if (result.selection) setSelection(result.selection)
-    // 旋转后宽高互换,选框跟随;其余命令保持原选区
-    const toastKey = {
-      fill: 'tools.selectionFilledToast',
-      erase: 'tools.selectionClearedToast',
-      mirrorH: 'tools.selectionMirroredToast',
-      mirrorV: 'tools.selectionMirroredToast',
-      rotateCw: 'tools.selectionRotatedToast',
-      rotateCcw: 'tools.selectionRotatedToast',
-    }[command]
-    if (toastKey) toast(t(toastKey, { n: result.changed }), 'success')
-  }, [selection, clipboard, canvasData, selectedColor, fillIncludeEmpty, setCanvas, toast, t, clampSelection])
+      // 旋转后宽高互换,选框跟随;其余命令保持原选区
+      const toastKey = {
+        fill: 'tools.selectionFilledToast',
+        erase: 'tools.selectionClearedToast',
+        mirrorH: 'tools.selectionMirroredToast',
+        mirrorV: 'tools.selectionMirroredToast',
+        rotateCw: 'tools.selectionRotatedToast',
+        rotateCcw: 'tools.selectionRotatedToast',
+      }[command]
+      if (toastKey) toast(t(toastKey, { n: result.changed }), 'success')
+    },
+    [selection, clipboard, canvasData, selectedColor, fillIncludeEmpty, setCanvas, toast, t, clampSelection]
+  )
 
   const handleClearSelection = useCallback(() => setSelection(null), [])
 
   // A4:菜单里的「取消选区」不是选区命令(它不改矩阵、不压历史),
   // 走 handleClearSelection;其余命令与操作条共用 handleSelectionCommand。
-  const handleSelectionMenuCommand = useCallback((command) => {
-    if (command === 'clear') {
-      handleClearSelection()
-      return
-    }
-    handleSelectionCommand(command)
-  }, [handleClearSelection, handleSelectionCommand])
+  const handleSelectionMenuCommand = useCallback(
+    command => {
+      if (command === 'clear') {
+        handleClearSelection()
+        return
+      }
+      handleSelectionCommand(command)
+    },
+    [handleClearSelection, handleSelectionCommand]
+  )
 
   // 选区复制 / 剪切 / 粘贴快捷键(规格 04 §2)。
   //
@@ -733,10 +854,11 @@ export default function App() {
   // 页面上选中文字后按 Ctrl+C 必须仍然复制文字,不能因为画布有选区就被抢走。
   // 输入框内的原生复制粘贴同样跳过(与上面的撤销/重做 handler 一致)。
   useEffect(() => {
-    const handler = (e) => {
+    const handler = e => {
       if (tool !== 'select') return
       const target = e.target
-      if (target && (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable)) return
+      if (target && (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable))
+        return
       if (!(e.ctrlKey || e.metaKey) || e.altKey) return
       const key = e.key.toLowerCase()
       if (key === 'c') {
@@ -767,16 +889,20 @@ export default function App() {
   // 空画布没有可转换内容,直接切口径,不弹框打断。
   const [pendingPalette, setPendingPalette] = useState(null)
 
-  const handlePaletteChange = useCallback((nextPaletteId) => {
-    if (!nextPaletteId || nextPaletteId === currentPalette) return
-    const hasContent = Array.isArray(canvasData)
-      && canvasData.some(row => Array.isArray(row) && row.some(cell => typeof cell === 'string' && cell))
-    if (!hasContent) {
-      setCurrentPalette(nextPaletteId)
-      return
-    }
-    setPendingPalette(nextPaletteId)
-  }, [canvasData, currentPalette])
+  const handlePaletteChange = useCallback(
+    nextPaletteId => {
+      if (!nextPaletteId || nextPaletteId === currentPalette) return
+      const hasContent =
+        Array.isArray(canvasData) &&
+        canvasData.some(row => Array.isArray(row) && row.some(cell => typeof cell === 'string' && cell))
+      if (!hasContent) {
+        setCurrentPalette(nextPaletteId)
+        return
+      }
+      setPendingPalette(nextPaletteId)
+    },
+    [canvasData, currentPalette]
+  )
 
   const handleBrandSwitchConvert = useCallback(() => {
     if (!pendingPalette) return
@@ -799,25 +925,34 @@ export default function App() {
   }, [pendingPalette])
 
   // 颜色替换:一次事务替换,命中数量在对话框内已确认
-  const handleConfirmReplace = useCallback((from, to) => {
-    const result = replaceColor(canvasData, from, to)
-    setShowReplace(false)
-    if (!result.data) return
-    setCanvas(result.data)
-    toast(t('tools.replacedToast', { n: result.changed }), 'success')
-  }, [canvasData, setCanvas, toast, t])
+  const handleConfirmReplace = useCallback(
+    (from, to) => {
+      const result = replaceColor(canvasData, from, to)
+      setShowReplace(false)
+      if (!result.data) return
+      setCanvas(result.data)
+      toast(t('tools.replacedToast', { n: result.changed }), 'success')
+    },
+    [canvasData, setCanvas, toast, t]
+  )
 
   // M6:图纸匹配确认后的批量替色。只调用一次 setCanvas → 一条可撤销历史。
-  const handleApplyBeadMapping = useCallback((nextData) => {
-    if (!nextData) return
-    setCanvas(nextData)
-  }, [setCanvas])
+  const handleApplyBeadMapping = useCallback(
+    nextData => {
+      if (!nextData) return
+      setCanvas(nextData)
+    },
+    [setCanvas]
+  )
 
   // 删除个人色卡前,把引用它的作品重新指定到另一张色卡(只改 paletteId,不动 canvasData)
-  const handleReassignWorkPalette = useCallback(async (work, paletteId) => {
-    if (!work || !paletteId) return false
-    return updateWork({ ...work, paletteId })
-  }, [updateWork])
+  const handleReassignWorkPalette = useCallback(
+    async (work, paletteId) => {
+      if (!work || !paletteId) return false
+      return updateWork({ ...work, paletteId })
+    },
+    [updateWork]
+  )
 
   /**
    * 导出成功后扣减库存(规格 05 §3)。
@@ -829,14 +964,17 @@ export default function App() {
     if (!canvasData) return
     const resolver = createBrandColorResolver(getPalette(currentPalette).colors)
     // 开关关闭时 runInventoryDeduction 直接返回 skipped,不会写任何库存
-    const result = await runInventoryDeduction({
-      enabled: deductInventory,
-      canvasData,
-      inventory: beadStore.inventoryByKey,
-      paletteId: currentPalette,
-      paletteKind: 'builtin',
-      resolveColor: (hex) => resolver.resolve(hex),
-    }, beadStore.setInventory)
+    const result = await runInventoryDeduction(
+      {
+        enabled: deductInventory,
+        canvasData,
+        inventory: beadStore.inventoryByKey,
+        paletteId: currentPalette,
+        paletteKind: 'builtin',
+        resolveColor: hex => resolver.resolve(hex),
+      },
+      beadStore.setInventory
+    )
     if (result.skipped) return
     if (result.entries.length === 0) {
       if (result.skippedUnknown > 0) toast(t('export.deductSkipped', { n: result.skippedUnknown }), 'info')
@@ -847,15 +985,13 @@ export default function App() {
   }, [deductInventory, canvasData, currentPalette, beadStore, toast, t])
 
   // 页面切换(通过路由)
-  const handlePageChange = (page) => {
+  const handlePageChange = page => {
     if (page === 'canvas') navigate('/')
     else navigate(`/${page}`)
   }
 
   // 桌面端画布页
-  const renderAdminLoginPage = () => (
-    <AdminLoginPage onLogin={login} />
-  )
+  const renderAdminLoginPage = () => <AdminLoginPage onLogin={login} />
 
   const renderAuthPage = () => (
     <AuthPage
@@ -913,10 +1049,7 @@ export default function App() {
           />
         </div>
         <div className="left-sidebar-bottom">
-          <ColorStatsBar
-            canvasData={canvasData}
-            paletteId={currentPalette}
-          />
+          <ColorStatsBar canvasData={canvasData} paletteId={currentPalette} />
           {/* 桌面端侧边栏常驻实例:不传 onClose(有 onClose 会被判定为模态框实例并默认展开) */}
           <ExportPanel
             canvasData={canvasData}
@@ -972,130 +1105,161 @@ export default function App() {
         />
       )}
 
-      <main className="main-content" style={(currentPage === 'admin' || isStandalonePage) ? { marginTop: 0 } : undefined}>
+      <main
+        className="main-content"
+        style={currentPage === 'admin' || isStandalonePage ? { marginTop: 0 } : undefined}
+      >
         <Routes>
           <Route path="/" element={renderCanvasPage()} />
           <Route path="/login" element={renderAuthPage()} />
-          <Route path="/gallery" element={
-            <Suspense fallback={<LoadingScreen />}>
-              <GalleryPage
+          <Route
+            path="/gallery"
+            element={
+              <Suspense fallback={<LoadingScreen />}>
+                <GalleryPage onLoadTemplate={handleLoadTemplate} cloudStore={cloudStore} />
+              </Suspense>
+            }
+          />
+          <Route
+            path="/gallery/theme/:slug"
+            element={
+              <Suspense fallback={<LoadingScreen />}>
+                <ThemePage cloudStore={cloudStore} />
+              </Suspense>
+            }
+          />
+          <Route
+            path="/gallery/collection/:slug"
+            element={
+              <Suspense fallback={<LoadingScreen />}>
+                <CollectionPage cloudStore={cloudStore} />
+              </Suspense>
+            }
+          />
+          <Route
+            path="/gallery/pattern/:id"
+            element={
+              <Suspense fallback={<LoadingScreen />}>
+                <PatternDetailPage
+                  cloudStore={cloudStore}
+                  onSaveProject={saveWork}
+                  onLoadTemplate={handleLoadTemplate}
+                />
+              </Suspense>
+            }
+          />
+          <Route
+            path="/tutorials"
+            element={
+              <Suspense fallback={<LoadingScreen />}>
+                <Tutorials />
+              </Suspense>
+            }
+          />
+          <Route
+            path="/profile"
+            element={
+              <ProfilePage
+                user={user}
+                authLoading={authLoading}
+                onUpdateProfile={updateProfile}
+                onChangePassword={changePassword}
+                works={savedWorks}
+                worksLoading={worksLoading}
+                worksError={worksError}
+                cloudMirrorCount={cloudMirrorCount}
+                beadStore={beadStore}
+                onRetryWorks={reloadWorks}
+                onRetryBeads={beadStore.reload}
+                // 作品与收藏已从图库搬到个人中心,回调沿用 App 里同一套实例
+                onLoadWork={handleLoadWork}
+                onDeleteWork={deleteWork}
+                // 版本时间线只覆盖本地作品:云端作品的「里程碑版本」策略未定,
+                // 传 undefined 让按钮不出现,而不是给一个点了没反应的入口。
+                onShowVersions={!user ? setVersionsWork : undefined}
+                favorites={favorites}
+                isFavorite={isFavorite}
+                removeFavorite={removeFavorite}
+                cloudStore={cloudStore}
                 onLoadTemplate={handleLoadTemplate}
-                cloudStore={cloudStore}
+                onSendOtp={sendOtp}
+                onSetPasswordWithOtp={setPasswordWithOtp}
+                onChangeEmail={changeEmail}
+                onVerifyPassword={verifyPassword}
+                onSetSecurityKey={setSecurityKey}
+                autoSaveEnabled={autoSaveEnabled}
+                onToggleAutoSave={toggleAutoSave}
               />
-            </Suspense>
-          } />
-          <Route path="/gallery/theme/:slug" element={
-            <Suspense fallback={<LoadingScreen />}>
-              <ThemePage cloudStore={cloudStore} />
-            </Suspense>
-          } />
-          <Route path="/gallery/collection/:slug" element={
-            <Suspense fallback={<LoadingScreen />}>
-              <CollectionPage cloudStore={cloudStore} />
-            </Suspense>
-          } />
-          <Route path="/gallery/pattern/:id" element={
-            <Suspense fallback={<LoadingScreen />}>
-              <PatternDetailPage
-                cloudStore={cloudStore}
-                onSaveProject={saveWork}
-                onLoadTemplate={handleLoadTemplate}
+            }
+          />
+
+          <Route
+            path="/create/image"
+            element={
+              <Suspense fallback={<LoadingScreen />}>
+                <CreateImagePage onApply={handleQuantizerApply} />
+              </Suspense>
+            }
+          />
+
+          <Route
+            path="/import"
+            element={<ImportPage onLoadProject={handleLoadImportedProject} onSaveProject={saveWork} />}
+          />
+
+          <Route
+            path="/my/beads"
+            element={
+              <MyBeadsPage
+                user={user}
+                authLoading={authLoading}
+                canvasData={canvasData}
+                onApplyMapping={handleApplyBeadMapping}
+                works={savedWorks}
+                onReassignWorkPalette={handleReassignWorkPalette}
               />
-            </Suspense>
-          } />
-          <Route path="/tutorials" element={
-            <Suspense fallback={<LoadingScreen />}>
-              <Tutorials />
-            </Suspense>
-          } />
-          <Route path="/profile" element={
-            <ProfilePage
-              user={user}
-              authLoading={authLoading}
-              onUpdateProfile={updateProfile}
-              onChangePassword={changePassword}
-              works={savedWorks}
-              worksLoading={worksLoading}
-              worksError={worksError}
-              cloudMirrorCount={cloudMirrorCount}
-              beadStore={beadStore}
-              onRetryWorks={reloadWorks}
-              onRetryBeads={beadStore.reload}
-              // 作品与收藏已从图库搬到个人中心,回调沿用 App 里同一套实例
-              onLoadWork={handleLoadWork}
-              onDeleteWork={deleteWork}
-              // 版本时间线只覆盖本地作品:云端作品的「里程碑版本」策略未定,
-              // 传 undefined 让按钮不出现,而不是给一个点了没反应的入口。
-              onShowVersions={!user ? setVersionsWork : undefined}
-              favorites={favorites}
-              isFavorite={isFavorite}
-              removeFavorite={removeFavorite}
-              cloudStore={cloudStore}
-              onLoadTemplate={handleLoadTemplate}
-              onSendOtp={sendOtp}
-              onSetPasswordWithOtp={setPasswordWithOtp}
-              onChangeEmail={changeEmail}
-              onVerifyPassword={verifyPassword}
-              onSetSecurityKey={setSecurityKey}
-              autoSaveEnabled={autoSaveEnabled}
-              onToggleAutoSave={toggleAutoSave}
-            />
-          } />
+            }
+          />
 
-          <Route path="/create/image" element={
-            <Suspense fallback={<LoadingScreen />}>
-              <CreateImagePage onApply={handleQuantizerApply} />
-            </Suspense>
-          } />
+          <Route
+            path="/contact"
+            element={
+              <Suspense fallback={<LoadingScreen />}>
+                <ContactPage user={user} />
+              </Suspense>
+            }
+          />
 
-          <Route path="/import" element={
-            <ImportPage
-              onLoadProject={handleLoadImportedProject}
-              onSaveProject={saveWork}
-            />
-          } />
-
-          <Route path="/my/beads" element={
-            <MyBeadsPage
-              user={user}
-              authLoading={authLoading}
-              canvasData={canvasData}
-              onApplyMapping={handleApplyBeadMapping}
-              works={savedWorks}
-              onReassignWorkPalette={handleReassignWorkPalette}
-            />
-          } />
-
-          <Route path="/contact" element={
-            <Suspense fallback={<LoadingScreen />}>
-              <ContactPage user={user} />
-            </Suspense>
-          } />
-
-          <Route path="/admin/dashboard" element={
-            <Suspense fallback={<LoadingScreen />}>
-              <AdminDashboardPage
-                cloudStore={cloudStore}
+          <Route
+            path="/admin/dashboard"
+            element={
+              <Suspense fallback={<LoadingScreen />}>
+                <AdminDashboardPage
+                  cloudStore={cloudStore}
+                  user={user}
+                  isAdmin={isAdmin}
+                  authLoading={authLoading}
+                  onLogin={() => navigate('/admin/login')}
+                  onLogout={logout}
+                />
+              </Suspense>
+            }
+          />
+          <Route path="/admin/login" element={renderAdminLoginPage()} />
+          <Route
+            path="/admin"
+            element={
+              <AdminPanel
                 user={user}
                 isAdmin={isAdmin}
                 authLoading={authLoading}
                 onLogin={() => navigate('/admin/login')}
                 onLogout={logout}
+                onChangePassword={changePassword}
+                cloudStore={cloudStore}
               />
-            </Suspense>
-          } />
-          <Route path="/admin/login" element={renderAdminLoginPage()} />
-          <Route path="/admin" element={
-            <AdminPanel
-              user={user}
-              isAdmin={isAdmin}
-              authLoading={authLoading}
-              onLogin={() => navigate('/admin/login')}
-              onLogout={logout}
-              onChangePassword={changePassword}
-              cloudStore={cloudStore}
-            />
-          } />
+            }
+          />
           <Route path="/privacy" element={<PrivacyPolicy onBack={handleLegalBack} />} />
           <Route path="/privacy/:versionId" element={<PrivacyPolicy onBack={handleLegalBack} />} />
           <Route path="/terms" element={<TermsOfService onBack={handleLegalBack} />} />
@@ -1123,60 +1287,65 @@ export default function App() {
         />
       )}
 
-      {showSaveDialog && createPortal(
-        <div className="modal-overlay" onClick={() => setShowSaveDialog(false)}>
-          <div className="save-dialog" ref={saveDialogRef} {...saveDialogProps} onClick={e => e.stopPropagation()}>
-            <h3>{t('gallery.saveTitle')}</h3>
-            <label>{t('gallery.saveNameLabel')}</label>
-            {/* 移动端不自动聚焦(规格 08 §5):autoFocus 会立刻唤起键盘,
+      {showSaveDialog &&
+        createPortal(
+          <div className="modal-overlay" onClick={() => setShowSaveDialog(false)}>
+            <div
+              className="save-dialog"
+              ref={saveDialogRef}
+              {...saveDialogProps}
+              onClick={e => e.stopPropagation()}
+            >
+              <h3>{t('gallery.saveTitle')}</h3>
+              <label>{t('gallery.saveNameLabel')}</label>
+              {/* 移动端不自动聚焦(规格 08 §5):autoFocus 会立刻唤起键盘,
                 用户刚点「保存」就被键盘盖掉半屏,还与浮层收缩动画互相竞争,
                 iOS 上容易把弹层顶出可视区。桌面端保持原有自动聚焦。 */}
-            <input
-              autoFocus={!isMobile && !isTablet}
-              type="text"
-              value={saveInputName}
-              onChange={e => setSaveInputName(e.target.value)}
-              placeholder={t('gallery.saveNamePlaceholder')}
-              onKeyDown={e => e.key === 'Enter' && handleConfirmSave()}
-            />
-            <div className="save-dialog-actions">
-              <button className="btn btn-ghost" onClick={() => setShowSaveDialog(false)}>
-                {t('common.cancel')}
-              </button>
-              <button className="btn btn-primary" onClick={handleConfirmSave}>
-                {t('gallery.saveConfirm')}
-              </button>
-            </div>
-            {/* 保存落点提示:匿名 → 本机保存 + 注册软引导;登录 → 云端保存 */}
-            {!user ? (
-              <div className="save-local-hint">
-                <p>{t('auth.saveLocalHint')}</p>
-                <button
-                  type="button"
-                  className="link-btn"
-                  onClick={() => { setShowSaveDialog(false); openRegister() }}
-                >
-                  {t('auth.registerAccount')} →
+              <input
+                autoFocus={!isMobile && !isTablet}
+                type="text"
+                value={saveInputName}
+                onChange={e => setSaveInputName(e.target.value)}
+                placeholder={t('gallery.saveNamePlaceholder')}
+                onKeyDown={e => e.key === 'Enter' && handleConfirmSave()}
+              />
+              <div className="save-dialog-actions">
+                <button className="btn btn-ghost" onClick={() => setShowSaveDialog(false)}>
+                  {t('common.cancel')}
+                </button>
+                <button className="btn btn-primary" onClick={handleConfirmSave}>
+                  {t('gallery.saveConfirm')}
                 </button>
               </div>
-            ) : (
-              <div className="save-local-hint">
-                <p>{t('auth.saveCloudHint')}</p>
-              </div>
-            )}
-          </div>
-        </div>,
-        document.body
-      )}
+              {/* 保存落点提示:匿名 → 本机保存 + 注册软引导;登录 → 云端保存 */}
+              {!user ? (
+                <div className="save-local-hint">
+                  <p>{t('auth.saveLocalHint')}</p>
+                  <button
+                    type="button"
+                    className="link-btn"
+                    onClick={() => {
+                      setShowSaveDialog(false)
+                      openRegister()
+                    }}
+                  >
+                    {t('auth.registerAccount')} →
+                  </button>
+                </div>
+              ) : (
+                <div className="save-local-hint">
+                  <p>{t('auth.saveCloudHint')}</p>
+                </div>
+              )}
+            </div>
+          </div>,
+          document.body
+        )}
       {saveToast && (
         <div className="save-toast">{user ? t('gallery.savedToastCloud') : t('gallery.savedToast')}</div>
       )}
-      {syncToast && (
-        <div className="sync-toast">{t('auth.syncToast', { n: syncCount })}</div>
-      )}
-      {fitToast && (
-        <div className="fit-toast">{t('canvas.autoFitToast')}</div>
-      )}
+      {syncToast && <div className="sync-toast">{t('auth.syncToast', { n: syncCount })}</div>}
+      {fitToast && <div className="fit-toast">{t('canvas.autoFitToast')}</div>}
 
       {/* M5:颜色替换对话框(桌面/移动布局各渲染一份,共享同一份状态) */}
       <ReplaceColorDialog
@@ -1185,7 +1354,7 @@ export default function App() {
         paletteId={currentPalette}
         initialFrom={(() => {
           const b = selectionBounds(selection)
-          return b ? canvasData?.[b.y]?.[b.x] ?? null : null
+          return b ? (canvasData?.[b.y]?.[b.x] ?? null) : null
         })()}
         onClose={() => setShowReplace(false)}
         onConfirm={handleConfirmReplace}
@@ -1305,217 +1474,246 @@ export default function App() {
 
       <Routes>
         <Route path="/login" element={renderAuthPage()} />
-        <Route path="/" element={
-          <>
-            {/* 平板(≥640px)用画布内悬浮胶囊展示尺寸/缩放/重置/适应,
+        <Route
+          path="/"
+          element={
+            <>
+              {/* 平板(≥640px)用画布内悬浮胶囊展示尺寸/缩放/重置/适应,
                 不再渲染手机版顶部横幅,避免与 Canvas 的 .canvas-info 重复 */}
-            {isMobile && (
-              <MobileCanvasInfoBar
+              {isMobile && (
+                <MobileCanvasInfoBar
+                  gridSize={gridSize}
+                  gridWidth={gridWidth}
+                  gridHeight={gridHeight}
+                  scale={mobileScale}
+                  onReset={() => canvasRef.current?.resetTransform()}
+                  onFit={() => canvasRef.current?.fitToScreen()}
+                  autoSaveState={autoSave.state}
+                />
+              )}
+              <div className="mobile-canvas-area">
+                <Canvas {...canvasProps} ref={canvasRef} onTransformChange={setMobileScale} />
+              </div>
+
+              <MobileColorPalette
+                selectedColor={selectedColor}
+                onColorSelect={setSelectedColor}
+                currentPalette={currentPalette}
+                onPaletteChange={handlePaletteChange}
+                canvasData={canvasData}
+              />
+
+              <MobileToolbar
+                tool={tool}
+                onToolChange={setTool}
                 gridSize={gridSize}
                 gridWidth={gridWidth}
                 gridHeight={gridHeight}
-                scale={mobileScale}
-                onReset={() => canvasRef.current?.resetTransform()}
-                onFit={() => canvasRef.current?.fitToScreen()}
-                autoSaveState={autoSave.state}
+                onGridSizeChange={handleGridSizeChange}
+                onGridDimensionsChange={handleGridDimensionsChange}
+                onUndo={handleUndo}
+                onRedo={handleRedo}
+                onClear={handleClearCanvas}
+                canUndo={canUndo}
+                canRedo={canRedo}
+                onExport={() => setShowExport(true)}
+                onQuantize={() => navigate('/create/image')}
+                onImport={() => navigate('/import')}
+                selection={selection}
+                onSelectionCommand={handleSelectionCommand}
+                onClearSelection={handleClearSelection}
+                onOpenReplace={() => setShowReplace(true)}
+                fillIncludeEmpty={fillIncludeEmpty}
+                onToggleFillIncludeEmpty={handleToggleFillIncludeEmpty}
+                canPaste={Boolean(clipboard)}
+                copyDrag={copyDrag}
+                onToggleCopyDrag={setCopyDrag}
+                snapToEdges={snapToEdges}
+                onToggleSnapToEdges={setSnapToEdges}
               />
-            )}
-            <div className="mobile-canvas-area">
-              <Canvas
-                {...canvasProps}
-                ref={canvasRef}
-                onTransformChange={setMobileScale}
-              />
-            </div>
 
-            <MobileColorPalette
-              selectedColor={selectedColor}
-              onColorSelect={setSelectedColor}
-              currentPalette={currentPalette}
-              onPaletteChange={handlePaletteChange}
-              canvasData={canvasData}
-            />
-
-            <MobileToolbar
-              tool={tool}
-              onToolChange={setTool}
-              gridSize={gridSize}
-              gridWidth={gridWidth}
-              gridHeight={gridHeight}
-              onGridSizeChange={handleGridSizeChange}
-              onGridDimensionsChange={handleGridDimensionsChange}
-              onUndo={handleUndo}
-              onRedo={handleRedo}
-              onClear={handleClearCanvas}
-              canUndo={canUndo}
-              canRedo={canRedo}
-              onExport={() => setShowExport(true)}
-              onQuantize={() => navigate('/create/image')}
-              onImport={() => navigate('/import')}
-              selection={selection}
-              onSelectionCommand={handleSelectionCommand}
-              onClearSelection={handleClearSelection}
-              onOpenReplace={() => setShowReplace(true)}
-              fillIncludeEmpty={fillIncludeEmpty}
-              onToggleFillIncludeEmpty={handleToggleFillIncludeEmpty}
-              canPaste={Boolean(clipboard)}
-              copyDrag={copyDrag}
-              onToggleCopyDrag={setCopyDrag}
-              snapToEdges={snapToEdges}
-              onToggleSnapToEdges={setSnapToEdges}
-            />
-
-            {/* A4 长按上下文菜单:portal 到 body,位置由触点决定 */}
-            <SelectionContextMenu
-              open={Boolean(selectionMenu)}
-              x={selectionMenu?.x || 0}
-              y={selectionMenu?.y || 0}
-              canPaste={Boolean(clipboard)}
-              onCommand={handleSelectionMenuCommand}
-              onClose={() => setSelectionMenu(null)}
-            />
-          </>
-        } />
-        <Route path="/gallery" element={
-          <Suspense fallback={<LoadingScreen />}>
-            <div className="mobile-page-area">
-              <GalleryPage
-                onLoadTemplate={handleLoadTemplate}
-                cloudStore={cloudStore}
+              {/* A4 长按上下文菜单:portal 到 body,位置由触点决定 */}
+              <SelectionContextMenu
+                open={Boolean(selectionMenu)}
+                x={selectionMenu?.x || 0}
+                y={selectionMenu?.y || 0}
+                canPaste={Boolean(clipboard)}
+                onCommand={handleSelectionMenuCommand}
+                onClose={() => setSelectionMenu(null)}
               />
-            </div>
-          </Suspense>
-        } />
-        <Route path="/gallery/theme/:slug" element={
-          <Suspense fallback={<LoadingScreen />}>
-            <div className="mobile-page-area">
-              <ThemePage cloudStore={cloudStore} />
-            </div>
-          </Suspense>
-        } />
-        <Route path="/gallery/collection/:slug" element={
-          <Suspense fallback={<LoadingScreen />}>
-            <div className="mobile-page-area">
-              <CollectionPage cloudStore={cloudStore} />
-            </div>
-          </Suspense>
-        } />
-        <Route path="/gallery/pattern/:id" element={
-          <Suspense fallback={<LoadingScreen />}>
-            <div className="mobile-page-area">
-              <PatternDetailPage
-                cloudStore={cloudStore}
-                onSaveProject={saveWork}
-                onLoadTemplate={handleLoadTemplate}
-              />
-            </div>
-          </Suspense>
-        } />
-        <Route path="/tutorials" element={
-          <Suspense fallback={<LoadingScreen />}>
-            <div className="mobile-page-area">
-              <Tutorials />
-            </div>
-          </Suspense>
-        } />
-        <Route path="/profile" element={
-          <div className="mobile-page-area">
-            <ProfilePage
-              user={user}
-              authLoading={authLoading}
-              onUpdateProfile={updateProfile}
-              onChangePassword={changePassword}
-              works={savedWorks}
-              worksLoading={worksLoading}
-              worksError={worksError}
-              cloudMirrorCount={cloudMirrorCount}
-              beadStore={beadStore}
-              onRetryWorks={reloadWorks}
-              onRetryBeads={beadStore.reload}
-              // 作品与收藏已从图库搬到个人中心,回调沿用 App 里同一套实例
-              onLoadWork={handleLoadWork}
-              onDeleteWork={deleteWork}
-              // 版本时间线只覆盖本地作品:云端作品的「里程碑版本」策略未定,
-              // 传 undefined 让按钮不出现,而不是给一个点了没反应的入口。
-              onShowVersions={!user ? setVersionsWork : undefined}
-              favorites={favorites}
-              isFavorite={isFavorite}
-              removeFavorite={removeFavorite}
-              cloudStore={cloudStore}
-              onLoadTemplate={handleLoadTemplate}
-              onSendOtp={sendOtp}
-              onSetPasswordWithOtp={setPasswordWithOtp}
-              onChangeEmail={changeEmail}
-              onVerifyPassword={verifyPassword}
-              onSetSecurityKey={setSecurityKey}
-              autoSaveEnabled={autoSaveEnabled}
-              onToggleAutoSave={toggleAutoSave}
-            />
-          </div>
-        } />
-        <Route path="/admin/dashboard" element={
-          <div className="mobile-page-area">
+            </>
+          }
+        />
+        <Route
+          path="/gallery"
+          element={
             <Suspense fallback={<LoadingScreen />}>
-              <AdminDashboardPage
-                cloudStore={cloudStore}
-                user={user}
-                isAdmin={isAdmin}
-                authLoading={authLoading}
-                onLogin={() => navigate('/admin/login')}
-                onLogout={logout}
-              />
+              <div className="mobile-page-area">
+                <GalleryPage onLoadTemplate={handleLoadTemplate} cloudStore={cloudStore} />
+              </div>
             </Suspense>
-          </div>
-        } />
-        <Route path="/create/image" element={
-          <Suspense fallback={<LoadingScreen />}>
-            <CreateImagePage onApply={handleQuantizerApply} />
-          </Suspense>
-        } />
-        <Route path="/import" element={
-          <div className="mobile-page-area">
-            <ImportPage
-              onLoadProject={handleLoadImportedProject}
-              onSaveProject={saveWork}
-            />
-          </div>
-        } />
-        <Route path="/my/beads" element={
-          <div className="mobile-page-area">
-            <MyBeadsPage
-              user={user}
-              authLoading={authLoading}
-              canvasData={canvasData}
-              onApplyMapping={handleApplyBeadMapping}
-              works={savedWorks}
-              onReassignWorkPalette={handleReassignWorkPalette}
-            />
-          </div>
-        } />
+          }
+        />
+        <Route
+          path="/gallery/theme/:slug"
+          element={
+            <Suspense fallback={<LoadingScreen />}>
+              <div className="mobile-page-area">
+                <ThemePage cloudStore={cloudStore} />
+              </div>
+            </Suspense>
+          }
+        />
+        <Route
+          path="/gallery/collection/:slug"
+          element={
+            <Suspense fallback={<LoadingScreen />}>
+              <div className="mobile-page-area">
+                <CollectionPage cloudStore={cloudStore} />
+              </div>
+            </Suspense>
+          }
+        />
+        <Route
+          path="/gallery/pattern/:id"
+          element={
+            <Suspense fallback={<LoadingScreen />}>
+              <div className="mobile-page-area">
+                <PatternDetailPage
+                  cloudStore={cloudStore}
+                  onSaveProject={saveWork}
+                  onLoadTemplate={handleLoadTemplate}
+                />
+              </div>
+            </Suspense>
+          }
+        />
+        <Route
+          path="/tutorials"
+          element={
+            <Suspense fallback={<LoadingScreen />}>
+              <div className="mobile-page-area">
+                <Tutorials />
+              </div>
+            </Suspense>
+          }
+        />
+        <Route
+          path="/profile"
+          element={
+            <div className="mobile-page-area">
+              <ProfilePage
+                user={user}
+                authLoading={authLoading}
+                onUpdateProfile={updateProfile}
+                onChangePassword={changePassword}
+                works={savedWorks}
+                worksLoading={worksLoading}
+                worksError={worksError}
+                cloudMirrorCount={cloudMirrorCount}
+                beadStore={beadStore}
+                onRetryWorks={reloadWorks}
+                onRetryBeads={beadStore.reload}
+                // 作品与收藏已从图库搬到个人中心,回调沿用 App 里同一套实例
+                onLoadWork={handleLoadWork}
+                onDeleteWork={deleteWork}
+                // 版本时间线只覆盖本地作品:云端作品的「里程碑版本」策略未定,
+                // 传 undefined 让按钮不出现,而不是给一个点了没反应的入口。
+                onShowVersions={!user ? setVersionsWork : undefined}
+                favorites={favorites}
+                isFavorite={isFavorite}
+                removeFavorite={removeFavorite}
+                cloudStore={cloudStore}
+                onLoadTemplate={handleLoadTemplate}
+                onSendOtp={sendOtp}
+                onSetPasswordWithOtp={setPasswordWithOtp}
+                onChangeEmail={changeEmail}
+                onVerifyPassword={verifyPassword}
+                onSetSecurityKey={setSecurityKey}
+                autoSaveEnabled={autoSaveEnabled}
+                onToggleAutoSave={toggleAutoSave}
+              />
+            </div>
+          }
+        />
+        <Route
+          path="/admin/dashboard"
+          element={
+            <div className="mobile-page-area">
+              <Suspense fallback={<LoadingScreen />}>
+                <AdminDashboardPage
+                  cloudStore={cloudStore}
+                  user={user}
+                  isAdmin={isAdmin}
+                  authLoading={authLoading}
+                  onLogin={() => navigate('/admin/login')}
+                  onLogout={logout}
+                />
+              </Suspense>
+            </div>
+          }
+        />
+        <Route
+          path="/create/image"
+          element={
+            <Suspense fallback={<LoadingScreen />}>
+              <CreateImagePage onApply={handleQuantizerApply} />
+            </Suspense>
+          }
+        />
+        <Route
+          path="/import"
+          element={
+            <div className="mobile-page-area">
+              <ImportPage onLoadProject={handleLoadImportedProject} onSaveProject={saveWork} />
+            </div>
+          }
+        />
+        <Route
+          path="/my/beads"
+          element={
+            <div className="mobile-page-area">
+              <MyBeadsPage
+                user={user}
+                authLoading={authLoading}
+                canvasData={canvasData}
+                onApplyMapping={handleApplyBeadMapping}
+                works={savedWorks}
+                onReassignWorkPalette={handleReassignWorkPalette}
+              />
+            </div>
+          }
+        />
         {/* 联系我们直接作为 .app 的 flex 子项,不套 .mobile-page-area。
             那个容器是**块级滚动容器**,页面在其中只能拿到内容高度,填不满
             视口 —— 底部于是留出空白;键盘弹起、可见区收缩后,这段空白正好
             露在键盘上方。本页自己的三段式布局需要拿到「整段剩余高度」,
             所以与 /create/image 一样直接挂在 flex 纵向的 .app 下。 */}
-        <Route path="/contact" element={
-          <Suspense fallback={<LoadingScreen />}>
-            <ContactPage user={user} />
-          </Suspense>
-        } />
+        <Route
+          path="/contact"
+          element={
+            <Suspense fallback={<LoadingScreen />}>
+              <ContactPage user={user} />
+            </Suspense>
+          }
+        />
         <Route path="/admin/login" element={renderAdminLoginPage()} />
-        <Route path="/admin" element={
-          <Suspense fallback={<LoadingScreen />}>
-            <AdminPanel
-              user={user}
-              isAdmin={isAdmin}
-              authLoading={authLoading}
-              onLogin={() => navigate('/admin/login')}
-              onLogout={logout}
-              onChangePassword={changePassword}
-              cloudStore={cloudStore}
-            />
-          </Suspense>
-        } />
+        <Route
+          path="/admin"
+          element={
+            <Suspense fallback={<LoadingScreen />}>
+              <AdminPanel
+                user={user}
+                isAdmin={isAdmin}
+                authLoading={authLoading}
+                onLogin={() => navigate('/admin/login')}
+                onLogout={logout}
+                onChangePassword={changePassword}
+                cloudStore={cloudStore}
+              />
+            </Suspense>
+          }
+        />
         <Route path="/privacy" element={<PrivacyPolicy onBack={handleLegalBack} />} />
         <Route path="/privacy/:versionId" element={<PrivacyPolicy onBack={handleLegalBack} />} />
         <Route path="/terms" element={<TermsOfService onBack={handleLegalBack} />} />
@@ -1544,60 +1742,65 @@ export default function App() {
         />
       )}
 
-      {showSaveDialog && createPortal(
-        <div className="modal-overlay" onClick={() => setShowSaveDialog(false)}>
-          <div className="save-dialog" ref={saveDialogRef} {...saveDialogProps} onClick={e => e.stopPropagation()}>
-            <h3>{t('gallery.saveTitle')}</h3>
-            <label>{t('gallery.saveNameLabel')}</label>
-            {/* 移动端不自动聚焦(规格 08 §5):autoFocus 会立刻唤起键盘,
+      {showSaveDialog &&
+        createPortal(
+          <div className="modal-overlay" onClick={() => setShowSaveDialog(false)}>
+            <div
+              className="save-dialog"
+              ref={saveDialogRef}
+              {...saveDialogProps}
+              onClick={e => e.stopPropagation()}
+            >
+              <h3>{t('gallery.saveTitle')}</h3>
+              <label>{t('gallery.saveNameLabel')}</label>
+              {/* 移动端不自动聚焦(规格 08 §5):autoFocus 会立刻唤起键盘,
                 用户刚点「保存」就被键盘盖掉半屏,还与浮层收缩动画互相竞争,
                 iOS 上容易把弹层顶出可视区。桌面端保持原有自动聚焦。 */}
-            <input
-              autoFocus={!isMobile && !isTablet}
-              type="text"
-              value={saveInputName}
-              onChange={e => setSaveInputName(e.target.value)}
-              placeholder={t('gallery.saveNamePlaceholder')}
-              onKeyDown={e => e.key === 'Enter' && handleConfirmSave()}
-            />
-            <div className="save-dialog-actions">
-              <button className="btn btn-ghost" onClick={() => setShowSaveDialog(false)}>
-                {t('common.cancel')}
-              </button>
-              <button className="btn btn-primary" onClick={handleConfirmSave}>
-                {t('gallery.saveConfirm')}
-              </button>
-            </div>
-            {/* 保存落点提示:匿名 → 本机保存 + 注册软引导;登录 → 云端保存 */}
-            {!user ? (
-              <div className="save-local-hint">
-                <p>{t('auth.saveLocalHint')}</p>
-                <button
-                  type="button"
-                  className="link-btn"
-                  onClick={() => { setShowSaveDialog(false); openRegister() }}
-                >
-                  {t('auth.registerAccount')} →
+              <input
+                autoFocus={!isMobile && !isTablet}
+                type="text"
+                value={saveInputName}
+                onChange={e => setSaveInputName(e.target.value)}
+                placeholder={t('gallery.saveNamePlaceholder')}
+                onKeyDown={e => e.key === 'Enter' && handleConfirmSave()}
+              />
+              <div className="save-dialog-actions">
+                <button className="btn btn-ghost" onClick={() => setShowSaveDialog(false)}>
+                  {t('common.cancel')}
+                </button>
+                <button className="btn btn-primary" onClick={handleConfirmSave}>
+                  {t('gallery.saveConfirm')}
                 </button>
               </div>
-            ) : (
-              <div className="save-local-hint">
-                <p>{t('auth.saveCloudHint')}</p>
-              </div>
-            )}
-          </div>
-        </div>,
-        document.body
-      )}
+              {/* 保存落点提示:匿名 → 本机保存 + 注册软引导;登录 → 云端保存 */}
+              {!user ? (
+                <div className="save-local-hint">
+                  <p>{t('auth.saveLocalHint')}</p>
+                  <button
+                    type="button"
+                    className="link-btn"
+                    onClick={() => {
+                      setShowSaveDialog(false)
+                      openRegister()
+                    }}
+                  >
+                    {t('auth.registerAccount')} →
+                  </button>
+                </div>
+              ) : (
+                <div className="save-local-hint">
+                  <p>{t('auth.saveCloudHint')}</p>
+                </div>
+              )}
+            </div>
+          </div>,
+          document.body
+        )}
       {saveToast && (
         <div className="save-toast">{user ? t('gallery.savedToastCloud') : t('gallery.savedToast')}</div>
       )}
-      {syncToast && (
-        <div className="sync-toast">{t('auth.syncToast', { n: syncCount })}</div>
-      )}
-      {fitToast && (
-        <div className="fit-toast">{t('canvas.autoFitToast')}</div>
-      )}
+      {syncToast && <div className="sync-toast">{t('auth.syncToast', { n: syncCount })}</div>}
+      {fitToast && <div className="fit-toast">{t('canvas.autoFitToast')}</div>}
 
       {/* M5:颜色替换对话框(桌面/移动布局各渲染一份,共享同一份状态) */}
       <ReplaceColorDialog
@@ -1606,7 +1809,7 @@ export default function App() {
         paletteId={currentPalette}
         initialFrom={(() => {
           const b = selectionBounds(selection)
-          return b ? canvasData?.[b.y]?.[b.x] ?? null : null
+          return b ? (canvasData?.[b.y]?.[b.x] ?? null) : null
         })()}
         onClose={() => setShowReplace(false)}
         onConfirm={handleConfirmReplace}
@@ -1680,7 +1883,6 @@ export default function App() {
       `}</style>
     </div>
   )
-
 
   // ── 每页动态 SEO(不改变功能与界面)───────────────────────
   const SEO_CONFIG = {
@@ -1764,14 +1966,23 @@ export default function App() {
   }
 
   // 404 覆盖:路径形状不存在时,不论 currentPage 归到哪一组,都改用 notFound 的 meta
-  const seo = isNotFound ? SEO_CONFIG.notFound : (SEO_CONFIG[currentPage] || SEO_CONFIG.canvas)
+  const seo = isNotFound ? SEO_CONFIG.notFound : SEO_CONFIG[currentPage] || SEO_CONFIG.canvas
 
   // 各页面对应的规范路径(privacy/terms 的 :versionId 历史版本归并到父路径)
   const CANONICAL_PATH = {
-    canvas: '/', gallery: '/gallery', tutorials: '/tutorials', admin: '/admin',
-    adminLogin: '/admin/login', login: '/login', profile: '/profile',
-    createImage: '/create/image', import: '/import', privacy: '/privacy', terms: '/terms',
-    myBeads: '/my/beads', contact: '/contact',
+    canvas: '/',
+    gallery: '/gallery',
+    tutorials: '/tutorials',
+    admin: '/admin',
+    adminLogin: '/admin/login',
+    login: '/login',
+    profile: '/profile',
+    createImage: '/create/image',
+    import: '/import',
+    privacy: '/privacy',
+    terms: '/terms',
+    myBeads: '/my/beads',
+    contact: '/contact',
   }
   const SITE_ORIGIN = 'https://tangnotes.site'
   // 主题/合集/图纸详情是动态内容页,canonical 自指;其余 /gallery/* 子路径
@@ -1786,21 +1997,29 @@ export default function App() {
   // 此前 Helmet 输出 en-US/ja-JP/ko-KR 而静态文件写 en/ja/ko,同一语言两个值,
   // 搜索引擎无法把语言变体归入同一组 → 多语言定向失效。
   const HREFLANG = { 'zh-CN': 'zh-CN', 'en-US': 'en', 'ja-JP': 'ja', 'ko-KR': 'ko' }
-  const hreflangHref = (code) => (code === 'zh-CN' ? baseUrl : `${baseUrl}?lang=${HREFLANG[code]}`)
+  const hreflangHref = code => (code === 'zh-CN' ? baseUrl : `${baseUrl}?lang=${HREFLANG[code]}`)
 
   // canonical:?lang= 直达页自指(与上方 hreflang 互指,否则会被判为首页副本);
   // 无该参数时自指裸路径。必须依据「请求进来的 URL」而非当前界面语言 ——
   // 浏览器语言自动切换不等于用户访问的是语言版本 URL(i18n 初始化会把 ?lang= 从地址栏移除,
   // 故用模块加载时捕获的 initialLangParam)。
-  const canonical = initialLangParam && initialLangParam !== 'zh-CN'
-    ? `${baseUrl}?lang=${HREFLANG[initialLangParam]}`
-    : baseUrl
+  const canonical =
+    initialLangParam && initialLangParam !== 'zh-CN'
+      ? `${baseUrl}?lang=${HREFLANG[initialLangParam]}`
+      : baseUrl
 
   const seoHelmet = (
     <Helmet>
       <title>{seo.title}</title>
       <meta name="description" content={seo.desc} />
-      <meta name="robots" content={seo.noindex ? 'noindex, nofollow' : 'index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1'} />
+      <meta
+        name="robots"
+        content={
+          seo.noindex
+            ? 'noindex, nofollow'
+            : 'index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1'
+        }
+      />
       <link rel="canonical" href={canonical} />
       {/* 单语页(隐私 / 条款)只声明 zh-CN 与 x-default —— 与构建期产出的
           privacy.html / terms.html 及 sitemap.xml 保持一致。多声明 en/ja/ko 会
