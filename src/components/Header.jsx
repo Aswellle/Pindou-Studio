@@ -527,8 +527,10 @@ export default function Header({
           .nav {
             gap: 4px;
           }
+          /* 内边距收窄一档:768px 中文在「未保存圆点」出现后仍留有余量,
+             不会因为 +12px 就触发图标模式(避免首次落笔菜单名突然消失) */
           .nav-link {
-            padding: 8px 12px;
+            padding: 8px 10px;
           }
         }
       `}</style>
