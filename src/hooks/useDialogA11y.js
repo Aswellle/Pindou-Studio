@@ -34,8 +34,19 @@ const stack = []
  * @param {'dialog'|'alertdialog'} [options.role] - 破坏性确认用 alertdialog
  * @param {boolean} [options.modal] - 桌面锚定浮层等「边操作边看结果」的场景传 false,
  *   避免 aria-modal 让辅助技术把浮层外的结果区当成不可访问
+ * @param {boolean} [options.dismissible] - 破坏性/安全类确认传 false:
+ *   禁用 Escape,强制用户点「取消」或「确认」。遮罩点击由调用方同步禁止。
+ *   这类对话框必须始终渲染两个动作按钮,不能只留一个关闭入口。
  */
-export function useDialogA11y({ open, onClose, label, disabled = false, role = 'dialog', modal = true }) {
+export function useDialogA11y({
+  open,
+  onClose,
+  label,
+  disabled = false,
+  role = 'dialog',
+  modal = true,
+  dismissible = true,
+}) {
   const ref = useRef(null)
   const restoreRef = useRef(null)
   const tokenRef = useRef(null)
@@ -69,7 +80,7 @@ export function useDialogA11y({ open, onClose, label, disabled = false, role = '
   }, [open])
 
   useEffect(() => {
-    if (!open || disabled) return undefined
+    if (!open || disabled || !dismissible) return undefined
     const onKeyDown = e => {
       if (e.key !== 'Escape' || e.defaultPrevented) return
       // 输入法组合态:中文/日文输入时 Esc 是「取消候选词」而不是「关闭浮层」。
@@ -83,7 +94,7 @@ export function useDialogA11y({ open, onClose, label, disabled = false, role = '
     }
     document.addEventListener('keydown', onKeyDown)
     return () => document.removeEventListener('keydown', onKeyDown)
-  }, [open, disabled, onClose])
+  }, [open, disabled, dismissible, onClose])
 
   return {
     ref,

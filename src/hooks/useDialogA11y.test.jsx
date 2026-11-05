@@ -11,8 +11,8 @@ import { useDialogA11y, __resetDialogStack } from './useDialogA11y'
  *   - 焦点进入容器、关闭后还给触发控件。
  */
 
-function Dialog({ open, onClose, label = '测试浮层', disabled, modal }) {
-  const { ref, dialogProps } = useDialogA11y({ open, onClose, label, disabled, modal })
+function Dialog({ open, onClose, label = '测试浮层', disabled, modal, dismissible }) {
+  const { ref, dialogProps } = useDialogA11y({ open, onClose, label, disabled, modal, dismissible })
   if (!open) return null
   return (
     <div ref={ref} {...dialogProps} data-testid="dialog">
@@ -80,6 +80,27 @@ describe('useDialogA11y', () => {
     render(<Dialog open onClose={onClose} disabled />)
     fireEvent.keyDown(document, { key: 'Escape' })
     expect(onClose).not.toHaveBeenCalled()
+  })
+
+  it('dismissible=false 时 Escape 不关闭(危险确认必须显式选择)', () => {
+    const onClose = vi.fn()
+    render(<Dialog open onClose={onClose} dismissible={false} />)
+    fireEvent.keyDown(document, { key: 'Escape' })
+    expect(onClose).not.toHaveBeenCalled()
+  })
+
+  it('不可关闭的栈顶浮层会挡住下层的 Escape', () => {
+    const outerClose = vi.fn()
+    const innerClose = vi.fn()
+    render(
+      <>
+        <Dialog open onClose={outerClose} label="外层" />
+        <Dialog open onClose={innerClose} label="内层" dismissible={false} />
+      </>
+    )
+    fireEvent.keyDown(document, { key: 'Escape' })
+    expect(innerClose).not.toHaveBeenCalled()
+    expect(outerClose).not.toHaveBeenCalled()
   })
 
   it('输入法组合态下的 Escape 不关闭浮层(取消候选词,不是关窗)', () => {
