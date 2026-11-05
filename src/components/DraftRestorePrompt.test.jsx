@@ -12,8 +12,8 @@ import { __resetScrollLock } from '../hooks/useScrollLock'
  * 所以三条都必须锁住:
  *   1. 有草稿才渲染,没草稿时连 DOM 都不出现(不能占着浮层);
  *   2. 两个动作各自只回调一次,不能互相串(恢复 ≠ 丢弃);
- *   3. Escape 等同于丢弃 —— 但**必须**走 onDiscard,不能什么都不做,
- *      否则用户会以为已经处理了,下次打开又弹一次。
+ *   3. 必须显式二选一 —— 点遮罩或按 Escape 都不丢弃草稿,
+ *      避免用户随手点空白处就把几分钟的心血扔掉。
  */
 
 beforeAll(async () => { await i18n.changeLanguage('zh-CN') })
@@ -113,11 +113,12 @@ describe('DraftRestorePrompt · 交互', () => {
     expect(onRestore).not.toHaveBeenCalled()
   })
 
-  it('点遮罩空白处等于丢弃', () => {
+  it('点遮罩空白处不会丢弃,必须显式选择', () => {
     const { onRestore, onDiscard } = setup()
     fireEvent.click($('.modal-overlay'))
-    expect(onDiscard).toHaveBeenCalledTimes(1)
+    expect(onDiscard).not.toHaveBeenCalled()
     expect(onRestore).not.toHaveBeenCalled()
+    expect($('.draft-restore-dialog')).toBeTruthy()
   })
 
   it('点对话框内部不会误触丢弃(冒泡被拦截)', () => {
@@ -126,11 +127,19 @@ describe('DraftRestorePrompt · 交互', () => {
     expect(onDiscard).not.toHaveBeenCalled()
   })
 
-  it('Escape 走丢弃,而不是什么都不做', () => {
+  it('Escape 不会丢弃草稿,提示保持打开', () => {
     const { onRestore, onDiscard } = setup()
     fireEvent.keyDown(document, { key: 'Escape' })
-    expect(onDiscard).toHaveBeenCalledTimes(1)
+    expect(onDiscard).not.toHaveBeenCalled()
     expect(onRestore).not.toHaveBeenCalled()
+    expect($('.draft-restore-dialog')).toBeTruthy()
+  })
+
+  it('初始焦点在「恢复」上,回车不会误丢草稿', () => {
+    setup()
+    const restore = [...document.body.querySelectorAll('.draft-restore-actions button')]
+      .find(b => b.textContent === i18n.t('autosave.restore'))
+    expect(document.activeElement).toBe(restore)
   })
 
   it('输入法组合态下 Escape 不关闭(中文候选词场景)', () => {

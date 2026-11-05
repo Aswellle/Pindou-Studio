@@ -14,6 +14,9 @@ import { useScrollLock } from '../hooks/useScrollLock'
  * 只给两个动作:恢复 / 丢弃。**没有「稍后」** —— 留着提示在画布上挡着,
  * 用户下次打开还会看到,反而变成打扰。丢弃是明确的,恢复也是明确的。
  *
+ * 因此这是一个「必须做选择」的对话框:点击遮罩或按 Escape 都不会关闭,
+ * 避免用户随手点空白处就把草稿丢掉(旧实现正是把遮罩/Escape 绑定到 onDiscard)。
+ *
  * 走 .modal-overlay 共享浮层基础(iOS 键盘/视觉视口契约),portal 到 body
  * (iOS 上 fixed 元素嵌在滚动祖先里会被键盘顶偏,见 index.css 注释)。
  */
@@ -24,8 +27,8 @@ export default function DraftRestorePrompt({ draft, onRestore, onDiscard }) {
   useScrollLock(open)
   const { ref, dialogProps } = useDialogA11y({
     open,
-    onClose: onDiscard,
     label: t('autosave.restoreTitle'),
+    dismissible: false,
   })
 
   if (!open) return null
@@ -35,7 +38,7 @@ export default function DraftRestorePrompt({ draft, onRestore, onDiscard }) {
   const savedLabel = formatSavedAt(draft.savedAt)
 
   return createPortal(
-    <div className="modal-overlay" onClick={onDiscard}>
+    <div className="modal-overlay">
       <div
         className="draft-restore-dialog"
         ref={ref}
@@ -53,7 +56,7 @@ export default function DraftRestorePrompt({ draft, onRestore, onDiscard }) {
           <button type="button" className="btn btn-ghost" onClick={onDiscard}>
             {t('autosave.discard')}
           </button>
-          <button type="button" className="btn btn-primary" onClick={onRestore}>
+          <button type="button" className="btn btn-primary" autoFocus onClick={onRestore}>
             {t('autosave.restore')}
           </button>
         </div>
