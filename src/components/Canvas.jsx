@@ -55,6 +55,10 @@ const Canvas = forwardRef(function Canvas(
     // A4:长按选区内容时上报屏幕坐标,父组件据此弹上下文菜单。
     // 不传 = 不启用长按(桌面端用不上,右键菜单另有语义)。
     onSelectionLongPress,
+    // 保存入口放在画布 HUD 而不是全局顶栏:保存是画布专属动作,
+    // 放顶栏会让右侧图标组随页面切换增减、整排跳位。
+    onSave,
+    saveState,
   },
   ref
 ) {
@@ -1703,6 +1707,23 @@ const Canvas = forwardRef(function Canvas(
             {selection.w} × {selection.h}
           </span>
         ) : null}
+        {onSave && (
+          <button
+            type="button"
+            className={`info-save-btn${saveState === 'dirty' ? ' has-unsaved' : ''}`}
+            onClick={onSave}
+            aria-label={t('gallery.saveTitle')}
+            title={saveState === 'dirty' ? t('gallery.unsavedHint') : t('gallery.saveTitle')}
+          >
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z" />
+              <polyline points="17 21 17 13 7 13 7 21" />
+              <polyline points="7 3 7 8 15 8" />
+            </svg>
+            {/* 未保存标记:不依赖颜色的圆点,色弱也能看出形状变化 */}
+            {saveState === 'dirty' && <span className="save-unsaved-dot" aria-hidden="true" />}
+          </button>
+        )}
         <button className="reset-btn" onClick={resetTransform} title={t('canvas.resetTitle')}>
           {t('canvas.reset')}
         </button>
@@ -1803,6 +1824,36 @@ const Canvas = forwardRef(function Canvas(
           .canvas-info {
             display: none !important;
           }
+        }
+        /* 保存入口:与重置/适应同住 HUD 的图标按钮 */
+        .info-save-btn {
+          position: relative;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          width: 26px;
+          height: 26px;
+          padding: 0;
+          border: none;
+          border-radius: 8px;
+          background: transparent;
+          color: var(--text-secondary);
+          cursor: pointer;
+          transition: color 0.15s, background 0.15s;
+          font-family: inherit;
+        }
+        .info-save-btn:hover {
+          color: var(--text-primary);
+          background: rgba(43, 36, 32, 0.07);
+        }
+        .info-save-btn .save-unsaved-dot {
+          position: absolute;
+          top: 3px;
+          right: 3px;
+          width: 7px;
+          height: 7px;
+          border-radius: 50%;
+          background: var(--accent);
         }
         .reset-btn {
           background: var(--secondary-accent);

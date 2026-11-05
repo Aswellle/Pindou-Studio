@@ -16,6 +16,10 @@ export default function MobileCanvasInfoBar({
   onReset,
   onFit,
   autoSaveState,
+  // 保存入口从顶栏移到画布信息条:画布专属动作不进全局导航,
+  // 右侧图标组才不会随页面切换增减、整排跳位。
+  onSave,
+  saveState,
 }) {
   const { t } = useTranslation()
 
@@ -24,14 +28,20 @@ export default function MobileCanvasInfoBar({
   const scalePercent = Math.round((scale || 1) * 100)
   // 只在「正在保存 / 已保存 / 失败」时显示:空闲与待保存都没必要占位,
   // 否则这一格会长期挂着一个无信息的词
-  const saveLabel = autoSaveState === 'saving' ? t('autosave.statusSaving')
-    : autoSaveState === 'saved' ? t('autosave.statusSaved')
-    : autoSaveState === 'failed' ? t('autosave.statusFailed')
-    : null
+  const saveLabel =
+    autoSaveState === 'saving'
+      ? t('autosave.statusSaving')
+      : autoSaveState === 'saved'
+        ? t('autosave.statusSaved')
+        : autoSaveState === 'failed'
+          ? t('autosave.statusFailed')
+          : null
 
   return (
     <div className="mobile-canvas-info-bar">
-      <span className="info-size">{w}×{h}</span>
+      <span className="info-size">
+        {w}×{h}
+      </span>
       <span className="info-scale">{scalePercent}%</span>
       {saveLabel && (
         <span
@@ -41,6 +51,22 @@ export default function MobileCanvasInfoBar({
         >
           {saveLabel}
         </span>
+      )}
+      {onSave && (
+        <button
+          type="button"
+          className={`info-save-btn${saveState === 'dirty' ? ' has-unsaved' : ''}`}
+          onClick={onSave}
+          aria-label={t('gallery.saveTitle')}
+          title={saveState === 'dirty' ? t('gallery.unsavedHint') : t('gallery.saveTitle')}
+        >
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+            <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z" />
+            <polyline points="17 21 17 13 7 13 7 21" />
+            <polyline points="7 3 7 8 15 8" />
+          </svg>
+          {saveState === 'dirty' && <span className="info-save-dot" aria-hidden="true" />}
+        </button>
       )}
       <button className="info-reset-btn" onClick={onReset} title={t('canvas.resetTitle')}>
         {t('canvas.reset')}
@@ -82,6 +108,36 @@ export default function MobileCanvasInfoBar({
           min-width: 0;
         }
         .info-autosave.is-failed { color: var(--danger, #c62828); }
+        /* 保存入口:与重置/适应同级的图标按钮 */
+        .info-save-btn {
+          position: relative;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          width: 28px;
+          height: 28px;
+          padding: 0;
+          border: none;
+          border-radius: 8px;
+          background: transparent;
+          color: var(--text-secondary);
+          cursor: pointer;
+          transition: color 0.15s, background 0.15s;
+          font-family: inherit;
+        }
+        .info-save-btn:hover {
+          color: var(--text-primary);
+          background: rgba(43, 36, 32, 0.07);
+        }
+        .info-save-dot {
+          position: absolute;
+          top: 3px;
+          right: 3px;
+          width: 7px;
+          height: 7px;
+          border-radius: 50%;
+          background: var(--accent);
+        }
         .info-reset-btn {
           background: var(--secondary-accent);
           color: white;

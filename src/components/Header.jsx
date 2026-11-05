@@ -13,11 +13,9 @@ export default function Header({
   onLogin,
   onRegister: _onRegister,
   onLogout,
-  onSave,
   currentPage,
   onPageChange: _onPageChange,
   simplified,
-  saveState,
 }) {
   const { t, i18n } = useTranslation()
   const navigate = useNavigate()
@@ -124,25 +122,9 @@ export default function Header({
       {simplified && <div className="header-center">{renderNav(18)}</div>}
 
       <div className="header-right">
-        {/* PC:纯图标导航整体右移,与语言切换、登录同一组水平排布 */}
+        {/* PC:纯图标导航整体右移,与语言切换、登录同一组水平排布。
+            保存等画布专属动作不进顶栏 —— 否则图标组会随页面切换增减、整排跳位 */}
         {!simplified && renderNav(20)}
-        {currentPage === 'canvas' && onSave && (
-          <button
-            type="button"
-            onClick={onSave}
-            className={`save-work-btn${saveState === 'dirty' ? ' has-unsaved' : ''}`}
-            aria-label={t('gallery.saveTitle')}
-            data-tip={saveState === 'dirty' ? t('gallery.unsavedHint') : t('gallery.saveTitle')}
-          >
-            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z" />
-              <polyline points="17 21 17 13 7 13 7 21" />
-              <polyline points="7 3 7 8 15 8" />
-            </svg>
-            {/* 未保存标记:一个不依赖颜色的圆点,窄屏也能看见 */}
-            {saveState === 'dirty' && <span className="save-unsaved-dot" aria-hidden="true" />}
-          </button>
-        )}
         {!simplified && <LanguageSelector />}
         {/* 移动端:非画布页在导航与用户区之间显示语言切换按钮(🌐) */}
         {simplified && currentPage !== 'canvas' && <LanguageSelector compact />}
@@ -268,13 +250,12 @@ export default function Header({
           align-items: center;
           gap: 12px;
         }
-        /* 顶栏自适应紧凑模式:菜单文字不换行、不收缩 —— 装不下时由 JS 测量
-           切到 is-compact(隐藏文字、只留图标 + title),而不是把文字挤成两行 */
+        /* 顶栏各组不收缩:纯图标导航下任何语言都不会溢出 */
         .header-left, .header-center, .header-right {
           flex-shrink: 0;
         }
-        .logo, .logo-text, .nav-link, .nav-label, .nav-text,
-        .save-work-btn, .save-label, .btn-primary, .mobile-login-btn, .user-name {
+        .logo, .logo-text, .nav-link,
+        .btn-primary, .mobile-login-btn, .user-name {
           white-space: nowrap;
         }
         .header.simplified .header-left,
@@ -320,8 +301,7 @@ export default function Header({
           outline-offset: 2px;
         }
         /* 悬浮轻提示:悬停/键盘聚焦 300ms 后淡入,离开即消失,不抢操作 */
-        .nav-link::after,
-        .save-work-btn::after {
+        .nav-link::after {
           content: attr(data-tip);
           position: absolute;
           top: calc(100% + 8px);
@@ -343,15 +323,12 @@ export default function Header({
             transform 0.15s ease 0.3s;
         }
         .nav-link:hover::after,
-        .nav-link:focus-visible::after,
-        .save-work-btn:hover::after,
-        .save-work-btn:focus-visible::after {
+        .nav-link:focus-visible::after {
           opacity: 1;
           transform: translate(-50%, 0);
         }
         @media (prefers-reduced-motion: reduce) {
-          .nav-link::after,
-          .save-work-btn::after {
+          .nav-link::after {
             transition: opacity 0.1s ease 0.3s;
             transform: translate(-50%, 0);
           }
@@ -468,40 +445,6 @@ export default function Header({
         .user-name {
           font-size: var(--text-md);
           color: var(--text-secondary);
-        }
-        .save-work-btn {
-          position: relative;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          width: 40px;
-          height: 40px;
-          border: none;
-          border-radius: 10px;
-          background: transparent;
-          color: var(--text-secondary);
-          cursor: pointer;
-          transition: color 0.15s, background 0.15s;
-          font-family: inherit;
-        }
-        .save-work-btn:hover {
-          color: var(--text-primary);
-          background: var(--bg-secondary);
-        }
-        .save-work-btn:focus-visible {
-          outline: 2px solid var(--accent);
-          outline-offset: 2px;
-        }
-        /* 未保存标记:小圆点,不依赖颜色区分(色弱也能看出形状变化)。
-           定位在图标右上角,移动端简版顶栏同样可见。 */
-        .save-unsaved-dot {
-          position: absolute;
-          top: 7px;
-          right: 7px;
-          width: 7px;
-          height: 7px;
-          border-radius: 50%;
-          background: var(--accent);
         }
       `}</style>
 

@@ -671,6 +671,9 @@ export default function App() {
     onSelectionLongPress: point => setSelectionMenu(point),
     // M5.2 拖拽移动:画布只在松手时上报一次偏移,这里提交一条历史。
     // 偏移已由画布按 clampMove 钳制,内容不会掉出画布。
+    // 保存入口在画布 HUD / 移动端信息条(画布专属动作不进全局顶栏)。
+    onSave: handleOpenSaveDialog,
+    saveState,
     // A2:`copy` 为 true 时是复制拖动(Alt/Option 或移动端开关),原件保留。
     onSelectionMove: ({ dx, dy, selection: base, copy }) => {
       // A5:套索选区走掩码版,形状跟着一起搬
@@ -1090,10 +1093,8 @@ export default function App() {
           onLogin={openLogin}
           onRegister={openRegister}
           onLogout={logout}
-          onSave={currentPage === 'canvas' ? handleOpenSaveDialog : undefined}
           currentPage={currentPage}
           onPageChange={handlePageChange}
-          saveState={saveState}
         />
       )}
 
@@ -1407,7 +1408,6 @@ export default function App() {
           currentPage={currentPage}
           onPageChange={handlePageChange}
           simplified={isMobile}
-          saveState={saveState}
         />
       )}
 
@@ -1428,6 +1428,8 @@ export default function App() {
                   onReset={() => canvasRef.current?.resetTransform()}
                   onFit={() => canvasRef.current?.fitToScreen()}
                   autoSaveState={autoSave.state}
+                  onSave={handleOpenSaveDialog}
+                  saveState={saveState}
                 />
               )}
               <div className="mobile-canvas-area">
