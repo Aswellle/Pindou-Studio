@@ -93,7 +93,7 @@ const readStored = () => JSON.parse(localStorage.getItem('saved-works') || '[]')
 
 describe('App · 作品载入 → 保存 尺寸一致性(M3)', () => {
   it('错位作品载入后按实际形状建网格,再保存写入正确尺寸', async () => {
-    const { findByTestId, findByText, findByPlaceholderText } = render(
+    const { findByTestId, findByText, findByPlaceholderText, findByLabelText } = render(
       <MemoryRouter initialEntries={['/profile']}>
         <HelmetProvider>
           <App />
@@ -112,7 +112,7 @@ describe('App · 作品载入 → 保存 尺寸一致性(M3)', () => {
     })
 
     // 2) 回到画布后打开保存弹窗(保存名默认取 designName,与是否载入作品无关)
-    const saveBtn = await findByText('保存作品')
+    const saveBtn = await findByLabelText('保存作品')
     fireEvent.click(saveBtn)
 
     // 3) 填入名称并确认保存

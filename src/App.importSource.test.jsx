@@ -62,7 +62,7 @@ const readStored = () => JSON.parse(localStorage.getItem('saved-works') || '[]')
 
 describe('App · 导入来源随保存落库', () => {
   it('导入 → 载入画布 → 保存,作品带 sourceKind=chart-import', async () => {
-    const { findByTestId, findByText, findByPlaceholderText } = render(
+    const { findByTestId, findByText, findByPlaceholderText, findByLabelText } = render(
       <MemoryRouter initialEntries={['/import']}>
         <HelmetProvider><App /></HelmetProvider>
       </MemoryRouter>
@@ -70,7 +70,7 @@ describe('App · 导入来源随保存落库', () => {
     fireEvent.click(await findByTestId('load-imported'))
     await waitFor(() => expect(canvasProps.current?.gridWidth).toBe(12))
 
-    fireEvent.click(await findByText('保存作品'))
+    fireEvent.click(await findByLabelText('保存作品'))
     fireEvent.change(await findByPlaceholderText('请输入作品名称'), { target: { value: '导入副本' } })
     fireEvent.click(await findByText('确认保存'))
 
