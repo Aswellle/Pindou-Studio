@@ -17,7 +17,7 @@ const mockUser = { id: 'user-1', email: 'test@example.com', nickname: '测试用
 
 function installMockMatchMedia() {
   const orig = window.matchMedia
-  window.matchMedia = (query) => ({
+  window.matchMedia = query => ({
     matches: false,
     media: query,
     onchange: null,
@@ -27,7 +27,9 @@ function installMockMatchMedia() {
     removeEventListener: () => {},
     dispatchEvent: () => false,
   })
-  return () => { window.matchMedia = orig }
+  return () => {
+    window.matchMedia = orig
+  }
 }
 
 let restoreMatchMedia
@@ -48,15 +50,7 @@ function renderHeader(props = {}) {
       <Routes>
         <Route
           path="/"
-          element={
-            <Header
-              user={mockUser}
-              currentPage="canvas"
-              simplified
-              onLogout={onLogout}
-              {...props}
-            />
-          }
+          element={<Header user={mockUser} currentPage="canvas" simplified onLogout={onLogout} {...props} />}
         />
         <Route path="/profile" element={<div>PROFILE_PAGE</div>} />
       </Routes>
@@ -124,5 +118,22 @@ describe('Header · 账号菜单', () => {
     expect(screen.queryByRole('button', { name: '个人中心' })).toBeNull()
     expect(screen.queryByRole('menuitem', { name: '退出登录' })).toBeNull()
     expect(screen.getByRole('button', { name: '登录' })).toBeTruthy()
+  })
+})
+
+describe('Header · 导航自适应紧凑模式', () => {
+  it('完整头栏渲染导航文字,链接保留 aria-label(装不下时才由 is-compact 隐藏)', () => {
+    renderHeader({ simplified: false, currentPage: 'canvas', onSave: vi.fn() })
+    const texts = [...document.querySelectorAll('.nav-link .nav-text')]
+    expect(texts.length).toBe(4)
+    expect(texts.map(el => el.textContent)).toContain('画布')
+
+    const links = [...document.querySelectorAll('.nav-link')]
+    expect(links.every(link => link.getAttribute('aria-label'))).toBe(true)
+  })
+
+  it('保存按钮文字独立成 save-label,供紧凑模式整体隐藏', () => {
+    renderHeader({ simplified: false, currentPage: 'canvas', onSave: vi.fn() })
+    expect(document.querySelector('.save-work-btn .save-label')?.textContent).toBe('保存作品')
   })
 })

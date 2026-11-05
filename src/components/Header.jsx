@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { NavLink, useLocation, useNavigate } from 'react-router-dom'
 import { PenTool, LayoutGrid, BookOpen, Palette, ChevronDown, LogOut, UserRound } from 'lucide-react'
@@ -18,17 +18,50 @@ export default function Header({
   onPageChange: _onPageChange,
   simplified,
   saveState,
-  autoSaveState,
 }) {
-  const { t } = useTranslation()
+  const { t, i18n } = useTranslation()
   const navigate = useNavigate()
   const location = useLocation()
   const [userMenuOpen, setUserMenuOpen] = useState(false)
   const [confirmLogout, setConfirmLogout] = useState(false)
-  const userMenuRef = useRef(null)
   const userMenuTriggerRef = useRef(null)
+  const userMenuRef = useRef(null)
+  const headerRef = useRef(null)
+  // 顶栏装不下完整导航时退化为图标模式:先按自然宽度(不换行、不收缩)量一次,
+  // 溢出才隐藏文字。这样中文在 768px 仍保留菜单名,英文/日文等更长的语言
+  // 或更窄的平板则自动切成图标 + title,不会把文字挤成两行。
+  const [compact, setCompact] = useState(false)
 
   useScrollLock(confirmLogout)
+
+  // biome-ignore lint/correctness/useExhaustiveDependencies: user/currentPage/saveState/i18n.language 是「顶栏内容变化」的信号,变化后需要重新测量,效果体内不直接读取
+  useLayoutEffect(() => {
+    if (simplified) {
+      setCompact(false)
+      return
+    }
+    const el = headerRef.current
+    if (!el) return
+    // 先拿掉紧凑类量自然宽度(否则会一直以为已经装得下)
+    el.classList.remove('is-compact')
+    const shouldCompact = el.scrollWidth > el.clientWidth + 1
+    if (shouldCompact) el.classList.add('is-compact')
+    setCompact(shouldCompact)
+  }, [simplified, user, currentPage, saveState, i18n.language])
+
+  useEffect(() => {
+    if (simplified) return undefined
+    const onResize = () => {
+      const el = headerRef.current
+      if (!el) return
+      el.classList.remove('is-compact')
+      const shouldCompact = el.scrollWidth > el.clientWidth + 1
+      if (shouldCompact) el.classList.add('is-compact')
+      setCompact(shouldCompact)
+    }
+    window.addEventListener('resize', onResize)
+    return () => window.removeEventListener('resize', onResize)
+  }, [simplified])
 
   // 切换页面或退出登录后收起菜单:菜单是浮层,不该跟着路由残留在新页面上
   // biome-ignore lint/correctness/useExhaustiveDependencies: pathname 只作为「路由变化」信号,effect 内不读取它
@@ -65,17 +98,9 @@ export default function Header({
     }
   }, [userMenuOpen])
 
-  // 自动保存状态:只在「保存中 / 已保存 / 失败」时显示。
-  // 与 saveState 的未保存圆点是两件事 —— 一个是「要不要手动存」,
-  // 一个是「本机草稿有没有落地」,混成一个反而看不懂。
-  const autoSaveLabel =
-    autoSaveState === 'saving'
-      ? t('autosave.statusSaving')
-      : autoSaveState === 'saved'
-        ? t('autosave.statusSaved')
-        : autoSaveState === 'failed'
-          ? t('autosave.statusFailed')
-          : null
+  // 自动保存状态由画布区域的悬浮旁注承载(AutoSaveStatus):
+  // 顶栏在平板宽度下已容纳 LOGO、四项导航、保存、语言与账号,
+  // 再放一条常驻文案会挤压导航导致断行。
 
   // 后台管理(admin)不在导航中显示,仅通过 /admin 路由访问
   const navItems = [
@@ -86,7 +111,10 @@ export default function Header({
   ]
 
   return (
-    <header className={`header ${simplified ? 'simplified' : ''}`}>
+    <header
+      ref={headerRef}
+      className={`header ${simplified ? 'simplified' : ''}${compact ? ' is-compact' : ''}`}
+    >
       <div className="header-left">
         <NavLink to="/" className="logo">
           <svg width="32" height="32" viewBox="0 0 32 32" fill="none">
@@ -119,6 +147,7 @@ export default function Header({
               to={item.path}
               className={`nav-link ${currentPage === item.id ? 'active' : ''}`}
               aria-label={item.label}
+              title={compact ? item.label : undefined}
             >
               {simplified ? (
                 <span className="nav-icon">
@@ -127,7 +156,7 @@ export default function Header({
               ) : (
                 <span className="nav-label">
                   <item.icon size={16} />
-                  {item.label}
+                  <span className="nav-text">{item.label}</span>
                 </span>
               )}
             </NavLink>
@@ -141,28 +170,19 @@ export default function Header({
             onClick={onSave}
             className={`btn btn-ghost save-work-btn${saveState === 'dirty' ? ' has-unsaved' : ''}`}
             aria-label={t('gallery.saveTitle')}
-            title={saveState === 'dirty' ? t('gallery.unsavedHint') : undefined}
+            title={
+              saveState === 'dirty' ? t('gallery.unsavedHint') : compact ? t('gallery.saveTitle') : undefined
+            }
           >
             <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
               <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z" />
               <polyline points="17 21 17 13 7 13 7 21" />
               <polyline points="7 3 7 8 15 8" />
             </svg>
-            {!simplified && t('gallery.saveTitle')}
+            {!simplified && <span className="save-label">{t('gallery.saveTitle')}</span>}
             {/* 未保存标记:一个不依赖颜色的圆点,窄屏也能看见 */}
             {saveState === 'dirty' && <span className="save-unsaved-dot" aria-hidden="true" />}
           </button>
-        )}
-        {/* 自动保存状态:紧挨保存按钮,读作「保存这件事的现状」。
-            移动端没有空间放文字,只在失败时提示 —— 失败是唯一需要用户行动的态。 */}
-        {currentPage === 'canvas' && autoSaveLabel && (
-          <span
-            className={`autosave-status${autoSaveState === 'failed' ? ' is-failed' : ''}`}
-            role="status"
-            title={autoSaveState === 'failed' ? t('autosave.statusFailedHint') : undefined}
-          >
-            {simplified ? (autoSaveState === 'failed' ? '!' : '') : autoSaveLabel}
-          </span>
         )}
         {!simplified && <LanguageSelector />}
         {/* 移动端:非画布页在导航与用户区之间显示语言切换按钮(🌐) */}
@@ -284,6 +304,15 @@ export default function Header({
           align-items: center;
           gap: 16px;
         }
+        /* 顶栏自适应紧凑模式:菜单文字不换行、不收缩 —— 装不下时由 JS 测量
+           切到 is-compact(隐藏文字、只留图标 + title),而不是把文字挤成两行 */
+        .header-left, .header-center, .header-right {
+          flex-shrink: 0;
+        }
+        .logo, .logo-text, .nav-link, .nav-label, .nav-text,
+        .save-work-btn, .save-label, .btn-primary, .mobile-login-btn, .user-name {
+          white-space: nowrap;
+        }
         .header.simplified .header-left,
         .header.simplified .header-right {
           gap: 8px;
@@ -332,6 +361,30 @@ export default function Header({
           display: flex;
           align-items: center;
           justify-content: center;
+        }
+        /* 紧凑模式:导航与保存只留图标(名称走 title / aria-label),昵称同样让位 */
+        .header.is-compact .nav-text,
+        .header.is-compact .save-label,
+        .header.is-compact .user-name {
+          display: none;
+        }
+        .header.is-compact .nav-link {
+          padding: 8px;
+          min-width: 40px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+        }
+        .header.is-compact .nav-label {
+          gap: 0;
+        }
+        .header.is-compact .save-work-btn {
+          padding: 8px;
+          min-width: 40px;
+          justify-content: center;
+        }
+        .header.is-compact .user-menu {
+          gap: 4px;
         }
         .nav-link:hover {
           color: var(--text-primary);
@@ -451,17 +504,6 @@ export default function Header({
           top: 6px;
           right: 6px;
           margin: 0;
-        }
-        /* 自动保存状态:低对比度的旁注,不与保存按钮抢注意力。
-           失败时转为警示色 —— 那是唯一需要用户动手处理的态。 */
-        .autosave-status {
-          font-size: var(--text-sm);
-          color: var(--text-muted);
-          white-space: nowrap;
-        }
-        .autosave-status.is-failed {
-          color: var(--danger, #c62828);
-          font-weight: 600;
         }
         .icon-only-btn,
         .header.simplified .save-work-btn {
