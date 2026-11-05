@@ -422,5 +422,7 @@ describe('ContentManager · 精选资源(0032)', () => {
     await waitFor(() => expect(contentState.setFeaturedTemplates).toHaveBeenCalledTimes(1))
     // 编辑器仍打开(草稿不丢)
     expect(screen.getByPlaceholderText('搜索模板加入')).toBeTruthy()
+    // 失败原因明确展示,而不是静默停留
+    expect(screen.getByRole('alert').textContent).toContain('RLS denied')
   })
 })

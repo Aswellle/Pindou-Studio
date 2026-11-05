@@ -498,6 +498,7 @@ function FeaturedTemplatesPanel({ content, templates, templateName }) {
   const { t } = useTranslation()
   const [editing, setEditing] = useState(false)
   const [busy, setBusy] = useState(false)
+  const [error, setError] = useState('')
 
   // 云端未配置:精选是云端运营数据,不渲染写入口(避免本地误以为可编辑)
   if (!content.enabled) return null
@@ -506,9 +507,16 @@ function FeaturedTemplatesPanel({ content, templates, templateName }) {
 
   const save = async ids => {
     setBusy(true)
+    setError('')
     try {
       const res = await content.setFeaturedTemplates(ids)
-      if (res.ok) setEditing(false)
+      if (res.ok) {
+        setEditing(false)
+        return
+      }
+      // 失败时保留草稿,并明确告诉管理员原因(权限/网络/校验)
+      const first = res.errors?.[0]
+      setError(first?.detail || t(`admin.content.errors.${first?.code}`, first?.code || 'unknown'))
     } finally {
       setBusy(false)
     }
@@ -521,7 +529,13 @@ function FeaturedTemplatesPanel({ content, templates, templateName }) {
           <strong>{t('admin.content.featuredTemplates')}</strong>
           <p className="admin-hint">{t('admin.content.featuredHint')}</p>
         </div>
-        <button className="admin-btn primary" onClick={() => setEditing(true)}>
+        <button
+          className="admin-btn primary"
+          onClick={() => {
+            setError('')
+            setEditing(true)
+          }}
+        >
           <Plus size={14} aria-hidden="true" />
           {t('admin.content.editFeatured')}
         </button>
@@ -551,6 +565,11 @@ function FeaturedTemplatesPanel({ content, templates, templateName }) {
             if (!busy) setEditing(false)
           }}
         >
+          {error && (
+            <p className="content-section-error" role="alert">
+              {error}
+            </p>
+          )}
           <ContentRelationEditor
             hint={t('admin.content.featuredEditorHint')}
             selectedIds={ordered}
