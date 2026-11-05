@@ -386,7 +386,7 @@ describe('GalleryPage V3 — 一级 feed(精选/热门/最新)', () => {
   })
 
   it('默认精选 feed;tabs 切换写入 ?feed= 且保留筛选', () => {
-    const { container } = setup({ savedWorks: [], cloudStore: feedStore() }, ['/gallery?q=图纸A'])
+    setup({ savedWorks: [], cloudStore: feedStore() }, ['/gallery?q=图纸A'])
     // 精选 tabs 为当前项
     expect(document.getElementById('gallery-tab-featured').getAttribute('aria-selected')).toBe('true')
     // 切到热门:URL 带 feed=popular,q 保留
@@ -448,7 +448,7 @@ describe('GalleryPage V3 — 一级 feed(精选/热门/最新)', () => {
   })
 
   it('切换 feed 不清空搜索词与筛选', () => {
-    const { container } = setup({ savedWorks: [], cloudStore: feedStore() }, ['/gallery?q=图纸A'])
+    setup({ savedWorks: [], cloudStore: feedStore() }, ['/gallery?q=图纸A'])
     fireEvent.click(document.getElementById('gallery-tab-latest'))
     expect(screen.getByRole('searchbox').value).toBe('图纸A')
   })

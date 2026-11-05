@@ -1,7 +1,6 @@
 import { describe, it, expect } from 'vitest'
 import { renderHook, act } from '@testing-library/react'
-import { MemoryRouter, useNavigate } from 'react-router-dom'
-import { vi } from 'vitest'
+import { MemoryRouter } from 'react-router-dom'
 import {
   useGalleryQuery,
   normalizeGalleryFeed,
@@ -61,25 +60,25 @@ describe('useGalleryQuery · feed 解析', () => {
 })
 
 describe('useGalleryQuery · feed 写入', () => {
-  it('setFeed 写入 URL 并保留筛选参数(push 历史)', () => {
-    const { result } = renderHook(() => ({ query: useGalleryQuery(), navigate: useNavigate() }), {
+  it('setFeed 写入 URL 并保留筛选参数', () => {
+    const { result } = renderHook(() => useGalleryQuery(), {
       wrapper: wrapper('/gallery?q=小鸭&cat=animal&diff=easy&colors=12'),
     })
-    act(() => result.current.query.setFeed('popular'))
-    expect(result.current.query.feed).toBe('popular')
+    act(() => result.current.setFeed('popular'))
+    expect(result.current.feed).toBe('popular')
     // 筛选全部保留:切 feed 不清条件
-    expect(result.current.query.searchTerm).toBe('小鸭')
-    expect(result.current.query.category).toBe('animal')
-    expect(result.current.query.difficulty).toBe('easy')
-    expect(result.current.query.maxColors).toBe(12)
+    expect(result.current.searchTerm).toBe('小鸭')
+    expect(result.current.category).toBe('animal')
+    expect(result.current.difficulty).toBe('easy')
+    expect(result.current.maxColors).toBe(12)
   })
 
   it('切回默认 feed 时删除参数而不是写 feed=featured', () => {
-    const { result } = renderHook(() => ({ query: useGalleryQuery(), navigate: useNavigate() }), {
+    const { result } = renderHook(() => useGalleryQuery(), {
       wrapper: wrapper('/gallery?feed=latest'),
     })
-    act(() => result.current.query.setFeed('featured'))
-    expect(result.current.query.feed).toBe('featured')
+    act(() => result.current.setFeed('featured'))
+    expect(result.current.feed).toBe('featured')
   })
 
   it('非法 setFeed 值归一化,不产生脏 URL', () => {

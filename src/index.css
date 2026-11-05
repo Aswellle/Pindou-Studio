@@ -1347,9 +1347,6 @@ body:has(.quantizer-zoom) .mobile-toolbar {
   .template-name,
   .work-name,
   .section-title,
-  .filter-tab,
-  .category-btn,
-  .difficulty-btn,
   .save-dialog h3,
   .modal-content .auth-header h2 {
     font-family: var(--font-display);
