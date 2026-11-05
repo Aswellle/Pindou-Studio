@@ -14,13 +14,8 @@ import { renderIroningEffect } from '../services/export/IroningEffectRenderer'
 import { getIroningEffectPreset } from '../services/export/ironingEffectPresets'
 import IroningEffectSection from './export/IroningEffectSection'
 import AuthPromptDialog from './auth/AuthPromptDialog'
-import { resolveToHex, normalizeCellsToHex } from '../services/colorUtils'
-import {
-  exportAsPNG,
-  exportAsSVG,
-  createScaledCanvas,
-  calculatePhysicalSize,
-} from '../services/BeadPatternExporter'
+import { normalizeCellsToHex } from '../services/colorUtils'
+import { calculatePhysicalSize } from '../services/BeadPatternExporter'
 import { canvasToLegacyWork } from '../services/project/adapters'
 import { legacyWorkToProject } from '../services/project/adapters'
 import { projectToFileText, projectFileName, downloadProjectFile } from '../services/project/exportProject'
@@ -47,7 +42,7 @@ function sanitizeFileNamePart(part) {
   // 逐字符替换,不用 \u0000-\u001f 正则(控制字符转义触发 noControlCharactersInRegex)
   const cleaned = String(part || '')
     .split('')
-    .map((ch) => (ch.charCodeAt(0) < 32 || '\\/:*?"<>|'.includes(ch) ? ' ' : ch))
+    .map(ch => (ch.charCodeAt(0) < 32 || '\\/:*?"<>|'.includes(ch) ? ' ' : ch))
     .join('')
     .replace(/\s+/g, ' ')
     .trim()
@@ -98,9 +93,6 @@ export default function ExportPanel({
   useEffect(() => {
     if (needsAuth && quality !== 'screen') setQuality('screen')
   }, [needsAuth, quality])
-  // 导出引擎:V2(PatternDocument 统一渲染,完整 sheet 版式)为默认,
-  // 开关保留作为回退旧路径(BeadPatternExporter)的出口
-  const [useExportV2, setUseExportV2] = useState(true)
   const palette = getPalette(paletteId)
   const panelRef = useRef(null)
 
@@ -154,105 +146,46 @@ export default function ExportPanel({
     setExportError(null)
     setScaleInfo(null) // 每次导出重置:上一次的降级提示不能留在这一次
     try {
-      // V2 导出路径 (PatternDocument → RasterRenderer):分帧 + 可取消
-      if (useExportV2) {
-        const doc = createPatternDocument({
-          canvasData,
-          gridSize,
-          gridWidth,
-          gridHeight,
-          paletteId,
-          designName: effectiveName,
-          beadStyle,
-          // 品牌色卡:hex 解析为品牌色号,专业图纸色号标注/图例与 V1 同语义
-          palette,
-        })
-        const abortCtrl = new AbortController()
-        exportAbortRef.current = abortCtrl
-        try {
-          const blob = await renderPatternDocumentToPNG(doc, {
-            // 质量预设 → DPI。screen 传 300 走固定 3×(现状不变);
-            // high/print 换算成更高倍率(432→6×、576→8×)。
-            dpi: QUALITY_PRESETS[effectiveQuality]?.dpi ?? 300,
-            onProgress: p => setExportProgress(Math.round(p * 100)),
-            // 与 V1 路径一致:回传实际导出分辨率,UI 显示确认超采样生效
-            onResolution: (w, h) => setExportInfo(`${w}×${h}`),
-            // 面积预算降级时把实际倍率带回来(规格 09 §4.3:必须报告真实结果)
-            onScale: (actual, requested) => setScaleInfo(actual < requested ? { actual, requested } : null),
-            signal: abortCtrl.signal,
-          })
-          const url = URL.createObjectURL(blob)
-          const link = document.createElement('a')
-          link.download = `bead-pattern-${actualWidth}x${actualHeight}.png`
-          link.href = url
-          link.click()
-          setTimeout(() => URL.revokeObjectURL(url), 1000)
-          markExportOk()
-        } catch (err) {
-          if (err?.name === 'AbortError') return // 组件卸载取消,非错误
-          throw err
-        } finally {
-          exportAbortRef.current = null
-        }
-        return
-      }
-
-      // 旧路径 (BeadPatternExporter 直接绘制)
-      const CELL_SIZE = 20
-      const BEAD_RADIUS = CELL_SIZE / 2 - 1
-
-      const canvasWidth = actualWidth * CELL_SIZE
-      const canvasHeight = actualHeight * CELL_SIZE
-      // 与 BeadPatternExporter 同套超采样逻辑:面积预算 + 分配失败自动降级(质量×性能平衡)
-      let canvas, scale
-      try {
-        ;({ canvas, scale } = createScaledCanvas(canvasWidth, canvasHeight))
-      } catch {
-        setExportError(t('export.canvasTooLarge'))
-        return
-      }
-      // 与 V2 路径同一套降级回报:createScaledCanvas 请求 3×,实际可能被预算降到 2×/1×
-      if (scale < 3) setScaleInfo({ actual: scale, requested: 3 })
-      const ctx = canvas.getContext('2d')
-      ctx.scale(scale, scale)
-
-      ctx.fillStyle = '#ffffff'
-      ctx.fillRect(0, 0, canvasWidth, canvasHeight)
-
+      // PatternDocument → RasterRenderer:完整版式图纸(表头/图例/色号面板/双标尺),
+      // 分帧渲染 + 可取消;beadStyle 决定专业(方块+色号)或拟真(立体珠子)画法
+      const doc = createPatternDocument({
+        canvasData,
+        gridSize,
+        gridWidth,
+        gridHeight,
+        paletteId,
+        designName: effectiveName,
+        beadStyle,
+        // 品牌色卡:hex 解析为品牌色号,专业图纸色号标注/图例与图库导出同语义
+        palette,
+      })
       const abortCtrl = new AbortController()
       exportAbortRef.current = abortCtrl
-
-      // 分帧渲染:每 2000 格让出主线程(此前 4 万次 arc+fill 同步阻塞 UI 数秒)
-      const BATCH = 2000
-      let drawn = 0
-      for (let y = 0; y < actualHeight; y++) {
-        for (let x = 0; x < actualWidth; x++) {
-          if (abortCtrl.signal.aborted) return
-          const color = canvasData[y]?.[x]
-          const hex = resolveToHex(color, palette)
-          if (hex) {
-            ctx.fillStyle = hex
-            ctx.beginPath()
-            ctx.arc(x * CELL_SIZE + CELL_SIZE / 2, y * CELL_SIZE + CELL_SIZE / 2, BEAD_RADIUS, 0, Math.PI * 2)
-            ctx.fill()
-          }
-          if (++drawn % BATCH === 0) await new Promise(r => requestAnimationFrame(r))
-        }
+      try {
+        const blob = await renderPatternDocumentToPNG(doc, {
+          // 质量预设 → DPI。screen 传 300 走固定 3×(现状不变);
+          // high/print 换算成更高倍率(432→6×、576→8×)。
+          dpi: QUALITY_PRESETS[effectiveQuality]?.dpi ?? 300,
+          onProgress: p => setExportProgress(Math.round(p * 100)),
+          // 与图库路径一致:回传实际导出分辨率,UI 显示确认超采样生效
+          onResolution: (w, h) => setExportInfo(`${w}×${h}`),
+          // 面积预算降级时把实际倍率带回来(规格 09 §4.3:必须报告真实结果)
+          onScale: (actual, requested) => setScaleInfo(actual < requested ? { actual, requested } : null),
+          signal: abortCtrl.signal,
+        })
+        const url = URL.createObjectURL(blob)
+        const link = document.createElement('a')
+        link.download = `bead-pattern-${actualWidth}x${actualHeight}.png`
+        link.href = url
+        link.click()
+        setTimeout(() => URL.revokeObjectURL(url), 1000)
+        markExportOk()
+      } catch (err) {
+        if (err?.name === 'AbortError') return // 组件卸载取消,非错误
+        throw err
+      } finally {
+        exportAbortRef.current = null
       }
-
-      setExportInfo(`${canvas.width}×${canvas.height}`)
-      // toBlob 替代 toDataURL:高 scale 大画布时避免 base64 内存峰值翻倍
-      const blob = await new Promise(resolve => {
-        canvas.toBlob(b => resolve(b), 'image/png')
-      })
-      if (!blob) throw new Error('PNG encoding failed')
-      const url = URL.createObjectURL(blob)
-      const link = document.createElement('a')
-      link.download = `bead-pattern-${actualWidth}x${actualHeight}.png`
-      link.href = url
-      link.click()
-      setTimeout(() => URL.revokeObjectURL(url), 1000)
-      markExportOk()
     } catch (err) {
       if (err?.name === 'AbortError') return // 组件卸载取消,非错误
       console.error('Export failed:', err)
@@ -320,57 +253,27 @@ export default function ExportPanel({
 
   const handleExportSVG = () => {
     if (!canvasData) return
-    // Feature Flag: 新导出路径 (PatternDocument → VectorRenderer)
-    if (useExportV2) {
-      const doc = createPatternDocument({
-        canvasData,
-        gridSize,
-        gridWidth,
-        gridHeight,
-        paletteId,
-        designName: effectiveName,
-        beadStyle,
-        // 品牌色卡:hex 解析为品牌色号,专业图纸色号标注/图例与 V1 同语义
-        palette,
-      })
-      const svgString = renderPatternDocumentToSVG(doc)
-      const blob = svgStringToBlob(svgString)
-      const url = URL.createObjectURL(blob)
-      const link = document.createElement('a')
-      link.download = `bead-pattern-${actualWidth}x${actualHeight}.svg`
-      link.href = url
-      link.click()
-      setTimeout(() => URL.revokeObjectURL(url), 1000)
-      markExportOk()
-      return
-    }
-
-    // 旧路径 (直接拼接 SVG)
-
-    const CELL_SIZE = 20
-    const BEAD_RADIUS = CELL_SIZE / 2 - 1
-
-    let svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${actualWidth * CELL_SIZE} ${actualHeight * CELL_SIZE}">\n`
-    svg += `  <rect width="${actualWidth * CELL_SIZE}" height="${actualHeight * CELL_SIZE}" fill="white"/>\n`
-
-    for (let y = 0; y < actualHeight; y++) {
-      for (let x = 0; x < actualWidth; x++) {
-        const color = canvasData[y]?.[x]
-        const hex = resolveToHex(color, palette)
-        if (hex) {
-          const cx = x * CELL_SIZE + CELL_SIZE / 2
-          const cy = y * CELL_SIZE + CELL_SIZE / 2
-          svg += `  <circle cx="${cx}" cy="${cy}" r="${BEAD_RADIUS}" fill="${hex}"/>\n`
-        }
-      }
-    }
-    svg += '</svg>'
-
-    const blob = new Blob([svg], { type: 'image/svg+xml' })
+    // PatternDocument → VectorRenderer:完整版式矢量图纸,与 PNG 同一版式族
+    const doc = createPatternDocument({
+      canvasData,
+      gridSize,
+      gridWidth,
+      gridHeight,
+      paletteId,
+      designName: effectiveName,
+      beadStyle,
+      // 品牌色卡:hex 解析为品牌色号,专业图纸色号标注/图例与 PNG 同语义
+      palette,
+    })
+    const svgString = renderPatternDocumentToSVG(doc)
+    const blob = svgStringToBlob(svgString)
+    const url = URL.createObjectURL(blob)
     const link = document.createElement('a')
     link.download = `bead-pattern-${actualWidth}x${actualHeight}.svg`
-    link.href = URL.createObjectURL(blob)
+    link.href = url
     link.click()
+    setTimeout(() => URL.revokeObjectURL(url), 1000)
+    markExportOk()
   }
 
   // ── 导出工程文件(.pindou.json)────────────────────────────
@@ -403,44 +306,6 @@ export default function ExportPanel({
     }
     downloadProjectFile(text, projectFileName(project, effectiveName))
     setExportInfo(t('export.projectFileSaved'))
-    markExportOk()
-  }
-
-  const handleExportPatternSheet = async () => {
-    if (!canvasData || isExporting) return
-    setIsExporting(true)
-    setExportProgress(0)
-    setExportError(null)
-    try {
-      const abortCtrl = new AbortController()
-      exportAbortRef.current = abortCtrl
-      setExportInfo('')
-      await exportAsPNG(canvasData, gridSize, paletteId, effectiveName, palette, {
-        gridWidth,
-        gridHeight,
-        beadStyle,
-        // 质量预设同样作用于完整版式图纸 PNG(否则选了「打印」仍按 3× 出图)
-        dpi: QUALITY_PRESETS[effectiveQuality]?.dpi ?? 300,
-        signal: abortCtrl.signal,
-        onProgress: (_phase, pct) => setExportProgress(Math.round(pct * 100)),
-        onResolution: (w, h) => setExportInfo(`${w}×${h}`),
-        onScale: (actual, requested) => setScaleInfo(actual < requested ? { actual, requested } : null),
-      })
-      markExportOk()
-    } catch (err) {
-      if (err?.name === 'AbortError') return // 组件卸载取消,非错误
-      console.error('Export failed:', err)
-      setExportError(t('export.exportFailed'))
-    } finally {
-      exportAbortRef.current = null
-      setIsExporting(false)
-      setExportProgress(0)
-    }
-  }
-
-  const handleExportPatternSheetSVG = () => {
-    if (!canvasData) return
-    exportAsSVG(canvasData, gridSize, paletteId, effectiveName, palette, gridWidth, gridHeight, beadStyle)
     markExportOk()
   }
 
@@ -520,13 +385,24 @@ export default function ExportPanel({
     [canvasData]
   )
 
+  // 导出流程按「有没有副作用」分级,减少无意义的确认步骤:
+  //   空画布 → 拦截提示;开启库存扣减 → 确认框(要动数据);
+  //   其余(纯下载文件)→ 直接导出,不弹确认。
+  const runExport = handler => {
+    exportOkRef.current = false
+    Promise.resolve(handler()).then(() => notifyExported())
+  }
   const requestExport = (label, desc, styleName, handler) => {
     if (!canvasData) return
     if (!hasPaintedCells) {
       setConfirmExport({ type: 'empty' })
       return
     }
-    setConfirmExport({ type: 'confirm', label, desc, styleName, handler })
+    if (deductInventory) {
+      setConfirmExport({ type: 'confirm', label, desc, styleName, handler })
+      return
+    }
+    runExport(handler)
   }
 
   // 专业图纸当前风格名称(用于确认框展示)
@@ -577,34 +453,138 @@ export default function ExportPanel({
 
       {showExport && (
         <div className="export-content">
+          {/* ① 图纸风格:从「拼好的珠子」到导出物之间唯一要做的决策。
+              两张可点卡片替代下拉框,选中态即所见;说明只保留当前选中那条 */}
+          <div className="export-section">
+            <div className="style-cards" role="radiogroup" aria-label={t('export.styleLabel')}>
+              <button
+                type="button"
+                role="radio"
+                aria-checked={beadStyle === 'professional'}
+                className={`style-card${beadStyle === 'professional' ? ' active' : ''}`}
+                onClick={() => setBeadStyle('professional')}
+              >
+                <span className="style-card-name">{t('gallery.exportProfessional')}</span>
+                <span className="style-card-desc">{t('export.professionalHint')}</span>
+              </button>
+              <button
+                type="button"
+                role="radio"
+                aria-checked={beadStyle === 'realistic'}
+                className={`style-card${beadStyle === 'realistic' ? ' active' : ''}`}
+                onClick={() => setBeadStyle('realistic')}
+              >
+                <span className="style-card-name">{t('gallery.exportRealistic')}</span>
+                <span className="style-card-desc">{t('export.realisticHint')}</span>
+              </button>
+            </div>
+          </div>
+
+          {/* ② 主导出:按钮文案跟随风格,点一下直接出图 */}
+          <div className="export-section">
+            <button
+              onClick={() =>
+                requestExport(
+                  beadStyle === 'professional' ? t('export.ctaSheet') : t('export.ctaShowcase'),
+                  beadStyle === 'professional' ? t('export.professionalDesc') : t('export.realisticDesc'),
+                  currentStyleName,
+                  handleExportImage
+                )
+              }
+              className="btn btn-primary btn-pattern"
+              disabled={isExporting}
+            >
+              <svg
+                width="16"
+                height="16"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+              >
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                <polyline points="7,10 12,15 17,10" />
+                <line x1="12" y1="15" x2="12" y2="3" />
+              </svg>
+              {isExporting
+                ? `${t('export.exporting')} ${exportProgress}%`
+                : beadStyle === 'professional'
+                  ? t('export.ctaSheet')
+                  : t('export.ctaShowcase')}
+            </button>
+            {isExporting && (
+              <div style={{ height: 4, background: 'var(--bg-tertiary)', borderRadius: 2, margin: '4px 0' }}>
+                <div
+                  style={{
+                    height: '100%',
+                    width: `${exportProgress}%`,
+                    background: 'var(--secondary-accent)',
+                    borderRadius: 2,
+                    transition: 'width 0.1s',
+                  }}
+                />
+              </div>
+            )}
+            {exportError && (
+              <div style={{ fontSize: 11, color: 'var(--error)', padding: '4px 2px', lineHeight: 1.4 }}>
+                {exportError}
+              </div>
+            )}
+            {exportInfo && (
+              <div
+                style={{
+                  fontSize: 11,
+                  color: 'var(--secondary-accent)',
+                  padding: '4px 2px',
+                  lineHeight: 1.4,
+                }}
+              >
+                ✓ {t('export.resolution')}: {exportInfo}
+                {scaleInfo && (
+                  /* 规格 09 §4.3:降级必须报告真实结果,不能只显示分辨率假装达标 */
+                  <span style={{ color: 'var(--warning)', marginLeft: 6 }}>
+                    ·{' '}
+                    {t('export.scaleDegraded', {
+                      actual: scaleInfo.actual,
+                      requested: scaleInfo.requested,
+                    })}
+                  </span>
+                )}
+              </div>
+            )}
+
+            {/* 物理尺寸信息:珠径按当前品牌色卡取值 ——
+                COCO/Artkal 是 2.6mm,Perler/Hama/MARD 是 5mm。
+                此前固定按 2.6mm 算,29×29 的 Perler 图纸显示 75.4mm(实际 145mm)。 */}
+            {(() => {
+              const beadSizeMm = palette?.beadSize || 5
+              const phys = calculatePhysicalSize(actualWidth, actualHeight, beadSizeMm)
+              return (
+                <div style={{ fontSize: 11, color: 'var(--text-muted)', padding: '4px 2px' }}>
+                  {t('export.physicalSize', '物理尺寸')} {phys.widthMm}×{phys.heightMm}mm · {beadSizeMm}mm/
+                  {t('export.beadUnit', '颗')}
+                </div>
+              )
+            })()}
+          </div>
+
+          {/* ③ 其他格式:同一套风格设置的另外三种载体 */}
           <div className="export-section">
             <div className="section-heading">
-              <span className="section-title">{t('export.quickSection')}</span>
-              <span className="section-hint">{t('export.quickSectionHint')}</span>
+              <span className="section-title">{t('export.otherFormats')}</span>
             </div>
             <div className="export-buttons">
               <button
-                onClick={() => requestExport(t('export.png'), t('export.pngDesc'), null, handleExportImage)}
+                onClick={() =>
+                  requestExport(
+                    t('export.patternSheetSVG'),
+                    t('export.svgDesc'),
+                    currentStyleName,
+                    handleExportSVG
+                  )
+                }
                 className="btn btn-secondary"
                 disabled={isExporting}
-              >
-                <svg
-                  width="16"
-                  height="16"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                >
-                  <rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
-                  <circle cx="8.5" cy="8.5" r="1.5" />
-                  <polyline points="21,15 16,10 5,21" />
-                </svg>
-                {t('export.png')}
-              </button>
-              <button
-                onClick={() => requestExport(t('export.svg'), t('export.svgDesc'), null, handleExportSVG)}
-                className="btn btn-secondary"
               >
                 <svg
                   width="16"
@@ -618,11 +598,12 @@ export default function ExportPanel({
                   <polyline points="2,17 12,22 22,17" />
                   <polyline points="2,12 12,17 22,12" />
                 </svg>
-                {t('export.svg')}
+                {t('export.patternSheetSVG')}
               </button>
               <button
                 onClick={() => requestExport(t('export.text'), t('export.textDesc'), null, handleExportText)}
                 className="btn btn-secondary"
+                disabled={isExporting}
               >
                 <svg
                   width="16"
@@ -650,6 +631,7 @@ export default function ExportPanel({
                   )
                 }
                 className="btn btn-secondary"
+                disabled={isExporting}
               >
                 <svg
                   width="16"
@@ -669,197 +651,58 @@ export default function ExportPanel({
             </div>
           </div>
 
-          <div className="export-divider" />
-
-          <div className="export-section">
-            <div className="section-heading">
-              <span className="section-title">{t('export.proSection')}</span>
-              <span className="section-hint">{t('export.proSectionHint')}</span>
-            </div>
-            <div className="export-style-group">
-              <label className="style-label">{t('export.styleLabel')}</label>
-              <select value={beadStyle} onChange={e => setBeadStyle(e.target.value)} className="style-select">
-                <option value="professional">{t('gallery.exportProfessional')}</option>
-                <option value="realistic">{t('gallery.exportRealistic')}</option>
-              </select>
-              <span className="setting-hint">
-                {beadStyle === 'professional' ? t('export.professionalHint') : t('export.realisticHint')}
-              </span>
-            </div>
-
-            {/* 输出质量预设(规格 09 §2):只影响 PNG。
-                预设是「请求值」,实际倍率仍受设备面积预算约束,
-                降级时下方会显示真实结果,不会假装达标。 */}
-            <div className="export-style-group">
-              <label className="style-label">{t('export.qualityLabel')}</label>
-              <select
-                value={quality}
-                onChange={e => {
-                  const next = e.target.value
-                  if (needsAuth && next !== 'screen') {
-                    // 不静默改值:打开引导浮层解释原因,选择仍停在屏幕画质
-                    setAuthPrompt('quality')
-                    return
-                  }
-                  setQuality(next)
-                }}
-                className="style-select"
-              >
-                {QUALITY_ORDER.map(key => (
-                  <option key={key} value={key}>
-                    {t(QUALITY_PRESETS[key].labelKey)}
-                    {needsAuth && key !== 'screen' ? ` · ${t('auth.gate.locked')}` : ''}
-                  </option>
-                ))}
-              </select>
-              <span className="setting-hint">{t('export.qualityHint')}</span>
-              {needsAuth && <span className="setting-hint">{t('auth.gate.qualityHint')}</span>}
-            </div>
-
-            {/* Feature Flag: 新导出路径开关（默认关闭） */}
-            <div className="export-style-group">
-              <label className="export-v2-toggle">
-                <input
-                  type="checkbox"
-                  checked={useExportV2}
-                  onChange={e => setUseExportV2(e.target.checked)}
-                />
-                <span>{t('export.useV2', '使用新导出引擎')}</span>
-              </label>
-            </div>
-
-            {/* 规格 05 §3:只有用户主动开启才在导出后扣减库存,默认关闭 */}
-            {onToggleDeductInventory && (
+          {/* ④ 更多选项:低频设置默认折叠,不占首屏;库存扣减开启后导出前会确认 */}
+          <details className="export-advanced">
+            <summary>{t('export.advancedOptions')}</summary>
+            <div className="export-advanced-body">
+              {/* 输出质量预设(规格 09 §2):只影响 PNG。预设是「请求值」,
+                  实际倍率仍受设备面积预算约束,降级时导出结果区会报告真实倍率 */}
               <div className="export-style-group">
-                <label className="export-v2-toggle">
-                  <input
-                    type="checkbox"
-                    checked={Boolean(deductInventory)}
-                    onChange={e => onToggleDeductInventory(e.target.checked)}
-                  />
-                  <span>{t('export.deductInventory')}</span>
+                <label className="style-label" htmlFor="export-quality-select">
+                  {t('export.qualityLabel')}
                 </label>
-                <span className="setting-hint">{t('export.deductInventoryHint')}</span>
-              </div>
-            )}
-            <div className="export-buttons">
-              <button
-                onClick={() =>
-                  requestExport(
-                    t('export.patternSheet'),
-                    beadStyle === 'professional' ? t('export.professionalDesc') : t('export.realisticDesc'),
-                    currentStyleName,
-                    handleExportPatternSheet
-                  )
-                }
-                className="btn btn-primary btn-pattern"
-                disabled={isExporting}
-              >
-                <svg
-                  width="16"
-                  height="16"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                >
-                  <rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
-                  <line x1="3" y1="9" x2="21" y2="9" />
-                  <line x1="3" y1="15" x2="21" y2="15" />
-                  <line x1="9" y1="3" x2="9" y2="21" />
-                  <line x1="15" y1="3" x2="15" y2="21" />
-                </svg>
-                {isExporting ? `${t('export.exporting')} ${exportProgress}%` : t('export.patternSheet')}
-              </button>
-              {isExporting && (
-                <div
-                  style={{ height: 4, background: 'var(--bg-tertiary)', borderRadius: 2, margin: '4px 0' }}
-                >
-                  <div
-                    style={{
-                      height: '100%',
-                      width: `${exportProgress}%`,
-                      background: 'var(--secondary-accent)',
-                      borderRadius: 2,
-                      transition: 'width 0.1s',
-                    }}
-                  />
-                </div>
-              )}
-              {exportError && (
-                <div style={{ fontSize: 11, color: 'var(--error)', padding: '4px 2px', lineHeight: 1.4 }}>
-                  {exportError}
-                </div>
-              )}
-              {exportInfo && (
-                <div
-                  style={{
-                    fontSize: 11,
-                    color: 'var(--secondary-accent)',
-                    padding: '4px 2px',
-                    lineHeight: 1.4,
+                <select
+                  id="export-quality-select"
+                  value={quality}
+                  onChange={e => {
+                    const next = e.target.value
+                    if (needsAuth && next !== 'screen') {
+                      // 不静默改值:打开引导浮层解释原因,选择仍停在屏幕画质
+                      setAuthPrompt('quality')
+                      return
+                    }
+                    setQuality(next)
                   }}
+                  className="style-select"
                 >
-                  ✓ {t('export.resolution')}: {exportInfo}
-                  {scaleInfo && (
-                    /* 规格 09 §4.3:降级必须报告真实结果,不能只显示分辨率假装达标 */
-                    <span style={{ color: 'var(--warning)', marginLeft: 6 }}>
-                      ·{' '}
-                      {t('export.scaleDegraded', {
-                        actual: scaleInfo.actual,
-                        requested: scaleInfo.requested,
-                      })}
-                    </span>
-                  )}
+                  {QUALITY_ORDER.map(key => (
+                    <option key={key} value={key}>
+                      {t(QUALITY_PRESETS[key].labelKey)}
+                      {needsAuth && key !== 'screen' ? ` · ${t('auth.gate.locked')}` : ''}
+                    </option>
+                  ))}
+                </select>
+                {needsAuth && <span className="setting-hint">{t('auth.gate.qualityHint')}</span>}
+              </div>
+
+              {/* 规格 05 §3:只有用户主动开启才在导出后扣减库存,默认关闭 */}
+              {onToggleDeductInventory && (
+                <div className="export-style-group">
+                  <label className="export-v2-toggle">
+                    <input
+                      type="checkbox"
+                      checked={Boolean(deductInventory)}
+                      onChange={e => onToggleDeductInventory(e.target.checked)}
+                    />
+                    <span>{t('export.deductInventory')}</span>
+                  </label>
+                  <span className="setting-hint">{t('export.deductInventoryHint')}</span>
                 </div>
               )}
-
-              {/* 物理尺寸信息:珠径按当前品牌色卡取值 ——
-                  COCO/Artkal 是 2.6mm,Perler/Hama/MARD 是 5mm。
-                  此前固定按 2.6mm 算,29×29 的 Perler 图纸显示 75.4mm(实际 145mm)。 */}
-              {(() => {
-                const beadSizeMm = palette?.beadSize || 5
-                const phys = calculatePhysicalSize(actualWidth, actualHeight, beadSizeMm)
-                return (
-                  <div style={{ fontSize: 11, color: 'var(--text-secondary)', padding: '4px 2px' }}>
-                    ✓ {t('export.physicalSize', '物理尺寸')}: {phys.widthMm}×{phys.heightMm}mm (
-                    {phys.widthInch}×{phys.heightInch}in)
-                    <span style={{ color: 'var(--text-muted)' }}>
-                      {' '}
-                      · {beadSizeMm}mm/{t('export.beadUnit', '颗')}
-                    </span>
-                  </div>
-                )
-              })()}
-              <button
-                onClick={() =>
-                  requestExport(
-                    t('export.patternSheetSVG'),
-                    beadStyle === 'professional' ? t('export.professionalDesc') : t('export.realisticDesc'),
-                    currentStyleName,
-                    handleExportPatternSheetSVG
-                  )
-                }
-                className="btn btn-secondary"
-              >
-                <svg
-                  width="16"
-                  height="16"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                >
-                  <rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
-                  <line x1="3" y1="9" x2="21" y2="9" />
-                  <line x1="3" y1="15" x2="21" y2="15" />
-                  <line x1="9" y1="3" x2="9" y2="21" />
-                  <line x1="15" y1="3" x2="15" y2="21" />
-                </svg>
-                {t('export.patternSheetSVG')}
-              </button>
             </div>
-          </div>
+          </details>
+
+          <div className="export-divider" />
 
           {/* 高级熨烫效果:成品效果模拟(规格 08 §4)。默认折叠;
               预览与导出共用同一渲染器,只产出效果图、不走库存记账。 */}
@@ -1025,6 +868,85 @@ export default function ExportPanel({
           color: var(--text-muted);
           line-height: 1.3;
         }
+        /* 风格选择卡片:导出物之间唯一的用户决策,选中态用浅橙填充表达 */
+        .style-cards {
+          display: flex;
+          flex-direction: column;
+          gap: 6px;
+        }
+        .style-card {
+          display: flex;
+          flex-direction: column;
+          gap: 2px;
+          width: 100%;
+          padding: 8px 10px;
+          text-align: left;
+          background: var(--bg-secondary);
+          border: 1px solid var(--border-color);
+          border-radius: 10px;
+          cursor: pointer;
+          transition: border-color 0.15s, background 0.15s;
+          font-family: inherit;
+        }
+        .style-card:hover {
+          border-color: var(--text-muted);
+        }
+        .style-card.active,
+        .style-card.active:hover {
+          border-color: color-mix(in srgb, var(--accent) 35%, var(--border-color));
+          background: var(--accent-soft);
+        }
+        .style-card-name {
+          font-size: var(--text-sm);
+          font-weight: var(--font-weight-semibold);
+          color: var(--text-primary);
+        }
+        .style-card.active .style-card-name {
+          color: var(--accent-hover);
+        }
+        .style-card-desc {
+          font-size: var(--text-xs);
+          color: var(--text-muted);
+          line-height: 1.4;
+        }
+        /* 更多选项:低频设置默认折叠,摘要行低存在感 */
+        .export-advanced {
+          margin-top: 10px;
+          border-top: 1px dashed var(--border-color);
+          padding-top: 8px;
+        }
+        .export-advanced summary {
+          display: flex;
+          align-items: center;
+          gap: 6px;
+          padding: 4px 2px;
+          font-size: var(--text-sm);
+          color: var(--text-secondary);
+          cursor: pointer;
+          list-style: none;
+          user-select: none;
+        }
+        .export-advanced summary::-webkit-details-marker {
+          display: none;
+        }
+        .export-advanced summary::before {
+          content: '▸';
+          font-size: var(--text-xs);
+          color: var(--text-muted);
+          transition: transform 0.15s;
+        }
+        .export-advanced[open] summary::before {
+          transform: rotate(90deg);
+        }
+        .export-advanced summary:hover {
+          color: var(--text-primary);
+        }
+        .export-advanced-body {
+          display: flex;
+          flex-direction: column;
+          gap: 4px;
+          padding: 6px 2px 2px;
+        }
         .export-modal-close {
           margin-left: auto;
           display: flex;
@@ -1053,11 +975,6 @@ export default function ExportPanel({
           font-weight: var(--font-weight-bold);
           color: var(--text-primary);
         }
-        .section-hint {
-          font-size: var(--text-xs);
-          color: var(--text-muted);
-          line-height: 1.3;
-        }
       `}</style>
     </div>
   )
@@ -1065,7 +982,12 @@ export default function ExportPanel({
   // ── 导出确认 / 空画布提示 模态框(PC 与移动端共用) ─────────
   const confirmDialog = confirmExport && (
     <div className="modal-overlay export-confirm-overlay" onClick={() => setConfirmExport(null)}>
-      <div className="export-confirm-dialog" ref={confirmRef} {...confirmDialogProps} onClick={e => e.stopPropagation()}>
+      <div
+        className="export-confirm-dialog"
+        ref={confirmRef}
+        {...confirmDialogProps}
+        onClick={e => e.stopPropagation()}
+      >
         {confirmExport.type === 'empty' ? (
           <>
             <div className="export-confirm-icon empty">✕</div>
@@ -1205,7 +1127,12 @@ export default function ExportPanel({
   return createPortal(
     <>
       <div className="modal-overlay" onClick={onClose}>
-        <div className="export-modal-content" ref={modalRef} {...modalDialogProps} onClick={e => e.stopPropagation()}>
+        <div
+          className="export-modal-content"
+          ref={modalRef}
+          {...modalDialogProps}
+          onClick={e => e.stopPropagation()}
+        >
           {panel}
         </div>
       </div>

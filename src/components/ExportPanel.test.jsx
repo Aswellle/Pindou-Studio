@@ -131,12 +131,11 @@ function setup(overrides = {}) {
   )
 }
 
-// 点击快捷导出按钮 → 在确认框里点「确认导出」
+// 点击导出按钮;开启库存扣减时会先弹确认框,再点「确认导出」
 function requestQuickExport(labelText) {
   fireEvent.click(screen.getByText(labelText))
   const confirmBtn = document.querySelector('.export-confirm-actions .btn-primary')
-  expect(confirmBtn).toBeTruthy()
-  fireEvent.click(confirmBtn)
+  if (confirmBtn) fireEvent.click(confirmBtn)
 }
 
 let mock
@@ -159,44 +158,25 @@ afterEach(() => {
 })
 
 describe('ExportPanel 导出路径回归(M0 / R1)', () => {
-  it('关闭 V2 后旧版 PNG 导出不再抛 ReferenceError(resolveToHex)', async () => {
+  it('主按钮走 RasterRenderer 并回报分辨率(旧双引擎开关已从 UI 移除)', async () => {
     setup()
-    fireEvent.click(screen.getByRole('checkbox')) // 关闭「完整版式图纸引擎」
-    requestQuickExport('PNG 图片')
-
-    await waitFor(() => expect(mock.createObjectURL).toHaveBeenCalled())
-    // 若 resolveToHex 未定义,异常会被 catch 并渲染 exportFailed 文案
-    expect(screen.queryByText(/导出失败/)).toBeNull()
-  })
-
-  it('关闭 V2 后旧版 SVG 导出不再抛 ReferenceError(resolveToHex)', () => {
-    setup()
-    fireEvent.click(screen.getByRole('checkbox'))
-    requestQuickExport('SVG 矢量')
-
-    expect(mock.createObjectURL).toHaveBeenCalledTimes(1)
-    const blob = mock.createObjectURL.mock.calls[0][0]
-    expect(blob.type).toContain('image/svg+xml')
-  })
-
-  it('V2 SVG 导出已正确引入 VectorRenderer(renderPatternDocumentToSVG/svgStringToBlob)', () => {
-    setup()
-    // 默认 V2 开启,无需切换
-    requestQuickExport('SVG 矢量')
-
-    expect(mock.createObjectURL).toHaveBeenCalledTimes(1)
-    const blob = mock.createObjectURL.mock.calls[0][0]
-    expect(blob.type).toContain('image/svg+xml')
-  })
-
-  it('V2 PNG 导出走 RasterRenderer 并回报分辨率', async () => {
-    setup()
-    requestQuickExport('PNG 图片')
+    // 面板里不应再有任何引擎开关(开发用 Feature Flag 不再暴露给用户)
+    expect(screen.queryByText(/完整版式图纸引擎/)).toBeNull()
+    requestQuickExport('导出拼豆图纸 PNG')
 
     await waitFor(() => expect(mock.createObjectURL).toHaveBeenCalled())
     expect(screen.queryByText(/导出失败/)).toBeNull()
     // 真实分辨率回显:确认超采样倍率生效(而不是静默降级/未回传)
     expect(await screen.findByText(/导出分辨率: \d+×\d+/)).toBeTruthy()
+  })
+
+  it('SVG 导出走 VectorRenderer(renderPatternDocumentToSVG/svgStringToBlob)', () => {
+    setup()
+    requestQuickExport('拼豆图纸 SVG')
+
+    expect(mock.createObjectURL).toHaveBeenCalledTimes(1)
+    const blob = mock.createObjectURL.mock.calls[0][0]
+    expect(blob.type).toContain('image/svg+xml')
   })
 })
 
@@ -217,7 +197,7 @@ describe('导出成功回调(库存扣减的触发点)', () => {
         onClose={() => {}}
       />
     )
-    requestQuickExport('PNG 图片')
+    requestQuickExport('导出拼豆图纸 PNG')
     await waitFor(() => expect(onExportComplete).toHaveBeenCalledTimes(1))
     // 再等一拍,确认没有重复触发(确认框关闭/状态更新不会再回调)
     await new Promise(r => setTimeout(r, 20))
@@ -239,7 +219,7 @@ describe('导出成功回调(库存扣减的触发点)', () => {
         onClose={() => {}}
       />
     )
-    fireEvent.click(screen.getByText('PNG 图片'))
+    fireEvent.click(screen.getByText('导出拼豆图纸 PNG'))
     fireEvent.click(document.querySelector('.export-confirm-overlay'))
     await new Promise(r => setTimeout(r, 20))
     expect(onExportComplete).not.toHaveBeenCalled()
@@ -263,10 +243,24 @@ describe('导出成功回调(库存扣减的触发点)', () => {
         onClose={() => {}}
       />
     )
-    fireEvent.click(screen.getByText('PNG 图片'))
+    fireEvent.click(screen.getByText('导出拼豆图纸 PNG'))
     // 空画布走「empty」确认框,没有导出动作
     await new Promise(r => setTimeout(r, 20))
     expect(onExportComplete).not.toHaveBeenCalled()
+  })
+
+  it('未开启库存扣减时直接导出,不弹确认框', async () => {
+    setup()
+    fireEvent.click(screen.getByText('导出拼豆图纸 PNG'))
+    expect(document.querySelector('.export-confirm-actions')).toBeNull()
+    await waitFor(() => expect(mock.createObjectURL).toHaveBeenCalled())
+  })
+
+  it('开启库存扣减后导出前弹出确认框', () => {
+    setup({ deductInventory: true, onToggleDeductInventory: () => {} })
+    fireEvent.click(screen.getByText('导出拼豆图纸 PNG'))
+    expect(document.querySelector('.export-confirm-actions')).toBeTruthy()
+    expect(mock.createObjectURL).not.toHaveBeenCalled()
   })
 
   it('「导出后扣减库存」开关默认关闭,可切换', () => {
@@ -302,12 +296,14 @@ describe('导出确认框的关闭语义', () => {
         gridHeight={2}
         designName="测试图纸"
         paletteId="perler"
+        deductInventory
+        onToggleDeductInventory={() => {}}
         onClose={onClose}
       />
     )
 
-    // 点快捷导出 → 弹出确认框(不执行导出)
-    fireEvent.click(screen.getByText('PNG 图片'))
+    // 点导出(扣减开启 → 弹确认框,不执行导出)
+    fireEvent.click(screen.getByText('导出拼豆图纸 PNG'))
     expect(document.querySelector('.export-confirm-actions')).toBeTruthy()
 
     // 点确认框遮罩 = 取消这次导出
@@ -317,7 +313,7 @@ describe('导出确认框的关闭语义', () => {
     // 这次点击会冒泡到外层 onClick,把整个导出面板一起关掉)
     expect(document.querySelector('.export-confirm-actions')).toBeNull()
     expect(onClose).not.toHaveBeenCalled()
-    expect(screen.getByText('PNG 图片')).toBeTruthy()
+    expect(screen.getByText('导出拼豆图纸 PNG')).toBeTruthy()
   })
 
   it('导出进行中 Escape 仍可关闭面板(与点遮罩/关闭按钮一致)', async () => {
@@ -338,10 +334,11 @@ describe('导出确认框的关闭语义', () => {
 
     // 让导出停在「进行中」:jsdom 里真实导出瞬间完成,不挂起就测不到 isExporting
     rasterControl.hang = true
-    fireEvent.click(screen.getByText('PNG 图片'))
-    fireEvent.click(document.querySelector('.export-confirm-actions .btn-primary'))
+    // 导出开始后按钮文案会切成「生成中 x%」,先拿到按钮再点
+    const primaryBtn = screen.getByText('导出拼豆图纸 PNG').closest('button')
+    fireEvent.click(primaryBtn)
     // 按钮禁用 = isExporting 已为 true
-    await waitFor(() => expect(screen.getByText('PNG 图片').closest('button').disabled).toBe(true))
+    await waitFor(() => expect(primaryBtn.disabled).toBe(true))
 
     fireEvent.keyDown(document, { key: 'Escape' })
     expect(onClose).toHaveBeenCalled()
@@ -487,7 +484,7 @@ describe('高级导出登录守卫', () => {
 describe('超采样降级反馈(规格 09 §4.3)', () => {
   it('未降级时不显示降级提示', async () => {
     setup()
-    requestQuickExport('PNG 图片')
+    requestQuickExport('导出拼豆图纸 PNG')
     await waitFor(() => expect(mock.createObjectURL).toHaveBeenCalled())
     expect(document.body.textContent).not.toMatch(/已从 ×3 降级/)
   })
@@ -495,7 +492,7 @@ describe('超采样降级反馈(规格 09 §4.3)', () => {
   it('降级时显示「实际 ×N(已从 ×3 降级)」而不是只给分辨率', async () => {
     rasterControl.forcedScale = 1 // 等价于移动端大网格被面积预算降到 1×
     setup()
-    requestQuickExport('PNG 图片')
+    requestQuickExport('导出拼豆图纸 PNG')
     await waitFor(() => expect(mock.createObjectURL).toHaveBeenCalled())
     expect(document.body.textContent).toMatch(/已从 ×3 降级/)
     expect(document.body.textContent).toMatch(/实际 ×1/)
@@ -504,7 +501,7 @@ describe('超采样降级反馈(规格 09 §4.3)', () => {
   it('降到 ×2 时同样报告,文案带上真实倍率', async () => {
     rasterControl.forcedScale = 2
     setup()
-    requestQuickExport('PNG 图片')
+    requestQuickExport('导出拼豆图纸 PNG')
     await waitFor(() => expect(mock.createObjectURL).toHaveBeenCalled())
     expect(document.body.textContent).toMatch(/实际 ×2/)
   })
@@ -528,13 +525,10 @@ describe('高级熨烫效果接入', () => {
     }
   })
 
-  it('熨烫效果导出:走确认流程、以 export 模式调用渲染器并触发下载', async () => {
+  it('熨烫效果导出:以 export 模式调用渲染器并触发下载(效果图无副作用,不弹确认)', async () => {
     setup()
     await expandIroningSection()
     fireEvent.click(screen.getByRole('button', { name: /导出熨烫效果 PNG/ }))
-    const confirmBtn = document.querySelector('.export-confirm-actions .btn-primary')
-    expect(confirmBtn).toBeTruthy()
-    fireEvent.click(confirmBtn)
 
     await waitFor(() =>
       expect(renderIroningEffect).toHaveBeenCalledWith(
@@ -551,7 +545,6 @@ describe('高级熨烫效果接入', () => {
     setup({ onExportComplete })
     await expandIroningSection()
     fireEvent.click(screen.getByRole('button', { name: /导出熨烫效果 PNG/ }))
-    fireEvent.click(document.querySelector('.export-confirm-actions .btn-primary'))
     await waitFor(() => expect(mock.click).toHaveBeenCalledTimes(1))
     // handler 已 resolve(notifyExported 的触发时机),但未 markExportOk → 不回调
     await waitFor(() =>
@@ -566,7 +559,6 @@ describe('高级熨烫效果接入', () => {
     try {
       await expandIroningSection()
       fireEvent.click(screen.getByRole('button', { name: /导出熨烫效果 PNG/ }))
-      fireEvent.click(document.querySelector('.export-confirm-actions .btn-primary'))
       await waitFor(() => expect(mock.click).toHaveBeenCalledTimes(1))
       const anchors = createSpy.mock.results.map(r => r.value).filter(el => el instanceof HTMLAnchorElement)
       const ironingAnchor = anchors.find(el => el.download.includes('高级熨烫效果'))
@@ -592,7 +584,6 @@ describe('高级熨烫效果接入', () => {
     setup()
     await expandIroningSection()
     fireEvent.click(screen.getByRole('button', { name: /导出熨烫效果 PNG/ }))
-    fireEvent.click(document.querySelector('.export-confirm-actions .btn-primary'))
     await waitFor(() => expect(document.body.textContent).toContain('1200×960'))
     expect(document.body.textContent).toMatch(/已从 ×3 降级/)
   })
@@ -602,7 +593,6 @@ describe('高级熨烫效果接入', () => {
     await expandIroningSection()
     fireEvent.click(screen.getByRole('button', { name: '粗闪烫' }))
     fireEvent.click(screen.getByRole('button', { name: /导出熨烫效果 PNG/ }))
-    fireEvent.click(document.querySelector('.export-confirm-actions .btn-primary'))
     await waitFor(() =>
       expect(renderIroningEffect).toHaveBeenCalledWith(
         expect.anything(),
