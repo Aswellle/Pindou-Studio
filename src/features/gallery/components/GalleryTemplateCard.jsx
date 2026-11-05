@@ -125,6 +125,9 @@ export default function GalleryTemplateCard({
   const displayName = template.name
     ? template.nameZh || template.name
     : t(`templates.names.${template.nameKey}`, template.nameKey)
+  const brandLabel = t(`palette.brand.${brandId}`)
+  // 窄卡片里只显示品牌名本身(去掉「拼豆」后缀),完整文案留在 title 里
+  const brandShort = brandLabel.split(/\s+/)[0]
 
   return (
     <div
@@ -265,12 +268,17 @@ export default function GalleryTemplateCard({
               setExportMenuOpen(false)
               setBrandMenuOpen(v => !v)
             }}
-            title={t('gallery.brandConvert')}
-            aria-label={t('gallery.brandConvert')}
+            title={`${brandLabel} · ${t('gallery.brandConvert')}`}
+            aria-label={`${brandLabel} · ${t('gallery.brandConvert')}`}
             aria-expanded={brandMenuOpen}
             aria-haspopup="menu"
           >
-            {t(`palette.brand.${brandId}`)}
+            {/* 品牌名单独包一层:窄卡片里用省略号压缩,不撑破 meta 行;
+                移动端切换为短名「Perler」,避免只剩一个字母 */}
+            <span className="template-brand-label">{brandLabel}</span>
+            <span className="template-brand-short" aria-hidden="true">
+              {brandShort}
+            </span>
             {brandOverridden && (
               /* 调色板图标:表示该模板已转换到指定品牌的色卡 */
               <svg

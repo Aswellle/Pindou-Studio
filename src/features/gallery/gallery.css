@@ -63,15 +63,6 @@
             grid-template-columns: repeat(2, minmax(0, 1fr));
             gap: 12px;
           }
-          /* 窄卡片下徽章仍不换行:品牌徽章压缩成省略号,尺寸与难度保持完整。
-             允许换行会让同排卡片高度不一致(移动端两列尤其明显)。 */
-          .template-meta {
-            gap: 4px;
-          }
-          .template-brand {
-            max-width: 72px;
-            min-width: 0;
-          }
         }
         .template-card {
           background: var(--bg-primary);
@@ -318,6 +309,7 @@
           /* 尺寸文字自身不折行:窄卡(手机两列 ~170px)里「29 x 29」折成两行
              会把 meta 行撑高,同排卡片高度参差。折行只允许发生在条目之间。 */
           white-space: nowrap;
+          flex: none;
         }
         .template-difficulty {
           font-size: var(--text-xs);
@@ -325,6 +317,19 @@
           border-radius: 10px;
           background: var(--diff-color);
           color: white;
+          /* 难度必须保持一行;空间不足时压缩品牌徽章,而不是把「简单」竖排 */
+          flex: none;
+          white-space: nowrap;
+        }
+        .template-brand-label {
+          min-width: 0;
+          overflow: hidden;
+          text-overflow: ellipsis;
+          white-space: nowrap;
+        }
+        /* 桌面端显示完整品牌名;窄屏由媒体查询切换为短名 */
+        .template-brand-short {
+          display: none;
         }
         /* 拼豆品牌徽章:边框胶囊,点击弹出品牌切换菜单(overridden=已选转换品牌) */
         .template-brand {
@@ -570,6 +575,33 @@
           border: 1px solid var(--border-color);
           white-space: nowrap;
           flex-shrink: 0;
+        }
+        /* 窄卡片(mobile 两列)的 meta 行:尺寸与难度保持完整一行,
+           品牌徽章改用短名并让出空间。必须写在基础规则之后 ——
+           媒体查询不提升特异性,放前面会被后面的基础声明覆盖。 */
+        @media (max-width: 640px) {
+          .template-meta {
+            gap: 3px;
+          }
+          .template-brand {
+            max-width: 72px;
+            min-width: 0;
+            padding: 2px 6px;
+            font-size: 11px;
+          }
+          .template-brand-label {
+            display: none;
+          }
+          .template-brand-short {
+            display: inline;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+          }
+          .template-difficulty {
+            padding: 2px 6px;
+            font-size: 11px;
+          }
         }
         .empty-state {
           display: flex;
@@ -890,10 +922,10 @@
         }
         .rail-track:hover,
         .rail-track:focus-within {
-          scrollbar-color: var(--border-color) transparent;
+          scrollbar-color: var(--scrollbar-thumb) transparent;
         }
         .rail-track::-webkit-scrollbar {
-          height: 6px;
+          height: var(--scrollbar-size);
         }
         .rail-track::-webkit-scrollbar-track {
           background: transparent;
@@ -904,26 +936,30 @@
         }
         .rail-track:hover::-webkit-scrollbar-thumb,
         .rail-track:focus-within::-webkit-scrollbar-thumb {
-          background: var(--border-color);
+          background: var(--scrollbar-thumb);
         }
         .rail-track::-webkit-scrollbar-thumb:hover {
-          background: var(--text-muted);
+          background: var(--scrollbar-thumb-hover);
         }
         /* 主题页/合集页的横向区块同样处理 */
         .content-related-rail {
           scrollbar-width: thin;
           scrollbar-color: transparent transparent;
         }
-        .content-related-rail:hover::-webkit-scrollbar-thumb {
-          background: var(--border-color);
+        .content-related-rail:hover,
+        .content-related-rail:focus-within {
+          scrollbar-color: var(--scrollbar-thumb) transparent;
         }
-        .content-related-rail::-webkit-scrollbar { height: 6px; }
+        .content-related-rail::-webkit-scrollbar { height: var(--scrollbar-size); }
         .content-related-rail::-webkit-scrollbar-track { background: transparent; }
         .content-related-rail::-webkit-scrollbar-thumb {
           background: transparent;
           border-radius: 999px;
         }
-        .content-related-rail:hover::-webkit-scrollbar-thumb { background: var(--border-color); }
+        .content-related-rail:hover::-webkit-scrollbar-thumb,
+        .content-related-rail:focus-within::-webkit-scrollbar-thumb {
+          background: var(--scrollbar-thumb-hover);
+        }
 
         /* ── 加载骨架:尺寸与真实 rail 对齐,避免内容到达时布局跳动 ── */
         .rail-skeleton { pointer-events: none; }
