@@ -317,7 +317,10 @@ export default function DiscoveryRails({
     }
   }
 
-  const hasBlocks = Array.isArray(blocks) && blocks.length > 0
+  // 以「是否传了 blocks」而不是「blocks 是否非空」区分两种调用:
+  // 调用方显式传空数组表示「精选视图没有可渲染的区块」(例如 popular/latest
+  // 已被升级为一级 feed 并过滤掉),此时绝不能退回旧渲染顺序把它们又堆回来。
+  const hasBlocks = Array.isArray(blocks)
   // 兼容:调用方没传 blocks(旧测试/旧调用)时退回固定渲染顺序
   const legacyBlocks = hasBlocks ? null : [
     (featuredTheme || featuredCollection) && { kind: 'featured', content: { featuredTheme, featuredCollection } },

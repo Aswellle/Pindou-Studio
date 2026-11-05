@@ -199,7 +199,11 @@ export default function GalleryPage({ onLoadTemplate, cloudStore }) {
 
   // 精选视图是否有可展示的策展内容:没有(本地模式/未配置云端/全部为空)时
   // 退化为完整模板网格 —— 不能让默认首屏变成一片空白。
-  const featuredViewHasCuration = featuredTemplates.length > 0 || featuredBlocks.length > 0
+  // 云端模板已降级(cloudDown)时策展区块不渲染(见 discoveryEnabled),此时
+  // 即使内容表加载成功也不能进入策展视图 —— 否则横幅承诺的本地模板回退会被
+  // 一个空白面板取代。
+  const featuredViewHasCuration =
+    featuredTemplates.length > 0 || (discoveryEnabled && featuredBlocks.length > 0)
   // 精选视图的最终形态:有策展内容且无筛选 → 策展布局;否则按结果网格处理
   // 「全部图纸」浏览态(02 §7)显式绕过策展布局,渲染全量网格。
   const showCurationView = feed === 'featured' && !filtersActive && !browse && featuredViewHasCuration

@@ -59,6 +59,10 @@ beforeAll(async () => {
 afterEach(() => {
   cleanup()
   galleryContentState.featuredTemplateIds = []
+  galleryContentState.themes = []
+  galleryContentState.collections = []
+  galleryContentState.themeTemplateIds = new Map()
+  galleryContentState.collectionTemplateIds = new Map()
   localStorage.clear()
 })
 
@@ -139,6 +143,46 @@ describe('GalleryPage · 精选资源区块', () => {
     expect(screen.queryByText('精选资源')).toBeNull()
     expect(container.querySelectorAll('.template-card').length).toBe(3)
     expect(screen.getByText('浏览资源全集，可用搜索与筛选缩小范围')).toBeTruthy()
+  })
+
+  it('云端模板降级时即使策展内容可读,也回退到本地模板网格而不是空白面板', () => {
+    // cloudDown 只取决于模板拉取;内容表(主题)可能已经加载成功。
+    // 此时策展区块不会渲染(discoveryEnabled=false),不能因此进入策展视图。
+    galleryContentState.themes = [
+      {
+        id: 'th1',
+        slug: 'spring',
+        title: '春',
+        description: '',
+        coverUrl: '',
+        status: 'published',
+        isFeatured: false,
+        sortOrder: 0,
+        translations: {},
+      },
+    ]
+    galleryContentState.themeTemplateIds = new Map([['th1', []]])
+
+    const { container } = render(
+      <MemoryRouter initialEntries={['/gallery']}>
+        <GalleryPage
+          onLoadTemplate={vi.fn()}
+          cloudStore={{
+            enabled: true,
+            loading: false,
+            error: 'timeout',
+            templates: [],
+            categories: [],
+            refresh: vi.fn(),
+            loadAll: vi.fn(),
+          }}
+        />
+      </MemoryRouter>
+    )
+
+    expect(container.querySelector('.cloud-offline-banner')).toBeTruthy()
+    expect(container.querySelectorAll('.template-card').length).toBeGreaterThan(0)
+    expect(screen.queryByText('精选资源')).toBeNull()
   })
 
   it('没有精选关系时整段隐藏,不渲染空标题', () => {

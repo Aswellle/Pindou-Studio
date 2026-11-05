@@ -77,6 +77,16 @@ describe('DiscoveryRails', () => {
     expect(screen.getAllByText('说明spring').length).toBeGreaterThanOrEqual(1)
   })
 
+  it('显式传空 blocks 时不回退 popular/latest(精选视图只认过滤后的区块)', () => {
+    // GalleryPage 会先把 popular/latest 区块过滤掉再传入;过滤后为空时不能
+    // 触发旧渲染顺序的回退,否则一级 feed 之外又出现两条纵向 rail。
+    const sections = sectionsOf()
+    expect(sections.blocks.some(b => b.kind === 'popular' || b.kind === 'latest')).toBe(true)
+    const { container } = render(<DiscoveryRails sections={{ ...sections, blocks: [] }} />)
+    expect(container.querySelectorAll('.discovery-rail')).toHaveLength(0)
+    expect(container.querySelectorAll('.rail-card')).toHaveLength(0)
+  })
+
   it('数据为空时不渲染任何区块(旧图库不受影响)', () => {
     const empty = buildDiscoverySections({ templates: [] })
     const { container } = render(<DiscoveryRails sections={empty} />)
