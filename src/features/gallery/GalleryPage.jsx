@@ -399,42 +399,46 @@ export default function GalleryPage({ onLoadTemplate, cloudStore }) {
             <p className="gallery-subtitle">{t('gallery.subtitle')}</p>
           </header>
 
-          {/* 紧凑工具栏:搜索 + 筛选入口 + 结果数,同一视觉层级 */}
+          {/* 紧凑工具栏:feed tabs 与搜索/筛选同一行;
+              搜索框保持常规宽度并贴近筛选入口,不再横贯整行 */}
           <div className="gallery-toolbar">
-            <div className="gallery-search">
-              <Search size={15} className="gallery-search-icon" aria-hidden="true" />
-              <input
-                type="search"
-                placeholder={t('gallery.search')}
-                value={searchTerm}
-                onChange={e => setSearchTerm(e.target.value)}
-                aria-label={t('gallery.search')}
-              />
+            <GalleryFeedTabs feed={feed} onFeedChange={setFeed} />
+            <div className="gallery-toolbar-end">
+              <div className="gallery-search">
+                <Search size={15} className="gallery-search-icon" aria-hidden="true" />
+                <input
+                  type="search"
+                  placeholder={t('gallery.search')}
+                  value={searchTerm}
+                  onChange={e => setSearchTerm(e.target.value)}
+                  aria-label={t('gallery.search')}
+                />
+              </div>
+              <button
+                ref={filterTriggerRef}
+                type="button"
+                className="gallery-filter-trigger"
+                aria-haspopup="dialog"
+                aria-expanded={filterOpen}
+                aria-label={
+                  activeFilterCount > 0
+                    ? t('gallery.explorer.filterCount', { n: activeFilterCount })
+                    : t('gallery.explorer.filter')
+                }
+                onClick={() => setFilterOpen(v => !v)}
+              >
+                <SlidersHorizontal size={14} aria-hidden="true" />
+                <span>{t('gallery.explorer.filter')}</span>
+                {activeFilterCount > 0 && <span className="gallery-filter-badge">{activeFilterCount}</span>}
+              </button>
+              {/* 结果数只描述网格结果:策展视图展示的是人工挑选的区块,
+                  用全库模板数会显示一个与屏幕内容无关的数字。 */}
+              {!showCurationView && (
+                <span className="gallery-result-count" role="status">
+                  {t('gallery.explorer.resultCount', { n: feedResults.length })}
+                </span>
+              )}
             </div>
-            <button
-              ref={filterTriggerRef}
-              type="button"
-              className="gallery-filter-trigger"
-              aria-haspopup="dialog"
-              aria-expanded={filterOpen}
-              aria-label={
-                activeFilterCount > 0
-                  ? t('gallery.explorer.filterCount', { n: activeFilterCount })
-                  : t('gallery.explorer.filter')
-              }
-              onClick={() => setFilterOpen(v => !v)}
-            >
-              <SlidersHorizontal size={14} aria-hidden="true" />
-              <span>{t('gallery.explorer.filter')}</span>
-              {activeFilterCount > 0 && <span className="gallery-filter-badge">{activeFilterCount}</span>}
-            </button>
-            {/* 结果数只描述网格结果:策展视图展示的是人工挑选的区块,
-                用全库模板数会显示一个与屏幕内容无关的数字。 */}
-            {!showCurationView && (
-              <span className="gallery-result-count" role="status">
-                {t('gallery.explorer.resultCount', { n: feedResults.length })}
-              </span>
-            )}
           </div>
 
           {/* 激活筛选 chips:逐项移除 + 清除全部;无筛选时不渲染(不留空高度) */}
@@ -476,8 +480,6 @@ export default function GalleryPage({ onLoadTemplate, cloudStore }) {
               </button>
             ))}
           </div>
-
-          <GalleryFeedTabs feed={feed} onFeedChange={setFeed} />
 
           <div
             className="gallery-feed-panel"

@@ -27,6 +27,10 @@
   --shadow: var(--shadow-md);
   --shadow-card: 0 4px 16px rgba(232, 115, 74, 0.08);
   --radius-card: 14px;
+  /* 滚动条:暖灰令牌的半透明版本,细而低存在感 */
+  --scrollbar-size: 6px;
+  --scrollbar-thumb: color-mix(in srgb, var(--text-muted) 26%, transparent);
+  --scrollbar-thumb-hover: color-mix(in srgb, var(--text-muted) 44%, transparent);
 
   /* Typography — 通用界面字体：跨平台 CJK 优先，兼顾中/日/韩/英四语言 */
   --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC",
@@ -171,7 +175,9 @@ button {
   cursor: pointer;
 }
 
-input:focus, textarea:focus, button:focus {
+/* 只有键盘焦点才画强调环:鼠标点击按钮/选项卡不应留下橙色实线边框。
+   文本框始终匹配 :focus-visible,行为与原先一致。 */
+input:focus-visible, textarea:focus-visible, button:focus-visible {
   outline: 2px solid var(--accent);
   outline-offset: -2px;
 }
@@ -365,21 +371,6 @@ body:has(.quantizer-zoom) .mobile-toolbar {
   opacity: 0;
   pointer-events: none;
   transition: opacity 0.2s ease;
-}
-
-.modal-content::-webkit-scrollbar {
-  width: 6px;
-}
-.modal-content::-webkit-scrollbar-track {
-  background: var(--bg-secondary);
-  border-radius: 3px;
-}
-.modal-content::-webkit-scrollbar-thumb {
-  background: var(--border-color);
-  border-radius: 3px;
-}
-.modal-content::-webkit-scrollbar-thumb:hover {
-  background: var(--text-muted);
 }
 
 @media (max-width: 480px) {
@@ -709,17 +700,6 @@ body:has(.quantizer-zoom) .mobile-toolbar {
   overflow-x: hidden;
 }
 
-.left-sidebar::-webkit-scrollbar {
-  width: 4px;
-}
-.left-sidebar::-webkit-scrollbar-track {
-  background: transparent;
-}
-.left-sidebar::-webkit-scrollbar-thumb {
-  background: var(--border-color);
-  border-radius: 2px;
-}
-
 .right-sidebar {
   width: auto;
   overflow: visible;
@@ -736,31 +716,33 @@ body:has(.quantizer-zoom) .mobile-toolbar {
   min-height: 0;
 }
 
-/* Scrollbar Styles */
-.canvas-area::-webkit-scrollbar,
-.palette-scroll::-webkit-scrollbar,
-.tools-scroll::-webkit-scrollbar {
-  width: 8px;
-  height: 8px;
+/* ── 全站滚动条:细、半透明,跟随暖色令牌 ─────────────────────
+   统一替代各组件各自的 8px/6px/4px 粗亮滚动条。颜色只取
+   --text-muted 的低透明度版本,滑块悬停时略微加深,仍不抢内容。 */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--scrollbar-thumb) transparent;
 }
 
-.canvas-area::-webkit-scrollbar-track,
-.palette-scroll::-webkit-scrollbar-track,
-.tools-scroll::-webkit-scrollbar-track {
+::-webkit-scrollbar {
+  width: var(--scrollbar-size);
+  height: var(--scrollbar-size);
+}
+::-webkit-scrollbar-track {
   background: transparent;
 }
-
-.canvas-area::-webkit-scrollbar-thumb,
-.palette-scroll::-webkit-scrollbar-thumb,
-.tools-scroll::-webkit-scrollbar-thumb {
-  background: var(--border-color);
-  border-radius: 4px;
+::-webkit-scrollbar-thumb {
+  /* 先给受限环境一个纯色回退,再使用 color-mix 令牌 */
+  background: rgba(163, 150, 138, 0.26);
+  background: var(--scrollbar-thumb);
+  border-radius: 999px;
 }
-
-.canvas-area::-webkit-scrollbar-thumb:hover,
-.palette-scroll::-webkit-scrollbar-thumb:hover,
-.tools-scroll::-webkit-scrollbar-thumb:hover {
-  background: var(--text-muted);
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(163, 150, 138, 0.44);
+  background: var(--scrollbar-thumb-hover);
+}
+::-webkit-scrollbar-corner {
+  background: transparent;
 }
 
 /* Responsive */
@@ -1280,25 +1262,6 @@ body:has(.quantizer-zoom) .mobile-toolbar {
   display: flex;
   flex-direction: column;
   min-height: 0;
-}
-
-/* Scrollbar styling for left sidebar */
-.left-sidebar::-webkit-scrollbar {
-  width: 6px;
-}
-
-.left-sidebar::-webkit-scrollbar-track {
-  background: var(--bg-secondary);
-  border-radius: 3px;
-}
-
-.left-sidebar::-webkit-scrollbar-thumb {
-  background: var(--border-color);
-  border-radius: 3px;
-}
-
-.left-sidebar::-webkit-scrollbar-thumb:hover {
-  background: var(--text-muted);
 }
 
 .sidebar-divider {
