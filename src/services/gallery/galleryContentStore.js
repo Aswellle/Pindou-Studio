@@ -370,33 +370,45 @@ export function createGalleryContentStore(client = supabase) {
 
     /**
      * 整组替换精选资源关系(后台保存,管理员;RLS 强制)。
-     * 与 setLinks 同一策略:先删后插,任一步失败都返回错误,不做部分成功的假象。
+     *
+     * 顺序刻意与 setLinks 的「先删后插」相反:
+     *   1. upsert 本次列表(template_id 主键,已存在则只更新 sort_order);
+     *   2. 再删除不在本次列表内的旧行。
+     * 任一步失败都不会丢掉已有的精选关系 —— 最坏情况是残留旧行(返回错误,
+     * 前端重载后如实显示),而不是整表被清空。
+     *
      * 只接受云端 templates 的 UUID;去重保序,顺序即展示顺序。
      */
     async saveFeaturedTemplates(templateIds = []) {
       const ids = [...new Set((templateIds || []).map(String).filter(Boolean))]
 
-      const del = await client.from(FEATURED_TEMPLATES_TABLE).delete().not('template_id', 'is', null)
-      if (del.error) {
-        remember({ code: 'cloud', detail: del.error.message })
-        return fromDbError(del.error)
-      }
-      if (ids.length === 0) return { ok: true, rows: [] }
-
-      const { data, error } = await client
-        .from(FEATURED_TEMPLATES_TABLE)
-        .insert(
+      if (ids.length > 0) {
+        const { error } = await client.from(FEATURED_TEMPLATES_TABLE).upsert(
           ids.map((templateId, index) => ({
             template_id: templateId,
             sort_order: index,
           }))
         )
-        .select()
-      if (error) {
-        remember({ code: 'cloud', detail: error.message })
-        return fromDbError(error)
+        if (error) {
+          remember({ code: 'cloud', detail: error.message })
+          return fromDbError(error)
+        }
       }
-      return { ok: true, rows: data || [] }
+
+      // PostgREST 要求 delete 必须带过滤条件:空列表等价于删除全部;
+      // 非空列表只清理「不在本次集合内」的旧行(not in)。
+      const del =
+        ids.length === 0
+          ? await client.from(FEATURED_TEMPLATES_TABLE).delete().not('template_id', 'is', null)
+          : await client
+              .from(FEATURED_TEMPLATES_TABLE)
+              .delete()
+              .not('template_id', 'in', `(${ids.join(',')})`)
+      if (del.error) {
+        remember({ code: 'cloud', detail: del.error.message })
+        return fromDbError(del.error)
+      }
+      return { ok: true, rows: [] }
     },
   }
 }

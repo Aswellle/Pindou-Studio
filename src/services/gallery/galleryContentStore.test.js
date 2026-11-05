@@ -244,25 +244,23 @@ describe('galleryContentStore · 精选资源(0032)', () => {
     expect(data2.featuredTemplateRows).toEqual([])
   })
 
-  it('saveFeaturedTemplates 先删后插,按数组顺序写 sort_order 并去重', async () => {
+  it('saveFeaturedTemplates 先 upsert 再清理旧行,按数组顺序写 sort_order 并去重', async () => {
     const calls = []
     const client = {
       from(table) {
-        const state = { ops: [] }
+        const state = { ops: [], filters: [] }
         calls.push({ table, state })
         const builder = {
+          upsert(payload) {
+            state.ops.push(['upsert', payload])
+            return builder
+          },
           delete() {
             state.ops.push('delete')
             return builder
           },
-          not() {
-            return builder
-          },
-          insert(payload) {
-            state.ops.push(['insert', payload])
-            return builder
-          },
-          select() {
+          not(col, op, value) {
+            state.filters.push([col, op, value])
             return builder
           },
           then(resolve) {
@@ -275,34 +273,33 @@ describe('galleryContentStore · 精选资源(0032)', () => {
     const store = createGalleryContentStore(client)
     const res = await store.saveFeaturedTemplates(['b', 'a', 'b', ''])
     expect(res.ok).toBe(true)
-    // 先删后插:delete 与 insert 是两次独立的 from() 调用
-    expect(calls[0].state.ops[0]).toBe('delete')
-    expect(calls[1].state.ops[0][0]).toBe('insert')
-    expect(calls[1].state.ops[0][1]).toEqual([
+    // 先 upsert(不会先清空);再按「不在本次列表内」清理旧行
+    expect(calls[0].state.ops[0][0]).toBe('upsert')
+    expect(calls[0].state.ops[0][1]).toEqual([
       { template_id: 'b', sort_order: 0 },
       { template_id: 'a', sort_order: 1 },
     ])
+    expect(calls[1].state.ops[0]).toBe('delete')
+    expect(calls[1].state.filters[0]).toEqual(['template_id', 'in', '(b,a)'])
   })
 
-  it('saveFeaturedTemplates 空数组只清空,不再 insert', async () => {
+  it('saveFeaturedTemplates 空数组只清空,不执行 upsert', async () => {
     const calls = []
     const client = {
       from() {
-        const state = { ops: [] }
+        const state = { ops: [], filters: [] }
         calls.push(state)
         const builder = {
+          upsert(payload) {
+            state.ops.push(['upsert', payload])
+            return builder
+          },
           delete() {
             state.ops.push('delete')
             return builder
           },
-          not() {
-            return builder
-          },
-          insert(payload) {
-            state.ops.push(['insert', payload])
-            return builder
-          },
-          select() {
+          not(col, op, value) {
+            state.filters.push([col, op, value])
             return builder
           },
           then(resolve) {
@@ -316,6 +313,43 @@ describe('galleryContentStore · 精选资源(0032)', () => {
     const res = await store.saveFeaturedTemplates([])
     expect(res.ok).toBe(true)
     expect(calls[0].ops).toEqual(['delete'])
+    expect(calls[0].filters[0]).toEqual(['template_id', 'is', null])
+  })
+
+  it('upsert 失败时不再清理旧行,已有精选关系不会被清空', async () => {
+    const calls = []
+    const client = {
+      from() {
+        const state = { ops: [] }
+        calls.push(state)
+        const builder = {
+          upsert(payload) {
+            state.ops.push(['upsert', payload])
+            return builder
+          },
+          delete() {
+            state.ops.push('delete')
+            return builder
+          },
+          not() {
+            return builder
+          },
+          then(resolve) {
+            return Promise.resolve({
+              data: null,
+              error: { code: '42501', message: 'permission denied for table' },
+            }).then(resolve)
+          },
+        }
+        return builder
+      },
+    }
+    const store = createGalleryContentStore(client)
+    const res = await store.saveFeaturedTemplates(['a'])
+    expect(res.ok).toBe(false)
+    // 失败时只有 upsert 调用,delete 没有执行
+    expect(calls).toHaveLength(1)
+    expect(calls[0].ops).toEqual([['upsert', [{ template_id: 'a', sort_order: 0 }]]])
   })
 
   it('未配置云端时精选写入返回 cloudNotConfigured', async () => {
