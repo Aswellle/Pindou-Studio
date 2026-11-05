@@ -71,6 +71,7 @@ export default function GalleryPage({ onLoadTemplate, cloudStore }) {
     setMaxColors,
     feed,
     setFeed,
+    clearFiltersAndGoToFeed,
     legacyView,
     clearLegacyView,
     setFilters,
@@ -264,9 +265,9 @@ export default function GalleryPage({ onLoadTemplate, cloudStore }) {
   const handleDiscover = () => setFeed('featured')
   const handleAllTemplates = () => clearAllFilters()
   const handleCurationAnchor = kind => {
-    // 策展区块只在「精选 feed + 无筛选」时渲染,先恢复该状态再定位
-    clearAllFilters()
-    setFeed('featured')
+    // 策展区块只在「精选 feed + 无筛选」时渲染,先恢复该状态再定位。
+    // 必须一次写入:分开清筛选与切 feed 时,第二次导航会以旧参数为基底把筛选写回。
+    clearFiltersAndGoToFeed('featured')
     setPendingAnchor(kind)
   }
   // 侧栏分类只改 cat:feed 与其它条件保持不动(单一分类状态源)

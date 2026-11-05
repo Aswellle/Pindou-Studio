@@ -432,6 +432,14 @@ describe('GalleryPage V3 — 一级 feed(精选/热门/最新)', () => {
     expect(screen.getByRole('searchbox').value).toBe('图纸A')
   })
 
+  it('带筛选时点击侧栏策展入口会先清空筛选(单次写入,不被第二次导航写回)', () => {
+    const { container } = setup({ savedWorks: [], cloudStore: feedStore() }, ['/gallery?cat=animal'])
+    expect(container.querySelectorAll('.gallery-chip').length).toBe(1)
+    fireEvent.click(screen.getByRole('button', { name: '精选主题' }))
+    expect(container.querySelectorAll('.gallery-chip').length).toBe(0)
+    expect(screen.getByRole('searchbox').value).toBe('')
+  })
+
   it('侧栏分类入口只改 cat,feed 保持不变', () => {
     const { container } = setup({ savedWorks: [], cloudStore: feedStore() }, ['/gallery?feed=popular'])
     // 侧栏与移动分类条都渲染食物项;点第一个(计数 1)

@@ -92,6 +92,30 @@ describe('useGalleryQuery · feed 写入', () => {
   })
 })
 
+describe('useGalleryQuery · 原子清筛选', () => {
+  it('clearFiltersAndGoToFeed 一次清空全部条件并切到目标 feed', () => {
+    const { result } = renderHook(() => useGalleryQuery(), {
+      wrapper: wrapper('/gallery?feed=popular&q=小鸭&cat=animal&diff=easy&colors=12'),
+    })
+    act(() => result.current.clearFiltersAndGoToFeed('featured'))
+    expect(result.current.searchTerm).toBe('')
+    expect(result.current.category).toBe('all')
+    expect(result.current.difficulty).toBe('all')
+    expect(result.current.maxColors).toBe(null)
+    expect(result.current.feed).toBe('featured')
+  })
+
+  it('目标 feed 非默认时写入 feed,其余条件同样清空', () => {
+    const { result } = renderHook(() => useGalleryQuery(), {
+      wrapper: wrapper('/gallery?q=小鸭&cat=animal'),
+    })
+    act(() => result.current.clearFiltersAndGoToFeed('latest'))
+    expect(result.current.feed).toBe('latest')
+    expect(result.current.searchTerm).toBe('')
+    expect(result.current.category).toBe('all')
+  })
+})
+
 describe('useGalleryQuery · 筛选写入(既有契约)', () => {
   it('setFilters 一次写入多项并保留 feed', () => {
     const { result } = renderHook(() => useGalleryQuery(), {

@@ -63,34 +63,51 @@ export function useGalleryQuery() {
   // 一级 feed:非法值(含 ?feed=)归一化为 featured,不写回 URL(与 cat/diff 同策略)
   const feed = normalizeGalleryFeed(searchParams.get('feed'))
 
-  const setSearchTerm = value => {
+  /**
+   * 构造写入后的参数。所有 setter 共用这一处 —— 同一 tick 内连续调用多个
+   * 单项 setter 时,后一次会以旧参数为基底覆盖前一次(04 §2.2 明确禁止),
+   * 需要同时改多项时必须走 `setFilters` 或 `clearFiltersAndGoToFeed`。
+   */
+  const buildParams = (patch = {}) => {
     const params = new URLSearchParams(searchParams)
-    if (value) params.set('q', value)
-    else params.delete('q')
-    setSearchParams(params, { replace: true })
+    if ('q' in patch) {
+      if (patch.q) params.set('q', patch.q)
+      else params.delete('q')
+    }
+    if ('cat' in patch) {
+      if (patch.cat && patch.cat !== 'all') params.set('cat', patch.cat)
+      else params.delete('cat')
+    }
+    if ('diff' in patch) {
+      if (patch.diff && patch.diff !== 'all') params.set('diff', patch.diff)
+      else params.delete('diff')
+    }
+    if ('colors' in patch) {
+      const n = Number(patch.colors)
+      if (patch.colors && Number.isFinite(n) && n > 0) params.set('colors', String(Math.trunc(n)))
+      else params.delete('colors')
+    }
+    if ('feed' in patch) {
+      const next = normalizeGalleryFeed(patch.feed)
+      if (next !== DEFAULT_GALLERY_FEED) params.set('feed', next)
+      else params.delete('feed')
+    }
+    return params
   }
 
-  const setCategory = value => {
-    const params = new URLSearchParams(searchParams)
-    if (value && value !== 'all') params.set('cat', value)
-    else params.delete('cat')
-    setSearchParams(params, { replace: true })
+  /** 参数没有实际变化时不写历史(避免点击当前 feed 产生重复记录) */
+  const writeParams = (params, options) => {
+    if (params.toString() === searchParams.toString()) return
+    setSearchParams(params, options)
   }
 
-  const setDifficulty = value => {
-    const params = new URLSearchParams(searchParams)
-    if (value && value !== 'all') params.set('diff', value)
-    else params.delete('diff')
-    setSearchParams(params, { replace: true })
-  }
+  const setSearchTerm = value => writeParams(buildParams({ q: value }), { replace: true })
 
-  const setMaxColors = value => {
-    const params = new URLSearchParams(searchParams)
-    const n = Number(value)
-    if (value && Number.isFinite(n) && n > 0) params.set('colors', String(Math.trunc(n)))
-    else params.delete('colors')
-    setSearchParams(params, { replace: true })
-  }
+  const setCategory = value => writeParams(buildParams({ cat: value }), { replace: true })
+
+  const setDifficulty = value => writeParams(buildParams({ diff: value }), { replace: true })
+
+  const setMaxColors = value => writeParams(buildParams({ colors: value }), { replace: true })
 
   /**
    * 切换一级 feed。
@@ -98,11 +115,7 @@ export function useGalleryQuery() {
    * 同一条 URL 里,后退不会丢条件)。默认 feed 不写入参数,保持地址栏干净。
    */
   const setFeed = value => {
-    const params = new URLSearchParams(searchParams)
-    const next = normalizeGalleryFeed(value)
-    if (next !== DEFAULT_GALLERY_FEED) params.set('feed', next)
-    else params.delete('feed')
-    setSearchParams(params)
+    writeParams(buildParams({ feed: value }))
   }
 
   /**
@@ -122,26 +135,16 @@ export function useGalleryQuery() {
    * 同一 tick 内后一次会覆盖前一次(例如重置三个筛选只剩最后一个生效)。
    * 需要同时改多项时用这个。
    */
-  const setFilters = (patch = {}) => {
-    const params = new URLSearchParams(searchParams)
-    if ('q' in patch) {
-      if (patch.q) params.set('q', patch.q)
-      else params.delete('q')
-    }
-    if ('cat' in patch) {
-      if (patch.cat && patch.cat !== 'all') params.set('cat', patch.cat)
-      else params.delete('cat')
-    }
-    if ('diff' in patch) {
-      if (patch.diff && patch.diff !== 'all') params.set('diff', patch.diff)
-      else params.delete('diff')
-    }
-    if ('colors' in patch) {
-      const n = Number(patch.colors)
-      if (patch.colors && Number.isFinite(n) && n > 0) params.set('colors', String(Math.trunc(n)))
-      else params.delete('colors')
-    }
-    setSearchParams(params, { replace: true })
+  const setFilters = (patch = {}) => writeParams(buildParams(patch), { replace: true })
+
+  /**
+   * 一次写入「清空全部筛选 + 目标 feed」。
+   * 侧栏「发现 / 精选主题 / 精选合集」都要求回到无筛选的精选视图;
+   * 分开调用 clearAllFilters() 与 setFeed() 时两次都基于旧参数,
+   * 第二次会把筛选原样写回(见 04 §2.2)。
+   */
+  const clearFiltersAndGoToFeed = value => {
+    writeParams(buildParams({ q: '', cat: 'all', diff: 'all', colors: '', feed: value }))
   }
 
   return {
@@ -156,6 +159,7 @@ export function useGalleryQuery() {
     setDifficulty,
     setMaxColors,
     setFeed,
+    clearFiltersAndGoToFeed,
     clearLegacyView,
     setFilters,
   }
