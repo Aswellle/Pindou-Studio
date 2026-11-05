@@ -114,11 +114,14 @@ export default function GalleryPage({ onLoadTemplate, cloudStore }) {
   // 载入确认弹层打开时锁背景滚动(引用计数)
   useScrollLock(!!pendingLoad)
 
-  // 可访问性(规格 08 §5):载入确认浮层
+  // 可访问性(规格 08 §5):载入确认浮层。载入会替换当前画布,
+  // 因此必须显式选择「取消」或「载入」,遮罩与 Escape 都不关闭。
   const { ref: loadConfirmRef, dialogProps: loadConfirmDialogProps } = useDialogA11y({
     open: !!pendingLoad,
     onClose: () => setPendingLoad(null),
     label: t('gallery.loadConfirmTitle'),
+    role: 'alertdialog',
+    dismissible: false,
   })
 
   // 下载量:本地计数(localStorage 持久)叠加云端模板 download_count(抽出的共享 hook)
@@ -626,7 +629,7 @@ export default function GalleryPage({ onLoadTemplate, cloudStore }) {
       {/* 填充模板到画布:点击卡片后弹出确认,避免误触直接填充+跳转 */}
       {pendingLoad &&
         createPortal(
-          <div className="load-confirm-overlay" onClick={() => setPendingLoad(null)}>
+          <div className="load-confirm-overlay">
             <div
               className="load-confirm-modal"
               ref={loadConfirmRef}
@@ -648,7 +651,7 @@ export default function GalleryPage({ onLoadTemplate, cloudStore }) {
                   })}
                 </p>
                 <div className="load-confirm-actions">
-                  <button className="load-confirm-cancel" onClick={() => setPendingLoad(null)}>
+                  <button className="load-confirm-cancel" autoFocus onClick={() => setPendingLoad(null)}>
                     {t('common.cancel')}
                   </button>
                   <button
