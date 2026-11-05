@@ -3,11 +3,15 @@ import { useTranslation } from 'react-i18next'
 import { useCanvasPainter } from '../hooks/useCanvasPainter'
 import { normalizeSelection, clampMove } from '../utils/selectionUtils'
 import { drawMarquee, drawSelection, MARQUEE_DASH_PERIOD } from '../utils/marquee'
-import {
-  HANDLE_CURSORS, HANDLE_HIT_PX, hitTestHandle, resizeSelection,
-} from '../utils/selectionHandles'
+import { HANDLE_CURSORS, HANDLE_HIT_PX, hitTestHandle, resizeSelection } from '../utils/selectionHandles'
 import { SNAP_THRESHOLD, snapSelection } from '../utils/selectionSnap'
-import { createLassoSelection, countLassoCells as lassoCellCount, selectionBounds, selectionContains, forEachLassoCell } from '../utils/lassoSelection'
+import {
+  createLassoSelection,
+  countLassoCells as lassoCellCount,
+  selectionBounds,
+  selectionContains,
+  forEachLassoCell,
+} from '../utils/lassoSelection'
 
 const CELL_SIZE = 16
 const MIN_SCALE = 0.3
@@ -25,32 +29,35 @@ function isCoarsePointer() {
 // 让选框始终「活着」,一眼能看出这是可操作区域而不是图案的一部分。
 const MARQUEE_TICK_MS = 60
 
-const Canvas = forwardRef(function Canvas({
-  gridSize,
-  gridWidth,
-  gridHeight,
-  selectedColor,
-  tool,
-  committedData,
-  onCanvasChange,
-  onTransformChange,
-  // M5: 取色器把画布上的颜色交回父组件;选区变化时同步矩形给工具条
-  onPickColor,
-  selection,
-  onSelectionChange,
-  // M5.2: 在选区内按下并拖动 = 移动选区内容(拖到哪就贴到哪)
-  onSelectionMove,
-  // A2: 移动端的「复制拖动」开关。触屏没有 Alt/Option,由操作条上的显式开关
-  // 决定拖选区内部是剪切还是复制。桌面端不受它影响(Alt 优先)。
-  copyDrag = false,
-  // A3: 框选时是否吸附到已有珠子的边缘。默认**关** —— 吸附会把焦点从
-  // 指针位置拽走 1–2 格,对已经瞄准边界的用户来说体感是「选框不跟手」。
-  // 需要精确贴边的用户可在选区操作条上打开。
-  snapToEdges = false,
-  // A4:长按选区内容时上报屏幕坐标,父组件据此弹上下文菜单。
-  // 不传 = 不启用长按(桌面端用不上,右键菜单另有语义)。
-  onSelectionLongPress,
-}, ref) {
+const Canvas = forwardRef(function Canvas(
+  {
+    gridSize,
+    gridWidth,
+    gridHeight,
+    selectedColor,
+    tool,
+    committedData,
+    onCanvasChange,
+    onTransformChange,
+    // M5: 取色器把画布上的颜色交回父组件;选区变化时同步矩形给工具条
+    onPickColor,
+    selection,
+    onSelectionChange,
+    // M5.2: 在选区内按下并拖动 = 移动选区内容(拖到哪就贴到哪)
+    onSelectionMove,
+    // A2: 移动端的「复制拖动」开关。触屏没有 Alt/Option,由操作条上的显式开关
+    // 决定拖选区内部是剪切还是复制。桌面端不受它影响(Alt 优先)。
+    copyDrag = false,
+    // A3: 框选时是否吸附到已有珠子的边缘。默认**关** —— 吸附会把焦点从
+    // 指针位置拽走 1–2 格,对已经瞄准边界的用户来说体感是「选框不跟手」。
+    // 需要精确贴边的用户可在选区操作条上打开。
+    snapToEdges = false,
+    // A4:长按选区内容时上报屏幕坐标,父组件据此弹上下文菜单。
+    // 不传 = 不启用长按(桌面端用不上,右键菜单另有语义)。
+    onSelectionLongPress,
+  },
+  ref
+) {
   const { t } = useTranslation()
   const containerRef = useRef(null)
 
@@ -167,34 +174,40 @@ const Canvas = forwardRef(function Canvas({
   // Grid can be dragged to any position; bounds only provide resistance
   // near the edges to prevent it from disappearing off-screen entirely.
   // ─────────────────────────────────────────────────────────────────
-  const getBounds = useCallback((scale) => {
-    const rect = containerRef.current?.getBoundingClientRect()
-    if (!rect) return { minX: -BOUNDS_BOOST, maxX: BOUNDS_BOOST, minY: -BOUNDS_BOOST, maxY: BOUNDS_BOOST }
-    const { width: cW, height: cH } = rect
-    const scaledW = canvasWidth * scale
-    const scaledH = canvasHeight * scale
-    // Allow dragging well beyond the grid edges — user can pan freely.
-    // Bounce-back resistance only kicks in when grid would go off-screen.
-    // With transform-origin:50% 50%, canvas center = (cx, cy) from container center.
-    // To see either edge, center must reach ±(containerHalf + scaledHalf).
-    const extraX = (scaledW + cW) / 2 + BOUNDS_BOOST
-    const extraY = (scaledH + cH) / 2 + BOUNDS_BOOST
-    return {
-      minX: -extraX,
-      maxX: extraX,
-      minY: -extraY,
-      maxY: extraY,
-    }
-  }, [canvasWidth, canvasHeight])
+  const getBounds = useCallback(
+    scale => {
+      const rect = containerRef.current?.getBoundingClientRect()
+      if (!rect) return { minX: -BOUNDS_BOOST, maxX: BOUNDS_BOOST, minY: -BOUNDS_BOOST, maxY: BOUNDS_BOOST }
+      const { width: cW, height: cH } = rect
+      const scaledW = canvasWidth * scale
+      const scaledH = canvasHeight * scale
+      // Allow dragging well beyond the grid edges — user can pan freely.
+      // Bounce-back resistance only kicks in when grid would go off-screen.
+      // With transform-origin:50% 50%, canvas center = (cx, cy) from container center.
+      // To see either edge, center must reach ±(containerHalf + scaledHalf).
+      const extraX = (scaledW + cW) / 2 + BOUNDS_BOOST
+      const extraY = (scaledH + cH) / 2 + BOUNDS_BOOST
+      return {
+        minX: -extraX,
+        maxX: extraX,
+        minY: -extraY,
+        maxY: extraY,
+      }
+    },
+    [canvasWidth, canvasHeight]
+  )
 
   // Inline clamp: avoids separate useCallback that captures stale getBounds
-  const softClamp = useCallback((cx, cy, scale) => {
-    const { minX, maxX, minY, maxY } = getBounds(scale)
-    return {
-      x: cx < minX ? minX : cx > maxX ? maxX : cx,
-      y: cy < minY ? minY : cy > maxY ? maxY : cy,
-    }
-  }, [getBounds])
+  const softClamp = useCallback(
+    (cx, cy, scale) => {
+      const { minX, maxX, minY, maxY } = getBounds(scale)
+      return {
+        x: cx < minX ? minX : cx > maxX ? maxX : cx,
+        y: cy < minY ? minY : cy > maxY ? maxY : cy,
+      }
+    },
+    [getBounds]
+  )
 
   // ─────────────────────────────────────────────────────────────────
   // Effect 1: repaint the BASE canvas — only when committedData or grid
@@ -219,12 +232,13 @@ const Canvas = forwardRef(function Canvas({
     // 的 mousemove 会 setHoverCell 触发重渲染 → 这里 clearOverlay()
     // 把正在跟手的选框/套索轨迹抹掉,表现为拖动时选框一闪一闪。
     if (
-      isDrawingRef.current
-      || selDraggingRef.current
-      || moveDraggingRef.current
-      || lassoDraggingRef.current
-      || resizeHandleRef.current
-    ) return
+      isDrawingRef.current ||
+      selDraggingRef.current ||
+      moveDraggingRef.current ||
+      lassoDraggingRef.current ||
+      resizeHandleRef.current
+    )
+      return
     painter.clearOverlay()
     if (tool === 'pencil' && hoverCell) {
       const ctx = painter.overlayRef.current?.getContext('2d')
@@ -261,11 +275,16 @@ const Canvas = forwardRef(function Canvas({
     if ((tool !== 'select' && tool !== 'lasso') || !selection) return undefined
     let raf = 0
     let last = 0
-    const step = (now) => {
+    const step = now => {
       // 拖动中由各自的预览路径独占 overlay,这里让位,避免互相清屏闪烁。
       // resize 也要让位:updateResize 每帧自己画选框,animation tick 若同时
       // clearOverlay + 按旧 selection 重画,拖动中的矩形会被打回上一帧的形状。
-      if (selDraggingRef.current || moveDraggingRef.current || lassoDraggingRef.current || resizeHandleRef.current) {
+      if (
+        selDraggingRef.current ||
+        moveDraggingRef.current ||
+        lassoDraggingRef.current ||
+        resizeHandleRef.current
+      ) {
         raf = requestAnimationFrame(step)
         return
       }
@@ -289,50 +308,56 @@ const Canvas = forwardRef(function Canvas({
   // ─────────────────────────────────────────────────────────────────
   // 坐标转换
   // ─────────────────────────────────────────────────────────────────
-  const getGridPos = useCallback((clientX, clientY) => {
-    const canvas = painter.baseRef.current
-    if (!canvas) return null
-    // getBoundingClientRect 已经包含 CSS transform(scale)后的实际显示尺寸,
-    // 因此这里算出的比例把缩放折算掉了 —— 0.3× 与 5× 下同一屏坐标都落到同一格。
-    // (规格 04 §8:缩放后点击/拖选不得偏移;此函数是唯一坐标入口。)
-    const rect = canvas.getBoundingClientRect()
-    if (!rect.width || !rect.height) return null
-    const scaleX = canvas.width / rect.width
-    const scaleY = canvas.height / rect.height
-    const x = Math.floor((clientX - rect.left) * scaleX / CELL_SIZE)
-    const y = Math.floor((clientY - rect.top) * scaleY / CELL_SIZE)
-    if (x >= 0 && x < cols && y >= 0 && y < rows) return { x, y }
-    return null
-  }, [cols, rows, painter])
+  const getGridPos = useCallback(
+    (clientX, clientY) => {
+      const canvas = painter.baseRef.current
+      if (!canvas) return null
+      // getBoundingClientRect 已经包含 CSS transform(scale)后的实际显示尺寸,
+      // 因此这里算出的比例把缩放折算掉了 —— 0.3× 与 5× 下同一屏坐标都落到同一格。
+      // (规格 04 §8:缩放后点击/拖选不得偏移;此函数是唯一坐标入口。)
+      const rect = canvas.getBoundingClientRect()
+      if (!rect.width || !rect.height) return null
+      const scaleX = canvas.width / rect.width
+      const scaleY = canvas.height / rect.height
+      const x = Math.floor(((clientX - rect.left) * scaleX) / CELL_SIZE)
+      const y = Math.floor(((clientY - rect.top) * scaleY) / CELL_SIZE)
+      if (x >= 0 && x < cols && y >= 0 && y < rows) return { x, y }
+      return null
+    },
+    [cols, rows, painter]
+  )
 
   // 检测鼠标/触控是否在canvas区域内（考虑缩放和变换）
-  const isOverCanvas = useCallback((clientX, clientY) => {
-    const canvas = painter.baseRef.current
-    if (!canvas || !containerRef.current) return false
-    const rect = canvas.getBoundingClientRect()
-    return (
-      clientX >= rect.left && clientX <= rect.right &&
-      clientY >= rect.top && clientY <= rect.bottom
-    )
-  }, [painter])
+  const isOverCanvas = useCallback(
+    (clientX, clientY) => {
+      const canvas = painter.baseRef.current
+      if (!canvas || !containerRef.current) return false
+      const rect = canvas.getBoundingClientRect()
+      return clientX >= rect.left && clientX <= rect.right && clientY >= rect.top && clientY <= rect.bottom
+    },
+    [painter]
+  )
 
   // 连续网格坐标(不取整、不限制在网格内)。
   //
   // resize 手柄长在**格边界**上,而 getGridPos 只返回格索引且出界即 null ——
   // 拖到画布外时手柄会直接失联。这个函数保留小数部分,越界坐标也照样返回,
   // 由 resizeSelection 统一钳制。
-  const getGridPoint = useCallback((clientX, clientY) => {
-    const canvas = painter.baseRef.current
-    if (!canvas) return null
-    const rect = canvas.getBoundingClientRect()
-    if (!rect.width || !rect.height) return null
-    const scaleX = canvas.width / rect.width
-    const scaleY = canvas.height / rect.height
-    return {
-      x: (clientX - rect.left) * scaleX / CELL_SIZE,
-      y: (clientY - rect.top) * scaleY / CELL_SIZE,
-    }
-  }, [painter])
+  const getGridPoint = useCallback(
+    (clientX, clientY) => {
+      const canvas = painter.baseRef.current
+      if (!canvas) return null
+      const rect = canvas.getBoundingClientRect()
+      if (!rect.width || !rect.height) return null
+      const scaleX = canvas.width / rect.width
+      const scaleY = canvas.height / rect.height
+      return {
+        x: ((clientX - rect.left) * scaleX) / CELL_SIZE,
+        y: ((clientY - rect.top) * scaleY) / CELL_SIZE,
+      }
+    },
+    [painter]
+  )
 
   /**
    * 指针是否按在某个 resize 手柄上(命中返回手柄 id,否则 null)。
@@ -341,14 +366,17 @@ const Canvas = forwardRef(function Canvas({
    * 宽、5× 时却有 40px,同一个手势在两种缩放下表现完全不同。
    * 触屏 24px、鼠标 10px(见 HANDLE_HIT_PX)。
    */
-  const handleAtPoint = useCallback((clientX, clientY) => {
-    if (tool !== 'select' || !selection) return null
-    const point = getGridPoint(clientX, clientY)
-    if (!point) return null
-    const px = coarsePointerRef.current ? HANDLE_HIT_PX.coarse : HANDLE_HIT_PX.fine
-    const radius = (px / 2) / (CELL_SIZE * transform.scale)
-    return hitTestHandle(selection, point, { radius })
-  }, [tool, selection, getGridPoint, transform.scale])
+  const handleAtPoint = useCallback(
+    (clientX, clientY) => {
+      if (tool !== 'select' || !selection) return null
+      const point = getGridPoint(clientX, clientY)
+      if (!point) return null
+      const px = coarsePointerRef.current ? HANDLE_HIT_PX.coarse : HANDLE_HIT_PX.fine
+      const radius = px / 2 / (CELL_SIZE * transform.scale)
+      return hitTestHandle(selection, point, { radius })
+    },
+    [tool, selection, getGridPoint, transform.scale]
+  )
 
   // ─────────────────────────────────────────────────────────────────
   // 填色逻辑
@@ -366,47 +394,53 @@ const Canvas = forwardRef(function Canvas({
   // the cursor on the same event tick, so a fast drag can never queue up a backlog
   // of redraws. strokeAccumRef is still mutated synchronously so commitStroke reads
   // the final, up-to-date stroke.
-  const paintToStroke = useCallback((x, y) => {
-    if (!strokeAccumRef.current) return
-    if (tool === 'pencil') {
-      strokeAccumRef.current[y][x] = selectedColor
-      painter.paintOverlayCell(x, y, selectedColor)
-    } else if (tool === 'eraser') {
-      strokeAccumRef.current[y][x] = null
-      painter.clearOverlayCell(x, y)
-    }
-  }, [tool, selectedColor, painter])
+  const paintToStroke = useCallback(
+    (x, y) => {
+      if (!strokeAccumRef.current) return
+      if (tool === 'pencil') {
+        strokeAccumRef.current[y][x] = selectedColor
+        painter.paintOverlayCell(x, y, selectedColor)
+      } else if (tool === 'eraser') {
+        strokeAccumRef.current[y][x] = null
+        painter.clearOverlayCell(x, y)
+      }
+    },
+    [tool, selectedColor, painter]
+  )
 
   // Flood-fill into the accumulator and paint the filled region onto the overlay.
   // The fill result is shown immediately (no per-cell drag, so no backlog risk).
-  const applyFill = useCallback((x, y) => {
-    const source = strokeAccumRef.current
-    if (!source) return
-    const targetColor = source[y][x]
-    if (targetColor === selectedColor) return
-    const newData = source.map(row => [...row])
-    const stack = [[x, y]]
-    const visited = new Set()
-    while (stack.length > 0) {
-      const [cx, cy] = stack.pop()
-      const key = `${cx},${cy}`
-      if (visited.has(key)) continue
-      if (cx < 0 || cx >= cols || cy < 0 || cy >= rows) continue
-      if (source[cy][cx] !== targetColor) continue
-      visited.add(key)
-      newData[cy][cx] = selectedColor
-      stack.push([cx + 1, cy], [cx - 1, cy], [cx, cy + 1], [cx, cy - 1])
-    }
-    strokeAccumRef.current = newData
-    // Paint only the changed cells onto the overlay (the filled region).
-    for (let ry = 0; ry < rows; ry++) {
-      for (let rx = 0; rx < cols; rx++) {
-        if (newData[ry][rx] !== source[ry][rx]) {
-          painter.paintOverlayCell(rx, ry, newData[ry][rx])
+  const applyFill = useCallback(
+    (x, y) => {
+      const source = strokeAccumRef.current
+      if (!source) return
+      const targetColor = source[y][x]
+      if (targetColor === selectedColor) return
+      const newData = source.map(row => [...row])
+      const stack = [[x, y]]
+      const visited = new Set()
+      while (stack.length > 0) {
+        const [cx, cy] = stack.pop()
+        const key = `${cx},${cy}`
+        if (visited.has(key)) continue
+        if (cx < 0 || cx >= cols || cy < 0 || cy >= rows) continue
+        if (source[cy][cx] !== targetColor) continue
+        visited.add(key)
+        newData[cy][cx] = selectedColor
+        stack.push([cx + 1, cy], [cx - 1, cy], [cx, cy + 1], [cx, cy - 1])
+      }
+      strokeAccumRef.current = newData
+      // Paint only the changed cells onto the overlay (the filled region).
+      for (let ry = 0; ry < rows; ry++) {
+        for (let rx = 0; rx < cols; rx++) {
+          if (newData[ry][rx] !== source[ry][rx]) {
+            painter.paintOverlayCell(rx, ry, newData[ry][rx])
+          }
         }
       }
-    }
-  }, [selectedColor, cols, rows, painter])
+    },
+    [selectedColor, cols, rows, painter]
+  )
 
   // Commit the accumulated stroke to history (PUSH) — called on mouseUp/mouseLeave.
   // The overlay preview is cleared; committedData updates via onCanvasChange and
@@ -417,9 +451,12 @@ const Canvas = forwardRef(function Canvas({
       const acc = strokeAccumRef.current
       strokeAccumRef.current = null
       // 空操作(笔画前后无实际变化,如重复点击同色格)不 PUSH,防重复快照占满 undo 栈
-      const noChange = acc.length === committedData.length
-        && acc.every((row, y) => row.length === committedData[y].length
-          && row.every((cell, x) => cell === committedData[y][x]))
+      const noChange =
+        acc.length === committedData.length &&
+        acc.every(
+          (row, y) =>
+            row.length === committedData[y].length && row.every((cell, x) => cell === committedData[y][x])
+        )
       if (noChange) return
       onCanvasChange(acc)
     }
@@ -458,27 +495,37 @@ const Canvas = forwardRef(function Canvas({
   // 选区 / 取色 命令
   // ─────────────────────────────────────────────────────────────────
   // 取色器:读该格颜色交回父组件(空网格不取色,避免把 null 设成当前色)。
-  const pickColorAt = useCallback((x, y) => {
-    const hex = committedData?.[y]?.[x]
-    if (typeof hex === 'string' && /^#[0-9a-fA-F]{6}$/.test(hex)) {
-      onPickColor?.(hex)
-    }
-  }, [committedData, onPickColor])
+  const pickColorAt = useCallback(
+    (x, y) => {
+      const hex = committedData?.[y]?.[x]
+      if (typeof hex === 'string' && /^#[0-9a-fA-F]{6}$/.test(hex)) {
+        onPickColor?.(hex)
+      }
+    },
+    [committedData, onPickColor]
+  )
 
   // 开始拖选:记录锚点并清掉旧选区(新选区随拖动实时生成)。
   // 立即画出 1×1 的选框:按下即有反馈,不用等第一次移动。
-  const startSelection = useCallback((x, y) => {
-    selAnchorRef.current = { x, y }
-    selFocusRef.current = { x, y }
-    selDraggingRef.current = true
-    onSelectionChange?.(null)
-    painter.clearOverlay()
-    drawMarquee(painter.overlayRef.current?.getContext('2d'), { x, y, w: 1, h: 1 }, {
-      cellSize: CELL_SIZE,
-      scale: transform.scale,
-      dashOffset: dashOffsetRef.current,
-    })
-  }, [onSelectionChange, painter, transform.scale])
+  const startSelection = useCallback(
+    (x, y) => {
+      selAnchorRef.current = { x, y }
+      selFocusRef.current = { x, y }
+      selDraggingRef.current = true
+      onSelectionChange?.(null)
+      painter.clearOverlay()
+      drawMarquee(
+        painter.overlayRef.current?.getContext('2d'),
+        { x, y, w: 1, h: 1 },
+        {
+          cellSize: CELL_SIZE,
+          scale: transform.scale,
+          dashOffset: dashOffsetRef.current,
+        }
+      )
+    },
+    [onSelectionChange, painter, transform.scale]
+  )
 
   // 拖动中:把锚点与当前格规范成矩形,**直接画在 overlay 上**。
   // 不依赖 React 渲染 —— 每一帧移动都立即跟手,虚线框随手指/光标实时变形,
@@ -487,35 +534,38 @@ const Canvas = forwardRef(function Canvas({
   // A3:靠近已有珠子的边界时吸附 1–2 格。吸附只改焦点,不改锚点那条边;
   // 阈值按指针类型给(触屏更宽)。开关关闭时 snapSelection 原样返回,
   // 行为与改造前完全一致。
-  const updateSelection = useCallback((x, y) => {
-    if (!selDraggingRef.current || !selAnchorRef.current) return
-    const anchor = selAnchorRef.current
-    let point = { x, y }
-    let snapped = { x: false, y: false }
-    if (snapToEdges) {
-      const threshold = coarsePointerRef.current ? SNAP_THRESHOLD.coarse : SNAP_THRESHOLD.fine
-      const res = snapSelection(committedData, anchor, point, cols, rows, threshold)
-      // 吸附把焦点拽回锚点(选区塌成 1×1)时丢弃吸附结果:
-      // 用户明明拖开了两格,却因为贴边被吸成单击 —— 松手会直接取消选区。
-      // 吸附只该微调边界,不该抹掉用户已经做出的拖动。
-      if (res.point.x !== anchor.x || res.point.y !== anchor.y) {
-        point = res.point
-        snapped = res.snapped
+  const updateSelection = useCallback(
+    (x, y) => {
+      if (!selDraggingRef.current || !selAnchorRef.current) return
+      const anchor = selAnchorRef.current
+      let point = { x, y }
+      let snapped = { x: false, y: false }
+      if (snapToEdges) {
+        const threshold = coarsePointerRef.current ? SNAP_THRESHOLD.coarse : SNAP_THRESHOLD.fine
+        const res = snapSelection(committedData, anchor, point, cols, rows, threshold)
+        // 吸附把焦点拽回锚点(选区塌成 1×1)时丢弃吸附结果:
+        // 用户明明拖开了两格,却因为贴边被吸成单击 —— 松手会直接取消选区。
+        // 吸附只该微调边界,不该抹掉用户已经做出的拖动。
+        if (res.point.x !== anchor.x || res.point.y !== anchor.y) {
+          point = res.point
+          snapped = res.snapped
+        }
       }
-    }
-    selFocusRef.current = point
-    const rect = normalizeSelection(anchor, point, cols, rows)
-    painter.clearOverlay()
-    drawMarquee(painter.overlayRef.current?.getContext('2d'), rect, {
-      cellSize: CELL_SIZE,
-      scale: transform.scale,
-      dashOffset: dashOffsetRef.current,
-      // 吸附时画出被吸住的那条边:细实线,与虚线框区分开。
-      // 没有反馈的吸附会让用户觉得选框「自己乱跳」。
-      snapEdges: snapped,
-    })
-    onSelectionChange?.(rect)
-  }, [onSelectionChange, cols, rows, painter, transform.scale, committedData, snapToEdges])
+      selFocusRef.current = point
+      const rect = normalizeSelection(anchor, point, cols, rows)
+      painter.clearOverlay()
+      drawMarquee(painter.overlayRef.current?.getContext('2d'), rect, {
+        cellSize: CELL_SIZE,
+        scale: transform.scale,
+        dashOffset: dashOffsetRef.current,
+        // 吸附时画出被吸住的那条边:细实线,与虚线框区分开。
+        // 没有反馈的吸附会让用户觉得选框「自己乱跳」。
+        snapEdges: snapped,
+      })
+      onSelectionChange?.(rect)
+    },
+    [onSelectionChange, cols, rows, painter, transform.scale, committedData, snapToEdges]
+  )
 
   // 松开:确认选区。单击(锚点=焦点)视为「取消选区」,避免 1×1 选框常驻。
   const endSelection = useCallback(() => {
@@ -552,58 +602,67 @@ const Canvas = forwardRef(function Canvas({
   // 把 overlay 上的套索预览轨迹画出来:一条跟随指针的虚线 + 起点圆点。
   // 松手前用户看到的是**轨迹本身**,不是将要选中的格子 —— 后者要等光栅化
   // 才知道,而光栅化在松手时才做。这与主流图像编辑器的套索手感一致。
-  const drawLassoPath = useCallback((points) => {
-    const ctx = painter.overlayRef.current?.getContext('2d')
-    if (!ctx) return
-    painter.clearOverlay()
-    if (!points || points.length < 2) return
-    const inv = 1 / (transform.scale > 0 ? transform.scale : 1)
-    ctx.save()
-    ctx.setLineDash([6 * inv, 4 * inv])
-    ctx.lineWidth = 2 * inv
-    ctx.strokeStyle = 'rgba(74, 155, 142, 0.95)'
-    ctx.beginPath()
-    ctx.moveTo(points[0].x * CELL_SIZE, points[0].y * CELL_SIZE)
-    for (let i = 1; i < points.length; i++) {
-      ctx.lineTo(points[i].x * CELL_SIZE, points[i].y * CELL_SIZE)
-    }
-    // 回到起点,让轨迹看起来是闭合的(实际光栅化也按闭合多边形处理)
-    ctx.lineTo(points[0].x * CELL_SIZE, points[0].y * CELL_SIZE)
-    ctx.stroke()
-    // 起点画个小圆:多圈缠绕时能看出从哪开始
-    ctx.setLineDash([])
-    ctx.beginPath()
-    ctx.arc(points[0].x * CELL_SIZE, points[0].y * CELL_SIZE, 4 * inv, 0, Math.PI * 2)
-    ctx.fillStyle = 'rgba(74, 155, 142, 0.95)'
-    ctx.fill()
-    ctx.restore()
-  }, [painter, transform.scale])
+  const drawLassoPath = useCallback(
+    points => {
+      const ctx = painter.overlayRef.current?.getContext('2d')
+      if (!ctx) return
+      painter.clearOverlay()
+      if (!points || points.length < 2) return
+      const inv = 1 / (transform.scale > 0 ? transform.scale : 1)
+      ctx.save()
+      ctx.setLineDash([6 * inv, 4 * inv])
+      ctx.lineWidth = 2 * inv
+      ctx.strokeStyle = 'rgba(74, 155, 142, 0.95)'
+      ctx.beginPath()
+      ctx.moveTo(points[0].x * CELL_SIZE, points[0].y * CELL_SIZE)
+      for (let i = 1; i < points.length; i++) {
+        ctx.lineTo(points[i].x * CELL_SIZE, points[i].y * CELL_SIZE)
+      }
+      // 回到起点,让轨迹看起来是闭合的(实际光栅化也按闭合多边形处理)
+      ctx.lineTo(points[0].x * CELL_SIZE, points[0].y * CELL_SIZE)
+      ctx.stroke()
+      // 起点画个小圆:多圈缠绕时能看出从哪开始
+      ctx.setLineDash([])
+      ctx.beginPath()
+      ctx.arc(points[0].x * CELL_SIZE, points[0].y * CELL_SIZE, 4 * inv, 0, Math.PI * 2)
+      ctx.fillStyle = 'rgba(74, 155, 142, 0.95)'
+      ctx.fill()
+      ctx.restore()
+    },
+    [painter, transform.scale]
+  )
 
-  const startLasso = useCallback((point) => {
-    lassoPointsRef.current = [point]
-    lassoDraggingRef.current = true
-    onSelectionChange?.(null)
-    drawLassoPath([point])
-  }, [onSelectionChange, drawLassoPath])
+  const startLasso = useCallback(
+    point => {
+      lassoPointsRef.current = [point]
+      lassoDraggingRef.current = true
+      onSelectionChange?.(null)
+      drawLassoPath([point])
+    },
+    [onSelectionChange, drawLassoPath]
+  )
 
-  const updateLasso = useCallback((point) => {
-    if (!lassoDraggingRef.current || !lassoPointsRef.current) return
-    const pts = lassoPointsRef.current
-    const last = pts[pts.length - 1]
-    // 稀疏化:同一个格子内移动不追加点。轨迹只用于光栅化(按格扫描线填充),
-    // 逐像素累积会让一次拖动产生上千个点,而它们对结果没有影响。
-    // 注意比较的是**格子索引**而不是连续坐标 —— 连续坐标每帧都在变,
-    // 直接比较浮点几乎永不相等,稀疏化等于没写。
-    if (last && Math.floor(last.x) === Math.floor(point.x) && Math.floor(last.y) === Math.floor(point.y)) {
-      // 仍要更新最后一个点为最新坐标,让预览线跟手;只是不追加新点
-      last.x = point.x
-      last.y = point.y
+  const updateLasso = useCallback(
+    point => {
+      if (!lassoDraggingRef.current || !lassoPointsRef.current) return
+      const pts = lassoPointsRef.current
+      const last = pts[pts.length - 1]
+      // 稀疏化:同一个格子内移动不追加点。轨迹只用于光栅化(按格扫描线填充),
+      // 逐像素累积会让一次拖动产生上千个点,而它们对结果没有影响。
+      // 注意比较的是**格子索引**而不是连续坐标 —— 连续坐标每帧都在变,
+      // 直接比较浮点几乎永不相等,稀疏化等于没写。
+      if (last && Math.floor(last.x) === Math.floor(point.x) && Math.floor(last.y) === Math.floor(point.y)) {
+        // 仍要更新最后一个点为最新坐标,让预览线跟手;只是不追加新点
+        last.x = point.x
+        last.y = point.y
+        drawLassoPath(pts)
+        return
+      }
+      pts.push(point)
       drawLassoPath(pts)
-      return
-    }
-    pts.push(point)
-    drawLassoPath(pts)
-  }, [drawLassoPath])
+    },
+    [drawLassoPath]
+  )
 
   const endLasso = useCallback(() => {
     if (!lassoDraggingRef.current) return
@@ -612,9 +671,7 @@ const Canvas = forwardRef(function Canvas({
     lassoPointsRef.current = null
     painter.clearOverlay()
     // 不足三点或覆盖不到任何格子 → 视为取消,不留下空选区
-    const sel = points && points.length >= 3
-      ? createLassoSelection(points, cols, rows)
-      : null
+    const sel = points && points.length >= 3 ? createLassoSelection(points, cols, rows) : null
     onSelectionChange?.(sel)
     // 让 Effect 2 把最终掩码画出来(轨迹已被清掉)
     setOverlayTick(n => n + 1)
@@ -637,27 +694,30 @@ const Canvas = forwardRef(function Canvas({
     }
   }, [])
 
-  const scheduleLongPress = useCallback((clientX, clientY) => {
-    cancelLongPress()
-    if (!onSelectionLongPress) return
-    longPressFiredRef.current = false
-    longPressTimerRef.current = setTimeout(() => {
-      longPressTimerRef.current = null
-      // 到点即视为「长按成立」:取消已经开始的移动拖动,否则松手时会提交
-      // 一次 0 偏移的移动 —— 那会压一条空历史,菜单弹出后画布却「闪」了一下。
-      longPressFiredRef.current = true
-      // 到点即视为「长按成立」:取消已经开始的移动拖动,否则松手时会提交
-      // 一次偏移 —— 长按成立后手指在阈值内的小幅移动仍可能跨过格子边界
-      // (从格中线附近开始,9px 就能换一格),那会压一条用户没打算做的历史。
-      moveDraggingRef.current = false
-      moveStartRef.current = null
-      moveBaseSelRef.current = null
-      moveOffsetRef.current = { dx: 0, dy: 0 }
-      painter.clearOverlay()
-      setOverlayTick(n => n + 1)
-      onSelectionLongPress({ x: clientX, y: clientY })
-    }, LONG_PRESS_MS)
-  }, [onSelectionLongPress, cancelLongPress, painter])
+  const scheduleLongPress = useCallback(
+    (clientX, clientY) => {
+      cancelLongPress()
+      if (!onSelectionLongPress) return
+      longPressFiredRef.current = false
+      longPressTimerRef.current = setTimeout(() => {
+        longPressTimerRef.current = null
+        // 到点即视为「长按成立」:取消已经开始的移动拖动,否则松手时会提交
+        // 一次 0 偏移的移动 —— 那会压一条空历史,菜单弹出后画布却「闪」了一下。
+        longPressFiredRef.current = true
+        // 到点即视为「长按成立」:取消已经开始的移动拖动,否则松手时会提交
+        // 一次偏移 —— 长按成立后手指在阈值内的小幅移动仍可能跨过格子边界
+        // (从格中线附近开始,9px 就能换一格),那会压一条用户没打算做的历史。
+        moveDraggingRef.current = false
+        moveStartRef.current = null
+        moveBaseSelRef.current = null
+        moveOffsetRef.current = { dx: 0, dy: 0 }
+        painter.clearOverlay()
+        setOverlayTick(n => n + 1)
+        onSelectionLongPress({ x: clientX, y: clientY })
+      }, LONG_PRESS_MS)
+    },
+    [onSelectionLongPress, cancelLongPress, painter]
+  )
 
   // ─────────────────────────────────────────────────────────────────
   // 拖拽移动选区内容(M5.2,规格 04 §2)
@@ -669,60 +729,66 @@ const Canvas = forwardRef(function Canvas({
   // `copy` 为 true 时是「复制拖动」(A2):预览照旧画在新位置,但原件不清空。
   // 桌面端由 Alt/Option 触发,移动端由操作条上的显式开关触发 —— 触屏没有
   // 修饰键,只能给可见入口,不能靠隐藏手势。
-  const startMove = useCallback((x, y, { copy = false } = {}) => {
-    moveDraggingRef.current = true
-    moveStartRef.current = { x, y }
-    moveBaseSelRef.current = { ...selection }
-    moveOffsetRef.current = { dx: 0, dy: 0 }
-    moveCopyRef.current = copy
-  }, [selection])
+  const startMove = useCallback(
+    (x, y, { copy = false } = {}) => {
+      moveDraggingRef.current = true
+      moveStartRef.current = { x, y }
+      moveBaseSelRef.current = { ...selection }
+      moveOffsetRef.current = { dx: 0, dy: 0 }
+      moveCopyRef.current = copy
+    },
+    [selection]
+  )
 
-  const updateMove = useCallback((x, y) => {
-    if (!moveDraggingRef.current || !moveStartRef.current || !moveBaseSelRef.current) return
-    const rawDx = x - moveStartRef.current.x
-    const rawDy = y - moveStartRef.current.y
-    // 套索选区没有 x/y/w/h 字段,偏移量必须按外接矩形钳制 ——
-    // 直接读 sel.x 会得到 undefined,整个偏移变成 NaN,预览一片空白。
-    const baseBounds = selectionBounds(moveBaseSelRef.current)
-    if (!baseBounds) return
-    const { dx, dy } = clampMove(baseBounds, rawDx, rawDy, cols, rows)
-    moveOffsetRef.current = { dx, dy }
-    // 预览:清空 overlay 后把块按偏移画在半透明层上,原位置保持可见(移动意图更直观);
-    // 选框同时跟到新位置 —— 虚线框与珠子一起走,松手前就能确认落点。
-    const base = moveBaseSelRef.current
-    painter.clearOverlay()
-    if (base.kind === 'lasso') {
-      // 套索:只画掩码里的格子,形状原样保留
-      forEachLassoCell(base, cols, rows, (cx, cy) => {
-        const hex = committedData?.[cy]?.[cx]
-        if (typeof hex !== 'string' || !hex) return
-        const tx = cx + dx
-        const ty = cy + dy
-        if (tx < 0 || tx >= cols || ty < 0 || ty >= rows) return
-        painter.paintOverlayCell(tx, ty, hex)
-      })
-    } else {
-      for (let r = 0; r < baseBounds.h; r++) {
-        for (let c = 0; c < baseBounds.w; c++) {
-          const hex = committedData?.[baseBounds.y + r]?.[baseBounds.x + c]
-          if (typeof hex !== 'string' || !hex) continue
-          const tx = baseBounds.x + c + dx
-          const ty = baseBounds.y + r + dy
-          if (tx < 0 || tx >= cols || ty < 0 || ty >= rows) continue
+  const updateMove = useCallback(
+    (x, y) => {
+      if (!moveDraggingRef.current || !moveStartRef.current || !moveBaseSelRef.current) return
+      const rawDx = x - moveStartRef.current.x
+      const rawDy = y - moveStartRef.current.y
+      // 套索选区没有 x/y/w/h 字段,偏移量必须按外接矩形钳制 ——
+      // 直接读 sel.x 会得到 undefined,整个偏移变成 NaN,预览一片空白。
+      const baseBounds = selectionBounds(moveBaseSelRef.current)
+      if (!baseBounds) return
+      const { dx, dy } = clampMove(baseBounds, rawDx, rawDy, cols, rows)
+      moveOffsetRef.current = { dx, dy }
+      // 预览:清空 overlay 后把块按偏移画在半透明层上,原位置保持可见(移动意图更直观);
+      // 选框同时跟到新位置 —— 虚线框与珠子一起走,松手前就能确认落点。
+      const base = moveBaseSelRef.current
+      painter.clearOverlay()
+      if (base.kind === 'lasso') {
+        // 套索:只画掩码里的格子,形状原样保留
+        forEachLassoCell(base, cols, rows, (cx, cy) => {
+          const hex = committedData?.[cy]?.[cx]
+          if (typeof hex !== 'string' || !hex) return
+          const tx = cx + dx
+          const ty = cy + dy
+          if (tx < 0 || tx >= cols || ty < 0 || ty >= rows) return
           painter.paintOverlayCell(tx, ty, hex)
+        })
+      } else {
+        for (let r = 0; r < baseBounds.h; r++) {
+          for (let c = 0; c < baseBounds.w; c++) {
+            const hex = committedData?.[baseBounds.y + r]?.[baseBounds.x + c]
+            if (typeof hex !== 'string' || !hex) continue
+            const tx = baseBounds.x + c + dx
+            const ty = baseBounds.y + r + dy
+            if (tx < 0 || tx >= cols || ty < 0 || ty >= rows) continue
+            painter.paintOverlayCell(tx, ty, hex)
+          }
         }
       }
-    }
-    drawSelection(painter.overlayRef.current?.getContext('2d'), base, {
-      cellSize: CELL_SIZE,
-      scale: transform.scale,
-      dashOffset: dashOffsetRef.current,
-      // 复制拖动时额外画手柄:光标提示这是「复制一份」而不是搬走原件
-      resizeHandles: moveCopyRef.current && base.kind !== 'lasso',
-      offsetX: dx,
-      offsetY: dy,
-    })
-  }, [cols, rows, painter, committedData, transform.scale])
+      drawSelection(painter.overlayRef.current?.getContext('2d'), base, {
+        cellSize: CELL_SIZE,
+        scale: transform.scale,
+        dashOffset: dashOffsetRef.current,
+        // 复制拖动时额外画手柄:光标提示这是「复制一份」而不是搬走原件
+        resizeHandles: moveCopyRef.current && base.kind !== 'lasso',
+        offsetX: dx,
+        offsetY: dy,
+      })
+    },
+    [cols, rows, painter, committedData, transform.scale]
+  )
 
   const endMove = useCallback(() => {
     if (!moveDraggingRef.current) return
@@ -756,31 +822,37 @@ const Canvas = forwardRef(function Canvas({
   // ─────────────────────────────────────────────────────────────────
   // 与「拖拽移动」共用一套预览机制,但**不产生历史**:选区本身不在撤销栈里,
   // resize 只改矩形,不动矩阵。因此这里全程只调 onSelectionChange。
-  const startResize = useCallback((handleId) => {
-    if (!selection || !handleId) return
-    resizeHandleRef.current = handleId
-    resizeBaseRef.current = { ...selection }
-    painter.clearOverlay()
-  }, [selection, painter])
+  const startResize = useCallback(
+    handleId => {
+      if (!selection || !handleId) return
+      resizeHandleRef.current = handleId
+      resizeBaseRef.current = { ...selection }
+      painter.clearOverlay()
+    },
+    [selection, painter]
+  )
 
-  const updateResize = useCallback((clientX, clientY) => {
-    const handleId = resizeHandleRef.current
-    const base = resizeBaseRef.current
-    if (!handleId || !base) return
-    const point = getGridPoint(clientX, clientY)
-    if (!point) return
-    // 从按下时的矩形重算,而不是从上一次结果累加:指针回到起点时选区
-    // 也必须回到原样,累加式更新会因为钳制产生单向漂移。
-    const next = resizeSelection(base, handleId, point, cols, rows)
-    painter.clearOverlay()
-    drawMarquee(painter.overlayRef.current?.getContext('2d'), next, {
-      cellSize: CELL_SIZE,
-      scale: transform.scale,
-      dashOffset: dashOffsetRef.current,
-      resizeHandles: true,
-    })
-    onSelectionChange?.(next)
-  }, [cols, rows, painter, transform.scale, onSelectionChange, getGridPoint])
+  const updateResize = useCallback(
+    (clientX, clientY) => {
+      const handleId = resizeHandleRef.current
+      const base = resizeBaseRef.current
+      if (!handleId || !base) return
+      const point = getGridPoint(clientX, clientY)
+      if (!point) return
+      // 从按下时的矩形重算,而不是从上一次结果累加:指针回到起点时选区
+      // 也必须回到原样,累加式更新会因为钳制产生单向漂移。
+      const next = resizeSelection(base, handleId, point, cols, rows)
+      painter.clearOverlay()
+      drawMarquee(painter.overlayRef.current?.getContext('2d'), next, {
+        cellSize: CELL_SIZE,
+        scale: transform.scale,
+        dashOffset: dashOffsetRef.current,
+        resizeHandles: true,
+      })
+      onSelectionChange?.(next)
+    },
+    [cols, rows, painter, transform.scale, onSelectionChange, getGridPoint]
+  )
 
   const endResize = useCallback(() => {
     if (!resizeHandleRef.current) return
@@ -829,39 +901,46 @@ const Canvas = forwardRef(function Canvas({
   }, [])
 
   // 暴露 reset/fit 方法给父组件（必须在 resetTransform/fitToScreen 之后）
-  useImperativeHandle(ref, () => ({
-    resetTransform,
-    fitToScreen,
-    cancelStroke,
-  }), [resetTransform, fitToScreen, cancelStroke])
+  useImperativeHandle(
+    ref,
+    () => ({
+      resetTransform,
+      fitToScreen,
+      cancelStroke,
+    }),
+    [resetTransform, fitToScreen, cancelStroke]
+  )
 
   // ─────────────────────────────────────────────────────────────────
   // PC: 鼠标滚轮缩放（以光标为中心）
   // ─────────────────────────────────────────────────────────────────
-  const handleWheel = useCallback((e) => {
-    e.preventDefault()
-    const rect = containerRef.current?.getBoundingClientRect()
-    if (!rect) return
+  const handleWheel = useCallback(
+    e => {
+      e.preventDefault()
+      const rect = containerRef.current?.getBoundingClientRect()
+      if (!rect) return
 
-    const cursorX = e.clientX - rect.left - rect.width / 2
-    const cursorY = e.clientY - rect.top - rect.height / 2
+      const cursorX = e.clientX - rect.left - rect.width / 2
+      const cursorY = e.clientY - rect.top - rect.height / 2
 
-    const oldScale = transform.scale
-    const delta = e.deltaY > 0 ? 0.93 : 1.07
-    const newScale = Math.max(MIN_SCALE, Math.min(MAX_SCALE, oldScale * delta))
+      const oldScale = transform.scale
+      const delta = e.deltaY > 0 ? 0.93 : 1.07
+      const newScale = Math.max(MIN_SCALE, Math.min(MAX_SCALE, oldScale * delta))
 
-    if (Math.abs(newScale - oldScale) < 0.001) return
+      if (Math.abs(newScale - oldScale) < 0.001) return
 
-    // Keep the canvas point under the cursor fixed.
-    // With transform-origin:50% 50%, canvas center = (cx, cy).
-    // Correct formula: new_center = cursor + (old_center - cursor) * (newScale/oldScale)
-    const ratio = newScale / oldScale
-    const rawCX = cursorX + (transform.cx - cursorX) * ratio
-    const rawCY = cursorY + (transform.cy - cursorY) * ratio
-    const clamped = softClamp(rawCX, rawCY, newScale)
+      // Keep the canvas point under the cursor fixed.
+      // With transform-origin:50% 50%, canvas center = (cx, cy).
+      // Correct formula: new_center = cursor + (old_center - cursor) * (newScale/oldScale)
+      const ratio = newScale / oldScale
+      const rawCX = cursorX + (transform.cx - cursorX) * ratio
+      const rawCY = cursorY + (transform.cy - cursorY) * ratio
+      const clamped = softClamp(rawCX, rawCY, newScale)
 
-    setTransform({ scale: newScale, cx: clamped.x, cy: clamped.y })
-  }, [transform, softClamp])
+      setTransform({ scale: newScale, cx: clamped.x, cy: clamped.y })
+    },
+    [transform, softClamp]
+  )
 
   // React attaches onWheel as a passive listener by default, so preventDefault()
   // inside a JSX-bound handler silently fails — trackpad pinch (wheel + ctrlKey)
@@ -877,188 +956,225 @@ const Canvas = forwardRef(function Canvas({
   // ─────────────────────────────────────────────────────────────────
   // PC: 鼠标拖拽平移（canvas内外均可）
   // ─────────────────────────────────────────────────────────────────
-  const handleContainerMouseDown = useCallback((e) => {
-    if (e.button !== 0) return
+  const handleContainerMouseDown = useCallback(
+    e => {
+      if (e.button !== 0) return
 
-    const rect = containerRef.current?.getBoundingClientRect()
-    if (!rect) return
-    const cursorX = e.clientX - rect.left - rect.width / 2
-    const cursorY = e.clientY - rect.top - rect.height / 2
+      const rect = containerRef.current?.getBoundingClientRect()
+      if (!rect) return
+      const cursorX = e.clientX - rect.left - rect.width / 2
+      const cursorY = e.clientY - rect.top - rect.height / 2
 
-    if (tool === 'hand') {
-      e.preventDefault()
-      isPanningRef.current = true
-      panHasStartedRef.current = false  // Wait for movement threshold (3px)
-      isDrawingRef.current = false
-      setPanActive(true)
-      panCursorStartRef.current = { x: cursorX, y: cursorY }
-      panStartRef.current = { x: transform.cx, y: transform.cy }
-      return
-    }
+      if (tool === 'hand') {
+        e.preventDefault()
+        isPanningRef.current = true
+        panHasStartedRef.current = false // Wait for movement threshold (3px)
+        isDrawingRef.current = false
+        setPanActive(true)
+        panCursorStartRef.current = { x: cursorX, y: cursorY }
+        panStartRef.current = { x: transform.cx, y: transform.cy }
+        return
+      }
 
-    if (isOverCanvas(e.clientX, e.clientY)) {
-      // 在canvas内 → 记录起始位置，等移动超过阈值后切换为平移
-      const pos = getGridPos(e.clientX, e.clientY)
-      if (pos) {
-        // 取色器 / 矩形选区:一次性操作,不进入笔画状态机(不创建 stroke 累加器)
-        if (tool === 'eyedropper') {
-          e.preventDefault()
-          pickColorAt(pos.x, pos.y)
-          return
-        }
-        if (tool === 'select') {
-          e.preventDefault()
-          // 手势优先级:**手柄 > 选区内部移动 > 外部新框**。
-          // 手柄命中区可能压在选区边缘的格子上,若不先判手柄,
-          // 边缘那几格就永远拖不出 resize,只能移动内容。
-          const handleId = handleAtPoint(e.clientX, e.clientY)
-          if (handleId) startResize(handleId)
-          else if (selectionContains(selection, pos)) {
-            // Alt/Option + 拖动 = 复制一份(A2);操作条上的开关同理。
-            // 按下瞬间定下来,拖动中改主意不生效 —— 否则预览到一半会突然
-            // 从「复制」变「剪切」,用户看到的东西和松手后落地的对不上。
-            startMove(pos.x, pos.y, { copy: e.altKey || copyDrag })
-          } else startSelection(pos.x, pos.y)
-          return
-        }
-        // A5:自由套索。按下即开始记录轨迹,松手光栅化成掩码选区。
-        // 与 select 一样不进入笔画状态机(不创建 stroke 累加器)。
-        //
-        // 但如果按下的位置**已经在套索选区内**,这次拖动是「搬走这块内容」
-        // 而不是「画一个新圈」—— 否则选完就再也拖不动,只能靠剪切+粘贴绕路。
-        // 优先级与矩形选区一致:选区内部移动 > 外部新轨迹。
-        if (tool === 'lasso') {
-          e.preventDefault()
-          if (selection?.kind === 'lasso' && selectionContains(selection, pos)) {
-            startMove(pos.x, pos.y, { copy: e.altKey || copyDrag })
+      if (isOverCanvas(e.clientX, e.clientY)) {
+        // 在canvas内 → 记录起始位置，等移动超过阈值后切换为平移
+        const pos = getGridPos(e.clientX, e.clientY)
+        if (pos) {
+          // 取色器 / 矩形选区:一次性操作,不进入笔画状态机(不创建 stroke 累加器)
+          if (tool === 'eyedropper') {
+            e.preventDefault()
+            pickColorAt(pos.x, pos.y)
             return
           }
-          const point = getGridPoint(e.clientX, e.clientY)
-          if (point) startLasso(point)
-          return
+          if (tool === 'select') {
+            e.preventDefault()
+            // 手势优先级:**手柄 > 选区内部移动 > 外部新框**。
+            // 手柄命中区可能压在选区边缘的格子上,若不先判手柄,
+            // 边缘那几格就永远拖不出 resize,只能移动内容。
+            const handleId = handleAtPoint(e.clientX, e.clientY)
+            if (handleId) startResize(handleId)
+            else if (selectionContains(selection, pos)) {
+              // Alt/Option + 拖动 = 复制一份(A2);操作条上的开关同理。
+              // 按下瞬间定下来,拖动中改主意不生效 —— 否则预览到一半会突然
+              // 从「复制」变「剪切」,用户看到的东西和松手后落地的对不上。
+              startMove(pos.x, pos.y, { copy: e.altKey || copyDrag })
+            } else startSelection(pos.x, pos.y)
+            return
+          }
+          // A5:自由套索。按下即开始记录轨迹,松手光栅化成掩码选区。
+          // 与 select 一样不进入笔画状态机(不创建 stroke 累加器)。
+          //
+          // 但如果按下的位置**已经在套索选区内**,这次拖动是「搬走这块内容」
+          // 而不是「画一个新圈」—— 否则选完就再也拖不动,只能靠剪切+粘贴绕路。
+          // 优先级与矩形选区一致:选区内部移动 > 外部新轨迹。
+          if (tool === 'lasso') {
+            e.preventDefault()
+            if (selection?.kind === 'lasso' && selectionContains(selection, pos)) {
+              startMove(pos.x, pos.y, { copy: e.altKey || copyDrag })
+              return
+            }
+            const point = getGridPoint(e.clientX, e.clientY)
+            if (point) startLasso(point)
+            return
+          }
+          isDrawingRef.current = true
+          drawStartRef.current = { x: e.clientX, y: e.clientY }
+          startStroke()
+          if (tool === 'pencil' || tool === 'eraser') paintToStroke(pos.x, pos.y)
+          else if (tool === 'fill') applyFill(pos.x, pos.y)
         }
-        isDrawingRef.current = true
-        drawStartRef.current = { x: e.clientX, y: e.clientY }
-        startStroke()
-        if (tool === 'pencil' || tool === 'eraser') paintToStroke(pos.x, pos.y)
-        else if (tool === 'fill') applyFill(pos.x, pos.y)
+        panHasStartedRef.current = false
+        isPanningRef.current = false
+        panCursorStartRef.current = { x: cursorX, y: cursorY }
+        panStartRef.current = { x: transform.cx, y: transform.cy }
+        return
       }
-      panHasStartedRef.current = false
-      isPanningRef.current = false
+
+      // 在canvas外 → 直接开始平移
+      e.preventDefault()
+      isPanningRef.current = true
+      panHasStartedRef.current = true
+      isDrawingRef.current = false
       panCursorStartRef.current = { x: cursorX, y: cursorY }
       panStartRef.current = { x: transform.cx, y: transform.cy }
-      return
-    }
+    },
+    [
+      isOverCanvas,
+      getGridPos,
+      getGridPoint,
+      startStroke,
+      paintToStroke,
+      applyFill,
+      transform,
+      tool,
+      pickColorAt,
+      startSelection,
+      startMove,
+      selection,
+      handleAtPoint,
+      startResize,
+      copyDrag,
+      startLasso,
+    ]
+  )
 
-    // 在canvas外 → 直接开始平移
-    e.preventDefault()
-    isPanningRef.current = true
-    panHasStartedRef.current = true
-    isDrawingRef.current = false
-    panCursorStartRef.current = { x: cursorX, y: cursorY }
-    panStartRef.current = { x: transform.cx, y: transform.cy }
-  }, [isOverCanvas, getGridPos, getGridPoint, startStroke, paintToStroke, applyFill, transform, tool, pickColorAt, startSelection, startMove, selection, handleAtPoint, startResize, copyDrag, startLasso])
+  const handleContainerMouseMove = useCallback(
+    e => {
+      const rect = containerRef.current?.getBoundingClientRect()
+      if (!rect) return
+      const cursorX = e.clientX - rect.left - rect.width / 2
+      const cursorY = e.clientY - rect.top - rect.height / 2
 
-  const handleContainerMouseMove = useCallback((e) => {
-    const rect = containerRef.current?.getBoundingClientRect()
-    if (!rect) return
-    const cursorX = e.clientX - rect.left - rect.width / 2
-    const cursorY = e.clientY - rect.top - rect.height / 2
+      // A5 套索:只记录轨迹并画预览线,不平移、不填色。
+      // 用连续坐标(不取整) —— 光栅化需要轨迹的真实形状,
+      // 取整成格子索引会把斜边压成阶梯,选出来的边界会跳格。
+      if (lassoDraggingRef.current) {
+        const point = getGridPoint(e.clientX, e.clientY)
+        if (point) updateLasso(point)
+        return
+      }
 
-    // A5 套索:只记录轨迹并画预览线,不平移、不填色。
-    // 用连续坐标(不取整) —— 光栅化需要轨迹的真实形状,
-    // 取整成格子索引会把斜边压成阶梯,选出来的边界会跳格。
-    if (lassoDraggingRef.current) {
-      const point = getGridPoint(e.clientX, e.clientY)
-      if (point) updateLasso(point)
-      return
-    }
-
-    // 拖拽移动:只更新预览,不平移、不填色
-    if (moveDraggingRef.current) {
-      const pos = getGridPos(e.clientX, e.clientY)
-      if (pos) updateMove(pos.x, pos.y)
-      return
-    }
-
-    // 选区 resize:只改矩形,不动矩阵
-    if (resizeHandleRef.current) {
-      updateResize(e.clientX, e.clientY)
-      return
-    }
-
-    // 选区拖动:更新矩形,不参与笔画/平移判定
-    if (selDraggingRef.current) {
-      const pos = getGridPos(e.clientX, e.clientY)
-      if (pos) updateSelection(pos.x, pos.y)
-      return
-    }
-
-    // 光标提示:悬停到 resize 手柄时换成对应方向的 resize 光标。
-    // 放在 container 级而不是 canvas 的 onMouseMove:手柄长在格边界上,
-    // 最外圈手柄有一半在 canvas 之外,绑在 canvas 上会让边缘手柄没有提示。
-    // 拖动期间不更新 —— 指针滑出手柄时该保持住当前光标。
-    if (!resizeHandleRef.current) {
-      const nextHandle = handleAtPoint(e.clientX, e.clientY)
-      setHoverHandle(prev => (prev === nextHandle ? prev : nextHandle))
-    }
-
-    // Drawing mode: only draw if actually on a cell AND haven't exceeded pan threshold
-    if (isDrawingRef.current && !panHasStartedRef.current) {
-      const dx = e.clientX - drawStartRef.current.x
-      const dy = e.clientY - drawStartRef.current.y
-      const distMoved = Math.hypot(dx, dy)
-
-      // Pencil/eraser: drag continues drawing strokes — only pan if on whitespace
-      if (tool === 'pencil' || tool === 'eraser') {
+      // 拖拽移动:只更新预览,不平移、不填色
+      if (moveDraggingRef.current) {
         const pos = getGridPos(e.clientX, e.clientY)
-        setHoverCell(pos)
-        if (pos) {
-          paintToStroke(pos.x, pos.y)
-        } else if (distMoved > DRAW_THRESHOLD) {
-          // Dragged off canvas → commit stroke and switch to pan
+        if (pos) updateMove(pos.x, pos.y)
+        return
+      }
+
+      // 选区 resize:只改矩形,不动矩阵
+      if (resizeHandleRef.current) {
+        updateResize(e.clientX, e.clientY)
+        return
+      }
+
+      // 选区拖动:更新矩形,不参与笔画/平移判定
+      if (selDraggingRef.current) {
+        const pos = getGridPos(e.clientX, e.clientY)
+        if (pos) updateSelection(pos.x, pos.y)
+        return
+      }
+
+      // 光标提示:悬停到 resize 手柄时换成对应方向的 resize 光标。
+      // 放在 container 级而不是 canvas 的 onMouseMove:手柄长在格边界上,
+      // 最外圈手柄有一半在 canvas 之外,绑在 canvas 上会让边缘手柄没有提示。
+      // 拖动期间不更新 —— 指针滑出手柄时该保持住当前光标。
+      if (!resizeHandleRef.current) {
+        const nextHandle = handleAtPoint(e.clientX, e.clientY)
+        setHoverHandle(prev => (prev === nextHandle ? prev : nextHandle))
+      }
+
+      // Drawing mode: only draw if actually on a cell AND haven't exceeded pan threshold
+      if (isDrawingRef.current && !panHasStartedRef.current) {
+        const dx = e.clientX - drawStartRef.current.x
+        const dy = e.clientY - drawStartRef.current.y
+        const distMoved = Math.hypot(dx, dy)
+
+        // Pencil/eraser: drag continues drawing strokes — only pan if on whitespace
+        if (tool === 'pencil' || tool === 'eraser') {
+          const pos = getGridPos(e.clientX, e.clientY)
+          setHoverCell(pos)
+          if (pos) {
+            paintToStroke(pos.x, pos.y)
+          } else if (distMoved > DRAW_THRESHOLD) {
+            // Dragged off canvas → commit stroke and switch to pan
+            commitStroke()
+            panHasStartedRef.current = true
+            isPanningRef.current = true
+            isDrawingRef.current = false
+            panCursorStartRef.current = { x: cursorX, y: cursorY }
+            panStartRef.current = { x: transform.cx, y: transform.cy }
+          }
+          return
+        }
+
+        if (distMoved > DRAW_THRESHOLD) {
+          // Exceeded threshold → commit stroke and switch to pan mode
           commitStroke()
           panHasStartedRef.current = true
           isPanningRef.current = true
           isDrawingRef.current = false
           panCursorStartRef.current = { x: cursorX, y: cursorY }
           panStartRef.current = { x: transform.cx, y: transform.cy }
+          // Don't return — let the pan logic below run this same event
+        } else {
+          // Within threshold → draw (only if actually on a cell)
+          const pos = getGridPos(e.clientX, e.clientY)
+          setHoverCell(pos)
+          if (pos) applyFill(pos.x, pos.y)
+          return
         }
-        return
       }
 
-      if (distMoved > DRAW_THRESHOLD) {
-        // Exceeded threshold → commit stroke and switch to pan mode
-        commitStroke()
-        panHasStartedRef.current = true
-        isPanningRef.current = true
-        isDrawingRef.current = false
-        panCursorStartRef.current = { x: cursorX, y: cursorY }
-        panStartRef.current = { x: transform.cx, y: transform.cy }
-        // Don't return — let the pan logic below run this same event
-      } else {
-        // Within threshold → draw (only if actually on a cell)
-        const pos = getGridPos(e.clientX, e.clientY)
-        setHoverCell(pos)
-        if (pos) applyFill(pos.x, pos.y)
-        return
-      }
-    }
+      // Pan mode
+      if (!isPanningRef.current) return
 
-    // Pan mode
-    if (!isPanningRef.current) return
+      const deltaX = cursorX - panCursorStartRef.current.x
+      const deltaY = cursorY - panCursorStartRef.current.y
 
-    const deltaX = cursorX - panCursorStartRef.current.x
-    const deltaY = cursorY - panCursorStartRef.current.y
+      const rawCX = panStartRef.current.x + deltaX
+      const rawCY = panStartRef.current.y + deltaY
 
-    const rawCX = panStartRef.current.x + deltaX
-    const rawCY = panStartRef.current.y + deltaY
-
-    setTransform(prev => {
-      const clamped = softClamp(rawCX, rawCY, prev.scale)
-      return { ...prev, cx: clamped.x, cy: clamped.y }
-    })
-  }, [getGridPos, getGridPoint, paintToStroke, applyFill, commitStroke, softClamp, tool, updateSelection, updateMove, transform, updateResize, handleAtPoint, updateLasso])
+      setTransform(prev => {
+        const clamped = softClamp(rawCX, rawCY, prev.scale)
+        return { ...prev, cx: clamped.x, cy: clamped.y }
+      })
+    },
+    [
+      getGridPos,
+      getGridPoint,
+      paintToStroke,
+      applyFill,
+      commitStroke,
+      softClamp,
+      tool,
+      updateSelection,
+      updateMove,
+      transform,
+      updateResize,
+      handleAtPoint,
+      updateLasso,
+    ]
+  )
 
   const handleContainerMouseUp = useCallback(() => {
     if (resizeHandleRef.current) endResize()
@@ -1088,15 +1204,24 @@ const Canvas = forwardRef(function Canvas({
   }, [commitStroke, endSelection, endMove, endResize, endLasso])
 
   // PC hover
-  const handleMouseMove = useCallback((e) => {
-    // 手势进行中不更新 hover:setHoverCell 会触发重渲染,而 Effect 2
-    // 在重渲染时会 clearOverlay()。虽然那里已经对活动手势早退,
-    // 但每次 mousemove 都白跑一次状态更新仍然拖慢跟手速度 ——
-    // 拖动期间指针位置由各自的预览路径负责,不需要 hover 高亮。
-    if (selDraggingRef.current || moveDraggingRef.current || lassoDraggingRef.current || resizeHandleRef.current) return
-    const pos = getGridPos(e.clientX, e.clientY)
-    setHoverCell(pos)
-  }, [getGridPos])
+  const handleMouseMove = useCallback(
+    e => {
+      // 手势进行中不更新 hover:setHoverCell 会触发重渲染,而 Effect 2
+      // 在重渲染时会 clearOverlay()。虽然那里已经对活动手势早退,
+      // 但每次 mousemove 都白跑一次状态更新仍然拖慢跟手速度 ——
+      // 拖动期间指针位置由各自的预览路径负责,不需要 hover 高亮。
+      if (
+        selDraggingRef.current ||
+        moveDraggingRef.current ||
+        lassoDraggingRef.current ||
+        resizeHandleRef.current
+      )
+        return
+      const pos = getGridPos(e.clientX, e.clientY)
+      setHoverCell(pos)
+    },
+    [getGridPos]
+  )
 
   const handleMouseLeave = useCallback(() => {
     setHoverCell(null)
@@ -1138,316 +1263,359 @@ const Canvas = forwardRef(function Canvas({
     momentumRef.current = requestAnimationFrame(applyMomentum)
   }, [stopMomentum, softClamp])
 
-  const handleTouchStart = useCallback((e) => {
-    e.preventDefault()
-    lastTouchRef.current = Date.now()
-    stopMomentum()
+  const handleTouchStart = useCallback(
+    e => {
+      e.preventDefault()
+      lastTouchRef.current = Date.now()
+      stopMomentum()
 
-    const rect = containerRef.current?.getBoundingClientRect()
-    if (!rect) return
+      const rect = containerRef.current?.getBoundingClientRect()
+      if (!rect) return
 
-    if (e.touches.length >= 2) {
-      // 双指及以上 → 开始pinch,同时清除单指点击状态
-      // 若此时正在拖拽移动,按所见即所得原则先提交已拖出的偏移:预览里的
-      // 内容已经跟手走到了新位置,丢弃等于把选区「弹回原位」;偏移为 0 时
-      // endMove 是空操作,行为与直接取消完全一致。
-      if (moveDraggingRef.current) {
-        endMove()
-      }
-      pinchRef.current = {
-        startDist: Math.hypot(
-          e.touches[0].clientX - e.touches[1].clientX,
-          e.touches[0].clientY - e.touches[1].clientY
-        ),
-        startScale: transform.scale,
-        startCX: transform.cx,
-        startCY: transform.cy,
-      }
-      touchStartRef.current = null
-      touchMovedRef.current = false
-      wasPinchingRef.current = true
-      return
-    }
-
-    if (e.touches.length === 1) {
-      const t = e.touches[0]
-      const cursorX = t.clientX - rect.left - rect.width / 2
-      const cursorY = t.clientY - rect.top - rect.height / 2
-      const gridPos = tool === 'hand' ? null : getGridPos(t.clientX, t.clientY)
-
-      // 单指手势在此开始(必然是全新手势,不可能是 pinch 的延续),允许点按填色
-      wasPinchingRef.current = false
-      touchStartRef.current = { x: t.clientX, y: t.clientY, gridPos }
-      touchMovedRef.current = false
-      velocityRef.current = { x: 0, y: 0 }
-      lastTouchTimeRef.current = Date.now()
-      lastTouchPosRef.current = { x: t.clientX, y: t.clientY }
-
-      // 矩形选区:在格子上按下即开始拖选(不用等 10px 阈值,选框需要即时反馈)
-      if (tool === 'select' && gridPos) {
-        // 手势优先级:手柄 > 选区内部移动 > 外部新框
-        const handleId = handleAtPoint(t.clientX, t.clientY)
-        if (handleId) startResize(handleId)
-        else if (selectionContains(selection, gridPos)) {
-          // 触屏没有修饰键:复制拖动由操作条开关决定(A2)
-          startMove(gridPos.x, gridPos.y, { copy: copyDrag })
-          // A4:同时起一个长按计时器;真正拖动起来会在 touchMove 里取消它。
-          scheduleLongPress(t.clientX, t.clientY)
-        } else startSelection(gridPos.x, gridPos.y)
+      if (e.touches.length >= 2) {
+        // 双指及以上 → 开始pinch,同时清除单指点击状态
+        // 若此时正在拖拽移动,按所见即所得原则先提交已拖出的偏移:预览里的
+        // 内容已经跟手走到了新位置,丢弃等于把选区「弹回原位」;偏移为 0 时
+        // endMove 是空操作,行为与直接取消完全一致。
+        if (moveDraggingRef.current) {
+          endMove()
+        }
+        pinchRef.current = {
+          startDist: Math.hypot(
+            e.touches[0].clientX - e.touches[1].clientX,
+            e.touches[0].clientY - e.touches[1].clientY
+          ),
+          startScale: transform.scale,
+          startCX: transform.cx,
+          startCY: transform.cy,
+        }
+        touchStartRef.current = null
+        touchMovedRef.current = false
+        wasPinchingRef.current = true
         return
       }
 
-      // A5:自由套索。触屏同样从按下开始记轨迹,松手光栅化。
-      // 按在已有套索选区内时改为拖动内容(与桌面端一致)。
-      if (tool === 'lasso') {
-        if (selection?.kind === 'lasso' && selectionContains(selection, gridPos)) {
-          startMove(gridPos.x, gridPos.y, { copy: copyDrag })
-          scheduleLongPress(t.clientX, t.clientY)
+      if (e.touches.length === 1) {
+        const t = e.touches[0]
+        const cursorX = t.clientX - rect.left - rect.width / 2
+        const cursorY = t.clientY - rect.top - rect.height / 2
+        const gridPos = tool === 'hand' ? null : getGridPos(t.clientX, t.clientY)
+
+        // 单指手势在此开始(必然是全新手势,不可能是 pinch 的延续),允许点按填色
+        wasPinchingRef.current = false
+        touchStartRef.current = { x: t.clientX, y: t.clientY, gridPos }
+        touchMovedRef.current = false
+        velocityRef.current = { x: 0, y: 0 }
+        lastTouchTimeRef.current = Date.now()
+        lastTouchPosRef.current = { x: t.clientX, y: t.clientY }
+
+        // 矩形选区:在格子上按下即开始拖选(不用等 10px 阈值,选框需要即时反馈)
+        if (tool === 'select' && gridPos) {
+          // 手势优先级:手柄 > 选区内部移动 > 外部新框
+          const handleId = handleAtPoint(t.clientX, t.clientY)
+          if (handleId) startResize(handleId)
+          else if (selectionContains(selection, gridPos)) {
+            // 触屏没有修饰键:复制拖动由操作条开关决定(A2)
+            startMove(gridPos.x, gridPos.y, { copy: copyDrag })
+            // A4:同时起一个长按计时器;真正拖动起来会在 touchMove 里取消它。
+            scheduleLongPress(t.clientX, t.clientY)
+          } else startSelection(gridPos.x, gridPos.y)
           return
         }
-        const point = getGridPoint(t.clientX, t.clientY)
-        if (point) startLasso(point)
-        return
-      }
 
-      // 抓手工具或不在grid上 → 开始单指平移
-      if (!gridPos) {
-        touchPanCursorStartRef.current = { x: cursorX, y: cursorY }
-        touchPanCanvasStartRef.current = { x: transform.cx, y: transform.cy }
-      }
-    }
-  }, [stopMomentum, getGridPos, getGridPoint, transform, tool, startSelection, startMove, selection, endMove, handleAtPoint, startResize, copyDrag, scheduleLongPress, startLasso])
-
-  const handleTouchMove = useCallback((e) => {
-    e.preventDefault()
-    const rect = containerRef.current?.getBoundingClientRect()
-    if (!rect) return
-
-    if (e.touches.length === 2 && pinchRef.current) {
-      // 双指 → pinch缩放
-      const dx = e.touches[0].clientX - e.touches[1].clientX
-      const dy = e.touches[0].clientY - e.touches[1].clientY
-      const dist = Math.hypot(dx, dy)
-      const { startDist, startScale, startCX, startCY } = pinchRef.current
-      const newScale = Math.max(MIN_SCALE, Math.min(MAX_SCALE,
-        startScale * (dist / startDist)
-      ))
-
-      // pinch中心
-      const pcx = (e.touches[0].clientX + e.touches[1].clientX) / 2 - rect.left - rect.width / 2
-      const pcy = (e.touches[0].clientY + e.touches[1].clientY) / 2 - rect.top - rect.height / 2
-
-      // Same formula as wheel zoom: keep pinch-center point fixed on canvas.
-      const pinchRatio = newScale / startScale
-      const rawCX = pcx + (startCX - pcx) * pinchRatio
-      const rawCY = pcy + (startCY - pcy) * pinchRatio
-      const clamped = softClamp(rawCX, rawCY, newScale)
-
-      setTransform({ scale: newScale, cx: clamped.x, cy: clamped.y })
-      return
-    }
-
-    if (e.touches.length === 1) {
-      const t = e.touches[0]
-      const now = Date.now()
-      const dt = now - lastTouchTimeRef.current
-      const dx = t.clientX - lastTouchPosRef.current.x
-      const dy = t.clientY - lastTouchPosRef.current.y
-
-      if (dt > 0) {
-        velocityRef.current = {
-          x: dx / dt * 16,
-          y: dy / dt * 16,
+        // A5:自由套索。触屏同样从按下开始记轨迹,松手光栅化。
+        // 按在已有套索选区内时改为拖动内容(与桌面端一致)。
+        if (tool === 'lasso') {
+          if (selection?.kind === 'lasso' && selectionContains(selection, gridPos)) {
+            startMove(gridPos.x, gridPos.y, { copy: copyDrag })
+            scheduleLongPress(t.clientX, t.clientY)
+            return
+          }
+          const point = getGridPoint(t.clientX, t.clientY)
+          if (point) startLasso(point)
+          return
         }
-      }
-      lastTouchTimeRef.current = now
-      lastTouchPosRef.current = { x: t.clientX, y: t.clientY }
 
-      // 拖拽移动:只更新预览,不平移、不填色
-      if (moveDraggingRef.current) {
-        // A4:真正拖起来才取消长按。手指按住时总会有 1–2px 抖动,
-        // 一有 touchmove 就取消的话,长按几乎永远等不到 500ms。
-        const start = touchStartRef.current
-        if (start && Math.hypot(t.clientX - start.x, t.clientY - start.y) > LONG_PRESS_MOVE_PX) {
-          cancelLongPress()
-        }
-        const pos = getGridPos(t.clientX, t.clientY)
-        if (pos) updateMove(pos.x, pos.y)
-        return
-      }
-
-      // 选区 resize:只改矩形,不动矩阵
-      if (resizeHandleRef.current) {
-        updateResize(t.clientX, t.clientY)
-        return
-      }
-
-      // 选区拖动:只更新选框,不平移、不填色
-      if (selDraggingRef.current) {
-        const pos = getGridPos(t.clientX, t.clientY)
-        if (pos) updateSelection(pos.x, pos.y)
-        return
-      }
-
-      // A5 套索:只记录轨迹并画预览线
-      if (lassoDraggingRef.current) {
-        const point = getGridPoint(t.clientX, t.clientY)
-        if (point) updateLasso(point)
-        return
-      }
-
-      const cursorX = t.clientX - rect.left - rect.width / 2
-      const cursorY = t.clientY - rect.top - rect.height / 2
-
-      // 不在grid上 → 单指平移
-      if (!touchStartRef.current?.gridPos && touchStartRef.current) {
-        touchMovedRef.current = true
-        const rawCX = touchPanCanvasStartRef.current.x + cursorX - touchPanCursorStartRef.current.x
-        const rawCY = touchPanCanvasStartRef.current.y + cursorY - touchPanCursorStartRef.current.y
-        setTransform(prev => {
-          const clamped = softClamp(rawCX, rawCY, prev.scale)
-          return { ...prev, cx: clamped.x, cy: clamped.y }
-        })
-        return
-      }
-
-      // 在grid上但有移动
-      if (touchStartRef.current?.gridPos) {
-        const gridPos = getGridPos(t.clientX, t.clientY)
-        setHoverCell(gridPos)
-
-        const startX = touchStartRef.current.x
-        const startY = touchStartRef.current.y
-        const moved = Math.hypot(t.clientX - startX, t.clientY - startY)
-
-        if (moved > 10 && !touchMovedRef.current) {
-          touchMovedRef.current = true
-          touchPanCanvasStartRef.current = { x: transform.cx, y: transform.cy }
+        // 抓手工具或不在grid上 → 开始单指平移
+        if (!gridPos) {
           touchPanCursorStartRef.current = { x: cursorX, y: cursorY }
+          touchPanCanvasStartRef.current = { x: transform.cx, y: transform.cy }
+        }
+      }
+    },
+    [
+      stopMomentum,
+      getGridPos,
+      getGridPoint,
+      transform,
+      tool,
+      startSelection,
+      startMove,
+      selection,
+      endMove,
+      handleAtPoint,
+      startResize,
+      copyDrag,
+      scheduleLongPress,
+      startLasso,
+    ]
+  )
+
+  const handleTouchMove = useCallback(
+    e => {
+      e.preventDefault()
+      const rect = containerRef.current?.getBoundingClientRect()
+      if (!rect) return
+
+      if (e.touches.length === 2 && pinchRef.current) {
+        // 双指 → pinch缩放
+        const dx = e.touches[0].clientX - e.touches[1].clientX
+        const dy = e.touches[0].clientY - e.touches[1].clientY
+        const dist = Math.hypot(dx, dy)
+        const { startDist, startScale, startCX, startCY } = pinchRef.current
+        const newScale = Math.max(MIN_SCALE, Math.min(MAX_SCALE, startScale * (dist / startDist)))
+
+        // pinch中心
+        const pcx = (e.touches[0].clientX + e.touches[1].clientX) / 2 - rect.left - rect.width / 2
+        const pcy = (e.touches[0].clientY + e.touches[1].clientY) / 2 - rect.top - rect.height / 2
+
+        // Same formula as wheel zoom: keep pinch-center point fixed on canvas.
+        const pinchRatio = newScale / startScale
+        const rawCX = pcx + (startCX - pcx) * pinchRatio
+        const rawCY = pcy + (startCY - pcy) * pinchRatio
+        const clamped = softClamp(rawCX, rawCY, newScale)
+
+        setTransform({ scale: newScale, cx: clamped.x, cy: clamped.y })
+        return
+      }
+
+      if (e.touches.length === 1) {
+        const t = e.touches[0]
+        const now = Date.now()
+        const dt = now - lastTouchTimeRef.current
+        const dx = t.clientX - lastTouchPosRef.current.x
+        const dy = t.clientY - lastTouchPosRef.current.y
+
+        if (dt > 0) {
+          velocityRef.current = {
+            x: (dx / dt) * 16,
+            y: (dy / dt) * 16,
+          }
+        }
+        lastTouchTimeRef.current = now
+        lastTouchPosRef.current = { x: t.clientX, y: t.clientY }
+
+        // 拖拽移动:只更新预览,不平移、不填色
+        if (moveDraggingRef.current) {
+          // A4:真正拖起来才取消长按。手指按住时总会有 1–2px 抖动,
+          // 一有 touchmove 就取消的话,长按几乎永远等不到 500ms。
+          const start = touchStartRef.current
+          if (start && Math.hypot(t.clientX - start.x, t.clientY - start.y) > LONG_PRESS_MOVE_PX) {
+            cancelLongPress()
+          }
+          const pos = getGridPos(t.clientX, t.clientY)
+          if (pos) updateMove(pos.x, pos.y)
+          return
         }
 
-        if (touchMovedRef.current) {
+        // 选区 resize:只改矩形,不动矩阵
+        if (resizeHandleRef.current) {
+          updateResize(t.clientX, t.clientY)
+          return
+        }
+
+        // 选区拖动:只更新选框,不平移、不填色
+        if (selDraggingRef.current) {
+          const pos = getGridPos(t.clientX, t.clientY)
+          if (pos) updateSelection(pos.x, pos.y)
+          return
+        }
+
+        // A5 套索:只记录轨迹并画预览线
+        if (lassoDraggingRef.current) {
+          const point = getGridPoint(t.clientX, t.clientY)
+          if (point) updateLasso(point)
+          return
+        }
+
+        const cursorX = t.clientX - rect.left - rect.width / 2
+        const cursorY = t.clientY - rect.top - rect.height / 2
+
+        // 不在grid上 → 单指平移
+        if (!touchStartRef.current?.gridPos && touchStartRef.current) {
+          touchMovedRef.current = true
           const rawCX = touchPanCanvasStartRef.current.x + cursorX - touchPanCursorStartRef.current.x
           const rawCY = touchPanCanvasStartRef.current.y + cursorY - touchPanCursorStartRef.current.y
           setTransform(prev => {
             const clamped = softClamp(rawCX, rawCY, prev.scale)
             return { ...prev, cx: clamped.x, cy: clamped.y }
           })
+          return
+        }
+
+        // 在grid上但有移动
+        if (touchStartRef.current?.gridPos) {
+          const gridPos = getGridPos(t.clientX, t.clientY)
+          setHoverCell(gridPos)
+
+          const startX = touchStartRef.current.x
+          const startY = touchStartRef.current.y
+          const moved = Math.hypot(t.clientX - startX, t.clientY - startY)
+
+          if (moved > 10 && !touchMovedRef.current) {
+            touchMovedRef.current = true
+            touchPanCanvasStartRef.current = { x: transform.cx, y: transform.cy }
+            touchPanCursorStartRef.current = { x: cursorX, y: cursorY }
+          }
+
+          if (touchMovedRef.current) {
+            const rawCX = touchPanCanvasStartRef.current.x + cursorX - touchPanCursorStartRef.current.x
+            const rawCY = touchPanCanvasStartRef.current.y + cursorY - touchPanCursorStartRef.current.y
+            setTransform(prev => {
+              const clamped = softClamp(rawCX, rawCY, prev.scale)
+              return { ...prev, cx: clamped.x, cy: clamped.y }
+            })
+          }
         }
       }
-    }
-  }, [getGridPos, transform, softClamp, updateSelection, updateMove, updateResize])
+    },
+    [getGridPos, transform, softClamp, updateSelection, updateMove, updateResize]
+  )
 
-  const handleTouchEnd = useCallback((e) => {
-    e.preventDefault()
+  const handleTouchEnd = useCallback(
+    e => {
+      e.preventDefault()
 
-    // A4:松手时收掉计时器。长按已经成立的话,这次手势不再走任何点按/拖动
-    // 分支 —— 菜单已经弹出来了,松手只是「完成长按」,不该再触发移动提交。
-    cancelLongPress()
-    const longPressed = longPressFiredRef.current
-    longPressFiredRef.current = false
+      // A4:松手时收掉计时器。长按已经成立的话,这次手势不再走任何点按/拖动
+      // 分支 —— 菜单已经弹出来了,松手只是「完成长按」,不该再触发移动提交。
+      cancelLongPress()
+      const longPressed = longPressFiredRef.current
+      longPressFiredRef.current = false
 
-    if (e.touches.length === 0) {
-      pinchRef.current = null
+      if (e.touches.length === 0) {
+        pinchRef.current = null
 
-      // 选区 resize 结束:只改矩形,不产生历史
-      if (resizeHandleRef.current) {
-        endResize()
+        // 选区 resize 结束:只改矩形,不产生历史
+        if (resizeHandleRef.current) {
+          endResize()
+          touchStartRef.current = null
+          touchMovedRef.current = false
+          wasPinchingRef.current = false
+          setHoverCell(null)
+          return
+        }
+
+        // 拖拽移动结束:提交偏移(单指点按 = 原地不动,不产生历史)
+        if (moveDraggingRef.current) {
+          endMove()
+          touchStartRef.current = null
+          touchMovedRef.current = false
+          wasPinchingRef.current = false
+          setHoverCell(null)
+          return
+        }
+
+        // A4:长按成立的那次手势在松手时直接收尾,不进入点按填色/取消选区分支。
+        if (longPressed) {
+          touchStartRef.current = null
+          touchMovedRef.current = false
+          wasPinchingRef.current = false
+          setHoverCell(null)
+          return
+        }
+
+        // 选区拖动结束:确认矩形(单指点按 = 取消选区)
+        if (selDraggingRef.current) {
+          endSelection()
+          touchStartRef.current = null
+          touchMovedRef.current = false
+          wasPinchingRef.current = false
+          setHoverCell(null)
+          return
+        }
+
+        // A5:套索结束,光栅化成掩码选区
+        if (lassoDraggingRef.current) {
+          endLasso()
+          touchStartRef.current = null
+          touchMovedRef.current = false
+          wasPinchingRef.current = false
+          setHoverCell(null)
+          return
+        }
+
+        // 单指点击(未移动)且在grid上 → 填色（抓手工具不绘制;
+        // pinch 结束后的剩余手指抬起不算点按,不得填色）
+        if (
+          tool !== 'hand' &&
+          !wasPinchingRef.current &&
+          touchStartRef.current?.gridPos &&
+          !touchMovedRef.current
+        ) {
+          const { x, y } = touchStartRef.current.gridPos
+          if (tool === 'eyedropper') {
+            pickColorAt(x, y)
+          } else if (tool === 'select') {
+            // 选区工具单击空点 = 取消选区(由 endSelection 语义覆盖)
+            onSelectionChange?.(null)
+          } else {
+            startStroke()
+            if (tool === 'pencil' || tool === 'eraser') paintToStroke(x, y)
+            else if (tool === 'fill') applyFill(x, y)
+            commitStroke()
+          }
+        }
+
+        // 惯性
+        const { x: vx, y: vy } = velocityRef.current
+        if (Math.abs(vx) > 1 || Math.abs(vy) > 1) {
+          startMomentum()
+        }
+
         touchStartRef.current = null
         touchMovedRef.current = false
         wasPinchingRef.current = false
         setHoverCell(null)
-        return
-      }
+      } else if (e.touches.length === 1) {
+        // 从双指切回单指:剩余手指只是 pinch 的延续,抬起时不得触发点按填色
+        pinchRef.current = null
+        wasPinchingRef.current = true
+        const t = e.touches[0]
+        const rect = containerRef.current?.getBoundingClientRect()
+        if (rect) {
+          const gridPos = getGridPos(t.clientX, t.clientY)
+          touchStartRef.current = { x: t.clientX, y: t.clientY, gridPos }
+          touchMovedRef.current = false
+          lastTouchTimeRef.current = Date.now()
+          lastTouchPosRef.current = { x: t.clientX, y: t.clientY }
 
-      // 拖拽移动结束:提交偏移(单指点按 = 原地不动,不产生历史)
-      if (moveDraggingRef.current) {
-        endMove()
-        touchStartRef.current = null
-        touchMovedRef.current = false
-        wasPinchingRef.current = false
-        setHoverCell(null)
-        return
-      }
-
-      // A4:长按成立的那次手势在松手时直接收尾,不进入点按填色/取消选区分支。
-      if (longPressed) {
-        touchStartRef.current = null
-        touchMovedRef.current = false
-        wasPinchingRef.current = false
-        setHoverCell(null)
-        return
-      }
-
-      // 选区拖动结束:确认矩形(单指点按 = 取消选区)
-      if (selDraggingRef.current) {
-        endSelection()
-        touchStartRef.current = null
-        touchMovedRef.current = false
-        wasPinchingRef.current = false
-        setHoverCell(null)
-        return
-      }
-
-      // A5:套索结束,光栅化成掩码选区
-      if (lassoDraggingRef.current) {
-        endLasso()
-        touchStartRef.current = null
-        touchMovedRef.current = false
-        wasPinchingRef.current = false
-        setHoverCell(null)
-        return
-      }
-
-      // 单指点击(未移动)且在grid上 → 填色（抓手工具不绘制;
-      // pinch 结束后的剩余手指抬起不算点按,不得填色）
-      if (tool !== 'hand' && !wasPinchingRef.current && touchStartRef.current?.gridPos && !touchMovedRef.current) {
-        const { x, y } = touchStartRef.current.gridPos
-        if (tool === 'eyedropper') {
-          pickColorAt(x, y)
-        } else if (tool === 'select') {
-          // 选区工具单击空点 = 取消选区(由 endSelection 语义覆盖)
-          onSelectionChange?.(null)
-        } else {
-          startStroke()
-          if (tool === 'pencil' || tool === 'eraser') paintToStroke(x, y)
-          else if (tool === 'fill') applyFill(x, y)
-          commitStroke()
+          if (!gridPos) {
+            const cursorX = t.clientX - rect.left - rect.width / 2
+            const cursorY = t.clientY - rect.top - rect.height / 2
+            touchPanCanvasStartRef.current = { x: transform.cx, y: transform.cy }
+            touchPanCursorStartRef.current = { x: cursorX, y: cursorY }
+          }
         }
       }
-
-      // 惯性
-      const { x: vx, y: vy } = velocityRef.current
-      if (Math.abs(vx) > 1 || Math.abs(vy) > 1) {
-        startMomentum()
-      }
-
-      touchStartRef.current = null
-      touchMovedRef.current = false
-      wasPinchingRef.current = false
-      setHoverCell(null)
-    } else if (e.touches.length === 1) {
-      // 从双指切回单指:剩余手指只是 pinch 的延续,抬起时不得触发点按填色
-      pinchRef.current = null
-      wasPinchingRef.current = true
-      const t = e.touches[0]
-      const rect = containerRef.current?.getBoundingClientRect()
-      if (rect) {
-        const gridPos = getGridPos(t.clientX, t.clientY)
-        touchStartRef.current = { x: t.clientX, y: t.clientY, gridPos }
-        touchMovedRef.current = false
-        lastTouchTimeRef.current = Date.now()
-        lastTouchPosRef.current = { x: t.clientX, y: t.clientY }
-
-        if (!gridPos) {
-          const cursorX = t.clientX - rect.left - rect.width / 2
-          const cursorY = t.clientY - rect.top - rect.height / 2
-          touchPanCanvasStartRef.current = { x: transform.cx, y: transform.cy }
-          touchPanCursorStartRef.current = { x: cursorX, y: cursorY }
-        }
-      }
-    }
-  }, [startStroke, paintToStroke, applyFill, commitStroke, getGridPos, transform, startMomentum, tool, pickColorAt, endSelection, endMove, endLasso, onSelectionChange, endResize, cancelLongPress])
+    },
+    [
+      startStroke,
+      paintToStroke,
+      applyFill,
+      commitStroke,
+      getGridPos,
+      transform,
+      startMomentum,
+      tool,
+      pickColorAt,
+      endSelection,
+      endMove,
+      endLasso,
+      onSelectionChange,
+      endResize,
+      cancelLongPress,
+    ]
+  )
 
   const handleTouchCancel = useCallback(() => {
     stopMomentum()
@@ -1505,17 +1673,21 @@ const Canvas = forwardRef(function Canvas({
   // 没有它用户根本不会想到选区能拖(反馈里的「拖动不管用」多半源于此)。
   const resizeCursor = resizeHandleRef.current
     ? HANDLE_CURSORS[resizeHandleRef.current]
-    : (hoverHandle ? HANDLE_CURSORS[hoverHandle] : null)
-  const overSelection = (tool === 'select' || tool === 'lasso')
-    && hoverCell && selectionContains(selection, hoverCell)
+    : hoverHandle
+      ? HANDLE_CURSORS[hoverHandle]
+      : null
+  const overSelection =
+    (tool === 'select' || tool === 'lasso') && hoverCell && selectionContains(selection, hoverCell)
   const canvasCursor = panActive
     ? 'grabbing'
     : resizeCursor || (tool === 'hand' ? 'grab' : overSelection ? 'move' : 'crosshair')
 
   return (
     <div className="canvas-wrapper">
-<div className="canvas-info">
-        <span>{cols} × {rows}</span>
+      <div className="canvas-info">
+        <span>
+          {cols} × {rows}
+        </span>
         <span className="info-divider">|</span>
         <span>{Math.round(transform.scale * 100)}%</span>
         {/* 选区读数:套索与矩形共用同一块位置。
