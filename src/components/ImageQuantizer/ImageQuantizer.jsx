@@ -186,10 +186,14 @@ export default function ImageQuantizer({ onApply, onClose }) {
 
   // 浮层可访问性(规格 08 §5):本页自身是路由页面(不承担 dialog 语义),
   // 但页内两个浮层需要 —— 未保存确认框与放大查看。
+  // 未保存更改必须显式选择「继续编辑」或「丢弃并关闭」:遮罩与 Escape 都不关闭,
+  // 避免用户随手点空白处就离开,误以为更改还在。
   const { ref: unsavedRef, dialogProps: unsavedDialogProps } = useDialogA11y({
     open: showUnsavedDialog,
     onClose: () => { setShowUnsavedDialog(false); pendingCloseRef.current = false },
     label: t('quantizer.unsavedTitle'),
+    role: 'alertdialog',
+    dismissible: false,
   })
   const { ref: zoomRef, dialogProps: zoomDialogProps } = useDialogA11y({
     open: !!zoomPreview,
@@ -957,13 +961,14 @@ export default function ImageQuantizer({ onApply, onClose }) {
 
         {/* 未保存更改对话框 —— portal 到 body(R5),避免 fixed 浮层嵌在页面滚动容器内 */}
         {showUnsavedDialog && createPortal(
-          <div className="modal-overlay" onClick={() => { setShowUnsavedDialog(false); pendingCloseRef.current = false }}>
+          <div className="modal-overlay">
             <div className="modal-content unsaved-dialog" ref={unsavedRef} {...unsavedDialogProps} onClick={e => e.stopPropagation()}>
               <h3>{t('quantizer.unsavedTitle')}</h3>
               <p>{t('quantizer.unsavedBody')}</p>
               <div className="unsaved-dialog-buttons">
                 <button
                   className="btn btn-secondary"
+                  autoFocus
                   onClick={() => {
                     setShowUnsavedDialog(false)
                     pendingCloseRef.current = false
