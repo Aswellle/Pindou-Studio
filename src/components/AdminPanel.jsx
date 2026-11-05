@@ -33,22 +33,32 @@ function categoryDisplayName(store, t, cat) {
 // createPortal 到 body:避免 fixed 浮层嵌套在 .admin-panel 滚动容器内 —— iOS Safari
 // 上「滚动容器内的 fixed」在键盘弹出/滚动后存在错位 bug(白板/被顶的元凶之一);
 // portal 后浮层脱离滚动容器与祖先 stacking context,fixed 稳定相对视口。
-function AdminModal({ title, onClose, wide, children }) {
+function AdminModal({ title, onClose, wide, dismissible = true, role = 'dialog', children }) {
   // 后台模态框打开期间锁定背景滚动(引用计数,可与其他弹层叠加)
   useScrollLock(true)
-  // 可访问性(规格 08 §5):title 已是可读标题,直接作为 dialog 的可访问名称
-  const { ref, dialogProps } = useDialogA11y({ open: true, onClose, label: title })
+  // 可访问性(规格 08 §5):title 已是可读标题,直接作为 dialog 的可访问名称。
+  // 删除/锁定等破坏性确认传 dismissible=false:遮罩、关闭按钮与 Escape 都不生效,
+  // 用户只能点「取消」或「确认」。
+  const { ref, dialogProps } = useDialogA11y({
+    open: true,
+    onClose,
+    label: title,
+    role,
+    dismissible,
+  })
   return createPortal(
-    <div className="admin-modal-overlay" onClick={onClose}>
+    <div className="admin-modal-overlay" onClick={dismissible ? onClose : undefined}>
       <div className={`admin-modal${wide ? ' wide' : ''}`} ref={ref} {...dialogProps} onClick={e => e.stopPropagation()}>
         <div className="admin-modal-header">
           <h3>{title}</h3>
-          <button className="admin-modal-close" onClick={onClose} aria-label="close">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <line x1="18" y1="6" x2="6" y2="18"/>
-              <line x1="6" y1="6" x2="18" y2="18"/>
-            </svg>
-          </button>
+          {dismissible && (
+            <button className="admin-modal-close" onClick={onClose} aria-label="close">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <line x1="18" y1="6" x2="6" y2="18"/>
+                <line x1="6" y1="6" x2="18" y2="18"/>
+              </svg>
+            </button>
+          )}
         </div>
         <div className="admin-modal-body">{children}</div>
       </div>
@@ -137,10 +147,15 @@ export default function AdminPanel({ user, isAdmin, authLoading, onLogin, onLogo
   // 退出登录确认(防误触)
   const [confirmSignOut, setConfirmSignOut] = useState(false)
   const renderSignOutConfirm = () => confirmSignOut && (
-    <AdminModal title={t('admin.confirmSignOutTitle')} onClose={() => setConfirmSignOut(false)}>
+    <AdminModal
+      title={t('admin.confirmSignOutTitle')}
+      onClose={() => setConfirmSignOut(false)}
+      dismissible={false}
+      role="alertdialog"
+    >
       <p className="admin-modal-text">{t('admin.confirmSignOutHint')}</p>
       <div className="admin-actions">
-        <button className="admin-btn secondary" onClick={() => setConfirmSignOut(false)}>{t('admin.cancel')}</button>
+        <button className="admin-btn secondary" autoFocus onClick={() => setConfirmSignOut(false)}>{t('admin.cancel')}</button>
         <button className="admin-btn danger" onClick={() => { setConfirmSignOut(false); onLogout() }}>{t('admin.signOut')}</button>
       </div>
     </AdminModal>
@@ -1023,7 +1038,12 @@ function TemplateManager({ store }) {
 
       {/* 删除确认 → 模态框(替代 window.confirm) */}
       {deleting && (
-        <AdminModal title={t('admin.deleteConfirm')} onClose={() => setDeleting(null)}>
+        <AdminModal
+          title={t('admin.deleteConfirm')}
+          onClose={() => setDeleting(null)}
+          dismissible={false}
+          role="alertdialog"
+        >
           <p className="admin-modal-text">
             「{deleting.nameZh || deleting.name}」
           </p>
@@ -1038,7 +1058,7 @@ function TemplateManager({ store }) {
             >
               {t('admin.delete')}
             </button>
-            <button className="admin-btn secondary" onClick={() => setDeleting(null)}>
+            <button className="admin-btn secondary" autoFocus onClick={() => setDeleting(null)}>
               {t('admin.cancel')}
             </button>
           </div>
@@ -1442,7 +1462,12 @@ function CategoryManager({ store }) {
 
       {/* 删除确认 → 模态框 */}
       {deleting && (
-        <AdminModal title={t('admin.deleteConfirm')} onClose={() => setDeleting(null)}>
+        <AdminModal
+          title={t('admin.deleteConfirm')}
+          onClose={() => setDeleting(null)}
+          dismissible={false}
+          role="alertdialog"
+        >
           <p className="admin-modal-text">「{deleting.label}」</p>
           <div className="admin-actions">
             <button
@@ -1455,7 +1480,7 @@ function CategoryManager({ store }) {
             >
               {t('admin.delete')}
             </button>
-            <button className="admin-btn secondary" onClick={() => setDeleting(null)}>
+            <button className="admin-btn secondary" autoFocus onClick={() => setDeleting(null)}>
               {t('admin.cancel')}
             </button>
           </div>
