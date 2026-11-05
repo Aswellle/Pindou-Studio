@@ -16,7 +16,7 @@ const { canvasProps, importedProject } = vi.hoisted(() => ({
   },
 }))
 
-vi.mock('./services/supabase', async (importOriginal) => {
+vi.mock('./services/supabase', async importOriginal => {
   const actual = await importOriginal()
   return { ...actual, supabase: null, SUPABASE_URL: '', SUPABASE_DIRECT_URL: '', SUPABASE_PROXIED: false }
 })
@@ -26,7 +26,14 @@ vi.mock('./components/Canvas', async () => {
   return {
     default: React.forwardRef(function MockCanvas(props) {
       canvasProps.current = props
-      return React.createElement('div', { className: 'mock-canvas' })
+      // 保存入口在画布 HUD:有 onSave 就渲染同名按钮,供保存流程测试点击
+      return React.createElement(
+        'div',
+        { className: 'mock-canvas' },
+        props.onSave
+          ? React.createElement('button', { 'aria-label': '保存作品', onClick: props.onSave }, 'save')
+          : null
+      )
     }),
   }
 })
@@ -34,29 +41,45 @@ vi.mock('./components/Canvas', async () => {
 vi.mock('./components/ImportPage', async () => {
   const React = await import('react')
   return {
-    default: ({ onLoadProject }) => React.createElement(
-      'button',
-      { 'data-testid': 'load-imported', onClick: () => onLoadProject(importedProject) },
-      'load imported'
-    ),
+    default: ({ onLoadProject }) =>
+      React.createElement(
+        'button',
+        { 'data-testid': 'load-imported', onClick: () => onLoadProject(importedProject) },
+        'load imported'
+      ),
   }
 })
 
 function installMatchMedia() {
   const orig = window.matchMedia
-  window.matchMedia = (query) => ({
-    matches: false, media: query, onchange: null,
-    addListener: () => {}, removeListener: () => {},
-    addEventListener: () => {}, removeEventListener: () => {},
+  window.matchMedia = query => ({
+    matches: false,
+    media: query,
+    onchange: null,
+    addListener: () => {},
+    removeListener: () => {},
+    addEventListener: () => {},
+    removeEventListener: () => {},
     dispatchEvent: () => false,
   })
-  return () => { window.matchMedia = orig }
+  return () => {
+    window.matchMedia = orig
+  }
 }
 
 let restoreMedia
-beforeAll(async () => { window.scrollTo = () => {}; await i18n.changeLanguage('zh-CN') })
-beforeEach(() => { restoreMedia = installMatchMedia() })
-afterEach(() => { cleanup(); restoreMedia(); localStorage.clear() })
+beforeAll(async () => {
+  window.scrollTo = () => {}
+  await i18n.changeLanguage('zh-CN')
+})
+beforeEach(() => {
+  restoreMedia = installMatchMedia()
+})
+afterEach(() => {
+  cleanup()
+  restoreMedia()
+  localStorage.clear()
+})
 
 const readStored = () => JSON.parse(localStorage.getItem('saved-works') || '[]')
 
@@ -64,7 +87,9 @@ describe('App · 导入来源随保存落库', () => {
   it('导入 → 载入画布 → 保存,作品带 sourceKind=chart-import', async () => {
     const { findByTestId, findByText, findByPlaceholderText, findByLabelText } = render(
       <MemoryRouter initialEntries={['/import']}>
-        <HelmetProvider><App /></HelmetProvider>
+        <HelmetProvider>
+          <App />
+        </HelmetProvider>
       </MemoryRouter>
     )
     fireEvent.click(await findByTestId('load-imported'))

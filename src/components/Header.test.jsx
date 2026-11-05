@@ -131,13 +131,9 @@ describe('Header · 纯图标导航与圆形登录', () => {
     expect(document.querySelectorAll('.nav-text, .nav-label')).toHaveLength(0)
   })
 
-  it('保存按钮同为图标按钮,提示跟随未保存状态', () => {
+  it('保存按钮不进顶栏:画布动作不会让右侧图标组随页面切换跳位', () => {
     renderHeader({ simplified: false, currentPage: 'canvas', onSave: vi.fn(), saveState: 'dirty' })
-    const btn = document.querySelector('.save-work-btn')
-    expect(btn).toBeTruthy()
-    expect(btn.getAttribute('data-tip')).toBe('画布有未保存的修改')
-    expect(btn.querySelector('.save-unsaved-dot')).toBeTruthy()
-    expect(document.querySelector('.save-label')).toBeNull()
+    expect(document.querySelector('.save-work-btn, .info-save-btn')).toBeNull()
   })
 
   it('PC 登录按钮是圆形,中文显示「登录」', () => {

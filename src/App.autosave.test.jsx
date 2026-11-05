@@ -26,7 +26,7 @@ const { canvasProps, profileProps } = vi.hoisted(() => ({
   profileProps: { current: null },
 }))
 
-vi.mock('./services/supabase', async (importOriginal) => {
+vi.mock('./services/supabase', async importOriginal => {
   const actual = await importOriginal()
   return { ...actual, supabase: null, SUPABASE_URL: '', SUPABASE_DIRECT_URL: '', SUPABASE_PROXIED: false }
 })
@@ -46,22 +46,37 @@ vi.mock('./components/Canvas', async () => {
   const MockCanvas = React.forwardRef(function MockCanvas(props, ref) {
     canvasProps.current = props
     React.useImperativeHandle(ref, () => ({
-      cancelStroke: () => {}, resetTransform: () => {}, fitToScreen: () => {},
+      cancelStroke: () => {},
+      resetTransform: () => {},
+      fitToScreen: () => {},
     }))
-    return React.createElement('div', { className: 'mock-canvas' })
+    // 保存入口在画布 HUD:有 onSave 就渲染同名按钮,供保存流程测试点击
+    return React.createElement(
+      'div',
+      { className: 'mock-canvas' },
+      props.onSave
+        ? React.createElement('button', { 'aria-label': '保存作品', onClick: props.onSave }, 'save')
+        : null
+    )
   })
   return { default: MockCanvas }
 })
 
 function installMatchMedia() {
   const orig = window.matchMedia
-  window.matchMedia = (query) => ({
-    matches: true, media: query, onchange: null,
-    addListener: () => {}, removeListener: () => {},
-    addEventListener: () => {}, removeEventListener: () => {},
+  window.matchMedia = query => ({
+    matches: true,
+    media: query,
+    onchange: null,
+    addListener: () => {},
+    removeListener: () => {},
+    addEventListener: () => {},
+    removeEventListener: () => {},
     dispatchEvent: () => false,
   })
-  return () => { window.matchMedia = orig }
+  return () => {
+    window.matchMedia = orig
+  }
 }
 
 let restoreMedia
@@ -109,7 +124,10 @@ describe('App · 自动保存草稿(规格 03 §7)', () => {
 
   it('本机有草稿时启动弹出恢复提示', async () => {
     await saveDraft({
-      canvasData: [['#E53935', null], [null, null]],
+      canvasData: [
+        ['#E53935', null],
+        [null, null],
+      ],
       gridSize: 2,
       paletteId: 'perler',
       savedAt: '2026-10-23T09:00:00.000Z',
@@ -122,7 +140,10 @@ describe('App · 自动保存草稿(规格 03 §7)', () => {
 
   it('点「恢复」把草稿内容载入画布', async () => {
     await saveDraft({
-      canvasData: [['#E53935', '#43A047'], [null, null]],
+      canvasData: [
+        ['#E53935', '#43A047'],
+        [null, null],
+      ],
       gridSize: 2,
       paletteId: 'perler',
       savedAt: '2026-10-23T09:00:00.000Z',
@@ -132,9 +153,12 @@ describe('App · 自动保存草稿(规格 03 §7)', () => {
     renderApp()
     await waitFor(() => expect(document.body.querySelector('.draft-restore-dialog')).toBeTruthy())
 
-    const restoreBtn = [...document.body.querySelectorAll('.draft-restore-actions button')]
-      .find(b => b.textContent === i18n.t('autosave.restore'))
-    await act(async () => { fireEvent.click(restoreBtn) })
+    const restoreBtn = [...document.body.querySelectorAll('.draft-restore-actions button')].find(
+      b => b.textContent === i18n.t('autosave.restore')
+    )
+    await act(async () => {
+      fireEvent.click(restoreBtn)
+    })
 
     await waitFor(() => {
       expect(canvasProps.current.committedData[0][0]).toBe('#E53935')
@@ -146,7 +170,10 @@ describe('App · 自动保存草稿(规格 03 §7)', () => {
 
   it('点「丢弃」清掉草稿,画布保持空白', async () => {
     await saveDraft({
-      canvasData: [['#E53935', null], [null, null]],
+      canvasData: [
+        ['#E53935', null],
+        [null, null],
+      ],
       gridSize: 2,
       paletteId: 'perler',
       savedAt: '2026-10-23T09:00:00.000Z',
@@ -156,9 +183,12 @@ describe('App · 自动保存草稿(规格 03 §7)', () => {
     renderApp()
     await waitFor(() => expect(document.body.querySelector('.draft-restore-dialog')).toBeTruthy())
 
-    const discardBtn = [...document.body.querySelectorAll('.draft-restore-actions button')]
-      .find(b => b.textContent === i18n.t('autosave.discard'))
-    await act(async () => { fireEvent.click(discardBtn) })
+    const discardBtn = [...document.body.querySelectorAll('.draft-restore-actions button')].find(
+      b => b.textContent === i18n.t('autosave.discard')
+    )
+    await act(async () => {
+      fireEvent.click(discardBtn)
+    })
 
     await waitFor(() => expect(document.body.querySelector('.draft-restore-dialog')).toBeNull())
     await waitFor(async () => expect(await loadDraft()).toBeNull())
@@ -172,7 +202,10 @@ describe('App · 自动保存草稿(规格 03 §7)', () => {
     // 状态条还会闪一下「正在自动保存」,读起来像刚做了改动。
     const savedAt = '2026-10-23T09:00:00.000Z'
     await saveDraft({
-      canvasData: [['#E53935', null], [null, null]],
+      canvasData: [
+        ['#E53935', null],
+        [null, null],
+      ],
       gridSize: 2,
       paletteId: 'perler',
       savedAt,
@@ -182,13 +215,18 @@ describe('App · 自动保存草稿(规格 03 §7)', () => {
     renderApp()
     await waitFor(() => expect(document.body.querySelector('.draft-restore-dialog')).toBeTruthy())
 
-    const restoreBtn = [...document.body.querySelectorAll('.draft-restore-actions button')]
-      .find(b => b.textContent === i18n.t('autosave.restore'))
-    await act(async () => { fireEvent.click(restoreBtn) })
+    const restoreBtn = [...document.body.querySelectorAll('.draft-restore-actions button')].find(
+      b => b.textContent === i18n.t('autosave.restore')
+    )
+    await act(async () => {
+      fireEvent.click(restoreBtn)
+    })
     await waitFor(() => expect(canvasProps.current.committedData[0][0]).toBe('#E53935'))
 
     // 越过一个完整防抖窗口:基线已对齐 → 不该有新的写盘
-    await act(async () => { await new Promise((r) => setTimeout(r, 2300)) })
+    await act(async () => {
+      await new Promise(r => setTimeout(r, 2300))
+    })
 
     const after = await loadDraft()
     expect(after.savedAt).toBe(savedAt)
@@ -200,12 +238,17 @@ describe('App · 自动保存草稿(规格 03 §7)', () => {
 
     // 先画一笔(一条历史),再等自动保存
     act(() => {
-      canvasProps.current.onCanvasChange([['#E53935', null], [null, null]])
+      canvasProps.current.onCanvasChange([
+        ['#E53935', null],
+        [null, null],
+      ])
     })
     await waitFor(() => expect(canvasProps.current.committedData[0][0]).toBe('#E53935'))
 
     // 等防抖窗口过去(2s)+ 写盘
-    await act(async () => { await new Promise((r) => setTimeout(r, 2300)) })
+    await act(async () => {
+      await new Promise(r => setTimeout(r, 2300))
+    })
 
     // 一次撤销应当回到空画布 —— 说明自动保存没有额外压栈
     fireEvent.keyDown(window, { key: 'z', ctrlKey: true })
@@ -219,11 +262,16 @@ describe('App · 自动保存草稿(规格 03 §7)', () => {
     await waitForCanvas()
 
     act(() => {
-      canvasProps.current.onCanvasChange([['#E53935', null], [null, null]])
+      canvasProps.current.onCanvasChange([
+        ['#E53935', null],
+        [null, null],
+      ])
     })
     await waitFor(() => expect(canvasProps.current.committedData[0][0]).toBe('#E53935'))
 
-    await act(async () => { await new Promise((r) => setTimeout(r, 2300)) })
+    await act(async () => {
+      await new Promise(r => setTimeout(r, 2300))
+    })
 
     expect(await loadDraft()).toBeNull()
   })
@@ -234,21 +282,31 @@ describe('App · 自动保存草稿(规格 03 §7)', () => {
 
     // 画一笔并等自动保存落地
     act(() => {
-      canvasProps.current.onCanvasChange([['#E53935', null], [null, null]])
+      canvasProps.current.onCanvasChange([
+        ['#E53935', null],
+        [null, null],
+      ])
     })
     await waitFor(() => expect(canvasProps.current.committedData[0][0]).toBe('#E53935'))
-    await act(async () => { await new Promise((r) => setTimeout(r, 2300)) })
+    await act(async () => {
+      await new Promise(r => setTimeout(r, 2300))
+    })
     await waitFor(async () => expect(await loadDraft()).not.toBeNull())
 
     // 走真实保存流程:Header 保存按钮 → 弹层 → 确认
     const saveBtn = document.body.querySelector(`button[aria-label="${i18n.t('gallery.saveTitle')}"]`)
     expect(saveBtn).toBeTruthy()
-    await act(async () => { fireEvent.click(saveBtn) })
+    await act(async () => {
+      fireEvent.click(saveBtn)
+    })
     await waitFor(() => expect(document.body.querySelector('.save-dialog')).toBeTruthy())
 
-    const confirmBtn = [...document.body.querySelectorAll('.save-dialog-actions button')]
-      .find(b => b.textContent === i18n.t('gallery.saveConfirm'))
-    await act(async () => { fireEvent.click(confirmBtn) })
+    const confirmBtn = [...document.body.querySelectorAll('.save-dialog-actions button')].find(
+      b => b.textContent === i18n.t('gallery.saveConfirm')
+    )
+    await act(async () => {
+      fireEvent.click(confirmBtn)
+    })
 
     // 草稿被清掉 —— 内容已经正式存进作品库,再提示「恢复未保存的修改」只会让人困惑
     await waitFor(async () => expect(await loadDraft()).toBeNull())
@@ -261,16 +319,23 @@ describe('App · 自动保存草稿(规格 03 §7)', () => {
     await waitFor(() => expect(profileProps.current).toBeTruthy())
 
     expect(profileProps.current.autoSaveEnabled).toBe(true)
-    act(() => { profileProps.current.onToggleAutoSave(false) })
+    act(() => {
+      profileProps.current.onToggleAutoSave(false)
+    })
     await waitFor(() => expect(profileProps.current.autoSaveEnabled).toBe(false))
 
     // 回到创作页画一笔:已经关了,不该落草稿
     act(() => {
-      canvasProps.current.onCanvasChange([['#E53935', null], [null, null]])
+      canvasProps.current.onCanvasChange([
+        ['#E53935', null],
+        [null, null],
+      ])
     })
     await waitFor(() => expect(canvasProps.current.committedData[0][0]).toBe('#E53935'))
 
-    await act(async () => { await new Promise((r) => setTimeout(r, 2300)) })
+    await act(async () => {
+      await new Promise(r => setTimeout(r, 2300))
+    })
 
     expect(await loadDraft()).toBeNull()
   })

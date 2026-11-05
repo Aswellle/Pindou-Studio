@@ -23,7 +23,7 @@ const { loadWorkSpy, canvasProps } = vi.hoisted(() => ({
   canvasProps: { current: null },
 }))
 
-vi.mock('./services/supabase', async (importOriginal) => {
+vi.mock('./services/supabase', async importOriginal => {
   const actual = await importOriginal()
   return { ...actual, supabase: null, SUPABASE_URL: '', SUPABASE_DIRECT_URL: '', SUPABASE_PROXIED: false }
 })
@@ -32,7 +32,14 @@ vi.mock('./components/Canvas', async () => {
   const React = await import('react')
   const MockCanvas = React.forwardRef(function MockCanvas(props) {
     canvasProps.current = props
-    return React.createElement('div', { className: 'mock-canvas' })
+    // 保存入口在画布 HUD:有 onSave 就渲染同名按钮,供保存流程测试点击
+    return React.createElement(
+      'div',
+      { className: 'mock-canvas' },
+      props.onSave
+        ? React.createElement('button', { 'aria-label': '保存作品', onClick: props.onSave }, 'save')
+        : null
+    )
   })
   return { default: MockCanvas }
 })
@@ -52,23 +59,36 @@ vi.mock('./components/ProfilePage', async () => {
     savedAt: '2026-10-01T00:00:00.000Z',
   }
   return {
-    default: ({ onLoadWork }) => React.createElement(
-      'button',
-      { 'data-testid': 'load-work', onClick: () => { loadWorkSpy(badWork); onLoadWork(badWork) } },
-      'load work'
-    ),
+    default: ({ onLoadWork }) =>
+      React.createElement(
+        'button',
+        {
+          'data-testid': 'load-work',
+          onClick: () => {
+            loadWorkSpy(badWork)
+            onLoadWork(badWork)
+          },
+        },
+        'load work'
+      ),
   }
 })
 
 function installMatchMedia() {
   const orig = window.matchMedia
-  window.matchMedia = (query) => ({
-    matches: false, media: query, onchange: null,
-    addListener: () => {}, removeListener: () => {},
-    addEventListener: () => {}, removeEventListener: () => {},
+  window.matchMedia = query => ({
+    matches: false,
+    media: query,
+    onchange: null,
+    addListener: () => {},
+    removeListener: () => {},
+    addEventListener: () => {},
+    removeEventListener: () => {},
     dispatchEvent: () => false,
   })
-  return () => { window.matchMedia = orig }
+  return () => {
+    window.matchMedia = orig
+  }
 }
 
 let restoreMedia
