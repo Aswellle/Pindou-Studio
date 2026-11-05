@@ -74,6 +74,7 @@ import { getPalette, PALETTES } from './data/palettes'
 import { PrivacyPolicy, TermsOfService } from './components/LegalPages'
 import NotFoundPage from './components/NotFoundPage'
 import MobileCanvasInfoBar from './components/MobileCanvasInfoBar'
+import AutoSaveStatus from './components/AutoSaveStatus'
 const CreateImagePage = lazy(() => import('./components/CreateImagePage'))
 import ProfilePage from './components/ProfilePage'
 // 联系我们:独立路由页(而非模态框)—— iOS Safari 键盘只收缩 visual viewport,
@@ -262,23 +263,17 @@ export default function App() {
   // 只记录「这份矩阵是怎么来的」,不改变任何画布行为;切换网格/载入作品时同步更新,
   // 否则导入的图纸保存后会被当成手绘作品,重新打开就失去来源。
   const [canvasSource, setCanvasSource] = useState(null)
-  const [saveToast, setSaveToast] = useState(false)
-  const [fitToast, setFitToast] = useState(false)
-  const [syncToast, setSyncToast] = useState(false)
   // 版本时间线:存的是「正在看哪件作品的历史」,不是版本数据本身 ——
   // 版本由 VersionHistoryDialog 打开时按 work.id 现拉,避免 App 里再维护一份缓存。
   const [versionsWork, setVersionsWork] = useState(null)
 
-  // 登录迁移完成后展示「已同步 N 幅作品到云端」toast
+  // 登录迁移完成后展示「已同步 N 幅作品到云端」提示。
+  // 统一走 toast 系统,不再维护一条独立的顶部气泡。
   useEffect(() => {
     if (syncCount == null) return
-    setSyncToast(true)
-    const timer = setTimeout(() => {
-      setSyncToast(false)
-      ackSync()
-    }, 4000)
-    return () => clearTimeout(timer)
-  }, [syncCount, ackSync])
+    toast(t('auth.syncToast', { n: syncCount }), 'success')
+    ackSync()
+  }, [syncCount, ackSync, toast, t])
 
   // 从 URL 路径推导当前页面(用于 Header 高亮与条件渲染)
   const currentPage = location.pathname.startsWith('/gallery')
@@ -475,8 +470,7 @@ export default function App() {
     // 而那份内容其实已经正式存过了,提示只会让用户困惑。
     await discardDraft()
     setShowSaveDialog(false)
-    setSaveToast(true)
-    setTimeout(() => setSaveToast(false), 1500)
+    toast(user ? t('gallery.savedToastCloud') : t('gallery.savedToast'), 'success')
   }
 
   // 顶部登录/注册入口:带上当前路径,成功后回到原页面,而不是一律回首页。
@@ -650,8 +644,7 @@ export default function App() {
     // 不再在这里 navigate('/'):图片转拼豆是独立页面,应用完成后由该页面的 onClose
     // 负责返回(历史回退/深链兜底)。两处各自导航会互相抵消,把用户留在转换页。
     if (w > 50 || h > 50) {
-      setFitToast(true)
-      setTimeout(() => setFitToast(false), 2500)
+      toast(t('canvas.autoFitToast'), 'info')
     }
   }
 
@@ -1101,7 +1094,6 @@ export default function App() {
           currentPage={currentPage}
           onPageChange={handlePageChange}
           saveState={saveState}
-          autoSaveState={autoSave.state}
         />
       )}
 
@@ -1341,12 +1333,6 @@ export default function App() {
           </div>,
           document.body
         )}
-      {saveToast && (
-        <div className="save-toast">{user ? t('gallery.savedToastCloud') : t('gallery.savedToast')}</div>
-      )}
-      {syncToast && <div className="sync-toast">{t('auth.syncToast', { n: syncCount })}</div>}
-      {fitToast && <div className="fit-toast">{t('canvas.autoFitToast')}</div>}
-
       {/* M5:颜色替换对话框(桌面/移动布局各渲染一份,共享同一份状态) */}
       <ReplaceColorDialog
         open={showReplace}
@@ -1403,52 +1389,6 @@ export default function App() {
         .left-sidebar.collapsed .left-sidebar-top {
           width: 56px;
         }
-        .save-toast {
-          position: fixed;
-          top: 72px;
-          left: 50%;
-          transform: translateX(-50%);
-          background: var(--text-primary);
-          color: white;
-          padding: 12px 24px;
-          border-radius: 20px;
-          font-size: var(--text-base);
-          z-index: 1100;
-          box-shadow: var(--shadow-card);
-          animation: toastIn 0.3s ease;
-        }
-        .sync-toast {
-          position: fixed;
-          top: 72px;
-          left: 50%;
-          transform: translateX(-50%);
-          background: var(--accent);
-          color: white;
-          padding: 12px 24px;
-          border-radius: 20px;
-          font-size: var(--text-base);
-          z-index: 1100;
-          box-shadow: var(--shadow-card);
-          animation: toastIn 0.3s ease;
-        }
-        .fit-toast {
-          position: fixed;
-          top: 72px;
-          left: 50%;
-          transform: translateX(-50%);
-          background: var(--secondary-accent);
-          color: white;
-          padding: 12px 24px;
-          border-radius: 20px;
-          font-size: var(--text-base);
-          z-index: 1100;
-          box-shadow: var(--shadow-card);
-          animation: toastIn 0.3s ease;
-        }
-        @keyframes toastIn {
-          from { opacity: 0; transform: translateX(-50%) translateY(-10px); }
-          to { opacity: 1; transform: translateX(-50%) translateY(0); }
-        }
       `}</style>
     </div>
   )
@@ -1468,7 +1408,6 @@ export default function App() {
           onPageChange={handlePageChange}
           simplified={isMobile}
           saveState={saveState}
-          autoSaveState={autoSave.state}
         />
       )}
 
@@ -1796,12 +1735,6 @@ export default function App() {
           </div>,
           document.body
         )}
-      {saveToast && (
-        <div className="save-toast">{user ? t('gallery.savedToastCloud') : t('gallery.savedToast')}</div>
-      )}
-      {syncToast && <div className="sync-toast">{t('auth.syncToast', { n: syncCount })}</div>}
-      {fitToast && <div className="fit-toast">{t('canvas.autoFitToast')}</div>}
-
       {/* M5:颜色替换对话框(桌面/移动布局各渲染一份,共享同一份状态) */}
       <ReplaceColorDialog
         open={showReplace}
@@ -1834,52 +1767,6 @@ export default function App() {
       />
 
       <style>{`
-        .save-toast {
-          position: fixed;
-          top: 72px;
-          left: 50%;
-          transform: translateX(-50%);
-          background: var(--text-primary);
-          color: white;
-          padding: 12px 24px;
-          border-radius: 20px;
-          font-size: var(--text-base);
-          z-index: 1100;
-          box-shadow: var(--shadow-card);
-          animation: toastIn 0.3s ease;
-        }
-        .sync-toast {
-          position: fixed;
-          top: 72px;
-          left: 50%;
-          transform: translateX(-50%);
-          background: var(--accent);
-          color: white;
-          padding: 12px 24px;
-          border-radius: 20px;
-          font-size: var(--text-base);
-          z-index: 1100;
-          box-shadow: var(--shadow-card);
-          animation: toastIn 0.3s ease;
-        }
-        .fit-toast {
-          position: fixed;
-          top: 72px;
-          left: 50%;
-          transform: translateX(-50%);
-          background: var(--secondary-accent);
-          color: white;
-          padding: 12px 24px;
-          border-radius: 20px;
-          font-size: var(--text-base);
-          z-index: 1100;
-          box-shadow: var(--shadow-card);
-          animation: toastIn 0.3s ease;
-        }
-        @keyframes toastIn {
-          from { opacity: 0; transform: translateX(-50%) translateY(-10px); }
-          to { opacity: 1; transform: translateX(-50%) translateY(0); }
-        }
       `}</style>
     </div>
   )
@@ -2049,6 +1936,9 @@ export default function App() {
     <>
       {seoHelmet}
       {isMobile || isTablet ? renderMobileLayout() : renderDesktopLayout()}
+      {/* 自动保存状态:桌面 / 平板用顶栏下方的悬浮旁注,不占顶栏布局;
+          手机端由 MobileCanvasInfoBar 承载,避免两个提示同时出现。 */}
+      {currentPage === 'canvas' && !isMobile && <AutoSaveStatus state={autoSave.state} />}
       {/* 版本时间线:与布局无关,桌面/移动共用同一份,只挂一次。
           组件内部已 createPortal 到 body,不受布局容器影响。 */}
       <VersionHistoryDialog
