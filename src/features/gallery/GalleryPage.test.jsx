@@ -295,6 +295,19 @@ describe('GalleryPage V2 — 用色数筛选', () => {
     expect(screen.queryByText('五色')).toBe(null)
   })
 
+  it('Escape 关闭筛选面板并把焦点还给触发按钮', () => {
+    setup({ savedWorks: [], cloudStore: threeColorStore() })
+    const trigger = document.querySelector('.gallery-filter-trigger')
+    trigger.focus()
+    fireEvent.click(trigger)
+    // portal 到 body 的面板已打开
+    expect(document.querySelector('.gallery-filter-pop')).toBeTruthy()
+
+    fireEvent.keyDown(document, { key: 'Escape' })
+    expect(document.querySelector('.gallery-filter-pop')).toBeNull()
+    expect(document.activeElement).toBe(trigger)
+  })
+
   it('筛选状态写进 URL(可分享/刷新恢复),激活数显示在入口按钮上', () => {
     // setup 的 MemoryRouter 不暴露 location;改用带 initialEntries 的独立渲染
     const { container } = render(
