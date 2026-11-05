@@ -101,6 +101,20 @@ describe('ProfileWorksSection', () => {
     expect(onDeleteWork.mock.calls[0][0].id).toBe('w1')
   })
 
+  it('删除确认是强制二选一:点遮罩与 Escape 都不关闭', () => {
+    const onDeleteWork = vi.fn()
+    render(<ProfileWorksSection works={[work()]} onDeleteWork={onDeleteWork} />)
+
+    fireEvent.click(screen.getByRole('button', { name: '删除' }))
+    const overlay = document.querySelector('.profile-confirm-overlay')
+    fireEvent.click(overlay)
+    expect(screen.getByText('删除这个作品?')).toBeTruthy()
+
+    fireEvent.keyDown(document, { key: 'Escape' })
+    expect(screen.getByText('删除这个作品?')).toBeTruthy()
+    expect(onDeleteWork).not.toHaveBeenCalled()
+  })
+
   it('来源徽标只对已知 sourceKind 显示,旧作品不凭空补一个', () => {
     const { container } = render(
       <ProfileWorksSection

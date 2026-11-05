@@ -45,6 +45,8 @@ export default function ProfileWorksSection({
     onClose: () => setPendingDelete(null),
     label: t('profile.center.deleteWorkTitle'),
     role: 'alertdialog',
+    // 删除作品不可恢复:遮罩与 Escape 都不关闭,必须显式选择
+    dismissible: false,
   })
 
   const loading = worksLoading || !!worksError
@@ -200,7 +202,7 @@ export default function ProfileWorksSection({
       </section>
 
       {pendingDelete ? (
-        <div className="profile-confirm-overlay" onClick={() => setPendingDelete(null)}>
+        <div className="profile-confirm-overlay">
           <div className="modal-content confirm-box" ref={confirmRef} {...confirmDialogProps} onClick={(e) => e.stopPropagation()}>
             <h3>{t('profile.center.deleteWorkTitle')}</h3>
             <p>
@@ -209,7 +211,7 @@ export default function ProfileWorksSection({
               })}
             </p>
             <div className="confirm-actions">
-              <button type="button" className="pf-btn ghost" onClick={() => setPendingDelete(null)}>
+              <button type="button" className="pf-btn ghost" autoFocus onClick={() => setPendingDelete(null)}>
                 {t('common.cancel')}
               </button>
               <button type="button" className="pf-btn danger" onClick={confirmDelete}>
