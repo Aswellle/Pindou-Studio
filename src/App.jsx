@@ -1535,6 +1535,11 @@ export default function App() {
           deductInventory={deductInventory}
           onToggleDeductInventory={handleToggleDeductInventory}
           onExportComplete={handleExportComplete}
+          // 移动端与桌面端共用同一套高级导出守卫:游客限制屏幕画质,
+          // 高分辨率/打印与熨烫效果点击后跳转登录页并说明原因。
+          isAuthenticated={!!user}
+          authEnabled={authAvailable}
+          onRequireAuth={handleRequireAuth}
           onClose={() => setShowExport(false)}
         />
       )}
