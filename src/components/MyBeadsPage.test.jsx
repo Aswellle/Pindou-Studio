@@ -281,6 +281,12 @@ describe('MyBeadsPage · 色卡管理(本地模式)', () => {
     // 确认框里提示画布不受影响
     expect(screen.getByText(/删除色卡不会改变画布或旧作品/)).toBeTruthy()
 
+    // 强制二选一:点遮罩与 Escape 都不关闭
+    fireEvent.click(document.querySelector('.my-beads-modal-overlay'))
+    fireEvent.keyDown(document, { key: 'Escape' })
+    expect(document.querySelector('.my-beads-modal.confirm')).toBeTruthy()
+    expect(JSON.parse(localStorage.getItem('personal-beads-v1')).palettes).toHaveLength(1)
+
     const confirmDialog = document.querySelector('.my-beads-modal.confirm')
     fireEvent.click(within(confirmDialog).getByText('删除'))
     await waitFor(() => {

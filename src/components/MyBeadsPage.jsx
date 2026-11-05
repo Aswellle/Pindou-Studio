@@ -146,6 +146,8 @@ export default function MyBeadsPage({ user, authLoading, canvasData, onApplyMapp
     disabled: busy,
     label: confirmDelete?.kind === 'palette' ? t('myBeads.palettes.deleteTitle') : t('myBeads.colors.deleteTitle'),
     role: 'alertdialog',
+    // 删除色卡/颜色/库存记录是数据操作:遮罩与 Escape 都不关闭
+    dismissible: false,
   })
   const { ref: copyDialogRef, dialogProps: copyDialogProps } = useDialogA11y({
     open: !!copyTarget,
@@ -1084,7 +1086,7 @@ export default function MyBeadsPage({ user, authLoading, canvasData, onApplyMapp
 
       {/* ── 删除确认(色卡 / 颜色 / 库存记录)───────────────── */}
       {confirmDelete && createPortal(
-        <div className="my-beads-modal-overlay" onClick={() => setConfirmDelete(null)}>
+        <div className="my-beads-modal-overlay">
           <div className="my-beads-modal confirm" ref={deleteDialogRef} {...deleteDialogProps} onClick={(e) => e.stopPropagation()}>
             <AlertTriangle size={20} className="warn-icon" />
             <h3>
@@ -1133,7 +1135,7 @@ export default function MyBeadsPage({ user, authLoading, canvasData, onApplyMapp
             )}
 
             <div className="my-beads-modal-actions">
-              <button type="button" className="my-beads-btn ghost" onClick={() => setConfirmDelete(null)}>{t('common.cancel')}</button>
+              <button type="button" className="my-beads-btn ghost" autoFocus onClick={() => setConfirmDelete(null)}>{t('common.cancel')}</button>
               <button type="button" className="my-beads-btn danger" onClick={doDelete}>
                 {confirmDelete.kind === 'inventory' ? t('myBeads.inventory.clearConfirmYes') : t('common.delete')}
               </button>
