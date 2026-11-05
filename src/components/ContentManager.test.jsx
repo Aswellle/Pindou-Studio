@@ -156,6 +156,13 @@ describe('ContentManager', () => {
     setup()
     fireEvent.click(screen.getByText('删除'))
     expect(screen.getByText(/确定删除「主题a」/)).toBeTruthy()
+
+    // 删除确认是强制二选一:点遮罩与 Escape 都不关闭
+    fireEvent.click(document.querySelector('.admin-modal-overlay'))
+    fireEvent.keyDown(document, { key: 'Escape' })
+    expect(screen.getByText(/确定删除「主题a」/)).toBeTruthy()
+    expect(contentState.deleteContent).not.toHaveBeenCalled()
+
     // 弹窗标题也是「删除」,按按钮角色取最后一个(弹窗内的确认按钮)
     const deleteButtons = screen.getAllByRole('button', { name: '删除' })
     fireEvent.click(deleteButtons[deleteButtons.length - 1])

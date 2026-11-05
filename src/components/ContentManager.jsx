@@ -31,18 +31,28 @@ const LANGS = [
   { code: 'ko', label: '한국어' },
 ]
 
-function ContentModal({ title, onClose, children }) {
+function ContentModal({ title, onClose, dismissible = true, role = 'dialog', children }) {
   // 与后台其他模态框一致:打开期间锁背景滚动(引用计数)
   useScrollLock(true)
-  const { ref, dialogProps } = useDialogA11y({ open: true, onClose, label: title })
+  // 删除确认传 dismissible=false:遮罩、关闭按钮与 Escape 都不生效,
+  // 必须点「取消」或「删除」才能离开。
+  const { ref, dialogProps } = useDialogA11y({
+    open: true,
+    onClose,
+    label: title,
+    role,
+    dismissible,
+  })
   return createPortal(
-    <div className="admin-modal-overlay" onClick={onClose}>
+    <div className="admin-modal-overlay" onClick={dismissible ? onClose : undefined}>
       <div className="admin-modal wide" ref={ref} {...dialogProps} onClick={e => e.stopPropagation()}>
         <div className="admin-modal-header">
           <h3>{title}</h3>
-          <button className="admin-modal-close" onClick={onClose} aria-label="close">
-            <X size={16} />
-          </button>
+          {dismissible && (
+            <button className="admin-modal-close" onClick={onClose} aria-label="close">
+              <X size={16} />
+            </button>
+          )}
         </div>
         <div className="admin-modal-body">{children}</div>
       </div>
@@ -850,10 +860,15 @@ export default function ContentManager({ cloudStore }) {
       )}
 
       {deleting && (
-        <ContentModal title={t('admin.delete')} onClose={() => setDeleting(null)}>
+        <ContentModal
+          title={t('admin.delete')}
+          onClose={() => setDeleting(null)}
+          dismissible={false}
+          role="alertdialog"
+        >
           <p>{t('admin.content.deleteHint', { name: deleting.title })}</p>
           <div className="admin-actions" style={{ justifyContent: 'flex-end' }}>
-            <button className="admin-btn secondary" onClick={() => setDeleting(null)}>
+            <button className="admin-btn secondary" autoFocus onClick={() => setDeleting(null)}>
               {t('admin.cancel')}
             </button>
             <button className="admin-btn danger" onClick={confirmDelete}>
