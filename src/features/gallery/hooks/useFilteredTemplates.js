@@ -3,6 +3,33 @@ import { useGalleryQuery } from './useGalleryQuery'
 import { extractPatternColors } from '../../../data/templates'
 
 /**
+ * 单个模板是否命中当前筛选(图库首页 / 主题页 / 合集页共用同一语义)。
+ *
+ * 搜索要求(02 §6.4):
+ *   - 同时比较原始 name、nameZh 与当前语言显示名 —— 不能因为 name 非空
+ *     就跳过翻译名;
+ *   - 首尾空格去掉后再比较。
+ */
+export function templateMatchesQuery(
+  template,
+  { searchTerm = '', category = 'all', difficulty = 'all', maxColors = null } = {},
+  resolveName
+) {
+  const term = String(searchTerm || '').trim().toLowerCase()
+  if (term) {
+    const haystack = [template?.name, template?.nameZh, resolveName ? resolveName(template) : '']
+      .filter(Boolean)
+      .join(' ')
+      .toLowerCase()
+    if (!haystack.includes(term)) return false
+  }
+  if (category !== 'all' && template?.category !== category) return false
+  if (difficulty !== 'all' && template?.difficulty !== difficulty) return false
+  if (maxColors && extractPatternColors(template.pattern).length > maxColors) return false
+  return true
+}
+
+/**
  * 在任意模板列表上复用图库的 URL 筛选(q/cat/diff)。
  * 主题页/合集页只需要「给定列表 → 过滤结果」,不重复实现筛选语义。
  *
@@ -22,25 +49,13 @@ export function useFilteredTemplates(templates, resolveName) {
     setFilters,
   } = useGalleryQuery()
 
-  const filtered = useMemo(() => {
-    const term = String(searchTerm || '').trim().toLowerCase()
-    return (templates || []).filter((template) => {
-      if (term) {
-        const haystack = [
-          template?.name,
-          template?.nameZh,
-          resolveName ? resolveName(template) : '',
-        ].filter(Boolean).join(' ').toLowerCase()
-        if (!haystack.includes(term)) return false
-      }
-      const matchesCategory = category === 'all' || template.category === category
-      const matchesDifficulty = difficulty === 'all' || template.difficulty === difficulty
-      // 用色数量:按 pattern 实际出现的唯一颜色数计算(与卡片展示口径一致)
-      const matchesColors = !maxColors
-        || extractPatternColors(template.pattern).length <= maxColors
-      return matchesCategory && matchesDifficulty && matchesColors
-    })
-  }, [templates, searchTerm, category, difficulty, maxColors, resolveName])
+  const filtered = useMemo(
+    () =>
+      (templates || []).filter((template) =>
+        templateMatchesQuery(template, { searchTerm, category, difficulty, maxColors }, resolveName)
+      ),
+    [templates, searchTerm, category, difficulty, maxColors, resolveName]
+  )
 
   const resetFilters = useCallback(() => {
     // 一次写入三项:连续调用单个 setter 会互相覆盖(见 useGalleryQuery.setFilters)

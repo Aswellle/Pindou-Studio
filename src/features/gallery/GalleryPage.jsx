@@ -19,22 +19,18 @@
  *
  * 模板动作(收藏/导出/品牌转换/载入画布)沿用既有链路,卡片见 GalleryTemplateCard。
  */
-import { useState, useEffect, useMemo, useRef } from 'react'
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react'
 import { createPortal } from 'react-dom'
 import { useNavigate } from 'react-router-dom'
 import { MessageCircle, Search, SlidersHorizontal, X } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
-import {
-  CATEGORIES,
-  extractPatternColors,
-  convertTemplateToBrand,
-  templateDimensions,
-} from '../../data/templates'
+import { CATEGORIES, convertTemplateToBrand, templateDimensions } from '../../data/templates'
 import { getPalette } from '../../data/palettes'
 import { exportAsPNG } from '../../services/BeadPatternExporter'
 import { useToast } from '../../components/Toast'
 import ThumbnailCanvas from '../../components/ThumbnailCanvas'
 import { useGalleryQuery } from './hooks/useGalleryQuery'
+import { templateMatchesQuery } from './hooks/useFilteredTemplates'
 import { useGalleryTemplates } from './hooks/useGalleryTemplates'
 import useDownloadCounts from './hooks/useDownloadCounts'
 import { useGalleryContent } from '../../hooks/useGalleryContent'
@@ -164,20 +160,28 @@ export default function GalleryPage({ onLoadTemplate, cloudStore }) {
     maxColors ? 1 : 0,
   ].reduce((a, b) => a + b, 0)
 
+  // 当前语言下的显示名:与卡片/详情页同一口径,供搜索匹配使用
+  const resolveTemplateName = useCallback(
+    template =>
+      template.name
+        ? template.nameZh || template.name
+        : t(`templates.names.${template.nameKey}`, template.nameKey),
+    [t]
+  )
+
   // ── feed 数据(04 §3):过滤先收窄集合,再按 feed 各自的排序派生 ──
+  // 复用 useFilteredTemplates 的纯函数:图库、主题页、合集页对同一组 URL
+  // 参数必须得到一致结果(同时匹配 name/nameZh/翻译名,并忽略首尾空格)。
   const filteredTemplates = useMemo(
     () =>
-      allTemplates.filter(template => {
-        const displayName = (template.nameZh || template.name || '').toLowerCase()
-        const translatedName = t(`templates.names.${template.nameKey}`, template.nameKey).toLowerCase()
-        const matchesSearch = (displayName || translatedName).includes(searchTerm.toLowerCase())
-        const matchesCategory = category === 'all' || template.category === category
-        const matchesDifficulty = difficulty === 'all' || template.difficulty === difficulty
-        // 用色数上限:按 pattern 实际出现的唯一颜色数计算(与卡片色点、详情页口径一致)
-        const matchesColors = !maxColors || extractPatternColors(template.pattern).length <= maxColors
-        return matchesSearch && matchesCategory && matchesDifficulty && matchesColors
-      }),
-    [allTemplates, searchTerm, category, difficulty, maxColors, t]
+      allTemplates.filter(template =>
+        templateMatchesQuery(
+          template,
+          { searchTerm, category, difficulty, maxColors },
+          resolveTemplateName
+        )
+      ),
+    [allTemplates, searchTerm, category, difficulty, maxColors, resolveTemplateName]
   )
   // 热门:过滤后按真实下载量降序(0 下载不进入);最新:过滤后按可信 createdAt 降序
   const popularTemplates = useMemo(

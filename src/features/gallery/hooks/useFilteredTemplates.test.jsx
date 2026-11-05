@@ -78,14 +78,18 @@ describe('useFilteredTemplates · 用色数量筛选', () => {
   })
 
   it('按 pattern 中唯一颜色数过滤(≤ 上限)', () => {
-    const list = [tpl('few', ['#FF0000', '#FF0000', null]), tpl('many', ['#FF0000', '#00FF00', '#0000FF'])]
+    const list = [
+      tpl('few', ['#FF0000', '#FF0000', null]),
+      tpl('many', ['#FF0000', '#00FF00', '#0000FF', '#FFFF00', '#FF00FF']),
+    ]
+    // colors 只接受受支持档位(4/8/12/16/24/32),4 色上限筛掉 5 色的模板
     const { result } = renderHook(() => useFilteredTemplates(list, (x) => x.name), {
       wrapper: ({ children }) => (
-        <MemoryRouter initialEntries={['/?colors=2']}>{children}</MemoryRouter>
+        <MemoryRouter initialEntries={['/?colors=4']}>{children}</MemoryRouter>
       ),
     })
     expect(result.current.filtered.map((x) => x.id)).toEqual(['few'])
-    expect(result.current.maxColors).toBe(2)
+    expect(result.current.maxColors).toBe(4)
   })
 
   it('非法 colors 参数当作不限', () => {
@@ -100,10 +104,10 @@ describe('useFilteredTemplates · 用色数量筛选', () => {
   })
 
   it('resetFilters 一并清掉 colors', () => {
-    const list = [tpl('a', ['#FF0000', '#00FF00', '#0000FF'])]
+    const list = [tpl('a', ['#FF0000', '#00FF00', '#0000FF', '#FFFF00', '#FF00FF'])]
     const { result } = renderHook(() => useFilteredTemplates(list, (x) => x.name), {
       wrapper: ({ children }) => (
-        <MemoryRouter initialEntries={['/?colors=2&cat=animal']}>{children}</MemoryRouter>
+        <MemoryRouter initialEntries={['/?colors=4&cat=animal']}>{children}</MemoryRouter>
       ),
     })
     expect(result.current.filtered).toHaveLength(0)

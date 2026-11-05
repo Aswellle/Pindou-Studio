@@ -395,6 +395,27 @@ describe('GalleryPage V3 — 一级 feed(精选/热门/最新)', () => {
     expect(document.getElementById('gallery-tab-popular').className).toContain('active')
   })
 
+  it('搜索同时匹配 name 与 nameZh,并忽略首尾空格', () => {
+    const store = feedStore({
+      templates: [
+        {
+          id: 't-duck',
+          name: 'Duck',
+          nameZh: '小鸭',
+          category: 'animal',
+          difficulty: 'easy',
+          size: 4,
+          pattern: [['#FF0000']],
+          downloadCount: 0,
+          createdAt: '2026-01-01T00:00:00Z',
+        },
+      ],
+    })
+    // nameZh 存在时也要能用英文 name 搜到;前后空格应被忽略
+    const { container } = setup({ savedWorks: [], cloudStore: store }, ['/gallery?q=%20duck%20'])
+    expect(container.querySelectorAll('.template-card').length).toBe(1)
+  })
+
   it('热门 feed 按真实下载量排序,零下载不进入', () => {
     const { container } = setup({ savedWorks: [], cloudStore: feedStore() }, ['/gallery?feed=popular'])
     const cards = container.querySelectorAll('.template-card')

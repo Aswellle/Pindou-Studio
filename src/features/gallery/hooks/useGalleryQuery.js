@@ -22,6 +22,12 @@ import { useSearchParams } from 'react-router-dom'
 export const COLOR_COUNT_TIERS = Object.freeze([4, 8, 12, 16, 24, 32])
 
 /**
+ * 难度白名单。URL 里的非法值必须归一化为 all(04 §2),
+ * 否则筛选面板没有对应项、chips 会直接显示 i18n key。
+ */
+export const GALLERY_DIFFICULTIES = Object.freeze(['easy', 'medium', 'hard'])
+
+/**
  * 视图页签(全部 / 收藏 / 我的作品)。
  *
  * 收藏与我的作品已移到个人中心(/profile),图库不再有视图页签。
@@ -53,10 +59,11 @@ export function useGalleryQuery() {
 
   const searchTerm = searchParams.get('q') || ''
   const category = searchParams.get('cat') || 'all'
-  const difficulty = searchParams.get('diff') || 'all'
-  // 用色数量上限:空 = 不限。只接受正整数,非法值当不限处理。
+  const rawDifficulty = searchParams.get('diff') || 'all'
+  const difficulty = GALLERY_DIFFICULTIES.includes(rawDifficulty) ? rawDifficulty : 'all'
+  // 用色数量上限:空 = 不限。只接受受支持的档位,非法值当不限处理。
   const rawColors = searchParams.get('colors') || ''
-  const maxColors = /^\d+$/.test(rawColors) && Number(rawColors) > 0 ? Number(rawColors) : null
+  const maxColors = COLOR_COUNT_TIERS.includes(Number(rawColors)) ? Number(rawColors) : null
   // 老链接的 ?view=works / ?view=favorites:收藏与作品已搬到个人中心,
   // 这里只读取出来用于「静默清掉」,不再参与任何筛选。
   const legacyView = searchParams.get(LEGACY_VIEW_PARAM) || ''
@@ -87,7 +94,7 @@ export function useGalleryQuery() {
     }
     if ('colors' in patch) {
       const n = Number(patch.colors)
-      if (patch.colors && Number.isFinite(n) && n > 0) params.set('colors', String(Math.trunc(n)))
+      if (patch.colors && COLOR_COUNT_TIERS.includes(n)) params.set('colors', String(n))
       else params.delete('colors')
     }
     if ('feed' in patch) {

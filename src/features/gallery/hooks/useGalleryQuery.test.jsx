@@ -92,6 +92,35 @@ describe('useGalleryQuery · feed 写入', () => {
   })
 })
 
+describe('useGalleryQuery · 非法筛选值归一化', () => {
+  it('diff 不在白名单时归一化为 all', () => {
+    const { result } = renderHook(() => useGalleryQuery(), {
+      wrapper: wrapper('/gallery?diff=banana'),
+    })
+    expect(result.current.difficulty).toBe('all')
+  })
+
+  it('colors 只接受受支持的档位', () => {
+    const { result } = renderHook(() => useGalleryQuery(), {
+      wrapper: wrapper('/gallery?colors=5'),
+    })
+    expect(result.current.maxColors).toBe(null)
+
+    const { result: tier } = renderHook(() => useGalleryQuery(), {
+      wrapper: wrapper('/gallery?colors=12'),
+    })
+    expect(tier.current.maxColors).toBe(12)
+  })
+
+  it('写入非法档位时删除参数,不产生读不回来的脏 URL', () => {
+    const { result } = renderHook(() => useGalleryQuery(), {
+      wrapper: wrapper('/gallery?colors=12'),
+    })
+    act(() => result.current.setMaxColors(5))
+    expect(result.current.maxColors).toBe(null)
+  })
+})
+
 describe('useGalleryQuery · 全部图纸浏览态', () => {
   it('默认关闭;?browse=1 解析为浏览态', () => {
     const { result } = renderHook(() => useGalleryQuery(), { wrapper: wrapper('/gallery') })
