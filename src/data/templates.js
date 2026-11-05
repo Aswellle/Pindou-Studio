@@ -9,7 +9,7 @@ export const TEMPLATES = [
     difficulty: 'easy',
     category: 'animal',
     colors: ['#8D6E63', '#A1887F', '#795548'],
-    pattern: generateBearPattern()
+    pattern: generateBearPattern(),
   },
   {
     id: 2,
@@ -18,7 +18,7 @@ export const TEMPLATES = [
     difficulty: 'easy',
     category: 'food',
     colors: ['#E53935', '#4CAF50', '#FFEB3B'],
-    pattern: generateStrawberryPattern()
+    pattern: generateStrawberryPattern(),
   },
   {
     id: 3,
@@ -27,7 +27,7 @@ export const TEMPLATES = [
     difficulty: 'easy',
     category: 'icon',
     colors: ['#E53935', '#FF8A80'],
-    pattern: generateHeartPattern()
+    pattern: generateHeartPattern(),
   },
   {
     id: 4,
@@ -36,7 +36,7 @@ export const TEMPLATES = [
     difficulty: 'hard',
     category: 'animal',
     colors: ['#FDD835', '#000000', '#E53935'],
-    pattern: generatePikachuPattern()
+    pattern: generatePikachuPattern(),
   },
   {
     id: 5,
@@ -45,7 +45,7 @@ export const TEMPLATES = [
     difficulty: 'medium',
     category: 'holiday',
     colors: ['#32CD32', '#E53935', '#FDD835'],
-    pattern: generateChristmasTreePattern()
+    pattern: generateChristmasTreePattern(),
   },
   {
     id: 6,
@@ -54,7 +54,7 @@ export const TEMPLATES = [
     difficulty: 'hard',
     category: 'animal',
     colors: ['#F06292', '#BA68C8', '#FDD835'],
-    pattern: generateUnicornPattern()
+    pattern: generateUnicornPattern(),
   },
   {
     id: 7,
@@ -63,7 +63,7 @@ export const TEMPLATES = [
     difficulty: 'medium',
     category: 'food',
     colors: ['#FFB74D', '#8D6E63', '#4CAF50', '#E53935'],
-    pattern: generateBurgerPattern()
+    pattern: generateBurgerPattern(),
   },
   {
     id: 8,
@@ -72,17 +72,21 @@ export const TEMPLATES = [
     difficulty: 'easy',
     category: 'icon',
     colors: ['#E53935', '#FF9800', '#FDD835', '#4CAF50', '#1976D2'],
-    pattern: generateRainbowPattern()
-  }
+    pattern: generateRainbowPattern(),
+  },
 ]
 
 // 生成小熊图案
 function generateBearPattern() {
   const size = 29
-  const grid = Array(size).fill(null).map(() => Array(size).fill(null))
+  const grid = Array(size)
+    .fill(null)
+    .map(() => Array(size).fill(null))
 
   // 熊头
-  const centerX = 14, centerY = 14, radius = 8
+  const centerX = 14,
+    centerY = 14,
+    radius = 8
   for (let y = 0; y < size; y++) {
     for (let x = 0; x < size; x++) {
       const dist = Math.sqrt((x - centerX) ** 2 + (y - centerY) ** 2)
@@ -121,7 +125,9 @@ function generateBearPattern() {
 // 生成草莓图案
 function generateStrawberryPattern() {
   const size = 29
-  const grid = Array(size).fill(null).map(() => Array(size).fill(null))
+  const grid = Array(size)
+    .fill(null)
+    .map(() => Array(size).fill(null))
 
   // 草莓主体
   for (let y = 8; y < 24; y++) {
@@ -142,7 +148,18 @@ function generateStrawberryPattern() {
   }
 
   // 草莓籽
-  const seeds = [[11, 12], [14, 11], [17, 12], [10, 16], [13, 15], [16, 16], [19, 13], [12, 19], [15, 18], [18, 18]]
+  const seeds = [
+    [11, 12],
+    [14, 11],
+    [17, 12],
+    [10, 16],
+    [13, 15],
+    [16, 16],
+    [19, 13],
+    [12, 19],
+    [15, 18],
+    [18, 18],
+  ]
   seeds.forEach(([x, y]) => {
     if (y < size && x < size) grid[y][x] = '#FFEB3B'
   })
@@ -153,7 +170,9 @@ function generateStrawberryPattern() {
 // 生成爱心图案
 function generateHeartPattern() {
   const size = 29
-  const grid = Array(size).fill(null).map(() => Array(size).fill(null))
+  const grid = Array(size)
+    .fill(null)
+    .map(() => Array(size).fill(null))
 
   for (let y = 0; y < size; y++) {
     for (let x = 0; x < size; x++) {
@@ -176,7 +195,9 @@ function generateHeartPattern() {
 // 生成皮卡丘图案
 function generatePikachuPattern() {
   const size = 29
-  const grid = Array(size).fill(null).map(() => Array(size).fill(null))
+  const grid = Array(size)
+    .fill(null)
+    .map(() => Array(size).fill(null))
 
   // 黄色身体
   for (let y = 8; y < 22; y++) {
@@ -215,7 +236,9 @@ function generatePikachuPattern() {
 // 生成圣诞树图案
 function generateChristmasTreePattern() {
   const size = 29
-  const grid = Array(size).fill(null).map(() => Array(size).fill(null))
+  const grid = Array(size)
+    .fill(null)
+    .map(() => Array(size).fill(null))
 
   // 树冠
   for (let y = 2; y < 18; y++) {
@@ -239,7 +262,14 @@ function generateChristmasTreePattern() {
   }
 
   // 装饰
-  const ornaments = [[5, 12], [5, 16], [10, 10], [10, 18], [15, 8], [15, 20]]
+  const ornaments = [
+    [5, 12],
+    [5, 16],
+    [10, 10],
+    [10, 18],
+    [15, 8],
+    [15, 20],
+  ]
   ornaments.forEach(([y, x]) => {
     if (y < size && x < size) grid[y][x] = '#E53935'
   })
@@ -257,7 +287,9 @@ function generateChristmasTreePattern() {
 // 生成独角兽图案
 function generateUnicornPattern() {
   const size = 29
-  const grid = Array(size).fill(null).map(() => Array(size).fill(null))
+  const grid = Array(size)
+    .fill(null)
+    .map(() => Array(size).fill(null))
 
   // 头部
   for (let y = 6; y < 20; y++) {
@@ -298,7 +330,9 @@ function generateUnicornPattern() {
 // 生成汉堡图案
 function generateBurgerPattern() {
   const size = 29
-  const grid = Array(size).fill(null).map(() => Array(size).fill(null))
+  const grid = Array(size)
+    .fill(null)
+    .map(() => Array(size).fill(null))
 
   // 上面包
   for (let y = 4; y < 10; y++) {
@@ -349,7 +383,9 @@ function generateBurgerPattern() {
 // 生成彩虹图案
 function generateRainbowPattern() {
   const size = 29
-  const grid = Array(size).fill(null).map(() => Array(size).fill(null))
+  const grid = Array(size)
+    .fill(null)
+    .map(() => Array(size).fill(null))
 
   const colors = ['#E53935', '#FF9800', '#FDD835', '#4CAF50', '#1976D2']
   const centerY = 14
@@ -424,7 +460,7 @@ export function templateDimensions(template) {
 export function convertTemplateToBrand(pattern, targetPaletteId) {
   const cache = new Map()
   return pattern.map(row =>
-    row.map((cell) => {
+    row.map(cell => {
       if (!cell) return null
       if (cache.has(cell)) return cache.get(cell)
       const match = findClosestColor(cell, targetPaletteId)
@@ -477,7 +513,10 @@ export function normalizeCustomTemplate(input) {
         normRow.push(cell.toUpperCase())
         nonEmpty++
       } else {
-        errors.push({ code: 'invalidColor', detail: `(行 ${y + 1}, 列 ${x + 1}): ${String(cell).slice(0, 12)}` })
+        errors.push({
+          code: 'invalidColor',
+          detail: `(行 ${y + 1}, 列 ${x + 1}): ${String(cell).slice(0, 12)}`,
+        })
       }
     }
     normalized.push(normRow)
@@ -489,9 +528,9 @@ export function normalizeCustomTemplate(input) {
   // 补齐后矩形宽高才是权威的(拒绝会让既有模板直接不可用)。
   // 宽 = 最大行长,高 = 行数;size 保留为兼容字段(= max),旧代码仍可读取。
   const { width, height } = patternDimensions(normalized)
-  const cells = normalized.map(row => (
+  const cells = normalized.map(row =>
     row.length === width ? row : [...row, ...Array(width - row.length).fill(null)]
-  ))
+  )
   return {
     ok: true,
     template: {
