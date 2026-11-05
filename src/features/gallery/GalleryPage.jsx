@@ -304,6 +304,11 @@ export default function GalleryPage({ onLoadTemplate, cloudStore }) {
       : feed === 'latest'
         ? t('gallery.explorer.latestEmpty')
         : t('gallery.noResultsHint')
+  // 热门/最新在没有筛选时为空,原因是「暂无数据」而不是「匹配不到」:
+  // 此时把 feed 自己的说明当作标题,不再显示「没有找到匹配的模板」。
+  const emptyWithoutFilters = !filtersActive && feed !== 'featured'
+  const emptyTitle = emptyWithoutFilters ? feedEmptyHint : t('gallery.noResults')
+  const emptyHint = emptyWithoutFilters ? '' : feedEmptyHint
 
   /** 卡片公共回调包(feed 网格与精选资源网格共用同一套动作) */
   const renderTemplateGrid = templates => (
@@ -584,8 +589,8 @@ export default function GalleryPage({ onLoadTemplate, cloudStore }) {
                       <circle cx="11" cy="11" r="8" />
                       <path d="M21 21l-4.35-4.35" />
                     </svg>
-                    <p>{t('gallery.noResults')}</p>
-                    <span>{feedEmptyHint}</span>
+                    <p>{emptyTitle}</p>
+                    {emptyHint && <span>{emptyHint}</span>}
                     {filtersActive && (
                       <button
                         type="button"

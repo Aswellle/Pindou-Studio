@@ -441,6 +441,26 @@ describe('GalleryPage V3 — 一级 feed(精选/热门/最新)', () => {
     expect(screen.getByText('没有找到匹配的模板')).toBeTruthy()
   })
 
+  it('无筛选的热门空态说明「暂无下载数据」,而不是「匹配不到」', () => {
+    const store = feedStore({
+      templates: [
+        {
+          id: 't-zero',
+          name: 'Zero',
+          category: 'animal',
+          difficulty: 'easy',
+          size: 4,
+          pattern: [['#FF0000']],
+          downloadCount: 0,
+          createdAt: null,
+        },
+      ],
+    })
+    setup({ savedWorks: [], cloudStore: store }, ['/gallery?feed=popular'])
+    expect(screen.getByText('还没有足够的下载数据,先看看精选或最新吧')).toBeTruthy()
+    expect(screen.queryByText('没有找到匹配的模板')).toBeNull()
+  })
+
   it('精选 feed 带筛选时退化为筛选结果,并明确提示这不是人工精选', () => {
     const { container } = setup({ savedWorks: [], cloudStore: feedStore() }, ['/gallery?cat=animal'])
     expect(container.querySelectorAll('.template-card').length).toBe(2)
