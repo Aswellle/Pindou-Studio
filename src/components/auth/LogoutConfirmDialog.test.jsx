@@ -35,14 +35,20 @@ describe('LogoutConfirmDialog · 退出确认', () => {
     expect(onConfirm).toHaveBeenCalledTimes(1)
   })
 
-  it('遮罩点击与 Escape 都可以关闭', () => {
+  it('遮罩点击与 Escape 都不关闭,必须显式选择', () => {
     const onClose = vi.fn()
     render(<LogoutConfirmDialog open onClose={onClose} onConfirm={() => {}} />)
 
     fireEvent.click(document.querySelector('.logout-confirm-overlay'))
-    expect(onClose).toHaveBeenCalledTimes(1)
+    expect(onClose).not.toHaveBeenCalled()
 
     fireEvent.keyDown(document, { key: 'Escape' })
-    expect(onClose).toHaveBeenCalledTimes(2)
+    expect(onClose).not.toHaveBeenCalled()
+    expect(screen.getByRole('alertdialog')).toBeTruthy()
+  })
+
+  it('初始焦点在「取消」上,回车不会误退出', () => {
+    render(<LogoutConfirmDialog open onClose={() => {}} onConfirm={() => {}} />)
+    expect(document.activeElement).toBe(screen.getByRole('button', { name: '取消' }))
   })
 })

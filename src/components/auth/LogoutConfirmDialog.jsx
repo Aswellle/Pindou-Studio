@@ -6,22 +6,29 @@ import { useDialogA11y } from '../../hooks/useDialogA11y'
  * LogoutConfirmDialog — 退出登录二次确认。
  *
  * 退出会同时清掉本机未完成的自动保存草稿(见 useAuth.logout),因此不能一键误触。
+ * 这是必须做选择的对话框:遮罩点击与 Escape 都不关闭,只能点「取消」或「退出登录」。
  * 浮层定位/滚动/键盘补偿由 index.css 共享浮层组提供,组件只保留视觉差异。
  */
 export default function LogoutConfirmDialog({ open, onClose, onConfirm }) {
   const { t } = useTranslation()
   const title = t('profile.confirmLogoutTitle')
-  const { ref, dialogProps } = useDialogA11y({ open, onClose, label: title, role: 'alertdialog' })
+  const { ref, dialogProps } = useDialogA11y({
+    open,
+    onClose,
+    label: title,
+    role: 'alertdialog',
+    dismissible: false,
+  })
 
   if (!open) return null
 
   return createPortal(
-    <div className="logout-confirm-overlay" onClick={onClose}>
+    <div className="logout-confirm-overlay">
       <div className="logout-confirm-panel" ref={ref} {...dialogProps} onClick={e => e.stopPropagation()}>
         <h3>{title}</h3>
         <p>{t('profile.confirmLogoutBody')}</p>
         <div className="logout-confirm-actions">
-          <button type="button" className="btn btn-ghost" onClick={onClose}>
+          <button type="button" className="btn btn-ghost" autoFocus onClick={onClose}>
             {t('common.cancel')}
           </button>
           <button type="button" className="btn logout-confirm-danger" onClick={onConfirm}>
