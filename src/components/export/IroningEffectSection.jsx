@@ -34,9 +34,7 @@ export default function IroningEffectSection({
 
   // 入口缩略墙:取三种质感差异最大的材质作代表(无孔/毛巾/细闪)
   const THUMBNAIL_IDS = ['no-hole', 'towel', 'fine-glitter']
-  const thumbnails = THUMBNAIL_IDS
-    .map(id => IRONING_EFFECT_PRESETS.find(p => p.id === id))
-    .filter(Boolean)
+  const thumbnails = THUMBNAIL_IDS.map(id => IRONING_EFFECT_PRESETS.find(p => p.id === id)).filter(Boolean)
 
   const openStudio = () => {
     if (locked) {
@@ -135,6 +133,32 @@ export default function IroningEffectSection({
           margin-left: auto;
           flex: none;
           color: var(--text-muted);
+        }
+        /* 桌面端 220px 侧栏:完整描述放不下(此前标题被挤成逐字竖排),
+           收成「缩略墙 + 单行标题 + 箭头」,详情进工作室再看 */
+        @media (min-width: 1024px) {
+          .ironing-entry {
+            padding: 8px;
+            gap: 8px;
+          }
+          .ironing-entry-thumbs img {
+            width: 26px;
+            height: 26px;
+          }
+          .ironing-entry-thumbs img + img {
+            margin-left: -8px;
+          }
+          .ironing-entry-text {
+            min-width: 0;
+          }
+          .ironing-entry-title {
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+          }
+          .ironing-entry-desc {
+            display: none;
+          }
         }
       `}</style>
 
