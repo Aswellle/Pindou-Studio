@@ -8,7 +8,18 @@ import LogoutConfirmDialog from './auth/LogoutConfirmDialog'
 import { useScrollLock } from '../hooks/useScrollLock'
 import { SITE_NAME } from '../data/site'
 
-export default function Header({ user, onLogin, onRegister: _onRegister, onLogout, onSave, currentPage, onPageChange: _onPageChange, simplified, saveState, autoSaveState }) {
+export default function Header({
+  user,
+  onLogin,
+  onRegister: _onRegister,
+  onLogout,
+  onSave,
+  currentPage,
+  onPageChange: _onPageChange,
+  simplified,
+  saveState,
+  autoSaveState,
+}) {
   const { t } = useTranslation()
   const navigate = useNavigate()
   const location = useLocation()
@@ -35,12 +46,12 @@ export default function Header({ user, onLogin, onRegister: _onRegister, onLogou
   // 点击菜单外部关闭;Escape 关闭并把焦点还给触发按钮
   useEffect(() => {
     if (!userMenuOpen) return undefined
-    const handleClick = (e) => {
+    const handleClick = e => {
       if (userMenuRef.current && !userMenuRef.current.contains(e.target)) {
         setUserMenuOpen(false)
       }
     }
-    const handleKeyDown = (e) => {
+    const handleKeyDown = e => {
       if (e.key === 'Escape') {
         setUserMenuOpen(false)
         userMenuTriggerRef.current?.focus()
@@ -57,10 +68,14 @@ export default function Header({ user, onLogin, onRegister: _onRegister, onLogou
   // 自动保存状态:只在「保存中 / 已保存 / 失败」时显示。
   // 与 saveState 的未保存圆点是两件事 —— 一个是「要不要手动存」,
   // 一个是「本机草稿有没有落地」,混成一个反而看不懂。
-  const autoSaveLabel = autoSaveState === 'saving' ? t('autosave.statusSaving')
-    : autoSaveState === 'saved' ? t('autosave.statusSaved')
-    : autoSaveState === 'failed' ? t('autosave.statusFailed')
-    : null
+  const autoSaveLabel =
+    autoSaveState === 'saving'
+      ? t('autosave.statusSaving')
+      : autoSaveState === 'saved'
+        ? t('autosave.statusSaved')
+        : autoSaveState === 'failed'
+          ? t('autosave.statusFailed')
+          : null
 
   // 后台管理(admin)不在导航中显示,仅通过 /admin 路由访问
   const navItems = [
@@ -75,22 +90,22 @@ export default function Header({ user, onLogin, onRegister: _onRegister, onLogou
       <div className="header-left">
         <NavLink to="/" className="logo">
           <svg width="32" height="32" viewBox="0 0 32 32" fill="none">
-            <rect width="8" height="8" x="0" y="0" fill="#E53935"/>
-            <rect width="8" height="8" x="8" y="0" fill="#FDD835"/>
-            <rect width="8" height="8" x="16" y="0" fill="#32CD32"/>
-            <rect width="8" height="8" x="24" y="0" fill="#1976D2"/>
-            <rect width="8" height="8" x="0" y="8" fill="#F06292"/>
-            <rect width="8" height="8" x="8" y="8" fill="#BA68C8"/>
-            <rect width="8" height="8" x="16" y="8" fill="#00BCD4"/>
-            <rect width="8" height="8" x="24" y="8" fill="#FF9800"/>
-            <rect width="8" height="8" x="0" y="16" fill="#FFFFFF" stroke="#E0E0E0"/>
-            <rect width="8" height="8" x="8" y="16" fill="#9E9E9E"/>
-            <rect width="8" height="8" x="16" y="16" fill="#000000"/>
-            <rect width="8" height="8" x="24" y="16" fill="#795548"/>
-            <rect width="8" height="8" x="0" y="24" fill="#8D6E63"/>
-            <rect width="8" height="8" x="8" y="24" fill="#A1887F"/>
-            <rect width="8" height="8" x="16" y="24" fill="#BDBDBD"/>
-            <rect width="8" height="8" x="24" y="24" fill="#6D4C41"/>
+            <rect width="8" height="8" x="0" y="0" fill="#E53935" />
+            <rect width="8" height="8" x="8" y="0" fill="#FDD835" />
+            <rect width="8" height="8" x="16" y="0" fill="#32CD32" />
+            <rect width="8" height="8" x="24" y="0" fill="#1976D2" />
+            <rect width="8" height="8" x="0" y="8" fill="#F06292" />
+            <rect width="8" height="8" x="8" y="8" fill="#BA68C8" />
+            <rect width="8" height="8" x="16" y="8" fill="#00BCD4" />
+            <rect width="8" height="8" x="24" y="8" fill="#FF9800" />
+            <rect width="8" height="8" x="0" y="16" fill="#FFFFFF" stroke="#E0E0E0" />
+            <rect width="8" height="8" x="8" y="16" fill="#9E9E9E" />
+            <rect width="8" height="8" x="16" y="16" fill="#000000" />
+            <rect width="8" height="8" x="24" y="16" fill="#795548" />
+            <rect width="8" height="8" x="0" y="24" fill="#8D6E63" />
+            <rect width="8" height="8" x="8" y="24" fill="#A1887F" />
+            <rect width="8" height="8" x="16" y="24" fill="#BDBDBD" />
+            <rect width="8" height="8" x="24" y="24" fill="#6D4C41" />
           </svg>
           {!simplified && <span className="logo-text">{SITE_NAME}</span>}
         </NavLink>
@@ -129,9 +144,9 @@ export default function Header({ user, onLogin, onRegister: _onRegister, onLogou
             title={saveState === 'dirty' ? t('gallery.unsavedHint') : undefined}
           >
             <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/>
-              <polyline points="17 21 17 13 7 13 7 21"/>
-              <polyline points="7 3 7 8 15 8"/>
+              <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z" />
+              <polyline points="17 21 17 13 7 13 7 21" />
+              <polyline points="7 3 7 8 15 8" />
             </svg>
             {!simplified && t('gallery.saveTitle')}
             {/* 未保存标记:一个不依赖颜色的圆点,窄屏也能看见 */}
@@ -208,13 +223,20 @@ export default function Header({ user, onLogin, onRegister: _onRegister, onLogou
           <div className="auth-buttons">
             {simplified ? (
               /* 移动端游客:圆框"登录"文字按钮(带 i18n) */
-              <button onClick={onLogin} className="mobile-login-btn" aria-label={t('auth.login')} title={t('auth.login')}>
+              <button
+                onClick={onLogin}
+                className="mobile-login-btn"
+                aria-label={t('auth.login')}
+                title={t('auth.login')}
+              >
                 {t('auth.login')}
               </button>
             ) : (
               /* PC 游客:单个「登录」按钮,保留品牌主色填充(网站标志色);
                  注册在 /login 页顶部切换,入口保留。顶栏右侧留出后续扩展空间 */
-              <button onClick={onLogin} className="btn btn-primary">{t('auth.login')}</button>
+              <button onClick={onLogin} className="btn btn-primary">
+                {t('auth.login')}
+              </button>
             )}
           </div>
         )}

@@ -17,8 +17,11 @@ export default function MobileColorPalette({
   const palette = PALETTE_LIST.find(p => p.id === currentPalette) || PALETTE_LIST[0]
   // 惰性初始化一次(此前每次渲染都 JSON.parse,脏数据还会导致整页崩溃)
   const [recentColors, setRecentColors] = useState(() => {
-    try { return JSON.parse(localStorage.getItem('bead_studio_recent_colors') || '[]') }
-    catch { return [] }
+    try {
+      return JSON.parse(localStorage.getItem('bead_studio_recent_colors') || '[]')
+    } catch {
+      return []
+    }
   })
 
   // 当前选中颜色在色卡里的具体名称（如"玉米黄"），找不到就只显示 HEX
@@ -27,7 +30,8 @@ export default function MobileColorPalette({
     [palette, selectedColor]
   )
   // 颜色名走 i18n 键(palette.colorNames.<品牌>.<色号>),缺键回退到数据自带的 nameZh/name
-  const colorName = (color) => color && t(`palette.colorNames.${palette.id}.${color.id}`, color.nameZh || color.name)
+  const colorName = color =>
+    color && t(`palette.colorNames.${palette.id}.${color.id}`, color.nameZh || color.name)
   const selectedColorName = selectedColorInfo ? colorName(selectedColorInfo) : ''
 
   // 色系分组:优先按 groupOrder(商家销量调研的畅销度),否则按组内颜色数降序
@@ -58,7 +62,7 @@ export default function MobileColorPalette({
     }
   }, [canvasData, palette])
 
-  const handleColorSelect = (color) => {
+  const handleColorSelect = color => {
     onColorSelect(color)
 
     // 保存最近使用的颜色
@@ -72,14 +76,8 @@ export default function MobileColorPalette({
   return (
     <div className="mobile-color-palette">
       {/* 当前颜色预览：色块 + 名称 + HEX，普通用户光看色号认不出颜色，这里直接把名字显示出来 */}
-      <button
-        className="current-color-btn"
-        onClick={() => setShowPalette(!showPalette)}
-      >
-        <div
-          className="color-preview"
-          style={{ backgroundColor: selectedColor }}
-        />
+      <button className="current-color-btn" onClick={() => setShowPalette(!showPalette)}>
+        <div className="color-preview" style={{ backgroundColor: selectedColor }} />
         <span className="color-label">
           {/* 颜色名称 + 所属品牌(去重:色号已在色卡网格中显示,这里只标品牌) */}
           <span className="color-name">{selectedColorName || selectedColor}</span>
@@ -129,11 +127,13 @@ export default function MobileColorPalette({
           {/* 色卡网格：色块下方直接印出色号+名称，不再只靠长按才出现的 title 提示。
               有 groupNames 的品牌(MARD 等)按色系分组展示,便于快速定位 */}
           {groups ? (
-            groups.map((g) => (
+            groups.map(g => (
               <div key={g.id} className="palette-group">
-                <div className="palette-group-title">{t(`palette.groupNames.${palette.id}.${g.id}`, g.name)} · {g.colors.length}</div>
+                <div className="palette-group-title">
+                  {t(`palette.groupNames.${palette.id}.${g.id}`, g.name)} · {g.colors.length}
+                </div>
                 <div className="color-grid">
-                  {g.colors.map((color) => (
+                  {g.colors.map(color => (
                     <button
                       key={color.id}
                       className={`color-swatch-item ${selectedColor === color.hex ? 'selected' : ''}`}
@@ -150,7 +150,7 @@ export default function MobileColorPalette({
             ))
           ) : (
             <div className="color-grid">
-              {palette.colors.map((color) => (
+              {palette.colors.map(color => (
                 <button
                   key={color.id}
                   className={`color-swatch-item ${selectedColor === color.hex ? 'selected' : ''}`}
