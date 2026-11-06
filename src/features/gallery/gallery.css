@@ -107,6 +107,14 @@
   align-items: center;
   border-bottom: 1px solid var(--border-color);
 }
+/* 方形预览的兜底撑高:部分移动端旧内核(微信 X5 等)不支持 aspect-ratio,
+           预览框会塌成只剩内边距、整卡版式错乱。伪元素按宽度撑出同样的正方形,
+           现代浏览器下与 aspect-ratio 结果一致,两条规则互不冲突。 */
+.template-thumbnail::before {
+  content: "";
+  display: block;
+  padding-top: 100%;
+}
 .template-thumbnail canvas {
   image-rendering: pixelated;
   /* 绝对定位 + 显式 calc 尺寸:
