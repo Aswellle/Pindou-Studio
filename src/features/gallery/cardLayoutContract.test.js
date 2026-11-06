@@ -73,6 +73,13 @@ describe('图库卡片版式契约', () => {
     expect(decls).not.toContain('min-height')
   })
 
+  it('方形预览框有伪元素兜底,不依赖 aspect-ratio(旧内核手机不塌陷)', () => {
+    // 微信 X5 等旧 WebView 不支持 aspect-ratio:只有 aspect-ratio 时预览框
+    // 高度会塌成内边距,卡片版式整体错乱。伪元素按宽度撑出同样的正方形。
+    const before = ruleBody(GALLERY_CSS, '.template-thumbnail::before {')
+    expect(before).toContain('padding-top: 100%')
+  })
+
   it('画布用定尺寸盒子 + contain,不按位图原始比例参与布局', () => {
     const canvas = ruleBody(GALLERY_CSS, '.template-thumbnail canvas')
     expect(canvas).toContain('position: absolute')
@@ -135,14 +142,14 @@ describe('ThumbnailCanvas 渲染契约', () => {
     expect(THUMB_JSX).toMatch(/derived\.width\s*\|\|/)
   })
 
-  it('画布盒子比例由逻辑网格决定,不由位图决定', () => {
+  it('画布盒子比例由内容包围盒决定,不由位图决定', () => {
     // canvas 是替换元素,固有尺寸就是位图的 width/height 属性。只约束一维
     // (max-width/max-height)时,浏览器会拿位图比例算出另一维;而 effect 又按
     // 量到的盒子设位图 —— 两者互相喂养,一次被压扁就再也回不来(竖长图案在
-    // 方形预览区里只剩一条细缝)。style 上的 aspect-ratio 让逻辑网格单方面
+    // 方形预览区里只剩一条细缝)。style 上的 aspect-ratio 让逻辑内容单方面
     // 决定盒子形状,位图只是往里填像素。
     expect(THUMB_JSX).toMatch(/aspectRatio/)
-    expect(THUMB_JSX).toMatch(/`\$\{width\}\s*\/\s*\$\{height\}`/)
+    expect(THUMB_JSX).toMatch(/`\$\{gridW\}\s*\/\s*\$\{gridH\}`/)
   })
 
   it('画布不铺不透明底色,容器底色才是纸', () => {
@@ -166,12 +173,19 @@ describe('模板尺寸以数据实际形状为准', () => {
     expect(THUMB_JSX).not.toMatch(/Number\(gridHeight\)\s*\|\|\s*derived\.height/)
   })
 
-  it('铺格只按实际形状(rows × cols)contain,声明尺寸不参与', () => {
+  it('铺格按内容包围盒 contain,空白边距不参与构图', () => {
     const code = THUMB_JSX.replace(/\/\/.*$/gm, '')
-    expect(code).toMatch(/Math\.min\(bitmapW \/ cols, bitmapH \/ rows\)/)
-    // 声明网格的 offsetX/offsetY 居中已删除:布局尺寸与数据一致时它恒为 0,
-    // 数据不一致时它正是错位的来源
+    expect(code).toMatch(/Math\.min\(bitmapW \/ gridW, bitmapH \/ gridH\)/)
+    // 旧的全网格居中偏移已删除:构图依据是 contentBox() 给出的 x0/y0
     expect(code).not.toMatch(/offsetX|offsetY/)
+    expect(code).toMatch(/contentBox\(/)
+  })
+
+  it('近白色珠子补淡描边,白纸上的白珠不会隐身', () => {
+    // 内置独角兽含 124 颗 #F8F8F8:不描边就只剩零星的深色格点,
+    // 整块图案读不出来。规则与具体配色无关,新上传的图纸同样成立。
+    expect(THUMB_JSX).toContain('isNearWhite')
+    expect(THUMB_JSX).toMatch(/strokeRect/)
   })
 
   it('templateDimensions 同纪律:pattern 推导优先,声明值兜底', () => {
