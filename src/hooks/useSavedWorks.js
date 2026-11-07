@@ -46,25 +46,28 @@ function readMirror() {
   try {
     const m = JSON.parse(localStorage.getItem(MIRROR_KEY) || 'null')
     return m && typeof m.count === 'number' ? m : { count: 0 }
-  } catch { return { count: 0 } }
+  } catch {
+    return { count: 0 }
+  }
 }
 
 // 云端行 <-> UI work 字段映射(snake_case <-> camelCase)。
 // 读入走 normalizeLegacyWork:旧行可能 grid_size 与 canvas_data 形状不一致,
 // 以数据实际形状为准,避免载入后错位/裁切。
-const rowToWork = (row) => normalizeLegacyWork({
-  id: row.id,
-  name: row.name,
-  canvasData: row.canvas_data,
-  gridSize: row.grid_size,
-  gridWidth: row.grid_width,
-  gridHeight: row.grid_height,
-  paletteId: row.palette_id,
-  savedAt: row.saved_at,
-  sourceTemplateId: row.source_template_id ?? null,
-  // 来源类别(迁移 0024):旧行没有该列 → null,由适配层按 legacy-work 处理
-  sourceKind: row.source_kind ?? null,
-})
+const rowToWork = row =>
+  normalizeLegacyWork({
+    id: row.id,
+    name: row.name,
+    canvasData: row.canvas_data,
+    gridSize: row.grid_size,
+    gridWidth: row.grid_width,
+    gridHeight: row.grid_height,
+    paletteId: row.palette_id,
+    savedAt: row.saved_at,
+    sourceTemplateId: row.source_template_id ?? null,
+    // 来源类别(迁移 0024):旧行没有该列 → null,由适配层按 legacy-work 处理
+    sourceKind: row.source_kind ?? null,
+  })
 const workToRow = (w, { includeMetadata = true } = {}) => {
   const row = {
     name: w.name,
@@ -99,7 +102,7 @@ const workToRow = (w, { includeMetadata = true } = {}) => {
  * 不写元数据再试一次,数据本体(canvas_data/尺寸/色卡)照常落库。
  * PostgREST 报 PGRST204(列不存在)/ 42703(undefined_column),文本里带列名。
  */
-const isMissingMetadataColumn = (error) => {
+const isMissingMetadataColumn = error => {
   if (!error) return false
   const code = String(error.code || '')
   const text = `${error.message || ''} ${error.details || ''}`
@@ -107,7 +110,7 @@ const isMissingMetadataColumn = (error) => {
   return /source_kind|schema_version|visibility/.test(text)
 }
 // 登录迁移去重键:与 0017_works.sql 的唯一索引 (user_id, saved_at, name) 对应
-const dedupKey = (w) => `${w.savedAt}|${w.name}`
+const dedupKey = w => `${w.savedAt}|${w.name}`
 
 /**
  * 作品持久化:本地(localStorage)与云端(Supabase works 表)双模式。
@@ -119,7 +122,9 @@ const dedupKey = (w) => `${w.savedAt}|${w.name}`
 /** 创建可手动完成的 Promise:云端迁移要等本机装载结束(见 useSavedWorks) */
 function createDeferred() {
   let resolve
-  const promise = new Promise((r) => { resolve = r })
+  const promise = new Promise(r => {
+    resolve = r
+  })
   return { promise, resolve }
 }
 
@@ -139,7 +144,9 @@ export function useSavedWorks(user) {
   const [cloudMirrorCount, setCloudMirrorCount] = useState(() => readMirror().count)
   const [saveState, setSaveState] = useState(SAVE_STATES.IDLE)
   const worksRef = useRef(works)
-  useEffect(() => { worksRef.current = works }, [works])
+  useEffect(() => {
+    worksRef.current = works
+  }, [works])
 
   const isCloud = useCallback(() => !!user && !!supabase, [user])
 
@@ -173,7 +180,9 @@ export function useSavedWorks(user) {
         localReadyRef.current.resolve()
       }
     })()
-    return () => { cancelled = true }
+    return () => {
+      cancelled = true
+    }
   }, [])
 
   // 云端模式下作品变化时同步镜像计数(登出后「我的作品」空态提示依赖它)
@@ -215,7 +224,7 @@ export function useSavedWorks(user) {
           const local = await listWorks()
           const existing = new Set(cloudWorks.map(dedupKey))
           const seen = new Set()
-          const toPush = local.filter((w) => {
+          const toPush = local.filter(w => {
             const k = dedupKey(w)
             if (existing.has(k) || seen.has(k)) return false
             seen.add(k)
@@ -223,17 +232,21 @@ export function useSavedWorks(user) {
           })
           let migrated = 0
           if (toPush.length > 0) {
-            const pushRows = (rows) => supabase
-              .from('works')
-              .upsert(rows.map((w) => ({ ...w, user_id: user.id })), {
-                onConflict: 'user_id,saved_at,name',
-              })
-              .select()
-            let { data: pushed, error: insErr } = await pushRows(toPush.map((w) => workToRow(w)))
+            const pushRows = rows =>
+              supabase
+                .from('works')
+                .upsert(
+                  rows.map(w => ({ ...w, user_id: user.id })),
+                  {
+                    onConflict: 'user_id,saved_at,name',
+                  }
+                )
+                .select()
+            let { data: pushed, error: insErr } = await pushRows(toPush.map(w => workToRow(w)))
             // 迁移 0024 未执行:去掉元数据列重试,作品本体照常迁移
             if (insErr && isMissingMetadataColumn(insErr)) {
               ;({ data: pushed, error: insErr } = await pushRows(
-                toPush.map((w) => workToRow(w, { includeMetadata: false }))
+                toPush.map(w => workToRow(w, { includeMetadata: false }))
               ))
             }
             if (insErr) throw insErr
@@ -280,12 +293,14 @@ export function useSavedWorks(user) {
         setWorksLoading(false)
       }
     }
-    return () => { cancelled = true }
+    return () => {
+      cancelled = true
+    }
     // 依赖 user?.id:昵称/头像等资料刷新(refreshProfile 生成新对象)不触发重拉
     // reloadToken:仅由 reloadWorks() 递增,用于失败后手动重试
   }, [user?.id, reloadToken])
 
-  const reload = useCallback(() => setReloadToken((n) => n + 1), [])
+  const reload = useCallback(() => setReloadToken(n => n + 1), [])
 
   // 保存:云端直接落库;本机写 IndexedDB(不可用时降级 localStorage)。
   // 落库前统一走 normalizeLegacyWork:尺寸以 canvasData 实际形状为准,
@@ -303,84 +318,93 @@ export function useSavedWorks(user) {
    * 失败一律吞掉:版本是增强功能,不能因为它让保存看起来失败。
    * IndexedDB 不可用时 listVersions/appendVersion 都静默返回空/false。
    */
-  const recordVersion = useCallback(async (work) => {
+  const recordVersion = useCallback(async work => {
     if (!work || work.id == null) return
     try {
       const existing = await listVersions(work.id, { limit: 1 })
       if (!shouldRecordVersion(existing[0] || null, work)) return
-      await appendVersion({
-        workId: work.id,
-        name: work.name || '',
-        canvasData: work.canvasData,
-        gridSize: work.gridSize,
-        gridWidth: work.gridWidth ?? null,
-        gridHeight: work.gridHeight ?? null,
-        paletteId: work.paletteId || 'perler',
-        savedAt: work.savedAt || new Date().toISOString(),
-      }, { keep: MAX_VERSIONS_PER_WORK })
+      await appendVersion(
+        {
+          workId: work.id,
+          name: work.name || '',
+          canvasData: work.canvasData,
+          gridSize: work.gridSize,
+          gridWidth: work.gridWidth ?? null,
+          gridHeight: work.gridHeight ?? null,
+          paletteId: work.paletteId || 'perler',
+          savedAt: work.savedAt || new Date().toISOString(),
+        },
+        { keep: MAX_VERSIONS_PER_WORK }
+      )
     } catch {
       // 版本记录失败不影响保存结果
     }
   }, [])
 
   const saveSeqRef = useRef(0)
-  const saveWork = useCallback(async (work) => {
-    const normalized = normalizeLegacyWork(work)
-    const seq = ++saveSeqRef.current
-    setSaveState(SAVE_STATES.SAVING)
-    if (isCloud()) {
-      try {
-        const insert = (includeMetadata) => supabase
-          .from('works')
-          .insert({ ...workToRow(normalized, { includeMetadata }), user_id: user.id })
-          .select()
-          .single()
-        let { data, error } = await insert(true)
-        // 迁移 0024 未执行:退化为不写元数据重试,作品本体不能因此存不下来
-        if (error && isMissingMetadataColumn(error)) {
-          ;({ data, error } = await insert(false))
+  const saveWork = useCallback(
+    async work => {
+      const normalized = normalizeLegacyWork(work)
+      const seq = ++saveSeqRef.current
+      setSaveState(SAVE_STATES.SAVING)
+      if (isCloud()) {
+        try {
+          const insert = includeMetadata =>
+            supabase
+              .from('works')
+              .insert({ ...workToRow(normalized, { includeMetadata }), user_id: user.id })
+              .select()
+              .single()
+          let { data, error } = await insert(true)
+          // 迁移 0024 未执行:退化为不写元数据重试,作品本体不能因此存不下来
+          if (error && isMissingMetadataColumn(error)) {
+            ;({ data, error } = await insert(false))
+          }
+          if (error) throw error
+          if (seq === saveSeqRef.current) {
+            setWorks(prev => [rowToWork(data), ...prev])
+            setSaveState(SAVE_STATES.SAVED)
+          }
+          // 返回保存后的作品(带云端 UUID):调用方(如图库模板一键分享)
+          // 需要新 id 才能串联后续动作;真值语义与旧返回 true 兼容
+          return rowToWork(data)
+        } catch (e) {
+          console.error('云端保存失败:', e)
+          if (seq === saveSeqRef.current) setSaveState(SAVE_STATES.FAILED)
+          toast(i18n.t('errors.saveFailed'), 'error')
+          return false
         }
-        if (error) throw error
-        if (seq === saveSeqRef.current) {
-          setWorks((prev) => [rowToWork(data), ...prev])
-          setSaveState(SAVE_STATES.SAVED)
+      }
+      const updated = [...worksRef.current, normalized]
+      // 配额提示只在接近上限时出现;IndexedDB 的实际配额远大于此,
+      // 但仍按同一阈值提醒,避免用户攒到无法导出时才被发现
+      const bytes = estimateBytes(updated)
+      if (bytes > WARN_BYTES) {
+        const kb = Math.round(bytes / 1024)
+        if (!window.confirm(`本地作品已占用约 ${kb}KB，建议先删除部分旧作品。是否继续保存？`)) {
+          setSaveState(SAVE_STATES.DIRTY)
+          return false
         }
-        return true
-      } catch (e) {
-        console.error('云端保存失败:', e)
-        if (seq === saveSeqRef.current) setSaveState(SAVE_STATES.FAILED)
-        toast(i18n.t('errors.saveFailed'), 'error')
-        return false
       }
-    }
-    const updated = [...worksRef.current, normalized]
-    // 配额提示只在接近上限时出现;IndexedDB 的实际配额远大于此,
-    // 但仍按同一阈值提醒,避免用户攒到无法导出时才被发现
-    const bytes = estimateBytes(updated)
-    if (bytes > WARN_BYTES) {
-      const kb = Math.round(bytes / 1024)
-      if (!window.confirm(`本地作品已占用约 ${kb}KB，建议先删除部分旧作品。是否继续保存？`)) {
-        setSaveState(SAVE_STATES.DIRTY)
-        return false
-      }
-    }
 
-    const result = await saveWorkRecord(normalized)
-    if (!result.ok) {
-      if (seq === saveSeqRef.current) setSaveState(SAVE_STATES.FAILED)
-      toast(i18n.t('errors.storageFull'), 'error')
-      return false
-    }
-    // 版本时间线只在本地模式下记录(云端只留里程碑版本,由后续云端方案处理)。
-    // 记录失败不影响保存本身 —— 作品已经安全落库,历史是增强功能,不能反过来
-    // 让用户看到「保存失败」。
-    await recordVersion(normalized)
-    if (seq === saveSeqRef.current) {
-      setWorks(updated)
-      setSaveState(SAVE_STATES.SAVED)
-    }
-    return true
-  }, [isCloud, user, toast, recordVersion])
+      const result = await saveWorkRecord(normalized)
+      if (!result.ok) {
+        if (seq === saveSeqRef.current) setSaveState(SAVE_STATES.FAILED)
+        toast(i18n.t('errors.storageFull'), 'error')
+        return false
+      }
+      // 版本时间线只在本地模式下记录(云端只留里程碑版本,由后续云端方案处理)。
+      // 记录失败不影响保存本身 —— 作品已经安全落库,历史是增强功能,不能反过来
+      // 让用户看到「保存失败」。
+      await recordVersion(normalized)
+      if (seq === saveSeqRef.current) {
+        setWorks(updated)
+        setSaveState(SAVE_STATES.SAVED)
+      }
+      return true
+    },
+    [isCloud, user, toast, recordVersion]
+  )
 
   /**
    * 画布发生变化时调用:把状态标记为 dirty。
@@ -388,34 +412,38 @@ export function useSavedWorks(user) {
    * 不该让存储层去猜。
    */
   const markDirty = useCallback(() => {
-    setSaveState((prev) => (
+    setSaveState(prev =>
       // 保存进行中不改状态:请求还没回来,此时标 dirty 会让「保存中」闪回「未保存」
       prev === SAVE_STATES.SAVING ? prev : SAVE_STATES.DIRTY
-    ))
+    )
   }, [])
 
   // 删除:云端删行;本机删仓储记录
-  const deleteWork = useCallback(async (work) => {    if (isCloud()) {
-      try {
-        const { error } = await supabase.from('works').delete().eq('id', work.id)
-        if (error) throw error
-        setWorks((prev) => prev.filter((w) => w.id !== work.id))
-      } catch (e) {
-        console.error('云端删除失败:', e)
-        toast(i18n.t('errors.deleteFailed'), 'error')
+  const deleteWork = useCallback(
+    async work => {
+      if (isCloud()) {
+        try {
+          const { error } = await supabase.from('works').delete().eq('id', work.id)
+          if (error) throw error
+          setWorks(prev => prev.filter(w => w.id !== work.id))
+        } catch (e) {
+          console.error('云端删除失败:', e)
+          toast(i18n.t('errors.deleteFailed'), 'error')
+        }
+        return
       }
-      return
-    }
-    const ok = await deleteWorkRecord(work.id)
-    if (!ok) {
-      toast(i18n.t('errors.deleteFailed'), 'error')
-      return
-    }
-    // 作品删了,它的版本必须一起删 —— 否则历史条目会变成永久占空间的孤儿,
-    // 而且没有任何入口能再看到或清理它们。
-    await clearVersions(work.id)
-    setWorks((prev) => prev.filter((w) => w.id !== work.id))
-  }, [isCloud, toast])
+      const ok = await deleteWorkRecord(work.id)
+      if (!ok) {
+        toast(i18n.t('errors.deleteFailed'), 'error')
+        return
+      }
+      // 作品删了,它的版本必须一起删 —— 否则历史条目会变成永久占空间的孤儿,
+      // 而且没有任何入口能再看到或清理它们。
+      await clearVersions(work.id)
+      setWorks(prev => prev.filter(w => w.id !== work.id))
+    },
+    [isCloud, toast]
+  )
 
   // 同步 toast 已展示后调用,重置迁移计数
   const ackSync = useCallback(() => setSyncCount(null), [])
@@ -429,46 +457,49 @@ export function useSavedWorks(user) {
    *
    * @returns {Promise<boolean>}
    */
-  const updateWork = useCallback(async (work) => {
-    const normalized = normalizeLegacyWork(work)
-    if (!normalized || normalized.id == null) return false
-    setSaveState(SAVE_STATES.SAVING)
-    if (isCloud()) {
-      try {
-        const { data, error } = await supabase
-          .from('works')
-          .update({
-            canvas_data: normalized.canvasData,
-            grid_size: normalized.gridSize,
-            grid_width: normalized.gridWidth ?? null,
-            grid_height: normalized.gridHeight ?? null,
-            palette_id: normalized.paletteId || 'perler',
-            updated_at: new Date().toISOString(),
-          })
-          .eq('id', normalized.id)
-          .select()
-          .single()
-        if (error) throw error
-        setWorks((prev) => prev.map((w) => (w.id === normalized.id ? rowToWork(data) : w)))
-        setSaveState(SAVE_STATES.SAVED)
-        return true
-      } catch (e) {
-        console.error('云端更新作品失败:', e)
+  const updateWork = useCallback(
+    async work => {
+      const normalized = normalizeLegacyWork(work)
+      if (!normalized || normalized.id == null) return false
+      setSaveState(SAVE_STATES.SAVING)
+      if (isCloud()) {
+        try {
+          const { data, error } = await supabase
+            .from('works')
+            .update({
+              canvas_data: normalized.canvasData,
+              grid_size: normalized.gridSize,
+              grid_width: normalized.gridWidth ?? null,
+              grid_height: normalized.gridHeight ?? null,
+              palette_id: normalized.paletteId || 'perler',
+              updated_at: new Date().toISOString(),
+            })
+            .eq('id', normalized.id)
+            .select()
+            .single()
+          if (error) throw error
+          setWorks(prev => prev.map(w => (w.id === normalized.id ? rowToWork(data) : w)))
+          setSaveState(SAVE_STATES.SAVED)
+          return true
+        } catch (e) {
+          console.error('云端更新作品失败:', e)
+          setSaveState(SAVE_STATES.FAILED)
+          toast(i18n.t('errors.saveFailed'), 'error')
+          return false
+        }
+      }
+      const result = await saveWorkRecord(normalized)
+      if (!result.ok) {
         setSaveState(SAVE_STATES.FAILED)
-        toast(i18n.t('errors.saveFailed'), 'error')
+        toast(i18n.t('errors.storageFull'), 'error')
         return false
       }
-    }
-    const result = await saveWorkRecord(normalized)
-    if (!result.ok) {
-      setSaveState(SAVE_STATES.FAILED)
-      toast(i18n.t('errors.storageFull'), 'error')
-      return false
-    }
-    setWorks((prev) => prev.map((w) => (w.id === normalized.id ? normalized : w)))
-    setSaveState(SAVE_STATES.SAVED)
-    return true
-  }, [isCloud, toast])
+      setWorks(prev => prev.map(w => (w.id === normalized.id ? normalized : w)))
+      setSaveState(SAVE_STATES.SAVED)
+      return true
+    },
+    [isCloud, toast]
+  )
 
   /**
    * 读取一件作品的版本时间线(新的在前),并附带占用估算。
@@ -478,7 +509,7 @@ export function useSavedWorks(user) {
    *
    * @returns {Promise<{ versions: Array, bytes: number }>}
    */
-  const loadVersions = useCallback(async (workId) => {
+  const loadVersions = useCallback(async workId => {
     const versions = await listVersions(workId)
     return { versions, bytes: estimateVersionBytes(versions) }
   }, [])
@@ -494,25 +525,28 @@ export function useSavedWorks(user) {
    * @param {Object} version - 要回滚到的版本
    * @returns {Promise<Object|null>} 回滚后的作品;失败返回 null
    */
-  const rollbackToVersion = useCallback(async (work, version) => {
-    if (!work || work.id == null || !version || !Array.isArray(version.canvasData)) return null
-    const restored = normalizeLegacyWork({
-      ...work,
-      canvasData: version.canvasData,
-      gridSize: version.gridSize,
-      gridWidth: version.gridWidth ?? null,
-      gridHeight: version.gridHeight ?? null,
-      paletteId: version.paletteId || work.paletteId || 'perler',
-      // savedAt 用当前时间:回滚产生的是「现在」的一条新记录,不是穿越回过去。
-      // 保留旧 savedAt 会让作品列表按时间排序时把它排到很后面,看起来像丢了。
-      savedAt: new Date().toISOString(),
-    })
-    const ok = await updateWork(restored)
-    if (!ok) return null
-    // 追加回滚后的内容作为新版本,时间线才完整可逆
-    await recordVersion(restored)
-    return restored
-  }, [updateWork, recordVersion])
+  const rollbackToVersion = useCallback(
+    async (work, version) => {
+      if (!work || work.id == null || !version || !Array.isArray(version.canvasData)) return null
+      const restored = normalizeLegacyWork({
+        ...work,
+        canvasData: version.canvasData,
+        gridSize: version.gridSize,
+        gridWidth: version.gridWidth ?? null,
+        gridHeight: version.gridHeight ?? null,
+        paletteId: version.paletteId || work.paletteId || 'perler',
+        // savedAt 用当前时间:回滚产生的是「现在」的一条新记录,不是穿越回过去。
+        // 保留旧 savedAt 会让作品列表按时间排序时把它排到很后面,看起来像丢了。
+        savedAt: new Date().toISOString(),
+      })
+      const ok = await updateWork(restored)
+      if (!ok) return null
+      // 追加回滚后的内容作为新版本,时间线才完整可逆
+      await recordVersion(restored)
+      return restored
+    },
+    [updateWork, recordVersion]
+  )
 
   return {
     works,

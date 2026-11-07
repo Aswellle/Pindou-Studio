@@ -22,13 +22,16 @@
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react'
 import { createPortal } from 'react-dom'
 import { useNavigate } from 'react-router-dom'
-import { MessageCircle, Search, SlidersHorizontal, X } from 'lucide-react'
+import { MessageCircle, Search, Share2, SlidersHorizontal, X } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { CATEGORIES, convertTemplateToBrand, templateDimensions } from '../../data/templates'
 import { getPalette } from '../../data/palettes'
 import { exportAsPNG } from '../../services/BeadPatternExporter'
+import { templateToProject } from '../../services/project/adapters'
+import { projectToImportWork } from '../../services/project/importProject'
 import { useToast } from '../../components/Toast'
 import ThumbnailCanvas from '../../components/ThumbnailCanvas'
+import ShareWorkDialog from '../sharing/ShareWorkDialog'
 import { useGalleryQuery } from './hooks/useGalleryQuery'
 import { templateMatchesQuery } from './hooks/useFilteredTemplates'
 import { useGalleryTemplates } from './hooks/useGalleryTemplates'
@@ -51,8 +54,11 @@ import './gallery.explorer.css'
 /** feed 视图的结果上限(横向 rail 时代是 12;主网格放大到 48) */
 const FEED_LIMIT = 48
 
-export default function GalleryPage({ onLoadTemplate, cloudStore }) {
-  const { t } = useTranslation()
+/** 分享只接受云端作品:works 表主键是 UUID */
+const CLOUD_ID_RE = /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/
+
+export default function GalleryPage({ onLoadTemplate, cloudStore, user, onSaveWork }) {
+  const { t, i18n } = useTranslation()
   const toast = useToast()
   const navigate = useNavigate()
   // feed 与筛选全部走 URL 状态:刷新恢复、前进后退、可分享
@@ -106,6 +112,9 @@ export default function GalleryPage({ onLoadTemplate, cloudStore }) {
   const [brandOverride, setBrandOverride] = useState({})
   // 待确认填充到画布的模板(卡片点击不再直接填充,弹窗让用户确认,避免误触)
   const [pendingLoad, setPendingLoad] = useState(null)
+  // 弹窗内「创建分享链接」:先复制为云端作品,再对副本走分享流程
+  const [shareWork, setShareWork] = useState(null)
+  const [sharePreparing, setSharePreparing] = useState(false)
   // 筛选面板开关(触发按钮引用用于锚定定位与焦点归还)
   const [filterOpen, setFilterOpen] = useState(false)
   const filterTriggerRef = useRef(null)
@@ -170,6 +179,61 @@ export default function GalleryPage({ onLoadTemplate, cloudStore }) {
         ? template.nameZh || template.name
         : t(`templates.names.${template.nameKey}`, template.nameKey),
     [t]
+  )
+
+  /** 模板创建(上传)日期,按当前语言格式化;无日期(本地模板)返回空串 */
+  const formatCreatedDate = useCallback(
+    value => {
+      if (!value) return ''
+      const d = new Date(value)
+      if (Number.isNaN(d.getTime())) return ''
+      try {
+        return d.toLocaleDateString(i18n.language, { year: 'numeric', month: '2-digit', day: '2-digit' })
+      } catch {
+        return String(value).slice(0, 10)
+      }
+    },
+    [i18n]
+  )
+
+  /**
+   * 从图库模板创建公开分享链接。
+   *
+   * 分享 RPC 只认 works 表里当前用户自己的作品,所以先复制一份到
+   * 「我的作品」(gallery-copy 语义,源模板不被修改),拿到云端 UUID
+   * 后立即对该副本打开分享弹窗。
+   */
+  const handleShareTemplate = useCallback(
+    async template => {
+      if (!template || sharePreparing) return
+      if (!user) {
+        toast(t('share.notLoggedIn'), 'info')
+        navigate('/login', { state: { mode: 'register', next: '/gallery', reason: 'shareCopy' } })
+        return
+      }
+      if (!onSaveWork) return
+      setSharePreparing(true)
+      try {
+        const project = templateToProject(template)
+        const work = projectToImportWork(project, { savedAt: new Date().toISOString() })
+        if (!work) {
+          toast(t('errors.saveFailed'), 'error')
+          return
+        }
+        const saved = await onSaveWork({ ...work, sourceTemplateId: template.id })
+        if (saved && typeof saved.id === 'string' && CLOUD_ID_RE.test(saved.id)) {
+          setPendingLoad(null)
+          setShareWork(saved)
+        } else if (saved) {
+          // 本地模式保存成功但没有云端 id:公开分享依赖云端,明确告知而不是静默失败
+          toast(t('share.cloudUnavailable'), 'error')
+        }
+        // saved 为 false 时 saveWork 已 toast 具体失败原因
+      } finally {
+        setSharePreparing(false)
+      }
+    },
+    [user, onSaveWork, sharePreparing, t, toast, navigate]
   )
 
   // ── feed 数据(04 §3):过滤先收窄集合,再按 feed 各自的排序派生 ──
@@ -649,20 +713,14 @@ export default function GalleryPage({ onLoadTemplate, cloudStore }) {
                     />
                   </div>
                   <div className="load-confirm-info">
-                    <h3 className="load-confirm-title">{t('gallery.loadConfirmTitle')}</h3>
-                    <p className="load-confirm-body">
-                      {t('gallery.loadConfirmBody', {
-                        name: pendingLoad.name
-                          ? pendingLoad.nameZh || pendingLoad.name
-                          : t(`templates.names.${pendingLoad.nameKey}`, pendingLoad.nameKey),
-                        width: pendingDims.width,
-                        height: pendingDims.height,
-                      })}
+                    <h3 className="load-confirm-title">{resolveTemplateName(pendingLoad)}</h3>
+                    <p className="load-confirm-meta">
+                      {pendingDims.width} × {pendingDims.height}
+                      {pendingLoad.createdAt
+                        ? ` · ${t('share.manage.created', { date: formatCreatedDate(pendingLoad.createdAt) })}`
+                        : ''}
                     </p>
                     <div className="load-confirm-actions">
-                      <button className="load-confirm-cancel" autoFocus onClick={() => setPendingLoad(null)}>
-                        {t('common.cancel')}
-                      </button>
                       <button
                         className="load-confirm-ok"
                         onClick={() => {
@@ -673,6 +731,17 @@ export default function GalleryPage({ onLoadTemplate, cloudStore }) {
                       >
                         {t('gallery.loadToCanvas')}
                       </button>
+                      <button
+                        className="load-confirm-share"
+                        onClick={() => handleShareTemplate(pendingLoad)}
+                        disabled={sharePreparing}
+                      >
+                        <Share2 size={15} aria-hidden="true" />
+                        {t('gallery.loadConfirmShare')}
+                      </button>
+                      <button className="load-confirm-cancel" onClick={() => setPendingLoad(null)}>
+                        {t('common.cancel')}
+                      </button>
                     </div>
                   </div>
                 </div>
@@ -681,6 +750,9 @@ export default function GalleryPage({ onLoadTemplate, cloudStore }) {
           })(),
           document.body
         )}
+
+      {/* 弹窗内「创建分享链接」的产物:对复制出的云端作品走标准分享流程 */}
+      <ShareWorkDialog open={!!shareWork} work={shareWork} onClose={() => setShareWork(null)} />
     </div>
   )
 }

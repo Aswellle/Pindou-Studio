@@ -165,7 +165,8 @@ describe('useSavedWorks · 云端元数据列(迁移 0024)', () => {
       })
     })
 
-    expect(ok).toBe(true)
+    // 保存成功返回作品对象(带云端 id);真值语义与旧布尔值兼容
+    expect(ok).toMatchObject({ id: 'row-1', name: '缺列的库' })
     // 第一次带元数据失败,第二次去掉元数据成功
     expect(cloud.inserted).toHaveLength(2)
     expect(cloud.inserted[0]).toHaveProperty('source_kind')

@@ -480,8 +480,15 @@
 .load-confirm-title {
   font-size: var(--text-2xl);
   font-weight: var(--font-weight-semibold);
-  margin: 0 0 12px;
+  margin: 0 0 8px;
   color: var(--text-primary);
+}
+/* 模板名下的元信息行:尺寸 + 创建(上传)日期 */
+.load-confirm-meta {
+  font-size: var(--text-sm);
+  color: var(--text-muted);
+  margin: 0 0 22px;
+  font-variant-numeric: tabular-nums;
 }
 .load-confirm-body {
   font-size: var(--text-base);
@@ -489,12 +496,18 @@
   margin: 0 0 24px;
   line-height: 1.6;
 }
+/* 操作区纵向排布:填充/分享/取消三个主次分明的全宽按钮,不再横排挤在一行 */
 .load-confirm-actions {
   display: flex;
+  flex-direction: column;
   gap: 10px;
   justify-content: flex-start;
 }
 .load-confirm-actions button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
   padding: 11px 26px;
   border-radius: 8px;
   border: none;
@@ -502,6 +515,10 @@
   font-size: var(--text-sm);
   font-weight: 600;
   transition: all 0.15s;
+}
+.load-confirm-actions button:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
 }
 .load-confirm-cancel {
   background: var(--bg-secondary);
@@ -516,6 +533,15 @@
 }
 .load-confirm-ok:hover {
   background: var(--accent-hover);
+}
+/* 分享入口:强调色描边的次级按钮,与主操作区分主次 */
+.load-confirm-share {
+  background: var(--bg-primary);
+  color: var(--accent);
+  border: 1px solid color-mix(in srgb, var(--accent) 45%, transparent);
+}
+.load-confirm-share:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--accent) 8%, var(--bg-primary));
 }
 @media (max-width: 640px) {
   .load-confirm-modal {

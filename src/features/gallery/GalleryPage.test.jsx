@@ -110,7 +110,10 @@ describe('GalleryPage V2 — 本地模式', () => {
     const onLoadTemplate = vi.fn()
     const { container } = setup({ savedWorks: [], onLoadTemplate })
     fireEvent.click(container.querySelector('.template-card'))
-    expect(screen.getByText('填充模板到画布')).toBeTruthy()
+    // 弹窗标题是模板名(内置模板取 i18n 名称);操作区含分享入口与取消
+    // (弹窗经 portal 渲染到 document.body,须在 document 层查询)
+    expect(document.querySelector('.load-confirm-title').textContent).toBeTruthy()
+    expect(screen.getByText('创建分享链接')).toBeTruthy()
     fireEvent.click(screen.getByText('填充到画布'))
     expect(onLoadTemplate).toHaveBeenCalledTimes(1)
     const [pattern, size, opts] = onLoadTemplate.mock.calls[0]
@@ -220,7 +223,71 @@ describe('GalleryPage V2 — 矩形模板(M2 / R3)', () => {
   it('填充确认弹窗尺寸文案使用真实宽高', () => {
     const { container } = setup({ savedWorks: [], cloudStore: rectStore })
     fireEvent.click(container.querySelector('.template-card'))
-    expect(screen.getByText(/\(4×2\)/)).toBeTruthy()
+    expect(screen.getByText(/4\s*×\s*2/)).toBeTruthy()
+  })
+})
+
+describe('GalleryPage — 模板创建分享链接', () => {
+  it('弹窗展示模板名、尺寸与创建(上传)日期', () => {
+    const { container } = setup({
+      savedWorks: [],
+      cloudStore: {
+        enabled: true,
+        loading: false,
+        error: null,
+        templates: [
+          {
+            id: 'cloud-date',
+            name: 'Dated',
+            nameZh: '日期模板',
+            category: 'animal',
+            difficulty: 'easy',
+            size: 9,
+            pattern: Array.from({ length: 9 }, () => Array(9).fill('#FFD700')),
+            paletteId: 'perler',
+            createdAt: '2026-11-01T00:00:00Z',
+          },
+        ],
+        categories: [],
+        refresh: vi.fn(),
+        loadAll: vi.fn(),
+      },
+    })
+    fireEvent.click(container.querySelector('.template-card'))
+    // 卡片与弹窗标题同名:断言弹窗(portal 到 body)标题元素本身
+    expect(document.querySelector('.load-confirm-title').textContent).toBe('日期模板')
+    expect(document.querySelector('.load-confirm-meta').textContent).toContain('9 × 9')
+    expect(document.querySelector('.load-confirm-meta').textContent).toContain('创建于')
+    expect(screen.getByText('创建分享链接')).toBeTruthy()
+  })
+
+  it('匿名点击分享入口不打开分享弹窗(实际入口在登录后)', async () => {
+    const { container } = setup({ savedWorks: [] })
+    fireEvent.click(container.querySelector('.template-card'))
+    fireEvent.click(screen.getByText('创建分享链接'))
+    // 匿名:不弹分享弹窗、不调用保存(saveWork 不会在未登录时被调用)
+    await new Promise(resolve => setTimeout(resolve, 30))
+    expect(screen.queryByText('分享图纸')).toBeNull()
+  })
+
+  it('已登录:先复制为云端作品,成功后打开分享弹窗并带来源模板', async () => {
+    const onSaveWork = vi.fn(async () => ({ id: '0f0f0f0f-1111-2222-3333-444444444444', name: '小鸭' }))
+    const { container } = setup({ savedWorks: [], user: { id: 'u1' }, onSaveWork })
+    fireEvent.click(container.querySelector('.template-card'))
+    fireEvent.click(screen.getByText('创建分享链接'))
+    await vi.waitFor(() => expect(screen.getByText('分享图纸')).toBeTruthy())
+    expect(onSaveWork).toHaveBeenCalledTimes(1)
+    expect(onSaveWork.mock.calls[0][0].sourceTemplateId).toBe(TEMPLATES[0].id)
+  })
+
+  it('本地模式(无云端 id):保存成功但不打开分享弹窗', async () => {
+    const onSaveWork = vi.fn(async () => true)
+    const { container } = setup({ savedWorks: [], user: { id: 'u1' }, onSaveWork })
+    fireEvent.click(container.querySelector('.template-card'))
+    fireEvent.click(screen.getByText('创建分享链接'))
+    await vi.waitFor(() => expect(onSaveWork).toHaveBeenCalledTimes(1))
+    await new Promise(resolve => setTimeout(resolve, 30))
+    expect(screen.queryByText('分享图纸')).toBeNull()
   })
 })
 
