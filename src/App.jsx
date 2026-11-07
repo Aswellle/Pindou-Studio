@@ -87,6 +87,8 @@ const GalleryPage = lazy(() => import('./features/gallery/GalleryPage'))
 const ThemePage = lazy(() => import('./features/gallery/ThemePage'))
 const CollectionPage = lazy(() => import('./features/gallery/CollectionPage'))
 const PatternDetailPage = lazy(() => import('./features/gallery/PatternDetailPage'))
+// 公开分享落地页(图纸分享):无需登录即可查看 /share/:id
+const SharePage = lazy(() => import('./features/sharing/SharePage'))
 // 管理概览懒加载:recharts 图表库随之进入独立 chunk,普通用户不下载
 const AdminDashboardPage = lazy(() => import('./components/AdminDashboardPage'))
 const Tutorials = lazy(() => import('./components/Tutorials'))
@@ -300,7 +302,9 @@ export default function App() {
                         ? 'contact'
                         : location.pathname.startsWith('/profile')
                           ? 'profile'
-                          : 'canvas'
+                          : location.pathname.startsWith('/share/')
+                            ? 'share'
+                            : 'canvas'
   // 404 判定独立于 currentPage:上面是按前缀归组的(/gallery/whatever 仍算 gallery),
   // 这里要求路径形状**确实存在**。两者分开,才能让「渲染 404 页」与「meta 标 noindex」
   // 始终一致 —— 否则 /gallery/whatever 会渲染 404 页却带着图库页的 index,follow。
@@ -315,7 +319,8 @@ export default function App() {
     currentPage === 'import' ||
     currentPage === 'profile' ||
     currentPage === 'myBeads' ||
-    currentPage === 'contact'
+    currentPage === 'contact' ||
+    currentPage === 'share'
 
   // iOS Safari 键盘安全(全站统一,防复发机制):
   // 监听 visual viewport 的 resize/scroll 与聚焦,把可视高度写入 --visible-vh、
@@ -1109,7 +1114,12 @@ export default function App() {
             path="/gallery"
             element={
               <Suspense fallback={<LoadingScreen />}>
-                <GalleryPage onLoadTemplate={handleLoadTemplate} cloudStore={cloudStore} />
+                <GalleryPage
+                  onLoadTemplate={handleLoadTemplate}
+                  cloudStore={cloudStore}
+                  user={user}
+                  onSaveWork={saveWork}
+                />
               </Suspense>
             }
           />
@@ -1219,6 +1229,15 @@ export default function App() {
             element={
               <Suspense fallback={<LoadingScreen />}>
                 <ContactPage user={user} />
+              </Suspense>
+            }
+          />
+
+          <Route
+            path="/share/:id"
+            element={
+              <Suspense fallback={<LoadingScreen />}>
+                <SharePage user={user} authLoading={authLoading} onSaveWork={saveWork} />
               </Suspense>
             }
           />
@@ -1490,7 +1509,12 @@ export default function App() {
           element={
             <Suspense fallback={<LoadingScreen />}>
               <div className="mobile-page-area">
-                <GalleryPage onLoadTemplate={handleLoadTemplate} cloudStore={cloudStore} />
+                <GalleryPage
+                  onLoadTemplate={handleLoadTemplate}
+                  cloudStore={cloudStore}
+                  user={user}
+                  onSaveWork={saveWork}
+                />
               </div>
             </Suspense>
           }
@@ -1639,6 +1663,16 @@ export default function App() {
           }
         />
         <Route path="/admin/login" element={renderAdminLoginPage()} />
+        <Route
+          path="/share/:id"
+          element={
+            <Suspense fallback={<LoadingScreen />}>
+              <div className="mobile-page-area">
+                <SharePage user={user} authLoading={authLoading} onSaveWork={saveWork} />
+              </div>
+            </Suspense>
+          }
+        />
         <Route
           path="/admin"
           element={
@@ -1830,6 +1864,13 @@ export default function App() {
     contact: {
       title: '联系我们 - 拼豆Studio',
       desc: '向拼豆Studio 运营者反馈使用问题、提交功能建议或咨询拼豆图纸相关问题，回复会直接显示在会话中。',
+      noindex: true,
+    },
+    // 公开分享页:快照内容默认不进索引(页面自己的 Helmet 会按加载结果细化,
+    // 这里是加载中/兜底时的保守值)。robots 具体值由 SharePage 渲染。
+    share: {
+      title: '拼豆图纸分享 - 拼豆Studio',
+      desc: '查看分享的拼豆图纸:尺寸、用豆量与配色一目了然,登录后可复制到自己的作品继续创作。',
       noindex: true,
     },
     privacy: {

@@ -11,6 +11,9 @@
  */
 
 const GALLERY_DETAIL_RE = /^\/gallery\/(?:theme|collection|pattern)\/[^/]+$/
+// 公开分享页:/share/<uuid>。只认 UUID 形状,与 shareUrl 生成、vercel.json 的
+// rewrite(→ /api/share-preview/:id)保持一致;/share/whatever 不是真实页面。
+const SHARE_DETAIL_RE = /^\/share\/[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/
 
 /**
  * 该路径是否对应一个真实存在的站内页面。
@@ -33,7 +36,12 @@ const LEGAL_VERSION_RE = /^\/(?:privacy|terms)\/[^/]+$/
 export function isKnownPath(pathname) {
   if (typeof pathname !== 'string' || !pathname) return false
   const clean = pathname.replace(/\/+$/, '') || '/'
-  return KNOWN_EXACT.has(clean) || GALLERY_DETAIL_RE.test(clean) || LEGAL_VERSION_RE.test(clean)
+  return (
+    KNOWN_EXACT.has(clean)
+    || GALLERY_DETAIL_RE.test(clean)
+    || SHARE_DETAIL_RE.test(clean)
+    || LEGAL_VERSION_RE.test(clean)
+  )
 }
 
 /**
@@ -44,5 +52,5 @@ export function isKnownPath(pathname) {
 export function canonicalPathFor(pathname, fallback = '/') {
   if (typeof pathname !== 'string' || !pathname) return fallback
   const clean = pathname.replace(/\/+$/, '') || '/'
-  return GALLERY_DETAIL_RE.test(clean) ? clean : fallback
+  return GALLERY_DETAIL_RE.test(clean) || SHARE_DETAIL_RE.test(clean) ? clean : fallback
 }

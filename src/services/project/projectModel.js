@@ -29,6 +29,7 @@ export const SOURCE_KINDS = Object.freeze([
   'chart-import',
   'native-file',
   'gallery-copy',
+  'shared-copy',
   'legacy-work',
 ])
 

@@ -43,6 +43,10 @@
       "destination": "https://gccrwnepwtpcsiqowzro.supabase.co/:path*"
     },
     {
+      "source": "/share/:id",
+      "destination": "/api/share-preview/:id"
+    },
+    {
       "source": "/gallery",
       "destination": "/gallery.html"
     },
@@ -117,6 +121,11 @@
       "destination": "/spa.html"
     }
   ],
+  "functions": {
+    "api/share-preview/[id].js": {
+      "includeFiles": "dist/spa.html"
+    }
+  },
   "headers": [
     {
       "source": "/(.*)",

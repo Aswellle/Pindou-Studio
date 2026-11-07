@@ -891,6 +891,15 @@ body:has(.mobile-toolbar) {
   min-height: 100%;
 }
 
+/* 公开分享页与个人中心同一处境:桌面端 .share-page 自己滚动,
+   移动端滚动交给 .mobile-page-area。页面自带 --bg-primary 底色,
+   min-height:100% 保证短内容也不在底部露硬边。 */
+.mobile-page-area > .share-page {
+  overflow: visible;
+  flex: none;
+  min-height: 100%;
+}
+
 /* ── 后台门禁(AdminGate,AdminPanel 与 /admin/dashboard 共用) ── */
 .admin-gate-page {
   width: 100%;

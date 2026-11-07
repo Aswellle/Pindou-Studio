@@ -16,13 +16,17 @@
 
 import { useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { LayoutGrid, RefreshCw, Search } from 'lucide-react'
+import { LayoutGrid, RefreshCw, Search, Share2 } from 'lucide-react'
 import WorkThumbnail from '../../features/gallery/components/WorkThumbnail'
+import ShareWorkDialog from '../../features/sharing/ShareWorkDialog'
 import { useDialogA11y } from '../../hooks/useDialogA11y'
 import { useScrollLock } from '../../hooks/useScrollLock'
 
 /** 来源类别 → i18n 后缀;旧作品没有该字段时不显示徽标 */
-const SOURCE_KINDS = ['blank', 'photo-quantized', 'chart-import', 'native-file', 'gallery-copy']
+const SOURCE_KINDS = ['blank', 'photo-quantized', 'chart-import', 'native-file', 'gallery-copy', 'shared-copy']
+
+/** 分享只针对云端作品:works 表主键是 UUID;本地遗留 id(如 p-xxx)无法通过 RPC 校验 */
+const CLOUD_ID_RE = /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/
 
 export default function ProfileWorksSection({
   works = [],
@@ -38,6 +42,7 @@ export default function ProfileWorksSection({
   const { t, i18n } = useTranslation()
   const [query, setQuery] = useState('')
   const [pendingDelete, setPendingDelete] = useState(null)
+  const [shareWork, setShareWork] = useState(null)
 
   useScrollLock(!!pendingDelete)
   const { ref: confirmRef, dialogProps: confirmDialogProps } = useDialogA11y({
@@ -177,6 +182,16 @@ export default function ProfileWorksSection({
                     >
                       {t('profile.center.workOpen')}
                     </button>
+                    {typeof work.id === 'string' && CLOUD_ID_RE.test(work.id) ? (
+                      <button
+                        type="button"
+                        className="pf-btn ghost sm"
+                        onClick={() => setShareWork(work)}
+                      >
+                        <Share2 size={13} aria-hidden="true" />
+                        {t('share.shareButton')}
+                      </button>
+                    ) : null}
                     {onShowVersions ? (
                       <button
                         type="button"
@@ -200,6 +215,12 @@ export default function ProfileWorksSection({
           </ul>
         )}
       </section>
+
+      <ShareWorkDialog
+        open={!!shareWork}
+        work={shareWork}
+        onClose={() => setShareWork(null)}
+      />
 
       {pendingDelete ? (
         <div className="profile-confirm-overlay">

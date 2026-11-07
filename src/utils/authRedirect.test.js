@@ -45,7 +45,8 @@ describe('resolveAuthRedirect', () => {
   it('未知原因不进入文案分支', () => {
     expect(resolveAuthRedirect({ state: { reason: 'unknown' } }).reason).toBeNull()
     // 每个守卫入口都要能在登录页展示原因文案,新增 reason 时同步 i18n
-    for (const reason of ['profile', 'myBeads', 'ironing', 'quality']) {
+    // (键名规则:auth.gate.<reason>Title,reason 必须是 camelCase)
+    for (const reason of ['profile', 'myBeads', 'ironing', 'quality', 'shareCopy']) {
       expect(resolveAuthRedirect({ state: { reason } }).reason).toBe(reason)
     }
   })

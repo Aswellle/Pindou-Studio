@@ -31,6 +31,7 @@ import ProfileInfoSection from './profile/ProfileInfoSection'
 import ProfileSecuritySection from './profile/ProfileSecuritySection'
 import ProfileAssetsSection from './profile/ProfileAssetsSection'
 import ProfileWorksSection from './profile/ProfileWorksSection'
+import SharesSection from '../features/sharing/SharesSection'
 import ProfileFavoritesSection from './profile/ProfileFavoritesSection'
 import ProfilePreferencesSection from './profile/ProfilePreferencesSection'
 import LoadingScreen from './LoadingScreen'
@@ -193,17 +194,22 @@ export default function ProfilePage({
           <main className="pf-main">
             {section === 'overview' ? <ProfileOverview {...sectionProps} /> : null}
             {section === 'works' ? (
-              <ProfileWorksSection
-                works={works}
-                worksLoading={worksLoading}
-                worksError={worksError}
-                onRetry={onRetryWorks}
-                onLoadWork={onLoadWork}
-                onDeleteWork={onDeleteWork}
-                onShowVersions={onShowVersions}
-                cloudMirrorCount={cloudMirrorCount}
-                onOpenGallery={() => navigate('/gallery')}
-              />
+              <>
+                <ProfileWorksSection
+                  works={works}
+                  worksLoading={worksLoading}
+                  worksError={worksError}
+                  onRetry={onRetryWorks}
+                  onLoadWork={onLoadWork}
+                  onDeleteWork={onDeleteWork}
+                  onShowVersions={onShowVersions}
+                  cloudMirrorCount={cloudMirrorCount}
+                  onOpenGallery={() => navigate('/gallery')}
+                />
+                {/* 我的分享与作品同屏:分享入口在作品卡片上,管理列表放在正下方,
+                    不新增左侧导航项(share.manage.* 文案已按独立分区口径准备) */}
+                <SharesSection onMessage={pushMessage} />
+              </>
             ) : null}
             {section === 'favorites' ? (
               <ProfileFavoritesSection
