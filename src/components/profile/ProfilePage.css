@@ -858,13 +858,26 @@
 }
 .pf-color-dot-more { color: var(--text-muted); font-size: var(--text-xs); }
 
-.pf-work-actions,
 .pf-fav-actions {
   display: flex;
   gap: 6px;
   flex-wrap: wrap;
   padding: 8px 12px 12px;
   margin-top: auto;
+}
+/* 作品卡片最多 4 个动作(打开/分享/历史/删除):flex 换行会出现
+   「3+1」参差行,固定两列网格让任意按钮数量都保持对齐 */
+.pf-work-actions {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 6px;
+  padding: 8px 12px 12px;
+  margin-top: auto;
+}
+.pf-work-actions .pf-btn {
+  width: 100%;
+  min-width: 0;
+  padding: 0 6px;
 }
 /* 卡片内按钮:比表单按钮矮一档,三个并排也不挤 */
 .pf-btn.sm {
@@ -931,7 +944,6 @@
   .pf-works-grid,
   .pf-fav-grid,
   .pf-works-skeleton { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-  .pf-work-actions .pf-btn,
   .pf-fav-actions .pf-btn { flex: 1 1 auto; }
 }
 
