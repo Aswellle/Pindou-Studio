@@ -64,7 +64,7 @@ async function callHandler(handler, { method = 'GET', id = UUID, headers } = {})
 /** 每个用例重置模块(清 shellCache)后重新加载 handler */
 async function loadHandler() {
   vi.resetModules()
-  const mod = await import('./[id].js')
+  const mod = await import('../[id].js')
   return mod.default
 }
 
