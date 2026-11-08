@@ -313,12 +313,28 @@ export default function IroningStudioDialog({
           gap: 14px;
         }
         @media (min-width: 900px) {
+          /* 面板高度锁在视口内:预览区连同底部「当前材质」说明始终完整可见,
+             不再依赖面板整体滚动去找下半截 */
+          .ironing-studio-panel { overflow: hidden; }
           .ironing-studio-body {
             grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr);
-            /* 两列等高:右列(材质样张墙)决定行高,左列预览随行高拉伸,
-               预览区因此与右侧卡片墙同高,不再留半截空白 */
+            /* 行高跟随面板剩余空间伸缩(不是内容高度):两列等高,
+               左列预览 + 材质说明按可用高度整体收缩 */
+            grid-template-rows: minmax(0, 1fr);
             align-items: stretch;
+            flex: 1 1 auto;
+            min-height: 0;
           }
+          /* 样张墙放不下时只在右列内部滚动,左列预览不被挤出视口 */
+          .ironing-studio-styles {
+            overflow-y: auto;
+            min-height: 0;
+            /* 滚动条贴着内容列右缘,不盖卡片 */
+            padding-right: 2px;
+          }
+          .ironing-studio-preview { min-height: 0; }
+          /* 极矮窗口(横屏/小笔记本):预览可以再压一点,保证材质说明不被裁掉 */
+          .ironing-preview { min-height: 160px; }
         }
         .ironing-studio-preview {
           display: flex;
