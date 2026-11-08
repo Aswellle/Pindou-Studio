@@ -16,8 +16,9 @@ const page = (host, protocol = 'https:') => ({ protocol, hostname: host, origin:
 
 describe('resolveSupabaseBase', () => {
   it('真实域名下改走同源 /sb 基址', () => {
-    expect(resolveSupabaseBase(SUPABASE, page('tangnotes.site')))
-      .toBe(`https://tangnotes.site${SUPABASE_PROXY_PREFIX}`)
+    expect(resolveSupabaseBase(SUPABASE, page('tangnotes.site'))).toBe(
+      `https://tangnotes.site${SUPABASE_PROXY_PREFIX}`
+    )
   })
 
   it('本地开发直连(不使用代理)', () => {
@@ -25,12 +26,23 @@ describe('resolveSupabaseBase', () => {
     expect(resolveSupabaseBase(SUPABASE, page('127.0.0.1', 'http:'))).toBe(SUPABASE)
   })
 
+  it('局域网 IP / IPv6 / mDNS 主机名直连(本地服务器没有 /sb 代理)', () => {
+    // 手机实机验收的典型地址:同源代理不存在,必须直连
+    expect(resolveSupabaseBase(SUPABASE, page('192.168.0.105', 'http:'))).toBe(SUPABASE)
+    expect(resolveSupabaseBase(SUPABASE, page('10.0.0.8', 'http:'))).toBe(SUPABASE)
+    expect(resolveSupabaseBase(SUPABASE, page('[::1]', 'http:'))).toBe(SUPABASE)
+    expect(resolveSupabaseBase(SUPABASE, page('[2001:db8::1]', 'http:'))).toBe(SUPABASE)
+    expect(resolveSupabaseBase(SUPABASE, page('my-pc.local', 'http:'))).toBe(SUPABASE)
+  })
+
   it('VITE_SUPABASE_PROXY=off 强制直连', () => {
     expect(resolveSupabaseBase(SUPABASE, page('tangnotes.site'), 'off')).toBe(SUPABASE)
   })
 
   it('非 supabase 域名与缺失配置保持原样', () => {
-    expect(resolveSupabaseBase('https://api.example.com', page('tangnotes.site'))).toBe('https://api.example.com')
+    expect(resolveSupabaseBase('https://api.example.com', page('tangnotes.site'))).toBe(
+      'https://api.example.com'
+    )
     expect(resolveSupabaseBase('', page('tangnotes.site'))).toBe('')
     expect(resolveSupabaseBase(SUPABASE, null)).toBe(SUPABASE)
   })

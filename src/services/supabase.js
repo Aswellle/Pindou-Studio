@@ -5,14 +5,13 @@ import { createClient } from '@supabase/supabase-js'
 // 注意:anon key 是公开的(RLS 在服务端强制权限),service_role key 严禁暴露。
 // 兼容 VITE_ 前缀(local .env.local)与无前缀(Vercel 环境变量)两种命名
 // BUILD_MARKER:v3
-const configuredUrl =
-  import.meta.env.VITE_SUPABASE_URL || import.meta.env.SUPABASE_URL || ""
+const configuredUrl = import.meta.env.VITE_SUPABASE_URL || import.meta.env.SUPABASE_URL || ''
 const supabaseAnonKey =
   import.meta.env.VITE_SUPABASE_ANON_KEY ||
   import.meta.env.SUPABASE_ANON_KEY ||
   import.meta.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ||
   import.meta.env.SUPABASE_PUBLISHABLE_KEY ||
-  ""
+  ''
 
 // ── 同域反向代理 ──────────────────────────────────────────────
 // 部分网络(尤其国内手机蜂窝数据)无法直连 *.supabase.co:DNS/连接直接失败,
@@ -22,8 +21,19 @@ const supabaseAnonKey =
 // - VITE_SUPABASE_PROXY=off 可强制直连
 export const SUPABASE_PROXY_PREFIX = '/sb'
 
-const isSupabaseHost = (host) => /(^|\.)supabase\.(co|in)$/.test(host)
-const isLocalHost = (host) => host === 'localhost' || host === '127.0.0.1' || host === '[::1]'
+const isSupabaseHost = host => /(^|\.)supabase\.(co|in)$/.test(host)
+const isLocalHost = host => host === 'localhost' || host === '127.0.0.1' || host === '[::1]'
+/**
+ * IP 字面量(局域网 IPv4、IPv6)一律视为本地访问。
+ *
+ * 本地预览/开发服务器常用 http://192.168.x.x:端口 或 http://[::1]:端口 打开;
+ * 这些地址没有 /sb 反向代理(只有 Vercel 上有),若仍走同源代理,所有 Supabase
+ * 请求会命中 SPA 兜底返回 index.html,表现为「网络错误」且发布门禁被误判为关闭。
+ */
+const isIpHost = host =>
+  /^\d{1,3}(\.\d{1,3}){3}$/.test(host) || // IPv4(location.hostname 无括号)
+  host.includes(':') || // IPv6(location.hostname 带方括号,如 [::1]、[2001:db8::1])
+  host.endsWith('.local') // mDNS 局域网主机名
 
 /**
  * 决定实际使用的 Supabase 基址(纯函数,便于测试)。
@@ -35,23 +45,24 @@ export function resolveSupabaseBase(configuredUrl, loc, mode = 'auto') {
   if (!configuredUrl) return ''
   if (mode === 'off' || !loc) return configuredUrl
   let host = ''
-  try { host = new URL(configuredUrl).hostname } catch { return configuredUrl }
+  try {
+    host = new URL(configuredUrl).hostname
+  } catch {
+    return configuredUrl
+  }
   if (!isSupabaseHost(host)) return configuredUrl
   if (loc.protocol !== 'http:' && loc.protocol !== 'https:') return configuredUrl
-  if (isLocalHost(loc.hostname)) return configuredUrl // 本地开发直连(开发机网络可达)
+  if (isLocalHost(loc.hostname) || isIpHost(loc.hostname)) return configuredUrl // 本地开发直连(开发机网络可达)
   return `${loc.origin}${SUPABASE_PROXY_PREFIX}`
 }
 
 const effectiveUrl = resolveSupabaseBase(
   configuredUrl,
   typeof window !== 'undefined' ? window.location : null,
-  import.meta.env.VITE_SUPABASE_PROXY || 'auto',
+  import.meta.env.VITE_SUPABASE_PROXY || 'auto'
 )
 
-export const supabase =
-  effectiveUrl && supabaseAnonKey
-    ? createClient(effectiveUrl, supabaseAnonKey)
-    : null
+export const supabase = effectiveUrl && supabaseAnonKey ? createClient(effectiveUrl, supabaseAnonKey) : null
 
 export const isCloudEnabled = () => supabase !== null
 
@@ -85,7 +96,7 @@ export function toStorageUrl(raw, currentBase = SUPABASE_URL, directBase = SUPAB
   }
   const bases = [currentBase, directBase]
     .filter(Boolean)
-    .map((base) => {
+    .map(base => {
       try {
         const u = new URL(base)
         return { origin: u.origin, path: u.pathname.replace(/\/+$/, '') }
@@ -95,7 +106,8 @@ export function toStorageUrl(raw, currentBase = SUPABASE_URL, directBase = SUPAB
     })
     .filter(Boolean)
   const matched = bases.find(
-    (b) => b.origin === parsed.origin && (parsed.pathname === b.path || parsed.pathname.startsWith(`${b.path}/`)),
+    b =>
+      b.origin === parsed.origin && (parsed.pathname === b.path || parsed.pathname.startsWith(`${b.path}/`))
   )
   if (!matched) return null
   // 基址本身可能带路径(同域代理的 /sb),先剥掉再判定 avatars 公共路径。
