@@ -225,6 +225,27 @@
   flex-direction: column;
   gap: 2px;
 }
+.export-menu-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+.export-menu-close {
+  display: grid;
+  place-items: center;
+  width: 26px;
+  height: 26px;
+  border: none;
+  border-radius: 50%;
+  background: transparent;
+  color: var(--text-muted);
+  cursor: pointer;
+}
+.export-menu-close:hover {
+  background: var(--bg-secondary);
+  color: var(--text-primary);
+}
 .export-menu-title {
   font-size: var(--text-sm);
   font-weight: var(--font-weight-semibold);

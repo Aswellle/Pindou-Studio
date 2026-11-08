@@ -98,15 +98,9 @@ export default function GalleryTemplateCard({
   usePopupMenuPosition(exportMenuOpen, exportMenuRef, exportTriggerRect, 'above')
   usePopupMenuPosition(brandMenuOpen, brandMenuRef, brandTriggerRect, 'below')
 
-  // 点击外部关闭导出菜单(与旧 GalleryPage 行为一致;品牌菜单由遮罩点击关闭)
-  useEffect(() => {
-    if (!exportMenuOpen) return undefined
-    const close = () => setExportMenuOpen(false)
-    document.addEventListener('click', close)
-    return () => document.removeEventListener('click', close)
-  }, [exportMenuOpen])
-
-  // Escape 关闭菜单并把焦点还给触发按钮(规格 07 §8)
+  // Escape 关闭菜单并把焦点还给触发按钮(规格 07 §8)。
+  // 导出菜单不走「点击外部关闭」:遮罩仅拦截穿透,关闭只能走叉号或 Escape,
+  // 防止导出进行中误触遮罩后用户以为点击无效
   useEffect(() => {
     if (!exportMenuOpen && !brandMenuOpen) return undefined
     const onKeyDown = e => {
@@ -176,17 +170,33 @@ export default function GalleryTemplateCard({
         {exportMenuOpen &&
           createPortal(
             // portal 到 document.body:彻底脱离模板卡片的 overflow:hidden 与
-            // 任何祖先 transform/包含块陷阱,菜单永不被卡片边框裁剪
-            <div
-              className="export-menu-overlay"
-              onClick={e => {
-                e.stopPropagation()
-                setExportMenuOpen(false)
-              }}
-            >
+            // 任何祖先 transform/包含块陷阱,菜单永不被卡片边框裁剪。
+            // 遮罩点击不关闭(仅拦截穿透):关闭走右上角叉号或 Escape,
+            // 避免导出过程中误触遮罩让用户以为点了没反应
+            <div className="export-menu-overlay" onClick={e => e.stopPropagation()}>
               <div className="export-menu" ref={exportMenuRef} role="menu" onClick={e => e.stopPropagation()}>
                 <div className="export-menu-header">
-                  <span className="export-menu-title">{t('gallery.exportTitle')}</span>
+                  <div className="export-menu-heading">
+                    <span className="export-menu-title">{t('gallery.exportTitle')}</span>
+                    <button
+                      type="button"
+                      className="export-menu-close"
+                      aria-label={t('common.close')}
+                      onClick={() => setExportMenuOpen(false)}
+                    >
+                      <svg
+                        width="14"
+                        height="14"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="2"
+                        strokeLinecap="round"
+                      >
+                        <path d="M18 6 6 18M6 6l12 12" />
+                      </svg>
+                    </button>
+                  </div>
                   <span className="export-menu-name">{displayName}</span>
                 </div>
                 <div className="export-menu-hint">{t('gallery.exportHint')}</div>

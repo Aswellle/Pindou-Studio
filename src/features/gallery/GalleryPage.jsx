@@ -338,7 +338,9 @@ export default function GalleryPage({ onLoadTemplate, cloudStore, user, onSaveWo
       bumpDownload(template)
     } catch (err) {
       console.error('Template export failed:', err)
-      toast(t('export.exportFailed'), 'error')
+      // 导出失败给出可自动消失的提示(error 默认常驻,在图库流里会像「孤窗」
+      // 一样挡着内容;8s 足够读完,也可悬停暂停)
+      toast(t('export.exportFailed'), 'error', 8000)
     } finally {
       setExportingId(null)
     }
