@@ -1,6 +1,6 @@
 # 拼豆Studio (Bead Studio)
 
-> Free, browser-based fuse-bead / Perler pattern designer. Chinese-first, with a UI in 简体中文 / English / 日本語 / 한국어. Design bead patterns freehand, convert an uploaded image into a pixel-style bead pattern, match colors against six real bead-brand palettes, and export craft-ready PNG/SVG sheets with per-color codes. No account is required to design, convert, or export; optional accounts enable cloud-saved works and the cloud template library.
+> Free, browser-based fuse-bead / Perler pattern designer. Chinese-first, with a UI in 简体中文 / English / 日本語 / 한국어. Design bead patterns freehand, convert an uploaded image into a pixel-style bead pattern, match colors against six real bead-brand palettes, export craft-ready PNG/SVG sheets with per-color codes, and share a finished pattern as a public read-only link with a social card. No account is required to design, convert, or export; optional accounts enable cloud-saved works, the cloud template library, and sharing.
 
 ## Pages
 
@@ -14,6 +14,7 @@
 - Image-to-pattern pipeline: palette selection by K-means++ in Lab space, color matching by CIEDE2000 (perceptual, not naive RGB distance), Floyd–Steinberg / Bayer dithering, and ICM spatial refinement on small outputs. Runs in a Web Worker so the UI stays responsive.
 - Grid presets: square 29 / 57 / 87 / 114 / 140 / 170, or custom W×H (9–200 per side).
 - Export: PNG and SVG bead sheets in "realistic" (bead-like) or "professional" (flat squares with brand color codes) styles, plus a color legend and bead counts.
+- Sharing: signed-in users can publish any saved cloud work as a public read-only share page (`/share/<id>`) with a generated 1200×630 social card and QR code; visitors need no account to view a shared pattern. Share pages are excluded from search indexing by design.
 
 ## Machine-readable
 

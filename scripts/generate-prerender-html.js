@@ -249,6 +249,7 @@ function homeStatic() {
   b.push('<li>图片转拼豆:上传照片自动量化为像素拼豆图纸,可选 Floyd-Steinberg 或 Bayer 抖动</li>')
   b.push('<li>真实品牌配色:COCO / MARD / MARD291 / Perler / Hama / Artkal 六大色卡,按 CIEDE2000 取最接近的豆子</li>')
   b.push('<li>专业导出:PNG / SVG 图纸,可带每颗豆子的品牌色号、颜色清单与用量统计</li>')
+  b.push('<li>分享图纸:把作品一键生成公开分享链接与社交卡片,访客无需注册即可在线查看</li>')
   b.push('<li>模板与教程:内置图纸模板可一键载入画布,配套从入门到进阶的中文教程</li>')
   b.push('</ul>')
 

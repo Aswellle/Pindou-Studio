@@ -13,10 +13,10 @@
     - lastmod 需与实际内容更新时间一致,内容更新时同步刷新本字段。
   -->
 
-  <!-- 首页(画布工具) — SEO 头信息与结构化数据于 2026-10-12 更新 -->
+  <!-- 首页(画布工具) — SEO 头信息与结构化数据于 2026-10-12 更新;2026-11-09 正文补充分享能力 -->
   <url>
     <loc>https://tangnotes.site/</loc>
-    <lastmod>2026-10-12</lastmod>
+    <lastmod>2026-11-09</lastmod>
     <changefreq>weekly</changefreq>
     <priority>1.0</priority>
     <mobile:mobile type="pc,mobile"/>
