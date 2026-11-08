@@ -706,6 +706,17 @@
 
 /* ── 个人中心「我的分享」 ─────────────────────────────────── */
 
+/* 警告色系:该分区含「撤销」这类不可恢复的操作,整卡用站点警告色
+   (琥珀底 + 琥珀标题)提示谨慎,列表项保持白底保证可读性 */
+.pf-card.shares-warn {
+  background: var(--warning-bg, #fbf0dc);
+  border-color: var(--warning-border, #f0dcb3);
+}
+
+.pf-card.shares-warn .pf-card-head h3 {
+  color: var(--warning, #cf8a2c);
+}
+
 .share-list {
   display: flex;
   flex-direction: column;
@@ -722,7 +733,7 @@
   padding: 12px;
   border-radius: 12px;
   background: #fff;
-  border: 1px solid rgba(43, 36, 32, 0.08);
+  border: 1px solid var(--warning-border, #f0dcb3);
 }
 
 .share-list-thumb {

@@ -116,7 +116,7 @@ export default function SharesSection({ onMessage }) {
   }
 
   return (
-    <section className="pf-card">
+    <section className="pf-card shares-warn">
       <div className="pf-card-head">
         <h3>
           <Share2 size={16} aria-hidden="true" />
