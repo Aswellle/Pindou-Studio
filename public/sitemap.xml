@@ -10,7 +10,8 @@
     - hreflang 语言变体使用 ?lang=en|ja|ko(与页面内 hreflang、页面 canonical 保持互指);
       x-default 指向默认语言(简体中文)版本。
     - Google 会忽略 priority/changefreq,保留仅为兼容百度/搜狗/360 的读取。
-    - lastmod 需与实际内容更新时间一致,内容更新时同步刷新本字段。
+    - 静态页 lastmod 由构建脚本按 git 提交历史自动推导(scripts/sitemap-lastmod.mjs);
+      此处的值是查不到历史时(浅克隆/无 git 环境)的兜底,不需要手工维护。
   -->
 
   <!-- 首页(画布工具) — SEO 头信息与结构化数据于 2026-10-12 更新;2026-11-09 正文补充分享能力 -->
