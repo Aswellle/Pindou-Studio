@@ -17,6 +17,9 @@
 /* 成功面板以卡片预览为主角:弹窗加宽,预览按 1200:630 完整展示不裁切 */
 .share-dialog:has(.share-success) {
   width: min(680px, calc(100vw - 32px));
+  /* 预览可用高度 = 弹窗高 − 面板其余内容(标题/链接/按钮/留白约 330px)。
+     clamp 下限保证小屏不至于把预览压没;超出部分由面板滚动兜底 */
+  --card-preview-max: clamp(200px, calc(var(--visible-vh, 100vh) - 420px), 430px);
 }
 
 .share-dialog-head {
@@ -375,6 +378,14 @@
   gap: 12px;
 }
 
+/* 矮视口(小笔记本/横屏手机)收紧纵向留白,把空间让给卡片预览 */
+@media (max-height: 760px) {
+  .share-success {
+    gap: 9px;
+    padding: 12px 18px 14px;
+  }
+}
+
 .share-success-title {
   margin: 0;
   font-size: 17px;
@@ -383,18 +394,24 @@
 }
 
 .share-card-preview {
+  /* 容器收缩包裹图片:卡片多宽,白卡框就多宽,不拉出多余白边 */
+  width: fit-content;
+  max-width: 100%;
+  margin: 0 auto;
   border-radius: 12px;
   overflow: hidden;
   background: #fff;
   border: 1px solid rgba(43, 36, 32, 0.08);
 }
 
-/* 卡片固定 1200×630:锁定比例 + contain,任何容器宽度下都完整显示不裁切。
-   预览是成功面板的视觉主角:占满面板宽度,圆角内无额外留白 */
+/* 卡片固定 1200:630:同时受宽度与高度约束,取两者能容纳的最大等比尺寸 ——
+   任何视口下整卡完整可见,不需要滚动找下半截 */
 .share-card-preview img {
   display: block;
-  width: 100%;
+  width: auto;
   height: auto;
+  max-width: 100%;
+  max-height: var(--card-preview-max, 360px);
   aspect-ratio: 1200 / 630;
   object-fit: contain;
   image-rendering: auto;
