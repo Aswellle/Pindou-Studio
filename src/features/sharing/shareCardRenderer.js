@@ -24,6 +24,7 @@ import {
   LOGO_GRID,
   BRAND_NAME,
   BRAND_DOMAIN,
+  RENDER_SCALE,
   buildShareCardModel,
   wrapText,
 } from './shareCardModel'
@@ -335,14 +336,16 @@ async function drawQr(ctx, qr) {
   roundRect(ctx, qr.card.x + 0.5, qr.card.y + 0.5, qr.card.w - 1, qr.card.h - 1, qr.card.r)
   ctx.stroke()
 
+  // QR 按物理分辨率渲染(RENDER_SCALE 倍),超采样画布上不糊;
+  // 绘制期间暂时回到物理坐标,贴图尺寸仍是逻辑尺寸
   const temp = document.createElement('canvas')
-  temp.width = qr.size
-  temp.height = qr.size
+  temp.width = qr.size * RENDER_SCALE
+  temp.height = qr.size * RENDER_SCALE
   try {
     await QRCode.toCanvas(temp, qr.text, {
       errorCorrectionLevel: 'M',
       margin: qr.margin,
-      width: qr.size,
+      width: qr.size * RENDER_SCALE,
       color: { dark: qr.dark, light: qr.light },
     })
   } catch {
@@ -367,34 +370,41 @@ function toPngBlob(canvas) {
 /**
  * 渲染分享卡。
  *
+ * 物理分辨率 = 逻辑尺寸 × RENDER_SCALE(超采样):所有绘制仍按逻辑坐标,
+ * 一次 ctx.scale 放大后落笔,文字/描边在预览缩小与大图查看下都保持锐利,
+ * 不再出现模糊阴影与残缺像素。
+ *
  * @param {object} params
  * @param {object} params.snapshot 公开快照(camelCase,含 canvasData)
  * @param {string} params.shareUrl 分享链接(按当前访问环境生成)
- * @param {{size:string,beads:string,colors:string,scan:string,footer:string}} params.labels
+ * @param {{size:string,beads:string,colors:string,scan:string,footer:string,authorPrefix?:string}} params.labels
  * @returns {Promise<{ blob: Blob, width: number, height: number }>}
  */
 export async function renderShareCard({ snapshot, shareUrl, labels }) {
   if (typeof document === 'undefined') throw new ShareCardError('cardRenderFailed')
 
   const canvas = document.createElement('canvas')
-  canvas.width = CARD_WIDTH
-  canvas.height = CARD_HEIGHT
+  canvas.width = CARD_WIDTH * RENDER_SCALE
+  canvas.height = CARD_HEIGHT * RENDER_SCALE
   const ctx = canvas.getContext('2d')
   if (!ctx) throw new ShareCardError('cardRenderFailed')
 
+  // 测量按逻辑字体跑(与模型同一坐标系);绘制统一 4x 缩放
   const fontForMeasure = `${FONT_STACK}`
   const measure = (text, font) => {
     ctx.font = font || fontForMeasure
-    return ctx.measureText(text).width
+    return ctx.measureText(text).width / RENDER_SCALE
   }
 
   const model = buildShareCardModel({ snapshot, shareUrl, labels, measure })
+  ctx.scale(RENDER_SCALE, RENDER_SCALE)
 
   drawBackground(ctx, model)
   drawPattern(ctx, model, snapshot?.canvasData)
   drawTexts(ctx, model)
   await drawQr(ctx, model.qr)
+  ctx.setTransform(1, 0, 0, 1, 0, 0)
 
   const blob = await toPngBlob(canvas)
-  return { blob, width: CARD_WIDTH, height: CARD_HEIGHT }
+  return { blob, width: CARD_WIDTH * RENDER_SCALE, height: CARD_HEIGHT * RENDER_SCALE }
 }

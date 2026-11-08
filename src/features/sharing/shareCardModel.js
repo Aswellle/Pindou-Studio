@@ -23,8 +23,18 @@
 
 import { SITE_ORIGIN } from './shareUrl'
 
+/**
+ * 卡片逻辑尺寸 1200×630(与 index.html 的 og:image:width/height、微信/X/
+ * Facebook/Telegram 的标准大图比例一致)。
+ *
+ * 渲染分辨率是逻辑尺寸的 RENDER_SCALE 倍:分享卡上的细字重文字与 1px 描边
+ * 在弹窗预览(约 0.44x 缩小)和社交平台二次压缩下,1x 分辨率会出现模糊
+ * 阴影与残缺像素;4x 超采样让缩小显示与大图查看都保持锐利。
+ * og:image 声明仍写逻辑尺寸 —— 社交平台按比例缩放,不影响展示。
+ */
 export const CARD_WIDTH = 1200
 export const CARD_HEIGHT = 630
+export const RENDER_SCALE = 2
 
 /** 品牌名(与 data/site 一致;品牌不翻译,卡片四语言同形) */
 export const BRAND_NAME = '拼豆Studio'
@@ -70,22 +80,23 @@ const QR_MARGIN = 3
 const BRAND_ROW_H = 44
 
 const PALETTE = {
-  background: '#FBF7F0',
-  backgroundDot: 'rgba(232, 115, 74, 0.07)',
-  /* 品牌条:站点标志色「手作暖调橙」(与 --accent 同源),不再是深棕渐变 */
+  background: '#FDF9F3',
+  backgroundDot: 'rgba(232, 115, 74, 0.08)',
+  /* 品牌条:站点标志色「手作暖调橙」(--accent 同源),明亮活泼不沉闷 */
   headerFrom: '#E8734A',
-  headerTo: '#E8734A',
+  headerTo: '#F08A5C',
   headerText: '#FFFFFF',
   panel: '#FFFFFF',
-  panelShadow: 'rgba(43, 36, 32, 0.10)',
-  panelBorder: '#E8DFD2',
+  panelShadow: 'rgba(232, 115, 74, 0.14)',
+  panelBorder: '#F3E3D3',
   text: '#2B2420',
-  muted: '#7A6C60',
+  muted: '#8A7A6C',
   accent: '#E8734A',
-  chipBorder: 'rgba(43, 36, 32, 0.14)',
+  chipBorder: 'rgba(232, 115, 74, 0.26)',
+  chipBg: '#FFF3EC',
   chipIcon: '#E8734A',
-  qrCardBorder: '#E8DFD2',
-  qrDark: '#111111',
+  qrCardBorder: '#F3E3D3',
+  qrDark: '#1A1512',
   qrLight: '#FFFFFF',
   nearWhiteRing: 'rgba(43, 36, 32, 0.28)',
 }

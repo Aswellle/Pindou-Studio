@@ -14,6 +14,11 @@
   overflow: hidden;
 }
 
+/* 成功面板以卡片预览为主角:弹窗加宽,预览按 1200:630 完整展示不裁切 */
+.share-dialog:has(.share-success) {
+  width: min(680px, calc(100vw - 32px));
+}
+
 .share-dialog-head {
   display: flex;
   align-items: center;
@@ -384,13 +389,15 @@
   border: 1px solid rgba(43, 36, 32, 0.08);
 }
 
-/* 卡片固定 1200×630:锁定比例 + contain,任何容器宽度下都完整显示不裁切 */
+/* 卡片固定 1200×630:锁定比例 + contain,任何容器宽度下都完整显示不裁切。
+   预览是成功面板的视觉主角:占满面板宽度,圆角内无额外留白 */
 .share-card-preview img {
   display: block;
   width: 100%;
   height: auto;
   aspect-ratio: 1200 / 630;
   object-fit: contain;
+  image-rendering: auto;
 }
 
 .share-link-box {
