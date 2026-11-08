@@ -2151,7 +2151,7 @@
       "download": "Download card",
       "revoke": "Revoke",
       "revokeTitle": "Revoke this share?",
-      "revokeBody": "After revoking, new visitors can no longer view this pattern. Downloaded images, screenshots and third-party caches cannot be recalled.",
+      "revokeBody": "Once you revoke it, the link stops working right away and no one can open this pattern anymore. Images or screenshots that were already saved by others cannot be taken back.",
       "revokeDone": "Share revoked",
       "revokeFailed": "Revoke failed. Please try again later.",
       "open": "Open",
