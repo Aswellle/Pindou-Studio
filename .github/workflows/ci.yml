@@ -108,3 +108,61 @@ jobs:
         with:
           path: .indexnow-state.json
           key: indexnow-state-${{ github.run_id }}
+
+  # ── 百度普通收录 API 推送 ───────────────────────────────────
+  #
+  # 与 IndexNow 同一套时机与增量策略:等部署上线 → 读线上 sitemap →
+  # 只推新增/lastmod 变化的 URL(百度明确要求不要重复提交旧链接)。
+  # 需要仓库 Secret:BAIDU_PUSH_TOKEN(百度搜索资源平台「普通收录 → API 推送」)。
+  # 未配置 Secret 时脚本打印跳过并退出 0,不会把 CI 变红。
+  baidu-push:
+    needs: build-and-test
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: .nvmrc
+
+      - name: Restore Baidu push state
+        uses: actions/cache/restore@v4
+        with:
+          path: .baidu-push-state.json
+          key: baidu-push-state-${{ github.run_id }}
+          restore-keys: |
+            baidu-push-state-
+
+      - name: Wait for deployment
+        id: deploy
+        run: |
+          set -euo pipefail
+          target="${GITHUB_SHA:0:12}"
+          echo "等待线上出现本次构建 $target …"
+          for i in $(seq 1 60); do
+            body=$(curl -sS --max-time 10 "https://tangnotes.site/?deploy-probe=$target" || true)
+            if echo "$body" | grep -q "content=\"$target\""; then
+              echo "线上已是本次构建(第 $i 次探测)"
+              echo "live=true" >> "$GITHUB_OUTPUT"
+              exit 0
+            fi
+            sleep 10
+          done
+          echo "::warning::10 分钟内未确认部署上线,本次跳过百度推送"
+          echo "live=false" >> "$GITHUB_OUTPUT"
+
+      - name: Submit changed URLs to Baidu
+        if: steps.deploy.outputs.live == 'true'
+        continue-on-error: true
+        env:
+          BAIDU_PUSH_TOKEN: ${{ secrets.BAIDU_PUSH_TOKEN }}
+        run: node scripts/baidu-push.mjs --sitemap=https://tangnotes.site/sitemap.xml
+
+      - name: Save Baidu push state
+        if: always()
+        uses: actions/cache/save@v4
+        with:
+          path: .baidu-push-state.json
+          key: baidu-push-state-${{ github.run_id }}
