@@ -72,6 +72,9 @@ async function loadHandler() {
 function stubDefaults(shellText = SHELL_LF) {
   vi.stubEnv('SITE_URL', SITE_URL)
   vi.stubEnv('SUPABASE_URL', SB_BASE)
+  // handler 优先读取客户端侧的 VITE_ 变量(publishable key),旧名兜底;
+  // 测试环境里两者都钉死,避免命中 .env.local 的真实 key
+  vi.stubEnv('VITE_SUPABASE_ANON_KEY', 'anon-key')
   vi.stubEnv('SUPABASE_ANON_KEY', 'anon-key')
   readFile.mockReset()
   readFile.mockResolvedValue(shellText)
@@ -223,6 +226,20 @@ describe('OG Function 数据边界与状态码', () => {
     )
   })
 
+  it('VITE_SUPABASE_ANON_KEY 优先于已停用的 legacy SUPABASE_ANON_KEY', async () => {
+    // 回归:Supabase 2026-10-24 停用 legacy anon JWT 后,函数若先读
+    // SUPABASE_ANON_KEY 会对 REST 拿到 401 → 全站分享页 502
+    vi.stubEnv('VITE_SUPABASE_ANON_KEY', 'publishable-key')
+    vi.stubEnv('SUPABASE_ANON_KEY', 'legacy-jwt')
+    handler = await loadHandler()
+    const fetchMock = vi.fn(async () => makeResponse({ body: [publishedRow()] }))
+    vi.stubGlobal('fetch', fetchMock)
+    await callHandler(handler)
+    const init = fetchMock.mock.calls[0][1]
+    expect(init.headers.apikey).toBe('publishable-key')
+    expect(init.headers.Authorization).toBe('Bearer publishable-key')
+  })
+
   it.each([
     ['目录穿越', '../../secret/r1.png'],
     ['查询注入', `${UUID}/r1.png?x=1`],
@@ -296,6 +313,7 @@ describe('OG Function 注入安全边界', () => {
   it('CRLF 壳:canonical/og:url 用同样换行,不出现在同一行乱序', async () => {
     vi.stubEnv('SITE_URL', SITE_URL)
     vi.stubEnv('SUPABASE_URL', SB_BASE)
+    vi.stubEnv('VITE_SUPABASE_ANON_KEY', 'anon-key')
     vi.stubEnv('SUPABASE_ANON_KEY', 'anon-key')
     readFile.mockReset()
     readFile.mockResolvedValue(SHELL_LF.replace(/\n/g, '\r\n'))
@@ -311,6 +329,7 @@ describe('OG Function 壳加载与缓存', () => {
   beforeEach(() => {
     vi.stubEnv('SITE_URL', SITE_URL)
     vi.stubEnv('SUPABASE_URL', SB_BASE)
+    vi.stubEnv('VITE_SUPABASE_ANON_KEY', 'anon-key')
     vi.stubEnv('SUPABASE_ANON_KEY', 'anon-key')
   })
   afterEach(() => {

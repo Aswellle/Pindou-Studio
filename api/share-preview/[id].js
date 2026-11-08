@@ -117,11 +117,15 @@ async function loadShell() {
  */
 async function fetchPublishedShare(shareId) {
   const base = supabaseBase()
+  // publishable key 优先:Supabase 已于 2026-10-24 停用 legacy anon/service_role
+  // JWT,而项目里的 SUPABASE_ANON_KEY 仍残留旧 JWT(调用会 401)。客户端构建用的
+  // VITE_SUPABASE_ANON_KEY 必为有效的新 publishable key,放最前;旧变量只做兜底。
   const anonKey = envValue(
-    'SUPABASE_ANON_KEY',
     'VITE_SUPABASE_ANON_KEY',
-    'NEXT_PUBLIC_SUPABASE_ANON_KEY',
     'SUPABASE_PUBLISHABLE_KEY',
+    'NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY',
+    'NEXT_PUBLIC_SUPABASE_ANON_KEY',
+    'SUPABASE_ANON_KEY',
   )
   if (!base || !anonKey) return 'error'
 
