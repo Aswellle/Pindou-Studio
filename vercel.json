@@ -77,15 +77,15 @@
 
     {
       "source": "/gallery/theme/:slug",
-      "destination": "/spa.html"
+      "destination": "/api/gallery-detail/theme/:slug"
     },
     {
       "source": "/gallery/collection/:slug",
-      "destination": "/spa.html"
+      "destination": "/api/gallery-detail/collection/:slug"
     },
     {
       "source": "/gallery/pattern/:id",
-      "destination": "/spa.html"
+      "destination": "/api/gallery-detail/pattern/:id"
     },
 
     {
@@ -124,6 +124,15 @@
   "functions": {
     "api/share-preview/[id].js": {
       "includeFiles": "dist/spa.html"
+    },
+    "api/gallery-detail/pattern/[id].js": {
+      "includeFiles": "dist/{spa,404}.html"
+    },
+    "api/gallery-detail/theme/[slug].js": {
+      "includeFiles": "dist/{spa,404}.html"
+    },
+    "api/gallery-detail/collection/[slug].js": {
+      "includeFiles": "dist/{spa,404}.html"
     }
   },
   "headers": [

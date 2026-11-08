@@ -17,8 +17,10 @@
  * 为什么用目录 + index.html 而不是 /gallery/theme/<slug>.html:
  *   Vercel 对目录索引天然按 path 解析,不需要额外 rewrite 规则;
  *   而带点的路径会被当作文件、与 SPA 的 cleanUrls 语义纠缠。
- *   请求 /gallery/theme/x 时静态文件优先于 vercel.json 的兜底 rewrite,
- *   未命中的 slug 仍落到 SPA —— 构建后才发布的内容不会 404。
+ *   请求 /gallery/theme/x 时静态文件优先于 vercel.json 的 rewrite;
+ *   未命中的请求落到 api/gallery-detail 存在性校验:内容存在(构建后才
+ *   发布、还没进下一轮快照)返回 200 SPA,不存在返回 404 —— 既保住新
+ *   内容直达,也消除软 404。
  *
  * 安全:只用 anon key + RLS 公开只读,与浏览器端完全同权。
  * 草稿(status='draft')由 RLS 挡住,这里不做二次过滤也不会泄露。
@@ -39,7 +41,12 @@ import {
   appendToSitemap,
   renderSnapshotHtml,
 } from '../src/features/gallery/ogSnapshot.js'
-import { ogCardPath, patternContentHash, OG_CARD_WIDTH, OG_CARD_HEIGHT } from '../src/features/gallery/ogCard.js'
+import {
+  ogCardPath,
+  patternContentHash,
+  OG_CARD_WIDTH,
+  OG_CARD_HEIGHT,
+} from '../src/features/gallery/ogCard.js'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const ROOT = path.join(__dirname, '..')
@@ -88,8 +95,8 @@ function readConfig() {
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ||
     process.env.SUPABASE_PUBLISHABLE_KEY ||
     ''
-  const usable = (v) => typeof v === 'string' && /^https?:\/\//.test(v) && v.length > 10
-  const usableKey = (v) => typeof v === 'string' && v.length > 20 && !v.startsWith('[')
+  const usable = v => typeof v === 'string' && /^https?:\/\//.test(v) && v.length > 10
+  const usableKey = v => typeof v === 'string' && v.length > 20 && !v.startsWith('[')
   return usable(url) && usableKey(key) ? { url: url.replace(/\/+$/, ''), key } : null
 }
 
@@ -169,9 +176,9 @@ function rowToTemplate(row) {
 
 function linkedTemplates(links, parentKey, parentId, byId) {
   return (links || [])
-    .filter((l) => String(l[parentKey]) === String(parentId))
+    .filter(l => String(l[parentKey]) === String(parentId))
     .sort((a, b) => (a.sort_order || 0) - (b.sort_order || 0))
-    .map((l) => byId.get(String(l.template_id)))
+    .map(l => byId.get(String(l.template_id)))
     .filter(Boolean)
 }
 
@@ -236,7 +243,7 @@ async function main() {
   }
 
   const templates = content.templates.map(rowToTemplate)
-  const byId = new Map(templates.map((t) => [String(t.id), t]))
+  const byId = new Map(templates.map(t => [String(t.id), t]))
   const themes = content.themes.map(rowToContent)
   const collections = content.collections.map(rowToContent)
 
@@ -256,14 +263,16 @@ async function main() {
     if (snap) snapshots.push(snap)
   }
   for (const theme of themes) {
-    const snap = buildThemeSnapshot(theme, linkedTemplates(content.themeLinks, 'theme_id', theme.id, byId), { site })
+    const snap = buildThemeSnapshot(theme, linkedTemplates(content.themeLinks, 'theme_id', theme.id, byId), {
+      site,
+    })
     if (snap) snapshots.push(snap)
   }
   for (const collection of collections) {
     const snap = buildCollectionSnapshot(
       collection,
       linkedTemplates(content.collectionLinks, 'collection_id', collection.id, byId),
-      { site },
+      { site }
     )
     if (snap) snapshots.push(snap)
   }
@@ -292,11 +301,13 @@ async function main() {
     debug('sitemap.xml 已追加动态条目')
   }
 
-  log(`完成:${written} 份快照(主题 ${themes.length} / 合集 ${collections.length} / 图纸 ${templates.length}),分享卡片 ${cards} 张`)
+  log(
+    `完成:${written} 份快照(主题 ${themes.length} / 合集 ${collections.length} / 图纸 ${templates.length}),分享卡片 ${cards} 张`
+  )
   if (STRICT && written < limited.length) process.exitCode = 1
 }
 
-main().catch((e) => {
+main().catch(e => {
   // 默认不让快照生成失败阻断构建;--strict 时才返回非零
   log(`快照生成异常:${e?.message || e}`)
   if (STRICT) process.exitCode = 1

@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { readFileSync } from 'node:fs'
+import { readFileSync, existsSync } from 'node:fs'
 import { join } from 'node:path'
 import { isKnownPath } from './seoPath'
 
@@ -46,15 +46,15 @@ describe('静态正文 · 首页不再是空壳', () => {
 
 describe('软 404 · 不存在的 URL 不再回退成首页', () => {
   it('兜底 rewrite 不再是无差别的 /:path*', () => {
-    const catchAll = VERCEL.rewrites.find((r) => r.source === '/:path*')
+    const catchAll = VERCEL.rewrites.find(r => r.source === '/:path*')
     expect(catchAll).toBeUndefined()
   })
 
   it('SPA 兜底壳指向不带静态正文的空壳,而不是首页', () => {
-    const dynamic = VERCEL.rewrites.filter((r) => r.destination === '/spa.html')
+    const dynamic = VERCEL.rewrites.filter(r => r.destination === '/spa.html')
     expect(dynamic.length).toBeGreaterThan(0)
     // 首页那份 HTML 带静态正文,拿来当兜底会让同一份正文出现在任意多个 URL 上
-    expect(VERCEL.rewrites.some((r) => r.destination === '/index.html')).toBe(false)
+    expect(VERCEL.rewrites.some(r => r.destination === '/index.html')).toBe(false)
   })
 
   it('SPA 兜底壳不自称 canonical 指向首页(否则新内容被判为首页副本)', () => {
@@ -64,11 +64,38 @@ describe('软 404 · 不存在的 URL 不再回退成首页', () => {
     const block = spa.slice(0, spa.indexOf('fs.writeFileSync'))
     expect(block).not.toMatch(/<link rel="canonical" href="\$\{SITE\}\/"/)
     expect(block).toContain('.replace(/\\s*<link rel="canonical"')
-    expect(block).toContain('.replace(HREFLANG_BLOCK_RE, \'\')')
+    expect(block).toContain(".replace(HREFLANG_BLOCK_RE, '')")
+  })
+
+  it('三类图库详情路由走存在性校验,无快照时不再无差别回退 SPA(消除软 404)', () => {
+    // 有快照的内容命中静态文件(filesystem 优先于 rewrite);
+    // 没有快照的请求落到 gallery-detail 函数:存在 → 200 SPA,不存在 → 404。
+    const bySource = new Map(VERCEL.rewrites.map(r => [r.source, r.destination]))
+    expect(bySource.get('/gallery/theme/:slug')).toBe('/api/gallery-detail/theme/:slug')
+    expect(bySource.get('/gallery/collection/:slug')).toBe('/api/gallery-detail/collection/:slug')
+    expect(bySource.get('/gallery/pattern/:id')).toBe('/api/gallery-detail/pattern/:id')
+  })
+
+  it('存在性校验函数存在且被 includeFiles 注入壳文件', () => {
+    for (const rel of [
+      'api/gallery-detail/pattern/[id].js',
+      'api/gallery-detail/theme/[slug].js',
+      'api/gallery-detail/collection/[slug].js',
+      'api/_galleryDetail.js',
+    ]) {
+      expect(existsSync(join(ROOT, rel)), `${rel} 缺失`).toBe(true)
+    }
+    for (const key of [
+      'api/gallery-detail/pattern/[id].js',
+      'api/gallery-detail/theme/[slug].js',
+      'api/gallery-detail/collection/[slug].js',
+    ]) {
+      expect(VERCEL.functions?.[key]?.includeFiles).toContain('404')
+    }
   })
 
   it('三类图库详情路由仍可达', () => {
-    const sources = VERCEL.rewrites.map((r) => r.source)
+    const sources = VERCEL.rewrites.map(r => r.source)
     for (const s of ['/gallery/theme/:slug', '/gallery/collection/:slug', '/gallery/pattern/:id']) {
       expect(sources).toContain(s)
     }
@@ -77,24 +104,28 @@ describe('软 404 · 不存在的 URL 不再回退成首页', () => {
   it('App.jsx 里声明的每条路由都有 rewrite 或静态文件兜底', () => {
     // 去掉 `/:path*` 兜底之后,漏写一条 rewrite 就等于让该路由直接 404。
     // 这条断言把「新增路由」与「新增 rewrite」绑在一起,避免静默掉页。
-    const declared = [...APP.matchAll(/<Route path="([^"]+)"/g)].map((m) => m[1])
+    const declared = [...APP.matchAll(/<Route path="([^"]+)"/g)].map(m => m[1])
     expect(declared.length).toBeGreaterThan(10)
 
-    const toRegex = (src) => new RegExp(
-      `^${src.split('/').map((seg) => (seg.startsWith(':') ? '[^/]+' : seg.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'))).join('/')}$`,
-    )
+    const toRegex = src =>
+      new RegExp(
+        `^${src
+          .split('/')
+          .map(seg => (seg.startsWith(':') ? '[^/]+' : seg.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')))
+          .join('/')}$`
+      )
     const rewriteMatchers = VERCEL.rewrites
-      .filter((r) => r.source.startsWith('/') && !r.source.startsWith('/sb/'))
-      .map((r) => toRegex(r.source))
+      .filter(r => r.source.startsWith('/') && !r.source.startsWith('/sb/'))
+      .map(r => toRegex(r.source))
 
     for (const route of declared) {
       if (route === '*' || route === '/') continue // `/` 由 dist/index.html 直接服务
       // 静态文件只覆盖「单段路由且确实预渲染过」的情形(/gallery、/admin 等);
       // /admin/login 不能因为 admin.html 存在就算通过 —— 它必须有自己的 rewrite。
       const segments = route.split('/').filter(Boolean)
-      const hasStatic = segments.length === 1
-        && VERCEL.redirects.some((r) => r.source === `/${segments[0]}.html`)
-      const hasRewrite = rewriteMatchers.some((re) => re.test(route))
+      const hasStatic =
+        segments.length === 1 && VERCEL.redirects.some(r => r.source === `/${segments[0]}.html`)
+      const hasRewrite = rewriteMatchers.some(re => re.test(route))
       expect(hasStatic || hasRewrite, `${route} 没有 rewrite 兜底,上线后会 404`).toBe(true)
     }
   })
@@ -112,9 +143,22 @@ describe('软 404 · 不存在的 URL 不再回退成首页', () => {
 
 describe('isKnownPath · 已知路由判定', () => {
   it('真实路由返回 true', () => {
-    for (const p of ['/', '/gallery', '/tutorials', '/login', '/profile', '/admin',
-      '/admin/login', '/admin/dashboard', '/create/image', '/import', '/my/beads',
-      '/contact', '/privacy', '/terms']) {
+    for (const p of [
+      '/',
+      '/gallery',
+      '/tutorials',
+      '/login',
+      '/profile',
+      '/admin',
+      '/admin/login',
+      '/admin/dashboard',
+      '/create/image',
+      '/import',
+      '/my/beads',
+      '/contact',
+      '/privacy',
+      '/terms',
+    ]) {
       expect(isKnownPath(p)).toBe(true)
     }
   })
@@ -128,8 +172,16 @@ describe('isKnownPath · 已知路由判定', () => {
   })
 
   it('未知路径返回 false', () => {
-    for (const p of ['/nope', '/gallery/whatever', '/gallery/theme', '/gallery/theme/a/b',
-      '/admin/whatever', '/login/extra', '', null]) {
+    for (const p of [
+      '/nope',
+      '/gallery/whatever',
+      '/gallery/theme',
+      '/gallery/theme/a/b',
+      '/admin/whatever',
+      '/login/extra',
+      '',
+      null,
+    ]) {
       expect(isKnownPath(p)).toBe(false)
     }
   })
