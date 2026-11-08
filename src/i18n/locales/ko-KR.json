@@ -1988,11 +1988,11 @@
     "fieldTitle": "제목",
     "fieldTitlePlaceholder": "공유 제목을 입력하세요",
     "fieldDescription": "설명",
-    "fieldDescriptionPlaceholder": "선택 사항. 방문자에게 간단히 소개",
+    "fieldDescriptionPlaceholder": "선택 — 공유를 받는 사람에게 이 도안을 소개해 주세요",
     "authorLabel": "크레딧",
     "authorDefault": "비즈 크리에이터",
     "authorHint": "계정 닉네임, 프로필 사진, 이메일은 공개되지 않습니다.",
-    "notice": "링크를 가진 사람은 누구나 보고 전달할 수 있습니다. 공유되는 것은 이 시점의 스냅샷이며 계정 정보, 재고, 개인 팔레트는 포함되지 않습니다.",
+    "notice": "링크를 가진 사람은 누구나 볼 수 있습니다. 공유되는 것은 현재 시점의 스냅샷이며 계정 정보·재고·개인 팔레트는 포함되지 않습니다.",
     "rights": "도안에 대한 권리를 보유했거나 공유 허가를 받았는지 확인하세요. 타인의 개인정보, 초상, 불법 콘텐츠가 포함되어서는 안 됩니다.",
     "create": "공유 카드 만들기",
     "state": {
@@ -2046,7 +2046,8 @@
       "beads": "비즈 {{n}}개",
       "colors": "{{n}}가지 색",
       "scan": "스캔하여 보기",
-      "footer": "Bead Studio · tangnotes.site"
+      "footer": "Bead Studio · tangnotes.site",
+      "authorPrefix": "来自 "
     },
     "page": {
       "brand": "Bead Studio",
@@ -2062,7 +2063,7 @@
       "copyHint": "로그인하거나 가입하면 이 도안을 내 작품으로 저장할 수 있습니다.",
       "statsTitle": "도안 정보",
       "colorsTitle": "사용 색상",
-      "authorPrefix": "공유한 사람",
+      "authorPrefix": "{{name}} 님 제작",
       "snapshotNote": "사용자가 공유한 도안이며, 공유를 만들던 시점의 스냅샷입니다.",
       "report": "신고 / 권리 침해",
       "reportTitle": "신고 또는 권리 침해 신청",
@@ -2081,7 +2082,9 @@
       "reportFailed": "전송에 실패했습니다. 잠시 후 다시 시도해 주세요.",
       "copySuccess": "내 작품으로 복사했습니다",
       "copyFailed": "복사에 실패했습니다. 잠시 후 다시 시도해 주세요.",
-      "loginToCopy": "로그인하여 복사"
+      "loginToCopy": "로그인하여 복사",
+      "brandLabel": "비즈 팔레트",
+      "reportDetailRequired": "설명(필수)"
     },
     "manage": {
       "sectionTitle": "내 공유",

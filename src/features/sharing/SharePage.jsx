@@ -26,6 +26,30 @@ const SITE = 'https://tangnotes.site'
 const COPY_INTENT_PREFIX = 'share-copy-intent:'
 const REPORT_CATEGORIES = ['illegal', 'copyright', 'privacy', 'impersonation', 'other']
 
+/** 站点 LOGO:4×4 拼豆色卡(与 index.html favicon、登录页同一品牌图形) */
+function BrandLogo({ size = 28 }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 32 32" fill="none" aria-hidden="true">
+      <rect width="8" height="8" x="0" y="0" fill="#E53935" />
+      <rect width="8" height="8" x="8" y="0" fill="#FDD835" />
+      <rect width="8" height="8" x="16" y="0" fill="#32CD32" />
+      <rect width="8" height="8" x="24" y="0" fill="#1976D2" />
+      <rect width="8" height="8" x="0" y="8" fill="#F06292" />
+      <rect width="8" height="8" x="8" y="8" fill="#BA68C8" />
+      <rect width="8" height="8" x="16" y="8" fill="#00BCD4" />
+      <rect width="8" height="8" x="24" y="8" fill="#FF9800" />
+      <rect width="8" height="8" x="0" y="16" fill="#FFFFFF" stroke="#E0E0E0" />
+      <rect width="8" height="8" x="8" y="16" fill="#9E9E9E" />
+      <rect width="8" height="8" x="16" y="16" fill="#000000" />
+      <rect width="8" height="8" x="24" y="16" fill="#795548" />
+      <rect width="8" height="8" x="0" y="24" fill="#8D6E63" />
+      <rect width="8" height="8" x="8" y="24" fill="#A1887F" />
+      <rect width="8" height="8" x="16" y="24" fill="#BDBDBD" />
+      <rect width="8" height="8" x="24" y="24" fill="#6D4C41" />
+    </svg>
+  )
+}
+
 export default function SharePage({ user, authLoading, onSaveWork }) {
   const { t } = useTranslation()
   const { id: rawId } = useParams()
@@ -163,8 +187,11 @@ export default function SharePage({ user, authLoading, onSaveWork }) {
     copyToMyWorks()
   }
 
+  /** 举报说明必填:空提交只会产生无法处理的垃圾记录,前端先拦一道 */
+  const reportDetailValid = reportDetail.trim().length > 0
+
   const handleReport = async () => {
-    if (!share || reportBusy) return
+    if (!share || reportBusy || !reportDetailValid) return
     setReportBusy(true)
     const result = await submitShareReport({
       shareId: share.id,
@@ -213,6 +240,7 @@ export default function SharePage({ user, authLoading, onSaveWork }) {
       <div className="share-page-inner">
         <header className="share-page-bar">
           <a className="share-page-brand" href={SITE} rel="noopener">
+            <BrandLogo size={28} />
             {t('share.page.brand')}
           </a>
           <span className="share-page-tagline">{t('share.page.tagline')}</span>
@@ -251,7 +279,7 @@ export default function SharePage({ user, authLoading, onSaveWork }) {
               {share.description ? <p className="share-page-desc">{share.description}</p> : null}
               {share.authorLabel ? (
                 <p className="share-page-author">
-                  {t('share.page.authorPrefix')}: {share.authorLabel}
+                  {t('share.page.authorPrefix', { name: share.authorLabel })}
                 </p>
               ) : null}
             </div>
@@ -269,6 +297,10 @@ export default function SharePage({ user, authLoading, onSaveWork }) {
               <li>{t('share.card.size', { w: share.gridWidth, h: share.gridHeight })}</li>
               <li>{t('share.card.beads', { n: stats.beads })}</li>
               <li>{t('share.card.colors', { n: stats.colorCount })}</li>
+              <li>
+                {t('share.page.brandLabel')}
+                <span>{t(`palette.brand.${share.paletteId || 'perler'}`, share.paletteId || 'perler')}</span>
+              </li>
             </ul>
 
             <h2 className="share-page-section-title">{t('share.page.colorsTitle')}</h2>
@@ -338,7 +370,7 @@ export default function SharePage({ user, authLoading, onSaveWork }) {
             </label>
 
             <label className="share-field">
-              <span>{t('share.page.reportDetail')}</span>
+              <span>{t('share.page.reportDetailRequired')}</span>
               <textarea
                 rows={4}
                 maxLength={1000}
@@ -381,7 +413,7 @@ export default function SharePage({ user, authLoading, onSaveWork }) {
                 type="button"
                 className="share-btn primary"
                 onClick={handleReport}
-                disabled={reportBusy}
+                disabled={reportBusy || !reportDetailValid}
               >
                 {t('share.page.reportSubmit')}
               </button>

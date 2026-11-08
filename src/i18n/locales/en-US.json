@@ -1988,11 +1988,11 @@
     "fieldTitle": "Title",
     "fieldTitlePlaceholder": "Give this share a title",
     "fieldDescription": "Description",
-    "fieldDescriptionPlaceholder": "Optional note for viewers",
+    "fieldDescriptionPlaceholder": "Optional — tell the recipient about this pattern",
     "authorLabel": "Credit",
     "authorDefault": "Bead creator",
     "authorHint": "Your nickname, avatar and email are never shown.",
-    "notice": "Anyone with the link can view and forward it. You are sharing a snapshot of this moment — not your account, inventory or private palettes.",
+    "notice": "Anyone with the link can view it. What is shared is a snapshot of this moment — no account data, inventory or private palettes.",
     "rights": "Please make sure you own this pattern or have permission to share it, and that it contains no one else’s private information, likeness or illegal content.",
     "create": "Create share card",
     "state": {
@@ -2046,7 +2046,8 @@
       "beads": "{{n}} beads",
       "colors": "{{n}} colors",
       "scan": "Scan to view",
-      "footer": "Bead Studio · tangnotes.site"
+      "footer": "Bead Studio · tangnotes.site",
+      "authorPrefix": "From "
     },
     "page": {
       "brand": "Bead Studio",
@@ -2062,7 +2063,7 @@
       "copyHint": "Sign in or create an account to save this pattern to your works.",
       "statsTitle": "Pattern info",
       "colorsTitle": "Colors",
-      "authorPrefix": "Shared by",
+      "authorPrefix": "From {{name}}",
       "snapshotNote": "This pattern was shared by a user. It is a snapshot taken when the share was created.",
       "report": "Report / rights claim",
       "reportTitle": "Report or rights claim",
@@ -2081,7 +2082,9 @@
       "reportFailed": "Submission failed. Please try again later.",
       "copySuccess": "Copied to your works",
       "copyFailed": "Copy failed. Please try again later.",
-      "loginToCopy": "Sign in to copy"
+      "loginToCopy": "Sign in to copy",
+      "brandLabel": "Bead palette",
+      "reportDetailRequired": "Description (required)"
     },
     "manage": {
       "sectionTitle": "My shares",

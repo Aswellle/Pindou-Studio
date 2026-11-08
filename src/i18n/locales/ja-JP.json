@@ -1988,11 +1988,11 @@
     "fieldTitle": "タイトル",
     "fieldTitlePlaceholder": "共有のタイトルを入力",
     "fieldDescription": "説明",
-    "fieldDescriptionPlaceholder": "任意。閲覧者への簡単な説明",
+    "fieldDescriptionPlaceholder": "任意。共有を受け取る人にこの図案を紹介しましょう",
     "authorLabel": "クレジット",
     "authorDefault": "ビーズクリエイター",
     "authorHint": "アカウントのニックネーム・アイコン・メールは公開されません。",
-    "notice": "リンクを知っている人は誰でも閲覧・転送できます。共有されるのはこの時点のスナップショットで、アカウント情報・在庫・個人パレットは含まれません。",
+    "notice": "リンクを知っている人なら誰でも閲覧できます。共有されるのは現時点のスナップショットで、アカウント情報・在庫・個人パレットは含まれません。",
     "rights": "図案の権利を保有しているか、共有の許可を得ていることを確認してください。第三者の個人情報・肖像・違法な内容を含めないでください。",
     "create": "共有カードを作成",
     "state": {
@@ -2046,7 +2046,8 @@
       "beads": "{{n}} 個のビーズ",
       "colors": "{{n}} 色",
       "scan": "スキャンして表示",
-      "footer": "Bead Studio · tangnotes.site"
+      "footer": "Bead Studio · tangnotes.site",
+      "authorPrefix": "来自 "
     },
     "page": {
       "brand": "Bead Studio",
@@ -2062,7 +2063,7 @@
       "copyHint": "ログインまたは登録すると、この図案を自分の作品に保存できます。",
       "statsTitle": "図案の情報",
       "colorsTitle": "使用色",
-      "authorPrefix": "共有者",
+      "authorPrefix": "{{name}} さんより",
       "snapshotNote": "これはユーザーが共有した図案で、共有作成時点のスナップショットです。",
       "report": "通報 / 権利申し立て",
       "reportTitle": "通報または権利申し立て",
@@ -2081,7 +2082,9 @@
       "reportFailed": "送信に失敗しました。しばらくしてからお試しください。",
       "copySuccess": "自分の作品にコピーしました",
       "copyFailed": "コピーに失敗しました。しばらくしてからお試しください。",
-      "loginToCopy": "ログインしてコピー"
+      "loginToCopy": "ログインしてコピー",
+      "brandLabel": "ビーズパレット",
+      "reportDetailRequired": "説明(必須)"
     },
     "manage": {
       "sectionTitle": "自分の共有",

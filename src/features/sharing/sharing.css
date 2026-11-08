@@ -258,6 +258,107 @@
   cursor: not-allowed;
 }
 
+/* ── 创建进行中:居中拼豆加载动画 ─────────────────────────── */
+/* 四颗品牌色珠子依次起伏,对应四个生命周期阶段;下方步骤点同步点亮。
+   动画只用 transform/opacity(合成层,不引起重排),prefers-reduced-motion
+   下降级为静态展示。 */
+.share-progress {
+  flex: 1 1 auto;
+  min-height: 300px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 22px;
+  padding: 24px;
+}
+.share-progress-beads {
+  display: flex;
+  align-items: flex-end;
+  gap: 14px;
+  height: 56px;
+}
+.spb {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  /* 珠面:主体色 + 内圈 + 高光,与站点珠子绘制语言一致 */
+  background:
+    radial-gradient(circle at 32% 28%, rgba(255, 255, 255, 0.6), transparent 45%),
+    radial-gradient(circle at 50% 55%, var(--bead) 0%, color-mix(in srgb, var(--bead) 72%, #7a4a28) 100%);
+  box-shadow:
+    inset 0 -2px 3px rgba(43, 36, 32, 0.18),
+    0 3px 6px color-mix(in srgb, var(--bead) 30%, transparent);
+  animation: spb-bounce 1.15s cubic-bezier(0.45, 0, 0.55, 1) infinite;
+}
+.spb-1 {
+  --bead: #e8734a;
+  animation-delay: 0s;
+}
+.spb-2 {
+  --bead: #f2b233;
+  animation-delay: 0.14s;
+}
+.spb-3 {
+  --bead: #4a9b8e;
+  animation-delay: 0.28s;
+}
+.spb-4 {
+  --bead: #4c82e2;
+  animation-delay: 0.42s;
+}
+@keyframes spb-bounce {
+  0%,
+  100% {
+    transform: translateY(0) scale(1);
+  }
+  35% {
+    transform: translateY(-16px) scale(1.06);
+  }
+  70% {
+    transform: translateY(0) scale(0.94);
+  }
+}
+.share-progress-text {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 600;
+  color: #5d5147;
+  text-align: center;
+}
+.share-progress-steps {
+  display: flex;
+  gap: 10px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.share-progress-steps li {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: rgba(43, 36, 32, 0.12);
+  transition:
+    background-color 0.25s,
+    transform 0.25s;
+}
+.share-progress-steps li.done {
+  background: #4a9b8e;
+}
+.share-progress-steps li.current {
+  background: #e8734a;
+  transform: scale(1.3);
+}
+@media (prefers-reduced-motion: reduce) {
+  .spb {
+    animation: none;
+    transform: none;
+  }
+  .share-progress-steps li {
+    transition: none;
+  }
+}
+
 /* ── 成功面板 ─────────────────────────────────────────────── */
 
 .share-success {
@@ -356,10 +457,18 @@
 }
 
 .share-page-brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
   font-size: 17px;
   font-weight: 700;
   color: #2b2420;
   text-decoration: none;
+}
+
+.share-page-brand svg {
+  display: block;
+  border-radius: 6px;
 }
 
 .share-page-tagline {
@@ -453,6 +562,7 @@
 }
 
 .share-color-grid li {
+  /* hex + 计数整体一行:计数被折到第二行会读成两个独立信息 */
   display: flex;
   align-items: center;
   gap: 8px;
@@ -462,6 +572,12 @@
   border: 1px solid rgba(43, 36, 32, 0.06);
   font-size: 12.5px;
   color: #5d5147;
+  white-space: nowrap;
+}
+
+.share-color-grid li > span:last-child {
+  margin-left: auto;
+  font-variant-numeric: tabular-nums;
 }
 
 .share-swatch {

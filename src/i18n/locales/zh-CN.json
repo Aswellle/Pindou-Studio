@@ -1988,11 +1988,11 @@
     "fieldTitle": "标题",
     "fieldTitlePlaceholder": "给这条分享起个标题",
     "fieldDescription": "说明",
-    "fieldDescriptionPlaceholder": "选填,向访客简单介绍这张图纸",
+    "fieldDescriptionPlaceholder": "选填,向接收分享的人简单介绍这张图纸",
     "authorLabel": "署名",
     "authorDefault": "拼豆创作者",
     "authorHint": "不会公开你的账号昵称、头像或邮箱。",
-    "notice": "任何获得链接的人都可以查看并转发。分享的是此刻的快照,不包含账号资料、库存或私人色卡。",
+    "notice": "任何获得链接的人都可以查看。分享的是此刻的快照,不包含账号资料、库存或私人色卡。",
     "rights": "请确认你拥有该图案的必要权利或已获得授权,内容不含他人隐私、肖像或违法信息。",
     "create": "生成分享卡",
     "state": {
@@ -2046,7 +2046,8 @@
       "beads": "{{n}} 颗豆子",
       "colors": "{{n}} 种颜色",
       "scan": "扫码查看图纸",
-      "footer": "拼豆 Studio · tangnotes.site"
+      "footer": "拼豆 Studio · tangnotes.site",
+      "authorPrefix": "来自 "
     },
     "page": {
       "brand": "拼豆 Studio",
@@ -2062,7 +2063,7 @@
       "copyHint": "登录或注册后,即可把这张图纸保存到自己的作品中。",
       "statsTitle": "作品信息",
       "colorsTitle": "颜色清单",
-      "authorPrefix": "分享者",
+      "authorPrefix": "来自 {{name}}",
       "snapshotNote": "这是一张由用户分享的图纸,内容为创建分享时的版本快照。",
       "report": "举报 / 权利投诉",
       "reportTitle": "举报或权利投诉",
@@ -2081,7 +2082,9 @@
       "reportFailed": "提交失败,请稍后重试。",
       "copySuccess": "已复制到你的作品",
       "copyFailed": "复制失败,请稍后重试",
-      "loginToCopy": "登录后即可复制"
+      "loginToCopy": "登录后即可复制",
+      "brandLabel": "色卡品牌",
+      "reportDetailRequired": "说明(必填)"
     },
     "manage": {
       "sectionTitle": "我的分享",

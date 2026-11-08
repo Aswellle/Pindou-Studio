@@ -247,7 +247,7 @@ describe('SharePage 举报对话框', () => {
   it('打开 → 填写 → 提交成功 → 表单清空、成功文案', async () => {
     await openReport()
     fireEvent.change(screen.getByLabelText('类别'), { target: { value: 'privacy' } })
-    fireEvent.change(screen.getByLabelText('说明'), { target: { value: '涉嫌侵权内容' } })
+    fireEvent.change(screen.getByLabelText('说明(必填)'), { target: { value: '涉嫌侵权内容' } })
     fireEvent.click(screen.getByText('提交'))
     await waitFor(() => expect(submitShareReport).toHaveBeenCalledTimes(1))
     expect(submitShareReport).toHaveBeenCalledWith({
@@ -257,12 +257,22 @@ describe('SharePage 举报对话框', () => {
       contact: '',
     })
     expect(await screen.findByText('已收到,我们会尽快处理。')).toBeTruthy()
-    expect(screen.getByLabelText('说明').value).toBe('')
+    expect(screen.getByLabelText('说明(必填)').value).toBe('')
+  })
+
+  it('说明为空时提交禁用,不发请求', async () => {
+    await openReport()
+    const submit = screen.getByText('提交')
+    expect(submit.disabled).toBe(true)
+    fireEvent.click(submit)
+    await new Promise(resolve => setTimeout(resolve, 30))
+    expect(submitShareReport).not.toHaveBeenCalled()
   })
 
   it('提交失败显示失败文案,对话框保留可重试', async () => {
     submitShareReport.mockResolvedValue({ ok: false, data: null, error: 'rateLimited', detail: 'x' })
     await openReport()
+    fireEvent.change(screen.getByLabelText('说明(必填)'), { target: { value: '空说明显然不该成功' } })
     fireEvent.click(screen.getByText('提交'))
     await waitFor(() => expect(screen.getByText('提交失败,请稍后重试。')).toBeTruthy())
     expect(screen.getByText('提交')).toBeTruthy()
