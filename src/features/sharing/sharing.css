@@ -242,14 +242,15 @@
 }
 
 .share-btn.primary {
-  background: linear-gradient(180deg, #c4713f, #a9562c);
+  /* 手作暖调橙(站点 --accent):分享流程的主按钮与全站主按钮同色 */
+  background: var(--accent, #e8734a);
   border-color: transparent;
   color: #fff;
 }
 
 .share-btn.primary:hover:not(:disabled) {
+  background: var(--accent-hover, #d35f38);
   color: #fff;
-  filter: brightness(1.04);
 }
 
 .share-btn.ghost {
