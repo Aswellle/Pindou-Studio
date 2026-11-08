@@ -73,11 +73,14 @@ beforeEach(() => {
 afterEach(cleanup)
 
 describe('ShareWorkDialog 门禁与可用性', () => {
-  it('gate 关闭:显示未开放提示,提交禁用', () => {
-    setHook({ gate: false })
+  it('gate 关闭:显示未开放提示,提交禁用,可就地重试门禁查询', () => {
+    const refreshGate = vi.fn()
+    setHook({ gate: false, refreshGate })
     renderDialog()
     expect(screen.getByText('分享发布暂未开放')).toBeTruthy()
     expect(screen.getByText('生成分享卡').disabled).toBe(true)
+    fireEvent.click(screen.getByText('重试'))
+    expect(refreshGate).toHaveBeenCalledTimes(1)
   })
 
   it('云端未配置:显示不可用提示,提交禁用', () => {

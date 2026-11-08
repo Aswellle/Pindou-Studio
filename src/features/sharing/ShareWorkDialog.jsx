@@ -30,9 +30,8 @@ const BUSY = new Set([
 
 export default function ShareWorkDialog({ open, work, onClose, onPublished }) {
   const { t } = useTranslation()
-  const { state, error, share, gate, createAndPublish, retry, reset, configured } = useWorkShares({
-    enabled: open,
-  })
+  const { state, error, share, gate, createAndPublish, retry, reset, configured, refreshGate } =
+    useWorkShares({ enabled: open })
 
   const [title, setTitle] = useState('')
   const [description, setDescription] = useState('')
@@ -141,6 +140,11 @@ export default function ShareWorkDialog({ open, work, onClose, onPublished }) {
               <div className="share-note warn" role="status">
                 <strong>{t('share.gateClosed')}</strong>
                 <span>{t('share.gateClosedHint')}</span>
+                {/* 门禁状态查询偶发网络失败时也会落到「未开放」,给一个就地重试,
+                    不必关掉弹窗重开 */}
+                <button type="button" className="share-link-btn" onClick={() => refreshGate()}>
+                  {t('share.retry')}
+                </button>
               </div>
             ) : null}
 
