@@ -57,7 +57,7 @@ const FEED_LIMIT = 48
 /** 分享只接受云端作品:works 表主键是 UUID */
 const CLOUD_ID_RE = /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/
 
-export default function GalleryPage({ onLoadTemplate, cloudStore, user, onSaveWork }) {
+export default function GalleryPage({ onLoadTemplate, cloudStore, user, onSaveWork, onDeleteWork }) {
   const { t, i18n } = useTranslation()
   const toast = useToast()
   const navigate = useNavigate()
@@ -112,9 +112,41 @@ export default function GalleryPage({ onLoadTemplate, cloudStore, user, onSaveWo
   const [brandOverride, setBrandOverride] = useState({})
   // 待确认填充到画布的模板(卡片点击不再直接填充,弹窗让用户确认,避免误触)
   const [pendingLoad, setPendingLoad] = useState(null)
-  // 弹窗内「创建分享链接」:先复制为云端作品,再对副本走分享流程
+  // 弹窗内「创建分享链接」:分享 RPC 只认 works 表里的作品,所以先复制一份
+  // 云端作品作为快照来源;分享是独立快照,流程结束(成功/取消/离开页面)后
+  // 立即删除这份临时副本 —— 不该混进用户真正的「我的作品」列表。
   const [shareWork, setShareWork] = useState(null)
   const [sharePreparing, setSharePreparing] = useState(false)
+  const shareCopyRef = useRef(null)
+  const deleteWorkRef = useRef(onDeleteWork)
+  useEffect(() => {
+    deleteWorkRef.current = onDeleteWork
+  }, [onDeleteWork])
+
+  const cleanupShareCopy = useCallback(async () => {
+    const temp = shareCopyRef.current
+    shareCopyRef.current = null
+    if (!temp) return
+    try {
+      await deleteWorkRef.current?.(temp)
+    } catch (error) {
+      // 清理失败不阻断任何主流程,只留诊断信息
+      console.warn('[share] cleanup temp copy failed', error)
+    }
+  }, [])
+
+  const closeShareDialog = useCallback(() => {
+    setShareWork(null)
+    void cleanupShareCopy()
+  }, [cleanupShareCopy])
+
+  // 切换页面(组件卸载)时同样要清掉临时副本
+  useEffect(
+    () => () => {
+      void cleanupShareCopy()
+    },
+    [cleanupShareCopy]
+  )
   // 筛选面板开关(触发按钮引用用于锚定定位与焦点归还)
   const [filterOpen, setFilterOpen] = useState(false)
   const filterTriggerRef = useRef(null)
@@ -222,6 +254,8 @@ export default function GalleryPage({ onLoadTemplate, cloudStore, user, onSaveWo
         }
         const saved = await onSaveWork({ ...work, sourceTemplateId: template.id })
         if (saved && typeof saved.id === 'string' && CLOUD_ID_RE.test(saved.id)) {
+          // 记下临时副本:分享弹窗关闭后立即删除,不留在「我的作品」里
+          shareCopyRef.current = saved
           setPendingLoad(null)
           setShareWork(saved)
         } else if (saved) {
@@ -752,7 +786,9 @@ export default function GalleryPage({ onLoadTemplate, cloudStore, user, onSaveWo
         )}
 
       {/* 弹窗内「创建分享链接」的产物:对复制出的云端作品走标准分享流程 */}
-      <ShareWorkDialog open={!!shareWork} work={shareWork} onClose={() => setShareWork(null)} />
+      {/* 弹窗内「创建分享链接」的产物:关闭即删除临时副本;
+          已发布的分享是独立快照,不受源作品删除影响 */}
+      <ShareWorkDialog open={!!shareWork} work={shareWork} onClose={closeShareDialog} />
     </div>
   )
 }

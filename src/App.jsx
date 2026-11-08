@@ -1119,6 +1119,7 @@ export default function App() {
                   cloudStore={cloudStore}
                   user={user}
                   onSaveWork={saveWork}
+                  onDeleteWork={deleteWork}
                 />
               </Suspense>
             }
@@ -1514,6 +1515,7 @@ export default function App() {
                   cloudStore={cloudStore}
                   user={user}
                   onSaveWork={saveWork}
+                  onDeleteWork={deleteWork}
                 />
               </div>
             </Suspense>

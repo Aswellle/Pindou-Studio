@@ -5,6 +5,19 @@ import GalleryPage from './GalleryPage'
 import i18n from '../../i18n'
 import { TEMPLATES } from '../../data/templates'
 
+// 分享弹窗做轻量替身:避免测试环境真实挂载 useWorkShares(会读取环境变量并发请求)
+vi.mock('../sharing/ShareWorkDialog', () => ({
+  default: ({ open, onClose }) =>
+    open ? (
+      <div>
+        <div>分享图纸</div>
+        <button type="button" onClick={onClose}>
+          关闭分享
+        </button>
+      </div>
+    ) : null,
+}))
+
 beforeAll(async () => {
   await i18n.changeLanguage('zh-CN')
   // jsdom 无 canvas 实现:复用 App.test 的 2D 上下文 mock(缩略图直绘不崩即可)
@@ -271,13 +284,46 @@ describe('GalleryPage — 模板创建分享链接', () => {
   })
 
   it('已登录:先复制为云端作品,成功后打开分享弹窗并带来源模板', async () => {
-    const onSaveWork = vi.fn(async () => ({ id: '0f0f0f0f-1111-2222-3333-444444444444', name: '小鸭' }))
+    const saved = { id: '0f0f0f0f-1111-2222-3333-444444444444', name: '小鸭' }
+    const onSaveWork = vi.fn(async () => saved)
     const { container } = setup({ savedWorks: [], user: { id: 'u1' }, onSaveWork })
     fireEvent.click(container.querySelector('.template-card'))
     fireEvent.click(screen.getByText('创建分享链接'))
     await vi.waitFor(() => expect(screen.getByText('分享图纸')).toBeTruthy())
     expect(onSaveWork).toHaveBeenCalledTimes(1)
     expect(onSaveWork.mock.calls[0][0].sourceTemplateId).toBe(TEMPLATES[0].id)
+  })
+
+  it('关闭分享弹窗后删除临时副本,不留在「我的作品」', async () => {
+    const saved = { id: '0f0f0f0f-1111-2222-3333-444444444444', name: '小鸭' }
+    const onSaveWork = vi.fn(async () => saved)
+    const onDeleteWork = vi.fn(async () => {})
+    const { container } = setup({ savedWorks: [], user: { id: 'u1' }, onSaveWork, onDeleteWork })
+    fireEvent.click(container.querySelector('.template-card'))
+    fireEvent.click(screen.getByText('创建分享链接'))
+    await vi.waitFor(() => expect(screen.getByText('分享图纸')).toBeTruthy())
+    expect(onDeleteWork).not.toHaveBeenCalled()
+    fireEvent.click(screen.getByText('关闭分享'))
+    await vi.waitFor(() => expect(onDeleteWork).toHaveBeenCalledTimes(1))
+    expect(onDeleteWork.mock.calls[0][0]).toBe(saved)
+    expect(screen.queryByText('分享图纸')).toBeNull()
+  })
+
+  it('离开页面(卸载)同样清理临时副本', async () => {
+    const saved = { id: '0f0f0f0f-1111-2222-3333-444444444444', name: '小鸭' }
+    const onSaveWork = vi.fn(async () => saved)
+    const onDeleteWork = vi.fn(async () => {})
+    const { container, unmount } = setup({
+      savedWorks: [],
+      user: { id: 'u1' },
+      onSaveWork,
+      onDeleteWork,
+    })
+    fireEvent.click(container.querySelector('.template-card'))
+    fireEvent.click(screen.getByText('创建分享链接'))
+    await vi.waitFor(() => expect(screen.getByText('分享图纸')).toBeTruthy())
+    unmount()
+    await vi.waitFor(() => expect(onDeleteWork).toHaveBeenCalledTimes(1))
   })
 
   it('本地模式(无云端 id):保存成功但不打开分享弹窗', async () => {
