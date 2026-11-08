@@ -52,9 +52,12 @@ export default function ShareWorkDialog({ open, work, onClose, onPublished }) {
   useScrollLock(open)
   const { ref: dialogRef, dialogProps } = useDialogA11y({
     open,
-    // 发布进行中不允许关闭:否则组件卸载会丢掉草稿 id,用户再点时可能重复创建
+    // 分享创建是一条完整流程:遮罩点击与 Escape 都不关闭(见下),
+    // 退出只走生命周期节点 —— 表单态「取消/叉号」、忙碌态不可关、
+    // 成功面板「完成」、错误态「取消/重试」
     onClose,
     disabled: busy,
+    dismissible: false,
     label: t('share.title'),
   })
 
@@ -97,10 +100,9 @@ export default function ShareWorkDialog({ open, work, onClose, onPublished }) {
     [SHARE_STATES.PUBLISHING]: t('share.state.publishing'),
   }[state]
 
-  // 创建进行中:遮罩与 Escape 都不关闭(useDialogA11y disabled),弹窗只随
-  // 生命周期节点(成功面板的「完成」/错误态的取消/重试)退出
+  // 创建是一条完整流程:遮罩不承担关闭职责(防误触),退出只走浮窗内按钮
   return createPortal(
-    <div className="modal-overlay" onClick={busy ? undefined : onClose}>
+    <div className="modal-overlay" onClick={event => event.stopPropagation()}>
       <div
         className="share-dialog"
         ref={dialogRef}
