@@ -96,7 +96,7 @@ export function pointInLassoSelection(sel, pos) {
  * 只访问 bounds 内的格子,不会扫全图 —— 套索通常只占画布一小块。
  */
 export function forEachLassoCell(sel, cols, rows, fn) {
-  if (!sel || sel.kind !== 'lasso' || !sel.mask) return
+  if (sel?.kind !== 'lasso' || !sel.mask) return
   const b = sel.bounds
   if (!b) return
   const x0 = Math.max(0, b.x)
@@ -112,7 +112,7 @@ export function forEachLassoCell(sel, cols, rows, fn) {
 
 /** 选中格子数(用于 UI 显示与「是否为空」判断) */
 export function countLassoCells(sel, cols, rows) {
-  if (!sel || sel.kind !== 'lasso' || !sel.mask) return 0
+  if (sel?.kind !== 'lasso' || !sel.mask) return 0
   let n = 0
   forEachLassoCell(sel, cols, rows, () => { n++ })
   return n

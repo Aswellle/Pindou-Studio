@@ -14,8 +14,6 @@ import { useChartImport } from './useChartImport'
  * analyzeChart,只验证状态编排。
  */
 
-const R = '#E53935'
-
 /** 造一张 w×h 的 RGBA 图,左半红右半蓝 */
 function makeImage(w, h) {
   const data = new Uint8ClampedArray(w * h * 4)

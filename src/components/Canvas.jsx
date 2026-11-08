@@ -1483,7 +1483,7 @@ const Canvas = forwardRef(function Canvas(
         }
       }
     },
-    [getGridPos, transform, softClamp, updateSelection, updateMove, updateResize]
+    [getGridPos, transform, softClamp, updateSelection, updateMove, updateResize, cancelLongPress, getGridPoint, updateLasso]
   )
 
   const handleTouchEnd = useCallback(

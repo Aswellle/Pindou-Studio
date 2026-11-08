@@ -18,7 +18,6 @@ import { join } from 'node:path'
 
 const SRC = join(process.cwd(), 'src')
 const PAGE_CSS = readFileSync(join(SRC, 'components', 'importPage.css'), 'utf8')
-const PAGE_JSX = readFileSync(join(SRC, 'components', 'ImportPage.jsx'), 'utf8')
 
 /** 提取某个选择器块的内容(从选择器到匹配的右花括号) */
 function ruleBody(css, selector) {

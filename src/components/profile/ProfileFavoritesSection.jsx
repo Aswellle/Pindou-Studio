@@ -15,7 +15,7 @@
 
 import { useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
-import { Heart, Search, LayoutGrid } from 'lucide-react'
+import { Heart, LayoutGrid } from 'lucide-react'
 import ThumbnailCanvas from '../ThumbnailCanvas'
 import { templateDimensions, extractPatternColors } from '../../data/templates'
 import { useGalleryTemplates } from '../../features/gallery/hooks/useGalleryTemplates'

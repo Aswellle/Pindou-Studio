@@ -99,7 +99,7 @@ export function shouldRecordVersion(previous, next) {
  * @param {number} total
  * @returns {{ key: string, params: Object }}
  */
-export function versionLabel(version, index, total) {
+export function versionLabel(_version, index, total) {
   if (index === 0) return { key: 'versions.labelCurrent', params: {} }
   if (index === total - 1) return { key: 'versions.labelEarliest', params: {} }
   return { key: 'versions.labelOlder', params: { n: index } }
