@@ -214,6 +214,29 @@ describe('IroningStudioDialog · 预览状态', () => {
   })
 })
 
+describe('IroningStudioDialog · 强制显式关闭', () => {
+  it('点击遮罩不关闭工作室(防误触丢失当前材质与预览状态)', async () => {
+    setup()
+    await openStudioAndSettle()
+    fireEvent.click(document.querySelector('.ironing-studio-overlay'))
+    expect(screen.getByRole('button', { name: '关闭' })).toBeTruthy()
+  })
+
+  it('Escape 不关闭工作室', async () => {
+    setup()
+    await openStudioAndSettle()
+    fireEvent.keyDown(document, { key: 'Escape' })
+    expect(screen.getByRole('button', { name: '关闭' })).toBeTruthy()
+  })
+
+  it('右上角关闭按钮退出工作室', async () => {
+    setup()
+    await openStudioAndSettle()
+    fireEvent.click(screen.getByRole('button', { name: '关闭' }))
+    await waitFor(() => expect(screen.queryByRole('button', { name: '关闭' })).toBeNull())
+  })
+})
+
 describe('IroningStudioDialog · Object URL 生命周期', () => {
   it('切换材质时撤销旧 URL、挂载新 URL', async () => {
     setup()

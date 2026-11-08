@@ -6,10 +6,7 @@ import { getPalette } from '../../data/palettes'
 import { normalizeCellsToHex } from '../../services/colorUtils'
 import { createPatternDocument } from '../../services/export/PatternDocument'
 import { renderIroningEffect } from '../../services/export/IroningEffectRenderer'
-import {
-  IRONING_EFFECT_PRESETS,
-  DEFAULT_IRONING_PRESET_ID,
-} from '../../services/export/ironingEffectPresets'
+import { IRONING_EFFECT_PRESETS, DEFAULT_IRONING_PRESET_ID } from '../../services/export/ironingEffectPresets'
 import { useScrollLock } from '../../hooks/useScrollLock'
 import { useDialogA11y } from '../../hooks/useDialogA11y'
 
@@ -56,6 +53,9 @@ export default function IroningStudioDialog({
     open,
     onClose,
     label: t('export.ironing.studioTitle'),
+    // 工作室承载材质选择与实时预览的半成品状态:遮罩点击与 Escape 都不关闭,
+    // 只允许右上角关闭按钮退出,避免误触丢失正在调整的材质选择
+    dismissible: false,
   })
 
   const preset = useMemo(
@@ -161,10 +161,9 @@ export default function IroningStudioDialog({
   }
 
   return createPortal(
-    <div className="ironing-studio-overlay" onClick={onClose}>
-      <section
-        className="ironing-studio-panel" ref={ref} {...dialogProps} onClick={e => e.stopPropagation()}
-      >
+    // 遮罩不承担关闭职责(防误触退出丢失工作状态):退出只走右上角关闭按钮
+    <div className="ironing-studio-overlay">
+      <section className="ironing-studio-panel" ref={ref} {...dialogProps} onClick={e => e.stopPropagation()}>
         <header className="ironing-studio-head">
           <div className="ironing-studio-heading">
             <h3>{t('export.ironing.studioTitle')}</h3>
@@ -213,11 +212,7 @@ export default function IroningStudioDialog({
             </div>
           </div>
 
-          <div
-            className="ironing-studio-styles"
-            role="group"
-            aria-label={t('export.ironing.stylesLabel')}
-          >
+          <div className="ironing-studio-styles" role="group" aria-label={t('export.ironing.stylesLabel')}>
             {IRONING_EFFECT_PRESETS.map(p => (
               <button
                 key={p.id}
