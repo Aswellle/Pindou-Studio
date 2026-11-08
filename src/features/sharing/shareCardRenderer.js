@@ -21,7 +21,9 @@ import {
   CARD_HEIGHT,
   CARD_WIDTH,
   FONT_STACK,
-  LOGO_BEAD_COLORS,
+  LOGO_GRID,
+  BRAND_NAME,
+  BRAND_DOMAIN,
   buildShareCardModel,
   wrapText,
 } from './shareCardModel'
@@ -82,18 +84,27 @@ function drawBead(ctx, cx, cy, r, color) {
   ctx.fill()
 }
 
-/** 品牌 LOGO:2×2 四色珠 */
-function drawLogo(ctx, x, cy, bead) {
-  const gap = bead * 0.4
-  const offsets = [
-    [-(bead + gap / 2), -(bead + gap / 2)],
-    [bead + gap / 2, -(bead + gap / 2)],
-    [-(bead + gap / 2), bead + gap / 2],
-    [bead + gap / 2, bead + gap / 2],
-  ]
-  offsets.forEach(([dx, dy], index) => {
-    drawBead(ctx, x + dx, cy + dy, bead, LOGO_BEAD_COLORS[index])
-  })
+/**
+ * 站点专属 LOGO:4×4 十六格拼豆色卡(与 favicon/登录页同源图形)。
+ * (x, cy) 是 LOGO 左上角与垂直中心;近白格在暖色底上加淡描边避免「隐身」。
+ */
+function drawLogo(ctx, x, cy, size) {
+  const cell = size / 4
+  const half = size / 2
+  for (let row = 0; row < 4; row++) {
+    for (let col = 0; col < 4; col++) {
+      const color = LOGO_GRID[row][col]
+      const px = x + col * cell
+      const py = cy - half + row * cell
+      ctx.fillStyle = color
+      ctx.fillRect(px, py, cell, cell)
+      if (isNearWhite(color)) {
+        ctx.strokeStyle = 'rgba(43, 36, 32, 0.22)'
+        ctx.lineWidth = 1
+        ctx.strokeRect(px + 0.5, py + 0.5, cell - 1, cell - 1)
+      }
+    }
+  }
 }
 
 function drawBackground(ctx, model) {
@@ -261,7 +272,8 @@ function drawTexts(ctx, model) {
   ctx.textBaseline = 'alphabetic'
 
   // 品牌条:珠标 LOGO + 站名 + 域名
-  drawLogo(ctx, model.header.logo.x + model.header.logo.bead + 4, model.header.logo.y, model.header.logo.bead)
+  // 品牌条:站点专属 LOGO(十六格色卡)+ 站名 + 域名
+  drawLogo(ctx, model.header.logo.x, model.header.logo.y, model.header.logo.size)
   ctx.fillStyle = model.header.brand.color
   ctx.font = model.header.brand.font
   ctx.fillText(model.header.brand.text, model.header.brand.x, model.header.brand.y)
@@ -298,11 +310,16 @@ function drawTexts(ctx, model) {
   })
   ctx.textBaseline = 'alphabetic'
 
-  // 页脚:小珠标 + 站点署名
-  drawLogo(ctx, model.footer.logoX + model.footer.bead + 2, model.footer.y - 6, model.footer.bead)
-  ctx.fillStyle = model.footer.color
-  ctx.font = model.footer.font
-  ctx.fillText(model.footer.text, model.footer.textX, model.footer.y)
+  // 右列底部品牌行:小号站点 LOGO + 站名 + 域名(预览区左下不再放页脚)
+  drawLogo(ctx, model.brandRow.logoX, model.brandRow.y + model.brandRow.logoSize / 2, model.brandRow.logoSize)
+  ctx.fillStyle = model.colors.text
+  ctx.font = `700 19px ${FONT_STACK}`
+  ctx.fillText(BRAND_NAME, model.brandRow.nameX, model.brandRow.nameY)
+  ctx.fillStyle = model.colors.muted
+  ctx.font = `500 16px ${FONT_STACK}`
+  ctx.textAlign = 'right'
+  ctx.fillText(BRAND_DOMAIN, model.brandRow.domainX, model.brandRow.domainY)
+  ctx.textAlign = 'left'
 }
 
 /** 把二维码画到一个临时 canvas,再整块贴到卡片上(避免破坏卡片合成状态) */

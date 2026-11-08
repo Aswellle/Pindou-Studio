@@ -126,13 +126,15 @@ describe('ShareWorkDialog 提交与重试', () => {
     })
   })
 
-  it('忙碌中:状态文案可见,取消/关闭/提交禁用,不误触发布', () => {
+  it('忙碌中:居中加载动画展示当前状态文案,表单被加载视图替代', () => {
     setHook({ state: 'creating', isBusy: true })
     renderDialog()
     expect(screen.getByText('正在创建分享…')).toBeTruthy()
-    expect(screen.getByText('生成分享卡').disabled).toBe(true)
-    expect(screen.getByText('取消').disabled).toBe(true)
+    // 表单/按钮被加载视图替代:任何操作都无法在流程中误触发
+    expect(screen.queryByText('生成分享卡')).toBeNull()
+    expect(screen.queryByText('取消')).toBeNull()
     expect(screen.getByLabelText('关闭').disabled).toBe(true)
+    expect(document.querySelector('.share-progress-beads')).toBeTruthy()
   })
 
   it('错误状态:显示映射文案与重试按钮,重试透传 onPublished', async () => {

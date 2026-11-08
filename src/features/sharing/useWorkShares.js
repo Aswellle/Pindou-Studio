@@ -130,7 +130,11 @@ export function useWorkShares({ enabled = true } = {}) {
         let blob
         try {
           const rendered = await renderShareCard({
-            snapshot: { ...draft, title: draft.title || input.title },
+            snapshot: {
+              ...draft,
+              title: draft.title || input.title,
+              authorLabel: draft.authorLabel || input.authorLabel,
+            },
             shareUrl: url,
             labels: {
               size: t('share.card.size', { w: draft.gridWidth, h: draft.gridHeight }),
@@ -138,6 +142,7 @@ export function useWorkShares({ enabled = true } = {}) {
               colors: t('share.card.colors', { n: stats.colorCount }),
               scan: t('share.card.scan'),
               footer: t('share.card.footer'),
+              authorPrefix: t('share.card.authorPrefix'),
             },
           })
           blob = rendered.blob

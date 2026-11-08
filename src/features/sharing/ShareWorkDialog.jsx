@@ -28,6 +28,15 @@ const BUSY = new Set([
   SHARE_STATES.PUBLISHING,
 ])
 
+/** 创建流水线的固定顺序,驱动步骤指示器 */
+const PIPELINE = [
+  SHARE_STATES.CREATING,
+  SHARE_STATES.RENDERING,
+  SHARE_STATES.UPLOADING,
+  SHARE_STATES.PUBLISHING,
+]
+const stepIndex = state => PIPELINE.indexOf(state)
+
 export default function ShareWorkDialog({ open, work, onClose, onPublished }) {
   const { t } = useTranslation()
   const { state, error, share, gate, createAndPublish, retry, reset, configured, refreshGate } =
@@ -88,6 +97,8 @@ export default function ShareWorkDialog({ open, work, onClose, onPublished }) {
     [SHARE_STATES.PUBLISHING]: t('share.state.publishing'),
   }[state]
 
+  // 创建进行中:遮罩与 Escape 都不关闭(useDialogA11y disabled),弹窗只随
+  // 生命周期节点(成功面板的「完成」/错误态的取消/重试)退出
   return createPortal(
     <div className="modal-overlay" onClick={busy ? undefined : onClose}>
       <div
@@ -112,7 +123,25 @@ export default function ShareWorkDialog({ open, work, onClose, onPublished }) {
           </button>
         </div>
 
-        {isSuccess && share ? (
+        {busy ? (
+          <div className="share-progress" role="status" aria-live="polite">
+            <div className="share-progress-beads" aria-hidden="true">
+              <span className="spb spb-1" />
+              <span className="spb spb-2" />
+              <span className="spb spb-3" />
+              <span className="spb spb-4" />
+            </div>
+            <p className="share-progress-text">{stateText}</p>
+            <ol className="share-progress-steps" aria-hidden="true">
+              {PIPELINE.map((step, index) => (
+                <li
+                  key={step}
+                  className={state === step ? 'current' : stepIndex(state) > index ? 'done' : ''}
+                />
+              ))}
+            </ol>
+          </div>
+        ) : isSuccess && share ? (
           <ShareSuccessPanel share={share} onDone={onClose} />
         ) : (
           <div className="share-dialog-body">

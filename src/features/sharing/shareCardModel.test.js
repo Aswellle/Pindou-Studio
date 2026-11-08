@@ -112,7 +112,7 @@ describe('buildShareCardModel', () => {
         ...snapshot,
       },
       shareUrl: `https://tangnotes.site/share/${UUID}`,
-      labels,
+      labels: { ...labels, authorPrefix: '来自 ' },
       measure: text => [...text].length * 10,
       ...overrides,
     })
@@ -130,14 +130,24 @@ describe('buildShareCardModel', () => {
     expect(m.qr.card.x + m.qr.card.w).toBeLessThanOrEqual(CARD_WIDTH)
   })
 
-  it('品牌条带 LOGO/站名/域名,页脚带小珠标', () => {
+  it('品牌条带 LOGO/站名/域名,右列底部为品牌行(预览区不再被页脚侵占)', () => {
     const m = build()
     expect(m.header.h).toBeGreaterThan(0)
     expect(m.header.brand.text).toBe(BRAND_NAME)
     expect(m.header.domain.text).toBe(BRAND_DOMAIN)
     expect(m.header.brand.y).toBeLessThan(m.header.h)
-    expect(m.footer.text).toBe(labels.footer)
-    expect(m.footer.textX).toBeGreaterThan(m.footer.logoX)
+    // 站点 LOGO 是十六格色卡,占头部一半高
+    expect(m.header.logo.size).toBe(44)
+    expect(m.brandRow.y + 44).toBeLessThanOrEqual(CARD_HEIGHT)
+    expect(m.brandRow.nameX).toBeGreaterThan(m.brandRow.logoX)
+    expect(m.footer).toBeUndefined()
+  })
+
+  it('署名按「来自 xxx」句式拼接,空署名不落笔', () => {
+    const m = build()
+    expect(m.author.text).toBe('来自 拼豆创作者')
+    const empty = build({ authorLabel: '' })
+    expect(empty.author.text).toBe('')
   })
 
   it('三枚信息 chips 平分右列且互不重叠', () => {

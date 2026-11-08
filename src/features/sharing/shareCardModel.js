@@ -37,17 +37,25 @@ export const BRAND_DOMAIN = (() => {
   }
 })()
 
-/** LOGO 珠的四种品牌色(红/黄/蓝/绿),渲染器按 2×2 排布 */
-export const LOGO_BEAD_COLORS = ['#E2574C', '#F2B233', '#4C82E2', '#46B37E']
+/**
+ * 站点专属 LOGO:与 favicon / 登录页同源的 4×4 十六格拼豆色卡。
+ * 行优先,与 scripts/generate-favicon.mjs 的 GRID 逐格一致。
+ */
+export const LOGO_GRID = [
+  ['#E53935', '#FDD835', '#32CD32', '#1976D2'],
+  ['#F06292', '#BA68C8', '#00BCD4', '#FF9800'],
+  ['#FFFFFF', '#E0E0E0', '#000000', '#795548'],
+  ['#8D6E63', '#A1887F', '#BDBDBD', '#6D4C41'],
+]
 
 const PAD = 44
 const HEADER_H = 84
-const PREVIEW_W = 600
+const PREVIEW_W = 640
 const PREVIEW_Y = HEADER_H + 34 // 118
 const PREVIEW_H = CARD_HEIGHT - PREVIEW_Y - PAD // 468
 const PREVIEW_INNER = 24
-const RIGHT_X = PAD + PREVIEW_W + 36 // 680
-const RIGHT_W = CARD_WIDTH - RIGHT_X - PAD // 476
+const RIGHT_X = PAD + PREVIEW_W + 36 // 720
+const RIGHT_W = CARD_WIDTH - RIGHT_X - PAD // 436
 
 const TITLE_FONT = 44
 const TITLE_LINE = 54
@@ -58,22 +66,24 @@ const CHIP_H = 44
 const SWATCH_SIZE = 28
 const QR_SIZE = 170
 const QR_MARGIN = 3
-const FOOTER_FONT = 18
+/** 右列底部品牌行(小 LOGO + 站名 + 域名)占用的竖向空间 */
+const BRAND_ROW_H = 44
 
 const PALETTE = {
   background: '#FBF7F0',
-  backgroundDot: 'rgba(180, 101, 58, 0.07)',
-  headerFrom: '#B4653A',
-  headerTo: '#96502C',
+  backgroundDot: 'rgba(232, 115, 74, 0.07)',
+  /* 品牌条:站点标志色「手作暖调橙」(与 --accent 同源),不再是深棕渐变 */
+  headerFrom: '#E8734A',
+  headerTo: '#E8734A',
   headerText: '#FFFFFF',
   panel: '#FFFFFF',
   panelShadow: 'rgba(43, 36, 32, 0.10)',
   panelBorder: '#E8DFD2',
   text: '#2B2420',
   muted: '#7A6C60',
-  accent: '#B4653A',
+  accent: '#E8734A',
   chipBorder: 'rgba(43, 36, 32, 0.14)',
-  chipIcon: '#B4653A',
+  chipIcon: '#E8734A',
   qrCardBorder: '#E8DFD2',
   qrDark: '#111111',
   qrLight: '#FFFFFF',
@@ -238,7 +248,7 @@ export function buildShareCardModel({ snapshot, shareUrl, labels, measure }) {
     font: `${CHIP_FONT}px ${FONT_STACK}`,
   }
 
-  const qrY = Math.min(swatchY + SWATCH_SIZE + 34, CARD_HEIGHT - PAD - QR_SIZE - 14)
+  const qrY = Math.min(swatchY + SWATCH_SIZE + 30, CARD_HEIGHT - PAD - QR_SIZE - BRAND_ROW_H - 18)
   const qr = {
     text: String(shareUrl || ''),
     x: RIGHT_X,
@@ -258,16 +268,29 @@ export function buildShareCardModel({ snapshot, shareUrl, labels, measure }) {
     },
   }
 
+  // 右列底部的品牌行:小 LOGO(十六格色卡)+ 站名 + 域名
+  const brandY = Math.min(qr.card.y + qr.card.h + 26, CARD_HEIGHT - PAD - 4)
+  const brandRow = {
+    y: brandY,
+    logoX: RIGHT_X,
+    logoSize: 26,
+    nameX: RIGHT_X + 26 + 10,
+    nameY: brandY + 18,
+    domainX: CARD_WIDTH - PAD,
+    domainY: brandY + 18,
+  }
+
   return {
     width: CARD_WIDTH,
     height: CARD_HEIGHT,
     colors: PALETTE,
     header: {
       h: HEADER_H,
-      logo: { x: PAD, y: HEADER_H / 2, bead: 13 },
+      // 站点专属 LOGO(4×4 十六格色卡)挂在左上角,站名随后
+      logo: { x: PAD, y: HEADER_H / 2, size: 44 },
       brand: {
         text: BRAND_NAME,
-        x: PAD + 4 * 13 + 3 * 5 + 16,
+        x: PAD + 44 + 14,
         y: HEADER_H / 2 + 11,
         font: `700 30px ${FONT_STACK}`,
         color: PALETTE.headerText,
@@ -298,7 +321,8 @@ export function buildShareCardModel({ snapshot, shareUrl, labels, measure }) {
       color: PALETTE.text,
     },
     author: {
-      text: snapshot?.authorLabel || '',
+      // 「来自 xxx」句式:前缀由 labels.authorPrefix(i18n)提供,空署名不落笔
+      text: snapshot?.authorLabel ? `${labels.authorPrefix || ''}${snapshot.authorLabel}`.trim() : '',
       x: RIGHT_X,
       y: authorY,
       font: `${AUTHOR_FONT}px ${FONT_STACK}`,
@@ -315,22 +339,13 @@ export function buildShareCardModel({ snapshot, shareUrl, labels, measure }) {
       color: PALETTE.accent,
       maxWidth: CARD_WIDTH - PAD - (qr.card.x + qr.card.w + 26),
     },
-    footer: {
-      text: labels.footer,
-      // 页脚挂在左下:右侧被二维码占据
-      x: PAD,
-      y: CARD_HEIGHT - 20,
-      logoX: PAD,
-      textX: PAD + 4 * 9 + 3 * 3 + 10,
-      font: `${FOOTER_FONT}px ${FONT_STACK}`,
-      color: PALETTE.muted,
-      bead: 9,
-    },
+    // 右列底部的品牌行:站点 LOGO + 站名 + 域名(左下角不再放页脚,预览区独占左侧)
+    brandRow,
     // 背景装饰珠(渲染器画半透明圆珠,位置按卡片比例固定)
     decorations: [
-      { x: 640, y: 96, r: 7, color: '#E2574C' },
-      { x: 668, y: 82, r: 5, color: '#F2B233' },
-      { x: 628, y: 76, r: 4, color: '#4C82E2' },
+      { x: 676, y: 96, r: 7, color: '#E2574C' },
+      { x: 704, y: 82, r: 5, color: '#F2B233' },
+      { x: 664, y: 76, r: 4, color: '#4C82E2' },
     ],
   }
 }
