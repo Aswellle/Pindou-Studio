@@ -45,7 +45,7 @@ function makeResponse({ body, status = 200, ok = true }) {
 }
 
 /** 构造 req/res 替身,收集响应 */
-async function callHandler(handler, { method = 'GET', id = UUID } = {}) {
+async function callHandler(handler, { method = 'GET', id = UUID, headers } = {}) {
   const res = {
     statusCode: 0,
     headers: {},
@@ -57,7 +57,7 @@ async function callHandler(handler, { method = 'GET', id = UUID } = {}) {
       this.body = payload
     },
   }
-  await handler({ method, query: { id } }, res)
+  await handler({ method, query: { id }, headers }, res)
   return res
 }
 
@@ -238,6 +238,23 @@ describe('OG Function 数据边界与状态码', () => {
     const init = fetchMock.mock.calls[0][1]
     expect(init.headers.apikey).toBe('publishable-key')
     expect(init.headers.Authorization).toBe('Bearer publishable-key')
+  })
+
+  it('无 SITE_URL 时 canonical/og:image 用请求 Host,不用受部署保护的 VERCEL_URL', async () => {
+    // 回归:VERCEL_URL 是部署域名(带部署保护),社交平台抓 og:image 会被跳登录页
+    vi.stubEnv('SITE_URL', '')
+    vi.stubEnv('VITE_SITE_URL', '')
+    vi.stubEnv('VERCEL_URL', 'pin-bead-studio-abc123.vercel.app')
+    handler = await loadHandler()
+    vi.stubGlobal('fetch', vi.fn(async () => makeResponse({ body: [publishedRow()] })))
+    const res = await callHandler(handler, {
+      headers: { 'x-forwarded-host': 'tangnotes.site', 'x-forwarded-proto': 'https' },
+    })
+    expect(res.body).toContain(`<link rel="canonical" href="https://tangnotes.site/share/${UUID}" data-rh="true"`)
+    expect(res.body).toContain(
+      `<meta property="og:image" content="https://tangnotes.site/sb/storage/v1/object/public/work-share-cards/${UUID}/r1.png" data-rh="true"`
+    )
+    expect(res.body).not.toContain('pin-bead-studio-abc123.vercel.app')
   })
 
   it.each([

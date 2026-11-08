@@ -61,9 +61,34 @@ function envValue(...names) {
   return ''
 }
 
-function siteOrigin() {
+/**
+ * 公开分享的站点 origin(canonical / og:url / og:image 的主机)。
+ *
+ * 取值顺序:
+ *   1. SITE_URL / VITE_SITE_URL —— 显式配置永远优先;
+ *   2. 请求自身的 Host —— 生产域名的请求进来时就是 tangnotes.site。
+ *      不能优先用 VERCEL_URL:那是「部署域名」,受 Vercel 部署保护,
+ *      社交平台与爬虫访问会被重定向到登录页,og:image 直接失效;
+ *   3. VERCEL_PROJECT_PRODUCTION_URL —— 请求头缺失时的生产域兜底;
+ *   4. VERCEL_URL / 站点默认域名。
+ */
+function siteOrigin(req) {
   const explicit = envValue('SITE_URL', 'VITE_SITE_URL')
   if (explicit) return explicit.replace(/\/+$/, '')
+
+  const headers = req && req.headers
+  if (headers) {
+    const rawHost = String(headers['x-forwarded-host'] || headers.host || '').split(',')[0].trim()
+    // 只接受合法主机名/端口,防止畸形 Host 头污染 canonical
+    if (/^[a-z0-9.-]+(:\d+)?$/i.test(rawHost)) {
+      const proto = String(headers['x-forwarded-proto'] || 'https').split(',')[0].trim()
+      return `${proto === 'http' ? 'http' : 'https'}://${rawHost}`
+    }
+  }
+
+  if (process.env.VERCEL_PROJECT_PRODUCTION_URL) {
+    return `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}`
+  }
   if (process.env.VERCEL_URL) return `https://${process.env.VERCEL_URL}`
   return 'https://tangnotes.site'
 }
@@ -232,7 +257,7 @@ export default async function handler(req, res) {
   const shell = await loadShell()
   if (!shell) return respondHtml(res, 502, '<!doctype html><title>502</title>', 'no-store')
 
-  const shareUrl = `${siteOrigin()}/share/${shareId}`
+  const shareUrl = `${siteOrigin(req)}/share/${shareId}`
   const size = Number(result.grid_width) > 0 && Number(result.grid_height) > 0
     ? `${Number(result.grid_width)} × ${Number(result.grid_height)}`
     : ''
@@ -241,7 +266,7 @@ export default async function handler(req, res) {
   )
   const cardPath = typeof result.preview_image_path === 'string' ? result.preview_image_path : ''
   const imageUrl = CARD_PATH_RE.test(cardPath)
-    ? `${siteOrigin()}/sb/storage/v1/object/public/${BUCKET}/${cardPath}`
+    ? `${siteOrigin(req)}/sb/storage/v1/object/public/${BUCKET}/${cardPath}`
     : ''
 
   const html = injectShareMeta(shell, {
