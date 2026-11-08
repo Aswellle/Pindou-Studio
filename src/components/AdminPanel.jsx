@@ -12,18 +12,19 @@ import LoadingScreen from './LoadingScreen'
 import UserManager from './UserManager'
 import ContactMessages from './ContactMessages'
 import ContentManager from './ContentManager'
+import ShareReports from './ShareReports'
 import AdminGate from './AdminGate'
 
 // 后台标签页集合与默认值:/admin?tab=users 之类的深链(管理概览快捷入口)按此解析
-const ADMIN_TABS = ['templates', 'import', 'categories', 'content', 'users', 'contact']
+const ADMIN_TABS = ['templates', 'import', 'categories', 'content', 'users', 'contact', 'reports']
 const DEFAULT_ADMIN_TAB = 'templates'
-const normalizeAdminTab = (value) => (ADMIN_TABS.includes(value) ? value : DEFAULT_ADMIN_TAB)
+const normalizeAdminTab = value => (ADMIN_TABS.includes(value) ? value : DEFAULT_ADMIN_TAB)
 
 // 分类显示名:自定义分类优先显示其「分类名称」label;内置分类走 i18n;兜底回退 ID。
 // 后台(模板列表 / 模板表单下拉)不能直接 t(`gallery.categories.<id>`, id)——
 // 自定义分类没有 i18n key,那样会把英文「分类 ID」当名称展示。与 Gallery.getCategoryLabel 逻辑对齐。
 function categoryDisplayName(store, t, cat) {
-  const custom = store?.categories?.find((c) => c.id === cat)
+  const custom = store?.categories?.find(c => c.id === cat)
   if (custom?.label) return custom.label
   return t(`gallery.categories.${cat}`, cat)
 }
@@ -48,14 +49,26 @@ function AdminModal({ title, onClose, wide, dismissible = true, role = 'dialog',
   })
   return createPortal(
     <div className="admin-modal-overlay" onClick={dismissible ? onClose : undefined}>
-      <div className={`admin-modal${wide ? ' wide' : ''}`} ref={ref} {...dialogProps} onClick={e => e.stopPropagation()}>
+      <div
+        className={`admin-modal${wide ? ' wide' : ''}`}
+        ref={ref}
+        {...dialogProps}
+        onClick={e => e.stopPropagation()}
+      >
         <div className="admin-modal-header">
           <h3>{title}</h3>
           {dismissible && (
             <button className="admin-modal-close" onClick={onClose} aria-label="close">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <line x1="18" y1="6" x2="6" y2="18"/>
-                <line x1="6" y1="6" x2="18" y2="18"/>
+              <svg
+                width="16"
+                height="16"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+              >
+                <line x1="18" y1="6" x2="6" y2="18" />
+                <line x1="6" y1="6" x2="18" y2="18" />
               </svg>
             </button>
           )}
@@ -68,19 +81,23 @@ function AdminModal({ title, onClose, wide, dismissible = true, role = 'dialog',
 }
 
 // 供 AI Agent / 手工上传参考的统一协议示例(可复制到「JSON 导入」直接导入)
-const EXAMPLE_JSON = JSON.stringify({
-  name: 'Duck',
-  nameZh: '小鸭',
-  category: 'animal',
-  difficulty: 'easy',
-  pattern: [
-    [null, null, '#FFD700', '#FFD700', null, null],
-    [null, '#FFD700', '#FFD700', '#FFD700', '#FFD700', null],
-    ['#FFD700', '#FFD700', '#FF8C00', '#FF8C00', '#FFD700', '#FFD700'],
-    [null, '#FFD700', '#000000', '#000000', '#FFD700', null],
-    [null, null, '#FF8C00', '#FF8C00', null, null],
-  ],
-}, null, 2)
+const EXAMPLE_JSON = JSON.stringify(
+  {
+    name: 'Duck',
+    nameZh: '小鸭',
+    category: 'animal',
+    difficulty: 'easy',
+    pattern: [
+      [null, null, '#FFD700', '#FFD700', null, null],
+      [null, '#FFD700', '#FFD700', '#FFD700', '#FFD700', null],
+      ['#FFD700', '#FFD700', '#FF8C00', '#FF8C00', '#FFD700', '#FFD700'],
+      [null, '#FFD700', '#000000', '#000000', '#FFD700', null],
+      [null, null, '#FF8C00', '#FF8C00', null, null],
+    ],
+  },
+  null,
+  2
+)
 
 // ─────────────────────────────────────────────────────────────
 // 后台访问门禁(真实账号体系)
@@ -89,20 +106,31 @@ const EXAMPLE_JSON = JSON.stringify({
 // · 非 admin 账号 → 无权限提示
 // · admin → 管理内容(云端模板库 CRUD,RLS 服务端强制 admin 权限)
 // ─────────────────────────────────────────────────────────────
-export default function AdminPanel({ user, isAdmin, authLoading, onLogin, onLogout, onChangePassword, cloudStore }) {
+export default function AdminPanel({
+  user,
+  isAdmin,
+  authLoading,
+  onLogin,
+  onLogout,
+  onChangePassword,
+  cloudStore,
+}) {
   const { t } = useTranslation()
   const navigate = useNavigate()
   const [searchParams, setSearchParams] = useSearchParams()
   // 标签页支持 /admin?tab=users 深链(管理概览的快捷入口按标签跳转),
   // 切换标签时同步 URL,浏览器前进/后退可回到上一个标签
   const [tab, setTabState] = useState(() => normalizeAdminTab(searchParams.get('tab')))
-  const setTab = useCallback((next) => {
-    setTabState(next)
-    const params = new URLSearchParams(searchParams)
-    if (next === DEFAULT_ADMIN_TAB) params.delete('tab')
-    else params.set('tab', next)
-    setSearchParams(params, { replace: true })
-  }, [searchParams, setSearchParams])
+  const setTab = useCallback(
+    next => {
+      setTabState(next)
+      const params = new URLSearchParams(searchParams)
+      if (next === DEFAULT_ADMIN_TAB) params.delete('tab')
+      else params.set('tab', next)
+      setSearchParams(params, { replace: true })
+    },
+    [searchParams, setSearchParams]
+  )
   useEffect(() => {
     const next = normalizeAdminTab(searchParams.get('tab'))
     setTabState(prev => (prev === next ? prev : next))
@@ -120,7 +148,7 @@ export default function AdminPanel({ user, isAdmin, authLoading, onLogin, onLogo
   // 内容运营表单都嵌在内层滚动容器里,写死外层容器重绘不到真正出问题的那个。
   useEffect(() => {
     if (!isIOSSafariLike(navigator.userAgent, navigator.maxTouchPoints)) return
-    const handler = (e) => {
+    const handler = e => {
       const el = e.target
       if (!el || (el.tagName !== 'INPUT' && el.tagName !== 'TEXTAREA')) return
       let scroller = el.parentElement
@@ -131,7 +159,9 @@ export default function AdminPanel({ user, isAdmin, authLoading, onLogin, onLogo
       }
       if (!scroller || scroller === document.body) return
       scroller.style.overflowY = 'hidden'
-      requestAnimationFrame(() => { scroller.style.overflowY = '' })
+      requestAnimationFrame(() => {
+        scroller.style.overflowY = ''
+      })
     }
     document.addEventListener('focusin', handler, true)
     return () => document.removeEventListener('focusin', handler, true)
@@ -146,28 +176,48 @@ export default function AdminPanel({ user, isAdmin, authLoading, onLogin, onLogo
   const [pwSaved, setPwSaved] = useState(false)
   // 退出登录确认(防误触)
   const [confirmSignOut, setConfirmSignOut] = useState(false)
-  const renderSignOutConfirm = () => confirmSignOut && (
-    <AdminModal
-      title={t('admin.confirmSignOutTitle')}
-      onClose={() => setConfirmSignOut(false)}
-      dismissible={false}
-      role="alertdialog"
-    >
-      <p className="admin-modal-text">{t('admin.confirmSignOutHint')}</p>
-      <div className="admin-actions">
-        <button className="admin-btn secondary" autoFocus onClick={() => setConfirmSignOut(false)}>{t('admin.cancel')}</button>
-        <button className="admin-btn danger" onClick={() => { setConfirmSignOut(false); onLogout() }}>{t('admin.signOut')}</button>
-      </div>
-    </AdminModal>
-  )
+  const renderSignOutConfirm = () =>
+    confirmSignOut && (
+      <AdminModal
+        title={t('admin.confirmSignOutTitle')}
+        onClose={() => setConfirmSignOut(false)}
+        dismissible={false}
+        role="alertdialog"
+      >
+        <p className="admin-modal-text">{t('admin.confirmSignOutHint')}</p>
+        <div className="admin-actions">
+          <button className="admin-btn secondary" autoFocus onClick={() => setConfirmSignOut(false)}>
+            {t('admin.cancel')}
+          </button>
+          <button
+            className="admin-btn danger"
+            onClick={() => {
+              setConfirmSignOut(false)
+              onLogout()
+            }}
+          >
+            {t('admin.signOut')}
+          </button>
+        </div>
+      </AdminModal>
+    )
 
   const cloudEnabled = !!cloudStore?.enabled
 
   // 修改密码:旧密码验证 + 新密码(与个人资料一致,不再发邮件)
   const handleChangePassword = async () => {
-    if (!oldPw) { setPwError(t('profile.oldPasswordRequired')); return }
-    if (newPw.length < 6) { setPwError(t('errors.passwordTooShort')); return }
-    if (newPw !== newPw2) { setPwError(t('errors.passwordMismatch')); return }
+    if (!oldPw) {
+      setPwError(t('profile.oldPasswordRequired'))
+      return
+    }
+    if (newPw.length < 6) {
+      setPwError(t('errors.passwordTooShort'))
+      return
+    }
+    if (newPw !== newPw2) {
+      setPwError(t('errors.passwordMismatch'))
+      return
+    }
     setPwBusy(true)
     setPwError('')
     try {
@@ -194,119 +244,178 @@ export default function AdminPanel({ user, isAdmin, authLoading, onLogin, onLogo
       onLogin={onLogin}
       onLogout={onLogout}
     >
-    {() => (
-    <div className="admin-panel">
-      <div className="admin-header">
-        <div className="admin-header-main">
-          <h1 className="admin-title">{t('admin.title')}</h1>
-          <p className="admin-subtitle">{t('admin.subtitle')}</p>
-        </div>
-        <div className="admin-header-actions">
-          <button className="admin-btn secondary" onClick={() => navigate('/admin/dashboard')}>
-            {t('admin.dashboard')}
-          </button>
-          <span className="admin-account">
-            <span className="admin-avatar">{(user.email || 'A')[0].toUpperCase()}</span>
-            <span className="admin-account-name">{user.email}</span>
-            <span className="admin-role-badge">ADMIN</span>
-          </span>
-          <button className="admin-btn secondary" onClick={() => { setShowChangePw(true); setPwError('') }}>
-            {t('profile.changePassword')}
-          </button>
-          <button className="admin-btn secondary" onClick={() => setConfirmSignOut(true)}>
-            {t('admin.signOut')}
-          </button>
-        </div>
-      </div>
-
-      <div className="admin-tabs" role="tablist">
-        <button role="tab" aria-selected={tab === 'templates'} className={`admin-tab ${tab === 'templates' ? 'active' : ''}`} onClick={() => setTab('templates')}>
-          {t('admin.tab.templates')}
-        </button>
-        <button role="tab" aria-selected={tab === 'import'} className={`admin-tab ${tab === 'import' ? 'active' : ''}`} onClick={() => setTab('import')}>
-          {t('admin.tab.import')}
-        </button>
-        <button role="tab" aria-selected={tab === 'categories'} className={`admin-tab ${tab === 'categories' ? 'active' : ''}`} onClick={() => setTab('categories')}>
-          {t('admin.tab.categories')}
-        </button>
-        <button role="tab" aria-selected={tab === 'content'} className={`admin-tab ${tab === 'content' ? 'active' : ''}`} onClick={() => setTab('content')}>
-          {t('admin.tab.content')}
-        </button>
-        <button role="tab" aria-selected={tab === 'users'} className={`admin-tab ${tab === 'users' ? 'active' : ''}`} onClick={() => setTab('users')}>
-          {t('admin.tab.users')}
-        </button>
-        <button role="tab" aria-selected={tab === 'contact'} className={`admin-tab ${tab === 'contact' ? 'active' : ''}`} onClick={() => setTab('contact')}>
-          {t('admin.tab.contactMessage')}
-        </button>
-      </div>
-
-      <div className="admin-tab-content" key={tab}>
-        {/* 用户管理/联系消息不依赖云端模板库:切到这些标签时不应被模板加载态阻塞 */}
-        {tab === 'users' ? (
-          <UserManager />
-        ) : tab === 'contact' ? (
-          <ContactMessages />
-        ) : cloudStore.loading ? (
-          <LoadingScreen text={t('gallery.cloudLoading')} />
-        ) : (
-          <>
-            {tab === 'templates' && <TemplateManager store={cloudStore} />}
-            {tab === 'import' && <JsonImporter store={cloudStore} />}
-            {tab === 'categories' && <CategoryManager store={cloudStore} />}
-            {tab === 'content' && <ContentManager cloudStore={cloudStore} />}
-          </>
-        )}
-      </div>
-
-      {/* 修改密码 → 模态框(旧密码验证 + 新密码) */}
-      {showChangePw && (
-        <AdminModal title={t('profile.changePasswordTitle')} onClose={() => setShowChangePw(false)}>
-          <div className="admin-field">
-            <label>{t('profile.oldPassword')}</label>
-            <input
-              className="admin-input"
-              type="password"
-              value={oldPw}
-              onChange={e => { setOldPw(e.target.value); setPwError('') }}
-              autoComplete="current-password"
-            />
+      {() => (
+        <div className="admin-panel">
+          <div className="admin-header">
+            <div className="admin-header-main">
+              <h1 className="admin-title">{t('admin.title')}</h1>
+              <p className="admin-subtitle">{t('admin.subtitle')}</p>
+            </div>
+            <div className="admin-header-actions">
+              <button className="admin-btn secondary" onClick={() => navigate('/admin/dashboard')}>
+                {t('admin.dashboard')}
+              </button>
+              <span className="admin-account">
+                <span className="admin-avatar">{(user.email || 'A')[0].toUpperCase()}</span>
+                <span className="admin-account-name">{user.email}</span>
+                <span className="admin-role-badge">ADMIN</span>
+              </span>
+              <button
+                className="admin-btn secondary"
+                onClick={() => {
+                  setShowChangePw(true)
+                  setPwError('')
+                }}
+              >
+                {t('profile.changePassword')}
+              </button>
+              <button className="admin-btn secondary" onClick={() => setConfirmSignOut(true)}>
+                {t('admin.signOut')}
+              </button>
+            </div>
           </div>
-          <div className="admin-field">
-            <label>{t('profile.newPassword')}</label>
-            <input
-              className="admin-input"
-              type="password"
-              value={newPw}
-              onChange={e => { setNewPw(e.target.value); setPwError('') }}
-              autoComplete="new-password"
-            />
-          </div>
-          <div className="admin-field">
-            <label>{t('profile.confirmNewPassword')}</label>
-            <input
-              className="admin-input"
-              type="password"
-              value={newPw2}
-              onChange={e => { setNewPw2(e.target.value); setPwError('') }}
-              autoComplete="new-password"
-            />
-          </div>
-          {pwError && <div className="admin-result warn">{pwError}</div>}
-          {pwSaved && <div className="admin-result ok">{t('profile.passwordUpdated')}</div>}
-          <div className="admin-actions">
-            <button className="admin-btn primary" disabled={pwBusy} onClick={handleChangePassword}>
-              {pwBusy ? t('auth.processing') : t('common.save')}
+
+          <div className="admin-tabs" role="tablist">
+            <button
+              role="tab"
+              aria-selected={tab === 'templates'}
+              className={`admin-tab ${tab === 'templates' ? 'active' : ''}`}
+              onClick={() => setTab('templates')}
+            >
+              {t('admin.tab.templates')}
             </button>
-            <button className="admin-btn secondary" disabled={pwBusy} onClick={() => setShowChangePw(false)}>
-              {t('admin.cancel')}
+            <button
+              role="tab"
+              aria-selected={tab === 'import'}
+              className={`admin-tab ${tab === 'import' ? 'active' : ''}`}
+              onClick={() => setTab('import')}
+            >
+              {t('admin.tab.import')}
+            </button>
+            <button
+              role="tab"
+              aria-selected={tab === 'categories'}
+              className={`admin-tab ${tab === 'categories' ? 'active' : ''}`}
+              onClick={() => setTab('categories')}
+            >
+              {t('admin.tab.categories')}
+            </button>
+            <button
+              role="tab"
+              aria-selected={tab === 'content'}
+              className={`admin-tab ${tab === 'content' ? 'active' : ''}`}
+              onClick={() => setTab('content')}
+            >
+              {t('admin.tab.content')}
+            </button>
+            <button
+              role="tab"
+              aria-selected={tab === 'users'}
+              className={`admin-tab ${tab === 'users' ? 'active' : ''}`}
+              onClick={() => setTab('users')}
+            >
+              {t('admin.tab.users')}
+            </button>
+            <button
+              role="tab"
+              aria-selected={tab === 'contact'}
+              className={`admin-tab ${tab === 'contact' ? 'active' : ''}`}
+              onClick={() => setTab('contact')}
+            >
+              {t('admin.tab.contactMessage')}
+            </button>
+            <button
+              role="tab"
+              aria-selected={tab === 'reports'}
+              className={`admin-tab ${tab === 'reports' ? 'active' : ''}`}
+              onClick={() => setTab('reports')}
+            >
+              {t('admin.tab.reports')}
             </button>
           </div>
-        </AdminModal>
-      )}
 
-      {renderSignOutConfirm()}
+          <div className="admin-tab-content" key={tab}>
+            {/* 用户管理/联系消息/分享举报不依赖云端模板库:切到这些标签时不应被模板加载态阻塞 */}
+            {tab === 'users' ? (
+              <UserManager />
+            ) : tab === 'contact' ? (
+              <ContactMessages />
+            ) : tab === 'reports' ? (
+              <ShareReports />
+            ) : cloudStore.loading ? (
+              <LoadingScreen text={t('gallery.cloudLoading')} />
+            ) : (
+              <>
+                {tab === 'templates' && <TemplateManager store={cloudStore} />}
+                {tab === 'import' && <JsonImporter store={cloudStore} />}
+                {tab === 'categories' && <CategoryManager store={cloudStore} />}
+                {tab === 'content' && <ContentManager cloudStore={cloudStore} />}
+              </>
+            )}
+          </div>
 
-      <style>{`
+          {/* 修改密码 → 模态框(旧密码验证 + 新密码) */}
+          {showChangePw && (
+            <AdminModal title={t('profile.changePasswordTitle')} onClose={() => setShowChangePw(false)}>
+              <div className="admin-field">
+                <label>{t('profile.oldPassword')}</label>
+                <input
+                  className="admin-input"
+                  type="password"
+                  value={oldPw}
+                  onChange={e => {
+                    setOldPw(e.target.value)
+                    setPwError('')
+                  }}
+                  autoComplete="current-password"
+                />
+              </div>
+              <div className="admin-field">
+                <label>{t('profile.newPassword')}</label>
+                <input
+                  className="admin-input"
+                  type="password"
+                  value={newPw}
+                  onChange={e => {
+                    setNewPw(e.target.value)
+                    setPwError('')
+                  }}
+                  autoComplete="new-password"
+                />
+              </div>
+              <div className="admin-field">
+                <label>{t('profile.confirmNewPassword')}</label>
+                <input
+                  className="admin-input"
+                  type="password"
+                  value={newPw2}
+                  onChange={e => {
+                    setNewPw2(e.target.value)
+                    setPwError('')
+                  }}
+                  autoComplete="new-password"
+                />
+              </div>
+              {pwError && <div className="admin-result warn">{pwError}</div>}
+              {pwSaved && <div className="admin-result ok">{t('profile.passwordUpdated')}</div>}
+              <div className="admin-actions">
+                <button className="admin-btn primary" disabled={pwBusy} onClick={handleChangePassword}>
+                  {pwBusy ? t('auth.processing') : t('common.save')}
+                </button>
+                <button
+                  className="admin-btn secondary"
+                  disabled={pwBusy}
+                  onClick={() => setShowChangePw(false)}
+                >
+                  {t('admin.cancel')}
+                </button>
+              </div>
+            </AdminModal>
+          )}
+
+          {renderSignOutConfirm()}
+
+          <style>{`
         .admin-panel {
           /* 占满整个浏览器视口宽度:去掉窄居中列,表格/卡片完整展示,
              内部纵向滚动条随之贴近浏览器右侧边界 */
@@ -861,8 +970,8 @@ export default function AdminPanel({ user, isAdmin, authLoading, onLogin, onLogo
           .admin-account { width: 100%; justify-content: flex-start; }
         }
       `}</style>
-    </div>
-    )}
+        </div>
+      )}
     </AdminGate>
   )
 }
@@ -953,8 +1062,8 @@ function TemplateManager({ store }) {
 
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase()
-    return store.templates.filter(tpl =>
-      !q || tpl.name.toLowerCase().includes(q) || (tpl.nameZh || '').toLowerCase().includes(q)
+    return store.templates.filter(
+      tpl => !q || tpl.name.toLowerCase().includes(q) || (tpl.nameZh || '').toLowerCase().includes(q)
     )
   }, [store.templates, search])
 
@@ -995,15 +1104,16 @@ function TemplateManager({ store }) {
                   {categoryDisplayName(store, t, tpl.category)} · {(() => {
                     const { width, height } = templateDimensions(tpl)
                     return `${width}×${height}`
-                  })()} ·{' '}
-                  {t(`gallery.difficulties.${tpl.difficulty}`)}
+                  })()} · {t(`gallery.difficulties.${tpl.difficulty}`)}
                 </div>
                 <div className="admin-color-dots">
                   {tpl.colors.slice(0, 8).map((c, i) => (
                     <span key={i} className="admin-color-dot" style={{ backgroundColor: c }} title={c} />
                   ))}
                   {tpl.colors.length > 8 && (
-                    <span className="admin-color-dot-more" title={`+${tpl.colors.length - 8}`}>+{tpl.colors.length - 8}</span>
+                    <span className="admin-color-dot-more" title={`+${tpl.colors.length - 8}`}>
+                      +{tpl.colors.length - 8}
+                    </span>
                   )}
                 </div>
               </div>
@@ -1044,15 +1154,16 @@ function TemplateManager({ store }) {
           dismissible={false}
           role="alertdialog"
         >
-          <p className="admin-modal-text">
-            「{deleting.nameZh || deleting.name}」
-          </p>
+          <p className="admin-modal-text">「{deleting.nameZh || deleting.name}」</p>
           <div className="admin-actions">
             <button
               className="admin-btn danger"
               onClick={async () => {
                 const res = await store.deleteTemplate(deleting.id)
-                if (!res?.ok) { toast(res?.errors?.[0]?.detail || t('admin.deleteFailed'), 'error'); return }
+                if (!res?.ok) {
+                  toast(res?.errors?.[0]?.detail || t('admin.deleteFailed'), 'error')
+                  return
+                }
                 setDeleting(null)
               }}
             >
@@ -1075,9 +1186,7 @@ function TemplateForm({ store, editing, initial, onDone }) {
   const [nameZh, setNameZh] = useState(initial?.nameZh || '')
   const [category, setCategory] = useState(initial?.category || 'animal')
   const [difficulty, setDifficulty] = useState(initial?.difficulty || 'easy')
-  const [patternJson, setPatternJson] = useState(
-    initial ? JSON.stringify(initial.pattern) : ''
-  )
+  const [patternJson, setPatternJson] = useState(initial ? JSON.stringify(initial.pattern) : '')
   const [errors, setErrors] = useState([])
 
   const categoryOptions = useMemo(() => {
@@ -1105,9 +1214,8 @@ function TemplateForm({ store, editing, initial, onDone }) {
       return
     }
     const input = { name, nameZh, category, difficulty, pattern }
-    const res = editing === 'new'
-      ? await store.addTemplate(input)
-      : await store.updateTemplate(editing, input)
+    const res =
+      editing === 'new' ? await store.addTemplate(input) : await store.updateTemplate(editing, input)
     if (!res.ok) {
       setErrors(res.errors)
       return
@@ -1142,7 +1250,9 @@ function TemplateForm({ store, editing, initial, onDone }) {
           <label>{t('admin.difficulty')}</label>
           <select className="admin-input" value={difficulty} onChange={e => setDifficulty(e.target.value)}>
             {DIFFICULTIES.filter(d => d !== 'all').map(d => (
-              <option key={d} value={d}>{t(`gallery.difficulties.${d}`)}</option>
+              <option key={d} value={d}>
+                {t(`gallery.difficulties.${d}`)}
+              </option>
             ))}
           </select>
         </div>
@@ -1160,7 +1270,10 @@ function TemplateForm({ store, editing, initial, onDone }) {
 
       {preview && (
         <div className="admin-field">
-          <label>{t('admin.colors')}<span className="admin-field-hint"> — {t('admin.colorsHint')}</span></label>
+          <label>
+            {t('admin.colors')}
+            <span className="admin-field-hint"> — {t('admin.colorsHint')}</span>
+          </label>
           <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
             <div className="admin-preview-thumb">
               <ThumbnailCanvas
@@ -1182,14 +1295,20 @@ function TemplateForm({ store, editing, initial, onDone }) {
       {errors.length > 0 && (
         <ul className="admin-errors">
           {errors.map((err, i) => (
-            <li key={i}>{t(`admin.err.${err.code}`)} {err.detail || ''}</li>
+            <li key={i}>
+              {t(`admin.err.${err.code}`)} {err.detail || ''}
+            </li>
           ))}
         </ul>
       )}
 
       <div className="admin-actions">
-        <button className="admin-btn primary" onClick={handleSave}>{t('admin.save')}</button>
-        <button className="admin-btn secondary" onClick={onDone}>{t('admin.cancel')}</button>
+        <button className="admin-btn primary" onClick={handleSave}>
+          {t('admin.save')}
+        </button>
+        <button className="admin-btn secondary" onClick={onDone}>
+          {t('admin.cancel')}
+        </button>
       </div>
     </div>
   )
@@ -1209,7 +1328,7 @@ function JsonImporter({ store }) {
 
   // 从本机 .json 文件读取内容填入文本区(不自动导入,便于用户先核对再点导入)
   const MAX_IMPORT_BYTES = 1024 * 1024 // 1MB 上限,防超大 JSON 同步解析冻结主线程
-  const handleFile = (e) => {
+  const handleFile = e => {
     const file = e.target.files?.[0]
     e.target.value = '' // 允许连续选择同一文件
     if (!file) return
@@ -1241,8 +1360,14 @@ function JsonImporter({ store }) {
     }
     setErrors([])
     const items = Array.isArray(parsed) ? parsed : [parsed]
-    if (items.length === 0) { setErrors([{ code: 'importEmpty', detail: t('admin.importEmpty') }]); return }
-    if (items.length > 50) { setErrors([{ code: 'importTooMany', detail: t('admin.importTooMany') }]); return }
+    if (items.length === 0) {
+      setErrors([{ code: 'importEmpty', detail: t('admin.importEmpty') }])
+      return
+    }
+    if (items.length > 50) {
+      setErrors([{ code: 'importTooMany', detail: t('admin.importTooMany') }])
+      return
+    }
     let ok = 0
     const failed = []
     for (let index = 0; index < items.length; index++) {
@@ -1258,14 +1383,18 @@ function JsonImporter({ store }) {
       await navigator.clipboard.writeText(EXAMPLE_JSON)
       setCopied(true)
       setTimeout(() => setCopied(false), 1500)
-    } catch { /* 剪贴板不可用时忽略 */ }
+    } catch {
+      /* 剪贴板不可用时忽略 */
+    }
   }
 
   return (
     <div>
       <div className="admin-card">
         <h3>{t('admin.protocolTitle')}</h3>
-        <p className="admin-field-hint" style={{ marginBottom: 8 }}>{t('admin.protocolHint')}</p>
+        <p className="admin-field-hint" style={{ marginBottom: 8 }}>
+          {t('admin.protocolHint')}
+        </p>
         <div className="admin-pre">{EXAMPLE_JSON}</div>
         <div className="admin-actions">
           <button className="admin-btn secondary" onClick={handleCopy}>
@@ -1304,12 +1433,16 @@ function JsonImporter({ store }) {
         {errors.length > 0 && (
           <ul className="admin-errors">
             {errors.map((err, i) => (
-              <li key={i}>{t(`admin.err.${err.code}`)} {err.detail || ''}</li>
+              <li key={i}>
+                {t(`admin.err.${err.code}`)} {err.detail || ''}
+              </li>
             ))}
           </ul>
         )}
         <div className="admin-actions">
-          <button className="admin-btn primary" onClick={handleImport}>{t('admin.importBtn')}</button>
+          <button className="admin-btn primary" onClick={handleImport}>
+            {t('admin.importBtn')}
+          </button>
         </div>
         {result && (
           <div className={`admin-result ${result.failed.length > 0 ? 'warn' : 'ok'}`}>
@@ -1344,14 +1477,15 @@ function CategoryManager({ store }) {
   const [editingId, setEditingId] = useState(null)
   const [errors, setErrors] = useState([])
   const [showForm, setShowForm] = useState(false) // 新增/编辑分类模态框
-  const [deleting, setDeleting] = useState(null)   // 待删除确认的分类
+  const [deleting, setDeleting] = useState(null) // 待删除确认的分类
 
   const builtin = CATEGORIES.filter(c => c !== 'all')
 
   const handleSave = async () => {
-    const res = editingId === null
-      ? await store.addCategory({ id: id.trim(), label: label.trim() })
-      : await store.updateCategory(editingId, { id: id.trim(), label: label.trim() })
+    const res =
+      editingId === null
+        ? await store.addCategory({ id: id.trim(), label: label.trim() })
+        : await store.updateCategory(editingId, { id: id.trim(), label: label.trim() })
     if (!res?.ok) {
       setErrors(res?.errors || [])
       return
@@ -1363,7 +1497,7 @@ function CategoryManager({ store }) {
     setShowForm(false)
   }
 
-  const startEdit = (cat) => {
+  const startEdit = cat => {
     setEditingId(cat.id)
     setId(cat.id)
     setLabel(cat.label)
@@ -1398,7 +1532,16 @@ function CategoryManager({ store }) {
       <div className="admin-card">
         <div className="admin-card-head">
           <h3>{t('admin.customCategories')}</h3>
-          <button className="admin-btn primary small" onClick={() => { setEditingId(null); setId(''); setLabel(''); setErrors([]); setShowForm(true) }}>
+          <button
+            className="admin-btn primary small"
+            onClick={() => {
+              setEditingId(null)
+              setId('')
+              setLabel('')
+              setErrors([])
+              setShowForm(true)
+            }}
+          >
             {t('admin.addCategory')}
           </button>
         </div>
@@ -1454,8 +1597,12 @@ function CategoryManager({ store }) {
             </ul>
           )}
           <div className="admin-actions">
-            <button className="admin-btn primary" onClick={handleSave}>{t('admin.save')}</button>
-            <button className="admin-btn secondary" onClick={closeForm}>{t('admin.cancel')}</button>
+            <button className="admin-btn primary" onClick={handleSave}>
+              {t('admin.save')}
+            </button>
+            <button className="admin-btn secondary" onClick={closeForm}>
+              {t('admin.cancel')}
+            </button>
           </div>
         </AdminModal>
       )}
@@ -1474,7 +1621,10 @@ function CategoryManager({ store }) {
               className="admin-btn danger"
               onClick={async () => {
                 const res = await store.deleteCategory(deleting.id)
-                if (!res?.ok) { toast(res?.errors?.[0]?.detail || t('admin.deleteFailed'), 'error'); return }
+                if (!res?.ok) {
+                  toast(res?.errors?.[0]?.detail || t('admin.deleteFailed'), 'error')
+                  return
+                }
                 setDeleting(null)
               }}
             >

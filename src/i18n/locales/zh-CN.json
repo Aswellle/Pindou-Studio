@@ -1016,7 +1016,8 @@
       "categories": "分类管理",
       "users": "用户管理",
       "contactMessage": "联系消息",
-      "content": "内容运营"
+      "content": "内容运营",
+      "reports": "分享举报"
     },
     "templatesEmpty": "暂无自定义模板,点击「添加新模板」或到「JSON 导入」上传",
     "addTemplate": "添加新模板",
@@ -1273,6 +1274,57 @@
       "editFeatured": "编辑精选资源",
       "featuredEmpty": "还没有精选资源。点击「编辑精选资源」添加。",
       "featuredEditorHint": "按顺序挑选要精选的图纸;可上移/下移调整展示顺序。"
+    },
+    "reports": {
+      "title": "分享举报处置",
+      "hint": "处理图纸分享的举报与权利投诉:核实后标记成立(分享将被冻结)或驳回;全部处置在审核日志留痕。",
+      "refresh": "刷新",
+      "empty": "暂无举报记录",
+      "noDetail": "(举报人未填写说明)",
+      "noContact": "未留联系方式",
+      "contactWith": "联系方式",
+      "reportedShare": "被举报分享",
+      "shareMissing": "(分享已删除)",
+      "shareAuthor": "作者",
+      "viewShare": "打开分享页",
+      "shareStatus": {
+        "draft": "草稿(未公开)",
+        "published": "公开中",
+        "revoked": "已撤销/冻结"
+      },
+      "filter": {
+        "all": "全部",
+        "received": "待处理",
+        "reviewing": "受理中",
+        "actioned": "已成立",
+        "dismissed": "已驳回"
+      },
+      "status": {
+        "received": "待处理",
+        "reviewing": "受理中",
+        "actioned": "已成立",
+        "dismissed": "已驳回"
+      },
+      "startReview": "开始受理",
+      "resolve": "标记成立并冻结",
+      "dismiss": "驳回",
+      "restore": "恢复分享",
+      "alreadyNotPublic": "分享当前不在公开状态,无需冻结",
+      "reasonTitle": {
+        "actioned": "标记举报成立",
+        "dismissed": "驳回举报",
+        "restore": "恢复分享"
+      },
+      "reasonHint": "处置理由将写入审核日志(actioned/dismissed/restore 均必填),供后续追溯。",
+      "reasonLabel": "处置理由",
+      "reasonPlaceholder": "例如:核实后确认侵犯版权 / 经核对不构成侵权 / 误冻结,恢复公开",
+      "confirm": "确认",
+      "toast": {
+        "reviewing": "已标记受理中",
+        "actioned": "举报已成立,分享已冻结",
+        "dismissed": "举报已驳回",
+        "restored": "分享已恢复公开"
+      }
     }
   },
   "profile": {

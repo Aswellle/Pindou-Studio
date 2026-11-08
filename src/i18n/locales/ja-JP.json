@@ -1016,7 +1016,8 @@
       "categories": "カテゴリ管理",
       "users": "ユーザー管理",
       "contactMessage": "お問い合わせメッセージ",
-      "content": "コンテンツ"
+      "content": "コンテンツ",
+      "reports": "通報管理"
     },
     "templatesEmpty": "カスタムテンプレートはまだありません。追加するか JSON からインポートしてください",
     "addTemplate": "テンプレート追加",
@@ -1273,6 +1274,57 @@
       "editFeatured": "おすすめを編集",
       "featuredEmpty": "おすすめの図案はまだありません。「編集」から追加してください。",
       "featuredEditorHint": "表示する図案を選び、矢印で順序を調整できます。"
+    },
+    "reports": {
+      "title": "共有通報の処理",
+      "hint": "共有パターンへの通報と権利申立てを処理します:確認後「成立」(共有は凍結)または「却下」を記録。すべての処理はモデレーションログに残ります。",
+      "refresh": "更新",
+      "empty": "通報はまだありません",
+      "noDetail": "(説明未記入)",
+      "noContact": "連絡先なし",
+      "contactWith": "連絡先",
+      "reportedShare": "通報された共有",
+      "shareMissing": "(共有は削除済み)",
+      "shareAuthor": "作者",
+      "viewShare": "共有ページを開く",
+      "shareStatus": {
+        "draft": "下書き(非公開)",
+        "published": "公開中",
+        "revoked": "取消済み / 凍結"
+      },
+      "filter": {
+        "all": "すべて",
+        "received": "未処理",
+        "reviewing": "確認中",
+        "actioned": "成立",
+        "dismissed": "却下"
+      },
+      "status": {
+        "received": "未処理",
+        "reviewing": "確認中",
+        "actioned": "成立",
+        "dismissed": "却下"
+      },
+      "startReview": "確認を開始",
+      "resolve": "成立として凍結",
+      "dismiss": "却下",
+      "restore": "共有を復元",
+      "alreadyNotPublic": "共有は現在非公開のため凍結不要",
+      "reasonTitle": {
+        "actioned": "通報を成立にする",
+        "dismissed": "通報を却下",
+        "restore": "共有を復元"
+      },
+      "reasonHint": "処理理由はモデレーションログに記録されます(成立/却下/復元いずれも必須)。",
+      "reasonLabel": "処理理由",
+      "reasonPlaceholder": "例:著作権侵害を確認 / 確認の結果侵害なし / 誤凍結のため復元",
+      "confirm": "確認",
+      "toast": {
+        "reviewing": "確認中にしました",
+        "actioned": "通報が成立し、共有を凍結しました",
+        "dismissed": "通報を却下しました",
+        "restored": "共有を公開に戻しました"
+      }
     }
   },
   "profile": {

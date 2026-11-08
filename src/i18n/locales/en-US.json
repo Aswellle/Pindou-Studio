@@ -1016,7 +1016,8 @@
       "categories": "Categories",
       "users": "Users",
       "contactMessage": "Contact Messages",
-      "content": "Content"
+      "content": "Content",
+      "reports": "Share reports"
     },
     "templatesEmpty": "No custom templates yet. Add one or import via JSON.",
     "addTemplate": "Add Template",
@@ -1273,6 +1274,57 @@
       "editFeatured": "Edit editors picks",
       "featuredEmpty": "No featured templates yet. Use \"Edit editors picks\" to add some.",
       "featuredEditorHint": "Pick the templates to feature; reorder them with the arrows."
+    },
+    "reports": {
+      "title": "Share report handling",
+      "hint": "Handle reports and rights complaints on shared patterns: mark as actioned (the share will be frozen) or dismissed after review; every decision is written to the moderation log.",
+      "refresh": "Refresh",
+      "empty": "No reports yet",
+      "noDetail": "(no description provided)",
+      "noContact": "No contact info",
+      "contactWith": "Contact",
+      "reportedShare": "Reported share",
+      "shareMissing": "(share deleted)",
+      "shareAuthor": "Author",
+      "viewShare": "Open share page",
+      "shareStatus": {
+        "draft": "Draft (not public)",
+        "published": "Public",
+        "revoked": "Revoked / frozen"
+      },
+      "filter": {
+        "all": "All",
+        "received": "Pending",
+        "reviewing": "Reviewing",
+        "actioned": "Actioned",
+        "dismissed": "Dismissed"
+      },
+      "status": {
+        "received": "Pending",
+        "reviewing": "Reviewing",
+        "actioned": "Actioned",
+        "dismissed": "Dismissed"
+      },
+      "startReview": "Start review",
+      "resolve": "Mark actioned & freeze",
+      "dismiss": "Dismiss",
+      "restore": "Restore share",
+      "alreadyNotPublic": "Share is not public now; no freeze needed",
+      "reasonTitle": {
+        "actioned": "Mark report as actioned",
+        "dismissed": "Dismiss report",
+        "restore": "Restore share"
+      },
+      "reasonHint": "The reason is written to the moderation log (required for actioned/dismissed/restore) for later audit.",
+      "reasonLabel": "Reason",
+      "reasonPlaceholder": "e.g. Copyright infringement confirmed / Not an infringement after review / Frozen by mistake, restoring",
+      "confirm": "Confirm",
+      "toast": {
+        "reviewing": "Marked as reviewing",
+        "actioned": "Report actioned, share frozen",
+        "dismissed": "Report dismissed",
+        "restored": "Share restored to public"
+      }
     }
   },
   "profile": {

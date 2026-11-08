@@ -1016,7 +1016,8 @@
       "categories": "카테고리 관리",
       "users": "사용자 관리",
       "contactMessage": "문의 메시지",
-      "content": "콘텐츠"
+      "content": "콘텐츠",
+      "reports": "신고 관리"
     },
     "templatesEmpty": "사용자 정의 템플릿이 없습니다. 추가하거나 JSON으로 가져오세요",
     "addTemplate": "템플릿 추가",
@@ -1273,6 +1274,57 @@
       "editFeatured": "에디터 추천 편집",
       "featuredEmpty": "아직 추천 도안이 없습니다. \"편집\"에서 추가하세요.",
       "featuredEditorHint": "표시할 도안을 고르고 화살표로 순서를 조정하세요."
+    },
+    "reports": {
+      "title": "공유 신고 처리",
+      "hint": "공유 도안에 대한 신고와 권리 신고를 처리합니다: 확인 후 \"확정\"(공유 동결) 또는 \"기각\"으로 기록하며, 모든 처리는 검수 로그에 남습니다.",
+      "refresh": "새로고침",
+      "empty": "아직 신고가 없습니다",
+      "noDetail": "(설명 미기입)",
+      "noContact": "연락처 없음",
+      "contactWith": "연락처",
+      "reportedShare": "신고된 공유",
+      "shareMissing": "(공유 삭제됨)",
+      "shareAuthor": "작성자",
+      "viewShare": "공유 페이지 열기",
+      "shareStatus": {
+        "draft": "초안(비공개)",
+        "published": "공개 중",
+        "revoked": "취소 / 동결됨"
+      },
+      "filter": {
+        "all": "전체",
+        "received": "대기 중",
+        "reviewing": "검토 중",
+        "actioned": "확정",
+        "dismissed": "기각"
+      },
+      "status": {
+        "received": "대기 중",
+        "reviewing": "검토 중",
+        "actioned": "확정",
+        "dismissed": "기각"
+      },
+      "startReview": "검토 시작",
+      "resolve": "확정 및 동결",
+      "dismiss": "기각",
+      "restore": "공유 복원",
+      "alreadyNotPublic": "공유가 현재 비공개 상태이므로 동결 불필요",
+      "reasonTitle": {
+        "actioned": "신고 확정",
+        "dismissed": "신고 기각",
+        "restore": "공유 복원"
+      },
+      "reasonHint": "처리 사유는 검수 로그에 기록됩니다(확정/기각/복원 모두 필수).",
+      "reasonLabel": "처리 사유",
+      "reasonPlaceholder": "예: 저작권 침해 확인 / 검토 결과 침해 없음 / 오동결로 복원",
+      "confirm": "확인",
+      "toast": {
+        "reviewing": "검토 중으로 표시했습니다",
+        "actioned": "신고가 확정되어 공유를 동결했습니다",
+        "dismissed": "신고를 기각했습니다",
+        "restored": "공유를 다시 공개했습니다"
+      }
     }
   },
   "profile": {
