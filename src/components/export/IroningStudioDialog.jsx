@@ -315,7 +315,9 @@ export default function IroningStudioDialog({
         @media (min-width: 900px) {
           .ironing-studio-body {
             grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr);
-            align-items: start;
+            /* 两列等高:右列(材质样张墙)决定行高,左列预览随行高拉伸,
+               预览区因此与右侧卡片墙同高,不再留半截空白 */
+            align-items: stretch;
           }
         }
         .ironing-studio-preview {
@@ -323,6 +325,7 @@ export default function IroningStudioDialog({
           flex-direction: column;
           gap: 8px;
           min-width: 0;
+          height: 100%;
         }
         .ironing-studio-preview-meta {
           display: flex;
@@ -393,6 +396,9 @@ export default function IroningStudioDialog({
           flex-wrap: wrap;
         }
         .ironing-preview {
+          /* 占满左列除材质说明外的全部高度(父级 flex 列里弹性伸展) */
+          position: relative;
+          flex: 1 1 auto;
           min-height: 200px;
           display: flex;
           align-items: center;
@@ -422,9 +428,16 @@ export default function IroningStudioDialog({
           cursor: pointer;
         }
         .ironing-preview-img {
-          max-width: 100%;
-          max-height: 420px;
+          /* 绝对定位铺满预览框,等比缩放不裁切:框多大图就多大,
+             跟随右侧样张墙高度自适应,不再受固定 max-height 限制 */
+          position: absolute;
+          inset: 0;
+          width: 100%;
+          height: 100%;
+          padding: 10px;
+          box-sizing: border-box;
           object-fit: contain;
+          display: block;
         }
         .ironing-sr-only {
           position: absolute;
@@ -439,10 +452,11 @@ export default function IroningStudioDialog({
         }
         @media (max-width: 640px) {
           .ironing-studio-panel { padding: 14px; }
-          .ironing-preview-img { max-height: 300px; }
+          /* 单列布局没有样张墙撑高:给预览一个稳定的可视高度 */
+          .ironing-preview { min-height: 260px; }
         }
       `}</style>
     </div>,
-    document.body,
+    document.body
   )
 }
