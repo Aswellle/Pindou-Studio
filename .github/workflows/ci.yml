@@ -5,6 +5,8 @@ on:
     branches: [main, dev]
   pull_request:
     branches: [main]
+  # 手动触发:用于配置 Secret 后立即验证百度推送,不必为触发推无关提交。
+  workflow_dispatch:
 
 # 同一分支的新 push 会取消上一次还在跑的 run:排队拥堵时不会堆叠无用任务。
 concurrency:
@@ -117,7 +119,7 @@ jobs:
   # 未配置 Secret 时脚本打印跳过并退出 0,不会把 CI 变红。
   baidu-push:
     needs: build-and-test
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    if: github.ref == 'refs/heads/main' && (github.event_name == 'push' || github.event_name == 'workflow_dispatch')
     runs-on: ubuntu-24.04
     timeout-minutes: 15
     steps:
