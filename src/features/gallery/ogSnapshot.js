@@ -231,7 +231,8 @@ function sitemapUrl({ loc, lastmod, priority, changefreq = 'weekly' }) {
   if (lastmod) lines.push(`    <lastmod>${lastmod}</lastmod>`)
   lines.push(`    <changefreq>${changefreq}</changefreq>`)
   lines.push(`    <priority>${priority}</priority>`)
-  lines.push('    <mobile:mobile type="pc,mobile"/>')
+  // 百度移动扩展只出现在 /sitemap-baidu.xml(构建时由同一份内容生成);
+  // 这里保持标准 sitemaps.org 命名空间,否则 Google 会报「命名空间不正确」。
   for (const [lang, href] of hreflangPairs(loc)) {
     lines.push(`    <xhtml:link rel="alternate" hreflang="${lang}" href="${escapeHtml(href)}"/>`)
   }
