@@ -145,6 +145,32 @@ function breadcrumbScript(crumbs) {
   ].join(EOL)
 }
 
+/**
+ * 聚合页(图库/教程)的 CollectionPage JSON-LD。
+ *
+ * 只描述页面本身:名称、描述、所属站点与对应应用实体,与静态正文一一对应,
+ * 不添加正文里没有的信息(误导性结构化数据会被搜索引擎忽略)。
+ */
+function collectionPageScript(page) {
+  const data = {
+    '@context': 'https://schema.org',
+    '@type': 'CollectionPage',
+    '@id': `${SITE}${page.path}#webpage`,
+    url: `${SITE}${page.path}`,
+    name: page.title,
+    description: page.desc,
+    inLanguage: 'zh-CN',
+    isPartOf: { '@id': `${SITE}/#website` },
+    about: { '@id': `${SITE}/#app` },
+  }
+  return [
+    '  <!-- CollectionPage: 聚合页主题与归属 -->',
+    '  <script type="application/ld+json">',
+    JSON.stringify(data, null, 2),
+    '  </script>',
+  ].join(EOL)
+}
+
 // ── 静态正文块(C 批):预渲染进 #root,React 挂载时整体替换 ──
 function esc(s) {
   return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
@@ -193,7 +219,19 @@ function siteNav(exclude = '') {
   return `<p class="note">继续浏览:${items.map(([href, text]) => link(href, text)).join(' · ')}</p>`
 }
 
-// 中文(默认界面语言)教程索引:6 大节 + 18 篇文章标题
+/**
+ * 教程首段摘要:不执行 JS 的抓取端(百度/搜狗/360)此前只能看到标题列表,
+ * 页面显得内容单薄。这里取应用内真实展示的正文首段(压缩空白、限长),
+ * 不新增任何教程里没有的说法。
+ */
+function firstParagraph(tutorial) {
+  const block = (tutorial.blocks || []).find((b) => b && b.type === 'paragraph' && b.text)
+  if (!block) return ''
+  const text = block.text.replace(/\s+/g, ' ').trim()
+  return text.length > 140 ? `${text.slice(0, 140)}…` : text
+}
+
+// 中文(默认界面语言)教程索引:6 大节 + 18 篇教程(标题 + 首段摘要)
 function tutorialsStatic() {
   const b = []
   b.push('<h1>拼豆教程 · 从入门到进阶</h1>')
@@ -201,10 +239,15 @@ function tutorialsStatic() {
   for (const section of TUTORIALS_ZH) {
     b.push(`<h2>${esc(section.title)}</h2>`)
     b.push('<ul>')
-    for (const t of section.children || []) b.push(`<li>${esc(t.title)}</li>`)
+    for (const t of section.children || []) {
+      const summary = firstParagraph(t)
+      b.push(summary
+        ? `<li><strong>${esc(t.title)}</strong>:${esc(summary)}</li>`
+        : `<li>${esc(t.title)}</li>`)
+    }
     b.push('</ul>')
   }
-  b.push('<p>每篇教程都可交互阅读;配合画布工具把图纸直接载入制作。</p>')
+  b.push(`<p>每篇教程都可交互阅读。看完后可以回到${link('/', '拼豆图纸生成器')}把图片转成拼豆图纸,或从${link('/gallery', '拼豆图纸模板库')}挑选现成图纸直接载入制作。</p>`)
   b.push(siteNav('/tutorials'))
   return staticShell(b.join('\n'))
 }
@@ -215,11 +258,14 @@ function galleryStatic(locale) {
   const cats = locale.gallery && locale.gallery.categories
   const catNames = cats ? Object.keys(cats).filter((k) => k !== 'all').map((k) => cats[k]) : []
   b.push('<h1>拼豆图库与模板</h1>')
-  b.push('<p class="lead">拼豆Studio 提供拼豆图纸模板库:按分类与难度挑选喜欢的图案,一键载入画布开始创作,也可以收藏到自己的作品集。</p>')
+  b.push('<p class="lead">拼豆Studio 提供免费拼豆图纸模板库:按主题、分类与难度挑选像素画图案,一键载入画布开始创作,也可以收藏到自己的作品集。</p>')
+  b.push('<h2>免费拼豆图纸模板</h2>')
+  b.push('<p>模板按主题与难度组织,点开即可查看网格尺寸与用色;选中后直接载入画布,就能按图纸开始拼制或继续修改。</p>')
   b.push(`<h2>模板分类</h2>`)
   b.push(`<p>内置模板覆盖${catNames.join('、')}等主题,搭配六大拼豆品牌色卡(COCO/MARD/MARD291/Perler/Hama/Artkal)。</p>`)
   b.push('<h2>载入与重映射</h2>')
   b.push('<p>选中模板后即可直接开始拼制;如果手上的珠子来自其它品牌,可把整张图纸的颜色一键重映射到对应品牌色卡,让用珠量与实际色号一致。</p>')
+  b.push(`<p>想先了解制作方法,可以阅读${link('/tutorials', '拼豆教程')};想自己画一张图纸,可以回到${link('/', '在线拼豆图纸工具')}。</p>`)
   b.push('<p>注册登录后,个人作品与收藏会自动保存到云端,跨设备继续创作;后台也支持管理员持续扩充模板库。</p>')
   b.push(siteNav('/gallery'))
   return staticShell(b.join('\n'))
@@ -241,7 +287,7 @@ function galleryStatic(locale) {
 function homeStatic() {
   const b = []
   b.push('<h1>拼豆Studio · 免费在线拼豆图纸生成器</h1>')
-  b.push('<p class="lead">在浏览器里直接设计拼豆图纸:自由绘制像素图案,或上传一张图片一键转成拼豆图纸,配色按 CIEDE2000 感知色差匹配真实品牌色卡,最后导出带色号的专业 PNG / SVG 图纸。无需注册即可使用。</p>')
+  b.push('<p class="lead">在浏览器里直接设计拼豆图纸:上传图片一键转拼豆图纸,或自由绘制像素画与网格图案;配色按 CIEDE2000 感知色差匹配真实品牌色卡,最后导出带色号的专业 PNG / SVG 图纸。无需注册即可使用。</p>')
 
   b.push('<h2>能做什么</h2>')
   b.push('<ul>')
@@ -252,6 +298,18 @@ function homeStatic() {
   b.push('<li>分享图纸:把作品一键生成公开分享链接与社交卡片,访客无需注册即可在线查看</li>')
   b.push('<li>模板与教程:内置图纸模板可一键载入画布,配套从入门到进阶的中文教程</li>')
   b.push('</ul>')
+
+  b.push('<h2>图片转拼豆图纸</h2>')
+  b.push('<p>上传照片或插画,工具会把图片量化为指定网格尺寸的像素拼豆图纸;可选 Floyd-Steinberg 或 Bayer 抖动控制渐变与细节,并按 CIEDE2000 匹配最接近的 COCO / MARD / MARD291 / Perler / Hama / Artkal 色号。头像、宠物、动漫角色都可以转换成拼豆图纸。</p>')
+
+  b.push('<h2>像素画与网格化创作</h2>')
+  b.push('<p>除了图片转换,也可以从空白网格开始绘制像素画:画笔、橡皮、油漆桶填充、矩形与套索选区、移动与镜像,网格尺寸可自定义,适合自由创作、改图或按图纸复刻。</p>')
+
+  b.push('<h2>拼豆图纸模板与免费图库</h2>')
+  b.push(`<p>${link('/gallery', '拼豆图纸模板库')}提供按主题与难度分类的免费图纸,一键载入画布即可开始制作;如果手上的珠子来自其它品牌,可把整张图纸重映射到对应品牌色卡。</p>`)
+
+  b.push('<h2>拼豆教程与熨烫指南</h2>')
+  b.push(`<p>从工具选择、第一个作品,到熨烫温度、防变形、配色设计与成品保护,${link('/tutorials', '拼豆教程')}配有图示与温度对照表,新手与进阶玩家都适用。</p>`)
 
   b.push('<h2>适合谁</h2>')
   b.push('<p>拼豆新手、亲子手工、像素画爱好者,以及需要按品牌色号备料的手工创作者。界面支持简体中文、English、日本語、한국어。</p>')
@@ -299,8 +357,8 @@ const PAGES = [
   {
     file: 'gallery.html',
     path: '/gallery',
-    title: '拼豆图库与模板 - 拼豆Studio',
-    desc: '浏览拼豆图案模板库：按主题、分类与难度筛选，一键载入画布开始创作，也能把图纸颜色一键重映射到手上的品牌色卡，支持收藏与云端作品管理。',
+    title: '拼豆图纸模板与免费图库 - 拼豆Studio',
+    desc: '免费拼豆图纸模板库：按主题与难度筛选像素画图案，一键载入画布制作；支持重映射到 COCO/MARD/Perler 品牌色卡，收藏并云端保存作品。',
     breadcrumb: [
       { name: '首页', item: `${SITE}/` },
       { name: '拼豆图库与模板', item: `${SITE}/gallery` },
@@ -309,8 +367,8 @@ const PAGES = [
   {
     file: 'tutorials.html',
     path: '/tutorials',
-    title: '拼豆教程 - 从入门到进阶 · 拼豆Studio',
-    desc: '系统学习拼豆制作：入门工具与第一个作品、熨烫温度全解、防变形技巧、配色设计、进阶技巧与成品保护，配有图示与温度对照表，新手与进阶玩家都适用。',
+    title: '拼豆教程 - 新手入门、熨烫温度与配色全攻略 | 拼豆Studio',
+    desc: '拼豆新手与进阶教程：工具选择、第一个作品、熨烫温度与防变形、配色设计、成品保护，配图示与温度对照表，可配合在线拼豆图纸工具直接制作。',
     breadcrumb: [
       { name: '首页', item: `${SITE}/` },
       { name: '拼豆教程', item: `${SITE}/tutorials` },
@@ -433,6 +491,11 @@ for (const page of PAGES) {
   // 面包屑只给内容子页注入
   if (page.breadcrumb) {
     out = out.replace('</head>', breadcrumbScript(page.breadcrumb) + EOL + '</head>')
+  }
+
+  // 聚合页(图库/教程)补 CollectionPage;首页已有 SoftwareApplication/WebSite 实体
+  if (ROOT_STATIC[page.path] && page.path !== '/') {
+    out = out.replace('</head>', collectionPageScript(page) + EOL + '</head>')
   }
 
   // 静态正文(仅首页/图库/教程;隐私/条款/后台保持空 root)
