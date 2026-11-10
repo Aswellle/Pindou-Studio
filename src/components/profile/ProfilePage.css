@@ -234,7 +234,7 @@
 .profile-create-btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 
 /* 消息条按语气区分:成功用次要色,错误用错误色 —— 不靠颜色单独传达,文案已写明结果 */
-.profile-toast.tone-success { border-color: var(--secondary-accent); background: #f0f7f5; }
+.profile-toast.tone-success { border-color: var(--secondary-accent); background: var(--success-bg); }
 .profile-toast.tone-error { border-color: var(--error-border); background: var(--error-bg); color: var(--error); }
 
 /* ── 两列骨架 ─────────────────────────────────────────────── */
@@ -358,7 +358,7 @@
   white-space: nowrap;
 }
 .pf-tag-plain { background: transparent; }
-.pf-tag-ok { background: #eef7f4; border-color: #cfe8e1; color: var(--secondary-accent-hover); }
+.pf-tag-ok { background: var(--success-bg); border-color: var(--success-border); color: var(--secondary-accent-hover); }
 .pf-tag-warn { background: var(--warning-bg); border-color: var(--warning-border); color: var(--warning); }
 
 /* ── 统计卡 ───────────────────────────────────────────────── */
@@ -417,7 +417,7 @@
   font-size: var(--text-sm);
   line-height: 1.6;
 }
-.pf-note-warn { background: var(--warning-bg); color: #8a5f1c; }
+.pf-note-warn { background: var(--warning-bg); color: var(--warning); }
 .pf-note-error { background: var(--error-bg); color: var(--error); }
 .pf-hint { margin: 0 0 10px; color: var(--text-muted); font-size: var(--text-sm); line-height: 1.6; }
 .pf-error { margin: 0 0 10px; color: var(--error); font-size: var(--text-sm); }
@@ -435,7 +435,7 @@
   border: 1px solid var(--warning-border);
   border-radius: 10px;
   background: var(--warning-bg);
-  color: #8a5f1c;
+  color: var(--warning);
   font-size: var(--text-sm);
 }
 
@@ -452,7 +452,7 @@
   color: var(--text-secondary);
   font-size: var(--text-xs);
 }
-.pf-storage.cloud { border-color: #cfe8e1; background: #eef7f4; color: var(--secondary-accent-hover); }
+.pf-storage.cloud { border-color: var(--success-border); background: var(--success-bg); color: var(--secondary-accent-hover); }
 
 /* ── 最近作品 ─────────────────────────────────────────────── */
 .pf-recent-list { list-style: none; margin: 10px 0 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
@@ -871,9 +871,9 @@
   background: var(--bg-secondary);
   color: var(--text-muted);
 }
-.pf-work-source.source-chart-import { background: #e9edf5; color: #455586; }
-.pf-work-source.source-photo-quantized { background: var(--warning-bg); color: #8a5f1c; }
-.pf-work-source.source-gallery-copy { background: #eef7f4; color: var(--secondary-accent-hover); }
+.pf-work-source.source-chart-import { background: var(--info-bg); color: var(--info); }
+.pf-work-source.source-photo-quantized { background: var(--warning-bg); color: var(--warning); }
+.pf-work-source.source-gallery-copy { background: var(--success-bg); color: var(--secondary-accent-hover); }
 
 .pf-fav-difficulty {
   padding: 1px 7px;

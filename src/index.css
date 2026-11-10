@@ -18,6 +18,15 @@
   --error-bg: #fdf0ee;
   --error-border: #f5d3cd;
   --success: #4a9b8e;
+  --success-bg: #eef7f4;
+  --success-border: #cfe8e1;
+  /* 正向(绿色)语义:与 teal 系 --success 区分,用于「库存充足/有货」类状态 */
+  --positive: #4c8b3f;
+  --positive-bg: #eef6e8;
+  /* 信息(蓝)语义:图表导入等来源标签 */
+  --info: #455586;
+  --info-bg: #e9edf5;
+  --info-border: #c9d4ee;
   --warning: #cf8a2c;
   --warning-bg: #fbf0dc;
   --warning-border: #f0dcb3;
@@ -100,6 +109,13 @@
   --error-bg: #3b2523;
   --error-border: #583531;
   --success: #58b1a3;
+  --success-bg: #223832;
+  --success-border: #35544d;
+  --positive: #7cbf68;
+  --positive-bg: #24371c;
+  --info: #a3b6e0;
+  --info-bg: #29344b;
+  --info-border: #3d4d75;
   --warning: #dca040;
   --warning-bg: #392f1e;
   --warning-border: #59492a;

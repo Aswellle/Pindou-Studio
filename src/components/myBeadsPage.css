@@ -1405,15 +1405,15 @@
   white-space: nowrap;
 }
 
-.status-badge.exact { background: #e6f4f1; color: var(--secondary-accent); }
-.status-badge.close { background: #eef6e8; color: #4c8b3f; }
+.status-badge.exact { background: var(--success-bg); color: var(--secondary-accent); }
+.status-badge.close { background: var(--positive-bg); color: var(--positive); }
 .status-badge.poor { background: var(--warning-bg); color: var(--warning); }
 .status-badge.missing { background: var(--error-bg); color: var(--error); }
 .status-badge.size { background: var(--error-bg); color: var(--error); }
 .status-badge.unknown { background: var(--bg-tertiary); color: var(--text-secondary); }
 .status-badge.manual { background: var(--accent-soft); color: var(--accent); }
 .status-badge.stock-unknown { background: var(--bg-tertiary); color: var(--text-secondary); }
-.status-badge.stock-sufficient { background: #e6f4f1; color: var(--secondary-accent); }
+.status-badge.stock-sufficient { background: var(--success-bg); color: var(--secondary-accent); }
 .status-badge.stock-shortage { background: var(--warning-bg); color: var(--warning); }
 .status-badge.stock-out-of-stock { background: var(--error-bg); color: var(--error); }
 

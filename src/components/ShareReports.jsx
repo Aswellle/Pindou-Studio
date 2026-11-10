@@ -390,7 +390,7 @@ export default function ShareReports() {
           border: 1px solid transparent;
         }
         .sr-status.st-received { background: var(--warning-bg); color: var(--warning); border-color: var(--warning-border); }
-        .sr-status.st-reviewing { background: rgba(76, 130, 226, 0.1); color: #4c82e2; border-color: rgba(76, 130, 226, 0.3); }
+        .sr-status.st-reviewing { background: var(--info-bg); color: var(--info); border-color: var(--info-border); }
         .sr-status.st-actioned { background: rgba(229, 57, 53, 0.08); color: var(--error); border-color: rgba(229, 57, 53, 0.3); }
         .sr-status.st-dismissed { background: var(--bg-tertiary); color: var(--text-secondary); border-color: var(--border-color); }
         .sr-time {

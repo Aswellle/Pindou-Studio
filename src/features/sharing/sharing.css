@@ -38,7 +38,7 @@
   display: flex;
   align-items: center;
   gap: 8px;
-  color: #2b2420;
+  color: var(--text-primary);
 }
 
 .share-icon-btn {
@@ -49,7 +49,7 @@
   border: none;
   border-radius: 50%;
   background: transparent;
-  color: #7a6c60;
+  color: var(--text-secondary);
   cursor: pointer;
 }
 
@@ -77,7 +77,7 @@
   gap: 12px;
   padding: 10px;
   border-radius: 12px;
-  background: #fff;
+  background: var(--bg-primary);
   border: 1px solid rgba(43, 36, 32, 0.08);
 }
 
@@ -87,7 +87,7 @@
   flex: 0 0 auto;
   border-radius: 10px;
   overflow: hidden;
-  background: #f4ece1;
+  background: var(--bg-tertiary);
 }
 
 .share-work-thumb canvas,
@@ -102,14 +102,14 @@
   flex-direction: column;
   gap: 4px;
   font-size: 13px;
-  color: #7a6c60;
+  color: var(--text-secondary);
   min-width: 0;
 }
 
 .share-work-name {
   font-size: 15px;
   font-weight: 600;
-  color: #2b2420;
+  color: var(--text-primary);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -121,7 +121,7 @@
   flex-direction: column;
   gap: 6px;
   font-size: 13px;
-  color: #5d5147;
+  color: var(--text-secondary);
 }
 
 .share-field input,
@@ -131,8 +131,8 @@
   padding: 10px 12px;
   border-radius: 10px;
   border: 1px solid rgba(43, 36, 32, 0.14);
-  background: #fff;
-  color: #2b2420;
+  background: var(--bg-primary);
+  color: var(--text-primary);
   font: inherit;
   font-size: 15px;
   resize: vertical;
@@ -147,19 +147,19 @@
 
 .share-field input:disabled,
 .share-field textarea:disabled {
-  background: #f6f1e8;
-  color: #7a6c60;
+  background: var(--bg-tertiary);
+  color: var(--text-secondary);
 }
 
 .share-field-count {
   align-self: flex-end;
   font-size: 11px;
-  color: #9b8d80;
+  color: var(--text-muted);
 }
 
 .share-field-hint {
   font-size: 12px;
-  color: #9b8d80;
+  color: var(--text-muted);
 }
 
 .share-note {
@@ -167,20 +167,20 @@
   padding: 10px 12px;
   border-radius: 10px;
   background: rgba(180, 101, 58, 0.07);
-  color: #5d5147;
+  color: var(--text-secondary);
   font-size: 13px;
   line-height: 1.6;
 }
 
 .share-note.subtle {
   background: rgba(43, 36, 32, 0.04);
-  color: #7a6c60;
+  color: var(--text-secondary);
   font-size: 12px;
 }
 
 .share-note.warn {
   background: rgba(196, 138, 43, 0.12);
-  color: #6b4d16;
+  color: var(--warning);
   display: flex;
   flex-direction: column;
   gap: 4px;
@@ -188,7 +188,7 @@
 
 .share-note.error {
   background: rgba(178, 58, 48, 0.1);
-  color: #8a2b22;
+  color: var(--error);
   display: flex;
   flex-direction: column;
   gap: 4px;
@@ -197,19 +197,19 @@
 .share-status {
   margin: 0;
   font-size: 13px;
-  color: #7a6c60;
+  color: var(--text-secondary);
 }
 
 .share-status.tone-success {
-  color: #2f6b45;
+  color: var(--success);
 }
 
 .share-status.tone-error {
-  color: #8a2b22;
+  color: var(--error);
 }
 
 .share-status.tone-info {
-  color: #7a6c60;
+  color: var(--text-secondary);
 }
 
 .share-dialog-actions {
@@ -228,8 +228,8 @@
   padding: 0 16px;
   border-radius: 10px;
   border: 1px solid rgba(43, 36, 32, 0.14);
-  background: #fff;
-  color: #2b2420;
+  background: var(--bg-primary);
+  color: var(--text-primary);
   font: inherit;
   font-size: 14px;
   font-weight: 600;
@@ -238,7 +238,7 @@
 
 .share-btn:hover:not(:disabled) {
   border-color: rgba(180, 101, 58, 0.45);
-  color: #8a4b28;
+  color: var(--accent-hover);
 }
 
 .share-btn.primary {
@@ -258,7 +258,7 @@
 }
 
 .share-btn.danger {
-  color: #8a2b22;
+  color: var(--error);
   border-color: rgba(178, 58, 48, 0.35);
 }
 
@@ -332,7 +332,7 @@
   margin: 0;
   font-size: 15px;
   font-weight: 600;
-  color: #5d5147;
+  color: var(--text-secondary);
   text-align: center;
 }
 .share-progress-steps {
@@ -352,10 +352,10 @@
     transform 0.25s;
 }
 .share-progress-steps li.done {
-  background: #4a9b8e;
+  background: var(--secondary-accent);
 }
 .share-progress-steps li.current {
-  background: #e8734a;
+  background: var(--accent);
   transform: scale(1.3);
 }
 @media (prefers-reduced-motion: reduce) {
@@ -391,7 +391,7 @@
   margin: 0;
   font-size: 17px;
   font-weight: 700;
-  color: #2f6b45;
+  color: var(--success);
 }
 
 .share-card-preview {
@@ -401,7 +401,7 @@
   margin: 0 auto;
   border-radius: 12px;
   overflow: hidden;
-  background: #fff;
+  background: var(--bg-primary);
   border: 1px solid rgba(43, 36, 32, 0.08);
 }
 
@@ -421,21 +421,21 @@
 .share-link-box {
   padding: 10px 12px;
   border-radius: 10px;
-  background: #fff;
+  background: var(--bg-primary);
   border: 1px dashed rgba(43, 36, 32, 0.18);
   overflow-x: auto;
 }
 
 .share-link-box code {
   font-size: 12.5px;
-  color: #5d5147;
+  color: var(--text-secondary);
   white-space: nowrap;
 }
 
 .share-hint {
   margin: 0;
   font-size: 12.5px;
-  color: #7a6c60;
+  color: var(--text-secondary);
   line-height: 1.6;
 }
 
@@ -459,7 +459,7 @@
 .share-page {
   min-height: 100%;
   background: var(--bg-primary, #fdfaf5);
-  color: #2b2420;
+  color: var(--text-primary);
   overflow-y: auto;
   -webkit-overflow-scrolling: touch;
 }
@@ -487,7 +487,7 @@
   gap: 10px;
   font-size: 17px;
   font-weight: 700;
-  color: #2b2420;
+  color: var(--text-primary);
   text-decoration: none;
 }
 
@@ -498,7 +498,7 @@
 
 .share-page-tagline {
   font-size: 12.5px;
-  color: #9b8d80;
+  color: var(--text-muted);
 }
 
 .share-page-head {
@@ -513,7 +513,7 @@
 
 .share-page-desc {
   margin: 0;
-  color: #5d5147;
+  color: var(--text-secondary);
   font-size: 14px;
   line-height: 1.7;
   white-space: pre-wrap;
@@ -522,14 +522,14 @@
 .share-page-author {
   margin-top: 8px;
   font-size: 12.5px;
-  color: #9b8d80;
+  color: var(--text-muted);
 }
 
 .share-page-preview {
   margin: 18px 0;
   padding: 16px;
   border-radius: 16px;
-  background: #fff;
+  background: var(--bg-primary);
   border: 1px solid rgba(43, 36, 32, 0.08);
   display: flex;
   align-items: center;
@@ -558,23 +558,23 @@
 .share-page-stats li {
   padding: 12px 14px;
   border-radius: 12px;
-  background: #fff;
+  background: var(--bg-primary);
   border: 1px solid rgba(43, 36, 32, 0.08);
   font-size: 14px;
-  color: #2b2420;
+  color: var(--text-primary);
 }
 
 .share-page-stats span {
   display: block;
   margin-top: 4px;
   font-size: 12px;
-  color: #9b8d80;
+  color: var(--text-muted);
 }
 
 .share-page-section-title {
   margin: 22px 0 10px;
   font-size: 15px;
-  color: #5d5147;
+  color: var(--text-secondary);
 }
 
 .share-color-grid {
@@ -593,10 +593,10 @@
   gap: 8px;
   padding: 8px 10px;
   border-radius: 10px;
-  background: #fff;
+  background: var(--bg-primary);
   border: 1px solid rgba(43, 36, 32, 0.06);
   font-size: 12.5px;
-  color: #5d5147;
+  color: var(--text-secondary);
   white-space: nowrap;
 }
 
@@ -627,7 +627,7 @@
 
 .share-page-note {
   font-size: 12.5px;
-  color: #9b8d80;
+  color: var(--text-muted);
   line-height: 1.7;
 }
 
@@ -640,13 +640,13 @@
   padding-top: 16px;
   border-top: 1px solid rgba(43, 36, 32, 0.08);
   font-size: 12px;
-  color: #9b8d80;
+  color: var(--text-muted);
 }
 
 .share-link-btn {
   border: none;
   background: transparent;
-  color: #7a6c60;
+  color: var(--text-secondary);
   font: inherit;
   font-size: 12.5px;
   text-decoration: underline;
@@ -663,13 +663,13 @@
   flex-direction: column;
   align-items: center;
   gap: 10px;
-  color: #5d5147;
+  color: var(--text-secondary);
 }
 
 .share-state-box h1 {
   margin: 0;
   font-size: 20px;
-  color: #2b2420;
+  color: var(--text-primary);
 }
 
 /* ── 举报浮层 ─────────────────────────────────────────────── */
@@ -698,8 +698,8 @@
   padding: 10px 12px;
   border-radius: 10px;
   border: 1px solid rgba(43, 36, 32, 0.14);
-  background: #fff;
-  color: #2b2420;
+  background: var(--bg-primary);
+  color: var(--text-primary);
   font: inherit;
   font-size: 15px;
 }
@@ -732,7 +732,7 @@
   align-items: center;
   padding: 12px;
   border-radius: 12px;
-  background: #fff;
+  background: var(--bg-primary);
   border: 1px solid var(--warning-border, #f0dcb3);
 }
 
@@ -742,7 +742,7 @@
   flex: 0 0 auto;
   border-radius: 8px;
   overflow: hidden;
-  background: #f4ece1;
+  background: var(--bg-tertiary);
   display: grid;
   place-items: center;
 }
@@ -771,7 +771,7 @@
 
 .share-list-meta {
   font-size: 12px;
-  color: #9b8d80;
+  color: var(--text-muted);
   display: flex;
   flex-wrap: wrap;
   gap: 8px;
@@ -787,19 +787,19 @@
 
 .share-status-chip.status-published {
   background: rgba(47, 107, 69, 0.1);
-  color: #2f6b45;
+  color: var(--success);
   border-color: rgba(47, 107, 69, 0.22);
 }
 
 .share-status-chip.status-draft {
   background: rgba(196, 138, 43, 0.12);
-  color: #6b4d16;
+  color: var(--warning);
   border-color: rgba(196, 138, 43, 0.28);
 }
 
 .share-status-chip.status-revoked {
   background: rgba(43, 36, 32, 0.07);
-  color: #7a6c60;
+  color: var(--text-secondary);
   border-color: rgba(43, 36, 32, 0.14);
 }
 

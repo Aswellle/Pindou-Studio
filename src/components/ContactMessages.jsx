@@ -361,7 +361,7 @@ export default function ContactMessages() {
           word-break: break-word;
           white-space: pre-wrap;
           border: 1.5px solid var(--border-color);
-          background: #fff;
+          background: var(--bg-primary);
           color: var(--text-primary);
         }
         .cm-msg-bubble.admin { background: rgba(74, 155, 142, 0.08); border-color: rgba(74, 155, 142, 0.4); }

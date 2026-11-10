@@ -742,7 +742,7 @@
 }
 .gallery-float-btn.contact {
   background: var(--secondary-accent);
-  border-color: #38766c;
+  border-color: var(--secondary-accent-hover);
 }
 .empty-login-btn {
   margin-top: 16px;

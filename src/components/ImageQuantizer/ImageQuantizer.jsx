@@ -645,7 +645,7 @@ export default function ImageQuantizer({ onApply, onClose }) {
               )}
               {gridPreset === 'aspect' && (
                 <div className="aspect-mode-inputs">
-                  <label style={{ fontSize: 12, color: '#666' }}>
+                  <label style={{ fontSize: 12, color: 'var(--text-secondary)' }}>
                     {t('quantizer.longSide')}: {longSide}
                   </label>
                   <input
@@ -656,7 +656,7 @@ export default function ImageQuantizer({ onApply, onClose }) {
                     onChange={e => setLongSide(Number(e.target.value))}
                     disabled={isProcessing}
                   />
-                  <div style={{ fontSize: 12, color: '#888', marginTop: 4 }}>
+                  <div style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 4 }}>
                     {previewUrl ? (
                       <>{t('quantizer.actualSize')}: <strong>{gridWidth} × {gridHeight}</strong>（{t('quantizer.aspectRatio')} {imageAspectRatio.toFixed(3)}）</>
                     ) : (
@@ -694,7 +694,7 @@ export default function ImageQuantizer({ onApply, onClose }) {
               <label>
                 {t('quantizer.maxColors', '目标颜色数')}: {maxColors}
                 {!hasUserTouchedMaxColors && (
-                  <span style={{ marginLeft: 8, fontSize: 11, color: '#888' }}>
+                  <span style={{ marginLeft: 8, fontSize: 11, color: 'var(--text-muted)' }}>
                     （{t('quantizer.autoRecommended')}）
                   </span>
                 )}
