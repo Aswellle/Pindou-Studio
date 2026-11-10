@@ -57,6 +57,12 @@ export const PAGE_LASTMOD_SOURCES = {
     'src/i18n/locales',
     'scripts/generate-prerender-html.js',
   ],
+  '/faq': [
+    'src/components/FaqPage.jsx',
+    'src/components/FaqPage.css',
+    'src/data/faq.js',
+    'scripts/generate-prerender-html.js',
+  ],
   '/privacy': [
     'src/components/LegalPages.jsx',
     'scripts/generate-prerender-html.js',

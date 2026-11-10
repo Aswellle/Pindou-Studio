@@ -16,6 +16,7 @@ import fs from 'fs'
 import path from 'path'
 import { fileURLToPath } from 'url'
 import { TUTORIALS_ZH } from '../src/data/tutorials.zh.js'
+import { FAQ_PAGE_TEXT, faqItemsFor } from '../src/data/faq.js'
 import { GALLERY_CATEGORY_META, categoryPagePath } from '../src/features/gallery/categoryMeta.js'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
@@ -187,6 +188,38 @@ function howToScript() {
 }
 
 /**
+ * 常见问题页的 FAQPage JSON-LD。
+ *
+ * 直接取页面静态正文使用的同一份中文问答数据 —— 结构化数据必须与用户
+ * 可见内容一致,否则会被判为误导性标记。答案里若出现 `<` 等字符,
+ * JSON.stringify 后统一转义,避免与 HTML 解析器冲突。
+ */
+function faqPageScript() {
+  const data = {
+    '@context': 'https://schema.org',
+    '@type': 'FAQPage',
+    inLanguage: 'zh-CN',
+    mainEntity: faqItemsFor('zh').map((item) => ({
+      '@type': 'Question',
+      name: item.question,
+      acceptedAnswer: {
+        '@type': 'Answer',
+        text: item.answer,
+      },
+    })),
+  }
+  return [
+    '  <!-- FAQPage: 常见问题问答(与页面可见内容一致) -->',
+    '  <script type="application/ld+json">',
+    JSON.stringify(data, null, 2)
+      .replace(/</g, '\\u003c')
+      .replace(/>/g, '\\u003e')
+      .replace(/&/g, '\\u0026'),
+    '  </script>',
+  ].join(EOL)
+}
+
+/**
  * 聚合页(图库/教程)的 CollectionPage JSON-LD。
  *
  * 只描述页面本身:名称、描述、所属站点与对应应用实体,与静态正文一一对应,
@@ -265,6 +298,7 @@ function siteNav(exclude = '') {
     ['/tutorials', '拼豆教程'],
     ['/create/image', '图片转拼豆图纸工具'],
     ['/my/beads', '我的色卡与库存'],
+    ['/faq', '拼豆常见问题'],
   ].filter(([href]) => href !== exclude)
   return `<p class="note">继续浏览:${items.map(([href, text]) => link(href, text)).join(' · ')}</p>`
 }
@@ -405,6 +439,23 @@ function createImageStatic() {
   return staticShell(b.join('\n'))
 }
 
+// 常见问题:正文来自 src/data/faq.js 的中文默认版本,与运行时默认语言一致。
+// 每条问答单独成节,便于抓取端直接读取;不添加数据文件里没有的说法。
+function faqStatic() {
+  const text = FAQ_PAGE_TEXT.zh
+  const b = []
+  b.push(`<h1>${esc(text.title)}</h1>`)
+  b.push(`<p class="lead">${esc(text.intro)}</p>`)
+  for (const item of faqItemsFor('zh')) {
+    b.push(`<h2>${esc(item.question)}</h2>`)
+    b.push(`<p>${esc(item.answer)}</p>`)
+  }
+  b.push(`<h2>${esc(text.more)}</h2>`)
+  b.push(`<p>${link('/create/image', text.links.create)} · ${link('/gallery', text.links.gallery)} · ${link('/tutorials', text.links.tutorials)} · ${link('/contact', text.links.contact)}</p>`)
+  b.push(siteNav('/faq'))
+  return staticShell(b.join('\n'))
+}
+
 // 供脚本按路由取静态正文(无正文页为 null)
 const zhLocale = JSON.parse(fs.readFileSync(path.join(__dirname, '..', 'src', 'i18n', 'locales', 'zh-CN.json'), 'utf-8'))
 const ROOT_STATIC = {
@@ -412,6 +463,7 @@ const ROOT_STATIC = {
   '/gallery': galleryStatic(zhLocale),
   '/tutorials': tutorialsStatic(),
   '/create/image': createImageStatic(),
+  '/faq': faqStatic(),
 }
 
 function injectRoot(html, inner) {
@@ -461,6 +513,17 @@ const PAGES = [
       { name: '首页', item: `${SITE}/` },
       { name: '拼豆教程', item: `${SITE}/tutorials` },
     ],
+  },
+  {
+    file: 'faq.html',
+    path: '/faq',
+    title: '拼豆常见问题 - 使用、导出、色号与商用解答 | 拼豆Studio',
+    desc: '拼豆Studio 常见问题：是否需要注册、图片转图纸流程、支持的图片格式与品牌色卡、导出方式、作品保存、分享与商用范围。',
+    breadcrumb: [
+      { name: '首页', item: `${SITE}/` },
+      { name: '拼豆常见问题', item: `${SITE}/faq` },
+    ],
+    faq: true,
   },
   {
     file: 'create-image.html',
@@ -594,8 +657,13 @@ for (const page of PAGES) {
 
   // 聚合页(图库/教程)补 CollectionPage;首页已有 SoftwareApplication/WebSite 实体,
   // /create/image 是工具页(用 HowTo),不是内容聚合页。
-  if (ROOT_STATIC[page.path] && page.path !== '/' && page.path !== '/create/image') {
+  if (ROOT_STATIC[page.path] && page.path !== '/' && page.path !== '/create/image' && page.path !== '/faq') {
     out = out.replace('</head>', collectionPageScript(page) + EOL + '</head>')
+  }
+
+  // 常见问题页补 FAQPage(问答与静态正文取同一份数据)
+  if (page.faq) {
+    out = out.replace('</head>', faqPageScript() + EOL + '</head>')
   }
 
   // 工具落地页补 HowTo(步骤与页面步骤条一致)
@@ -673,7 +741,7 @@ function tutorialArticleBody(article, section, prev, next) {
     `<p class="lead">${esc(section.title)} · 拼豆教程</p>`,
     tutorialBlocksHtml(article.blocks),
     nav.length ? `<p class="note">${nav.join(' · ')}</p>` : '',
-    `<p class="note">${link('/tutorials', '返回拼豆教程目录')} · ${link('/create/image', '图片转拼豆图纸工具')} · ${link('/gallery', '免费拼豆图纸模板库')}</p>`,
+    `<p class="note">${link('/tutorials', '返回拼豆教程目录')} · ${link('/create/image', '图片转拼豆图纸工具')} · ${link('/gallery', '免费拼豆图纸模板库')} · ${link('/faq', '拼豆常见问题')}</p>`,
   ].filter(Boolean).join('\n'))
 }
 
@@ -737,5 +805,5 @@ for (let index = 0; index < tutorialArticles.length; index++) {
   fs.writeFileSync(path.join(dir, 'index.html'), out)
   tutorialPageCount++
 }
-console.log(`完成 ${PAGES.length} 个预渲染页面(静态正文:首页 /gallery /tutorials /create/image)`)
+console.log(`完成 ${PAGES.length} 个预渲染页面(静态正文:首页 /gallery /tutorials /create/image /faq)`)
 console.log(`完成 ${tutorialPageCount} 个教程文章页(/tutorials/<id>)`)

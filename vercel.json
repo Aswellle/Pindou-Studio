@@ -35,6 +35,11 @@
       "source": "/terms.html",
       "destination": "/terms",
       "permanent": true
+    },
+    {
+      "source": "/faq.html",
+      "destination": "/faq",
+      "permanent": true
     }
   ],
   "rewrites": [
@@ -69,6 +74,10 @@
     {
       "source": "/terms",
       "destination": "/terms.html"
+    },
+    {
+      "source": "/faq",
+      "destination": "/faq.html"
     },
     {
       "source": "/privacy/:versionId",

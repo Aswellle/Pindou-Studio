@@ -368,6 +368,9 @@ export default function Tutorials() {
               <div className="content-footer">
                 <NavigationButtons currentTutorial={selectedTutorial} allTutorials={allTutorials} onSelect={selectTutorial} />
                 <p className="content-sources">{t('tutorials.sources')}</p>
+                <p className="content-sources">
+                  <a href="/faq">{t('tutorials.faqLink')}</a>
+                </p>
               </div>
             </div>
           </>
