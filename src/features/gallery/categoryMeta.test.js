@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest'
 import {
   GALLERY_CATEGORY_META,
+  categoryLabelFor,
   categoryPagePath,
   categorySeo,
   resolveCategoryByRaw,
@@ -36,6 +37,16 @@ describe('categoryMeta · 分类聚合页映射', () => {
     expect(seo.title).toContain('动物')
     expect(seo.title).toContain('拼豆Studio')
     expect(seo.desc).toContain('动物')
+  })
+
+  it('显示名以后台分类名称为准,空名称回退代码默认名', () => {
+    const meta = resolveCategoryBySlug('plant')
+    expect(meta.label).toBe('植物-花')
+    expect(categoryLabelFor(meta, [{ id: '植物-花', label: '绿植花卉' }])).toBe('绿植花卉')
+    expect(categoryLabelFor(meta, [{ id: '植物-花', label: '   ' }])).toBe('植物-花')
+    expect(categoryLabelFor(meta, [])).toBe('植物-花')
+    expect(categoryLabelFor(meta, null)).toBe('植物-花')
+    expect(categoryLabelFor(null)).toBe('')
   })
 
   it('无 meta 时不生成 SEO 文案', () => {

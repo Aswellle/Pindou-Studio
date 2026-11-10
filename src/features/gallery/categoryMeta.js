@@ -19,7 +19,7 @@ export const GALLERY_CATEGORY_META = Object.freeze([
   { raw: '人物形象', slug: 'person', label: '人物形象' },
   { raw: '庆祝', slug: 'celebration', label: '庆祝' },
   { raw: '表情包', slug: 'emoji', label: '表情包' },
-  { raw: '植物-花', slug: 'plant', label: '植物与花' },
+  { raw: '植物-花', slug: 'plant', label: '植物-花' },
   { raw: '电子设备', slug: 'device', label: '电子设备' },
   { raw: '衣物', slug: 'clothing', label: '衣物' },
 ])
@@ -39,6 +39,28 @@ export function resolveCategoryBySlug(slug) {
 export function resolveCategoryByRaw(raw) {
   if (typeof raw !== 'string' || !raw) return null
   return GALLERY_CATEGORY_META.find((item) => item.raw === raw) || null
+}
+
+/**
+ * 分类的显示名:后台上传的分类名称(label)优先,其次用代码里的默认名。
+ *
+ * 为什么需要它:
+ *   分类聚合页的 slug / raw 是代码里的稳定映射,但「显示成什么」由后台
+ *   categories 表的 label 决定。图库侧栏一直是这样取名的(GalleryPage),
+ *   分类页与预渲染快照如果只用代码默认名,后台改名后同一分类会在图库与
+ *   分类页显示两个名字。这里把口径收敛到一处。
+ *
+ * 注意:label 只影响展示,不参与 URL;分类 ID 才是聚合页的锚点。
+ *
+ * @param {{raw:string,label:string}|null} meta
+ * @param {Array<{id:string,label:string}>} [customCategories] - 后台分类行
+ */
+export function categoryLabelFor(meta, customCategories = []) {
+  if (!meta) return ''
+  const custom = (customCategories || []).find(
+    (item) => item?.id === meta.raw && String(item.label || '').trim()
+  )
+  return String(custom?.label || meta.label || '').trim()
 }
 
 /**

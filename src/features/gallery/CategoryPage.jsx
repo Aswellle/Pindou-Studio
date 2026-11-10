@@ -19,11 +19,14 @@ import { COLOR_COUNT_TIERS, useGalleryQuery } from './hooks/useGalleryQuery'
 import { templateMatchesQuery } from './hooks/useFilteredTemplates'
 import {
   GALLERY_CATEGORY_META,
+  categoryLabelFor,
   categoryPagePath,
+  categorySeo,
   resolveCategoryBySlug,
 } from './categoryMeta'
 import TemplateGrid from './components/TemplateGrid'
 import ContentPageSkeleton, { PageHeadSkeleton } from './components/ContentPageSkeleton'
+import ContentSeo from './components/ContentSeo'
 import './gallery.css'
 
 export default function CategoryPage({ cloudStore }) {
@@ -31,7 +34,7 @@ export default function CategoryPage({ cloudStore }) {
   const navigate = useNavigate()
   const { slug } = useParams()
   const meta = resolveCategoryBySlug(slug)
-  const { allTemplates, templatesLoading } = useGalleryTemplates(cloudStore)
+  const { allTemplates, templatesLoading, customCategories } = useGalleryTemplates(cloudStore)
 
   const {
     searchTerm,
@@ -90,10 +93,18 @@ export default function CategoryPage({ cloudStore }) {
 
   // 首屏:模板还没到时不要断言「该分类没有图纸」—— 那是还没到,不是没有。
   const showPageSkeleton = !!meta && templatesLoading && scopeTemplates.length === 0
-  const label = meta ? t(`gallery.categories.${meta.raw}`, meta.label) : ''
+  // 显示名以后台分类名称为准;分类加载完成前退回代码默认名(避免闪空标题)。
+  const label = meta ? categoryLabelFor(meta, customCategories) : ''
+  const effectiveSeo = meta ? categorySeo({ ...meta, label }) : null
 
   return (
     <div className="content-page">
+      {meta && effectiveSeo && (
+        <ContentSeo
+          title={`${label}拼豆图纸模板`}
+          description={effectiveSeo.desc}
+        />
+      )}
       <div className="content-page-head">
         <BackButton size="md" onClick={() => navigate('/gallery')} />
         {!meta && (
@@ -187,7 +198,7 @@ export default function CategoryPage({ cloudStore }) {
                 onClick={() => navigate(categoryPagePath(item.slug))}
               >
                 <span className="content-related-name">
-                  {t(`gallery.categories.${item.raw}`, item.label)}
+                  {categoryLabelFor(item, customCategories)}
                 </span>
                 <span className="content-related-desc">
                   {t('gallery.discovery.patternCount', { n: categoryCounts.get(item.raw) })}
