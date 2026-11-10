@@ -18,6 +18,7 @@ import { fileURLToPath } from 'url'
 import { TUTORIALS_ZH } from '../src/data/tutorials.zh.js'
 import { FAQ_PAGE_TEXT, faqItemsFor } from '../src/data/faq.js'
 import { GALLERY_CATEGORY_META, categoryPagePath } from '../src/features/gallery/categoryMeta.js'
+import { SEO_TEMPLATE_PATH } from './seo-template.mjs'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const dist = path.join(__dirname, '..', 'dist')
@@ -75,6 +76,11 @@ for (const [re, label] of REQUIRED_TAGS) {
     throw new Error(`预渲染中止:index.html 缺少 ${label} 标签,替换无法生效`)
   }
 }
+
+// 把「带 build-id + 空 #root」的干净模板留给动态快照脚本。
+// 必须在写首页(注入静态正文)之前落盘:快照要往 #root 注入自己的正文,
+// 不能从已经塞满首页内容的 dist/index.html 复制。
+fs.writeFileSync(SEO_TEMPLATE_PATH, indexWithBuildId)
 
 /**
  * head 标签上的 data-rh 标记。

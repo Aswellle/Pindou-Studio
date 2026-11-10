@@ -45,6 +45,7 @@ import {
   templateDisplayName,
 } from '../src/features/gallery/ogSnapshot.js'
 import { GALLERY_CATEGORY_META } from '../src/features/gallery/categoryMeta.js'
+import { SEO_TEMPLATE_PATH } from './seo-template.mjs'
 import {
   ogCardPath,
   patternContentHash,
@@ -141,14 +142,16 @@ async function restOptional(cfg, pathname) {
 
 async function loadContent(cfg) {
   // 只取已发布内容:与浏览器端公开路由同权,草稿不进快照也不进 sitemap
-  const [themes, collections, templates, themeLinks, collectionLinks] = await Promise.all([
+  const [themes, collections, templates, themeLinks, collectionLinks, categories] = await Promise.all([
     rest(cfg, 'gallery_themes?select=*&status=eq.published&order=sort_order'),
     rest(cfg, 'gallery_collections?select=*&status=eq.published&order=sort_order'),
     rest(cfg, 'templates?select=*&order=created_at'),
     restOptional(cfg, 'gallery_theme_templates?select=*&order=sort_order'),
     restOptional(cfg, 'gallery_collection_templates?select=*&order=sort_order'),
+    // 分类显示名以后台 categories 表为准(与图库/分类页运行时同一口径)
+    restOptional(cfg, 'categories?select=*&order=id'),
   ])
-  return { themes, collections, templates, themeLinks, collectionLinks }
+  return { themes, collections, templates, themeLinks, collectionLinks, categories }
 }
 
 /** 行 → 与 galleryContentStore 一致的 UI 形状(只取快照需要的字段) */
@@ -248,7 +251,14 @@ async function main() {
     return
   }
 
-  const indexHtml = fs.readFileSync(path.join(DIST, 'index.html'), 'utf-8')
+  // 优先用 generate-prerender-html.js 留下的干净模板(空 #root + build-id)。
+  // dist/index.html 此时已被注入首页正文,直接拿来复制会让每个快照的正文
+  // 都变成首页内容;单跑本脚本时退回 dist/index.html,保持旧用法可用。
+  const templatePath = fs.existsSync(SEO_TEMPLATE_PATH)
+    ? SEO_TEMPLATE_PATH
+    : path.join(DIST, 'index.html')
+  debug(`HTML 模板:${templatePath}`)
+  const indexHtml = fs.readFileSync(templatePath, 'utf-8')
   const site = 'https://tangnotes.site'
 
   let content
@@ -265,12 +275,18 @@ async function main() {
   const byId = new Map(templates.map(t => [String(t.id), t]))
   const themes = content.themes.map(rowToContent)
   const collections = content.collections.map(rowToContent)
+  // 后台可编辑分类名称:聚合页标题/描述/正文与图库使用同一个 label,
+  // 避免后台改名后图库显示新名、分类页仍是代码默认名。
+  const categoryLabels = new Map(
+    (content.categories || []).map((row) => [String(row.id), String(row.label || '').trim()])
+  )
   // 分类聚合页只覆盖映射表里、且当前确实有图纸的分类:
   // 空分类不生成快照、不写 sitemap,避免制造无内容的聚合页。
   const categories = GALLERY_CATEGORY_META
     .map((meta) => {
+      const effective = { ...meta, label: categoryLabels.get(meta.raw) || meta.label }
       const patterns = templates.filter((t) => t.category === meta.raw && templateDisplayName(t))
-      return { meta, patterns, updatedAt: latestTimestamp(patterns) }
+      return { meta: effective, patterns, updatedAt: latestTimestamp(patterns) }
     })
     .filter((group) => group.patterns.length > 0)
   const relatedCategories = categories.map((group) => group.meta)
