@@ -2,10 +2,11 @@ import { describe, it, expect } from 'vitest'
 import { canonicalPathFor, isKnownPath } from './seoPath'
 
 describe('canonicalPathFor', () => {
-  it('主题/合集/图纸详情自指', () => {
+  it('主题/合集/图纸详情/分类聚合自指', () => {
     expect(canonicalPathFor('/gallery/theme/spring', '/gallery')).toBe('/gallery/theme/spring')
     expect(canonicalPathFor('/gallery/collection/pets', '/gallery')).toBe('/gallery/collection/pets')
     expect(canonicalPathFor('/gallery/pattern/42', '/gallery')).toBe('/gallery/pattern/42')
+    expect(canonicalPathFor('/gallery/category/animal', '/gallery')).toBe('/gallery/category/animal')
   })
 
   it('分享详情页自指(只认 UUID 形状)', () => {

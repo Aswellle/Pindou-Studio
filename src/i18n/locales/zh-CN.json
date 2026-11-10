@@ -575,7 +575,14 @@
       "animal": "动物",
       "food": "食物",
       "icon": "图标",
-      "holiday": "节日"
+      "holiday": "节日",
+      "卡通": "卡通",
+      "人物形象": "人物形象",
+      "庆祝": "庆祝",
+      "表情包": "表情包",
+      "植物-花": "植物与花",
+      "电子设备": "电子设备",
+      "衣物": "衣物"
     },
     "difficulties": {
       "all": "全部",
@@ -622,6 +629,10 @@
       "viewAll": "查看全部",
       "themePage": "主题",
       "collectionPage": "合集",
+      "categoryPage": "分类",
+      "categoryTitle": "{{label}}拼豆图纸",
+      "viewInGallery": "在完整图库中筛选",
+      "relatedCategories": "其他分类",
       "notFound": "内容不存在或尚未发布",
       "backToGallery": "返回图库",
       "filteredCount": "共 {{n}} 张图纸",

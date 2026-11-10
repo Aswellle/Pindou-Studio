@@ -575,7 +575,14 @@
       "animal": "동물",
       "food": "음식",
       "icon": "아이콘",
-      "holiday": "명절"
+      "holiday": "명절",
+      "卡通": "애니메이션",
+      "人物形象": "인물",
+      "庆祝": "축하",
+      "表情包": "이모티콘",
+      "植物-花": "식물·꽃",
+      "电子设备": "전자기기",
+      "衣物": "의류"
     },
     "difficulties": {
       "all": "전체",
@@ -622,6 +629,10 @@
       "viewAll": "전체 보기",
       "themePage": "테마",
       "collectionPage": "컬렉션",
+      "categoryPage": "카테고리",
+      "categoryTitle": "{{label}} 비즈 도안",
+      "viewInGallery": "전체 갤러리에서 필터링",
+      "relatedCategories": "다른 카테고리",
       "notFound": "이 콘텐츠가 없거나 아직 공개되지 않았습니다",
       "backToGallery": "갤러리로 돌아가기",
       "filteredCount": "도안 {{n}}개",

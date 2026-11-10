@@ -80,6 +80,10 @@
     },
 
     {
+      "source": "/gallery/category/:slug",
+      "destination": "/spa.html"
+    },
+    {
       "source": "/gallery/theme/:slug",
       "destination": "/api/gallery-detail/theme/:slug"
     },

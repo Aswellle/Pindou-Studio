@@ -5,12 +5,12 @@
  * 若直接用它拼 canonical,主题/合集/图纸详情都会指向 `/gallery`,
  * 被搜索引擎判为重复内容、无法独立收录。
  *
- * 规则:只有已确认的动态内容页(主题/合集/图纸详情)自指,
+ * 规则:只有已确认的动态内容页(主题/合集/图纸详情/分类聚合)自指,
  * 其余路径一律回退到页面级规范路径 —— 不信任任意 pathname,
  * 避免把 404 或未知子路径也当成可收录页面。
  */
 
-const GALLERY_DETAIL_RE = /^\/gallery\/(?:theme|collection|pattern)\/[^/]+$/
+const GALLERY_DETAIL_RE = /^\/gallery\/(?:theme|collection|pattern|category)\/[^/]+$/
 // 公开分享页:/share/<uuid>。只认 UUID 形状,与 shareUrl 生成、vercel.json 的
 // rewrite(→ /api/share-preview/:id)保持一致;/share/whatever 不是真实页面。
 const SHARE_DETAIL_RE = /^\/share\/[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/

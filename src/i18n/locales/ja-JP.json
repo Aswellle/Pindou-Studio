@@ -575,7 +575,14 @@
       "animal": "動物",
       "food": "食べ物",
       "icon": "アイコン",
-      "holiday": "祝日"
+      "holiday": "祝日",
+      "卡通": "アニメ",
+      "人物形象": "人物",
+      "庆祝": "お祝い",
+      "表情包": "スタンプ",
+      "植物-花": "植物・花",
+      "电子设备": "電子機器",
+      "衣物": "衣類"
     },
     "difficulties": {
       "all": "すべて",
@@ -622,6 +629,10 @@
       "viewAll": "すべて見る",
       "themePage": "テーマ",
       "collectionPage": "コレクション",
+      "categoryPage": "カテゴリー",
+      "categoryTitle": "{{label}}のアイロンビーズ図案",
+      "viewInGallery": "ギャラリー全体で絞り込む",
+      "relatedCategories": "ほかのカテゴリー",
       "notFound": "このコンテンツは存在しないか公開されていません",
       "backToGallery": "ギャラリーに戻る",
       "filteredCount": "{{n}} 件の図案",

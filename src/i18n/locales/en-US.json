@@ -575,7 +575,14 @@
       "animal": "Animals",
       "food": "Food",
       "icon": "Icons",
-      "holiday": "Holidays"
+      "holiday": "Holidays",
+      "卡通": "Cartoon",
+      "人物形象": "Characters",
+      "庆祝": "Celebration",
+      "表情包": "Emoji",
+      "植物-花": "Plants & Flowers",
+      "电子设备": "Electronics",
+      "衣物": "Clothing"
     },
     "difficulties": {
       "all": "All",
@@ -622,6 +629,10 @@
       "viewAll": "View all",
       "themePage": "Theme",
       "collectionPage": "Collection",
+      "categoryPage": "Category",
+      "categoryTitle": "{{label}} Bead Patterns",
+      "viewInGallery": "Filter in full gallery",
+      "relatedCategories": "Other categories",
       "notFound": "This content does not exist or is not published",
       "backToGallery": "Back to gallery",
       "filteredCount": "{{n}} patterns",

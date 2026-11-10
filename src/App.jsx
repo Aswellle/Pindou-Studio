@@ -63,6 +63,7 @@ import { useSavedWorks } from './hooks/useSavedWorks'
 import { useScrollLock } from './hooks/useScrollLock'
 import { useDialogA11y } from './hooks/useDialogA11y'
 import { canonicalPathFor, isKnownPath } from './utils/seoPath'
+import { categorySeo, resolveCategoryBySlug } from './features/gallery/categoryMeta'
 import { planBrandSwitch, applyBrandSwitch } from './utils/brandSwitch'
 import { canvasToLegacyWork, normalizeLegacyWork } from './services/project/adapters'
 import ImportPage from './components/ImportPage'
@@ -83,6 +84,8 @@ const ContactPage = lazy(() => import('./components/ContactPage'))
 // Gallery V2:已对齐 V1 全部功能并通过灰度验证,接任 /gallery 主路由
 // (V1 Gallery.jsx 源码转存 _legacy/ 本地归档,不再入库)
 const GalleryPage = lazy(() => import('./features/gallery/GalleryPage'))
+// 分类聚合页:按 category 字段收窄的可独立收录页面
+const CategoryPage = lazy(() => import('./features/gallery/CategoryPage'))
 // 图库内容发现(M7):主题 / 合集 / 公共图纸详情
 const ThemePage = lazy(() => import('./features/gallery/ThemePage'))
 const CollectionPage = lazy(() => import('./features/gallery/CollectionPage'))
@@ -309,6 +312,10 @@ export default function App() {
   // 这里要求路径形状**确实存在**。两者分开,才能让「渲染 404 页」与「meta 标 noindex」
   // 始终一致 —— 否则 /gallery/whatever 会渲染 404 页却带着图库页的 index,follow。
   const isNotFound = !isKnownPath(location.pathname)
+  // 分类聚合页 /gallery/category/<slug>:slug 必须命中静态清单,
+  // 未知 slug 与其它不存在路径一样按 404 处理,不生成可收录的软页面。
+  const categorySlug = location.pathname.replace(/\/+$/, '').match(/^\/gallery\/category\/([^/]+)$/)?.[1] || ''
+  const categoryMeta = categorySlug ? resolveCategoryBySlug(categorySlug) : null
   // 核心功能页不继承站点导航，页面内部提供自己的返回与操作层。
   const isStandalonePage =
     currentPage === 'login' ||
@@ -1125,6 +1132,14 @@ export default function App() {
             }
           />
           <Route
+            path="/gallery/category/:slug"
+            element={
+              <Suspense fallback={<LoadingScreen />}>
+                <CategoryPage cloudStore={cloudStore} />
+              </Suspense>
+            }
+          />
+          <Route
             path="/gallery/theme/:slug"
             element={
               <Suspense fallback={<LoadingScreen />}>
@@ -1530,6 +1545,16 @@ export default function App() {
           }
         />
         <Route
+          path="/gallery/category/:slug"
+          element={
+            <Suspense fallback={<LoadingScreen />}>
+              <div className="mobile-page-area">
+                <CategoryPage cloudStore={cloudStore} />
+              </div>
+            </Suspense>
+          }
+        />
+        <Route
           path="/gallery/theme/:slug"
           element={
             <Suspense fallback={<LoadingScreen />}>
@@ -1917,7 +1942,11 @@ export default function App() {
   }
 
   // 404 覆盖:路径形状不存在时,不论 currentPage 归到哪一组,都改用 notFound 的 meta
-  const seo = isNotFound ? SEO_CONFIG.notFound : SEO_CONFIG[currentPage] || SEO_CONFIG.canvas
+  const seo = isNotFound || (categorySlug && !categoryMeta)
+    ? SEO_CONFIG.notFound
+    : categoryMeta
+      ? categorySeo(categoryMeta)
+      : SEO_CONFIG[currentPage] || SEO_CONFIG.canvas
 
   // 各页面对应的规范路径(privacy/terms 的 :versionId 历史版本归并到父路径)
   const CANONICAL_PATH = {
@@ -1936,11 +1965,11 @@ export default function App() {
     contact: '/contact',
   }
   const SITE_ORIGIN = 'https://tangnotes.site'
-  // 主题/合集/图纸详情是动态内容页,canonical 自指;其余 /gallery/* 子路径
+  // 主题/合集/图纸详情/分类聚合是动态内容页,canonical 自指;其余 /gallery/* 子路径
   // 仍归并到 /gallery,避免把未知路径当作可收录页面。
-  // 404 页没有自己的规范地址:一律指向站点根,配合 noindex 让搜索引擎把它当作
-  // 一个不应存在的入口,而不是某个真实页面的别名。
-  const baseUrl = isNotFound
+  // 404 页(含不存在的分类 slug)没有自己的规范地址:一律指向站点根,配合 noindex
+  // 让搜索引擎把它当作一个不应存在的入口,而不是某个真实页面的别名。
+  const baseUrl = isNotFound || (categorySlug && !categoryMeta)
     ? `${SITE_ORIGIN}/`
     : `${SITE_ORIGIN}${canonicalPathFor(location.pathname, CANONICAL_PATH[currentPage] || '/')}`
 
