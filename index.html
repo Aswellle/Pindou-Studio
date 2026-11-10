@@ -69,9 +69,11 @@
   <!-- 站点图标:真实文件而非 data: URI —— 搜索引擎需要可抓取的独立资源才会在
        搜索结果中显示站点图标(data: URI 无法被抓取,Google/Bing 均不显示)。
        图形与原 data: URI 完全一致(4×4 拼豆色卡),由 scripts/generate-favicon.mjs 生成。 -->
-  <link rel="icon" href="/favicon.ico" sizes="32x32" />
+  <link rel="icon" href="/favicon.ico" sizes="any" />
   <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
   <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png" />
+  <link rel="icon" type="image/png" sizes="48x48" href="/favicon-48.png" />
+  <link rel="icon" type="image/png" sizes="192x192" href="/favicon-192.png" />
   <!-- 大尺寸方图:Google/Bing 的站点图标(搜索结果标题旁)会优先采用 ≥48px 的
        方形可抓取图标;logo-512.png 同时被 Organization 结构化数据引用。 -->
   <link rel="icon" type="image/png" sizes="512x512" href="/logo-512.png" />

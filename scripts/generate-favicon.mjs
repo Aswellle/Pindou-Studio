@@ -6,7 +6,10 @@
  * 标记栅格化为真实文件:
  *   public/favicon.svg          — 矢量版(现代浏览器,可 <link rel="icon" type="image/svg+xml">)
  *   public/favicon-32.png       — 32×32 PNG
- *   public/favicon.ico          — ICO 容器(内含 32×32 PNG,Bing/百度等按 /favicon.ico 探测)
+ *   public/favicon-48.png       — 48×48 PNG(Google 站点图标要求的 48 倍数尺寸)
+ *   public/favicon-192.png      — 192×192 PNG(Android / 大尺寸站点图标)
+ *   public/favicon.ico          — 多尺寸 ICO(16/32/48/64,Bing/百度等按 /favicon.ico 探测;
+ *                                 单尺寸 32×32 会让 Bing 搜索结果的站点图标退回默认地球图)
  *   public/apple-touch-icon.png — 180×180(iOS 添加到主屏)
  *   public/logo-512.png         — 512×512(Organization JSON-LD logo 用方形图)
  *
@@ -99,22 +102,33 @@ function renderPng(size) {
   ])
 }
 
-/** ICO 容器(单帧,内含 PNG 数据;宽度/高度为 0 表示 256) */
-function encodeIco(png, size) {
+/** ICO 容器(多帧,每帧内嵌 PNG 数据;宽度/高度为 0 表示 256) */
+function encodeIco(frames) {
+  const count = frames.length
   const header = Buffer.alloc(6)
   header.writeUInt16LE(0, 0) // reserved
   header.writeUInt16LE(1, 2) // type: icon
-  header.writeUInt16LE(1, 4) // count
-  const entry = Buffer.alloc(16)
-  entry[0] = size >= 256 ? 0 : size
-  entry[1] = size >= 256 ? 0 : size
-  entry[2] = 0 // palette
-  entry[3] = 0 // reserved
-  entry.writeUInt16LE(1, 4) // planes
-  entry.writeUInt16LE(32, 6) // bit count
-  entry.writeUInt32LE(png.length, 8)
-  entry.writeUInt32LE(22, 12) // offset = 6 + 16
-  return Buffer.concat([header, entry, png])
+  header.writeUInt16LE(count, 4)
+
+  const entries = []
+  const parts = []
+  let offset = 6 + 16 * count
+  for (const { png, size } of frames) {
+    const entry = Buffer.alloc(16)
+    entry[0] = size >= 256 ? 0 : size
+    entry[1] = size >= 256 ? 0 : size
+    entry[2] = 0 // palette
+    entry[3] = 0 // reserved
+    entry.writeUInt16LE(1, 4) // planes
+    entry.writeUInt16LE(32, 6) // bit count
+    entry.writeUInt32LE(png.length, 8)
+    entry.writeUInt32LE(offset, 12)
+    entries.push(entry)
+    parts.push(png)
+    offset += png.length
+  }
+
+  return Buffer.concat([header, ...entries, ...parts])
 }
 
 function svgMarkup() {
@@ -128,10 +142,14 @@ function svgMarkup() {
   return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" width="32" height="32" role="img" aria-label="拼豆Studio">${rects.join('')}</svg>\n`
 }
 
-const png32 = renderPng(32)
 fs.writeFileSync(path.join(pub, 'favicon.svg'), svgMarkup())
-fs.writeFileSync(path.join(pub, 'favicon-32.png'), png32)
-fs.writeFileSync(path.join(pub, 'favicon.ico'), encodeIco(png32, 32))
+fs.writeFileSync(path.join(pub, 'favicon-32.png'), renderPng(32))
+fs.writeFileSync(path.join(pub, 'favicon-48.png'), renderPng(48))
+fs.writeFileSync(path.join(pub, 'favicon-192.png'), renderPng(192))
+fs.writeFileSync(
+  path.join(pub, 'favicon.ico'),
+  encodeIco([16, 32, 48, 64].map((size) => ({ size, png: renderPng(size) })))
+)
 fs.writeFileSync(path.join(pub, 'apple-touch-icon.png'), renderPng(180))
 fs.writeFileSync(path.join(pub, 'logo-512.png'), renderPng(512))
-console.log('wrote public/favicon.svg, favicon-32.png, favicon.ico, apple-touch-icon.png, logo-512.png')
+console.log('wrote public/favicon.svg, favicon-32/48/192.png, favicon.ico(16/32/48/64), apple-touch-icon.png, logo-512.png')
