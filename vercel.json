@@ -55,6 +55,10 @@
       "destination": "/tutorials.html"
     },
     {
+      "source": "/create/image",
+      "destination": "/create-image.html"
+    },
+    {
       "source": "/admin",
       "destination": "/admin.html"
     },

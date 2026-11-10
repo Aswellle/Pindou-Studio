@@ -156,6 +156,7 @@ export function buildPatternSnapshot(template, { site = SITE, ogImage = '', ogIm
     `<h2>颜色清单(共 ${stats.colorCount} 种)</h2>`,
     colorListHtml(stats),
     '<p class="note">在拼豆Studio 打开本页可复制到自己的图纸、导出图纸或直接开始制作。</p>',
+    `<p class="note">想把自己的照片做成图纸?试试<a href="${site}/create/image">图片转拼豆图纸工具</a>;更多模板见<a href="${site}/gallery">拼豆图纸模板库</a>。</p>`,
   ].join('\n')
 
   return { path, title, description, image: absoluteUrl(ogImage, site), imageSize: ogImageSize, bodyHtml }

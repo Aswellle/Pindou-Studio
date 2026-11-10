@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo, useRef } from 'react'
+import { useParams } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { flattenTutorials, loadTutorials } from '../data/tutorials'
 import i18n from '../i18n'
@@ -136,6 +137,8 @@ function BlockRenderer({ blocks = [] }) {
 export default function Tutorials() {
   const { t } = useTranslation()
   const TUTORIALS = useTutorials()
+  // /tutorials/:id 静态文章页直达时按 URL 选中对应文章;总览页没有 id。
+  const { id: routeTutorialId } = useParams()
   const [expandedSections, setExpandedSections] = useState(['getting-started'])
   const [selectedTutorial, setSelectedTutorial] = useState(null)
   const contentRef = useRef(null)
@@ -145,14 +148,17 @@ export default function Tutorials() {
     try { return JSON.parse(saved) } catch { return [] } // 脏数据不白屏
   })
 
-  // 数据就绪且无选中时默认选中第一个教程;
+  // 数据就绪且无选中时:优先按 URL 里的 id 选中对应文章,否则选第一篇。
   // 切语言后保留旧选中(内容区按 id 重新解析当前语言版本),不重置
-  // biome-ignore lint/correctness/useExhaustiveDependencies: 只在数据就绪且无选中时默认选中第一个;切语言保留旧选中
+  // biome-ignore lint/correctness/useExhaustiveDependencies: 只在数据就绪且无选中时执行;切语言保留旧选中
   useEffect(() => {
     if (TUTORIALS && !selectedTutorial) {
-      setSelectedTutorial(TUTORIALS[0].children[0])
+      const fromUrl = routeTutorialId
+        ? flattenTutorials(TUTORIALS).find((item) => item.id === routeTutorialId)
+        : null
+      setSelectedTutorial(fromUrl || TUTORIALS[0].children[0])
     }
-  }, [TUTORIALS])
+  }, [TUTORIALS, routeTutorialId])
 
   // 保存阅读进度
   useEffect(() => {

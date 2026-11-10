@@ -16,6 +16,8 @@
  * 是否回退,这里只做纯替换。
  */
 
+import { TUTORIALS_ZH } from '../../data/tutorials.zh.js'
+
 /**
  * 每个静态页由哪些源文件构成(git pathspec,相对仓库根目录)。
  * 新增静态页时必须同步在这里登记,契约测试会检查两边是否一致。
@@ -49,6 +51,12 @@ export const PAGE_LASTMOD_SOURCES = {
     'src/i18n/locales',
     'scripts/generate-prerender-html.js',
   ],
+  '/create/image': [
+    'src/components/CreateImagePage.jsx',
+    'src/components/ImageQuantizer',
+    'src/i18n/locales',
+    'scripts/generate-prerender-html.js',
+  ],
   '/privacy': [
     'src/components/LegalPages.jsx',
     'scripts/generate-prerender-html.js',
@@ -57,6 +65,21 @@ export const PAGE_LASTMOD_SOURCES = {
     'src/components/LegalPages.jsx',
     'scripts/generate-prerender-html.js',
   ],
+}
+
+// 教程文章页:/tutorials/<id> 由本地教程数据渲染,源文件固定。
+// 与 sitemap 模板里的条目一一对应(契约测试会检查两边)。
+const TUTORIAL_SOURCES = [
+  'src/components/Tutorials.jsx',
+  'src/data/tutorials.js',
+  'src/data/tutorials.zh.js',
+  'src/i18n/locales',
+  'scripts/generate-prerender-html.js',
+]
+for (const section of TUTORIALS_ZH) {
+  for (const article of section.children || []) {
+    PAGE_LASTMOD_SOURCES[`/tutorials/${article.id}`] = TUTORIAL_SOURCES
+  }
 }
 
 /**

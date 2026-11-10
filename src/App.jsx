@@ -1161,6 +1161,14 @@ export default function App() {
             }
           />
           <Route
+            path="/tutorials/:id"
+            element={
+              <Suspense fallback={<LoadingScreen />}>
+                <Tutorials />
+              </Suspense>
+            }
+          />
+          <Route
             path="/profile"
             element={
               <ProfilePage
@@ -1566,6 +1574,16 @@ export default function App() {
           }
         />
         <Route
+          path="/tutorials/:id"
+          element={
+            <Suspense fallback={<LoadingScreen />}>
+              <div className="mobile-page-area">
+                <Tutorials />
+              </div>
+            </Suspense>
+          }
+        />
+        <Route
           path="/profile"
           element={
             <div className="mobile-page-area">
@@ -1849,9 +1867,10 @@ export default function App() {
       noindex: true,
     },
     createImage: {
-      title: '图片转拼豆 - 拼豆Studio',
-      desc: '上传图片，一键生成像素拼豆图纸。',
-      noindex: true,
+      // 独立工具页承接「图片转拼豆 / image to perler bead pattern」核心词,
+      // 静态正文与 HowTo 结构化数据在 generate-prerender-html.js 里生成。
+      title: '图片转拼豆图纸 - 免费在线转换工具 | 拼豆Studio',
+      desc: '免费图片转拼豆图纸：上传照片自动生成带品牌色号的网格图纸，可调尺寸与颜色数，支持 Perler/Hama/Artkal/COCO/MARD 色卡，导出 PNG/SVG。',
     },
     import: {
       title: '导入图纸 - 拼豆Studio',

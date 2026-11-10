@@ -146,6 +146,46 @@ function breadcrumbScript(crumbs) {
 }
 
 /**
+ * 图片转拼豆落地页的 HowTo JSON-LD。
+ * 三个步骤与 /create/image 页面顶部的 1-2-3 步骤条一一对应,不做超出界面的声明。
+ */
+function howToScript() {
+  const data = {
+    '@context': 'https://schema.org',
+    '@type': 'HowTo',
+    name: '如何把图片转换成拼豆图纸',
+    description: '上传图片，选择色卡、画布尺寸与目标颜色数，生成带品牌色号的拼豆图纸。',
+    totalTime: 'PT2M',
+    step: [
+      {
+        '@type': 'HowToStep',
+        position: 1,
+        name: '上传图片',
+        text: '上传 PNG、JPEG、WebP、GIF、AVIF、HEIC 或 PDF 图片，也可以直接粘贴。',
+      },
+      {
+        '@type': 'HowToStep',
+        position: 2,
+        name: '调整设置',
+        text: '选择 COCO / MARD / Perler 等目标色卡、画布尺寸与目标颜色数。',
+      },
+      {
+        '@type': 'HowToStep',
+        position: 3,
+        name: '预览并生成',
+        text: '确认像素预览后生成图纸，可继续在画布中编辑或导出 PNG / SVG。',
+      },
+    ],
+  }
+  return [
+    '  <!-- HowTo: 图片转拼豆步骤(与页面步骤条一致) -->',
+    '  <script type="application/ld+json">',
+    JSON.stringify(data, null, 2),
+    '  </script>',
+  ].join(EOL)
+}
+
+/**
  * 聚合页(图库/教程)的 CollectionPage JSON-LD。
  *
  * 只描述页面本身:名称、描述、所属站点与对应应用实体,与静态正文一一对应,
@@ -174,6 +214,14 @@ function collectionPageScript(page) {
 // ── 静态正文块(C 批):预渲染进 #root,React 挂载时整体替换 ──
 function esc(s) {
   return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+}
+// 属性值(meta content 等)必须额外转义引号,正文里的 esc 不处理引号
+function escAttr(s) {
+  return esc(s).replace(/"/g, '&quot;').replace(/'/g, '&#39;')
+}
+function clampDesc(text, max) {
+  const t = String(text).replace(/\s+/g, ' ').trim()
+  return t.length > max ? `${t.slice(0, max - 1)}…` : t
 }
 const SEO_STYLE = `<style>
     #seo-static{max-width:860px;margin:0 auto;padding:32px 20px 60px;color:#33291f;font-family:system-ui,-apple-system,'Segoe UI',Roboto,'PingFang SC','Microsoft YaHei',sans-serif;font-size:15px;line-height:1.8;box-sizing:border-box}
@@ -214,6 +262,7 @@ function siteNav(exclude = '') {
     ['/', '拼豆画布工具'],
     ['/gallery', '拼豆图库与模板'],
     ['/tutorials', '拼豆教程'],
+    ['/create/image', '图片转拼豆图纸工具'],
     ['/my/beads', '我的色卡与库存'],
   ].filter(([href]) => href !== exclude)
   return `<p class="note">继续浏览:${items.map(([href, text]) => link(href, text)).join(' · ')}</p>`
@@ -241,9 +290,10 @@ function tutorialsStatic() {
     b.push('<ul>')
     for (const t of section.children || []) {
       const summary = firstParagraph(t)
+      const titleLink = link(`/tutorials/${t.id}`, t.title)
       b.push(summary
-        ? `<li><strong>${esc(t.title)}</strong>:${esc(summary)}</li>`
-        : `<li>${esc(t.title)}</li>`)
+        ? `<li><strong>${titleLink}</strong>:${esc(summary)}</li>`
+        : `<li>${titleLink}</li>`)
     }
     b.push('</ul>')
   }
@@ -300,7 +350,7 @@ function homeStatic() {
   b.push('</ul>')
 
   b.push('<h2>图片转拼豆图纸</h2>')
-  b.push('<p>上传照片或插画,工具会把图片量化为指定网格尺寸的像素拼豆图纸;可选 Floyd-Steinberg 或 Bayer 抖动控制渐变与细节,并按 CIEDE2000 匹配最接近的 COCO / MARD / MARD291 / Perler / Hama / Artkal 色号。头像、宠物、动漫角色都可以转换成拼豆图纸。</p>')
+  b.push(`<p>上传照片或插画,工具会把图片量化为指定网格尺寸的像素拼豆图纸;可选 Floyd-Steinberg 或 Bayer 抖动控制渐变与细节,并按 CIEDE2000 匹配最接近的 COCO / MARD / MARD291 / Perler / Hama / Artkal 色号。头像、宠物、动漫角色都可以转换成拼豆图纸。打开${link('/create/image', '图片转拼豆图纸工具')}开始转换。</p>`)
 
   b.push('<h2>像素画与网格化创作</h2>')
   b.push('<p>除了图片转换,也可以从空白网格开始绘制像素画:画笔、橡皮、油漆桶填充、矩形与套索选区、移动与镜像,网格尺寸可自定义,适合自由创作、改图或按图纸复刻。</p>')
@@ -318,12 +368,41 @@ function homeStatic() {
   return staticShell(b.join('\n'))
 }
 
+// 图片转拼豆落地页:竞品(MakeBead / PixelBeads)都用独立工具页承接
+// 「图片转拼豆」「image to perler bead pattern」这类核心搜索词。
+// 正文只描述 /create/image 真实存在的三步流程与选项,不添加应用里没有的说法。
+function createImageStatic() {
+  const b = []
+  b.push('<h1>图片转拼豆图纸 · 免费在线转换工具</h1>')
+  b.push('<p class="lead">上传一张照片,工具会自动把它换算成指定尺寸的拼豆网格,并按 COCO / MARD / MARD291 / Perler / Hama / Artkal 真实色卡匹配最接近的豆子;调整颜色数与细节过渡后,就能导出带品牌色号的 PNG / SVG 图纸。</p>')
+  b.push('<h2>三步生成拼豆图纸</h2>')
+  b.push('<ol>')
+  b.push('<li><strong>上传图片</strong>:支持 PNG / JPEG / WebP / GIF / AVIF / HEIC / PDF,也可以直接粘贴图片</li>')
+  b.push('<li><strong>调整设置</strong>:选择目标色卡、画布尺寸与目标颜色数;尺寸越大,可用的颜色越多</li>')
+  b.push('<li><strong>预览并生成</strong>:确认像素预览后生成图纸,可继续在画布中逐格修改或直接导出</li>')
+  b.push('</ol>')
+  b.push('<h2>转换时可以控制什么</h2>')
+  b.push('<ul>')
+  b.push('<li>目标色卡:六大品牌真实色号,按 CIEDE2000 感知色差取最接近的豆子</li>')
+  b.push('<li>画布尺寸:默认按图片比例自动匹配,也可以手动指定网格边长</li>')
+  b.push('<li>目标颜色数:限制用色数量,方便按现有库存备料</li>')
+  b.push('<li>细节过渡:Floyd-Steinberg / Bayer 抖动,或关闭后得到更干净的色块</li>')
+  b.push('<li>色彩还原:LAB / OKLAB 两种色彩空间可选</li>')
+  b.push('</ul>')
+  b.push('<h2>转换之后可以做什么</h2>')
+  b.push(`<p>生成的图纸可以直接在${link('/', '拼豆画布工具')}里继续编辑:拖动、镜像、套索选区、逐格修正都支持。需要现成图案时,可以到${link('/gallery', '免费拼豆图纸模板库')}挑选;第一次做拼豆,建议先看${link('/tutorials', '拼豆教程')}里的工具与熨烫章节。</p>`)
+  b.push('<p>整个转换在浏览器本地完成,图片不会上传到服务器;不需要注册账号。</p>')
+  b.push(siteNav('/create/image'))
+  return staticShell(b.join('\n'))
+}
+
 // 供脚本按路由取静态正文(无正文页为 null)
 const zhLocale = JSON.parse(fs.readFileSync(path.join(__dirname, '..', 'src', 'i18n', 'locales', 'zh-CN.json'), 'utf-8'))
 const ROOT_STATIC = {
   '/': homeStatic(),
   '/gallery': galleryStatic(zhLocale),
   '/tutorials': tutorialsStatic(),
+  '/create/image': createImageStatic(),
 }
 
 function injectRoot(html, inner) {
@@ -373,6 +452,17 @@ const PAGES = [
       { name: '首页', item: `${SITE}/` },
       { name: '拼豆教程', item: `${SITE}/tutorials` },
     ],
+  },
+  {
+    file: 'create-image.html',
+    path: '/create/image',
+    title: '图片转拼豆图纸 - 免费在线转换工具 | 拼豆Studio',
+    desc: '免费图片转拼豆图纸：上传照片自动生成带品牌色号的网格图纸，可调尺寸与颜色数，支持 Perler/Hama/Artkal/COCO/MARD 色卡，导出 PNG/SVG。',
+    breadcrumb: [
+      { name: '首页', item: `${SITE}/` },
+      { name: '图片转拼豆图纸', item: `${SITE}/create/image` },
+    ],
+    howTo: true,
   },
   {
     file: 'admin.html',
@@ -493,9 +583,15 @@ for (const page of PAGES) {
     out = out.replace('</head>', breadcrumbScript(page.breadcrumb) + EOL + '</head>')
   }
 
-  // 聚合页(图库/教程)补 CollectionPage;首页已有 SoftwareApplication/WebSite 实体
-  if (ROOT_STATIC[page.path] && page.path !== '/') {
+  // 聚合页(图库/教程)补 CollectionPage;首页已有 SoftwareApplication/WebSite 实体,
+  // /create/image 是工具页(用 HowTo),不是内容聚合页。
+  if (ROOT_STATIC[page.path] && page.path !== '/' && page.path !== '/create/image') {
     out = out.replace('</head>', collectionPageScript(page) + EOL + '</head>')
+  }
+
+  // 工具落地页补 HowTo(步骤与页面步骤条一致)
+  if (page.howTo) {
+    out = out.replace('</head>', howToScript() + EOL + '</head>')
   }
 
   // 静态正文(仅首页/图库/教程;隐私/条款/后台保持空 root)
@@ -506,4 +602,131 @@ for (const page of PAGES) {
   fs.writeFileSync(path.join(dist, page.file), out)
   console.log(`prerendered: ${page.file} -> ${url}`)
 }
-console.log(`完成 ${PAGES.length} 个预渲染页面(静态正文:首页 /gallery /tutorials)`)
+// ── 教程文章页:/tutorials/<id> ─────────────────────────────
+//
+// 竞品(MakeBead / PixelBeads)都用大量独立内容页承接长尾词;教程原先只有
+// /tutorials 一个总览页,18 篇文章没有独立 URL,长尾搜索没有落点。这里把
+// 本地教程数据渲染成独立静态页,正文与应用内展示的文章一致,不新增说法。
+function tutorialBlocksHtml(blocks = []) {
+  const out = []
+  for (const block of blocks) {
+    if (!block) continue
+    switch (block.type) {
+      case 'paragraph':
+        out.push(`<p>${esc(block.text)}</p>`)
+        break
+      case 'heading2':
+        out.push(`<h2>${esc(block.text)}</h2>`)
+        break
+      case 'heading3':
+        out.push(`<h3>${esc(block.text)}</h3>`)
+        break
+      case 'bulletList':
+        out.push(`<ul>${(block.items || []).map((i) => `<li>${esc(i)}</li>`).join('')}</ul>`)
+        break
+      case 'numberedList':
+        out.push(`<ol>${(block.items || []).map((i) => `<li>${esc(i)}</li>`).join('')}</ol>`)
+        break
+      case 'callout':
+        out.push(`<p class="note">${block.title ? `<strong>${esc(block.title)}</strong> ` : ''}${esc(block.text)}</p>`)
+        break
+      case 'keyPoint':
+        out.push(`<p class="note">${esc(block.text)}</p>`)
+        break
+      case 'table': {
+        const head = (block.headers || []).map((h) => `<th>${esc(h)}</th>`).join('')
+        const rows = (block.rows || [])
+          .map((r) => `<tr>${r.map((c) => `<td>${esc(c)}</td>`).join('')}</tr>`)
+          .join('')
+        out.push(`<table>${head ? `<thead><tr>${head}</tr></thead>` : ''}<tbody>${rows}</tbody></table>`)
+        break
+      }
+      case 'divider':
+        out.push('<hr />')
+        break
+      case 'svgDiagram':
+        // 图形本身是 React 组件,静态页只保留图注
+        if (block.caption) out.push(`<p class="note">${esc(block.caption)}</p>`)
+        break
+      default:
+        break
+    }
+  }
+  return out.join('\n')
+}
+
+function tutorialArticleBody(article, section, prev, next) {
+  const nav = []
+  if (prev) nav.push(`上一篇:${link(`/tutorials/${prev.article.id}`, prev.article.title)}`)
+  if (next) nav.push(`下一篇:${link(`/tutorials/${next.article.id}`, next.article.title)}`)
+  return staticShell([
+    `<h1>${esc(article.title)}</h1>`,
+    `<p class="lead">${esc(section.title)} · 拼豆教程</p>`,
+    tutorialBlocksHtml(article.blocks),
+    nav.length ? `<p class="note">${nav.join(' · ')}</p>` : '',
+    `<p class="note">${link('/tutorials', '返回拼豆教程目录')} · ${link('/create/image', '图片转拼豆图纸工具')} · ${link('/gallery', '免费拼豆图纸模板库')}</p>`,
+  ].filter(Boolean).join('\n'))
+}
+
+function articleScript(article, url) {
+  const first = (article.blocks || []).find((b) => b && b.type === 'paragraph' && b.text)
+  const data = {
+    '@context': 'https://schema.org',
+    '@type': 'Article',
+    headline: article.title,
+    description: first ? clampDesc(first.text, 120) : article.title,
+    inLanguage: 'zh-CN',
+    mainEntityOfPage: url,
+    isPartOf: { '@id': `${SITE}/tutorials#webpage` },
+    author: { '@id': `${SITE}/#organization` },
+    publisher: { '@id': `${SITE}/#organization` },
+  }
+  return [
+    '  <!-- Article: 教程文章 -->',
+    '  <script type="application/ld+json">',
+    JSON.stringify(data, null, 2),
+    '  </script>',
+  ].join(EOL)
+}
+
+const tutorialArticles = TUTORIALS_ZH.flatMap((section) =>
+  (section.children || []).map((article) => ({ article, section })),
+)
+let tutorialPageCount = 0
+for (let index = 0; index < tutorialArticles.length; index++) {
+  const { article, section } = tutorialArticles[index]
+  const prev = index > 0 ? tutorialArticles[index - 1] : null
+  const next = index + 1 < tutorialArticles.length ? tutorialArticles[index + 1] : null
+  const pagePath = `/tutorials/${article.id}`
+  const url = `${SITE}${pagePath}`
+  const title = `${article.title} - 拼豆教程 - 拼豆Studio`
+  const first = (article.blocks || []).find((b) => b && b.type === 'paragraph' && b.text)
+  const desc = first ? clampDesc(first.text, 90) : `${article.title}:拼豆Studio 拼豆教程。`
+
+  let out = indexWithBuildId
+    .replace(/<title>.*?<\/title>/s, `<title>${esc(title)}</title>`)
+    .replace(/<meta name="description" content="[^"]*"[^>]*>/, `<meta name="description" content="${escAttr(desc)}"${HEAD_ATTR} />`)
+    .replace(/<link rel="canonical" href="[^"]*"[^>]*>/, `<link rel="canonical" href="${url}"${HEAD_ATTR} />`)
+    .replace(/<meta property="og:url" content="[^"]*"[^>]*>/, `<meta property="og:url" content="${url}"${HEAD_ATTR} />`)
+    .replace(/<meta property="og:title" content="[^"]*"[^>]*>/, `<meta property="og:title" content="${escAttr(title)}"${HEAD_ATTR} />`)
+    .replace(/<meta property="og:description" content="[^"]*"[^>]*>/, `<meta property="og:description" content="${escAttr(desc)}"${HEAD_ATTR} />`)
+
+  if (!HREFLANG_BLOCK_RE.test(out)) {
+    throw new Error(`预渲染中止:${pagePath} 的 hreflang 块缺失或结构变化`)
+  }
+  out = out.replace(HREFLANG_BLOCK_RE, hreflangBlock(pagePath))
+  out = out.replace('</head>', breadcrumbScript([
+    { name: '首页', item: `${SITE}/` },
+    { name: '拼豆教程', item: `${SITE}/tutorials` },
+    { name: article.title, item: url },
+  ]) + EOL + '</head>')
+  out = out.replace('</head>', articleScript(article, url) + EOL + '</head>')
+  out = injectRoot(out, tutorialArticleBody(article, section, prev, next))
+
+  const dir = path.join(dist, 'tutorials', article.id)
+  fs.mkdirSync(dir, { recursive: true })
+  fs.writeFileSync(path.join(dir, 'index.html'), out)
+  tutorialPageCount++
+}
+console.log(`完成 ${PAGES.length} 个预渲染页面(静态正文:首页 /gallery /tutorials /create/image)`)
+console.log(`完成 ${tutorialPageCount} 个教程文章页(/tutorials/<id>)`)

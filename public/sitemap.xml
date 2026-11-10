@@ -57,6 +57,19 @@
     <xhtml:link rel="alternate" hreflang="x-default" href="https://tangnotes.site/tutorials"/>
   </url>
 
+  <!-- 图片转拼豆工具页 — 承接「图片转拼豆」「图片转拼豆图纸」等核心搜索词 -->
+  <url>
+    <loc>https://tangnotes.site/create/image</loc>
+    <lastmod>2026-11-10</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.9</priority>
+    <xhtml:link rel="alternate" hreflang="zh-CN" href="https://tangnotes.site/create/image"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://tangnotes.site/create/image?lang=en"/>
+    <xhtml:link rel="alternate" hreflang="ja" href="https://tangnotes.site/create/image?lang=ja"/>
+    <xhtml:link rel="alternate" hreflang="ko" href="https://tangnotes.site/create/image?lang=ko"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://tangnotes.site/create/image"/>
+  </url>
+
   <!-- 隐私政策 — 正文写死在 LegalPages.jsx 里,只有中文,不提供 ?lang= 变体。
        页面内 hreflang 也只声明 zh-CN 与 x-default;此处保持一致,否则 sitemap
        声明四种语言、页面只认一种,两边互相矛盾会被判为 hreflang 组无效。 -->
@@ -74,4 +87,238 @@
     <changefreq>yearly</changefreq>
     <priority>0.3</priority>
   </url>
+  <!-- 教程文章:什么是拼豆 -->
+  <url>
+    <loc>https://tangnotes.site/tutorials/what-is-bead</loc>
+    <lastmod>2026-11-10</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.6</priority>
+    <xhtml:link rel="alternate" hreflang="zh-CN" href="https://tangnotes.site/tutorials/what-is-bead"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://tangnotes.site/tutorials/what-is-bead?lang=en"/>
+    <xhtml:link rel="alternate" hreflang="ja" href="https://tangnotes.site/tutorials/what-is-bead?lang=ja"/>
+    <xhtml:link rel="alternate" hreflang="ko" href="https://tangnotes.site/tutorials/what-is-bead?lang=ko"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://tangnotes.site/tutorials/what-is-bead"/>
+  </url>
+
+  <!-- 教程文章:基础工具介绍 -->
+  <url>
+    <loc>https://tangnotes.site/tutorials/basic-tools</loc>
+    <lastmod>2026-11-10</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.6</priority>
+    <xhtml:link rel="alternate" hreflang="zh-CN" href="https://tangnotes.site/tutorials/basic-tools"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://tangnotes.site/tutorials/basic-tools?lang=en"/>
+    <xhtml:link rel="alternate" hreflang="ja" href="https://tangnotes.site/tutorials/basic-tools?lang=ja"/>
+    <xhtml:link rel="alternate" hreflang="ko" href="https://tangnotes.site/tutorials/basic-tools?lang=ko"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://tangnotes.site/tutorials/basic-tools"/>
+  </url>
+
+  <!-- 教程文章:第一个作品：制作爱心 -->
+  <url>
+    <loc>https://tangnotes.site/tutorials/first-project</loc>
+    <lastmod>2026-11-10</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.6</priority>
+    <xhtml:link rel="alternate" hreflang="zh-CN" href="https://tangnotes.site/tutorials/first-project"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://tangnotes.site/tutorials/first-project?lang=en"/>
+    <xhtml:link rel="alternate" hreflang="ja" href="https://tangnotes.site/tutorials/first-project?lang=ja"/>
+    <xhtml:link rel="alternate" hreflang="ko" href="https://tangnotes.site/tutorials/first-project?lang=ko"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://tangnotes.site/tutorials/first-project"/>
+  </url>
+
+  <!-- 教程文章:品牌全解析 -->
+  <url>
+    <loc>https://tangnotes.site/tutorials/brands-guide</loc>
+    <lastmod>2026-11-10</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.6</priority>
+    <xhtml:link rel="alternate" hreflang="zh-CN" href="https://tangnotes.site/tutorials/brands-guide"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://tangnotes.site/tutorials/brands-guide?lang=en"/>
+    <xhtml:link rel="alternate" hreflang="ja" href="https://tangnotes.site/tutorials/brands-guide?lang=ja"/>
+    <xhtml:link rel="alternate" hreflang="ko" href="https://tangnotes.site/tutorials/brands-guide?lang=ko"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://tangnotes.site/tutorials/brands-guide"/>
+  </url>
+
+  <!-- 教程文章:温度与手法 -->
+  <url>
+    <loc>https://tangnotes.site/tutorials/ironing-technique</loc>
+    <lastmod>2026-11-10</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.6</priority>
+    <xhtml:link rel="alternate" hreflang="zh-CN" href="https://tangnotes.site/tutorials/ironing-technique"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://tangnotes.site/tutorials/ironing-technique?lang=en"/>
+    <xhtml:link rel="alternate" hreflang="ja" href="https://tangnotes.site/tutorials/ironing-technique?lang=ja"/>
+    <xhtml:link rel="alternate" hreflang="ko" href="https://tangnotes.site/tutorials/ironing-technique?lang=ko"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://tangnotes.site/tutorials/ironing-technique"/>
+  </url>
+
+  <!-- 教程文章:双面烫标准流程 -->
+  <url>
+    <loc>https://tangnotes.site/tutorials/double-sided-ironing</loc>
+    <lastmod>2026-11-10</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.6</priority>
+    <xhtml:link rel="alternate" hreflang="zh-CN" href="https://tangnotes.site/tutorials/double-sided-ironing"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://tangnotes.site/tutorials/double-sided-ironing?lang=en"/>
+    <xhtml:link rel="alternate" hreflang="ja" href="https://tangnotes.site/tutorials/double-sided-ironing?lang=ja"/>
+    <xhtml:link rel="alternate" hreflang="ko" href="https://tangnotes.site/tutorials/double-sided-ironing?lang=ko"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://tangnotes.site/tutorials/double-sided-ironing"/>
+  </url>
+
+  <!-- 教程文章:翻车急救手册 -->
+  <url>
+    <loc>https://tangnotes.site/tutorials/ironing-rescue</loc>
+    <lastmod>2026-11-10</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.6</priority>
+    <xhtml:link rel="alternate" hreflang="zh-CN" href="https://tangnotes.site/tutorials/ironing-rescue"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://tangnotes.site/tutorials/ironing-rescue?lang=en"/>
+    <xhtml:link rel="alternate" hreflang="ja" href="https://tangnotes.site/tutorials/ironing-rescue?lang=ja"/>
+    <xhtml:link rel="alternate" hreflang="ko" href="https://tangnotes.site/tutorials/ironing-rescue?lang=ko"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://tangnotes.site/tutorials/ironing-rescue"/>
+  </url>
+
+  <!-- 教程文章:为什么会翘曲 -->
+  <url>
+    <loc>https://tangnotes.site/tutorials/why-warping</loc>
+    <lastmod>2026-11-10</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.6</priority>
+    <xhtml:link rel="alternate" hreflang="zh-CN" href="https://tangnotes.site/tutorials/why-warping"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://tangnotes.site/tutorials/why-warping?lang=en"/>
+    <xhtml:link rel="alternate" hreflang="ja" href="https://tangnotes.site/tutorials/why-warping?lang=ja"/>
+    <xhtml:link rel="alternate" hreflang="ko" href="https://tangnotes.site/tutorials/why-warping?lang=ko"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://tangnotes.site/tutorials/why-warping"/>
+  </url>
+
+  <!-- 教程文章:压重定型法 -->
+  <url>
+    <loc>https://tangnotes.site/tutorials/weight-pressing</loc>
+    <lastmod>2026-11-10</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.6</priority>
+    <xhtml:link rel="alternate" hreflang="zh-CN" href="https://tangnotes.site/tutorials/weight-pressing"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://tangnotes.site/tutorials/weight-pressing?lang=en"/>
+    <xhtml:link rel="alternate" hreflang="ja" href="https://tangnotes.site/tutorials/weight-pressing?lang=ja"/>
+    <xhtml:link rel="alternate" hreflang="ko" href="https://tangnotes.site/tutorials/weight-pressing?lang=ko"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://tangnotes.site/tutorials/weight-pressing"/>
+  </url>
+
+  <!-- 教程文章:大图胶带法 -->
+  <url>
+    <loc>https://tangnotes.site/tutorials/tape-method</loc>
+    <lastmod>2026-11-10</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.6</priority>
+    <xhtml:link rel="alternate" hreflang="zh-CN" href="https://tangnotes.site/tutorials/tape-method"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://tangnotes.site/tutorials/tape-method?lang=en"/>
+    <xhtml:link rel="alternate" hreflang="ja" href="https://tangnotes.site/tutorials/tape-method?lang=ja"/>
+    <xhtml:link rel="alternate" hreflang="ko" href="https://tangnotes.site/tutorials/tape-method?lang=ko"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://tangnotes.site/tutorials/tape-method"/>
+  </url>
+
+  <!-- 教程文章:颜色选择原则 -->
+  <url>
+    <loc>https://tangnotes.site/tutorials/color-principles</loc>
+    <lastmod>2026-11-10</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.6</priority>
+    <xhtml:link rel="alternate" hreflang="zh-CN" href="https://tangnotes.site/tutorials/color-principles"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://tangnotes.site/tutorials/color-principles?lang=en"/>
+    <xhtml:link rel="alternate" hreflang="ja" href="https://tangnotes.site/tutorials/color-principles?lang=ja"/>
+    <xhtml:link rel="alternate" hreflang="ko" href="https://tangnotes.site/tutorials/color-principles?lang=ko"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://tangnotes.site/tutorials/color-principles"/>
+  </url>
+
+  <!-- 教程文章:阴影与高光 -->
+  <url>
+    <loc>https://tangnotes.site/tutorials/shadow-highlight</loc>
+    <lastmod>2026-11-10</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.6</priority>
+    <xhtml:link rel="alternate" hreflang="zh-CN" href="https://tangnotes.site/tutorials/shadow-highlight"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://tangnotes.site/tutorials/shadow-highlight?lang=en"/>
+    <xhtml:link rel="alternate" hreflang="ja" href="https://tangnotes.site/tutorials/shadow-highlight?lang=ja"/>
+    <xhtml:link rel="alternate" hreflang="ko" href="https://tangnotes.site/tutorials/shadow-highlight?lang=ko"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://tangnotes.site/tutorials/shadow-highlight"/>
+  </url>
+
+  <!-- 教程文章:图片转图纸 -->
+  <url>
+    <loc>https://tangnotes.site/tutorials/image-to-pattern</loc>
+    <lastmod>2026-11-10</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.6</priority>
+    <xhtml:link rel="alternate" hreflang="zh-CN" href="https://tangnotes.site/tutorials/image-to-pattern"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://tangnotes.site/tutorials/image-to-pattern?lang=en"/>
+    <xhtml:link rel="alternate" hreflang="ja" href="https://tangnotes.site/tutorials/image-to-pattern?lang=ja"/>
+    <xhtml:link rel="alternate" hreflang="ko" href="https://tangnotes.site/tutorials/image-to-pattern?lang=ko"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://tangnotes.site/tutorials/image-to-pattern"/>
+  </url>
+
+  <!-- 教程文章:大图分区拼接 -->
+  <url>
+    <loc>https://tangnotes.site/tutorials/large-grid-joining</loc>
+    <lastmod>2026-11-10</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.6</priority>
+    <xhtml:link rel="alternate" hreflang="zh-CN" href="https://tangnotes.site/tutorials/large-grid-joining"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://tangnotes.site/tutorials/large-grid-joining?lang=en"/>
+    <xhtml:link rel="alternate" hreflang="ja" href="https://tangnotes.site/tutorials/large-grid-joining?lang=ja"/>
+    <xhtml:link rel="alternate" hreflang="ko" href="https://tangnotes.site/tutorials/large-grid-joining?lang=ko"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://tangnotes.site/tutorials/large-grid-joining"/>
+  </url>
+
+  <!-- 教程文章:渐变实现 -->
+  <url>
+    <loc>https://tangnotes.site/tutorials/gradient-technique</loc>
+    <lastmod>2026-11-10</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.6</priority>
+    <xhtml:link rel="alternate" hreflang="zh-CN" href="https://tangnotes.site/tutorials/gradient-technique"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://tangnotes.site/tutorials/gradient-technique?lang=en"/>
+    <xhtml:link rel="alternate" hreflang="ja" href="https://tangnotes.site/tutorials/gradient-technique?lang=ja"/>
+    <xhtml:link rel="alternate" hreflang="ko" href="https://tangnotes.site/tutorials/gradient-technique?lang=ko"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://tangnotes.site/tutorials/gradient-technique"/>
+  </url>
+
+  <!-- 教程文章:多品牌混用 -->
+  <url>
+    <loc>https://tangnotes.site/tutorials/multi-brand-mix</loc>
+    <lastmod>2026-11-10</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.6</priority>
+    <xhtml:link rel="alternate" hreflang="zh-CN" href="https://tangnotes.site/tutorials/multi-brand-mix"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://tangnotes.site/tutorials/multi-brand-mix?lang=en"/>
+    <xhtml:link rel="alternate" hreflang="ja" href="https://tangnotes.site/tutorials/multi-brand-mix?lang=ja"/>
+    <xhtml:link rel="alternate" hreflang="ko" href="https://tangnotes.site/tutorials/multi-brand-mix?lang=ko"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://tangnotes.site/tutorials/multi-brand-mix"/>
+  </url>
+
+  <!-- 教程文章:冷却定型流程 -->
+  <url>
+    <loc>https://tangnotes.site/tutorials/cooling-shaping</loc>
+    <lastmod>2026-11-10</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.6</priority>
+    <xhtml:link rel="alternate" hreflang="zh-CN" href="https://tangnotes.site/tutorials/cooling-shaping"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://tangnotes.site/tutorials/cooling-shaping?lang=en"/>
+    <xhtml:link rel="alternate" hreflang="ja" href="https://tangnotes.site/tutorials/cooling-shaping?lang=ja"/>
+    <xhtml:link rel="alternate" hreflang="ko" href="https://tangnotes.site/tutorials/cooling-shaping?lang=ko"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://tangnotes.site/tutorials/cooling-shaping"/>
+  </url>
+
+  <!-- 教程文章:展示与保存 -->
+  <url>
+    <loc>https://tangnotes.site/tutorials/display-storage</loc>
+    <lastmod>2026-11-10</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.6</priority>
+    <xhtml:link rel="alternate" hreflang="zh-CN" href="https://tangnotes.site/tutorials/display-storage"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://tangnotes.site/tutorials/display-storage?lang=en"/>
+    <xhtml:link rel="alternate" hreflang="ja" href="https://tangnotes.site/tutorials/display-storage?lang=ja"/>
+    <xhtml:link rel="alternate" hreflang="ko" href="https://tangnotes.site/tutorials/display-storage?lang=ko"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://tangnotes.site/tutorials/display-storage"/>
+  </url>
+
 </urlset>
