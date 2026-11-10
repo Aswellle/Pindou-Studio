@@ -426,10 +426,14 @@ describe('高级导出登录守卫', () => {
     expect(qualitySelect().textContent).toContain('需登录')
   })
 
-  it('引导浮层点「免费注册」把原因与模式交给父级', () => {
-    const onRequireAuth = setupGuest()
+  it('引导浮层点「免费注册」先关闭导出浮层,再把原因与模式交给父级', () => {
+    const onClose = vi.fn()
+    const onRequireAuth = setupGuest({ onClose })
     fireEvent.change(qualitySelect(), { target: { value: 'print' } })
     fireEvent.click(screen.getByRole('button', { name: '免费注册' }))
+    // 移动端导出面板是全屏模态:不先关闭它,登录页会被压在面板下面,
+    // 用户会误以为注册/登录按钮无效
+    expect(onClose).toHaveBeenCalledTimes(1)
     expect(onRequireAuth).toHaveBeenCalledWith('quality', 'register')
     expect(document.querySelector('.auth-prompt-panel')).toBeNull()
   })

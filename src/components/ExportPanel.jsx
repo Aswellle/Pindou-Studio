@@ -418,6 +418,10 @@ export default function ExportPanel({
       onGoAuth={mode => {
         const reason = authPrompt
         setAuthPrompt(null)
+        // 移动端导出面板本身是全屏浮层:如果只跳路由不关它,登录页会被压在
+        // 导出浮层下面,用户看到的是「对话框消失、回到导出面板」,误以为
+        // 注册/登录按钮无效。先完成面板退出,再进入登录流程。
+        onClose?.()
         onRequireAuth?.(reason, mode)
       }}
     />
