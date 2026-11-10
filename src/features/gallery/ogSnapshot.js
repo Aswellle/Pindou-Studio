@@ -14,7 +14,7 @@
  * 拉数据与写文件在 scripts/generate-prerender-html.js。
  */
 
-import { categoryPagePath, resolveCategoryByRaw } from './categoryMeta.js'
+import { categoryPagePath, categorySeo, resolveCategoryByRaw } from './categoryMeta.js'
 
 export const SITE = 'https://tangnotes.site'
 
@@ -246,10 +246,11 @@ export function buildCategorySnapshot(meta, patterns = [], { site = SITE, relate
 
   const path = categoryPath(meta.slug)
   const label = meta.label
-  const title = escapeHtml(`${label}拼豆图纸模板 - 拼豆Studio`)
-  const description = escapeHtml(clampDescription(
-    `${label}主题免费拼豆图纸:共 ${usable.length} 张,均带网格尺寸与品牌色号,可一键载入画布制作,也可导出 PNG/SVG 图纸。`,
-  ))
+  // title/description 与 App 运行时 Helmet 共用 categorySeo —— 快照与 SPA
+  // 必须给出一模一样的 meta,否则首帧前后会呈现两套标题描述。
+  const seo = categorySeo(meta)
+  const title = escapeHtml(seo.title)
+  const description = escapeHtml(clampDescription(seo.desc))
 
   const related = (relatedCategories || []).filter((item) => item?.slug && item.slug !== meta.slug)
   const bodyHtml = [

@@ -13,6 +13,7 @@ import {
   appendToSitemap,
   renderSnapshotHtml,
 } from './ogSnapshot'
+import { categorySeo } from './categoryMeta'
 
 describe('ogSnapshot · 基础工具', () => {
   it('escapeHtml 转义全部五个字符(静态正文是拼字符串,漏一个就能注入)', () => {
@@ -180,7 +181,10 @@ describe('buildCategorySnapshot', () => {
     const snap = buildCategorySnapshot(meta, patterns)
     expect(snap.path).toBe('/gallery/category/animal')
     expect(snap.title).toContain('动物拼豆图纸模板')
-    expect(snap.description).toContain('2 张')
+    // meta 文案必须与运行时 Helmet 完全一致(共用一个来源)
+    expect(snap.title).toBe(escapeHtml(categorySeo(meta).title))
+    expect(snap.description).toBe(escapeHtml(categorySeo(meta).desc))
+    expect(snap.bodyHtml).toContain('共收录 2 张')
     expect(snap.bodyHtml).toContain('href="https://tangnotes.site/gallery/pattern/p1"')
     expect(snap.bodyHtml).toContain('href="https://tangnotes.site/gallery/pattern/p2"')
   })
