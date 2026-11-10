@@ -1,8 +1,15 @@
 import { describe, it, expect, beforeAll, afterEach, vi } from 'vitest'
-import { render, screen, fireEvent, cleanup, waitFor, within } from '@testing-library/react'
+import { render, screen, fireEvent, cleanup, waitFor, within, configure } from '@testing-library/react'
 import { MemoryRouter, Routes, Route } from 'react-router-dom'
 import i18n from '../i18n'
 import MyBeadsPage from './MyBeadsPage'
+
+// 本文件 58 个用例几乎都是「render → waitFor 首屏」的异步流,单文件就要跑 ~35s。
+// 全量并发时机器负载会把这些用例拖过 vitest 默认 5s 的单测超时和 testing-library
+// 默认 1s 的 waitFor 超时,造成只在全量跑时出现的假失败(App.test.jsx 曾以显式
+// timeout 修过同类问题;这里用例太多,统一在文件级放宽一次到位)。
+vi.setConfig({ testTimeout: 30_000 })
+configure({ asyncUtilTimeout: 10_000 })
 
 /**
  * MyBeadsPage 集成测试(本地模式)。
