@@ -27,6 +27,11 @@
   --shadow: var(--shadow-md);
   --shadow-card: 0 4px 16px rgba(232, 115, 74, 0.08);
   --radius-card: 14px;
+  /* 悬停底色:此前 .admin-gate-btn.secondary:hover / .adash-btn:hover 引用了
+     --bg-hover 但令牌从未定义(hover 实际无效)。这里补上浅色版,
+     深色版见下方 [data-theme='dark'] 覆盖块。 */
+  --bg-hover: rgba(43, 36, 32, 0.05);
+  color-scheme: light;
   /* 滚动条:暖灰令牌的半透明版本,细而低存在感 */
   --scrollbar-size: 6px;
   --scrollbar-thumb: color-mix(in srgb, var(--text-muted) 26%, transparent);
@@ -70,6 +75,40 @@
     padding-top: var(--safe-area-top);
   }
   --font-weight-bold: 700;
+}
+
+/* ── 深色主题令牌覆盖(:root[data-theme='dark'])──────────────────
+   data-theme 由 src/utils/theme.js 与 index.html 的防白闪内联脚本写入 <html>。
+   只覆盖颜色类令牌:字号 / 间距 / 圆角 / 字体与浅色共用,两个主题天然只有
+   配色差异。取色原则:保持「暖棕」基底而不是冷灰蓝 —— 深色底用暖炭色,
+   文字用暖米白,强调橙在暗底上整体提亮一档以保证对比度。新增颜色令牌时,
+   先想清楚两个主题各是什么,再决定是否需要在这里覆盖。 */
+:root[data-theme='dark'] {
+  --bg-primary: #201a15;
+  --bg-secondary: #2a231c;
+  --bg-tertiary: #342b23;
+  --text-primary: #f1e9de;
+  --text-secondary: #b8aa9b;
+  --text-muted: #8a7c6e;
+  --border-color: #3e342b;
+  --accent: #ef7d52;
+  --accent-hover: #f6936b;
+  --accent-soft: #3f2b21;
+  --secondary-accent: #58b1a3;
+  --secondary-accent-hover: #71c4b6;
+  --error: #f0655f;
+  --error-bg: #3b2523;
+  --error-border: #583531;
+  --success: #58b1a3;
+  --warning: #dca040;
+  --warning-bg: #392f1e;
+  --warning-border: #59492a;
+  --shadow-sm: rgba(0, 0, 0, 0.3);
+  --shadow-md: rgba(0, 0, 0, 0.42);
+  --shadow-lg: rgba(0, 0, 0, 0.55);
+  --shadow-card: 0 4px 16px rgba(0, 0, 0, 0.4);
+  --bg-hover: rgba(241, 233, 222, 0.08);
+  color-scheme: dark;
 }
 
 * {
