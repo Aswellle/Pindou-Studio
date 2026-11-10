@@ -607,6 +607,25 @@
   }
 }
 
+/* 分类聚合页入口:一行低存在感的文字链接,不挤占搜索结果工具栏 */
+.gallery-category-links {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 12px;
+  margin-top: 6px;
+  font-size: 13px;
+  color: var(--text-muted);
+}
+.gallery-category-links a {
+  color: var(--accent);
+  text-decoration: none;
+}
+.gallery-category-links a:hover {
+  color: var(--accent-hover);
+  text-decoration: underline;
+}
+
 /* 尊重系统减少动效设置 */
 @media (prefers-reduced-motion: reduce) {
   .gallery-filter-trigger,

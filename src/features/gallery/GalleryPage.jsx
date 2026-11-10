@@ -21,7 +21,7 @@
  */
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react'
 import { createPortal } from 'react-dom'
-import { useNavigate } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import { MessageCircle, Search, Share2, SlidersHorizontal, X } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { CATEGORIES, convertTemplateToBrand, templateDimensions } from '../../data/templates'
@@ -33,6 +33,7 @@ import { useToast } from '../../components/Toast'
 import ThumbnailCanvas from '../../components/ThumbnailCanvas'
 import ShareWorkDialog from '../sharing/ShareWorkDialog'
 import { useGalleryQuery } from './hooks/useGalleryQuery'
+import { GALLERY_CATEGORY_META, categoryPagePath } from './categoryMeta'
 import { templateMatchesQuery } from './hooks/useFilteredTemplates'
 import { useGalleryTemplates } from './hooks/useGalleryTemplates'
 import useDownloadCounts from './hooks/useDownloadCounts'
@@ -104,6 +105,12 @@ export default function GalleryPage({ onLoadTemplate, cloudStore, user, onSaveWo
     const custom = customCategories.find(c => c.id === cat)
     return custom ? custom.label : t(`gallery.categories.${cat}`, cat)
   }
+  // 分类聚合页入口:只列当前有模板的分类。侧栏分类按钮是「在本页筛选」,
+  // 这里是「进入可独立收录的分类页」,两种意图分开。
+  const categoryPageLinks = useMemo(
+    () => GALLERY_CATEGORY_META.filter(meta => (categoryCounts[meta.raw] || 0) > 0),
+    [categoryCounts]
+  )
 
   // 收藏:与个人中心的「我的收藏」分区共用同一份数据(useGalleryFavorites)
   const { isFavorite, toggleFavorite } = useGalleryFavorites()
@@ -500,6 +507,19 @@ export default function GalleryPage({ onLoadTemplate, cloudStore, user, onSaveWo
           <header className="gallery-explorer-head">
             <h1 className="gallery-title">{t('gallery.title')}</h1>
             <p className="gallery-subtitle">{t('gallery.subtitle')}</p>
+            {categoryPageLinks.length > 0 && (
+              <nav
+                className="gallery-category-links"
+                aria-label={t('gallery.discovery.browseCategories')}
+              >
+                <span>{t('gallery.discovery.browseCategories')}:</span>
+                {categoryPageLinks.map(meta => (
+                  <Link key={meta.slug} to={categoryPagePath(meta.slug)}>
+                    {getCategoryLabel(meta.raw)}
+                  </Link>
+                ))}
+              </nav>
+            )}
           </header>
 
           {/* 紧凑工具栏:feed tabs 与搜索/筛选同一行;
