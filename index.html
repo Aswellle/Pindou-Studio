@@ -21,9 +21,9 @@
        真正会渲染的标签打标(见 App.jsx 的 seoHelmet 与 ContentSeo.jsx);
        keywords / og:locale / og:image:* / twitter:title 等 Helmet 不渲染的保持不带,
        否则会被当成「Helmet 上一轮留下的标签」删掉。 -->
-  <title>拼豆Studio - 免费在线拼豆图纸生成与图片转拼豆</title>
-  <meta name="description" content="免费在线拼豆图纸生成工具：自由绘制或上传图片一键转像素拼豆，按 CIEDE2000 精准匹配 COCO/MARD/Perler 等六大品牌色卡，导出带色号的 PNG/SVG 图纸。" data-rh="true" />
-  <meta name="keywords" content="拼豆,拼豆图纸,拼豆图纸生成器,图片转拼豆,像素画,COCO拼豆,MARD拼豆,Perler拼豆" />
+  <title>拼豆图纸生成器 - 图片转拼豆与像素画在线制作 | 拼豆Studio</title>
+  <meta name="description" content="免费在线拼豆图纸生成器：上传图片一键转拼豆图纸，也能自由绘制像素画与网格图案；六大品牌色卡精准配色，导出带色号 PNG/SVG，内置免费模板与教程。" data-rh="true" />
+  <meta name="keywords" content="拼豆,拼豆图纸,拼豆图纸生成器,拼豆图纸模板,图片转拼豆,免费拼豆图纸,像素画,COCO拼豆,MARD拼豆,Perler拼豆" />
   <meta name="author" content="拼豆Studio" />
   <meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1" data-rh="true" />
   <link rel="canonical" href="https://tangnotes.site/" data-rh="true" />
@@ -40,8 +40,8 @@
        这几个标签,内容不同就等于首屏闪一次 —— 抓取端与用户看到的两套文案也会不一致。 -->
   <meta property="og:type" content="website" data-rh="true" />
   <meta property="og:site_name" content="拼豆Studio" />
-  <meta property="og:title" content="拼豆Studio - 免费在线拼豆图纸生成与图片转拼豆" data-rh="true" />
-  <meta property="og:description" content="免费在线拼豆图纸生成工具：自由绘制或上传图片一键转像素拼豆，按 CIEDE2000 精准匹配 COCO/MARD/Perler 等六大品牌色卡，导出带色号的 PNG/SVG 图纸。" data-rh="true" />
+  <meta property="og:title" content="拼豆图纸生成器 - 图片转拼豆与像素画在线制作 | 拼豆Studio" data-rh="true" />
+  <meta property="og:description" content="免费在线拼豆图纸生成器：上传图片一键转拼豆图纸，也能自由绘制像素画与网格图案；六大品牌色卡精准配色，导出带色号 PNG/SVG，内置免费模板与教程。" data-rh="true" />
   <meta property="og:url" content="https://tangnotes.site/" data-rh="true" />
   <meta property="og:locale" content="zh_CN" />
   <meta property="og:locale:alternate" content="en_US" />
@@ -55,8 +55,8 @@
 
   <!-- ── Twitter Card ───────────────────────────────────────── -->
   <meta name="twitter:card" content="summary_large_image" data-rh="true" />
-  <meta name="twitter:title" content="拼豆Studio - 免费在线拼豆图纸生成与图片转拼豆" data-rh="true" />
-  <meta name="twitter:description" content="免费在线拼豆图纸生成工具：自由绘制或上传图片一键转像素拼豆，按 CIEDE2000 精准匹配 COCO/MARD/Perler 等六大品牌色卡，导出带色号的 PNG/SVG 图纸。" data-rh="true" />
+  <meta name="twitter:title" content="拼豆图纸生成器 - 图片转拼豆与像素画在线制作 | 拼豆Studio" data-rh="true" />
+  <meta name="twitter:description" content="免费在线拼豆图纸生成器：上传图片一键转拼豆图纸，也能自由绘制像素画与网格图案；六大品牌色卡精准配色，导出带色号 PNG/SVG，内置免费模板与教程。" data-rh="true" />
   <meta name="twitter:image" content="https://tangnotes.site/og-image.png" data-rh="true" />
 
   <!-- ── 浏览器 / PWA ───────────────────────────────────────── -->
@@ -72,6 +72,11 @@
   <link rel="icon" href="/favicon.ico" sizes="32x32" />
   <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
   <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png" />
+  <!-- 大尺寸方图:Google/Bing 的站点图标(搜索结果标题旁)会优先采用 ≥48px 的
+       方形可抓取图标;logo-512.png 同时被 Organization 结构化数据引用。 -->
+  <link rel="icon" type="image/png" sizes="512x512" href="/logo-512.png" />
+  <meta name="msapplication-TileImage" content="/logo-512.png" />
+  <meta name="msapplication-TileColor" content="#fdfbf7" />
   <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
 
   <!-- ── JSON-LD 结构化数据 ─────────────────────────────────── -->
