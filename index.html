@@ -8,7 +8,8 @@
   <!-- 主题防白闪:首帧绘制前同步解析 bead_studio_settings.themeMode(缺省/非法 = system,
        未登录用户没有偏好入口,恒为 system),把 data-theme 与 color-scheme 写到 <html> 上。
        判定规则与 src/utils/theme.js 严格一致(两处无共享代码,改动必须同步);
-       暗色令牌全部挂在 index.css 的 [data-theme='dark'] 选择器下。 -->
+       暗色令牌全部挂在 index.css 的 [data-theme='dark'] 选择器下。
+       theme-color(移动端地址栏色)见下方「浏览器 / PWA」段,运行时由 theme.js 按主题改写。 -->
   <script>
     (function () {
       try {
@@ -21,8 +22,6 @@
       } catch (e) { /* 隐私模式等读不到:保持浅色默认 */ }
     })()
   </script>
-  <!-- 浅色底色兜底;运行时由 src/utils/theme.js 按当前主题改写(深色 #201a15) -->
-  <meta name="theme-color" content="#fdfbf7" />
   <!-- interactive-widget=resizes-content:让【支持该参数的浏览器】(Chromium 系)在键盘
        弹出时收缩布局视口,浮层自动落在键盘上方。Safari / iOS Safari 至今不支持它
        (见 caniuse 该条目与 w3c/editing#549),所以 iOS 完全走 JS/CSS 路径:
