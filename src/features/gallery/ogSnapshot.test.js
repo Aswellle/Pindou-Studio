@@ -8,6 +8,7 @@ import {
   buildPatternSnapshot,
   buildThemeSnapshot,
   buildCollectionSnapshot,
+  buildCategorySnapshot,
   buildDynamicSitemap,
   appendToSitemap,
   renderSnapshotHtml,
@@ -98,6 +99,17 @@ describe('buildPatternSnapshot', () => {
     expect(snap.image).toBe('https://tangnotes.site/og/pattern/tpl-1-abc.png')
   })
 
+  it('有分类时正文回链到分类聚合页(抓取端可沿链接发现)', () => {
+    const snap = buildPatternSnapshot({ ...tpl, category: 'animal' })
+    expect(snap.bodyHtml).toContain('href="https://tangnotes.site/gallery/category/animal"')
+    expect(snap.bodyHtml).toContain('动物拼豆图纸模板')
+  })
+
+  it('分类不在映射表里时不生成分类链接', () => {
+    const snap = buildPatternSnapshot({ ...tpl, category: 'unknown' })
+    expect(snap.bodyHtml).not.toContain('/gallery/category/')
+  })
+
   it('未传 ogImage 时 image 为空(绘制层负责退回站点默认图)', () => {
     expect(buildPatternSnapshot(tpl).image).toBe('')
     expect(buildPatternSnapshot(tpl, { ogImage: '' }).image).toBe('')
@@ -157,6 +169,56 @@ describe('buildThemeSnapshot / buildCollectionSnapshot', () => {
   })
 })
 
+describe('buildCategorySnapshot', () => {
+  const meta = { raw: 'animal', slug: 'animal', label: '动物' }
+  const patterns = [
+    { id: 'p1', name: 'Duck', nameZh: '小鸭' },
+    { id: 'p2', name: 'Cat', nameZh: '小猫' },
+  ]
+
+  it('生成分类路径、标题描述与图纸链接', () => {
+    const snap = buildCategorySnapshot(meta, patterns)
+    expect(snap.path).toBe('/gallery/category/animal')
+    expect(snap.title).toContain('动物拼豆图纸模板')
+    expect(snap.description).toContain('2 张')
+    expect(snap.bodyHtml).toContain('href="https://tangnotes.site/gallery/pattern/p1"')
+    expect(snap.bodyHtml).toContain('href="https://tangnotes.site/gallery/pattern/p2"')
+  })
+
+  it('注入 CollectionPage + ItemList 结构化数据,条目与图纸一致', () => {
+    const snap = buildCategorySnapshot(meta, patterns)
+    expect(snap.extraHead).toContain('"@type":"CollectionPage"')
+    expect(snap.extraHead).toContain('"@type":"ItemList"')
+    expect(snap.extraHead).toContain('"numberOfItems":2')
+    expect(snap.extraHead).toContain('https://tangnotes.site/gallery/pattern/p1')
+    expect(snap.extraHead).toContain('小鸭')
+  })
+
+  it('其他分类在正文中互链,不包含自己', () => {
+    const snap = buildCategorySnapshot(meta, patterns, {
+      relatedCategories: [meta, { raw: 'food', slug: 'food', label: '食物' }],
+    })
+    expect(snap.bodyHtml).toContain('/gallery/category/food')
+    expect(snap.bodyHtml).not.toContain('href="https://tangnotes.site/gallery/category/animal"')
+  })
+
+  it('空分类返回 null(不生成空聚合页)', () => {
+    expect(buildCategorySnapshot(meta, [])).toBe(null)
+    expect(buildCategorySnapshot(meta, [{ id: 'x' }])).toBe(null)
+    expect(buildCategorySnapshot(null, patterns)).toBe(null)
+  })
+
+  it('分类名与图纸名里的 HTML 被转义', () => {
+    const snap = buildCategorySnapshot(
+      { ...meta, label: '<script>alert(1)</script>' },
+      [{ id: 'p1', name: '<b>Duck</b>' }],
+    )
+    expect(snap.title).not.toContain('<script>')
+    expect(snap.bodyHtml).not.toContain('<b>Duck</b>')
+    expect(snap.bodyHtml).toContain('&lt;b&gt;Duck&lt;/b&gt;')
+  })
+})
+
 describe('buildDynamicSitemap', () => {
   it('每个已发布对象一条,含 lastmod 与 5 条 hreflang', () => {
     const xml = buildDynamicSitemap({
@@ -174,6 +236,15 @@ describe('buildDynamicSitemap', () => {
   it('lastmod 用内容更新时间,不随构建漂移', () => {
     const xml = buildDynamicSitemap({ themes: [{ slug: 'a', updated_at: '2026-01-05T00:00:00Z' }] })
     expect(xml).toContain('<lastmod>2026-01-05</lastmod>')
+  })
+
+  it('分类聚合页条目使用分类内最新更新时间', () => {
+    const xml = buildDynamicSitemap({
+      categories: [{ slug: 'animal', updatedAt: '2026-11-08T12:00:00Z' }],
+    })
+    expect(xml).toContain('https://tangnotes.site/gallery/category/animal')
+    expect(xml).toContain('<lastmod>2026-11-08</lastmod>')
+    expect(xml).toContain('hreflang="x-default" href="https://tangnotes.site/gallery/category/animal"')
   })
 
   it('没有更新时间的对象不输出 lastmod(而不是写构建日期)', () => {
@@ -377,6 +448,18 @@ describe('renderSnapshotHtml', () => {
     expect(out).toContain('<section id="seo-static"><h1>小鸭</h1></section>')
     expect(out).toContain('js-booting')
     expect(out).not.toContain('<div id="root"></div>')
+  })
+
+  it('传入 extraHead 时注入 head;不传不影响 head', () => {
+    const block = '<script type="application/ld+json">{"@type":"CollectionPage"}</script>'
+    const withExtra = renderSnapshotHtml(INDEX, snap, 'https://tangnotes.site/gallery/category/animal', {
+      extraHead: block,
+    })
+    expect(withExtra).toContain(block)
+    expect(withExtra.indexOf(block)).toBeLessThan(withExtra.indexOf('</head>'))
+
+    const withoutExtra = renderSnapshotHtml(INDEX, snap, 'https://tangnotes.site/gallery/pattern/t1')
+    expect(withoutExtra).not.toContain('CollectionPage')
   })
 
   it('noindex 时 robots 改为 noindex', () => {

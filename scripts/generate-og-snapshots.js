@@ -37,11 +37,14 @@ import {
   buildPatternSnapshot,
   buildThemeSnapshot,
   buildCollectionSnapshot,
+  buildCategorySnapshot,
   buildDynamicSitemap,
   appendToSitemap,
   renderSnapshotHtml,
   absoluteUrl,
+  templateDisplayName,
 } from '../src/features/gallery/ogSnapshot.js'
+import { GALLERY_CATEGORY_META } from '../src/features/gallery/categoryMeta.js'
 import {
   ogCardPath,
   patternContentHash,
@@ -168,6 +171,8 @@ function rowToTemplate(row) {
     id: row.id,
     name: row.name,
     nameZh: row.name_zh,
+    // 分类聚合页按这个字段收窄;缺省为空,不会误归入任何分类。
+    category: row.category || '',
     paletteId: row.palette_id || 'perler',
     pattern: row.pattern,
     updatedAt: row.updated_at,
@@ -188,11 +193,24 @@ function linkedTemplates(links, parentKey, parentId, byId) {
 // 这里只负责读模板文件与落盘。
 function writeSnapshot(indexHtml, snap, site) {
   const canonicalUrl = `${site}${snap.path}`
-  const html = renderSnapshotHtml(indexHtml, snap, canonicalUrl, { imageSize: snap.imageSize || null })
+  const html = renderSnapshotHtml(indexHtml, snap, canonicalUrl, {
+    imageSize: snap.imageSize || null,
+    extraHead: snap.extraHead || '',
+  })
   const dir = path.join(DIST, snap.path.replace(/^\//, ''))
   fs.mkdirSync(dir, { recursive: true })
   fs.writeFileSync(path.join(dir, 'index.html'), html)
   debug(`写入 ${snap.path}/index.html`)
+}
+
+/** 一组内容里最新的更新时间(ISO 字符串可直接比较);没有时间返回空串 */
+function latestTimestamp(items) {
+  let latest = ''
+  for (const item of items) {
+    const value = item.updatedAt || item.createdAt || ''
+    if (value && String(value) > latest) latest = String(value)
+  }
+  return latest
 }
 
 // ── 分享卡片 ────────────────────────────────────────────────
@@ -247,6 +265,15 @@ async function main() {
   const byId = new Map(templates.map(t => [String(t.id), t]))
   const themes = content.themes.map(rowToContent)
   const collections = content.collections.map(rowToContent)
+  // 分类聚合页只覆盖映射表里、且当前确实有图纸的分类:
+  // 空分类不生成快照、不写 sitemap,避免制造无内容的聚合页。
+  const categories = GALLERY_CATEGORY_META
+    .map((meta) => {
+      const patterns = templates.filter((t) => t.category === meta.raw && templateDisplayName(t))
+      return { meta, patterns, updatedAt: latestTimestamp(patterns) }
+    })
+    .filter((group) => group.patterns.length > 0)
+  const relatedCategories = categories.map((group) => group.meta)
 
   const snapshots = []
   let cards = 0
@@ -283,6 +310,10 @@ async function main() {
     )
     if (snap) snapshots.push(snap)
   }
+  for (const group of categories) {
+    const snap = buildCategorySnapshot(group.meta, group.patterns, { site, relatedCategories })
+    if (snap) snapshots.push(snap)
+  }
 
   const limited = snapshots.slice(0, MAX_SNAPSHOTS)
   if (snapshots.length > MAX_SNAPSHOTS) {
@@ -303,13 +334,20 @@ async function main() {
   const sitemapSrc = path.join(ROOT, 'public', 'sitemap.xml')
   if (fs.existsSync(sitemapSrc)) {
     const base = fs.readFileSync(sitemapSrc, 'utf-8')
-    const dynamic = buildDynamicSitemap({ themes, collections, templates, site, images: cardById })
+    const dynamic = buildDynamicSitemap({
+      themes,
+      collections,
+      categories: categories.map((group) => ({ slug: group.meta.slug, updatedAt: group.updatedAt })),
+      templates,
+      site,
+      images: cardById,
+    })
     fs.writeFileSync(path.join(DIST, 'sitemap.xml'), appendToSitemap(base, dynamic))
     debug('sitemap.xml 已追加动态条目')
   }
 
   log(
-    `完成:${written} 份快照(主题 ${themes.length} / 合集 ${collections.length} / 图纸 ${templates.length}),分享卡片 ${cards} 张`
+    `完成:${written} 份快照(主题 ${themes.length} / 合集 ${collections.length} / 分类 ${categories.length} / 图纸 ${templates.length}),分享卡片 ${cards} 张`
   )
   if (STRICT && written < limited.length) process.exitCode = 1
 }

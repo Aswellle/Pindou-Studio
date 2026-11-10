@@ -14,6 +14,8 @@
  * 拉数据与写文件在 scripts/generate-prerender-html.js。
  */
 
+import { categoryPagePath, resolveCategoryByRaw } from './categoryMeta.js'
+
 export const SITE = 'https://tangnotes.site'
 
 /** HTML 文本转义:静态正文直接拼字符串,任何字段都必须先过这里 */
@@ -60,6 +62,8 @@ export function clampDescription(text, max = 160) {
 export const themePath = (slug) => `/gallery/theme/${encodeURIComponent(slug)}`
 export const collectionPath = (slug) => `/gallery/collection/${encodeURIComponent(slug)}`
 export const patternPath = (id) => `/gallery/pattern/${encodeURIComponent(id)}`
+/** 分类聚合页路径由 categoryMeta 统一定义,这里复用,避免两份 slug 拼装规则 */
+export const categoryPath = (slug) => categoryPagePath(slug)
 
 /** 模板展示名:云端模板有 name/nameZh,内置模板只有 nameKey(不进快照) */
 export function templateDisplayName(template) {
@@ -135,6 +139,9 @@ export function buildPatternSnapshot(template, { site = SITE, ogImage = '', ogIm
   const stats = patternStats(template.pattern)
   const path = patternPath(template.id)
   const brand = template.paletteId || 'perler'
+  // 分类聚合页是图纸页的上级入口:图纸页回链过去,抓取端才能沿链接发现分类页,
+  // 用户也能继续浏览同主题的其它图纸。分类值不在映射表里时不出链接。
+  const categoryMeta = resolveCategoryByRaw(template.category)
 
   const title = escapeHtml(`${name} 拼豆图纸 - 拼豆Studio`)
   const description = escapeHtml(clampDescription(
@@ -156,8 +163,11 @@ export function buildPatternSnapshot(template, { site = SITE, ogImage = '', ogIm
     `<h2>颜色清单(共 ${stats.colorCount} 种)</h2>`,
     colorListHtml(stats),
     '<p class="note">在拼豆Studio 打开本页可复制到自己的图纸、导出图纸或直接开始制作。</p>',
+    categoryMeta
+      ? `<p class="note">同类图纸:浏览<a href="${site}${categoryPath(categoryMeta.slug)}">${escapeHtml(categoryMeta.label)}拼豆图纸模板</a>,或从<a href="${site}/gallery">完整图库</a>按分类筛选。</p>`
+      : '',
     `<p class="note">想把自己的照片做成图纸?试试<a href="${site}/create/image">图片转拼豆图纸工具</a>;更多模板见<a href="${site}/gallery">拼豆图纸模板库</a>。</p>`,
-  ].join('\n')
+  ].filter(Boolean).join('\n')
 
   return { path, title, description, image: absoluteUrl(ogImage, site), imageSize: ogImageSize, bodyHtml }
 }
@@ -216,6 +226,87 @@ export function buildCollectionSnapshot(collection, patterns = [], { site = SITE
   return { path, title: metaTitle, description, image: absoluteUrl(collection.coverUrl, site), bodyHtml }
 }
 
+/**
+ * 分类聚合页快照。
+ *
+ * 分类不是后台策展对象,而是模板自带的 category 字段;因此这里接收的是
+ * 已经按分类收窄好的模板列表。没有任何图纸的分类不生成快照 ——
+ * 一个空聚合页对搜索与用户都没有价值。
+ *
+ * @param {{raw:string,slug:string,label:string}} meta
+ * @param {Array} patterns - 该分类下的模板(含 pattern)
+ * @param {object} [opts]
+ * @param {Array<{raw:string,slug:string,label:string}>} [opts.relatedCategories]
+ *   其它有内容的分类,用于页内互链
+ */
+export function buildCategorySnapshot(meta, patterns = [], { site = SITE, relatedCategories = [] } = {}) {
+  if (!meta?.slug || !meta?.label) return null
+  const usable = (patterns || []).filter((p) => p?.id && templateDisplayName(p))
+  if (!usable.length) return null
+
+  const path = categoryPath(meta.slug)
+  const label = meta.label
+  const title = escapeHtml(`${label}拼豆图纸模板 - 拼豆Studio`)
+  const description = escapeHtml(clampDescription(
+    `${label}主题免费拼豆图纸:共 ${usable.length} 张,均带网格尺寸与品牌色号,可一键载入画布制作,也可导出 PNG/SVG 图纸。`,
+  ))
+
+  const related = (relatedCategories || []).filter((item) => item?.slug && item.slug !== meta.slug)
+  const bodyHtml = [
+    `<h1>${escapeHtml(label)}拼豆图纸模板</h1>`,
+    `<p class="lead">${escapeHtml(label)}主题共收录 ${usable.length} 张免费拼豆图纸模板,打开即可查看网格尺寸与用色;选中后能直接载入画布制作或继续修改。</p>`,
+    `<h2>全部图纸(${usable.length} 张)</h2>`,
+    listItems(usable.map(
+      (p) => `<a href="${site}${patternPath(p.id)}">${escapeHtml(templateDisplayName(p))}</a>`,
+    )),
+    related.length ? '<h2>其他分类</h2>' : '',
+    related.length
+      ? `<p>${related.map((item) => `<a href="${site}${categoryPath(item.slug)}">${escapeHtml(item.label)}拼豆图纸</a>`).join(' · ')}</p>`
+      : '',
+    '<p class="note">在拼豆Studio 打开本页可按难度与用色数进一步筛选。</p>',
+    `<p class="note">想把自己的照片做成图纸?试试<a href="${site}/create/image">图片转拼豆图纸工具</a>;制作方法见<a href="${site}/tutorials">拼豆教程</a>,更多模板见<a href="${site}/gallery">拼豆图纸模板库</a>。</p>`,
+  ].filter(Boolean).join('\n')
+
+  return {
+    path,
+    title,
+    description,
+    bodyHtml,
+    extraHead: categoryJsonLd(meta, usable, site),
+  }
+}
+
+/**
+ * 分类页的 CollectionPage + ItemList 结构化数据。
+ *
+ * ItemList 里每一项都指向真实存在的图纸详情页;只在确实生成了快照、
+ * 且图纸有名称时输出 —— 指向空页面的列表项会被判为无效标记。
+ */
+function categoryJsonLd(meta, patterns, site) {
+  const data = {
+    '@context': 'https://schema.org',
+    '@type': 'CollectionPage',
+    name: `${meta.label}拼豆图纸模板`,
+    url: `${site}${categoryPath(meta.slug)}`,
+    description: `${meta.label}主题免费拼豆图纸模板合集。`,
+    mainEntity: {
+      '@type': 'ItemList',
+      numberOfItems: patterns.length,
+      itemListElement: patterns.map((p, index) => ({
+        '@type': 'ListItem',
+        position: index + 1,
+        url: `${site}${patternPath(p.id)}`,
+        name: templateDisplayName(p),
+      })),
+    },
+  }
+  return [
+    '<script type="application/ld+json">',
+    jsonForScript(data),
+    '</script>',
+  ].join('\n')
+}
+
 // ── sitemap ────────────────────────────────────────────────
 function isoDate(value) {
   if (!value) return null
@@ -264,7 +355,14 @@ export function hreflangPairs(url) {
  * lastmod 取内容自身的更新时间而不是构建时间:构建时间会让每次部署都声称
  * 「全部页面刚改过」,抓取端会逐渐忽略这个字段。
  */
-export function buildDynamicSitemap({ themes = [], collections = [], templates = [], site = SITE, images = null } = {}) {
+export function buildDynamicSitemap({
+  themes = [],
+  collections = [],
+  categories = [],
+  templates = [],
+  site = SITE,
+  images = null,
+} = {}) {
   const imageFor = (id) =>
     (images instanceof Map ? images.get(String(id)) : images?.[String(id)]) || null
   const blocks = []
@@ -282,6 +380,18 @@ export function buildDynamicSitemap({ themes = [], collections = [], templates =
     blocks.push(sitemapUrl({
       loc: `${site}${collectionPath(collection.slug)}`,
       lastmod: isoDate(collection.updatedAt || collection.updated_at || collection.createdAt || collection.created_at),
+      priority: '0.6',
+      changefreq: 'weekly',
+    }))
+  }
+
+  // 分类聚合页:lastmod 取该分类下最新一张图纸的时间,而不是构建日期。
+  // 只有实际生成过快照的分类才会传进来(空分类不写入 sitemap)。
+  for (const category of categories) {
+    if (!category?.slug) continue
+    blocks.push(sitemapUrl({
+      loc: `${site}${categoryPath(category.slug)}`,
+      lastmod: isoDate(category.updatedAt || category.updated_at),
       priority: '0.6',
       changefreq: 'weekly',
     }))
@@ -374,7 +484,12 @@ function crumbsFor(path, title) {
  * @param {{noindex?:boolean, imageSize?:{width:number,height:number}}} [opts]
  *   imageSize 为 og:image 的真实像素尺寸;不传则删除尺寸 meta(交给平台自行探测)
  */
-export function renderSnapshotHtml(indexHtml, snap, canonicalUrl, { noindex = false, imageSize = null } = {}) {
+export function renderSnapshotHtml(
+  indexHtml,
+  snap,
+  canonicalUrl,
+  { noindex = false, imageSize = null, extraHead = '' } = {},
+) {
   const EOL = indexHtml.includes('\r\n') ? '\r\n' : '\n'
   const robots = noindex
     ? 'noindex, nofollow'
@@ -455,6 +570,14 @@ export function renderSnapshotHtml(indexHtml, snap, canonicalUrl, { noindex = fa
     }
     const crumb = breadcrumbJsonLd(crumbsFor(crumbPath, crumbTitle)).replace(/\n/g, EOL)
     out = out.replace('</head>', () => `${crumb}${EOL}</head>`)
+  }
+
+  // 页面专属结构化数据(分类聚合页的 CollectionPage + ItemList)。
+  // 由快照构建函数生成,描述的是同一份静态正文里真实存在的页面与图纸;
+  // 不传时完全不动 head,不影响主题/合集/图纸快照。
+  if (extraHead && out.includes('</head>')) {
+    const block = EOL === '\n' ? extraHead : extraHead.replace(/\r?\n/g, EOL)
+    out = out.replace('</head>', () => `${block}${EOL}</head>`)
   }
 
   // 首帧前隐藏静态正文(与 generate-prerender-html.js 同一机制):

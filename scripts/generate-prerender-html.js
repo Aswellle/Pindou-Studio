@@ -16,6 +16,7 @@ import fs from 'fs'
 import path from 'path'
 import { fileURLToPath } from 'url'
 import { TUTORIALS_ZH } from '../src/data/tutorials.zh.js'
+import { GALLERY_CATEGORY_META, categoryPagePath } from '../src/features/gallery/categoryMeta.js'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const dist = path.join(__dirname, '..', 'dist')
@@ -313,6 +314,14 @@ function galleryStatic(locale) {
   b.push('<p>模板按主题与难度组织,点开即可查看网格尺寸与用色;选中后直接载入画布,就能按图纸开始拼制或继续修改。</p>')
   b.push(`<h2>模板分类</h2>`)
   b.push(`<p>内置模板覆盖${catNames.join('、')}等主题,搭配六大拼豆品牌色卡(COCO/MARD/MARD291/Perler/Hama/Artkal)。</p>`)
+  // 分类聚合页入口:抓取端从图库页沿标准 <a href> 发现这些独立收录页,
+  // 不依赖只在 JS 挂载后才出现的侧栏分类按钮。
+  b.push('<h2>按分类浏览</h2>')
+  b.push('<ul>')
+  for (const meta of GALLERY_CATEGORY_META) {
+    b.push(`<li>${link(categoryPagePath(meta.slug), `${meta.label}拼豆图纸`)}</li>`)
+  }
+  b.push('</ul>')
   b.push('<h2>载入与重映射</h2>')
   b.push('<p>选中模板后即可直接开始拼制;如果手上的珠子来自其它品牌,可把整张图纸的颜色一键重映射到对应品牌色卡,让用珠量与实际色号一致。</p>')
   b.push(`<p>想先了解制作方法,可以阅读${link('/tutorials', '拼豆教程')};想自己画一张图纸,可以回到${link('/', '在线拼豆图纸工具')}。</p>`)
