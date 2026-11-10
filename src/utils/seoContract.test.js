@@ -2,6 +2,7 @@ import { describe, it, expect } from 'vitest'
 import { readFileSync, existsSync } from 'node:fs'
 import { join } from 'node:path'
 import { isKnownPath } from './seoPath'
+import { GALLERY_CATEGORY_META } from '../features/gallery/categoryMeta'
 
 /**
  * SEO 落地契约(防回归)。
@@ -99,6 +100,16 @@ describe('软 404 · 不存在的 URL 不再回退成首页', () => {
     for (const s of ['/gallery/theme/:slug', '/gallery/collection/:slug', '/gallery/pattern/:id']) {
       expect(sources).toContain(s)
     }
+  })
+
+  it('分类聚合页兜底只放行已登记的分类 slug(未知分类走 404)', () => {
+    const rewrite = VERCEL.rewrites.find(r => r.source.startsWith('/gallery/category/'))
+    expect(rewrite, '缺少分类聚合页兜底 rewrite').toBeTruthy()
+    const group = rewrite.source.match(/:slug\(([^)]+)\)/)
+    expect(group, '分类 rewrite 必须用 slug 白名单,不能匹配任意路径').toBeTruthy()
+    expect(new Set(group[1].split('|'))).toEqual(
+      new Set(GALLERY_CATEGORY_META.map(meta => meta.slug)),
+    )
   })
 
   it('App.jsx 里声明的每条路由都有 rewrite 或静态文件兜底', () => {

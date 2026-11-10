@@ -89,7 +89,7 @@
     },
 
     {
-      "source": "/gallery/category/:slug",
+      "source": "/gallery/category/:slug(animal|food|icon|holiday|cartoon|person|celebration|emoji|plant|device|clothing)",
       "destination": "/spa.html"
     },
     {
