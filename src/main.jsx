@@ -49,7 +49,12 @@ if (mql) {
 import App from './App'
 import ToastProvider from './components/Toast'
 import { i18nReady } from './i18n'
+import { initTheme } from './utils/theme'
 import './index.css'
+
+// 主题接管:首帧主题已由 index.html 内联脚本设置(防白闪),这里做幂等重设 +
+// 注册系统明暗变化监听(跟随系统模式下,系统切换深浅色时实时生效)。
+initTheme()
 
 // 初始语言非 zh-CN 时先加载该语言包再挂载 React(避免非中文用户看到中文兜底闪烁;
 // 加载失败不阻塞,回退 zh-CN)。zh-CN 用户零等待直接走 microtask。

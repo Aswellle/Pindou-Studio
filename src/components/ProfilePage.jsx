@@ -250,6 +250,7 @@ export default function ProfilePage({
             ) : null}
             {section === 'preferences' ? (
               <ProfilePreferencesSection
+                user={user}
                 autoSaveEnabled={autoSaveEnabled}
                 onToggleAutoSave={onToggleAutoSave}
               />

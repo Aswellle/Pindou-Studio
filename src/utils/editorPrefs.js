@@ -80,3 +80,30 @@ export function saveAutoSaveEnabled(value) {
     // 隐私模式 / 配额不足:开关无法持久化,但本次会话内仍然生效
   }
 }
+
+/**
+ * 主题模式(浅色 / 深色 / 跟随系统)。
+ *
+ * 默认 **'system'** —— 未登录用户没有偏好设置入口,恒为跟随系统;
+ * 登录用户在个人中心偏好设置里可显式选择。存进 `bead_studio_settings`
+ * 与语言同源,index.html 的防白闪内联脚本读的就是这个字段(`themeMode`),
+ * 字段名或取值改动必须与那个内联脚本同步。
+ */
+export const THEME_MODES = ['light', 'dark', 'system']
+export const DEFAULT_THEME_MODE = 'system'
+
+export function loadThemeMode() {
+  const value = readSettings().themeMode
+  return THEME_MODES.includes(value) ? value : DEFAULT_THEME_MODE
+}
+
+export function saveThemeMode(mode) {
+  if (!THEME_MODES.includes(mode)) return
+  try {
+    const settings = readSettings()
+    settings.themeMode = mode
+    localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings))
+  } catch {
+    // 同上:偏好不落盘也不影响本次会话
+  }
+}
