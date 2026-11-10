@@ -34,7 +34,8 @@ const LANGS = [
 function ContentModal({ title, onClose, dismissible = true, role = 'dialog', children }) {
   // 与后台其他模态框一致:打开期间锁背景滚动(引用计数)
   useScrollLock(true)
-  // 删除确认传 dismissible=false:遮罩、关闭按钮与 Escape 都不生效,
+  // 遮罩永远不承担关闭职责,避免误触中断正在编辑的内容;
+  // 破坏性确认额外传 dismissible=false:关闭按钮与 Escape 也不生效,
   // 必须点「取消」或「删除」才能离开。
   const { ref, dialogProps } = useDialogA11y({
     open: true,
@@ -44,7 +45,7 @@ function ContentModal({ title, onClose, dismissible = true, role = 'dialog', chi
     dismissible,
   })
   return createPortal(
-    <div className="admin-modal-overlay" onClick={dismissible ? onClose : undefined}>
+    <div className="admin-modal-overlay">
       <div className="admin-modal wide" ref={ref} {...dialogProps} onClick={e => e.stopPropagation()}>
         <div className="admin-modal-header">
           <h3>{title}</h3>

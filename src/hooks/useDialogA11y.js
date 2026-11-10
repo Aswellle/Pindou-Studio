@@ -35,7 +35,8 @@ const stack = []
  * @param {boolean} [options.modal] - 桌面锚定浮层等「边操作边看结果」的场景传 false,
  *   避免 aria-modal 让辅助技术把浮层外的结果区当成不可访问
  * @param {boolean} [options.dismissible] - 破坏性/安全类确认传 false:
- *   禁用 Escape,强制用户点「取消」或「确认」。遮罩点击由调用方同步禁止。
+ *   禁用 Escape,强制用户点「取消」或「确认」。无论是何值,模态遮罩点击
+ *   都不承担关闭职责 —— 全站统一要求用户做出明确退出动作或完成浮层职责。
  *   这类对话框必须始终渲染两个动作按钮,不能只留一个关闭入口。
  */
 export function useDialogA11y({

@@ -981,7 +981,7 @@ export default function ExportPanel({
 
   // ── 导出确认 / 空画布提示 模态框(PC 与移动端共用) ─────────
   const confirmDialog = confirmExport && (
-    <div className="modal-overlay export-confirm-overlay" onClick={() => setConfirmExport(null)}>
+    <div className="modal-overlay export-confirm-overlay">
       <div
         className="export-confirm-dialog"
         ref={confirmRef}
@@ -1126,7 +1126,7 @@ export default function ExportPanel({
   // 滚动容器/祖先 stacking context 影响 fixed 定位(键盘弹出错位)
   return createPortal(
     <>
-      <div className="modal-overlay" onClick={onClose}>
+      <div className="modal-overlay">
         <div
           className="export-modal-content"
           ref={modalRef}

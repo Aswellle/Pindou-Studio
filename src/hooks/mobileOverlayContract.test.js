@@ -128,7 +128,11 @@ function parseJsxAttrs(tag) {
   }
 
   if (!('className' in attrs) && !('style' in attrs)) return null
-  return { className: attrs.className || '', style: attrs.style || '' }
+  return {
+    className: attrs.className || '',
+    style: attrs.style || '',
+    onClick: attrs.onClick || '',
+  }
 }
 
 /**
@@ -242,6 +246,21 @@ const DIALOG_CONTAINERS = new Set([
   'quantizer-zoom',
   'logout-confirm-panel',
   'ironing-studio-panel',
+])
+
+// 模态遮罩:只负责视觉分隔与拦截点击,不得承担关闭职责。
+// 用户必须通过明确的按钮/动作退出,避免误触遮罩丢掉正在填写的内容,
+// 或把嵌套的二次确认框连同外层业务浮层一起关掉。
+const MODAL_OVERLAYS = new Set([
+  'modal-overlay',
+  'admin-modal-overlay',
+  'auth-prompt-overlay',
+  'my-beads-modal-overlay',
+  'users-confirm-overlay',
+  'profile-confirm-overlay',
+  'load-confirm-overlay',
+  'logout-confirm-overlay',
+  'ironing-studio-overlay',
 ])
 
 /**
@@ -505,6 +524,30 @@ describe('移动端全屏浮层契约', () => {
     const offenders = scanDialogContainers()
       .filter(hit => !hit.hasDialog)
       .map(hit => `${hit.file}: ${hit.line}`)
+    expect(offenders).toEqual([])
+  })
+
+  it('模态遮罩不承担关闭职责,必须由明确的按钮或动作退出', () => {
+    const offenders = []
+    let scanned = 0
+    for (const file of walk(SRC)) {
+      const code = readFileSync(file, 'utf8')
+      for (const tag of findJsxTags(code)) {
+        const parsed = parseJsxAttrs(tag)
+        if (!parsed) continue
+        const tokens = parsed.className.match(/[A-Za-z][A-Za-z0-9_-]*/g) || []
+        if (!tokens.some(tk => MODAL_OVERLAYS.has(tk))) continue
+        scanned++
+        const handler = String(parsed.onClick || '').trim()
+        // stopPropagation 只是阻止事件冒泡到外层,不是关闭;undefined/空同样安全。
+        if (!handler || handler === 'undefined' || handler.includes('stopPropagation')) continue
+        offenders.push(`${relative(SRC, file)} → ${tokens.join(' ')} onClick=${handler.slice(0, 80)}`)
+      }
+    }
+    expect(scanned, '扫描器没有识别到任何模态遮罩,契约会空跑通过').toBeGreaterThan(0)
+    // 自检:同一套解析器必须能看见 modal-overlay 上的 onClick
+    const sample = findJsxTags('<div className="modal-overlay" onClick={() => setOpen(false)}></div>')[0]
+    expect(parseJsxAttrs(sample)?.onClick).toContain('setOpen(false)')
     expect(offenders).toEqual([])
   })
 

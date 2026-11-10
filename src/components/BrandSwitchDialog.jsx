@@ -50,7 +50,7 @@ export default function BrandSwitchDialog({
   const canConvert = plan.changedCells > 0
 
   return createPortal(
-    <div className="modal-overlay" onClick={onClose}>
+    <div className="modal-overlay">
       <div className="brand-switch-dialog" ref={ref} {...dialogProps} onClick={e => e.stopPropagation()}>
         <div className="brand-switch-head">
           <Palette size={18} />

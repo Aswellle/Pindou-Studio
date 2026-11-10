@@ -1337,7 +1337,7 @@ export default function App() {
 
       {showSaveDialog &&
         createPortal(
-          <div className="modal-overlay" onClick={() => setShowSaveDialog(false)}>
+          <div className="modal-overlay">
             <div
               className="save-dialog"
               ref={saveDialogRef}
@@ -1786,7 +1786,7 @@ export default function App() {
 
       {showSaveDialog &&
         createPortal(
-          <div className="modal-overlay" onClick={() => setShowSaveDialog(false)}>
+          <div className="modal-overlay">
             <div
               className="save-dialog"
               ref={saveDialogRef}

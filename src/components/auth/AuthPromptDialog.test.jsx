@@ -42,13 +42,13 @@ describe('AuthPromptDialog · 登录引导浮层', () => {
     expect(onGoAuth).toHaveBeenCalledWith('login')
   })
 
-  it('「稍后再说」与遮罩点击都可以关闭,不强迫注册', () => {
+  it('「稍后再说」可关闭;点遮罩不会关闭,避免误触中断导出流程', () => {
     const onClose = vi.fn()
     render(<AuthPromptDialog open reason="quality" onClose={onClose} />)
     fireEvent.click(screen.getByRole('button', { name: '稍后再说' }))
     expect(onClose).toHaveBeenCalledTimes(1)
     fireEvent.click(document.querySelector('.auth-prompt-overlay'))
-    expect(onClose).toHaveBeenCalledTimes(2)
+    expect(onClose).toHaveBeenCalledTimes(1)
   })
 
   it('浮层具备 dialog 语义与可访问名称', () => {

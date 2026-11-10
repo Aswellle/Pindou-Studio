@@ -38,7 +38,8 @@ function AdminModal({ title, onClose, wide, dismissible = true, role = 'dialog',
   // 后台模态框打开期间锁定背景滚动(引用计数,可与其他弹层叠加)
   useScrollLock(true)
   // 可访问性(规格 08 §5):title 已是可读标题,直接作为 dialog 的可访问名称。
-  // 删除/锁定等破坏性确认传 dismissible=false:遮罩、关闭按钮与 Escape 都不生效,
+  // 遮罩永远不承担关闭职责,避免误触中断正在填写的内容;
+  // 破坏性确认额外传 dismissible=false:关闭按钮与 Escape 也不生效,
   // 用户只能点「取消」或「确认」。
   const { ref, dialogProps } = useDialogA11y({
     open: true,
@@ -48,7 +49,7 @@ function AdminModal({ title, onClose, wide, dismissible = true, role = 'dialog',
     dismissible,
   })
   return createPortal(
-    <div className="admin-modal-overlay" onClick={dismissible ? onClose : undefined}>
+    <div className="admin-modal-overlay">
       <div
         className={`admin-modal${wide ? ' wide' : ''}`}
         ref={ref}

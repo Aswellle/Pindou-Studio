@@ -98,7 +98,7 @@ export default function VersionHistoryDialog({ open, work, loadVersions, onRollb
   if (!open) return null
 
   return createPortal(
-    <div className="modal-overlay version-overlay" onClick={onClose}>
+    <div className="modal-overlay version-overlay">
       <div
         className="version-dialog"
         ref={ref}

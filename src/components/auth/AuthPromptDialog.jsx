@@ -9,7 +9,9 @@ import { useDialogA11y } from '../../hooks/useDialogA11y'
  *   - 不把入口做成 disabled:按钮可点、能解释「为什么需要登录」,键盘与读屏可达;
  *   - 先展示价值再要求注册:说明解锁什么、登录后还能得到什么(云端同步);
  *   - 提供「稍后再说」出口,不做阻断式弹窗疲劳;关闭后仍可继续游客创作;
- *   - 复用 useDialogA11y:role/aria-modal/Escape/焦点归还,移动端不自动聚焦输入框。
+ *   - 复用 useDialogA11y:role/aria-modal/Escape/焦点归还,移动端不自动聚焦输入框;
+ *   - 遮罩不承担关闭职责:误触遮罩不会中断导出流程,必须选择注册/登录,
+ *     或明确点「稍后再说」退出。
  *
  * 只负责解释与分流;真正的跳转由父级(ExportPanel → App)注入 onGoAuth。
  */
@@ -23,7 +25,7 @@ export default function AuthPromptDialog({ open, reason = 'ironing', onClose, on
   if (!open) return null
 
   return createPortal(
-    <div className="auth-prompt-overlay" onClick={onClose}>
+    <div className="auth-prompt-overlay">
       {/* className 与 dialogProps 保持同行:移动端浮层契约测试按行扫描 */}
       <div className="auth-prompt-panel" ref={ref} {...dialogProps} onClick={e => e.stopPropagation()}>
         <div className="auth-prompt-lock" aria-hidden="true">🔒</div>

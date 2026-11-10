@@ -38,7 +38,7 @@ export default function CopyBuiltinPaletteDialog({
   const rest = colors.length - preview.length
 
   return (
-    <div className="my-beads-modal-overlay" onClick={onCancel}>
+    <div className="my-beads-modal-overlay">
       <div className="my-beads-modal copy-builtin" ref={dialogRef} {...dialogProps} onClick={(e) => e.stopPropagation()}>
         <h3>{t('myBeads.copy.title')}</h3>
 

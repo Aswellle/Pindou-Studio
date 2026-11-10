@@ -345,7 +345,7 @@ export default function SharePage({ user, authLoading, onSaveWork }) {
       </div>
 
       {reportOpen ? (
-        <div className="modal-overlay" onClick={() => setReportOpen(false)}>
+        <div className="modal-overlay">
           <div
             className="share-report-dialog"
             ref={reportRef}

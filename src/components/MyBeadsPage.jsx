@@ -1027,7 +1027,7 @@ export default function MyBeadsPage({ user, authLoading, canvasData, onApplyMapp
 
       {/* ── 颜色编辑 ─────────────────────────────────────── */}
       {editingColor && createPortal(
-        <div className="my-beads-modal-overlay" onClick={() => setEditingColor(null)}>
+        <div className="my-beads-modal-overlay">
           <div className="my-beads-modal" ref={colorDialogRef} {...colorDialogProps} onClick={(e) => e.stopPropagation()}>
             <h3>{editingColor.id ? t('myBeads.colors.editTitle') : t('myBeads.colors.newTitle')}</h3>
             <label>

@@ -53,7 +53,7 @@ function ReasonModal({ mode, onSubmit, onClose }) {
   const valid = reason.trim().length > 0
 
   return (
-    <div className="admin-modal-overlay" onClick={undefined}>
+    <div className="admin-modal-overlay">
       <div className="admin-modal" ref={ref} {...dialogProps} onClick={e => e.stopPropagation()}>
         <div className="admin-modal-header">
           <h3>{t(`admin.reports.reasonTitle.${mode}`)}</h3>

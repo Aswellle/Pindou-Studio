@@ -102,7 +102,7 @@ export default function PaletteSetupDialog({
   }
 
   return (
-    <div className="my-beads-modal-overlay" onClick={onCancel}>
+    <div className="my-beads-modal-overlay">
       <div className="my-beads-modal" ref={dialogRef} {...dialogProps} onClick={(e) => e.stopPropagation()}>
         <h3>{value?.id ? t('myBeads.palettes.editTitle') : t('myBeads.palettes.newTitle')}</h3>
 

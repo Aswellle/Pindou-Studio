@@ -220,7 +220,8 @@ describe('导出成功回调(库存扣减的触发点)', () => {
       />
     )
     fireEvent.click(screen.getByText('导出拼豆图纸 PNG'))
-    fireEvent.click(document.querySelector('.export-confirm-overlay'))
+    // 确认框必须走明确的「取消」按钮;点遮罩不再关闭,避免误触中断导出流程
+    fireEvent.click(document.querySelector('.export-confirm-actions .btn-ghost'))
     await new Promise(r => setTimeout(r, 20))
     expect(onExportComplete).not.toHaveBeenCalled()
   })
@@ -306,18 +307,18 @@ describe('导出确认框的关闭语义', () => {
     fireEvent.click(screen.getByText('导出拼豆图纸 PNG'))
     expect(document.querySelector('.export-confirm-actions')).toBeTruthy()
 
-    // 点确认框遮罩 = 取消这次导出
-    fireEvent.click(document.querySelector('.export-confirm-overlay'))
+    // 点「取消」= 放弃这次导出;遮罩不承担关闭职责
+    fireEvent.click(document.querySelector('.export-confirm-actions .btn-ghost'))
 
-    // 确认框消失,但导出面板仍在(此前确认框嵌在外层 overlay 内,
-    // 这次点击会冒泡到外层 onClick,把整个导出面板一起关掉)
+    // 确认框消失,但导出面板仍在(确认框是外层遮罩的兄弟节点,
+    // 明确取消不会把整个导出面板一起关掉)
     expect(document.querySelector('.export-confirm-actions')).toBeNull()
     expect(onClose).not.toHaveBeenCalled()
     expect(screen.getByText('导出拼豆图纸 PNG')).toBeTruthy()
   })
 
-  it('导出进行中 Escape 仍可关闭面板(与点遮罩/关闭按钮一致)', async () => {
-    // 方案 A:Escape 不再被 isExporting 屏蔽。三条关闭路径必须一致,
+  it('导出进行中 Escape 仍可关闭面板(与关闭按钮一致)', async () => {
+    // 方案 A:Escape 不再被 isExporting 屏蔽。关闭按钮与 Escape 两条明确退出路径必须一致,
     // 否则键盘用户会卡在一个「按了没反应」的面板里。
     const onClose = vi.fn()
     render(

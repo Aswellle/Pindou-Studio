@@ -69,7 +69,7 @@ export default function ReplaceColorDialog({
   }
 
   return createPortal(
-    <div className="modal-overlay" onClick={onClose}>
+    <div className="modal-overlay">
       <div className="replace-dialog" ref={ref} {...dialogProps} onClick={e => e.stopPropagation()}>
         <div className="replace-head">
           <Replace size={18} />

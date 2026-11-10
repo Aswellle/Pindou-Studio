@@ -161,13 +161,13 @@ describe('VersionHistoryDialog · 关闭', () => {
     expect(onClose).toHaveBeenCalledTimes(1)
   })
 
-  it('点遮罩空白处关闭', async () => {
+  it('点遮罩空白处不会关闭,必须走明确的关闭入口', async () => {
     const onClose = vi.fn()
     const { container } = render(
       <VersionHistoryDialog open work={work} loadVersions={noopLoad} onRollback={vi.fn()} onClose={onClose} />
     )
     fireEvent.click(container.ownerDocument.querySelector('.version-overlay'))
-    expect(onClose).toHaveBeenCalledTimes(1)
+    expect(onClose).not.toHaveBeenCalled()
   })
 
   it('点面板内部不关闭', async () => {
