@@ -27,7 +27,7 @@ const SHARE_DETAIL_RE = /^\/share\/[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-
  */
 const KNOWN_EXACT = new Set([
   '/', '/login', '/profile', '/gallery', '/tutorials',
-  '/create/image', '/import', '/my/beads', '/contact',
+  '/create/image', '/import', '/my/beads', '/contact', '/faq',
   '/admin', '/admin/login', '/admin/dashboard',
   '/privacy', '/terms',
 ])

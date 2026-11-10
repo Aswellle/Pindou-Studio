@@ -95,6 +95,8 @@ const SharePage = lazy(() => import('./features/sharing/SharePage'))
 // 管理概览懒加载:recharts 图表库随之进入独立 chunk,普通用户不下载
 const AdminDashboardPage = lazy(() => import('./components/AdminDashboardPage'))
 const Tutorials = lazy(() => import('./components/Tutorials'))
+// 常见问题:独立内容页,四语言正文来自 data/faq.js
+const FaqPage = lazy(() => import('./components/FaqPage'))
 import AdminPanel from './components/AdminPanel'
 
 export default function App() {
@@ -285,7 +287,9 @@ export default function App() {
     ? 'gallery'
     : location.pathname.startsWith('/tutorials')
       ? 'tutorials'
-      : location.pathname.startsWith('/admin/login')
+      : location.pathname.startsWith('/faq')
+        ? 'faq'
+        : location.pathname.startsWith('/admin/login')
         ? 'adminLogin'
         : location.pathname.startsWith('/admin')
           ? 'admin'
@@ -1184,6 +1188,14 @@ export default function App() {
             }
           />
           <Route
+            path="/faq"
+            element={
+              <Suspense fallback={<LoadingScreen />}>
+                <FaqPage />
+              </Suspense>
+            }
+          />
+          <Route
             path="/profile"
             element={
               <ProfilePage
@@ -1609,6 +1621,16 @@ export default function App() {
           }
         />
         <Route
+          path="/faq"
+          element={
+            <Suspense fallback={<LoadingScreen />}>
+              <div className="mobile-page-area">
+                <FaqPage />
+              </div>
+            </Suspense>
+          }
+        />
+        <Route
           path="/profile"
           element={
             <div className="mobile-page-area">
@@ -1868,6 +1890,10 @@ export default function App() {
       title: '拼豆教程 - 新手入门、熨烫温度与配色全攻略 | 拼豆Studio',
       desc: '拼豆新手与进阶教程：工具选择、第一个作品、熨烫温度与防变形、配色设计、成品保护，配图示与温度对照表，可配合在线拼豆图纸工具直接制作。',
     },
+    faq: {
+      title: '拼豆常见问题 - 使用、导出、色号与商用解答 | 拼豆Studio',
+      desc: '拼豆Studio 常见问题：是否需要注册、图片转图纸流程、支持的图片格式与品牌色卡、导出方式、作品保存、分享与商用范围。',
+    },
     // ── 工具页 / 私有页 ────────────────────────────────────
     // 这些页面此前没有独立配置,会回退到首页的 title/description 且 index,follow,
     // 造成同一份标题描述出现在多个 URL(重复内容)。统一 noindex:站内可达、不参与索引。
@@ -1953,6 +1979,7 @@ export default function App() {
     canvas: '/',
     gallery: '/gallery',
     tutorials: '/tutorials',
+    faq: '/faq',
     admin: '/admin',
     adminLogin: '/admin/login',
     login: '/login',

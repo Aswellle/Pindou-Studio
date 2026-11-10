@@ -156,6 +156,7 @@ describe('isKnownPath · 已知路由判定', () => {
       '/import',
       '/my/beads',
       '/contact',
+      '/faq',
       '/privacy',
       '/terms',
     ]) {
