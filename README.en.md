@@ -1,22 +1,32 @@
+<div align="center">
+
 # 🎨 Bead Studio · 拼豆Studio
 
-> **Iron every spark of inspiration, bead by bead.** A professional online bead-pattern design tool — from pixels to physical beads, all in one place.
+### Iron every spark of inspiration, bead by bead.
 
-[![CI](https://github.com/Aswellle/Pindou-Studio/actions/workflows/ci.yml/badge.svg)](https://github.com/Aswellle/Pindou-Studio/actions/workflows/ci.yml)
-[![XERJ Corpus Hub contributor](https://hub.xerj.org/contributors/Aswellle/badge.svg)](https://hub.xerj.org/contributors/Aswellle)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![React](https://img.shields.io/badge/React-18-61DAFB?logo=react)](https://react.dev)
-[![Vite](https://img.shields.io/badge/Vite-6-646CFF?logo=vite)](https://vitejs.dev)
-[![Supabase](https://img.shields.io/badge/Supabase-BaaS-3ECF8E?logo=supabase&logoColor=white)](https://supabase.com)
-[![i18n](https://img.shields.io/badge/i18n-4%20Languages-4A9B8E)](https://www.i18next.com)
+**You know the moment.** You want to bead an image, then get stuck translating it into a grid and figuring out which beads to buy.
+
+Drop in a photo — your cat, a meme, your kid's doodle — and get a bead pattern with real brand color codes in about **30 seconds**.
+
+[![Try it live](https://img.shields.io/badge/Try_it_live-tangnotes.site-E8734A?style=for-the-badge)](https://tangnotes.site) [![Free patterns](https://img.shields.io/badge/Free_patterns-33_templates-4A9B8E?style=for-the-badge)](https://tangnotes.site/gallery) [![Tutorials](https://img.shields.io/badge/Tutorials-24_articles-8A6FB8?style=for-the-badge)](https://tangnotes.site/tutorials)
+
+<a href="https://tangnotes.site/gallery"><img src="assets/readme/hero-gallery-en.png" width="860" alt="Bead Studio gallery: free perler bead patterns" /></a>
+
+<sub>33 free patterns — open any one and start building</sub>
+
+</div>
+
+[![CI](https://github.com/Aswellle/Pindou-Studio/actions/workflows/ci.yml/badge.svg)](https://github.com/Aswellle/Pindou-Studio/actions/workflows/ci.yml) [![XERJ Corpus Hub contributor](https://hub.xerj.org/contributors/Aswellle/badge.svg)](https://hub.xerj.org/contributors/Aswellle) [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT) [![React](https://img.shields.io/badge/React-18-61DAFB?logo=react)](https://react.dev) [![Vite](https://img.shields.io/badge/Vite-6-646CFF?logo=vite)](https://vitejs.dev) [![Supabase](https://img.shields.io/badge/Supabase-BaaS-3ECF8E?logo=supabase&logoColor=white)](https://supabase.com) [![i18n](https://img.shields.io/badge/i18n-4%20Languages-4A9B8E)](https://www.i18next.com)
 
 [中文](README.md) · **English**
 
-**6 bead brands · 1,039 colors · 4 languages · 24 tutorials · Cloud accounts & personal bead inventory**
+---
 
-Bead Studio is a ready-to-use online bead-pattern tool. It doesn't stop at drawing — it connects every step between "a photo / someone else's finished piece / a vague idea" and "a sheet you can actually follow at the table": freehand drawing, image-to-pattern conversion, screenshot recognition, brand remapping, personal bead inventory, professional export, a cloud template library, and version history for your works.
+Bead Studio does exactly that step: **photo → quantized grid → real COCO / MARD / Perler color codes → a chart you can build from.** It's a ready-to-use online bead-pattern tool. It doesn't stop at drawing — it connects every step between "a photo / someone else's finished piece / a vague idea" and "a sheet you can actually follow at the table": freehand drawing, image-to-pattern conversion, screenshot recognition, brand remapping, personal bead inventory, professional export, a cloud template library, and version history for your works.
 
 **No account needed.** Drawing, conversion, chart import and export all work offline. An account is only for syncing works across devices and managing your personal bead palettes.
+
+**6 bead brands · 1,039 colors · 4 languages · 24 tutorials · Cloud accounts & personal bead inventory**
 
 ⭐ **If this project helps you, please consider giving it a [Star](https://github.com/Aswellle/Pindou-Studio) — it keeps the polishing going.**
 

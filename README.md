@@ -1,22 +1,32 @@
+<div align="center">
+
 # 🎨 拼豆Studio · Bead Studio
 
-> **把灵感一颗一颗烫进珠子里。** 专业的在线拼豆图纸设计工具 —— 从像素到实物,一站式创作。
+### 把灵感，一颗一颗烫进珠子里。
 
-[![CI](https://github.com/Aswellle/Pindou-Studio/actions/workflows/ci.yml/badge.svg)](https://github.com/Aswellle/Pindou-Studio/actions/workflows/ci.yml)
-[![XERJ Corpus Hub contributor](https://hub.xerj.org/contributors/Aswellle/badge.svg)](https://hub.xerj.org/contributors/Aswellle)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![React](https://img.shields.io/badge/React-18-61DAFB?logo=react)](https://react.dev)
-[![Vite](https://img.shields.io/badge/Vite-6-646CFF?logo=vite)](https://vitejs.dev)
-[![Supabase](https://img.shields.io/badge/Supabase-BaaS-3ECF8E?logo=supabase&logoColor=white)](https://supabase.com)
-[![i18n](https://img.shields.io/badge/i18n-4%20Languages-4A9B8E)](https://www.i18next.com)
+**你有没有过这种时刻？** 想把一张喜欢的图做成拼豆，却在「这一格该放哪颗豆、总共要买多少颗」面前败下阵来。
+
+上传一张照片——你家猫、一张梗图、孩子的涂鸦——**30 秒**后得到一张带真实品牌色号的图纸。
+
+[![立即在线试用](https://img.shields.io/badge/立即在线试用-tangnotes.site-E8734A?style=for-the-badge)](https://tangnotes.site) [![免费图纸库](https://img.shields.io/badge/免费图纸库-33_张模板-4A9B8E?style=for-the-badge)](https://tangnotes.site/gallery) [![拼豆教程](https://img.shields.io/badge/拼豆教程-24_篇-8A6FB8?style=for-the-badge)](https://tangnotes.site/tutorials)
+
+<a href="https://tangnotes.site/gallery"><img src="assets/readme/hero-gallery.png" width="860" alt="拼豆Studio 图库：草莓、爱心、圣诞树等免费拼豆图纸模板" /></a>
+
+<sub>33 张免费图纸模板，点开任意一张就能直接照着拼</sub>
+
+</div>
+
+[![CI](https://github.com/Aswellle/Pindou-Studio/actions/workflows/ci.yml/badge.svg)](https://github.com/Aswellle/Pindou-Studio/actions/workflows/ci.yml) [![XERJ Corpus Hub contributor](https://hub.xerj.org/contributors/Aswellle/badge.svg)](https://hub.xerj.org/contributors/Aswellle) [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT) [![React](https://img.shields.io/badge/React-18-61DAFB?logo=react)](https://react.dev) [![Vite](https://img.shields.io/badge/Vite-6-646CFF?logo=vite)](https://vitejs.dev) [![Supabase](https://img.shields.io/badge/Supabase-BaaS-3ECF8E?logo=supabase&logoColor=white)](https://supabase.com) [![i18n](https://img.shields.io/badge/i18n-4%20Languages-4A9B8E)](https://www.i18next.com)
 
 **中文** · [English](README.en.md)
 
-**六大品牌色卡 · 1039 种颜色 · 四种语言 · 24 篇教程 · 云端账号与个人色卡**
+---
 
-拼豆Studio 是一款开箱即用的在线拼豆图纸工具。它不只画得出来,还把「从一张照片 / 一张别人的图纸 / 一个念头」到「手里能照着拼的成品图纸」之间每一步都接上了:自由绘制、图片转图纸、截图识图、品牌换色、个人色卡与库存、专业导出、云端模板库与作品版本历史。
+拼豆Studio 就是为这一步做的：**上传照片 → 自动量化成网格 → 匹配 COCO / MARD / Perler 等品牌的真实色号 → 导出一张能直接照着拼的图纸。** 它是一款开箱即用的在线拼豆图纸工具。它不只画得出来,还把「从一张照片 / 一张别人的图纸 / 一个念头」到「手里能照着拼的成品图纸」之间每一步都接上了:自由绘制、图片转图纸、截图识图、品牌换色、个人色卡与库存、专业导出、云端模板库与作品版本历史。
 
 **不用注册就能用。** 绘制、转图、识图、导出全部离线可用;账号只在你想要跨设备同步作品、管理个人色卡时才需要。
+
+**六大品牌色卡 · 1039 种颜色 · 四种语言 · 24 篇教程 · 云端账号与个人色卡**
 
 ⭐ **如果这个项目对你有帮助,欢迎点个 [Star](https://github.com/Aswellle/Pindou-Studio) 支持一下 —— 你的每一颗星都是继续打磨的动力。**
 
