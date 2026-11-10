@@ -605,7 +605,8 @@ body:has(.quantizer-zoom) .mobile-toolbar {
    (图纸详情页的颜色清单曾因此完全不可见)。 */
 .gallery-page,
 .tutorials-page,
-.content-page {
+.content-page,
+.faq-page {
   flex: 1;
   overflow-y: auto;
   overflow-x: hidden;
@@ -876,6 +877,11 @@ body:has(.mobile-toolbar) {
 /* 移动端内容页已被 .mobile-page-area 包裹并滚动,
    内层再滚动会形成「滚动套滚动」—— 手指在里面滑不动外层,体验很差。 */
 .mobile-page-area > .content-page {
+  overflow: visible;
+  flex: none;
+}
+/* 常见问题页同理:移动端由 .mobile-page-area 滚动,FAQ 自身不再套一层滚动。 */
+.mobile-page-area > .faq-page {
   overflow: visible;
   flex: none;
 }

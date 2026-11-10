@@ -22,11 +22,20 @@ export default function FaqPage() {
       </header>
 
       <div className="faq-list">
-        {items.map((item) => (
-          <section key={item.id} className="faq-item" aria-labelledby={`faq-${item.id}`}>
-            <h2 id={`faq-${item.id}`}>{item.question}</h2>
-            <p>{item.answer}</p>
-          </section>
+        {items.map((item, index) => (
+          <article key={item.id} className="faq-item" aria-labelledby={`faq-${item.id}`}>
+            <div className="faq-question">
+              <span className="faq-mark faq-mark-q" aria-hidden="true">Q</span>
+              <h2 id={`faq-${item.id}`}>{item.question}</h2>
+              <span className="faq-number" aria-hidden="true">
+                {String(index + 1).padStart(2, '0')}
+              </span>
+            </div>
+            <div className="faq-answer">
+              <span className="faq-mark faq-mark-a" aria-hidden="true">A</span>
+              <p>{item.answer}</p>
+            </div>
+          </article>
         ))}
       </div>
 

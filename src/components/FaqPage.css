@@ -19,25 +19,83 @@
   font-size: 15px;
 }
 
+/* 每条问答是一张独立卡片:卡片边界负责「这是第几条」,卡片内部的
+   Q / A 标记负责「哪一句是问题、哪一句是回答」。 */
 .faq-list {
-  margin-top: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  margin-top: 16px;
 }
 
 .faq-item {
-  padding: 20px 0;
-  border-bottom: 1px solid var(--border-color);
+  padding: 18px 20px;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-card);
 }
 
-.faq-item h2 {
-  margin: 0 0 6px;
-  font-size: 18px;
-  line-height: 1.5;
+.faq-question {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
 }
 
-.faq-item p {
+.faq-question h2 {
+  flex: 1;
+  margin: 0;
+  font-size: 17px;
+  line-height: 1.55;
+}
+
+.faq-number {
+  flex: 0 0 auto;
+  margin-left: 4px;
+  padding-top: 3px;
+  color: var(--text-muted);
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+}
+
+.faq-answer {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px dashed var(--border-color);
+}
+
+.faq-answer p {
+  flex: 1;
   margin: 0;
   color: var(--text-secondary);
   font-size: 15px;
+}
+
+/* Q / A 标记:固定宽度,让问题与回答的正文左缘对齐。
+   Q 用主色强调问题,A 用次级色的安静底色,视觉上不会抢过问题。 */
+.faq-mark {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.faq-mark-q {
+  background: var(--accent-soft);
+  color: var(--accent);
+}
+
+.faq-mark-a {
+  background: var(--bg-tertiary);
+  color: var(--secondary-accent);
 }
 
 .faq-links {
@@ -74,15 +132,26 @@
     font-size: 22px;
   }
 
-  .faq-item {
-    padding: 16px 0;
+  .faq-list {
+    gap: 12px;
   }
 
-  .faq-item h2 {
+  .faq-item {
+    padding: 14px 15px;
+  }
+
+  .faq-question h2 {
     font-size: 16px;
   }
 
-  .faq-item p {
+  .faq-answer p {
     font-size: 14px;
+  }
+
+  .faq-mark {
+    width: 24px;
+    height: 24px;
+    border-radius: 7px;
+    font-size: 12px;
   }
 }
