@@ -9,7 +9,6 @@
 [![Vite](https://img.shields.io/badge/Vite-6-646CFF?logo=vite)](https://vitejs.dev)
 [![Supabase](https://img.shields.io/badge/Supabase-BaaS-3ECF8E?logo=supabase&logoColor=white)](https://supabase.com)
 [![i18n](https://img.shields.io/badge/i18n-4%20Languages-4A9B8E)](https://www.i18next.com)
-[![Tests](https://img.shields.io/badge/tests-1891%20passing-4A9B8E)](https://github.com/Aswellle/Pindou-Studio/actions/workflows/ci.yml)
 
 [中文](README.md) · **English**
 
@@ -218,7 +217,7 @@ The schema is defined by **27 migration files** under `supabase/migrations/` (id
 | State | React `useState` / `useReducer` (no global store; the undo stack is a reducer) |
 | Local storage | IndexedDB primary (works / drafts / versions) + a localStorage compatibility layer and preferences |
 | Icons / fonts | lucide-react; Noto Sans SC + LXGW WenKai (desktop-only, dynamically loaded) |
-| Testing | Vitest 4 + @testing-library/react (jsdom), **1,891 tests / 115 files** |
+| Testing | Vitest 4 + @testing-library/react (jsdom) |
 | Static analysis | Biome 2 |
 | Monitoring | Vercel Analytics + Speed Insights |
 | Deployment | Vercel (auto-deploy on push to `main`) + Supabase |
@@ -263,7 +262,7 @@ Chart photo / scan
 ## 🧪 Tests
 
 ```bash
-npm run test:run   # 1,891 tests / 115 files
+npm run test:run   # tests (single run, CI mode)
 ```
 
 Tests are organized around **contracts** rather than chasing a coverage number — many files lock in "behaviour that must not regress" instead of implementation details:

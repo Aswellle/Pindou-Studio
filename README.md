@@ -9,7 +9,6 @@
 [![Vite](https://img.shields.io/badge/Vite-6-646CFF?logo=vite)](https://vitejs.dev)
 [![Supabase](https://img.shields.io/badge/Supabase-BaaS-3ECF8E?logo=supabase&logoColor=white)](https://supabase.com)
 [![i18n](https://img.shields.io/badge/i18n-4%20Languages-4A9B8E)](https://www.i18next.com)
-[![Tests](https://img.shields.io/badge/tests-1891%20passing-4A9B8E)](https://github.com/Aswellle/Pindou-Studio/actions/workflows/ci.yml)
 
 **中文** · [English](README.en.md)
 
@@ -218,7 +217,7 @@ VITE_TURNSTILE_SITE_KEY=<optional-turnstile-site-key>
 | 状态管理 | React `useState` / `useReducer`(无全局 store;撤销栈用 reducer) |
 | 本地存储 | IndexedDB 主存(作品 / 草稿 / 版本)+ localStorage 兼容层与偏好 |
 | 图标 / 字体 | lucide-react;Noto Sans SC + LXGW WenKai(仅桌面端动态加载) |
-| 测试 | Vitest 4 + @testing-library/react(jsdom),**1891 用例 / 115 文件** |
+| 测试 | Vitest 4 + @testing-library/react(jsdom) |
 | 静态检查 | Biome 2 |
 | 监控 | Vercel Analytics + Speed Insights |
 | 部署 | Vercel(push 到 `main` 自动部署)+ Supabase |
@@ -263,7 +262,7 @@ handleQuantizerApply:品牌 ID('P18')→ resolveToHex() → hex('#F0B08A') → c
 ## 🧪 测试
 
 ```bash
-npm run test:run   # 1891 用例 / 115 文件
+npm run test:run   # 测试(单次,CI 模式)
 ```
 
 测试按「**契约**」组织,而不是按覆盖率堆数字 —— 很多文件锁的是「不该退化的行为」,而不是实现细节:
