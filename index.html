@@ -150,7 +150,15 @@
     "url": "https://tangnotes.site/",
     "inLanguage": "zh-CN",
     "publisher": { "@id": "https://tangnotes.site/#organization" },
-    "description": "免费在线拼豆图纸生成工具，支持自由绘制、图片智能转像素拼豆、COCO/MARD/MARD291/Perler/Hama/Artkal六大品牌色卡配色、专业级PNG/SVG图纸导出。"
+    "description": "免费在线拼豆图纸生成工具，支持自由绘制、图片智能转像素拼豆、COCO/MARD/MARD291/Perler/Hama/Artkal六大品牌色卡配色、专业级PNG/SVG图纸导出。",
+    "potentialAction": {
+      "@type": "SearchAction",
+      "target": {
+        "@type": "EntryPoint",
+        "urlTemplate": "https://tangnotes.site/gallery?q={search_term_string}"
+      },
+      "query-input": "required name=search_term_string"
+    }
   }
   </script>
 </head>
