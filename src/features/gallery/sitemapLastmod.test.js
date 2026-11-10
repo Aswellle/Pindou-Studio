@@ -29,6 +29,10 @@ describe('sitemapLastmod · 页面映射', () => {
     }
   })
 
+  it('声明图片 sitemap 命名空间(动态图纸条目会输出 image:loc)', () => {
+    expect(TEMPLATE).toContain('xmlns:image="http://www.google.com/schemas/sitemap-image/1.1"')
+  })
+
   it('映射里的每个页面都真实存在于模板', () => {
     const locs = new Set(staticLocs())
     for (const pathname of Object.keys(PAGE_LASTMOD_SOURCES)) {

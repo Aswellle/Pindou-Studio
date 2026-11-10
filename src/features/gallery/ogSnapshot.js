@@ -223,7 +223,7 @@ function isoDate(value) {
   return d.toISOString().slice(0, 10)
 }
 
-function sitemapUrl({ loc, lastmod, priority, changefreq = 'weekly' }) {
+function sitemapUrl({ loc, lastmod, priority, changefreq = 'weekly', image = null }) {
   const lines = [
     '  <url>',
     `    <loc>${escapeHtml(loc)}</loc>`,
@@ -231,6 +231,13 @@ function sitemapUrl({ loc, lastmod, priority, changefreq = 'weekly' }) {
   if (lastmod) lines.push(`    <lastmod>${lastmod}</lastmod>`)
   lines.push(`    <changefreq>${changefreq}</changefreq>`)
   lines.push(`    <priority>${priority}</priority>`)
+  // 图片 sitemap 扩展:让图纸预览卡进入图片搜索。只在实际生成过卡片的
+  // 条目上输出,避免指向 404 的 image:loc。
+  if (image) {
+    lines.push('    <image:image>')
+    lines.push(`      <image:loc>${escapeHtml(image)}</image:loc>`)
+    lines.push('    </image:image>')
+  }
   // 百度移动扩展只出现在 /sitemap-baidu.xml(构建时由同一份内容生成);
   // 这里保持标准 sitemaps.org 命名空间,否则 Google 会报「命名空间不正确」。
   for (const [lang, href] of hreflangPairs(loc)) {
@@ -256,7 +263,9 @@ export function hreflangPairs(url) {
  * lastmod 取内容自身的更新时间而不是构建时间:构建时间会让每次部署都声称
  * 「全部页面刚改过」,抓取端会逐渐忽略这个字段。
  */
-export function buildDynamicSitemap({ themes = [], collections = [], templates = [], site = SITE } = {}) {
+export function buildDynamicSitemap({ themes = [], collections = [], templates = [], site = SITE, images = null } = {}) {
+  const imageFor = (id) =>
+    (images instanceof Map ? images.get(String(id)) : images?.[String(id)]) || null
   const blocks = []
 
   for (const theme of themes) {
@@ -284,6 +293,7 @@ export function buildDynamicSitemap({ themes = [], collections = [], templates =
       lastmod: isoDate(template.updatedAt || template.updated_at || template.createdAt || template.created_at),
       priority: '0.5',
       changefreq: 'monthly',
+      image: imageFor(template.id),
     }))
   }
 

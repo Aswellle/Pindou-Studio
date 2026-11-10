@@ -40,6 +40,7 @@ import {
   buildDynamicSitemap,
   appendToSitemap,
   renderSnapshotHtml,
+  absoluteUrl,
 } from '../src/features/gallery/ogSnapshot.js'
 import {
   ogCardPath,
@@ -249,10 +250,16 @@ async function main() {
 
   const snapshots = []
   let cards = 0
+  // 图纸 id → 生成成功的预览卡 URL。只把真实存在的卡片写进图片 sitemap,
+  // 渲染失败时宁可不输出 image:loc,也不给抓取端一个 404 图片地址。
+  const cardById = new Map()
   const cardSize = { width: OG_CARD_WIDTH, height: OG_CARD_HEIGHT }
   for (const t of templates) {
     const ogImage = await writePatternCard(t)
-    if (ogImage) cards++
+    if (ogImage) {
+      cards++
+      cardById.set(String(t.id), absoluteUrl(ogImage, site))
+    }
     const snap = buildPatternSnapshot(t, {
       site,
       ogImage,
@@ -296,7 +303,7 @@ async function main() {
   const sitemapSrc = path.join(ROOT, 'public', 'sitemap.xml')
   if (fs.existsSync(sitemapSrc)) {
     const base = fs.readFileSync(sitemapSrc, 'utf-8')
-    const dynamic = buildDynamicSitemap({ themes, collections, templates, site })
+    const dynamic = buildDynamicSitemap({ themes, collections, templates, site, images: cardById })
     fs.writeFileSync(path.join(DIST, 'sitemap.xml'), appendToSitemap(base, dynamic))
     debug('sitemap.xml 已追加动态条目')
   }

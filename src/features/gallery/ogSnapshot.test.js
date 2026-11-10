@@ -186,6 +186,20 @@ describe('buildDynamicSitemap', () => {
     expect(xml).toBe('')
   })
 
+  it('生成过预览卡的图纸输出图片 sitemap 条目', () => {
+    const xml = buildDynamicSitemap({
+      templates: [{ id: 't1', name: 'Duck' }],
+      images: new Map([['t1', 'https://tangnotes.site/og/patterns/t1-abc.png']]),
+    })
+    expect(xml).toContain('<image:image>')
+    expect(xml).toContain('<image:loc>https://tangnotes.site/og/patterns/t1-abc.png</image:loc>')
+  })
+
+  it('没有预览卡时不输出 image:loc(避免指向 404 图片)', () => {
+    const xml = buildDynamicSitemap({ templates: [{ id: 't1', name: 'Duck' }] })
+    expect(xml).not.toContain('<image:image>')
+  })
+
   it('空输入产出空字符串', () => {
     expect(buildDynamicSitemap()).toBe('')
     expect(buildDynamicSitemap({ themes: [], collections: [], templates: [] })).toBe('')
