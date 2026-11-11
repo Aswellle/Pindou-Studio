@@ -747,7 +747,8 @@
     "openInTool": "Convert a photo into a bead pattern",
     "browsePatterns": "Browse the pattern gallery",
     "learnColors": "Read the bead tutorials",
-    "notFound": "No color data for this brand yet."
+    "notFound": "No color data for this brand yet.",
+    "relatedLinks": "Related pages"
   },
   "calculator": {
     "title": "Bead Count Calculator",

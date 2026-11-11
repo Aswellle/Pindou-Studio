@@ -140,12 +140,9 @@
 .color-chart-hint {
   margin: 10px 0 22px;
 }
-.color-chart-links a {
-  color: var(--accent);
-  text-decoration: none;
-}
-.color-chart-links a:hover {
-  text-decoration: underline;
+/* 页脚相关链接使用 tools.css 的 .tools-links 胶囊行,这里不再单独给 a 上色 */
+.color-chart-links {
+  margin-top: 26px;
 }
 
 @media (max-width: 640px) {

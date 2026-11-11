@@ -25,6 +25,8 @@ import {
 // 复用内容页的排版(content-page / content-title / content-related 等)
 import '../gallery/gallery.css'
 import './colors.css'
+// 备料系列共用:站内链接下划线标识与页脚胶囊行(.tools-links / .tools-link-chip)
+import '../tools/tools.css'
 
 /** 只接受 CSS 颜色形状的 hex,畸形值不进 style */
 const HEX_COLOR_RE = /^#[0-9a-f]{3,8}$/i
@@ -147,11 +149,11 @@ function BrandOverview() {
         </section>
       )}
 
-      <section className="color-chart-links">
-        <Link to="/create/image">{t('colorsPage.openInTool')}</Link>
-        <Link to="/gallery">{t('colorsPage.browsePatterns')}</Link>
-        <Link to="/tutorials">{t('colorsPage.learnColors')}</Link>
-      </section>
+      <nav className="tools-links color-chart-links" aria-label={t('colorsPage.relatedLinks')}>
+        <Link className="tools-link-chip" to="/create/image">{t('colorsPage.openInTool')}</Link>
+        <Link className="tools-link-chip" to="/gallery">{t('colorsPage.browsePatterns')}</Link>
+        <Link className="tools-link-chip" to="/tutorials">{t('colorsPage.learnColors')}</Link>
+      </nav>
     </div>
   )
 }
@@ -225,11 +227,10 @@ function BrandChart({ palette, slug }) {
         </div>
       </section>
 
-      <p className="content-desc color-chart-links">
-        <Link to="/colors">{t('colorsPage.allBrands')}</Link>
-        {' · '}
-        <Link to="/create/image">{t('colorsPage.openInTool')}</Link>
-      </p>
+      <nav className="tools-links color-chart-links" aria-label={t('colorsPage.relatedLinks')}>
+        <Link className="tools-link-chip" to="/colors">{t('colorsPage.allBrands')}</Link>
+        <Link className="tools-link-chip" to="/create/image">{t('colorsPage.openInTool')}</Link>
+      </nav>
     </div>
   )
 }

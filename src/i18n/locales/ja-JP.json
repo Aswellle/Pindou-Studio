@@ -747,7 +747,8 @@
     "openInTool": "写真からビーズ図案を作る",
     "browsePatterns": "ビーズ図案ギャラリーを見る",
     "learnColors": "ビーズのチュートリアルを読む",
-    "notFound": "このブランドのカラーデータはまだありません。"
+    "notFound": "このブランドのカラーデータはまだありません。",
+    "relatedLinks": "関連ページ"
   },
   "calculator": {
     "title": "ビーズ数 計算ツール",

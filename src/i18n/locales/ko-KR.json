@@ -747,7 +747,8 @@
     "openInTool": "사진으로 비즈 도안 만들기",
     "browsePatterns": "비즈 도안 갤러리 보기",
     "learnColors": "비즈 튜토리얼 읽기",
-    "notFound": "이 브랜드의 컬러 데이터가 아직 없습니다."
+    "notFound": "이 브랜드의 컬러 데이터가 아직 없습니다.",
+    "relatedLinks": "관련 페이지"
   },
   "calculator": {
     "title": "비즈 개수 계산기",

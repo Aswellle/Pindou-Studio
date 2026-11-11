@@ -747,7 +747,8 @@
     "openInTool": "用图片生成拼豆图纸",
     "browsePatterns": "浏览拼豆图纸模板",
     "learnColors": "阅读拼豆教程",
-    "notFound": "这个品牌还没有色卡数据。"
+    "notFound": "这个品牌还没有色卡数据。",
+    "relatedLinks": "相关页面"
   },
   "calculator": {
     "title": "拼豆豆子数量计算器",
