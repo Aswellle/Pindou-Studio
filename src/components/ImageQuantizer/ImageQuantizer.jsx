@@ -514,7 +514,7 @@ export default function ImageQuantizer({ onApply, onClose }) {
             <span className="quantizer-brand-mark" aria-hidden="true">✦</span>
             <div>
               <p className="quantizer-eyebrow">PINDOU STUDIO / CREATE</p>
-              <h2>{t('quantizer.title', '图片转拼豆')}</h2>
+              <h1>{t('quantizer.title', '图片转拼豆')}</h1>
             </div>
           </div>
           <div className="quantizer-header-meta">

@@ -30,7 +30,7 @@
 }
 
 .quantizer-header { display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; gap: 24px; min-height: 78px; padding: 16px clamp(20px, 4vw, 56px); border-bottom: 1px solid var(--quantizer-line); background: var(--quantizer-surface); }
-.quantizer-header h2 { margin: 0; color: var(--quantizer-ink); font-size: 20px; font-weight: 700; letter-spacing: 0; }
+.quantizer-header h1 { margin: 0; color: var(--quantizer-ink); font-size: 20px; font-weight: 700; letter-spacing: 0; }
 .quantizer-header-title { display: flex; align-items: center; justify-self: center; gap: 12px; white-space: nowrap; }
 .quantizer-eyebrow { margin: 0 0 3px; color: var(--quantizer-muted); font-size: 9px; font-weight: 700; letter-spacing: 0.12em; }
 /* 品牌标 —— 取站点标志色（--accent），与 Header 徽标同色系 */
@@ -590,7 +590,7 @@
   }
   .quantizer-header-title { justify-self: start; gap: 8px; min-width: 0; }
   .quantizer-brand-mark { width: 30px; height: 30px; border-radius: 8px; font-size: 15px; }
-  .quantizer-header-title h2 { overflow: hidden; font-size: 16px; text-overflow: ellipsis; }
+  .quantizer-header-title h1 { overflow: hidden; font-size: 16px; text-overflow: ellipsis; }
   .quantizer-eyebrow { font-size: 8px; }
   .quantizer-header-meta { max-width: 88px; overflow: hidden; font-size: 11px; white-space: nowrap; text-overflow: ellipsis; }
   /* 步骤条窄屏版式：三段改为「圆点在上、标签在下」的等分三列。

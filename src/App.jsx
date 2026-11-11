@@ -1028,6 +1028,10 @@ export default function App() {
 
   const renderCanvasPage = () => (
     <div className="workspace">
+      {/* 页面主标题:画布是全屏工具,视觉上不需要大字标题,但页面必须有 h1 ——
+          读屏用户靠它确认当前页面,搜索端渲染后的 DOM 也靠它判断主题。
+          内容与 index.html 的 title/description 保持同一组关键词,不做关键词堆砌。 */}
+      <h1 className="sr-only">拼豆图纸生成器 · 在线制作拼豆图案与像素画</h1>
       <aside className={`sidebar left-sidebar${leftSidebarCollapsed ? ' collapsed' : ''}`}>
         <div className="left-sidebar-top">
           <Tools
