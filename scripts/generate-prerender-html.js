@@ -18,6 +18,15 @@ import { fileURLToPath } from 'url'
 import { TUTORIALS_ZH } from '../src/data/tutorials.zh.js'
 import { FAQ_PAGE_TEXT, faqItemsFor } from '../src/data/faq.js'
 import { GALLERY_CATEGORY_META, categoryPagePath } from '../src/features/gallery/categoryMeta.js'
+import {
+  BRAND_INTROS,
+  COLOR_CHARTS_SEO,
+  brandSeo,
+  colorBrands,
+  colorChartPath,
+  colorGroups,
+  groupLabel,
+} from '../src/features/colors/colorCharts.js'
 import { SEO_TEMPLATE_PATH } from './seo-template.mjs'
 import { clampSeoDescription } from '../src/utils/seoText.js'
 
@@ -270,6 +279,10 @@ const SEO_STYLE = `<style>
     #seo-static h2{font-size:19px;margin:22px 0 8px}
     #seo-static ul{margin:0 0 12px;padding-left:22px}
     #seo-static li{margin:3px 0}
+    #seo-static table{width:100%;border-collapse:collapse;font-size:13px;margin:8px 0 20px}
+    #seo-static th,#seo-static td{border-bottom:1px solid #e8ded1;padding:4px 8px;text-align:left}
+    #seo-static thead th{background:#f6efe4;font-weight:600}
+    #seo-static .swatch{display:inline-block;width:16px;height:16px;border-radius:3px;border:1px solid rgba(43,36,32,.15);vertical-align:-3px}
     #seo-static .note{color:#7a6c60;font-size:13px;margin-top:20px}
     @media (max-width:640px){#seo-static h1{font-size:21px}#seo-static{padding-top:20px}}
   </style>`
@@ -304,6 +317,7 @@ function siteNav(exclude = '') {
     ['/tutorials', '拼豆教程'],
     ['/create/image', '图片转拼豆图纸工具'],
     ['/my/beads', '我的色卡与库存'],
+    ['/colors', '拼豆色卡对照表'],
     ['/faq', '拼豆常见问题'],
   ].filter(([href]) => href !== exclude)
   return `<p class="note">继续浏览:${items.map(([href, text]) => link(href, text)).join(' · ')}</p>`
@@ -469,6 +483,93 @@ function faqStatic() {
   return staticShell(b.join('\n'))
 }
 
+// ── 品牌色卡对照页 ─────────────────────────────────────────
+// 色卡平时只藏在色板选择器里,「<品牌> 色号对照表」这类搜索没有可抓取的落点。
+// 这里用本地色卡数据渲染完整静态表格(色号 / 名称 / HEX / RGB),
+// 与应用内色卡数据同源,不新增任何应用里没有的颜色。
+const HEX_COLOR_RE = /^#[0-9a-f]{3,8}$/i
+
+/** 一张色卡的完整表格;有 groupNames 的品牌按色系插入分组行 */
+function colorTableHtml(palette) {
+  const rows = []
+  for (const group of colorGroups(palette)) {
+    if (group.key) {
+      rows.push(
+        `<tr><th colspan="5">${esc(groupLabel(palette, group.key))}(${group.colors.length} 色)</th></tr>`,
+      )
+    }
+    for (const color of group.colors) {
+      const swatch = HEX_COLOR_RE.test(color.hex)
+        ? `<span class="swatch" style="background:${escAttr(color.hex)}"></span>`
+        : ''
+      rows.push([
+        '<tr>',
+        `<td><code>${esc(color.id)}</code></td>`,
+        `<td>${swatch}</td>`,
+        `<td>${esc(color.nameZh || color.name || color.id)}</td>`,
+        `<td><code>${esc(color.hex)}</code></td>`,
+        `<td>${color.rgb.r}, ${color.rgb.g}, ${color.rgb.b}</td>`,
+        '</tr>',
+      ].join(''))
+    }
+  }
+  return [
+    '<table>',
+    '<thead><tr><th>色号</th><th>颜色</th><th>名称</th><th>HEX</th><th>RGB</th></tr></thead>',
+    `<tbody>${rows.join('')}</tbody>`,
+    '</table>',
+  ].join('\n')
+}
+
+function colorChartHubStatic() {
+  const b = []
+  b.push('<h1>拼豆色卡对照表</h1>')
+  b.push('<p class="lead">COCO、MARD、MARD 291、Perler、Hama、Artkal 六大拼豆品牌的完整色卡,色号、颜色名称、HEX 与 RGB 色值一一对应,方便按图纸备料或寻找近似替代色。</p>')
+  b.push('<table>')
+  b.push('<thead><tr><th>品牌</th><th>色号数量</th><th>豆径</th><th>产地</th><th>色系</th></tr></thead>')
+  b.push('<tbody>')
+  for (const { palette, id, colorCount } of colorBrands()) {
+    const groups = colorGroups(palette).filter((group) => group.key).length
+    b.push(
+      `<tr><td>${link(colorChartPath(id), palette.nameZh || palette.name)}</td>` +
+      `<td>${colorCount} 色</td>` +
+      `<td>${esc(palette.beadSizeLabel || `${palette.beadSize}mm`)}</td>` +
+      `<td>${esc(palette.origin || '-')}</td>` +
+      `<td>${groups || '-'}</td></tr>`,
+    )
+  }
+  b.push('</tbody>')
+  b.push('</table>')
+  b.push('<h2>怎么用这份色卡</h2>')
+  b.push('<p>同一色号在不同品牌之间并不通用:换品牌时建议先用色卡转换按 CIEDE2000 就近匹配,再对照实物微调。色值为屏幕显示近似值,实际珠子颜色以实物为准。</p>')
+  b.push(`<p>想按自己的照片生成图纸,打开${link('/create/image', '图片转拼豆图纸工具')};需要现成图案可以从${link('/gallery', '拼豆图纸模板库')}挑选,配色方法见${link('/tutorials', '拼豆教程')}。</p>`)
+  b.push(siteNav('/colors'))
+  return staticShell(b.join('\n'))
+}
+
+function colorChartBrandStatic(palette) {
+  const brand = palette.nameZh || palette.name
+  const b = []
+  b.push(`<h1>${esc(brand)}色卡对照表</h1>`)
+  if (BRAND_INTROS[palette.id]) b.push(`<p class="lead">${esc(BRAND_INTROS[palette.id])}</p>`)
+  b.push('<ul>')
+  b.push(`<li>色号数量:${palette.colors.length} 色</li>`)
+  b.push(`<li>豆径:${esc(palette.beadSizeLabel || `${palette.beadSize}mm`)}</li>`)
+  b.push(`<li>产地:${esc(palette.origin || '-')}</li>`)
+  b.push('</ul>')
+  b.push(`<h2>全部色号(${palette.colors.length} 色)</h2>`)
+  b.push(colorTableHtml(palette))
+  b.push('<p class="note">色值为屏幕显示近似值,实际珠子颜色以实物为准;按图纸备料时以色号为准。</p>')
+  const others = colorBrands().filter((item) => item.id !== palette.id)
+  b.push('<h2>其他品牌色卡</h2>')
+  b.push(`<p>${others
+    .map((item) => link(colorChartPath(item.id), `${item.palette.nameZh || item.palette.name}色卡`))
+    .join(' · ')} · ${link('/colors', '全部品牌')}</p>`)
+  b.push(`<p class="note">${link('/create/image', '图片转拼豆图纸工具')} · ${link('/gallery', '拼豆图纸模板库')} · ${link('/tutorials', '拼豆教程')}</p>`)
+  b.push(siteNav('/colors'))
+  return staticShell(b.join('\n'))
+}
+
 // 供脚本按路由取静态正文(无正文页为 null)
 const zhLocale = JSON.parse(fs.readFileSync(path.join(__dirname, '..', 'src', 'i18n', 'locales', 'zh-CN.json'), 'utf-8'))
 const ROOT_STATIC = {
@@ -477,6 +578,7 @@ const ROOT_STATIC = {
   '/tutorials': tutorialsStatic(),
   '/create/image': createImageStatic(),
   '/faq': faqStatic(),
+  '/colors': colorChartHubStatic(),
 }
 
 function injectRoot(html, inner) {
@@ -537,6 +639,16 @@ const PAGES = [
       { name: '拼豆常见问题', item: `${SITE}/faq` },
     ],
     faq: true,
+  },
+  {
+    file: 'colors.html',
+    path: '/colors',
+    title: COLOR_CHARTS_SEO.title,
+    desc: COLOR_CHARTS_SEO.desc,
+    breadcrumb: [
+      { name: '首页', item: `${SITE}/` },
+      { name: '拼豆色卡对照表', item: `${SITE}/colors` },
+    ],
   },
   {
     file: 'create-image.html',
@@ -692,6 +804,43 @@ for (const page of PAGES) {
   fs.writeFileSync(path.join(dist, page.file), out)
   console.log(`prerendered: ${page.file} -> ${url}`)
 }
+// ── 品牌色卡页:/colors/<brand> ─────────────────────────────
+//
+// 六个品牌各自独立收录:title/description 与运行时 Helmet 共用 brandSeo(),
+// 正文是完整色表 —— 这类页面本身就是「查表」,没有可精简的内容。
+let colorChartPageCount = 0
+for (const { palette } of colorBrands()) {
+  const pagePath = colorChartPath(palette.id)
+  const url = `${SITE}${pagePath}`
+  const seo = brandSeo(palette)
+
+  let out = indexWithBuildId
+    .replace(/<title>.*?<\/title>/s, `<title>${esc(seo.title)}</title>`)
+    .replace(/<meta name="description" content="[^"]*"[^>]*>/, `<meta name="description" content="${escAttr(seo.desc)}"${HEAD_ATTR} />`)
+    .replace(/<meta name="robots" content="[^"]*"[^>]*>/, `<meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1"${HEAD_ATTR} />`)
+    .replace(/<link rel="canonical" href="[^"]*"[^>]*>/, `<link rel="canonical" href="${url}"${HEAD_ATTR} />`)
+    .replace(/<meta property="og:url" content="[^"]*"[^>]*>/, `<meta property="og:url" content="${url}"${HEAD_ATTR} />`)
+    .replace(/<meta property="og:title" content="[^"]*"[^>]*>/, `<meta property="og:title" content="${escAttr(seo.title)}"${HEAD_ATTR} />`)
+    .replace(/<meta property="og:description" content="[^"]*"[^>]*>/, `<meta property="og:description" content="${escAttr(seo.desc)}"${HEAD_ATTR} />`)
+
+  if (!HREFLANG_BLOCK_RE.test(out)) {
+    throw new Error(`预渲染中止:${pagePath} 的 hreflang 块缺失或结构变化`)
+  }
+  out = out.replace(HREFLANG_BLOCK_RE, hreflangBlock(pagePath))
+  out = out.replace('</head>', breadcrumbScript([
+    { name: '首页', item: `${SITE}/` },
+    { name: '拼豆色卡对照表', item: `${SITE}/colors` },
+    { name: `${palette.nameZh || palette.name}色卡对照表`, item: url },
+  ]) + EOL + '</head>')
+  out = injectRoot(out, colorChartBrandStatic(palette))
+
+  const dir = path.join(dist, 'colors', palette.id)
+  fs.mkdirSync(dir, { recursive: true })
+  fs.writeFileSync(path.join(dir, 'index.html'), out)
+  colorChartPageCount++
+}
+console.log(`完成 ${colorChartPageCount} 个品牌色卡页(/colors/<brand>)`)
+
 // ── 教程文章页:/tutorials/<id> ─────────────────────────────
 //
 // 竞品(MakeBead / PixelBeads)都用大量独立内容页承接长尾词;教程原先只有
@@ -818,5 +967,5 @@ for (let index = 0; index < tutorialArticles.length; index++) {
   fs.writeFileSync(path.join(dir, 'index.html'), out)
   tutorialPageCount++
 }
-console.log(`完成 ${PAGES.length} 个预渲染页面(静态正文:首页 /gallery /tutorials /create/image /faq)`)
+console.log(`完成 ${PAGES.length} 个预渲染页面(静态正文:首页 /gallery /tutorials /create/image /faq /colors)`)
 console.log(`完成 ${tutorialPageCount} 个教程文章页(/tutorials/<id>)`)

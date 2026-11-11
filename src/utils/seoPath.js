@@ -19,6 +19,10 @@ const TUTORIAL_DETAIL_RE = /^\/tutorials\/[a-z0-9]+(?:-[a-z0-9]+)*$/
 // 公开分享页:/share/<uuid>。只认 UUID 形状,与 shareUrl 生成、vercel.json 的
 // rewrite(→ /api/share-preview/:id)保持一致;/share/whatever 不是真实页面。
 const SHARE_DETAIL_RE = /^\/share\/[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/
+// 品牌色卡对照页:/colors/<brand>。品牌 slug 只含小写字母与数字(见
+// features/colors/colorCharts.js);未知品牌由 App 的 colorSlug 判定覆盖成 404,
+// 与分类聚合页同一套处理。
+const COLOR_CHART_RE = /^\/colors\/[a-z0-9]+$/
 
 /**
  * 该路径是否对应一个真实存在的站内页面。
@@ -32,7 +36,7 @@ const SHARE_DETAIL_RE = /^\/share\/[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-
  */
 const KNOWN_EXACT = new Set([
   '/', '/login', '/profile', '/gallery', '/tutorials',
-  '/create/image', '/import', '/my/beads', '/contact', '/faq',
+  '/create/image', '/import', '/my/beads', '/contact', '/faq', '/colors',
   '/admin', '/admin/login', '/admin/dashboard',
   '/privacy', '/terms',
 ])
@@ -45,6 +49,7 @@ export function isKnownPath(pathname) {
     KNOWN_EXACT.has(clean)
     || GALLERY_DETAIL_RE.test(clean)
     || TUTORIAL_DETAIL_RE.test(clean)
+    || COLOR_CHART_RE.test(clean)
     || SHARE_DETAIL_RE.test(clean)
     || LEGAL_VERSION_RE.test(clean)
   )
@@ -58,7 +63,10 @@ export function isKnownPath(pathname) {
 export function canonicalPathFor(pathname, fallback = '/') {
   if (typeof pathname !== 'string' || !pathname) return fallback
   const clean = pathname.replace(/\/+$/, '') || '/'
-  return GALLERY_DETAIL_RE.test(clean) || TUTORIAL_DETAIL_RE.test(clean) || SHARE_DETAIL_RE.test(clean)
+  return GALLERY_DETAIL_RE.test(clean)
+    || TUTORIAL_DETAIL_RE.test(clean)
+    || COLOR_CHART_RE.test(clean)
+    || SHARE_DETAIL_RE.test(clean)
     ? clean
     : fallback
 }

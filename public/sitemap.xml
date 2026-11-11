@@ -83,6 +83,87 @@
     <xhtml:link rel="alternate" hreflang="x-default" href="https://tangnotes.site/faq"/>
   </url>
 
+  <!-- 品牌色卡对照总览 — 六大品牌色号与色值 -->
+  <url>
+    <loc>https://tangnotes.site/colors</loc>
+    <lastmod>2026-11-11</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+    <xhtml:link rel="alternate" hreflang="zh-CN" href="https://tangnotes.site/colors"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://tangnotes.site/colors?lang=en"/>
+    <xhtml:link rel="alternate" hreflang="ja" href="https://tangnotes.site/colors?lang=ja"/>
+    <xhtml:link rel="alternate" hreflang="ko" href="https://tangnotes.site/colors?lang=ko"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://tangnotes.site/colors"/>
+  </url>
+
+  <!-- 各品牌色卡对照表 — 承接「<品牌> 色号对照表」长尾词 -->
+  <url>
+    <loc>https://tangnotes.site/colors/coco</loc>
+    <lastmod>2026-11-11</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.6</priority>
+    <xhtml:link rel="alternate" hreflang="zh-CN" href="https://tangnotes.site/colors/coco"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://tangnotes.site/colors/coco?lang=en"/>
+    <xhtml:link rel="alternate" hreflang="ja" href="https://tangnotes.site/colors/coco?lang=ja"/>
+    <xhtml:link rel="alternate" hreflang="ko" href="https://tangnotes.site/colors/coco?lang=ko"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://tangnotes.site/colors/coco"/>
+  </url>
+  <url>
+    <loc>https://tangnotes.site/colors/mard</loc>
+    <lastmod>2026-11-11</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.6</priority>
+    <xhtml:link rel="alternate" hreflang="zh-CN" href="https://tangnotes.site/colors/mard"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://tangnotes.site/colors/mard?lang=en"/>
+    <xhtml:link rel="alternate" hreflang="ja" href="https://tangnotes.site/colors/mard?lang=ja"/>
+    <xhtml:link rel="alternate" hreflang="ko" href="https://tangnotes.site/colors/mard?lang=ko"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://tangnotes.site/colors/mard"/>
+  </url>
+  <url>
+    <loc>https://tangnotes.site/colors/mard291</loc>
+    <lastmod>2026-11-11</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.6</priority>
+    <xhtml:link rel="alternate" hreflang="zh-CN" href="https://tangnotes.site/colors/mard291"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://tangnotes.site/colors/mard291?lang=en"/>
+    <xhtml:link rel="alternate" hreflang="ja" href="https://tangnotes.site/colors/mard291?lang=ja"/>
+    <xhtml:link rel="alternate" hreflang="ko" href="https://tangnotes.site/colors/mard291?lang=ko"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://tangnotes.site/colors/mard291"/>
+  </url>
+  <url>
+    <loc>https://tangnotes.site/colors/perler</loc>
+    <lastmod>2026-11-11</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.6</priority>
+    <xhtml:link rel="alternate" hreflang="zh-CN" href="https://tangnotes.site/colors/perler"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://tangnotes.site/colors/perler?lang=en"/>
+    <xhtml:link rel="alternate" hreflang="ja" href="https://tangnotes.site/colors/perler?lang=ja"/>
+    <xhtml:link rel="alternate" hreflang="ko" href="https://tangnotes.site/colors/perler?lang=ko"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://tangnotes.site/colors/perler"/>
+  </url>
+  <url>
+    <loc>https://tangnotes.site/colors/hama</loc>
+    <lastmod>2026-11-11</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.6</priority>
+    <xhtml:link rel="alternate" hreflang="zh-CN" href="https://tangnotes.site/colors/hama"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://tangnotes.site/colors/hama?lang=en"/>
+    <xhtml:link rel="alternate" hreflang="ja" href="https://tangnotes.site/colors/hama?lang=ja"/>
+    <xhtml:link rel="alternate" hreflang="ko" href="https://tangnotes.site/colors/hama?lang=ko"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://tangnotes.site/colors/hama"/>
+  </url>
+  <url>
+    <loc>https://tangnotes.site/colors/artkal</loc>
+    <lastmod>2026-11-11</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.6</priority>
+    <xhtml:link rel="alternate" hreflang="zh-CN" href="https://tangnotes.site/colors/artkal"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://tangnotes.site/colors/artkal?lang=en"/>
+    <xhtml:link rel="alternate" hreflang="ja" href="https://tangnotes.site/colors/artkal?lang=ja"/>
+    <xhtml:link rel="alternate" hreflang="ko" href="https://tangnotes.site/colors/artkal?lang=ko"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://tangnotes.site/colors/artkal"/>
+  </url>
+
   <!-- 隐私政策 — 正文写死在 LegalPages.jsx 里,只有中文,不提供 ?lang= 变体。
        页面内 hreflang 也只声明 zh-CN 与 x-default;此处保持一致,否则 sitemap
        声明四种语言、页面只认一种,两边互相矛盾会被判为 hreflang 组无效。 -->

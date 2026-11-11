@@ -17,6 +17,7 @@
  */
 
 import { TUTORIALS_ZH } from '../../data/tutorials.zh.js'
+import { PALETTE_LIST } from '../../data/palettes/index.js'
 
 /**
  * 每个静态页由哪些源文件构成(git pathspec,相对仓库根目录)。
@@ -63,6 +64,12 @@ export const PAGE_LASTMOD_SOURCES = {
     'src/data/faq.js',
     'scripts/generate-prerender-html.js',
   ],
+  '/colors': [
+    'src/features/colors',
+    'src/data/palettes',
+    'src/i18n/locales',
+    'scripts/generate-prerender-html.js',
+  ],
   '/privacy': [
     'src/components/LegalPages.jsx',
     'scripts/generate-prerender-html.js',
@@ -86,6 +93,18 @@ for (const section of TUTORIALS_ZH) {
   for (const article of section.children || []) {
     PAGE_LASTMOD_SOURCES[`/tutorials/${article.id}`] = TUTORIAL_SOURCES
   }
+}
+
+// 品牌色卡页:/colors/<brand> 由本地色卡数据渲染,六个品牌源文件相同。
+const COLOR_CHART_SOURCES = [
+  'src/features/colors',
+  'src/data/palettes',
+  'src/components/BackButton.jsx',
+  'src/i18n/locales',
+  'scripts/generate-prerender-html.js',
+]
+for (const palette of PALETTE_LIST) {
+  PAGE_LASTMOD_SOURCES[`/colors/${palette.id}`] = COLOR_CHART_SOURCES
 }
 
 /**

@@ -40,6 +40,11 @@
       "source": "/faq.html",
       "destination": "/faq",
       "permanent": true
+    },
+    {
+      "source": "/colors.html",
+      "destination": "/colors",
+      "permanent": true
     }
   ],
   "rewrites": [
@@ -78,6 +83,14 @@
     {
       "source": "/faq",
       "destination": "/faq.html"
+    },
+    {
+      "source": "/colors",
+      "destination": "/colors.html"
+    },
+    {
+      "source": "/colors/:brand(coco|mard|mard291|perler|hama|artkal)",
+      "destination": "/spa.html"
     },
     {
       "source": "/privacy/:versionId",

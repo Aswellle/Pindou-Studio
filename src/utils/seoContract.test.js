@@ -168,6 +168,7 @@ describe('isKnownPath · 已知路由判定', () => {
       '/my/beads',
       '/contact',
       '/faq',
+      '/colors',
       '/privacy',
       '/terms',
     ]) {
@@ -180,6 +181,7 @@ describe('isKnownPath · 已知路由判定', () => {
     expect(isKnownPath('/gallery/collection/pets')).toBe(true)
     expect(isKnownPath('/gallery/pattern/abc-123')).toBe(true)
     expect(isKnownPath('/gallery/category/animal')).toBe(true)
+    expect(isKnownPath('/colors/perler')).toBe(true)
     expect(isKnownPath('/privacy/v2')).toBe(true)
     expect(isKnownPath('/terms/v1')).toBe(true)
   })

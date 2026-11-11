@@ -64,6 +64,8 @@ import { useScrollLock } from './hooks/useScrollLock'
 import { useDialogA11y } from './hooks/useDialogA11y'
 import { canonicalPathFor, isKnownPath } from './utils/seoPath'
 import { categorySeo, resolveCategoryBySlug } from './features/gallery/categoryMeta'
+// 品牌色卡对照页的 meta 与静态快照共用同一份文案
+import { COLOR_CHARTS_SEO, brandSeo, resolveColorBrand } from './features/colors/colorCharts'
 import { planBrandSwitch, applyBrandSwitch } from './utils/brandSwitch'
 import { canvasToLegacyWork, normalizeLegacyWork } from './services/project/adapters'
 import ImportPage from './components/ImportPage'
@@ -90,6 +92,8 @@ const CategoryPage = lazy(() => import('./features/gallery/CategoryPage'))
 const ThemePage = lazy(() => import('./features/gallery/ThemePage'))
 const CollectionPage = lazy(() => import('./features/gallery/CollectionPage'))
 const PatternDetailPage = lazy(() => import('./features/gallery/PatternDetailPage'))
+// 品牌色卡对照页:/colors 总览 + /colors/<brand> 六个品牌页
+const ColorChartsPage = lazy(() => import('./features/colors/ColorChartsPage'))
 // 公开分享落地页(图纸分享):无需登录即可查看 /share/:id
 const SharePage = lazy(() => import('./features/sharing/SharePage'))
 // 管理概览懒加载:recharts 图表库随之进入独立 chunk,普通用户不下载
@@ -289,6 +293,8 @@ export default function App() {
       ? 'tutorials'
       : location.pathname.startsWith('/faq')
         ? 'faq'
+        : location.pathname.startsWith('/colors')
+          ? 'colors'
         : location.pathname.startsWith('/admin/login')
         ? 'adminLogin'
         : location.pathname.startsWith('/admin')
@@ -320,6 +326,11 @@ export default function App() {
   // 未知 slug 与其它不存在路径一样按 404 处理,不生成可收录的软页面。
   const categorySlug = location.pathname.replace(/\/+$/, '').match(/^\/gallery\/category\/([^/]+)$/)?.[1] || ''
   const categoryMeta = categorySlug ? resolveCategoryBySlug(categorySlug) : null
+  // 品牌色卡页 /colors/<brand>:品牌必须命中本地色卡;未知品牌按 404 处理,
+  // 与分类聚合页同一套判定(页面自己渲染 not-found,meta 走 notFound)。
+  const colorSlug = location.pathname.replace(/\/+$/, '').match(/^\/colors\/([^/]+)$/)?.[1] || ''
+  const colorBrand = colorSlug ? resolveColorBrand(colorSlug) : null
+  const colorNotFound = !!colorSlug && !colorBrand
   // 核心功能页不继承站点导航，页面内部提供自己的返回与操作层。
   const isStandalonePage =
     currentPage === 'login' ||
@@ -1200,6 +1211,22 @@ export default function App() {
             }
           />
           <Route
+            path="/colors"
+            element={
+              <Suspense fallback={<LoadingScreen />}>
+                <ColorChartsPage />
+              </Suspense>
+            }
+          />
+          <Route
+            path="/colors/:brand"
+            element={
+              <Suspense fallback={<LoadingScreen />}>
+                <ColorChartsPage />
+              </Suspense>
+            }
+          />
+          <Route
             path="/profile"
             element={
               <ProfilePage
@@ -1635,6 +1662,26 @@ export default function App() {
           }
         />
         <Route
+          path="/colors"
+          element={
+            <Suspense fallback={<LoadingScreen />}>
+              <div className="mobile-page-area">
+                <ColorChartsPage />
+              </div>
+            </Suspense>
+          }
+        />
+        <Route
+          path="/colors/:brand"
+          element={
+            <Suspense fallback={<LoadingScreen />}>
+              <div className="mobile-page-area">
+                <ColorChartsPage />
+              </div>
+            </Suspense>
+          }
+        />
+        <Route
           path="/profile"
           element={
             <div className="mobile-page-area">
@@ -1898,6 +1945,12 @@ export default function App() {
       title: '拼豆常见问题 - 使用、导出、色号与商用解答 | 拼豆Studio',
       desc: '拼豆Studio 常见问题：是否需要注册、图片转图纸流程、支持的图片格式与品牌色卡、导出方式、作品保存、分享与商用范围。',
     },
+    // 品牌色卡对照页:总览页用固定文案;单个品牌由 brandSeo(palette) 动态生成
+    // (见上方 seo 选择),两边共用同一份数据,不会出现首帧换标题。
+    colors: {
+      title: COLOR_CHARTS_SEO.title,
+      desc: COLOR_CHARTS_SEO.desc,
+    },
     // ── 工具页 / 私有页 ────────────────────────────────────
     // 这些页面此前没有独立配置,会回退到首页的 title/description 且 index,follow,
     // 造成同一份标题描述出现在多个 URL(重复内容)。统一 noindex:站内可达、不参与索引。
@@ -1972,11 +2025,13 @@ export default function App() {
   }
 
   // 404 覆盖:路径形状不存在时,不论 currentPage 归到哪一组,都改用 notFound 的 meta
-  const seo = isNotFound || (categorySlug && !categoryMeta)
+  const seo = isNotFound || (categorySlug && !categoryMeta) || colorNotFound
     ? SEO_CONFIG.notFound
     : categoryMeta
       ? categorySeo(categoryMeta)
-      : SEO_CONFIG[currentPage] || SEO_CONFIG.canvas
+      : colorBrand
+        ? brandSeo(colorBrand)
+        : SEO_CONFIG[currentPage] || SEO_CONFIG.canvas
 
   // 各页面对应的规范路径(privacy/terms 的 :versionId 历史版本归并到父路径)
   const CANONICAL_PATH = {
@@ -1984,6 +2039,7 @@ export default function App() {
     gallery: '/gallery',
     tutorials: '/tutorials',
     faq: '/faq',
+    colors: '/colors',
     admin: '/admin',
     adminLogin: '/admin/login',
     login: '/login',
@@ -2000,7 +2056,7 @@ export default function App() {
   // 仍归并到 /gallery,避免把未知路径当作可收录页面。
   // 404 页(含不存在的分类 slug)没有自己的规范地址:一律指向站点根,配合 noindex
   // 让搜索引擎把它当作一个不应存在的入口,而不是某个真实页面的别名。
-  const baseUrl = isNotFound || (categorySlug && !categoryMeta)
+  const baseUrl = isNotFound || (categorySlug && !categoryMeta) || colorNotFound
     ? `${SITE_ORIGIN}/`
     : `${SITE_ORIGIN}${canonicalPathFor(location.pathname, CANONICAL_PATH[currentPage] || '/')}`
 
