@@ -52,6 +52,7 @@ import {
   OG_CARD_WIDTH,
   OG_CARD_HEIGHT,
 } from '../src/features/gallery/ogCard.js'
+import { patternImagePath } from '../src/features/gallery/patternImage.js'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const ROOT = path.join(__dirname, '..')
@@ -238,6 +239,27 @@ async function writePatternCard(template) {
   }
 }
 
+// ── 图纸预览图 ──────────────────────────────────────────────
+// 与详情页 <img> 共用同一路径规则(内容指纹 + 尺寸纯函数):页面引用的就是
+// 这里写出的文件,不存在「图在页面上、文件不存在」的错位。
+// 同样是增强项:canvas 装不上就跳过,详情页自动退回 canvas 缩略图。
+async function writePatternPreview(template) {
+  try {
+    const { renderPatternPreview } = await import('./pattern-image-renderer.mjs')
+    const out = await renderPatternPreview(template)
+    if (!out) return null
+    const rel = patternImagePath(template.id, patternContentHash(template))
+    const file = path.join(DIST, rel.replace(/^\//, ''))
+    fs.mkdirSync(path.dirname(file), { recursive: true })
+    fs.writeFileSync(file, out.png)
+    debug(`写入 ${rel} (${out.width}×${out.height})`)
+    return { src: rel, width: out.width, height: out.height }
+  } catch (e) {
+    debug(`预览图生成失败(${template?.id}):${e?.message || e}`)
+    return null
+  }
+}
+
 // ── 主流程 ──────────────────────────────────────────────────
 async function main() {
   if (!fs.existsSync(path.join(DIST, 'index.html'))) {
@@ -293,28 +315,41 @@ async function main() {
 
   const snapshots = []
   let cards = 0
-  // 图纸 id → 生成成功的预览卡 URL。只把真实存在的卡片写进图片 sitemap,
-  // 渲染失败时宁可不输出 image:loc,也不给抓取端一个 404 图片地址。
-  const cardById = new Map()
+  let previews = 0
+  // 图纸 id → 生成成功的图片 URL。只把真实存在的文件写进图片 sitemap /
+  // 静态正文,渲染失败时宁可不输出 image:loc,也不给抓取端一个 404 地址。
+  // 一条 URL 可挂两张图:1200×630 分享卡片 + 透明底图案预览。
+  const imagesById = new Map()
+  const previewById = new Map()
   const cardSize = { width: OG_CARD_WIDTH, height: OG_CARD_HEIGHT }
   for (const t of templates) {
     const ogImage = await writePatternCard(t)
-    if (ogImage) {
-      cards++
-      cardById.set(String(t.id), absoluteUrl(ogImage, site))
+    if (ogImage) cards++
+    const preview = await writePatternPreview(t)
+    if (preview) previews++
+
+    const images = []
+    if (ogImage) images.push(absoluteUrl(ogImage, site))
+    if (preview) {
+      images.push(absoluteUrl(preview.src, site))
+      previewById.set(String(t.id), { ...preview, src: absoluteUrl(preview.src, site) })
     }
+    if (images.length) imagesById.set(String(t.id), images)
+
     const snap = buildPatternSnapshot(t, {
       site,
       ogImage,
       // 卡片尺寸已知且固定;没生成卡片时传 null,让 renderSnapshotHtml 删掉
       // 那两行尺寸 meta(保留站点默认图的 1200×630 反而是错的)
       ogImageSize: ogImage ? cardSize : null,
+      preview,
     })
     if (snap) snapshots.push(snap)
   }
   for (const theme of themes) {
     const snap = buildThemeSnapshot(theme, linkedTemplates(content.themeLinks, 'theme_id', theme.id, byId), {
       site,
+      previews: previewById,
     })
     if (snap) snapshots.push(snap)
   }
@@ -322,12 +357,16 @@ async function main() {
     const snap = buildCollectionSnapshot(
       collection,
       linkedTemplates(content.collectionLinks, 'collection_id', collection.id, byId),
-      { site }
+      { site, previews: previewById }
     )
     if (snap) snapshots.push(snap)
   }
   for (const group of categories) {
-    const snap = buildCategorySnapshot(group.meta, group.patterns, { site, relatedCategories })
+    const snap = buildCategorySnapshot(group.meta, group.patterns, {
+      site,
+      relatedCategories,
+      previews: previewById,
+    })
     if (snap) snapshots.push(snap)
   }
 
@@ -356,14 +395,14 @@ async function main() {
       categories: categories.map((group) => ({ slug: group.meta.slug, updatedAt: group.updatedAt })),
       templates,
       site,
-      images: cardById,
+      images: imagesById,
     })
     fs.writeFileSync(path.join(DIST, 'sitemap.xml'), appendToSitemap(base, dynamic))
     debug('sitemap.xml 已追加动态条目')
   }
 
   log(
-    `完成:${written} 份快照(主题 ${themes.length} / 合集 ${collections.length} / 分类 ${categories.length} / 图纸 ${templates.length}),分享卡片 ${cards} 张`
+    `完成:${written} 份快照(主题 ${themes.length} / 合集 ${collections.length} / 分类 ${categories.length} / 图纸 ${templates.length}),分享卡片 ${cards} 张,预览图 ${previews} 张`
   )
   if (STRICT && written < limited.length) process.exitCode = 1
 }

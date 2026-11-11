@@ -100,6 +100,21 @@ describe('buildPatternSnapshot', () => {
     expect(snap.image).toBe('https://tangnotes.site/og/pattern/tpl-1-abc.png')
   })
 
+  it('传入预览图时正文输出真实 <img>:alt 带尺寸与颗数,宽高写死防抖动', () => {
+    const snap = buildPatternSnapshot(tpl, {
+      preview: { src: '/pattern-img/tpl-1-h1.png', width: 720, height: 720 },
+    })
+    expect(snap.bodyHtml).toContain('<img src="https://tangnotes.site/pattern-img/tpl-1-h1.png"')
+    expect(snap.bodyHtml).toContain('alt="小鸭拼豆图纸 · 2×2 · 共 3 颗豆子"')
+    expect(snap.bodyHtml).toContain('width="720" height="720"')
+    // 首屏图用 eager:正文第一屏的图不能被懒加载推迟
+    expect(snap.bodyHtml).toContain('loading="eager"')
+  })
+
+  it('没有预览图时不输出空 <img>(不产生破图)', () => {
+    expect(buildPatternSnapshot(tpl).bodyHtml).not.toContain('<img')
+  })
+
   it('有分类时正文回链到分类聚合页(抓取端可沿链接发现)', () => {
     const snap = buildPatternSnapshot({ ...tpl, category: 'animal' })
     expect(snap.bodyHtml).toContain('href="https://tangnotes.site/gallery/category/animal"')
@@ -221,6 +236,16 @@ describe('buildCategorySnapshot', () => {
     expect(snap.bodyHtml).not.toContain('<b>Duck</b>')
     expect(snap.bodyHtml).toContain('&lt;b&gt;Duck&lt;/b&gt;')
   })
+
+  it('传入预览图时列表项带 <img>,没有预览图的项不输出图片', () => {
+    const snap = buildCategorySnapshot(meta, patterns, {
+      previews: new Map([['p1', { src: '/pattern-img/p1-h.png', width: 720, height: 720 }]]),
+    })
+    expect(snap.bodyHtml).toContain('<img src="https://tangnotes.site/pattern-img/p1-h.png"')
+    expect(snap.bodyHtml).toContain('alt="小鸭拼豆图纸"')
+    // 只有 p1 有预览图
+    expect(snap.bodyHtml.match(/<img /g)).toHaveLength(1)
+  })
 })
 
 describe('buildDynamicSitemap', () => {
@@ -268,6 +293,15 @@ describe('buildDynamicSitemap', () => {
     })
     expect(xml).toContain('<image:image>')
     expect(xml).toContain('<image:loc>https://tangnotes.site/og/patterns/t1-abc.png</image:loc>')
+  })
+
+  it('一条图纸可挂多张图(分享卡片 + 图案预览)', () => {
+    const xml = buildDynamicSitemap({
+      templates: [{ id: 't1', name: 'Duck' }],
+      images: new Map([['t1', ['https://tangnotes.site/og/a.png', 'https://tangnotes.site/pattern-img/b.png']]]),
+    })
+    expect(xml).toContain('<image:loc>https://tangnotes.site/og/a.png</image:loc>')
+    expect(xml).toContain('<image:loc>https://tangnotes.site/pattern-img/b.png</image:loc>')
   })
 
   it('没有预览卡时不输出 image:loc(避免指向 404 图片)', () => {

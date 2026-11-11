@@ -15,6 +15,9 @@
  */
 
 import { categoryPagePath, categorySeo, resolveCategoryByRaw } from './categoryMeta.js'
+// 预览图的 alt 文案只在纯函数里用;patternImage 只依赖 utils/patternGeometry
+// 与 patternHash,不反向依赖本文件,不会形成循环。
+import { patternImageAlt } from './patternImage.js'
 
 export const SITE = 'https://tangnotes.site'
 
@@ -118,6 +121,44 @@ function colorListHtml(stats) {
 }
 
 /**
+ * 图纸预览图 → <img>。
+ *
+ * 静态正文里这是**唯一**的位图资产:整站缩略图都是 canvas,不执行 JS 的
+ * 抓取端此前一张图都拿不到。尺寸属性必须写死 —— 没有它浏览器在图片加载
+ * 完成前按 0 高度排版,正文会跳一下。
+ *
+ * @param {{src:string,width:number,height:number}|null} preview
+ * @param {string} alt
+ * @param {{site?:string, loading?:'lazy'|'eager'}} [opts]
+ */
+export function previewImgHtml(preview, alt, { site = SITE, loading = 'lazy' } = {}) {
+  if (!preview?.src) return ''
+  const src = escapeHtml(absoluteUrl(preview.src, site))
+  const dims = preview.width > 0 && preview.height > 0
+    ? ` width="${preview.width}" height="${preview.height}"`
+    : ''
+  return `<img src="${src}" alt="${escapeHtml(alt)}"${dims} loading="${loading}" decoding="async">`
+}
+
+/** 按 id 取预览图;previews 可以是 Map 或普通对象(构建脚本用 Map) */
+function previewFor(previews, id) {
+  if (previews instanceof Map) return previews.get(String(id)) || null
+  if (previews && typeof previews === 'object') return previews[String(id)] || null
+  return null
+}
+
+/** 主题/合集/分类的图纸列表:每项都带预览图与详情页链接 */
+function patternListHtml(patterns, previews, site) {
+  return listItems(patterns.map((p) => {
+    const name = templateDisplayName(p)
+    const { width, height } = patternDimensions(p.pattern)
+    return `<a href="${site}${patternPath(p.id)}">${
+      previewImgHtml(previewFor(previews, p.id), patternImageAlt(name, width, height), { site })
+    }<span>${escapeHtml(name)}</span></a>`
+  }))
+}
+
+/**
  * 图纸详情快照。
  *
  * `ogImage` 由构建脚本传入(生成的分享卡片路径)。为空的后果只是退回站点
@@ -128,9 +169,16 @@ function colorListHtml(stats) {
  * @param {string} [opts.ogImage] 分享卡片路径(站内绝对路径或完整 URL)
  * @param {{width:number,height:number}} [opts.ogImageSize] 卡片实际像素尺寸;
  *   与 ogCard 的 OG_CARD_WIDTH/HEIGHT 一致时才会被写入 meta
+ * @param {{src:string,width:number,height:number}|null} [opts.preview] 图纸预览图;
+ *   有值时正文首屏带一张真实 <img>,图片搜索与非 JS 抓取端才拿得到图纸
  * @returns {{path:string,title:string,description:string,image:string,imageSize:object|null,bodyHtml:string}|null}
  */
-export function buildPatternSnapshot(template, { site = SITE, ogImage = '', ogImageSize = null } = {}) {
+export function buildPatternSnapshot(template, {
+  site = SITE,
+  ogImage = '',
+  ogImageSize = null,
+  preview = null,
+} = {}) {
   if (!template?.id || !template?.pattern) return null
   const name = templateDisplayName(template)
   if (!name) return null
@@ -151,6 +199,11 @@ export function buildPatternSnapshot(template, { site = SITE, ogImage = '', ogIm
 
   const bodyHtml = [
     `<h1>${escapeHtml(name)} 拼豆图纸</h1>`,
+    // 首屏预览图:与 React 详情页引用同一个 URL,加载后是同一张图,
+    // 不是给抓取端看的「另一套内容」。
+    preview
+      ? `<p>${previewImgHtml(preview, patternImageAlt(name, width, height, stats.beads), { site, loading: 'eager' })}</p>`
+      : '',
     `<p class="lead">${width}×${height} 的拼豆图纸,共 ${stats.beads} 颗豆子、${stats.colorCount} 种颜色。` +
       '可以直接载入画布继续修改,或导出带色号的制作图纸。</p>',
     '<h2>制作信息</h2>',
@@ -173,15 +226,17 @@ export function buildPatternSnapshot(template, { site = SITE, ogImage = '', ogIm
 }
 /**
  * 主题快照。patterns 为该主题下的模板(已按关联顺序解析)。
+ * previews:模板 id → 预览图 {src,width,height},用于给每张图纸配真实图片。
  */
-export function buildThemeSnapshot(theme, patterns = [], { site = SITE } = {}) {
+export function buildThemeSnapshot(theme, patterns = [], { site = SITE, previews = null } = {}) {
   if (!theme?.slug) return null
   const title = theme.title || ''
   if (!title) return null
 
   const path = themePath(theme.slug)
   const desc = theme.description || ''
-  const names = patterns.map((p) => templateDisplayName(p)).filter(Boolean)
+  const usable = (patterns || []).filter((p) => p?.id && templateDisplayName(p))
+  const names = usable.map((p) => templateDisplayName(p))
 
   const metaTitle = escapeHtml(`${title} - 拼豆图纸主题 - 拼豆Studio`)
   const description = escapeHtml(clampDescription(
@@ -192,7 +247,7 @@ export function buildThemeSnapshot(theme, patterns = [], { site = SITE } = {}) {
     `<h1>${escapeHtml(title)}</h1>`,
     desc ? `<p class="lead">${escapeHtml(desc)}</p>` : '',
     `<h2>包含图纸(${names.length} 张)</h2>`,
-    names.length ? listItems(names.map(escapeHtml)) : '<p>该主题的图纸正在整理中。</p>',
+    usable.length ? patternListHtml(usable, previews, site) : '<p>该主题的图纸正在整理中。</p>',
     '<p class="note">在拼豆Studio 打开主题页可按分类、难度与用色数进一步筛选。</p>',
   ].filter(Boolean).join('\n')
 
@@ -200,7 +255,7 @@ export function buildThemeSnapshot(theme, patterns = [], { site = SITE } = {}) {
 }
 
 /** 合集快照。 */
-export function buildCollectionSnapshot(collection, patterns = [], { site = SITE } = {}) {
+export function buildCollectionSnapshot(collection, patterns = [], { site = SITE, previews = null } = {}) {
   if (!collection?.slug) return null
   const title = collection.title || ''
   if (!title) return null
@@ -208,7 +263,8 @@ export function buildCollectionSnapshot(collection, patterns = [], { site = SITE
   const path = collectionPath(collection.slug)
   const note = collection.curationNote || ''
   const desc = collection.description || ''
-  const names = patterns.map((p) => templateDisplayName(p)).filter(Boolean)
+  const usable = (patterns || []).filter((p) => p?.id && templateDisplayName(p))
+  const names = usable.map((p) => templateDisplayName(p))
 
   const metaTitle = escapeHtml(`${title} - 拼豆精选合集 - 拼豆Studio`)
   const description = escapeHtml(clampDescription(
@@ -219,7 +275,7 @@ export function buildCollectionSnapshot(collection, patterns = [], { site = SITE
     `<h1>${escapeHtml(title)}</h1>`,
     note ? `<p class="lead">${escapeHtml(note)}</p>` : (desc ? `<p class="lead">${escapeHtml(desc)}</p>` : ''),
     `<h2>合集内容(${names.length} 张)</h2>`,
-    names.length ? listItems(names.map(escapeHtml)) : '<p>该合集的图纸正在整理中。</p>',
+    usable.length ? patternListHtml(usable, previews, site) : '<p>该合集的图纸正在整理中。</p>',
     '<p class="note">在拼豆Studio 打开合集页可查看全部图纸并一键载入画布。</p>',
   ].filter(Boolean).join('\n')
 
@@ -238,8 +294,13 @@ export function buildCollectionSnapshot(collection, patterns = [], { site = SITE
  * @param {object} [opts]
  * @param {Array<{raw:string,slug:string,label:string}>} [opts.relatedCategories]
  *   其它有内容的分类,用于页内互链
+ * @param {Map|object} [opts.previews] 模板 id → 预览图;有值时列表带真实图片
  */
-export function buildCategorySnapshot(meta, patterns = [], { site = SITE, relatedCategories = [] } = {}) {
+export function buildCategorySnapshot(meta, patterns = [], {
+  site = SITE,
+  relatedCategories = [],
+  previews = null,
+} = {}) {
   if (!meta?.slug || !meta?.label) return null
   const usable = (patterns || []).filter((p) => p?.id && templateDisplayName(p))
   if (!usable.length) return null
@@ -259,9 +320,7 @@ export function buildCategorySnapshot(meta, patterns = [], { site = SITE, relate
     meta.intro ? `<p class="lead">${escapeHtml(meta.intro)}</p>` : '',
     `<p class="lead">${escapeHtml(label)}主题共收录 ${usable.length} 张免费拼豆图纸模板,打开即可查看网格尺寸与用色;选中后能直接载入画布制作或继续修改。</p>`,
     `<h2>全部图纸(${usable.length} 张)</h2>`,
-    listItems(usable.map(
-      (p) => `<a href="${site}${patternPath(p.id)}">${escapeHtml(templateDisplayName(p))}</a>`,
-    )),
+    patternListHtml(usable, previews, site),
     related.length ? '<h2>其他分类</h2>' : '',
     related.length
       ? `<p>${related.map((item) => `<a href="${site}${categoryPath(item.slug)}">${escapeHtml(item.label)}拼豆图纸</a>`).join(' · ')}</p>`
@@ -326,11 +385,14 @@ function sitemapUrl({ loc, lastmod, priority, changefreq = 'weekly', image = nul
   if (lastmod) lines.push(`    <lastmod>${lastmod}</lastmod>`)
   lines.push(`    <changefreq>${changefreq}</changefreq>`)
   lines.push(`    <priority>${priority}</priority>`)
-  // 图片 sitemap 扩展:让图纸预览卡进入图片搜索。只在实际生成过卡片的
-  // 条目上输出,避免指向 404 的 image:loc。
-  if (image) {
+  // 图片 sitemap 扩展:让图纸预览图进入图片搜索。只在实际生成过图片的
+  // 条目上输出,避免指向 404 的 image:loc。一条 URL 可以挂多张图
+  // (分享卡片 + 透明底的图案预览),两者用途不同,都能被图片搜索采用。
+  const imageList = Array.isArray(image) ? image : (image ? [image] : [])
+  for (const loc of imageList) {
+    if (!loc) continue
     lines.push('    <image:image>')
-    lines.push(`      <image:loc>${escapeHtml(image)}</image:loc>`)
+    lines.push(`      <image:loc>${escapeHtml(loc)}</image:loc>`)
     lines.push('    </image:image>')
   }
   // 百度移动扩展只出现在 /sitemap-baidu.xml(构建时由同一份内容生成);
@@ -431,6 +493,8 @@ const SEO_STYLE = `<style>
     #seo-static h2{font-size:19px;margin:22px 0 8px}
     #seo-static ul{margin:0 0 12px;padding-left:22px}
     #seo-static li{margin:3px 0}
+    #seo-static p>img{max-width:360px;width:100%;height:auto;border-radius:8px;margin:4px 0}
+    #seo-static li img{max-width:76px;max-height:76px;width:auto;height:auto;vertical-align:middle;margin-right:8px;border-radius:6px}
     #seo-static .note{color:#7a6c60;font-size:13px;margin-top:20px}
     @media (max-width:640px){#seo-static h1{font-size:21px}#seo-static{padding-top:20px}}
   </style>`
