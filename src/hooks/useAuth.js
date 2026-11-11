@@ -137,6 +137,21 @@ export function useAuth() {
     }
   }, [])
 
+  // 登录环境快照(后台「最近登录 IP/设备」的数据源):真实 IP 与 UA 由服务端
+  // 从请求头(request.headers)读取,客户端只负责在建立新会话后触发一次。
+  // 失败静默:快照是增强数据,网络抖动不该打扰刚登录的用户。
+  // 只在**显式登录路径**调用 —— onAuthStateChange 会在令牌刷新时也触发,
+  // 那会把「最近登录」稀释成「最近活跃」。
+  const captureLoginSnapshot = useCallback(() => {
+    if (!supabase) return
+    ;(async () => {
+      try {
+        const { error } = await supabase.rpc('record_login_snapshot')
+        if (error) console.warn('login snapshot failed:', error.message)
+      } catch { /* 非关键路径,静默 */ }
+    })()
+  }, [])
+
   const login = useCallback(async (email, password) => {
     if (!supabase) throw new Error('CLOUD_NOT_CONFIGURED')
     const { error } = await supabase.auth.signInWithPassword({ email, password })
@@ -147,8 +162,9 @@ export function useAuth() {
       if (st.status === 'deleted') throw new Error('ACCOUNT_DELETED')
       throw error
     }
+    captureLoginSnapshot()
     // 登录状态由 onAuthStateChange 统一更新
-  }, [accountStatus])
+  }, [accountStatus, captureLoginSnapshot])
 
   const register = useCallback(async (email, password, confirmPassword) => {
     if (!supabase) throw new Error('CLOUD_NOT_CONFIGURED')
@@ -195,8 +211,9 @@ export function useAuth() {
     if (!supabase) throw new Error('CLOUD_NOT_CONFIGURED')
     const { error } = await supabase.auth.verifyOtp({ email, token, type: 'email' })
     if (error) throw error
+    captureLoginSnapshot()
     // 会话状态由 onAuthStateChange 统一更新
-  }, [])
+  }, [captureLoginSnapshot])
 
   // 设置/更新密码(需要会话:验证码验证后或已登录)。
   //
@@ -218,12 +235,14 @@ export function useAuth() {
     if (error) throw error
   }, [])
 
-  // 验证旧密码(通过再次登录校验)
+  // 验证旧密码(通过再次登录校验)。这也是一次真实登录(会重建会话、
+  // 更新 auth.users.last_sign_in_at),所以同样记录环境快照。
   const verifyPassword = useCallback(async (email, password) => {
     if (!supabase) throw new Error('CLOUD_NOT_CONFIGURED')
     const { error } = await supabase.auth.signInWithPassword({ email, password })
     if (error) throw error
-  }, [])
+    captureLoginSnapshot()
+  }, [captureLoginSnapshot])
 
   // 已登录用户修改密码:旧密码验证 + 设置新密码
   const changePassword = useCallback(async (email, oldPassword, newPassword) => {
@@ -338,9 +357,10 @@ export function useAuth() {
       if (securityKey) {
         try { await supabase.rpc('set_security_key', { p_security_key: securityKey }) } catch { /* 非关键,忽略 */ }
       }
+      captureLoginSnapshot()
     }
     return data
-  }, [usernameExists])
+  }, [usernameExists, captureLoginSnapshot])
 
   // 自定义账号登录:用户名 → 合成邮箱 → 密码登录
   const loginByUsername = useCallback(async (username, password) => {
@@ -360,7 +380,8 @@ export function useAuth() {
       if (st.status === 'deleted') throw new Error('ACCOUNT_DELETED')
       throw error
     }
-  }, [accountStatus])
+    captureLoginSnapshot()
+  }, [accountStatus, captureLoginSnapshot])
 
   // 自定义账号找回密码:用户名 + 安全密钥校验后重置密码
   const forgotPasswordCustom = useCallback(async (username, securityKey, newPassword) => {
