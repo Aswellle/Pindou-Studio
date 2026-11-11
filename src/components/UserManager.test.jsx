@@ -107,7 +107,7 @@ describe('UserManager · 登录环境列', () => {
     expect(container.querySelector('.users-device')?.textContent).toContain('—')
   })
 
-  it('两个新列都带表头,移动端卡片每格带 data-label', async () => {
+  it('两个新列都带表头(移动端与 PC 共用横向滚动表格)', async () => {
     installRpc([publicUser])
     vi.stubGlobal('fetch', vi.fn(async () => ({
       ok: true,
@@ -120,9 +120,7 @@ describe('UserManager · 登录环境列', () => {
     const headers = [...container.querySelectorAll('.users-table thead th')].map(th => th.textContent)
     expect(headers).toContain('最近登录 IP')
     expect(headers).toContain('设备 / 环境')
-    // 移动端卡片布局依赖每个 td 的 data-label 标注字段名
-    const labeled = [...container.querySelectorAll('.users-table tbody td')]
-    expect(labeled.length).toBeGreaterThan(0)
-    expect(labeled.every(td => td.getAttribute('data-label'))).toBe(true)
+    // 表格容器可横向滚动(移动端同样适用),且首列吸附保持定位
+    expect(container.querySelector('.users-table-wrap')).toBeTruthy()
   })
 })

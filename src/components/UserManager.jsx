@@ -302,14 +302,14 @@ export default function UserManager() {
                     : null
                   return (
                     <tr key={u.id}>
-                      <td className="users-email" data-label={t('admin.users.email')}>{u.email}</td>
-                      <td data-label={t('admin.users.nickname')}>{u.nickname || '—'}</td>
-                      <td data-label={t('admin.users.role')}>
+                      <td className="users-email">{u.email}</td>
+                      <td>{u.nickname || '—'}</td>
+                      <td>
                         <span className={`users-role-badge ${u.role === 'admin' ? 'admin' : 'user'}`}>
                           {u.role === 'admin' ? t('admin.users.roleAdmin') : t('admin.users.roleUser')}
                         </span>
                       </td>
-                      <td data-label={t('admin.users.status')}>
+                      <td>
                         <span className={`users-status ${u.email_confirmed ? 'ok' : 'warn'}`}>
                           {u.email_confirmed ? t('admin.users.verifiedYes') : t('admin.users.verifiedNo')}
                         </span>
@@ -319,20 +319,19 @@ export default function UserManager() {
                           </span>
                         )}
                       </td>
-                      <td data-label={t('admin.users.registerMethod')}>
+                      <td>
                         <span className={`users-reg-method ${u.is_custom ? 'custom' : 'email'}`}>
                           {u.is_custom ? t('admin.users.regCustom') : t('admin.users.regEmail')}
                         </span>
                       </td>
-                      <td className="users-date" data-label={t('admin.users.registeredAt')}>
+                      <td className="users-date">
                         {new Date(u.created_at).toLocaleDateString(undefined, { year: 'numeric', month: '2-digit', day: '2-digit' })}
                       </td>
-                      <td className="users-date" data-label={t('admin.users.lastSignIn')}>
+                      <td className="users-date">
                         {renderLastSignIn(u.last_sign_in_at)}
                       </td>
                       <td
                         className="users-ip"
-                        data-label={t('admin.users.lastIp')}
                         title={u.last_login_snapshot_at ? `${t('admin.users.snapshotAt')} ${snapshotTime(u.last_login_snapshot_at)}` : undefined}
                       >
                         {u.last_login_ip ? (
@@ -346,12 +345,11 @@ export default function UserManager() {
                       </td>
                       <td
                         className="users-device"
-                        data-label={t('admin.users.deviceEnv')}
                         title={u.last_login_user_agent || undefined}
                       >
                         {device || <span className="users-admin-note">—</span>}
                       </td>
-                      <td data-label={t('admin.users.actions')}>
+                      <td>
                         {/* admin 拥有最高权限,不提供 删除/锁定 */}
                         {u.role !== 'admin' ? (
                           <div className="users-actions">
@@ -705,55 +703,6 @@ export default function UserManager() {
         .sk-line.sk-sub { width: 85%; height: 11px; }
         @media (max-width: 640px) {
           .users-stats { grid-template-columns: repeat(2, 1fr); }
-          /* 移动端用户表 → 卡片列表:横向滑动在手机上必然看不到全表,
-             改为「一行一个用户」,每格用 data-label 标注字段名 */
-          .users-table { min-width: 0; }
-          .users-table thead { display: none; }
-          .users-table,
-          .users-table tbody {
-            display: block;
-          }
-          .users-table tbody tr {
-            display: block;
-            margin-bottom: 10px;
-            padding: 4px 12px;
-            border: 1px solid var(--border-color);
-            border-radius: 12px;
-            background: var(--bg-primary);
-          }
-          .users-table tbody tr:hover { background: var(--bg-primary); }
-          .users-table td {
-            display: flex;
-            align-items: baseline;
-            justify-content: space-between;
-            gap: 12px;
-            padding: 8px 0;
-            border-bottom: 1px dashed var(--border-color);
-            text-align: right;
-          }
-          .users-table td:last-child { border-bottom: none; }
-          .users-table td::before {
-            content: attr(data-label);
-            flex-shrink: 0;
-            color: var(--text-secondary);
-            font-size: 12px;
-            text-align: left;
-          }
-          /* 吸附列只属于横向滚动方案,卡片布局里关掉 */
-          .users-table th:first-child,
-          .users-table td:first-child {
-            position: static;
-          }
-          .users-email,
-          .users-date,
-          .users-ip,
-          .users-device {
-            white-space: normal;
-            word-break: break-all;
-          }
-          .users-device { max-width: none; }
-          .users-ip-stack { align-items: flex-end; }
-          .users-actions { justify-content: flex-end; }
         }
       `}</style>
     </div>
