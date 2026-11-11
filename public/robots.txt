@@ -1,52 +1,61 @@
 # robots.txt for 拼豆Studio (Bead Studio)
 # https://tangnotes.site/
 #
-# 爬虫策略:SPLIT(2026-09 定案,2026-10 修订)
-# - 搜索引擎 + AI「检索/引用」爬虫(Googlebot、Bingbot、Baiduspider、OAI-SearchBot、
-#   ChatGPT-User、PerplexityBot、Claude-SearchBot 等)→ 允许抓取,利于收录与 GEO 被引用
-# - AI「训练」型爬虫(GPTBot、ClaudeBot、anthropic-ai、CCBot、Google-Extended 等)→ 一律禁止
-# 依据:aaron-marketing seo-geo llm-crawler-handling(允许检索、禁训练的 split 模板)
+# ── 抓取策略 ─────────────────────────────────────────────
+# 1) 搜索与 AI「检索/引用」型爬虫:允许抓取。
+#    搜索引擎 —— Googlebot / Bingbot / Baiduspider / Sogou web spider /
+#    Sogou inst spider / 360Spider / Applebot / DuckDuckBot / YandexBot /
+#    Yeti(Naver) / Daum / Bytespider / PetalBot 等;
+#    AI 检索 —— OAI-SearchBot / ChatGPT-User / PerplexityBot / Perplexity-User /
+#    Claude-SearchBot / Claude-User。
+# 2) AI「训练」型爬虫(GPTBot / ClaudeBot / anthropic-ai / CCBot /
+#    Google-Extended)→ 一律禁止;这些 token 不参与搜索排序,只用于模型训练。
 #
-# 注意:/login、/admin、/profile 等私有页**不在 robots.txt 屏蔽**,一律用
-# <meta name="robots" content="noindex"> 处理。robots.txt 只控制抓取、不控制索引:
-# 一旦屏蔽抓取,爬虫读不到页面里的 noindex,页面反而可能因为外链被收录成一个
-# 没有任何信息的空条目(Google 官方明确不支持在 robots.txt 里写 noindex)。
+# ── 为什么只有一个 `User-agent: *` 组 ─────────────────────
+# robots.txt 的匹配规则是「命中专属组后完全忽略 * 组」。过去为每个引擎各写一组
+# (内容全是同样的两条 Disallow),一旦将来给 * 组新增规则,就必须记得在每组里
+# 再抄一遍,漏一处就是该引擎可以抓到本该屏蔽的路径 —— 这正是本文件此前漏掉
+# /spa.html 与 /sb/ 的原因。现在除「需要 360 扩展指令」与「整体禁止」这两种
+# 确实需要专属组的情况外,全部统一走 * 组,规则只有一处。
+#
+# ── 私有页为什么不写进 robots.txt ────────────────────────
+# /login、/admin、/profile、/my/beads、/contact 等私有页**不在 robots.txt 里屏蔽**:
+# robots.txt 只管抓取、不管索引。屏蔽抓取后爬虫读不到页面里的 noindex,页面反而
+# 可能因为外链被收录成一条没有任何信息的空条目。这些页面统一由响应头
+# X-Robots-Tag: noindex(vercel.json headers)与页面内 meta robots 双重处理。
+#
+# ── 被屏蔽的四条非内容路径 ───────────────────────────────
+# /api/       —— 服务端接口,不是内容页
+# /_vercel/   —— Vercel 内部统计/分析端点
+# /sb/        —— Supabase 同源代理(存储对象、RPC),不属于站点内容
+# /spa.html   —— SPA 兜底壳的**文件地址本身**。各个真实路由(/login、/profile…)
+#                通过 rewrite 复用它,但直接访问 /spa.html 会得到一个没有 canonical、
+#                没有正文的空壳;从 robots 屏蔽掉这个文件 URL,避免它被单独收录成
+#                与首页重复的页面。(真实路由不受影响:它们仍可被抓取并读到 noindex。)
 
-# 全站通用:仅排除敏感/重复路径(未单独声明的爬虫也遵循此组)
 User-agent: *
+Allow: /
 Disallow: /api/
 Disallow: /_vercel/
+Disallow: /sb/
+Disallow: /spa.html
 
-# ── 搜索引擎(收录) ─────────────────────────────
-User-agent: Googlebot
-User-agent: Bingbot
-User-agent: Baiduspider
-User-agent: Sogou web spider
-User-agent: Sogou inst spider
-Disallow: /api/
-Disallow: /_vercel/
-
-# ── 360 搜索:独立分组,以便使用其扩展命令 ─────────────
-# Indexpage 是 360 搜索的扩展指令(标准 robots 无此字段,其他引擎会忽略):
-# 声明经常更新的页面,360 据此提高抓取频率,让新模板/新教程更快被收录。
+# ── 360 搜索:需要专属组才能使用其扩展指令 ───────────────
+# Indexpage 是 360 的扩展字段(标准 robots 无此字段,其他引擎会忽略):声明经常
+# 更新的页面,360 据此提高抓取频率。专属组会覆盖 * 组,因此这里必须重抄上面的
+# 屏蔽项,否则 360 会去抓 /api/ 与 /spa.html。
 User-agent: 360Spider
+Allow: /
 Disallow: /api/
 Disallow: /_vercel/
+Disallow: /sb/
+Disallow: /spa.html
 Indexpage: https://tangnotes.site/
 Indexpage: https://tangnotes.site/gallery
 Indexpage: https://tangnotes.site/tutorials
+Indexpage: https://tangnotes.site/create/image
 
-# ── AI 检索 / 引用引擎(允许抓取,以便被 AI 检索引用) ──
-User-agent: OAI-SearchBot
-User-agent: ChatGPT-User
-User-agent: PerplexityBot
-User-agent: Perplexity-User
-User-agent: Claude-SearchBot
-User-agent: Claude-User
-Disallow: /api/
-Disallow: /_vercel/
-
-# ── AI 训练型爬虫(禁止抓取,仅用于训练) ─────────────
+# ── AI 训练型爬虫:整体禁止 ──────────────────────────────
 User-agent: GPTBot
 User-agent: ClaudeBot
 User-agent: anthropic-ai
@@ -54,5 +63,7 @@ User-agent: CCBot
 User-agent: Google-Extended
 Disallow: /
 
-# 站点地图
+# ── 站点地图 ─────────────────────────────────────────────
+# 只声明标准 sitemap。百度专用的移动变体含 mobile 命名空间,不适合让
+# Google/Bing 抓取,仅通过百度搜索资源平台手动提交(baiduSitemap.test.js 锁定)。
 Sitemap: https://tangnotes.site/sitemap.xml
