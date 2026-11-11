@@ -496,6 +496,8 @@ const SEO_STYLE = `<style>
     #seo-static p>img{max-width:360px;width:100%;height:auto;border-radius:8px;margin:4px 0}
     #seo-static li img{max-width:76px;max-height:76px;width:auto;height:auto;vertical-align:middle;margin-right:8px;border-radius:6px}
     #seo-static .note{color:#7a6c60;font-size:13px;margin-top:20px}
+    #seo-static a{color:#d96a3f;text-decoration:underline;text-underline-offset:3px;text-decoration-color:rgba(217,106,63,.4)}
+    #seo-static a:hover{text-decoration-color:#d96a3f}
     @media (max-width:640px){#seo-static h1{font-size:21px}#seo-static{padding-top:20px}}
   </style>`
 

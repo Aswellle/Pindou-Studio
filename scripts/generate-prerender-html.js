@@ -301,6 +301,8 @@ const SEO_STYLE = `<style>
     #seo-static thead th{background:#f6efe4;font-weight:600}
     #seo-static .swatch{display:inline-block;width:16px;height:16px;border-radius:3px;border:1px solid rgba(43,36,32,.15);vertical-align:-3px}
     #seo-static .note{color:#7a6c60;font-size:13px;margin-top:20px}
+    #seo-static a{color:#d96a3f;text-decoration:underline;text-underline-offset:3px;text-decoration-color:rgba(217,106,63,.4)}
+    #seo-static a:hover{text-decoration-color:#d96a3f}
     @media (max-width:640px){#seo-static h1{font-size:21px}#seo-static{padding-top:20px}}
   </style>`
 
