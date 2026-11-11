@@ -16,7 +16,8 @@
   border-radius: 12px;
   background: var(--bg-primary);
 }
-.tools-rule-card h2 {
+.tools-rule-card h2,
+.tools-rule-card h3 {
   font-size: 15px;
   margin: 0 0 6px;
 }
@@ -92,6 +93,113 @@
 }
 .tools-links {
   margin-top: 26px;
+}
+.tools-links a,
+.tools-note a,
+.tools-section p a {
+  color: var(--accent);
+  text-decoration: none;
+}
+.tools-links a:hover,
+.tools-note a:hover,
+.tools-section p a:hover {
+  text-decoration: underline;
+}
+
+/* ── 落地页 ─────────────────────────────────────────────── */
+.tools-cta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  align-items: center;
+  margin: 4px 0 24px;
+}
+.tools-cta a {
+  color: var(--accent);
+  text-decoration: none;
+  font-size: 14px;
+}
+.tools-cta a:hover {
+  text-decoration: underline;
+}
+.tools-cta-primary {
+  display: inline-flex;
+  align-items: center;
+  padding: 10px 18px;
+  border-radius: 10px;
+  background: var(--accent);
+  color: #fff !important;
+  font-weight: 600;
+}
+.tools-cta-primary:hover {
+  text-decoration: none !important;
+  opacity: 0.92;
+}
+
+.pattern-category-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: 12px;
+}
+.pattern-category-card {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  padding: 14px 16px;
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+  background: var(--bg-primary);
+  color: inherit;
+  text-decoration: none;
+  transition: border-color 0.15s;
+}
+.pattern-category-card:hover {
+  border-color: var(--accent);
+}
+.pattern-category-name {
+  font-size: 15px;
+  font-weight: 600;
+}
+.pattern-category-intro {
+  font-size: 12px;
+  line-height: 1.65;
+  color: var(--text-muted);
+}
+
+.pattern-tips {
+  gap: 10px;
+}
+.pattern-tips li {
+  display: block;
+  padding: 10px 12px;
+  border: 1px solid var(--border-color);
+  border-radius: 10px;
+  background: var(--bg-primary);
+  font-size: 13px;
+  line-height: 1.75;
+  color: var(--text-muted);
+}
+.pattern-tips strong {
+  color: var(--text-primary);
+  margin-right: 4px;
+}
+
+.pattern-steps {
+  margin: 0;
+  padding-left: 20px;
+  display: grid;
+  gap: 10px;
+}
+.pattern-steps li {
+  font-size: 14px;
+  line-height: 1.75;
+}
+.pattern-steps strong {
+  display: block;
+}
+.pattern-steps span {
+  color: var(--text-muted);
+  font-size: 13px;
 }
 
 /* ── 计算器 ─────────────────────────────────────────────── */
