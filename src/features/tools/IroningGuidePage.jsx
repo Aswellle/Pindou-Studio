@@ -92,15 +92,12 @@ export default function IroningGuidePage() {
         </section>
       )}
 
-      <p className="tools-links">
-        <Link to="/create/image">图片转拼豆图纸</Link>
-        {' · '}
-        <Link to="/gallery">拼豆图纸模板库</Link>
-        {' · '}
-        <Link to="/colors">品牌色卡对照表</Link>
-        {' · '}
-        <Link to="/bead-calculator">豆子数量计算器</Link>
-      </p>
+      <nav className="tools-links" aria-label="相关页面">
+        <Link className="tools-link-chip" to="/create/image">图片转拼豆图纸</Link>
+        <Link className="tools-link-chip" to="/gallery">拼豆图纸模板库</Link>
+        <Link className="tools-link-chip" to="/colors">品牌色卡对照表</Link>
+        <Link className="tools-link-chip" to="/bead-calculator">豆子数量计算器</Link>
+      </nav>
     </div>
   )
 }

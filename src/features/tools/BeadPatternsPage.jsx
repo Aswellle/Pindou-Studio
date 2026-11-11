@@ -112,15 +112,12 @@ export default function BeadPatternsPage() {
         </section>
       )}
 
-      <p className="tools-links">
-        <Link to="/gallery">拼豆图纸模板库</Link>
-        {' · '}
-        <Link to="/pixel-art">像素画生成器</Link>
-        {' · '}
-        <Link to="/bead-calculator">豆子数量计算器</Link>
-        {' · '}
-        <Link to="/ironing">熨烫温度对照表</Link>
-      </p>
+      <nav className="tools-links" aria-label="相关页面">
+        <Link className="tools-link-chip" to="/gallery">拼豆图纸模板库</Link>
+        <Link className="tools-link-chip" to="/pixel-art">像素画生成器</Link>
+        <Link className="tools-link-chip" to="/bead-calculator">豆子数量计算器</Link>
+        <Link className="tools-link-chip" to="/ironing">熨烫温度对照表</Link>
+      </nav>
     </div>
   )
 }

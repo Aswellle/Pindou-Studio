@@ -38,10 +38,10 @@ export default function PixelArtPage() {
         </p>
       </div>
 
-      <p className="tools-cta">
+      <div className="tools-cta">
         <Link className="tools-cta-primary" to="/">打开画布开始画</Link>
         <Link to="/create/image">上传照片转像素图</Link>
-      </p>
+      </div>
 
       <section className="tools-section">
         <h2>能做什么</h2>
@@ -122,15 +122,12 @@ export default function PixelArtPage() {
         </section>
       )}
 
-      <p className="tools-links">
-        <Link to="/">拼豆画布工具</Link>
-        {' · '}
-        <Link to="/gallery">拼豆图纸模板库</Link>
-        {' · '}
-        <Link to="/create/image">图片转拼豆图纸</Link>
-        {' · '}
-        <Link to="/colors">品牌色卡对照表</Link>
-      </p>
+      <nav className="tools-links" aria-label="相关页面">
+        <Link className="tools-link-chip" to="/">拼豆画布工具</Link>
+        <Link className="tools-link-chip" to="/gallery">拼豆图纸模板库</Link>
+        <Link className="tools-link-chip" to="/create/image">图片转拼豆图纸</Link>
+        <Link className="tools-link-chip" to="/colors">品牌色卡对照表</Link>
+      </nav>
     </div>
   )
 }

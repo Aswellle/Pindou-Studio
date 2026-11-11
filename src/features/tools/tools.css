@@ -71,39 +71,74 @@
   padding: 0;
   margin: 0;
   display: grid;
-  gap: 6px;
+  gap: 8px;
 }
 .tools-link-list li {
   display: flex;
   gap: 8px;
   align-items: baseline;
 }
-.tools-link-list a,
-.tools-links a {
-  color: var(--accent);
-  text-decoration: none;
-}
-.tools-link-list a:hover,
-.tools-links a:hover {
-  text-decoration: underline;
-}
 .tools-link-meta {
   font-size: 12px;
   color: var(--text-muted);
 }
-.tools-links {
-  margin-top: 26px;
-}
-.tools-links a,
-.tools-note a,
-.tools-section p a {
+
+/* ── 站内关联链接的统一观感 ─────────────────────────────────
+   备料五个页面里的跳转一律「主题色 + 下划线」:只换颜色不加下划线时,
+   用户分不清哪段文字可以点。下划线偏淡,悬停时加深,不抢正文视觉。
+   色卡页(.color-chart-page)同样适用 —— 两类页面共用这份样式。 */
+.tools-page p a,
+.tools-page li a,
+.tools-page .tools-note a,
+.color-chart-page p a,
+.color-chart-page li a {
   color: var(--accent);
-  text-decoration: none;
-}
-.tools-links a:hover,
-.tools-note a:hover,
-.tools-section p a:hover {
   text-decoration: underline;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 3px;
+  text-decoration-color: color-mix(in srgb, var(--accent) 40%, transparent);
+}
+.tools-page p a:hover,
+.tools-page li a:hover,
+.tools-page .tools-note a:hover,
+.color-chart-page p a:hover,
+.color-chart-page li a:hover {
+  text-decoration-color: var(--accent);
+}
+.tools-page a:focus-visible,
+.color-chart-page a:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+/* 页脚相关链接:胶囊行。上边框把「正文结束 / 继续去哪」分开,
+   flex + gap 给出均匀间隔,窄屏自动换行。 */
+.tools-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 28px;
+  padding-top: 18px;
+  border-top: 1px solid var(--border-color);
+}
+.tools-link-chip {
+  display: inline-flex;
+  align-items: center;
+  padding: 7px 14px;
+  border: 1px solid var(--border-color);
+  border-radius: 999px;
+  background: var(--bg-primary);
+  color: var(--accent);
+  font-size: 13px;
+  line-height: 1.5;
+  text-align: left;
+  text-decoration: none;
+  transition: border-color 0.15s, background 0.15s;
+}
+.tools-link-chip:hover {
+  border-color: var(--accent);
+  background: var(--accent-soft);
 }
 
 /* ── 落地页 ─────────────────────────────────────────────── */
@@ -114,13 +149,16 @@
   align-items: center;
   margin: 4px 0 24px;
 }
-.tools-cta a {
+.tools-cta a:not(.tools-cta-primary) {
   color: var(--accent);
-  text-decoration: none;
   font-size: 14px;
-}
-.tools-cta a:hover {
   text-decoration: underline;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 3px;
+  text-decoration-color: color-mix(in srgb, var(--accent) 40%, transparent);
+}
+.tools-cta a:not(.tools-cta-primary):hover {
+  text-decoration-color: var(--accent);
 }
 .tools-cta-primary {
   display: inline-flex;
@@ -130,9 +168,10 @@
   background: var(--accent);
   color: #fff !important;
   font-weight: 600;
+  text-decoration: none;
 }
 .tools-cta-primary:hover {
-  text-decoration: none !important;
+  text-decoration: none;
   opacity: 0.92;
 }
 
@@ -142,10 +181,11 @@
   gap: 12px;
 }
 .pattern-category-card {
+  position: relative;
   display: flex;
   flex-direction: column;
   gap: 5px;
-  padding: 14px 16px;
+  padding: 14px 34px 14px 16px;
   border: 1px solid var(--border-color);
   border-radius: 12px;
   background: var(--bg-primary);
@@ -153,8 +193,24 @@
   text-decoration: none;
   transition: border-color 0.15s;
 }
+/* 右上角箭头:卡片是链接,但整卡换色容易让人只当它是信息块 ——
+   一个常驻的「›」把可点性写在脸上,悬停时向右轻移 */
+.pattern-category-card::after {
+  content: "›";
+  position: absolute;
+  top: 12px;
+  right: 14px;
+  color: var(--text-muted);
+  font-size: 18px;
+  line-height: 1;
+  transition: color 0.15s, transform 0.15s;
+}
 .pattern-category-card:hover {
   border-color: var(--accent);
+}
+.pattern-category-card:hover::after {
+  color: var(--accent);
+  transform: translateX(2px);
 }
 .pattern-category-name {
   font-size: 15px;

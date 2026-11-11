@@ -144,13 +144,11 @@ export default function BeadCalculatorPage() {
         <p>{t('calculator.formulaBody')}</p>
       </section>
 
-      <p className="tools-links">
-        <Link to="/create/image">{t('calculator.openTool')}</Link>
-        {' · '}
-        <Link to="/gallery">{t('calculator.browsePatterns')}</Link>
-        {' · '}
-        <Link to="/colors">{t('calculator.colorCharts')}</Link>
-      </p>
+      <nav className="tools-links" aria-label={t('colorsPage.relatedLinks')}>
+        <Link className="tools-link-chip" to="/create/image">{t('calculator.openTool')}</Link>
+        <Link className="tools-link-chip" to="/gallery">{t('calculator.browsePatterns')}</Link>
+        <Link className="tools-link-chip" to="/colors">{t('calculator.colorCharts')}</Link>
+      </nav>
     </div>
   )
 }
