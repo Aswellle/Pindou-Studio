@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { NavLink, useLocation, useNavigate } from 'react-router-dom'
-import { PenTool, LayoutGrid, BookOpen, Palette, ChevronDown, LogOut, UserRound } from 'lucide-react'
+import { PenTool, LayoutGrid, BookOpen, Palette, ChevronDown, LogOut, UserRound, Boxes, SwatchBook, Flame, Calculator, Grid3x3 } from 'lucide-react'
 import LanguageSelector from './Header/LanguageSelector'
 import Avatar from './Avatar'
 import LogoutConfirmDialog from './auth/LogoutConfirmDialog'
@@ -22,8 +22,11 @@ export default function Header({
   const location = useLocation()
   const [userMenuOpen, setUserMenuOpen] = useState(false)
   const [confirmLogout, setConfirmLogout] = useState(false)
+  const [prepMenuOpen, setPrepMenuOpen] = useState(false)
   const userMenuTriggerRef = useRef(null)
   const userMenuRef = useRef(null)
+  const prepTriggerRef = useRef(null)
+  const prepMenuRef = useRef(null)
 
   useScrollLock(confirmLogout)
 
@@ -31,6 +34,7 @@ export default function Header({
   // biome-ignore lint/correctness/useExhaustiveDependencies: pathname 只作为「路由变化」信号,effect 内不读取它
   useEffect(() => {
     setUserMenuOpen(false)
+    setPrepMenuOpen(false)
   }, [location.pathname])
 
   useEffect(() => {
@@ -62,6 +66,29 @@ export default function Header({
     }
   }, [userMenuOpen])
 
+  // 备料菜单:点击外部或 Escape 关闭(Escape 后焦点回到触发按钮)。
+  // 触发按钮本身在判定范围内,否则点它「关闭再打开」会被外部点击立刻关掉。
+  useEffect(() => {
+    if (!prepMenuOpen) return undefined
+    const handleClick = e => {
+      if (prepMenuRef.current?.contains(e.target)) return
+      if (prepTriggerRef.current?.contains(e.target)) return
+      setPrepMenuOpen(false)
+    }
+    const handleKeyDown = e => {
+      if (e.key === 'Escape') {
+        setPrepMenuOpen(false)
+        prepTriggerRef.current?.focus()
+      }
+    }
+    document.addEventListener('click', handleClick)
+    document.addEventListener('keydown', handleKeyDown)
+    return () => {
+      document.removeEventListener('click', handleClick)
+      document.removeEventListener('keydown', handleKeyDown)
+    }
+  }, [prepMenuOpen])
+
   // 后台管理(admin)不在导航中显示,仅通过 /admin 路由访问
   const navItems = [
     { id: 'canvas', path: '/', label: t('nav.canvas'), icon: PenTool },
@@ -69,6 +96,17 @@ export default function Header({
     { id: 'tutorials', path: '/tutorials', label: t('nav.tutorials'), icon: BookOpen },
     { id: 'myBeads', path: '/my/beads', label: t('nav.myBeads'), icon: Palette },
   ]
+
+  // 备料资料入口:色卡/熨烫/计算器/图案/像素画五个新页面此前只能靠站点地图发现,
+  // 应用里没有可见入口。收进顶栏一个下拉,不再往图标一栏里塞五个图标。
+  const prepItems = [
+    { path: '/colors', label: t('nav.colors'), icon: SwatchBook },
+    { path: '/ironing', label: t('nav.ironing'), icon: Flame },
+    { path: '/bead-calculator', label: t('nav.calculator'), icon: Calculator },
+    { path: '/bead-patterns', label: t('nav.patterns'), icon: Grid3x3 },
+    { path: '/pixel-art', label: t('nav.pixelArt'), icon: PenTool },
+  ]
+  const prepActive = ['colors', 'ironing', 'beadCalculator', 'beadPatterns', 'pixelArt'].includes(currentPage)
 
   // 顶部导航在两种布局下都是纯图标:名称走 aria-label 与悬浮轻提示(data-tip),
   // 从根上免除英文/日文等长语言把顶栏挤断行的问题,也不再需要按语言调宽度。
@@ -85,6 +123,43 @@ export default function Header({
           <item.icon size={iconSize} aria-hidden="true" />
         </NavLink>
       ))}
+      <div className="nav-prep" ref={prepMenuRef}>
+        <button
+          ref={prepTriggerRef}
+          type="button"
+          className={`nav-link nav-prep-trigger ${prepActive ? 'active' : ''}`}
+          aria-label={t('nav.prep')}
+          data-tip={t('nav.prep')}
+          aria-haspopup="menu"
+          aria-expanded={prepMenuOpen}
+          aria-controls="prep-menu"
+          onClick={() => {
+            setUserMenuOpen(false)
+            setPrepMenuOpen(open => !open)
+          }}
+        >
+          <Boxes size={iconSize} aria-hidden="true" />
+        </button>
+        {prepMenuOpen && (
+          <div className="prep-menu" id="prep-menu" role="menu">
+            {prepItems.map(item => (
+              <button
+                key={item.path}
+                type="button"
+                role="menuitem"
+                className="prep-menu-item"
+                onClick={() => {
+                  setPrepMenuOpen(false)
+                  navigate(item.path)
+                }}
+              >
+                <item.icon size={15} aria-hidden="true" />
+                <span>{item.label}</span>
+              </button>
+            ))}
+          </div>
+        )}
+      </div>
     </nav>
   )
 
@@ -299,6 +374,56 @@ export default function Header({
         .nav-link:focus-visible {
           outline: 2px solid var(--accent);
           outline-offset: 2px;
+        }
+        /* 备料下拉:一个入口装五个资料页,不往图标栏里再塞五个图标 */
+        .nav-prep {
+          position: relative;
+          display: flex;
+          align-items: center;
+        }
+        .nav-prep-trigger {
+          padding: 0;
+          border: none;
+          background: none;
+          font: inherit;
+          cursor: pointer;
+        }
+        .prep-menu {
+          position: absolute;
+          top: calc(100% + 10px);
+          right: 0;
+          min-width: 196px;
+          padding: 6px;
+          display: flex;
+          flex-direction: column;
+          gap: 2px;
+          background: var(--bg-primary);
+          border: 1px solid var(--border-color);
+          border-radius: 12px;
+          box-shadow: 0 12px 30px rgba(43, 36, 32, 0.18);
+          z-index: 1200;
+        }
+        .prep-menu-item {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          padding: 8px 10px;
+          border: none;
+          border-radius: 8px;
+          background: none;
+          color: var(--text-primary);
+          font: inherit;
+          font-size: var(--text-sm);
+          text-align: left;
+          white-space: nowrap;
+          cursor: pointer;
+        }
+        .prep-menu-item:hover {
+          background: var(--bg-secondary);
+        }
+        .prep-menu-item:focus-visible {
+          outline: 2px solid var(--accent);
+          outline-offset: -2px;
         }
         /* 悬浮轻提示:悬停/键盘聚焦 300ms 后淡入,离开即消失,不抢操作。
            仅限可悬停的精确指针设备 —— 触屏点按不应冒出浮窗(点按会触发

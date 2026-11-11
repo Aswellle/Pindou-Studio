@@ -9,7 +9,13 @@
     "profile": "プロフィール",
     "tutorials": "チュートリアル",
     "admin": "管理",
-    "myBeads": "マイビーズ"
+    "myBeads": "マイビーズ",
+    "prep": "材料資料",
+    "colors": "カラー見本",
+    "ironing": "アイロン温度",
+    "calculator": "ビーズ数計算",
+    "patterns": "ビーズ図案",
+    "pixelArt": "ピクセルアート"
   },
   "auth": {
     "gate": {

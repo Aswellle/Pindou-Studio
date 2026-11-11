@@ -53,6 +53,7 @@ function renderHeader(props = {}) {
           element={<Header user={mockUser} currentPage="canvas" simplified onLogout={onLogout} {...props} />}
         />
         <Route path="/profile" element={<div>PROFILE_PAGE</div>} />
+        <Route path="/colors" element={<div>COLORS_PAGE</div>} />
       </Routes>
     </MemoryRouter>
   )
@@ -125,7 +126,8 @@ describe('Header · 纯图标导航与圆形登录', () => {
   it('导航只渲染图标:链接带 aria-label 与悬浮提示(data-tip),不再有文字', () => {
     renderHeader({ simplified: false, currentPage: 'canvas', onSave: vi.fn() })
     const links = [...document.querySelectorAll('.nav-link')]
-    expect(links.length).toBe(4)
+    // 4 个主栏目 + 1 个备料下拉入口
+    expect(links.length).toBe(5)
     expect(links.every(link => link.getAttribute('aria-label'))).toBe(true)
     expect(links.every(link => link.getAttribute('data-tip'))).toBe(true)
     expect(document.querySelectorAll('.nav-text, .nav-label')).toHaveLength(0)
@@ -147,5 +149,45 @@ describe('Header · 纯图标导航与圆形登录', () => {
     renderHeader({ simplified: false, user: null, onLogin: vi.fn() })
     expect(document.querySelector('.auth-circle-btn')?.textContent).toBe('Login')
     await i18n.changeLanguage('zh-CN')
+  })
+})
+
+describe('Header · 备料资料入口', () => {
+  it('展开后列出五个资料页并可以跳转', () => {
+    renderHeader({ simplified: false })
+    fireEvent.click(screen.getByRole('button', { name: '备料资料' }))
+
+    const menu = screen.getByRole('menu')
+    const items = within(menu).getAllByRole('menuitem')
+    expect(items).toHaveLength(5)
+    expect(items.map(item => item.textContent)).toEqual([
+      '品牌色卡对照',
+      '熨烫温度对照',
+      '豆子数量计算器',
+      '拼豆图案',
+      '像素画生成器',
+    ])
+
+    fireEvent.click(within(menu).getByRole('menuitem', { name: '品牌色卡对照' }))
+    expect(screen.getByText('COLORS_PAGE')).toBeTruthy()
+  })
+
+  it('Escape 关闭菜单并把焦点还给入口', () => {
+    renderHeader({ simplified: false })
+    const trigger = screen.getByRole('button', { name: '备料资料' })
+    fireEvent.click(trigger)
+    expect(screen.getByRole('menu')).toBeTruthy()
+
+    fireEvent.keyDown(document, { key: 'Escape' })
+    expect(screen.queryByRole('menu')).toBeNull()
+    expect(document.activeElement).toBe(trigger)
+  })
+
+  it('点击菜单外部关闭', () => {
+    renderHeader({ simplified: false })
+    fireEvent.click(screen.getByRole('button', { name: '备料资料' }))
+    expect(screen.getByRole('menu')).toBeTruthy()
+    fireEvent.click(document.body)
+    expect(screen.queryByRole('menu')).toBeNull()
   })
 })

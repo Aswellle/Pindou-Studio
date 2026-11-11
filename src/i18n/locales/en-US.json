@@ -9,7 +9,13 @@
     "profile": "Profile",
     "tutorials": "Tutorials",
     "admin": "Admin",
-    "myBeads": "My Beads"
+    "myBeads": "My Beads",
+    "prep": "Materials",
+    "colors": "Color charts",
+    "ironing": "Ironing guide",
+    "calculator": "Bead calculator",
+    "patterns": "Bead patterns",
+    "pixelArt": "Pixel art generator"
   },
   "auth": {
     "gate": {

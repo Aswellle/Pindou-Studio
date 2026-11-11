@@ -9,7 +9,13 @@
     "profile": "个人资料",
     "tutorials": "教程",
     "admin": "后台管理",
-    "myBeads": "我的色卡"
+    "myBeads": "我的色卡",
+    "prep": "备料资料",
+    "colors": "品牌色卡对照",
+    "ironing": "熨烫温度对照",
+    "calculator": "豆子数量计算器",
+    "patterns": "拼豆图案",
+    "pixelArt": "像素画生成器"
   },
   "auth": {
     "gate": {

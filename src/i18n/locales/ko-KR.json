@@ -9,7 +9,13 @@
     "profile": "프로필",
     "tutorials": "튜토리얼",
     "admin": "관리",
-    "myBeads": "내 비즈"
+    "myBeads": "내 비즈",
+    "prep": "재료 자료",
+    "colors": "컬러 차트",
+    "ironing": "다림질 온도",
+    "calculator": "비즈 개수 계산",
+    "patterns": "비즈 도안",
+    "pixelArt": "픽셀 아트"
   },
   "auth": {
     "gate": {
