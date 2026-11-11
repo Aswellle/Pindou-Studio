@@ -1183,7 +1183,7 @@
     "confirmSend": "보내기",
     "users": {
       "title": "사용자 대시보드",
-      "privacyNote": "운영에 필요한 등록 정보만 표시합니다(이메일/닉네임/역할/인증 상태/가입일). 비밀번호 등 민감 정보와 행동 데이터는 포함하지 않습니다",
+      "privacyNote": "운영에 필요한 등록 정보(이메일/닉네임/역할/인증 상태/가입일)와 최근 로그인 IP·기기 정보(관리자만)를 표시합니다. 비밀번호 등 민감 정보와 행동 데이터는 포함하지 않습니다",
       "total": "등록 사용자",
       "verified": "인증된 이메일",
       "unverified": "미인증 이메일",
@@ -1225,7 +1225,11 @@
       "loadFailed": "로드 실패",
       "pagePrev": "이전",
       "pageNext": "다음",
-      "pageInfo": "{{page}}페이지"
+      "pageInfo": "{{page}}페이지",
+      "lastIp": "최근 로그인 IP",
+      "deviceEnv": "기기 / UA",
+      "ipPrivate": "로컬 / 내부",
+      "snapshotAt": "스냅샷 시각"
     },
     "registrations": {
       "title": "최근 등록",

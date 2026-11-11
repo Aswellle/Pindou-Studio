@@ -1183,7 +1183,7 @@
     "confirmSend": "确认发送",
     "users": {
       "title": "用户仪表盘",
-      "privacyNote": "仅展示平台运营所需的注册信息(邮箱/昵称/角色/验证状态/注册时间),不包含密码等敏感数据,不收集行为数据",
+      "privacyNote": "仅展示平台运营所需的注册信息(邮箱/昵称/角色/验证状态/注册时间)与最近一次登录的 IP、设备环境(仅管理员可见);不包含密码等敏感数据,不收集行为数据",
       "total": "注册用户",
       "verified": "已验证邮箱",
       "unverified": "未验证邮箱",
@@ -1225,7 +1225,11 @@
       "loadFailed": "加载失败",
       "pagePrev": "上一页",
       "pageNext": "下一页",
-      "pageInfo": "第 {{page}} 页"
+      "pageInfo": "第 {{page}} 页",
+      "lastIp": "最近登录 IP",
+      "deviceEnv": "设备 / 环境",
+      "ipPrivate": "内网 / 本地",
+      "snapshotAt": "快照时间"
     },
     "registrations": {
       "title": "最近注册",

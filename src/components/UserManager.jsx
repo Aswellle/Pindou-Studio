@@ -7,12 +7,15 @@ import { useToast } from './Toast'
 import { useAuth } from '../hooks/useAuth'
 import { useScrollLock } from '../hooks/useScrollLock'
 import { useDialogA11y } from '../hooks/useDialogA11y'
+import { parseUserAgent } from '../utils/userAgent'
+import { isPrivateIp, lookupIpRegion } from '../utils/ipGeolocation'
 
 /**
  * 用户管理面板(管理员仪表盘)
- * 合规:仅展示注册元数据(邮箱/昵称/角色/验证状态/注册时间/注册方式/最近登录/封禁状态),
- * 不包含密码等敏感字段,不收集行为数据;数据经云端 RPC
- * (security definer + is_admin 校验)获取,普通用户调用被拒。
+ * 合规:仅展示注册元数据(邮箱/昵称/角色/验证状态/注册时间/注册方式/最近登录/封禁状态)
+ * 与最近一次登录的环境快照(IP / User-Agent,迁移 0035,RLS 无 policy,
+ * 客户端无法直查,仅本 RPC 聚合返回);不包含密码等敏感字段,不收集行为数据。
+ * 数据经云端 RPC(security definer + is_admin 校验)获取,普通用户调用被拒。
  * 新增:删除 / 锁定(封禁)/ 解锁违规用户(一致确认框;admin 账号豁免)。
  */
 const PAGE_SIZE = 20
@@ -29,6 +32,8 @@ export default function UserManager() {
   const [error, setError] = useState('')
   // 最近注册记录(入库:registration_notifications 表,经 RPC admin_list_registrations 读取)
   const [registrations, setRegistrations] = useState([])
+  // IP 归属地查询结果:ip → 「国家 省 市」;内网地址直接标「内网/本地」
+  const [regions, setRegions] = useState({})
   // 数据看板 / 最近注册 加载中标志:未就绪时用固定高度骨架占位,避免「先空→数据到→布局跳动」
   const [statsLoading, setStatsLoading] = useState(true)
   const [regLoading, setRegLoading] = useState(true)
@@ -119,6 +124,33 @@ export default function UserManager() {
     const timer = setTimeout(loadUsers, 300)
     return () => clearTimeout(timer)
   }, [loadUsers])
+
+  // IP 归属地按需查询:列表里出现没查过的公网 IP 才发请求。
+  // 查询与失败结果都在 ipGeolocation 模块级缓存里,实时刷新不会重复打接口。
+  useEffect(() => {
+    let alive = true
+    const ips = [...new Set(users.map(u => u.last_login_ip).filter(Boolean))]
+    for (const ip of ips) {
+      if (isPrivateIp(ip)) continue
+      lookupIpRegion(ip).then(region => {
+        if (alive && region) setRegions(prev => (prev[ip] ? prev : { ...prev, [ip]: region }))
+      })
+    }
+    return () => { alive = false }
+  }, [users])
+
+  // 「设备 / 环境」列的展示文本:解析 UA 为「系统 · 浏览器」,原始 UA 在悬浮提示里
+  const deviceLabel = (userAgent) => parseUserAgent(userAgent)?.label || ''
+
+  // 登录快照时间(悬浮在 IP 上):快照晚于最近登录时间才算新鲜
+  const snapshotTime = (ts) => {
+    const date = new Date(ts)
+    if (Number.isNaN(date.getTime())) return undefined
+    return date.toLocaleString(undefined, {
+      year: 'numeric', month: '2-digit', day: '2-digit',
+      hour: '2-digit', minute: '2-digit',
+    })
+  }
 
   // 实时刷新:新用户注册(profiles 插入)或后台删除/锁定/解锁后,自动刷新统计与列表,
   // 无需手动刷新页面或切换 tab。静默刷新(不闪 loading)。
@@ -257,55 +289,86 @@ export default function UserManager() {
                   <th>{t('admin.users.registerMethod')}</th>
                   <th>{t('admin.users.registeredAt')}</th>
                   <th>{t('admin.users.lastSignIn')}</th>
+                  <th>{t('admin.users.lastIp')}</th>
+                  <th>{t('admin.users.deviceEnv')}</th>
                   <th>{t('admin.users.actions')}</th>
                 </tr>
               </thead>
               <tbody>
-                {users.map(u => (
-                  <tr key={u.id}>
-                    <td className="users-email">{u.email}</td>
-                    <td>{u.nickname || '—'}</td>
-                    <td>
-                      <span className={`users-role-badge ${u.role === 'admin' ? 'admin' : 'user'}`}>
-                        {u.role === 'admin' ? t('admin.users.roleAdmin') : t('admin.users.roleUser')}
-                      </span>
-                    </td>
-                    <td>
-                      <span className={`users-status ${u.email_confirmed ? 'ok' : 'warn'}`}>
-                        {u.email_confirmed ? t('admin.users.verifiedYes') : t('admin.users.verifiedNo')}
-                      </span>
-                      {u.banned && (
-                        <span className="users-status warn users-banned" title={t('admin.users.bannedTitle')}>
-                          {t('admin.users.bannedBadge')}
+                {users.map(u => {
+                  const device = deviceLabel(u.last_login_user_agent)
+                  const ipRegion = u.last_login_ip
+                    ? (isPrivateIp(u.last_login_ip) ? t('admin.users.ipPrivate') : regions[u.last_login_ip])
+                    : null
+                  return (
+                    <tr key={u.id}>
+                      <td className="users-email" data-label={t('admin.users.email')}>{u.email}</td>
+                      <td data-label={t('admin.users.nickname')}>{u.nickname || '—'}</td>
+                      <td data-label={t('admin.users.role')}>
+                        <span className={`users-role-badge ${u.role === 'admin' ? 'admin' : 'user'}`}>
+                          {u.role === 'admin' ? t('admin.users.roleAdmin') : t('admin.users.roleUser')}
                         </span>
-                      )}
-                    </td>
-                    <td>
-                      <span className={`users-reg-method ${u.is_custom ? 'custom' : 'email'}`}>
-                        {u.is_custom ? t('admin.users.regCustom') : t('admin.users.regEmail')}
-                      </span>
-                    </td>
-                    <td className="users-date">
-                      {new Date(u.created_at).toLocaleDateString(undefined, { year: 'numeric', month: '2-digit', day: '2-digit' })}
-                    </td>
-                    <td className="users-date">{renderLastSignIn(u.last_sign_in_at)}</td>
-                    <td>
-                      {/* admin 拥有最高权限,不提供 删除/锁定 */}
-                      {u.role !== 'admin' ? (
-                        <div className="users-actions">
-                          <button className="admin-btn secondary small" disabled={busy} onClick={() => setConfirm({ type: u.banned ? 'unlock' : 'lock', user: u })}>
-                            {u.banned ? t('admin.users.unlock') : t('admin.users.lock')}
-                          </button>
-                          <button className="admin-btn danger small" disabled={busy} onClick={() => setConfirm({ type: 'delete', user: u })}>
-                            {t('admin.users.delete')}
-                          </button>
-                        </div>
-                      ) : (
-                        <span className="users-admin-note">—</span>
-                      )}
-                    </td>
-                  </tr>
-                ))}
+                      </td>
+                      <td data-label={t('admin.users.status')}>
+                        <span className={`users-status ${u.email_confirmed ? 'ok' : 'warn'}`}>
+                          {u.email_confirmed ? t('admin.users.verifiedYes') : t('admin.users.verifiedNo')}
+                        </span>
+                        {u.banned && (
+                          <span className="users-status warn users-banned" title={t('admin.users.bannedTitle')}>
+                            {t('admin.users.bannedBadge')}
+                          </span>
+                        )}
+                      </td>
+                      <td data-label={t('admin.users.registerMethod')}>
+                        <span className={`users-reg-method ${u.is_custom ? 'custom' : 'email'}`}>
+                          {u.is_custom ? t('admin.users.regCustom') : t('admin.users.regEmail')}
+                        </span>
+                      </td>
+                      <td className="users-date" data-label={t('admin.users.registeredAt')}>
+                        {new Date(u.created_at).toLocaleDateString(undefined, { year: 'numeric', month: '2-digit', day: '2-digit' })}
+                      </td>
+                      <td className="users-date" data-label={t('admin.users.lastSignIn')}>
+                        {renderLastSignIn(u.last_sign_in_at)}
+                      </td>
+                      <td
+                        className="users-ip"
+                        data-label={t('admin.users.lastIp')}
+                        title={u.last_login_snapshot_at ? `${t('admin.users.snapshotAt')} ${snapshotTime(u.last_login_snapshot_at)}` : undefined}
+                      >
+                        {u.last_login_ip ? (
+                          <span className="users-ip-stack">
+                            <span className="users-ip-addr">{u.last_login_ip}</span>
+                            <span className="users-ip-region">{ipRegion || '—'}</span>
+                          </span>
+                        ) : (
+                          <span className="users-admin-note">—</span>
+                        )}
+                      </td>
+                      <td
+                        className="users-device"
+                        data-label={t('admin.users.deviceEnv')}
+                        title={u.last_login_user_agent || undefined}
+                      >
+                        {device || <span className="users-admin-note">—</span>}
+                      </td>
+                      <td data-label={t('admin.users.actions')}>
+                        {/* admin 拥有最高权限,不提供 删除/锁定 */}
+                        {u.role !== 'admin' ? (
+                          <div className="users-actions">
+                            <button className="admin-btn secondary small" disabled={busy} onClick={() => setConfirm({ type: u.banned ? 'unlock' : 'lock', user: u })}>
+                              {u.banned ? t('admin.users.unlock') : t('admin.users.lock')}
+                            </button>
+                            <button className="admin-btn danger small" disabled={busy} onClick={() => setConfirm({ type: 'delete', user: u })}>
+                              {t('admin.users.delete')}
+                            </button>
+                          </div>
+                        ) : (
+                          <span className="users-admin-note">—</span>
+                        )}
+                      </td>
+                    </tr>
+                  )
+                })}
               </tbody>
             </table>
           </div>
@@ -385,6 +448,9 @@ export default function UserManager() {
         .users-table-wrap { overflow-x: auto; }
         .users-table {
           width: 100%;
+          /* 新增 IP / 设备两列后表格更宽:PC 端保住最小可读宽度,
+             容器内横向滚动,首列吸左保证滚动时始终知道在看谁 */
+          min-width: 1150px;
           border-collapse: collapse;
           font-size: var(--text-sm);
         }
@@ -403,8 +469,42 @@ export default function UserManager() {
           vertical-align: middle;
         }
         .users-table tbody tr:hover { background: var(--bg-secondary); }
+        /* 首列(邮箱)吸附在滚动容器左缘:横向滑动时定位当前行 */
+        .users-table th:first-child,
+        .users-table td:first-child {
+          position: sticky;
+          left: 0;
+          z-index: 1;
+          background: var(--bg-primary);
+        }
+        .users-table thead th:first-child { z-index: 2; }
+        .users-table tbody tr:hover td:first-child { background: var(--bg-secondary); }
         .users-email { font-family: ui-monospace, monospace; font-size: 12px; }
         .users-date { color: var(--text-muted); white-space: nowrap; font-variant-numeric: tabular-nums; }
+        /* 最近登录 IP:地址一行、归属地一行;悬浮显示快照时间 */
+        .users-ip { white-space: nowrap; }
+        .users-ip-stack {
+          display: flex;
+          flex-direction: column;
+          gap: 2px;
+        }
+        .users-ip-addr {
+          font-family: ui-monospace, monospace;
+          font-size: 12px;
+          color: var(--text-primary);
+        }
+        .users-ip-region {
+          font-size: 11px;
+          color: var(--text-muted);
+        }
+        /* 设备 / UA:展示「系统 · 浏览器」摘要,原始 UA 悬浮可见;超长截断 */
+        .users-device {
+          max-width: 190px;
+          overflow: hidden;
+          text-overflow: ellipsis;
+          white-space: nowrap;
+          color: var(--text-secondary);
+        }
         .users-online {
           display: inline-flex;
           align-items: center;
@@ -605,6 +705,55 @@ export default function UserManager() {
         .sk-line.sk-sub { width: 85%; height: 11px; }
         @media (max-width: 640px) {
           .users-stats { grid-template-columns: repeat(2, 1fr); }
+          /* 移动端用户表 → 卡片列表:横向滑动在手机上必然看不到全表,
+             改为「一行一个用户」,每格用 data-label 标注字段名 */
+          .users-table { min-width: 0; }
+          .users-table thead { display: none; }
+          .users-table,
+          .users-table tbody {
+            display: block;
+          }
+          .users-table tbody tr {
+            display: block;
+            margin-bottom: 10px;
+            padding: 4px 12px;
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            background: var(--bg-primary);
+          }
+          .users-table tbody tr:hover { background: var(--bg-primary); }
+          .users-table td {
+            display: flex;
+            align-items: baseline;
+            justify-content: space-between;
+            gap: 12px;
+            padding: 8px 0;
+            border-bottom: 1px dashed var(--border-color);
+            text-align: right;
+          }
+          .users-table td:last-child { border-bottom: none; }
+          .users-table td::before {
+            content: attr(data-label);
+            flex-shrink: 0;
+            color: var(--text-secondary);
+            font-size: 12px;
+            text-align: left;
+          }
+          /* 吸附列只属于横向滚动方案,卡片布局里关掉 */
+          .users-table th:first-child,
+          .users-table td:first-child {
+            position: static;
+          }
+          .users-email,
+          .users-date,
+          .users-ip,
+          .users-device {
+            white-space: normal;
+            word-break: break-all;
+          }
+          .users-device { max-width: none; }
+          .users-ip-stack { align-items: flex-end; }
+          .users-actions { justify-content: flex-end; }
         }
       `}</style>
     </div>

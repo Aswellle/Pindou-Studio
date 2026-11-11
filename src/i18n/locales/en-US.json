@@ -1183,7 +1183,7 @@
     "confirmSend": "Send",
     "users": {
       "title": "User Dashboard",
-      "privacyNote": "Shows only registration data needed for operations (email/nickname/role/verification/joined). No sensitive data such as passwords, no behavior tracking.",
+      "privacyNote": "Shows only registration data needed for operations (email/nickname/role/verification/joined) plus the most recent login IP and device info (admin only). No passwords or behavior tracking.",
       "total": "Registered",
       "verified": "Verified Emails",
       "unverified": "Unverified",
@@ -1225,7 +1225,11 @@
       "loadFailed": "Load failed",
       "pagePrev": "Prev",
       "pageNext": "Next",
-      "pageInfo": "Page {{page}}"
+      "pageInfo": "Page {{page}}",
+      "lastIp": "Last login IP",
+      "deviceEnv": "Device / UA",
+      "ipPrivate": "Local / private",
+      "snapshotAt": "Snapshot at"
     },
     "registrations": {
       "title": "Recent Registrations",
