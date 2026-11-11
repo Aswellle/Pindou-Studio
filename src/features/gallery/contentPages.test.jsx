@@ -318,14 +318,20 @@ describe('PatternDetailPage · 布局与信息密度', () => {
     expect(document.querySelector('.detail-color-list')).toBeNull()
   })
 
-  it('预览画布有高度约束类,避免大图纸溢出视口', () => {
+  it('预览区输出带 alt 的真实图片(图片搜索可索引)', () => {
     const { container } = renderAt(
       <PatternDetailPage cloudStore={cloudStore([template('1')])} />,
       '/gallery/pattern/1', '/gallery/pattern/:id',
     )
     const preview = container.querySelector('.content-detail-preview')
     expect(preview).toBeTruthy()
-    expect(preview.querySelector('canvas')).toBeTruthy()
+    // 构建期生成的预览图:路径 /pattern-img/<id>-<hash>.png,带描述性 alt 与尺寸
+    const img = preview.querySelector('img')
+    expect(img).toBeTruthy()
+    expect(img.getAttribute('src')).toMatch(/^\/pattern-img\/1-[a-z0-9]+\.png$/)
+    expect(img.getAttribute('alt')).toContain('拼豆图纸')
+    expect(Number(img.getAttribute('width'))).toBeGreaterThan(0)
+    expect(Number(img.getAttribute('height'))).toBeGreaterThan(0)
   })
 })
 

@@ -17,7 +17,6 @@ import { useTranslation } from 'react-i18next'
 import { Copy, Pencil, Download } from 'lucide-react'
 import BackButton from '../../components/BackButton'
 import { useToast } from '../../components/Toast'
-import ThumbnailCanvas from '../../components/ThumbnailCanvas'
 import {
   templateDimensions,
   convertTemplateToBrand,
@@ -29,6 +28,7 @@ import { projectToImportWork } from '../../services/project/importProject'
 import { useGalleryTemplates } from './hooks/useGalleryTemplates'
 import { templateById } from './discovery'
 import ContentSeo from './components/ContentSeo'
+import PatternPreview from './components/PatternPreview'
 import './gallery.css'
 
 /** 只接受 CSS 颜色形状的 hex(#RGB / #RRGGBB / #RRGGBBAA),其余形状不进 style */
@@ -157,11 +157,13 @@ export default function PatternDetailPage({ cloudStore, onSaveProject, onLoadTem
               170×170 的图纸按固定格宽会撑到 1360px,直接溢出视口。 */}
           <div className="detail-preview-pane">
             <div className="content-detail-preview">
-              <ThumbnailCanvas
-                pattern={template.pattern}
-                size={template.size}
-                gridWidth={width}
-                gridHeight={height}
+              <PatternPreview
+                key={template.id}
+                template={template}
+                name={name}
+                width={width}
+                height={height}
+                beads={makingInfo.beads}
               />
             </div>
             <p className="content-detail-source">

@@ -1564,7 +1564,10 @@
   max-height: min(72vh, 760px);
   overflow: hidden;
 }
-.content-detail-preview canvas {
+/* canvas 与构建期预览图共用同一套约束:两者视觉上是同一张图,
+   换实现不能带来尺寸/像素化的差异 */
+.content-detail-preview canvas,
+.content-detail-preview img {
   max-width: 100%;
   max-height: min(72vh, 760px);
   width: auto;
@@ -1720,7 +1723,8 @@
     padding: 10px;
     max-height: 50vh;
   }
-  .content-detail-preview canvas {
+  .content-detail-preview canvas,
+  .content-detail-preview img {
     max-height: 50vh;
   }
   .detail-facts {
