@@ -96,10 +96,10 @@ export const FAQ_ITEMS = [
       ko: '도안 크기와 필요한 비즈 수는 어떻게 정하나요?',
     },
     a: {
-      zh: '在画布设置网格边长,或在图片转换时指定目标尺寸;图纸越大,细节越多,用豆量也越高。画布与图纸详情会统计总颗数和逐色用量,可以照着清单备料。',
-      en: 'Set the grid size on the canvas or choose a target size during image conversion. Larger patterns hold more detail and use more beads. The canvas and pattern detail pages count total beads and per-color usage so you can prepare materials from that list.',
-      ja: 'キャンバスでマス数を設定するか、画像変換時に目標サイズを指定します。図案が大きいほど細部が増え、ビーズ数も増えます。キャンバスと図案詳細で合計数と色別の使用数を確認できるので、そのリストで材料を用意できます。',
-      ko: '캔버스에서 격자 크기를 설정하거나 이미지 변환 시 목표 크기를 지정하세요. 도안이 클수록 디테일과 비즈 사용량이 늘어납니다. 캔버스와 도안 상세 페이지에서 총 비즈 수와 색상별 사용량을 확인해 준비할 수 있습니다.',
+      zh: '在画布设置网格边长,或在图片转换时指定目标尺寸;图纸越大,细节越多,用豆量也越高。画布与图纸详情会统计总颗数和逐色用量,可以照着清单备料;想先估算,可以用豆子数量计算器按填充比例快速得出。',
+      en: 'Set the grid size on the canvas or choose a target size during image conversion. Larger patterns hold more detail and use more beads. The canvas and pattern detail pages count total beads and per-color usage so you can prepare materials from that list; for a quick estimate, use the bead count calculator with a fill ratio.',
+      ja: 'キャンバスでマス数を設定するか、画像変換時に目標サイズを指定します。図案が大きいほど細部が増え、ビーズ数も増えます。キャンバスと図案詳細で合計数と色別の使用数を確認できるので、そのリストで材料を用意できます。概算はビーズ数計算ツールで充填率を指定して出せます。',
+      ko: '캔버스에서 격자 크기를 설정하거나 이미지 변환 시 목표 크기를 지정하세요. 도안이 클수록 디테일과 비즈 사용량이 늘어납니다. 캔버스와 도안 상세 페이지에서 총 비즈 수와 색상별 사용량을 확인해 준비할 수 있습니다. 대략적인 사용량은 비즈 개수 계산기로 채움 비율을 지정해 추정할 수 있습니다.',
     },
   },
   {
@@ -171,10 +171,10 @@ export const FAQ_ITEMS = [
       ko: '다리미 온도와 시간은 어떻게 설정하나요?',
     },
     a: {
-      zh: '不同品牌、珠径和熨斗的实际温度差异很大,不能用一个固定数值概括。教程中有温度与手法章节,建议先从小样开始试烫,再处理整张作品。',
-      en: 'The right setting varies with bead brand, bead size, and iron, so a single fixed number would be misleading. The tutorials include a temperature and technique chapter; test on a small sample before ironing a full piece.',
-      ja: 'ブランド・ビーズ径・アイロンによって適切な温度は大きく異なるため、一つの数値では表せません。チュートリアルに温度と手法の章があります。まず小さい試し作品で確認してから全体をアイロンしてください。',
-      ko: '브랜드, 비즈 크기, 다리미에 따라 적정 온도가 크게 달라 하나의 수치로 정리하기 어렵습니다. 튜토리얼에 온도와 방법 장이 있으니 작은 샘플로 먼저 시험한 뒤 전체 작품을 다리미질하세요.',
+      zh: '官方口径都是中温、关蒸汽、隔熨纸:Perler 建议中温干熨、画圈约 10–20 秒;Hama 强调画圆移动、不停留;Artkal 官方给出 160–180°C 的参考区间。家用熨斗差异大,以珠面微微反光、边缘开始融合为准,宁可低温多次。教程里有完整的温度与手法章节。',
+      en: 'Every brand calls for medium, dry heat over ironing paper: Perler suggests about 10–20 seconds of circular ironing; Hama stresses gliding in circles without stopping; Artkal officially recommends 160–180°C. Household irons vary a lot — watch for a subtle sheen and edges starting to fuse, and prefer low heat in multiple passes. The tutorials cover temperature and technique in depth.',
+      ja: 'どのブランドも中温・スチームなし・当て紙使用が基本です。Perler は円を描くように 10〜20 秒、Hama は止めずに円を描いて動かすことを、Artkal は 160〜180°C の中温を公式に案内しています。家庭用アイロンは差が大きいので、表面がわずかに照り、縁が溶け始めたら OK。低めで複数回が安全です。詳細はチュートリアルへ。',
+      ko: '모든 브랜드는 중간 온도·스팀 끔·다림질 종이 사용이 기본입니다. Perler는 원을 그리며 10~20초, Hama는 멈추지 않고 원을 그리며 움직이기를, Artkal은 160~180°C를 공식 안내합니다. 가정용 다리미는 편차가 크니 표면의 은은한 광택과 가장자리 융합을 기준으로 하고, 낮은 온도로 여러 번이 안전합니다. 자세한 내용은 튜토리얼을 참고하세요.',
     },
   },
   {
@@ -192,6 +192,66 @@ export const FAQ_ITEMS = [
       ko: '색상 매칭은 브랜드가 공개한 색상값을 기준으로 계산되지만 화면, 촬영 조명, 비즈 생산 로트에 따라 보이는 색이 달라질 수 있습니다. 도안은 가장 가까운 브랜드 색상 코드를 제시하므로 제작 전에 실물 색상표로 확인하세요.',
     },
   },
+  {
+    id: 'age-safety',
+    q: {
+      zh: '拼豆适合多大的孩子玩?要注意什么安全事项?',
+      en: 'What age are fuse beads for? What safety points matter?',
+      ja: 'アイロンビーズは何歳から?安全面での注意は?',
+      ko: '비즈는 몇 살부터? 안전 주의사항은?',
+    },
+    a: {
+      zh: '主流品牌建议 5–6 岁以上;3 岁以下有误吞风险,大颗粒系列(如 Hama Maxi)3 岁以上可用。熨烫必须由大人操作,并在通风处进行;收纳放在幼儿拿不到的地方。',
+      en: 'Most brands recommend ages 5–6 and up; small parts are a choking hazard under 3 (large-bead lines like Hama Maxi are rated 3+). An adult should always handle the ironing step and work in a ventilated spot; keep beads stored away from toddlers.',
+      ja: '主要ブランドは 5〜6 歳以上が目安です。3 歳未満は誤飲の恐れがあるため避け、大サイズ(ハマ maxi など)は 3 歳以上向けです。アイロンがけは必ず大人が行い、風通しの良い場所で。小さい子の手が届かない場所に保管してください。',
+      ko: '주요 브랜드는 5~6세 이상을 권합니다. 3세 미만은 삼킴 위험이 있어 피하고, 대형 비즈(하마 맥시 등)는 3세 이상용입니다. 다리미질은 반드시 어른이 하고 환기되는 곳에서 진행하세요. 어린아이 손이 닿지 않는 곳에 보관하세요.',
+    },
+  },
+  {
+    id: 'warp',
+    q: {
+      zh: '熨完的作品翘边或不平,怎么补救?',
+      en: 'My finished piece warped or is uneven — how do I fix it?',
+      ja: 'アイロン後に反ったり平らでない場合の直し方は?',
+      ko: '다림질 후 휘었거나 평평하지 않을 때 해결법은?',
+    },
+    a: {
+      zh: '多是温度不均加冷却过快:趁作品温热翻面,盖上熨纸用书本压住冷却 30 分钟以上;大图建议双面熨透。已经焦黄变形的无法恢复,只能拆掉重烫该区域。详细步骤见教程「翻车急救手册」。',
+      en: 'Uneven heat plus fast cooling is the usual cause: while the piece is still warm, flip it, cover with ironing paper, and press under books for 30+ minutes; iron both sides for large pieces. Scorched, over-melted beads cannot be saved — redo that area. See the rescue tutorial for details.',
+      ja: '温度ムラと急冷が主な原因です。温かいうちに裏返し、当て紙をのせて本などで 30 分以上重しします。大きな作品は両面をしっかり熱します。焦げて変形した部分は元に戻らないため、その部分を作り直してください。詳しくは「やり直しガイド」のチュートリアルを。',
+      ko: '온도 불균형과 급냉이 원인입니다. 따뜻할 때 뒤집아 다림질 종이를 덮고 책 등으로 30분 이상 눌러 두세요. 큰 작품은 양면을 충분히 다림질합니다. 타서 변형된 부분은 복구되지 않으니 그 부분만 다시 만드세요. 자세한 내용은 구조 튜토리얼을 참고하세요.',
+    },
+  },
+  {
+    id: 'bead-sizes',
+    q: {
+      zh: '5mm 和 2.6mm 两种珠子能混用吗?',
+      en: 'Can I mix 5mm and 2.6mm beads?',
+      ja: '5mm と 2.6mm のビーズは混ぜて使えますか?',
+      ko: '5mm과 2.6mm 비즈를 섞어 쓸 수 있나요?',
+    },
+    a: {
+      zh: '不能直接混用:5mm(常规珠)与 2.6mm(迷你珠)的底板柱距不同,迷你珠要配迷你底板。5mm 珠之间(Perler/Hama/COCO/MARD)可以互放;本站 Artkal 色卡对应 2.6mm 的 C 系列,其余品牌为 5mm。',
+      en: 'Not directly: 5mm (standard) and 2.6mm (mini) beads need different pegboard spacing, so minis require a mini board. Standard beads from Perler/Hama/COCO/MARD can share a board. This site\'s Artkal chart is the 2.6mm C-series; the other brands are 5mm.',
+      ja: 'そのままでは使えません。5mm(スタンダード)と 2.6mm(ミニ)ではプレートのピン間隔が違い、ミニにはミニ用プレートが必要です。5mm 同士(Perler/Hama/COCO/MARD)は同じプレートに併用できます。当サイトの Artkal は 2.6mm の C シリーズ、他は 5mm です。',
+      ko: '직접 섞을 수 없습니다. 5mm(일반)와 2.6mm(미니)는 보드 핀 간격이 달라 미니 비즈에는 전용 보드가 필요합니다. 5mm끼리(Perler/Hama/COCO/MARD)는 같은 보드에 함께 쓸 수 있습니다. 이 사이트의 Artkal은 2.6mm C 시리즈이고 나머지는 5mm입니다.',
+    },
+  },
+  {
+    id: 'finished-uses',
+    q: {
+      zh: '做好的拼豆作品可以用来做什么?',
+      en: 'What can I make with finished fuse-bead pieces?',
+      ja: '完成した作品は何に使えますか?',
+      ko: '완성된 비즈 작품으로 무엇을 할 수 있나요?',
+    },
+    a: {
+      zh: '常见用途:杯垫、钥匙扣、挂件、冰箱贴、相框装饰与小摆件;大尺寸作品可以分区拼接后当装饰画或桌垫。作品平放冷却定型后更耐用,展示与收纳技巧见教程。',
+      en: 'Common uses: coasters, keychains, charms, fridge magnets, frame decorations, and small ornaments; large pieces can be joined in sections as wall art or desk mats. Let pieces cool flat so they hold their shape — see the tutorials for display and storage tips.',
+      ja: 'コースター、キーホルダー、チャーム、マグネット、フォトフレーム飾り、小物などが定番です。大きい作品は分区して接合すればウォールアートやデスクマットに。平らに冷やして固めると長持ちします。飾り方・保管はチュートリアルへ。',
+      ko: '컵받침, 키링, 참, 냉장고 자석, 액자 장식, 소품 등이 대표적입니다. 큰 작품은 구역별로 이어 붙여 월 아트나 데스크 매트로 만들 수 있습니다. 평평하게 식혀 굳히면 오래 쓸 수 있습니다. 전시와 보관 팁은 튜토리얼을 참고하세요.',
+    },
+  },
 ]
 
 /** 页面文案(标题、导语、相关入口),与 FAQ 正文同语言切换 */
@@ -205,6 +265,9 @@ export const FAQ_PAGE_TEXT = {
       gallery: '拼豆图纸模板库',
       tutorials: '拼豆教程',
       contact: '联系我们',
+      colors: '品牌色卡对照表',
+      calculator: '豆子数量计算器',
+      ironing: '熨烫温度对照表',
     },
   },
   en: {
@@ -216,6 +279,9 @@ export const FAQ_PAGE_TEXT = {
       gallery: 'Pattern gallery',
       tutorials: 'Tutorials',
       contact: 'Contact us',
+      colors: 'Brand color charts',
+      calculator: 'Bead count calculator',
+      ironing: 'Ironing guide',
     },
   },
   ja: {
@@ -227,6 +293,9 @@ export const FAQ_PAGE_TEXT = {
       gallery: '図案ギャラリー',
       tutorials: 'チュートリアル',
       contact: 'お問い合わせ',
+      colors: 'カラー見本',
+      calculator: 'ビーズ数計算ツール',
+      ironing: 'アイロン温度',
     },
   },
   ko: {
@@ -238,6 +307,9 @@ export const FAQ_PAGE_TEXT = {
       gallery: '도안 갤러리',
       tutorials: '튜토리얼',
       contact: '문의하기',
+      colors: '컬러 차트',
+      calculator: '비즈 개수 계산기',
+      ironing: '다림질 온도',
     },
   },
 }

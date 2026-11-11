@@ -21,6 +21,16 @@ export default function FaqPage() {
         <p className="faq-intro">{text.intro}</p>
       </header>
 
+      {/* 目录锚点:15 条问答一屏放不下,先给一张「问题速览」,
+          点了跳到对应卡片;锚点同时也是可分享的深链 */}
+      <nav className="faq-toc" aria-label="问题目录">
+        {items.map((item, index) => (
+          <a key={item.id} className="faq-toc-chip" href={`#faq-${item.id}`}>
+            {String(index + 1).padStart(2, '0')} · {item.question}
+          </a>
+        ))}
+      </nav>
+
       <div className="faq-list">
         {items.map((item, index) => (
           <article key={item.id} className="faq-item" aria-labelledby={`faq-${item.id}`}>
@@ -44,6 +54,9 @@ export default function FaqPage() {
         <Link to="/create/image">{text.links.create}</Link>
         <Link to="/gallery">{text.links.gallery}</Link>
         <Link to="/tutorials">{text.links.tutorials}</Link>
+        <Link to="/colors">{text.links.colors}</Link>
+        <Link to="/bead-calculator">{text.links.calculator}</Link>
+        <Link to="/ironing">{text.links.ironing}</Link>
         <Link to="/contact">{text.links.contact}</Link>
       </nav>
     </div>

@@ -155,3 +155,30 @@
     font-size: 12px;
   }
 }
+
+/* 问题速览(目录锚点):小号胶囊,可换行;点了滚动到对应问答 */
+.faq-toc {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 16px;
+}
+.faq-toc-chip {
+  padding: 6px 12px;
+  border: 1px solid var(--border-color);
+  border-radius: 999px;
+  background: var(--bg-primary);
+  color: var(--accent);
+  font-size: 12px;
+  line-height: 1.6;
+  text-decoration: none;
+  transition: border-color 0.15s, background 0.15s;
+}
+.faq-toc-chip:hover {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+}
+.faq-toc-chip:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
