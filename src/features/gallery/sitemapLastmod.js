@@ -70,6 +70,16 @@ export const PAGE_LASTMOD_SOURCES = {
     'src/i18n/locales',
     'scripts/generate-prerender-html.js',
   ],
+  '/ironing': [
+    'src/features/tools',
+    'src/data/tutorials.zh.js',
+    'scripts/generate-prerender-html.js',
+  ],
+  '/bead-calculator': [
+    'src/features/tools',
+    'src/i18n/locales',
+    'scripts/generate-prerender-html.js',
+  ],
   '/privacy': [
     'src/components/LegalPages.jsx',
     'scripts/generate-prerender-html.js',

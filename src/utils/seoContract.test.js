@@ -169,6 +169,8 @@ describe('isKnownPath · 已知路由判定', () => {
       '/contact',
       '/faq',
       '/colors',
+      '/ironing',
+      '/bead-calculator',
       '/privacy',
       '/terms',
     ]) {

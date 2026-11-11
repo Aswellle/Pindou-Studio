@@ -45,6 +45,16 @@
       "source": "/colors.html",
       "destination": "/colors",
       "permanent": true
+    },
+    {
+      "source": "/ironing.html",
+      "destination": "/ironing",
+      "permanent": true
+    },
+    {
+      "source": "/bead-calculator.html",
+      "destination": "/bead-calculator",
+      "permanent": true
     }
   ],
   "rewrites": [
@@ -91,6 +101,14 @@
     {
       "source": "/colors/:brand(coco|mard|mard291|perler|hama|artkal)",
       "destination": "/spa.html"
+    },
+    {
+      "source": "/ironing",
+      "destination": "/ironing.html"
+    },
+    {
+      "source": "/bead-calculator",
+      "destination": "/bead-calculator.html"
     },
     {
       "source": "/privacy/:versionId",

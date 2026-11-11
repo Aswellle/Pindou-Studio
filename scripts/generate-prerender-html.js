@@ -29,6 +29,9 @@ import {
 } from '../src/features/colors/colorCharts.js'
 import { SEO_TEMPLATE_PATH } from './seo-template.mjs'
 import { clampSeoDescription } from '../src/utils/seoText.js'
+import { IRONING_RULES, ironingReference } from '../src/features/tools/ironingGuide.js'
+import { beadPresetRows } from '../src/features/tools/beadCalculator.js'
+import { CALCULATOR_SEO, IRONING_SEO } from '../src/features/tools/toolSeo.js'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const dist = path.join(__dirname, '..', 'dist')
@@ -318,6 +321,8 @@ function siteNav(exclude = '') {
     ['/create/image', '图片转拼豆图纸工具'],
     ['/my/beads', '我的色卡与库存'],
     ['/colors', '拼豆色卡对照表'],
+    ['/ironing', '拼豆熨烫温度对照表'],
+    ['/bead-calculator', '豆子数量计算器'],
     ['/faq', '拼豆常见问题'],
   ].filter(([href]) => href !== exclude)
   return `<p class="note">继续浏览:${items.map(([href, text]) => link(href, text)).join(' · ')}</p>`
@@ -570,6 +575,64 @@ function colorChartBrandStatic(palette) {
   return staticShell(b.join('\n'))
 }
 
+// ── 备料工具页 ─────────────────────────────────────────────
+// 熨烫页的表格取自教程数据(与教程同一份),计算器页正文是公式与常见尺寸用量表。
+function pageTable(headers, rows) {
+  return [
+    '<table>',
+    `<thead><tr>${headers.map((h) => `<th>${esc(h)}</th>`).join('')}</tr></thead>`,
+    `<tbody>${rows.map((row) => `<tr>${row.map((cell) => `<td>${esc(cell)}</td>`).join('')}</tr>`).join('')}</tbody>`,
+    '</table>',
+  ].join('')
+}
+
+function ironingStatic() {
+  const { brandTable, failureTable, articles } = ironingReference()
+  const b = []
+  b.push('<h1>拼豆熨烫温度对照表</h1>')
+  b.push('<p class="lead">各品牌熨斗档位、正反面时间与常见翻车的对照。表格内容与拼豆教程的熨烫章节同源,具体温度请以手上那包珠子的说明为准。</p>')
+  b.push('<h2>熨烫要点</h2>')
+  b.push('<ul>')
+  for (const [title, text] of IRONING_RULES) {
+    b.push(`<li><strong>${esc(title)}</strong>:${esc(text)}</li>`)
+  }
+  b.push('</ul>')
+  b.push('<h2>品牌温度对照</h2>')
+  if (brandTable) b.push(pageTable(brandTable.headers, brandTable.rows))
+  b.push('<p class="note">新品牌第一次熨烫时,先在角落一两颗珠子上试温,观察融化程度再全面熨烫。</p>')
+  b.push('<h2>常见翻车与处理</h2>')
+  if (failureTable) b.push(pageTable(failureTable.headers, failureTable.rows))
+  if (articles.length) {
+    b.push('<h2>相关教程</h2>')
+    b.push('<ul>')
+    for (const article of articles) {
+      b.push(`<li>${link(`/tutorials/${article.id}`, article.title)}</li>`)
+    }
+    b.push('</ul>')
+  }
+  b.push(`<p class="note">${link('/colors', '品牌色卡对照表')} · ${link('/bead-calculator', '豆子数量计算器')} · ${link('/create/image', '图片转拼豆图纸工具')} · ${link('/gallery', '拼豆图纸模板库')}</p>`)
+  b.push(siteNav('/ironing'))
+  return staticShell(b.join('\n'))
+}
+
+function calculatorStatic() {
+  const rows = beadPresetRows()
+  const b = []
+  b.push('<h1>拼豆豆子数量计算器</h1>')
+  b.push('<p class="lead">按网格尺寸与空置比例估算用豆量。成品图案通常有空隙,所以结果是量级参考,精确颗数以图纸为准。</p>')
+  b.push('<h2>估算方式</h2>')
+  b.push('<p>豆子数 ≈ 宽 × 高 × 实际填充比例。例如 57 × 57 的网格、八成填充约需 2599 颗豆子;颜色数只影响每色平均用量,不影响总数。</p>')
+  b.push('<h2>常见网格尺寸用量</h2>')
+  b.push(pageTable(
+    ['网格', '总格数', '八成填充', '六成填充'],
+    rows.map((row) => [`${row.size} × ${row.size}`, String(row.cells), String(row.filled80), String(row.filled60)]),
+  ))
+  b.push('<p class="note">精确的非空格数只有图纸本身知道:打开图库里的图纸详情页可以看到逐色颗数。</p>')
+  b.push(`<p>${link('/create/image', '按图片生成拼豆图纸')} · ${link('/gallery', '浏览拼豆图纸模板')} · ${link('/colors', '品牌色卡对照表')} · ${link('/ironing', '熨烫温度对照表')}</p>`)
+  b.push(siteNav('/bead-calculator'))
+  return staticShell(b.join('\n'))
+}
+
 // 供脚本按路由取静态正文(无正文页为 null)
 const zhLocale = JSON.parse(fs.readFileSync(path.join(__dirname, '..', 'src', 'i18n', 'locales', 'zh-CN.json'), 'utf-8'))
 const ROOT_STATIC = {
@@ -579,6 +642,8 @@ const ROOT_STATIC = {
   '/create/image': createImageStatic(),
   '/faq': faqStatic(),
   '/colors': colorChartHubStatic(),
+  '/ironing': ironingStatic(),
+  '/bead-calculator': calculatorStatic(),
 }
 
 function injectRoot(html, inner) {
@@ -648,6 +713,28 @@ const PAGES = [
     breadcrumb: [
       { name: '首页', item: `${SITE}/` },
       { name: '拼豆色卡对照表', item: `${SITE}/colors` },
+    ],
+  },
+  {
+    file: 'ironing.html',
+    path: '/ironing',
+    title: IRONING_SEO.title,
+    desc: IRONING_SEO.desc,
+    // 正文来自中文教程数据,与运行时 Helmet 一致:只声明 zh-CN 与 x-default
+    singleLanguage: true,
+    breadcrumb: [
+      { name: '首页', item: `${SITE}/` },
+      { name: '拼豆熨烫温度对照表', item: `${SITE}/ironing` },
+    ],
+  },
+  {
+    file: 'bead-calculator.html',
+    path: '/bead-calculator',
+    title: CALCULATOR_SEO.title,
+    desc: CALCULATOR_SEO.desc,
+    breadcrumb: [
+      { name: '首页', item: `${SITE}/` },
+      { name: '豆子数量计算器', item: `${SITE}/bead-calculator` },
     ],
   },
   {
@@ -781,8 +868,8 @@ for (const page of PAGES) {
   }
 
   // 聚合页(图库/教程)补 CollectionPage;首页已有 SoftwareApplication/WebSite 实体,
-  // /create/image 是工具页(用 HowTo),不是内容聚合页。
-  if (ROOT_STATIC[page.path] && page.path !== '/' && page.path !== '/create/image' && page.path !== '/faq') {
+  // /create/image 是工具页(用 HowTo)、/faq 用 FAQPage,色卡/工具页是查表页,都不该挂 CollectionPage。
+  if (page.path === '/gallery' || page.path === '/tutorials') {
     out = out.replace('</head>', collectionPageScript(page) + EOL + '</head>')
   }
 
@@ -967,5 +1054,5 @@ for (let index = 0; index < tutorialArticles.length; index++) {
   fs.writeFileSync(path.join(dir, 'index.html'), out)
   tutorialPageCount++
 }
-console.log(`完成 ${PAGES.length} 个预渲染页面(静态正文:首页 /gallery /tutorials /create/image /faq /colors)`)
+console.log(`完成 ${PAGES.length} 个预渲染页面(静态正文:首页 /gallery /tutorials /create/image /faq /colors /ironing /bead-calculator)`)
 console.log(`完成 ${tutorialPageCount} 个教程文章页(/tutorials/<id>)`)

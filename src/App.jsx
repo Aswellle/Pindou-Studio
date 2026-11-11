@@ -66,6 +66,7 @@ import { canonicalPathFor, isKnownPath } from './utils/seoPath'
 import { categorySeo, resolveCategoryBySlug } from './features/gallery/categoryMeta'
 // 品牌色卡对照页的 meta 与静态快照共用同一份文案
 import { COLOR_CHARTS_SEO, brandSeo, resolveColorBrand } from './features/colors/colorCharts'
+import { CALCULATOR_SEO, IRONING_SEO } from './features/tools/toolSeo'
 import { planBrandSwitch, applyBrandSwitch } from './utils/brandSwitch'
 import { canvasToLegacyWork, normalizeLegacyWork } from './services/project/adapters'
 import ImportPage from './components/ImportPage'
@@ -94,6 +95,9 @@ const CollectionPage = lazy(() => import('./features/gallery/CollectionPage'))
 const PatternDetailPage = lazy(() => import('./features/gallery/PatternDetailPage'))
 // 品牌色卡对照页:/colors 总览 + /colors/<brand> 六个品牌页
 const ColorChartsPage = lazy(() => import('./features/colors/ColorChartsPage'))
+// 备料工具页:熨烫温度对照 / 豆子数量计算器
+const IroningGuidePage = lazy(() => import('./features/tools/IroningGuidePage'))
+const BeadCalculatorPage = lazy(() => import('./features/tools/BeadCalculatorPage'))
 // 公开分享落地页(图纸分享):无需登录即可查看 /share/:id
 const SharePage = lazy(() => import('./features/sharing/SharePage'))
 // 管理概览懒加载:recharts 图表库随之进入独立 chunk,普通用户不下载
@@ -295,6 +299,10 @@ export default function App() {
         ? 'faq'
         : location.pathname.startsWith('/colors')
           ? 'colors'
+          : location.pathname.startsWith('/ironing')
+            ? 'ironing'
+            : location.pathname.startsWith('/bead-calculator')
+              ? 'beadCalculator'
         : location.pathname.startsWith('/admin/login')
         ? 'adminLogin'
         : location.pathname.startsWith('/admin')
@@ -1227,6 +1235,22 @@ export default function App() {
             }
           />
           <Route
+            path="/ironing"
+            element={
+              <Suspense fallback={<LoadingScreen />}>
+                <IroningGuidePage />
+              </Suspense>
+            }
+          />
+          <Route
+            path="/bead-calculator"
+            element={
+              <Suspense fallback={<LoadingScreen />}>
+                <BeadCalculatorPage />
+              </Suspense>
+            }
+          />
+          <Route
             path="/profile"
             element={
               <ProfilePage
@@ -1682,6 +1706,26 @@ export default function App() {
           }
         />
         <Route
+          path="/ironing"
+          element={
+            <Suspense fallback={<LoadingScreen />}>
+              <div className="mobile-page-area">
+                <IroningGuidePage />
+              </div>
+            </Suspense>
+          }
+        />
+        <Route
+          path="/bead-calculator"
+          element={
+            <Suspense fallback={<LoadingScreen />}>
+              <div className="mobile-page-area">
+                <BeadCalculatorPage />
+              </div>
+            </Suspense>
+          }
+        />
+        <Route
           path="/profile"
           element={
             <div className="mobile-page-area">
@@ -1951,6 +1995,17 @@ export default function App() {
       title: COLOR_CHARTS_SEO.title,
       desc: COLOR_CHARTS_SEO.desc,
     },
+    // 熨烫对照页正文来自中文教程数据,只提供 zh-CN 与 x-default 两个
+    // 语言声明 —— 与构建期快照、sitemap 保持一致。
+    ironing: {
+      title: IRONING_SEO.title,
+      desc: IRONING_SEO.desc,
+      singleLanguage: true,
+    },
+    beadCalculator: {
+      title: CALCULATOR_SEO.title,
+      desc: CALCULATOR_SEO.desc,
+    },
     // ── 工具页 / 私有页 ────────────────────────────────────
     // 这些页面此前没有独立配置,会回退到首页的 title/description 且 index,follow,
     // 造成同一份标题描述出现在多个 URL(重复内容)。统一 noindex:站内可达、不参与索引。
@@ -2040,6 +2095,8 @@ export default function App() {
     tutorials: '/tutorials',
     faq: '/faq',
     colors: '/colors',
+    ironing: '/ironing',
+    beadCalculator: '/bead-calculator',
     admin: '/admin',
     adminLogin: '/admin/login',
     login: '/login',
