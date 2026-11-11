@@ -1,0 +1,175 @@
+/* 备料工具页(/ironing 与 /bead-calculator)—— 与图库内容页共用排版 */
+
+.tools-page {
+  max-width: 1080px;
+}
+
+.tools-rules {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 12px;
+  margin: 10px 0 26px;
+}
+.tools-rule-card {
+  padding: 14px 16px;
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+  background: var(--bg-primary);
+}
+.tools-rule-card h2 {
+  font-size: 15px;
+  margin: 0 0 6px;
+}
+.tools-rule-card p {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.7;
+  color: var(--text-muted);
+}
+
+.tools-section {
+  margin: 0 0 26px;
+}
+.tools-section h2 {
+  font-size: 19px;
+  margin: 0 0 10px;
+}
+
+.tools-table {
+  width: 100%;
+  border-collapse: collapse;
+  border: 1px solid var(--border-color);
+  background: var(--bg-primary);
+  font-size: 13px;
+}
+.tools-table th,
+.tools-table td {
+  padding: 7px 10px;
+  border-bottom: 1px solid var(--border-color);
+  text-align: left;
+  vertical-align: top;
+}
+.tools-table thead th {
+  background: var(--bg-secondary);
+  font-size: 12px;
+  color: var(--text-muted);
+  font-weight: 600;
+}
+.tools-table tbody tr:hover {
+  background: var(--bg-hover);
+}
+
+.tools-note {
+  margin: 8px 0 0;
+  font-size: 13px;
+  color: var(--text-muted);
+}
+
+.tools-link-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: grid;
+  gap: 6px;
+}
+.tools-link-list li {
+  display: flex;
+  gap: 8px;
+  align-items: baseline;
+}
+.tools-link-list a,
+.tools-links a {
+  color: var(--accent);
+  text-decoration: none;
+}
+.tools-link-list a:hover,
+.tools-links a:hover {
+  text-decoration: underline;
+}
+.tools-link-meta {
+  font-size: 12px;
+  color: var(--text-muted);
+}
+.tools-links {
+  margin-top: 26px;
+}
+
+/* ── 计算器 ─────────────────────────────────────────────── */
+.calc-form {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 12px;
+  margin: 8px 0 16px;
+}
+.calc-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 13px;
+  color: var(--text-muted);
+}
+.calc-field input[type='number'] {
+  padding: 8px 10px;
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  font-size: 15px;
+}
+.calc-field input[type='range'] {
+  width: 100%;
+  accent-color: var(--accent);
+}
+.calc-field strong {
+  color: var(--text-primary);
+  font-variant-numeric: tabular-nums;
+}
+
+.calc-results {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 10px;
+  margin: 0 0 24px;
+}
+.calc-results > div {
+  padding: 12px 14px;
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+  background: var(--bg-primary);
+}
+.calc-results dt {
+  font-size: 12px;
+  color: var(--text-muted);
+}
+.calc-results dd {
+  margin: 4px 0 0;
+  font-size: 22px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+.calc-result-primary {
+  border-color: var(--accent);
+  background: var(--bg-secondary);
+}
+.calc-result-primary dd {
+  color: var(--accent);
+}
+.calc-unit {
+  margin-left: 4px;
+  font-size: 12px;
+  font-weight: 400;
+  color: var(--text-muted);
+}
+.calc-invalid {
+  margin: 0 0 20px;
+  font-size: 13px;
+  color: var(--error);
+}
+
+@media (max-width: 640px) {
+  .tools-table th,
+  .tools-table td {
+    padding: 6px 7px;
+    font-size: 12px;
+  }
+}
