@@ -55,6 +55,16 @@
       "source": "/bead-calculator.html",
       "destination": "/bead-calculator",
       "permanent": true
+    },
+    {
+      "source": "/bead-patterns.html",
+      "destination": "/bead-patterns",
+      "permanent": true
+    },
+    {
+      "source": "/pixel-art.html",
+      "destination": "/pixel-art",
+      "permanent": true
     }
   ],
   "rewrites": [
@@ -109,6 +119,14 @@
     {
       "source": "/bead-calculator",
       "destination": "/bead-calculator.html"
+    },
+    {
+      "source": "/bead-patterns",
+      "destination": "/bead-patterns.html"
+    },
+    {
+      "source": "/pixel-art",
+      "destination": "/pixel-art.html"
     },
     {
       "source": "/privacy/:versionId",

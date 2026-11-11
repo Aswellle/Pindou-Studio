@@ -29,9 +29,23 @@ import {
 } from '../src/features/colors/colorCharts.js'
 import { SEO_TEMPLATE_PATH } from './seo-template.mjs'
 import { clampSeoDescription } from '../src/utils/seoText.js'
-import { IRONING_RULES, ironingReference } from '../src/features/tools/ironingGuide.js'
+import { IRONING_RULES, ironingReference, tutorialArticle } from '../src/features/tools/ironingGuide.js'
 import { beadPresetRows } from '../src/features/tools/beadCalculator.js'
-import { CALCULATOR_SEO, IRONING_SEO } from '../src/features/tools/toolSeo.js'
+import {
+  BEAD_PATTERNS_SEO,
+  CALCULATOR_SEO,
+  IRONING_SEO,
+  PIXEL_ART_SEO,
+} from '../src/features/tools/toolSeo.js'
+import {
+  PATTERN_ARTICLE_IDS,
+  PATTERN_TIPS,
+  PATTERN_WAYS,
+  PIXEL_ARTICLE_IDS,
+  PIXEL_FEATURES,
+  PIXEL_GRID_USES,
+  PIXEL_STEPS,
+} from '../src/features/tools/landingContent.js'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const dist = path.join(__dirname, '..', 'dist')
@@ -323,6 +337,8 @@ function siteNav(exclude = '') {
     ['/colors', '拼豆色卡对照表'],
     ['/ironing', '拼豆熨烫温度对照表'],
     ['/bead-calculator', '豆子数量计算器'],
+    ['/bead-patterns', '拼豆图案'],
+    ['/pixel-art', '像素画生成器'],
     ['/faq', '拼豆常见问题'],
   ].filter(([href]) => href !== exclude)
   return `<p class="note">继续浏览:${items.map(([href, text]) => link(href, text)).join(' · ')}</p>`
@@ -633,6 +649,80 @@ function calculatorStatic() {
   return staticShell(b.join('\n'))
 }
 
+// ── 图案 / 像素画落地页 ────────────────────────────────────
+function tutorialLinksHtml(ids) {
+  const items = ids
+    .map((id) => tutorialArticle(id))
+    .filter(Boolean)
+    .map((article) => `<li>${link(`/tutorials/${article.id}`, article.title)}</li>`)
+  return items.length ? `<ul>${items.join('')}</ul>` : ''
+}
+
+function beadPatternsStatic() {
+  const b = []
+  b.push('<h1>拼豆图案</h1>')
+  b.push('<p class="lead">拼豆图案就是一颗颗豆子拼出的像素化图形。下面按题材汇总可以直接使用的免费图案,并说明尺寸、难度与用色怎么选,以及三种获取图案的方式。</p>')
+  b.push('<h2>按题材找拼豆图案</h2>')
+  b.push('<ul>')
+  for (const meta of GALLERY_CATEGORY_META) {
+    b.push(`<li>${link(categoryPagePath(meta.slug), meta.label)}${meta.intro ? `:${esc(meta.intro)}` : ''}</li>`)
+  }
+  b.push('</ul>')
+  b.push('<h2>怎么挑一张合适的图案</h2>')
+  b.push('<ul>')
+  for (const [title, text] of PATTERN_TIPS) {
+    b.push(`<li><strong>${esc(title)}</strong>:${esc(text)}</li>`)
+  }
+  b.push('</ul>')
+  b.push('<h2>三种获取图案的方式</h2>')
+  b.push('<ul>')
+  for (const [title, text, href, cta] of PATTERN_WAYS) {
+    b.push(`<li><strong>${esc(title)}</strong>:${esc(text)}${link(href, cta)}</li>`)
+  }
+  b.push('</ul>')
+  b.push('<h2>常见网格尺寸与用豆量</h2>')
+  b.push(pageTable(
+    ['网格', '总格数', '八成填充'],
+    beadPresetRows().map((row) => [`${row.size} × ${row.size}`, String(row.cells), String(row.filled80)]),
+  ))
+  b.push(`<p class="note">需要按自己的尺寸估算时,用${link('/bead-calculator', '豆子数量计算器')};品牌色号对照见${link('/colors', '色卡对照表')}。</p>`)
+  b.push('<h2>相关教程</h2>')
+  b.push(tutorialLinksHtml(PATTERN_ARTICLE_IDS))
+  b.push(siteNav('/bead-patterns'))
+  return staticShell(b.join('\n'))
+}
+
+function pixelArtStatic() {
+  const b = []
+  b.push('<h1>像素画生成器</h1>')
+  b.push('<p class="lead">在浏览器里直接画像素画:自定义网格尺寸,画笔、填充、选区、镜像都齐备;也可以上传照片自动转成像素图,最后导出 PNG / SVG 或带色号的拼豆图纸。</p>')
+  b.push('<h2>能做什么</h2>')
+  b.push('<ul>')
+  for (const [title, text] of PIXEL_FEATURES) {
+    b.push(`<li><strong>${esc(title)}</strong>:${esc(text)}</li>`)
+  }
+  b.push('</ul>')
+  b.push('<h2>三步画出一张像素图</h2>')
+  b.push('<ol>')
+  for (const [title, text] of PIXEL_STEPS) {
+    b.push(`<li><strong>${esc(title)}</strong>:${esc(text)}</li>`)
+  }
+  b.push('</ol>')
+  b.push('<h2>网格尺寸怎么选</h2>')
+  const cellsBySize = new Map(beadPresetRows().map((row) => [row.size, row.cells]))
+  b.push(pageTable(
+    ['网格', '总格数', '常见用途'],
+    PIXEL_GRID_USES.map(([size, use]) => [`${size} × ${size}`, String(cellsBySize.get(size) || '-'), use]),
+  ))
+  b.push(`<p class="note">不知道要多少豆子?用${link('/bead-calculator', '豆子数量计算器')}按填充比例估算;配色查${link('/colors', '品牌色卡对照表')}。</p>`)
+  b.push('<h2>像素画还能怎么用</h2>')
+  b.push(`<p>像素画和拼豆图纸是同一件事的两种叫法:都是网格上的一格一色。在拼豆Studio 里,同一张画布既能当像素画导出,也能转成带品牌色号的图纸。想要现成图案,可以从${link('/bead-patterns', '拼豆图案')}按题材进入;第一次做拼豆,建议先看${link('/ironing', '熨烫温度对照表')}。</p>`)
+  b.push('<h2>相关教程</h2>')
+  b.push(tutorialLinksHtml(PIXEL_ARTICLE_IDS))
+  b.push(siteNav('/pixel-art'))
+  return staticShell(b.join('\n'))
+}
+
 // 供脚本按路由取静态正文(无正文页为 null)
 const zhLocale = JSON.parse(fs.readFileSync(path.join(__dirname, '..', 'src', 'i18n', 'locales', 'zh-CN.json'), 'utf-8'))
 const ROOT_STATIC = {
@@ -644,6 +734,8 @@ const ROOT_STATIC = {
   '/colors': colorChartHubStatic(),
   '/ironing': ironingStatic(),
   '/bead-calculator': calculatorStatic(),
+  '/bead-patterns': beadPatternsStatic(),
+  '/pixel-art': pixelArtStatic(),
 }
 
 function injectRoot(html, inner) {
@@ -735,6 +827,28 @@ const PAGES = [
     breadcrumb: [
       { name: '首页', item: `${SITE}/` },
       { name: '豆子数量计算器', item: `${SITE}/bead-calculator` },
+    ],
+  },
+  {
+    file: 'bead-patterns.html',
+    path: '/bead-patterns',
+    title: BEAD_PATTERNS_SEO.title,
+    desc: BEAD_PATTERNS_SEO.desc,
+    singleLanguage: true,
+    breadcrumb: [
+      { name: '首页', item: `${SITE}/` },
+      { name: '拼豆图案', item: `${SITE}/bead-patterns` },
+    ],
+  },
+  {
+    file: 'pixel-art.html',
+    path: '/pixel-art',
+    title: PIXEL_ART_SEO.title,
+    desc: PIXEL_ART_SEO.desc,
+    singleLanguage: true,
+    breadcrumb: [
+      { name: '首页', item: `${SITE}/` },
+      { name: '像素画生成器', item: `${SITE}/pixel-art` },
     ],
   },
   {
@@ -1054,5 +1168,5 @@ for (let index = 0; index < tutorialArticles.length; index++) {
   fs.writeFileSync(path.join(dir, 'index.html'), out)
   tutorialPageCount++
 }
-console.log(`完成 ${PAGES.length} 个预渲染页面(静态正文:首页 /gallery /tutorials /create/image /faq /colors /ironing /bead-calculator)`)
+console.log(`完成 ${PAGES.length} 个预渲染页面(静态正文:首页 /gallery /tutorials /create/image /faq /colors /ironing /bead-calculator /bead-patterns /pixel-art)`)
 console.log(`完成 ${tutorialPageCount} 个教程文章页(/tutorials/<id>)`)

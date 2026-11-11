@@ -185,6 +185,22 @@
     <xhtml:link rel="alternate" hreflang="x-default" href="https://tangnotes.site/bead-calculator"/>
   </url>
 
+  <!-- 拼豆图案 — 中文单语,按题材汇总图案入口 -->
+  <url>
+    <loc>https://tangnotes.site/bead-patterns</loc>
+    <lastmod>2026-11-11</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+  </url>
+
+  <!-- 像素画生成器 — 中文单语落地页 -->
+  <url>
+    <loc>https://tangnotes.site/pixel-art</loc>
+    <lastmod>2026-11-11</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+  </url>
+
   <!-- 隐私政策 — 正文写死在 LegalPages.jsx 里,只有中文,不提供 ?lang= 变体。
        页面内 hreflang 也只声明 zh-CN 与 x-default;此处保持一致,否则 sitemap
        声明四种语言、页面只认一种,两边互相矛盾会被判为 hreflang 组无效。 -->

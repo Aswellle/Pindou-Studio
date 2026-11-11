@@ -66,7 +66,7 @@ import { canonicalPathFor, isKnownPath } from './utils/seoPath'
 import { categorySeo, resolveCategoryBySlug } from './features/gallery/categoryMeta'
 // 品牌色卡对照页的 meta 与静态快照共用同一份文案
 import { COLOR_CHARTS_SEO, brandSeo, resolveColorBrand } from './features/colors/colorCharts'
-import { CALCULATOR_SEO, IRONING_SEO } from './features/tools/toolSeo'
+import { CALCULATOR_SEO, IRONING_SEO, BEAD_PATTERNS_SEO, PIXEL_ART_SEO } from './features/tools/toolSeo'
 import { planBrandSwitch, applyBrandSwitch } from './utils/brandSwitch'
 import { canvasToLegacyWork, normalizeLegacyWork } from './services/project/adapters'
 import ImportPage from './components/ImportPage'
@@ -98,6 +98,8 @@ const ColorChartsPage = lazy(() => import('./features/colors/ColorChartsPage'))
 // 备料工具页:熨烫温度对照 / 豆子数量计算器
 const IroningGuidePage = lazy(() => import('./features/tools/IroningGuidePage'))
 const BeadCalculatorPage = lazy(() => import('./features/tools/BeadCalculatorPage'))
+const BeadPatternsPage = lazy(() => import('./features/tools/BeadPatternsPage'))
+const PixelArtPage = lazy(() => import('./features/tools/PixelArtPage'))
 // 公开分享落地页(图纸分享):无需登录即可查看 /share/:id
 const SharePage = lazy(() => import('./features/sharing/SharePage'))
 // 管理概览懒加载:recharts 图表库随之进入独立 chunk,普通用户不下载
@@ -303,6 +305,10 @@ export default function App() {
             ? 'ironing'
             : location.pathname.startsWith('/bead-calculator')
               ? 'beadCalculator'
+              : location.pathname.startsWith('/bead-patterns')
+                ? 'beadPatterns'
+                : location.pathname.startsWith('/pixel-art')
+                  ? 'pixelArt'
         : location.pathname.startsWith('/admin/login')
         ? 'adminLogin'
         : location.pathname.startsWith('/admin')
@@ -1251,6 +1257,22 @@ export default function App() {
             }
           />
           <Route
+            path="/bead-patterns"
+            element={
+              <Suspense fallback={<LoadingScreen />}>
+                <BeadPatternsPage />
+              </Suspense>
+            }
+          />
+          <Route
+            path="/pixel-art"
+            element={
+              <Suspense fallback={<LoadingScreen />}>
+                <PixelArtPage />
+              </Suspense>
+            }
+          />
+          <Route
             path="/profile"
             element={
               <ProfilePage
@@ -1726,6 +1748,26 @@ export default function App() {
           }
         />
         <Route
+          path="/bead-patterns"
+          element={
+            <Suspense fallback={<LoadingScreen />}>
+              <div className="mobile-page-area">
+                <BeadPatternsPage />
+              </div>
+            </Suspense>
+          }
+        />
+        <Route
+          path="/pixel-art"
+          element={
+            <Suspense fallback={<LoadingScreen />}>
+              <div className="mobile-page-area">
+                <PixelArtPage />
+              </div>
+            </Suspense>
+          }
+        />
+        <Route
           path="/profile"
           element={
             <div className="mobile-page-area">
@@ -2006,6 +2048,17 @@ export default function App() {
       title: CALCULATOR_SEO.title,
       desc: CALCULATOR_SEO.desc,
     },
+    // 图案与像素画落地页正文是中文(目标搜索词为中文),按单语页声明
+    beadPatterns: {
+      title: BEAD_PATTERNS_SEO.title,
+      desc: BEAD_PATTERNS_SEO.desc,
+      singleLanguage: true,
+    },
+    pixelArt: {
+      title: PIXEL_ART_SEO.title,
+      desc: PIXEL_ART_SEO.desc,
+      singleLanguage: true,
+    },
     // ── 工具页 / 私有页 ────────────────────────────────────
     // 这些页面此前没有独立配置,会回退到首页的 title/description 且 index,follow,
     // 造成同一份标题描述出现在多个 URL(重复内容)。统一 noindex:站内可达、不参与索引。
@@ -2097,6 +2150,8 @@ export default function App() {
     colors: '/colors',
     ironing: '/ironing',
     beadCalculator: '/bead-calculator',
+    beadPatterns: '/bead-patterns',
+    pixelArt: '/pixel-art',
     admin: '/admin',
     adminLogin: '/admin/login',
     login: '/login',

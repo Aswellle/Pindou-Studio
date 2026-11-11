@@ -171,6 +171,8 @@ describe('isKnownPath · 已知路由判定', () => {
       '/colors',
       '/ironing',
       '/bead-calculator',
+      '/bead-patterns',
+      '/pixel-art',
       '/privacy',
       '/terms',
     ]) {
