@@ -1,0 +1,33 @@
+{
+  "name": "拼豆Studio - 拼豆图纸生成器",
+  "short_name": "拼豆Studio",
+  "description": "免费在线拼豆图纸生成器：图片转拼豆图纸、像素画绘制、六大品牌色卡配色，导出带色号 PNG/SVG。",
+  "lang": "zh-CN",
+  "dir": "ltr",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#fdfbf7",
+  "theme_color": "#fdfbf7",
+  "categories": ["design", "productivity", "art"],
+  "icons": [
+    {
+      "src": "/favicon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/logo-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    }
+  ]
+}
