@@ -18,6 +18,10 @@
 // 显式 .js 扩展名:本文件会被 scripts/generate-og-snapshots.js 用 Node 直接
 // import(Node ESM 不做扩展名补全),与 ogSnapshot.js 的既有写法一致。
 import { patternDimensions, patternStats } from './ogSnapshot.js'
+import { patternContentHash } from './patternHash.js'
+
+// 兼容既有调用点(构建脚本、ogCard.test.js 都从这里取)
+export { patternContentHash }
 
 export const OG_CARD_WIDTH = 1200
 export const OG_CARD_HEIGHT = 630
@@ -65,40 +69,11 @@ export function ogCardPath(id, hash) {
 }
 
 /**
- * 内容指纹(FNV-1a 32 位)。
+ * 内容指纹(实现见 patternHash.js — 与预览图共用,避免循环依赖)。
  *
- * 只用来生成文件名,不做安全用途 —— 碰撞的后果仅仅是某次内容更新没有
- * 刷新分享卡片,不会影响页面本身。
+ * 卡片文件名带上它:社交平台按 URL 缓存缩略图,图纸内容改了但 URL 没变,
+ * 平台会继续显示旧卡片。
  */
-export function patternContentHash(template) {
-  const parts = [
-    String(template?.id ?? ''),
-    String(template?.nameZh || template?.name || ''),
-    String(template?.paletteId || ''),
-  ]
-  // 逐格推进而不是 JSON.stringify:200×200 的图案有 4 万个格子,
-  // 拼成字符串再哈希会额外产生几百 KB 的中间结果。
-  const pattern = template?.pattern
-  if (Array.isArray(pattern)) {
-    for (const row of pattern) {
-      if (!Array.isArray(row)) { parts.push('\u0001'); continue }
-      for (const cell of row) parts.push(cell == null ? '\u0000' : String(cell))
-      parts.push('\u0002')
-    }
-  }
-
-  let h = 0x811c9dc5
-  for (const part of parts) {
-    for (let i = 0; i < part.length; i++) {
-      h ^= part.charCodeAt(i)
-      h = Math.imul(h, 0x01000193) >>> 0
-    }
-    // 段之间插入分隔符,避免 ['ab','c'] 与 ['a','bc'] 哈希相同
-    h ^= 0x1f
-    h = Math.imul(h, 0x01000193) >>> 0
-  }
-  return h.toString(36).padStart(7, '0').slice(-7)
-}
 
 /**
  * 把 rows×cols 的图案等比缩放并居中放进 box。
