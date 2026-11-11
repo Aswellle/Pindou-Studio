@@ -30,7 +30,7 @@ import ContentSeo from './components/ContentSeo'
 import './gallery.css'
 
 export default function CategoryPage({ cloudStore }) {
-  const { t } = useTranslation()
+  const { t, i18n } = useTranslation()
   const navigate = useNavigate()
   const { slug } = useParams()
   const meta = resolveCategoryBySlug(slug)
@@ -117,6 +117,12 @@ export default function CategoryPage({ cloudStore }) {
             <h1 className="content-title">
               {t('gallery.discovery.categoryTitle', { label })}
             </h1>
+            {/* 分类专属简介:给出该类题材的做法要点,同时避免聚合页正文只有卡片列表。
+                只在该分类确有中文简介、且界面语言为中文时展示 —— 其余语言下
+                塞一段中文正文会让页面语言混杂。 */}
+            {meta.intro && i18n.language?.startsWith('zh') ? (
+              <p className="content-desc">{meta.intro}</p>
+            ) : null}
             <span className="content-count">
               {t('gallery.discovery.filteredCount', { n: filtered.length })}
             </span>

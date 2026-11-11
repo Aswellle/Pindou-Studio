@@ -1921,7 +1921,7 @@ export default function App() {
       // 独立工具页承接「图片转拼豆 / image to perler bead pattern」核心词,
       // 静态正文与 HowTo 结构化数据在 generate-prerender-html.js 里生成。
       title: '图片转拼豆图纸 - 免费在线转换工具 | 拼豆Studio',
-      desc: '免费图片转拼豆图纸：上传照片自动生成带品牌色号的网格图纸，可调尺寸与颜色数，支持 Perler/Hama/Artkal/COCO/MARD 色卡，导出 PNG/SVG。',
+      desc: '免费图片转拼豆图纸:上传照片自动生成带品牌色号的网格图纸,可调网格尺寸与颜色数,支持六大品牌色卡,导出 PNG/SVG。',
     },
     import: {
       title: '导入图纸 - 拼豆Studio',

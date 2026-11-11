@@ -255,6 +255,8 @@ export function buildCategorySnapshot(meta, patterns = [], { site = SITE, relate
   const related = (relatedCategories || []).filter((item) => item?.slug && item.slug !== meta.slug)
   const bodyHtml = [
     `<h1>${escapeHtml(label)}拼豆图纸模板</h1>`,
+    // 专属简介(meta.intro):每个分类一段独立正文,避免 11 个聚合页正文近乎相同
+    meta.intro ? `<p class="lead">${escapeHtml(meta.intro)}</p>` : '',
     `<p class="lead">${escapeHtml(label)}主题共收录 ${usable.length} 张免费拼豆图纸模板,打开即可查看网格尺寸与用色;选中后能直接载入画布制作或继续修改。</p>`,
     `<h2>全部图纸(${usable.length} 张)</h2>`,
     listItems(usable.map(

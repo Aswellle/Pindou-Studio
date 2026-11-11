@@ -413,6 +413,13 @@ function homeStatic() {
   b.push('<h2>适合谁</h2>')
   b.push('<p>拼豆新手、亲子手工、像素画爱好者,以及需要按品牌色号备料的手工创作者。界面支持简体中文、English、日本語、한국어。</p>')
 
+  // 按题材找图纸:首页此前只链到 4 个枢纽页,11 个分类聚合页只能靠 sitemap 发现。
+  // 这里给出首页直达分类的内链,既方便用户按题材挑图,也让分类页多一条高质量入链。
+  b.push('<h2>按题材找图纸</h2>')
+  b.push(`<p>常见题材:${GALLERY_CATEGORY_META.slice(0, 6)
+    .map((meta) => link(categoryPagePath(meta.slug), `${meta.label}拼豆图纸`))
+    .join(' · ')};更多分类见${link('/gallery', '拼豆图纸模板库')}。</p>`)
+
   b.push(siteNav('/'))
   return staticShell(b.join('\n'))
 }
@@ -535,7 +542,7 @@ const PAGES = [
     file: 'create-image.html',
     path: '/create/image',
     title: '图片转拼豆图纸 - 免费在线转换工具 | 拼豆Studio',
-    desc: '免费图片转拼豆图纸：上传照片自动生成带品牌色号的网格图纸，可调尺寸与颜色数，支持 Perler/Hama/Artkal/COCO/MARD 色卡，导出 PNG/SVG。',
+    desc: '免费图片转拼豆图纸:上传照片自动生成带品牌色号的网格图纸,可调网格尺寸与颜色数,支持六大品牌色卡,导出 PNG/SVG。',
     breadcrumb: [
       { name: '首页', item: `${SITE}/` },
       { name: '图片转拼豆图纸', item: `${SITE}/create/image` },
