@@ -8,7 +8,7 @@
 
 import { Link, useNavigate } from 'react-router-dom'
 import BackButton from '../../components/BackButton'
-import { IRONING_RULES, ironingReference } from './ironingGuide'
+import { IRONING_RULES, IRONING_SOURCES, ironingReference } from './ironingGuide'
 import '../gallery/gallery.css'
 import './tools.css'
 
@@ -91,6 +91,19 @@ export default function IroningGuidePage() {
           </ul>
         </section>
       )}
+
+      {/* 参考来源:官方渠道链接(E-E-A-T)。温度口径以手上产品的说明为准 */}
+      <section className="tools-section">
+        <h2>参考来源</h2>
+        <ul className="tools-link-list">
+          {IRONING_SOURCES.map((source) => (
+            <li key={source.href}>
+              <a href={source.href} target="_blank" rel="noopener noreferrer">{source.label}</a>
+            </li>
+          ))}
+        </ul>
+        <p className="tools-note">以上为各品牌官方渠道;具体温度与时间请以你手上的产品说明为准。</p>
+      </section>
 
       <nav className="tools-links" aria-label="相关页面">
         <Link className="tools-link-card" to="/create/image">

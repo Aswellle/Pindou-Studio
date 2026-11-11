@@ -24,11 +24,18 @@ describe('IroningGuidePage', () => {
     expect(tables[0].textContent).toContain('Perler')
     expect(tables[1].textContent).toContain('急救方法')
 
-    const links = [...container.querySelectorAll('.tools-link-list a')]
+    const sections = [...container.querySelectorAll('.tools-section')]
+    const tutorialsSection = sections.find((s) => s.querySelector('h2')?.textContent === '相关教程')
+    const links = [...tutorialsSection.querySelectorAll('.tools-link-list a')]
     expect(links.length).toBeGreaterThanOrEqual(5)
     for (const link of links) {
       expect(link.getAttribute('href')).toMatch(/^\/tutorials\/[a-z-]+$/)
     }
+
+    // 参考来源:外链到品牌官方渠道(新窗口 + noopener)
+    const sources = [...container.querySelectorAll('a[target="_blank"]')]
+    expect(sources).toHaveLength(3)
+    expect(sources.every((a) => a.getAttribute('rel')?.includes('noopener'))).toBe(true)
   })
 
   it('给出熨烫要点与站内相关工具链接', () => {

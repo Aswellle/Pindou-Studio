@@ -29,7 +29,7 @@ import {
 } from '../src/features/colors/colorCharts.js'
 import { SEO_TEMPLATE_PATH } from './seo-template.mjs'
 import { clampSeoDescription } from '../src/utils/seoText.js'
-import { IRONING_RULES, ironingReference, tutorialArticle } from '../src/features/tools/ironingGuide.js'
+import { IRONING_RULES, IRONING_SOURCES, ironingReference, tutorialArticle } from '../src/features/tools/ironingGuide.js'
 import { beadPresetRows } from '../src/features/tools/beadCalculator.js'
 import {
   BEAD_PATTERNS_SEO,
@@ -493,15 +493,19 @@ function createImageStatic() {
 // 每条问答单独成节,便于抓取端直接读取;不添加数据文件里没有的说法。
 function faqStatic() {
   const text = FAQ_PAGE_TEXT.zh
+  const items = faqItemsFor('zh')
   const b = []
   b.push(`<h1>${esc(text.title)}</h1>`)
   b.push(`<p class="lead">${esc(text.intro)}</p>`)
-  for (const item of faqItemsFor('zh')) {
-    b.push(`<h2>${esc(item.question)}</h2>`)
+  // 问题速览:锚点目录,与运行时 FaqPage 的 faq-toc 同构;跳转目标带 id,
+  // 搜索端可以把「问题」直接定位到具体问答块
+  b.push(`<p>问题速览:${items.map((item) => `<a href="#faq-${item.id}">${esc(item.question)}</a>`).join(' · ')}</p>`)
+  for (const item of items) {
+    b.push(`<h2 id="faq-${item.id}">${esc(item.question)}</h2>`)
     b.push(`<p>${esc(item.answer)}</p>`)
   }
   b.push(`<h2>${esc(text.more)}</h2>`)
-  b.push(`<p>${link('/create/image', text.links.create)} · ${link('/gallery', text.links.gallery)} · ${link('/tutorials', text.links.tutorials)} · ${link('/contact', text.links.contact)}</p>`)
+  b.push(`<p>${link('/create/image', text.links.create)} · ${link('/gallery', text.links.gallery)} · ${link('/tutorials', text.links.tutorials)} · ${link('/colors', text.links.colors)} · ${link('/bead-calculator', text.links.calculator)} · ${link('/ironing', text.links.ironing)} · ${link('/contact', text.links.contact)}</p>`)
   b.push(siteNav('/faq'))
   return staticShell(b.join('\n'))
 }
@@ -628,6 +632,14 @@ function ironingStatic() {
     }
     b.push('</ul>')
   }
+  // 参考来源:品牌官方渠道(E-E-A-T)。外链带 noopener
+  b.push('<h2>参考来源</h2>')
+  b.push('<ul>')
+  for (const source of IRONING_SOURCES) {
+    b.push(`<li><a href="${source.href}" target="_blank" rel="noopener noreferrer">${esc(source.label)}</a></li>`)
+  }
+  b.push('</ul>')
+  b.push('<p class="note">以上为各品牌官方渠道;具体温度与时间请以你手上的产品说明为准。</p>')
   b.push(`<p class="note">${link('/colors', '品牌色卡对照表')} · ${link('/bead-calculator', '豆子数量计算器')} · ${link('/create/image', '图片转拼豆图纸工具')} · ${link('/gallery', '拼豆图纸模板库')}</p>`)
   b.push(siteNav('/ironing'))
   return staticShell(b.join('\n'))

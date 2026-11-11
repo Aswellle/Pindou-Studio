@@ -64,7 +64,7 @@ export const TUTORIALS_EN = [
           { type: 'table', headers: ['Brand', 'Iron Setting', 'Characteristics', 'Best For'], rows: [
             ['Perler (USA)', 'Medium heat, steam off', 'Wide color range and reliable fusing; Perler recommends ironing both sides', 'The first choice for beginners'],
             ['Hama (Denmark)', 'Medium heat, steam off', 'Soft, muted colors with a Scandinavian feel', 'Crafters who love fresh, light palettes'],
-            ['Artkal (Shenzhen, China)', 'Slightly below medium, steam off', 'Strong on metallics and fluorescents; comes in 5mm (S series) and 2.6mm (C series)', 'Advanced and color-loving crafters'],
+            ['Artkal (Shenzhen, China)', 'Medium (officially 160–180°C), steam off', 'Strong on metallics and fluorescents; comes in 5mm (S series) and 2.6mm (C series)', 'Advanced and color-loving crafters'],
             ['COCO / MARD (China)', 'Medium heat, steam off', 'Widely available in China with its own color-number system', 'Crafters buying beads by Chinese color codes']
           ] },
           { type: 'callout', variant: 'info', title: 'Test the Temperature', text: 'When ironing a new brand for the first time, test on one or two beads in a corner first, check how they melt, then iron the whole piece. Prefer several low-heat passes — one too-hot pass causes irreversible warping.' },
@@ -81,6 +81,7 @@ export const TUTORIALS_EN = [
           { type: 'paragraph', text: 'Ironing is the most critical step in fuse bead crafting — it directly decides the quality of the finished piece. Mastering the right temperature and technique dramatically boosts your results.' },
           { type: 'heading2', text: 'How to Choose the Temperature' },
           { type: 'bulletList', items: ['Start from the brand\'s recommended temperature as your baseline', 'Large patterns heat up more slowly, so give each spot more time rather than turning the heat up', 'When ironing both sides, the second side can be a little cooler than the first', 'On humid days, raise the temperature by about 5-10°C'] },
+          { type: 'callout', variant: 'info', title: 'Official Guidance at a Glance', text: 'Perler officially suggests medium dry heat over ironing paper, about 10–20 seconds in circular motions; Hama stresses gliding in circles without stopping; Artkal officially recommends 160–180°C. Household irons vary a lot — judge by a subtle sheen on the beads and edges starting to fuse.' },
           { type: 'heading2', text: 'Standard Ironing Technique' },
           { type: 'svgDiagram', id: 'ironing-motion', caption: 'Iron in arcs, moving from the center outward' },
           { type: 'numberedList', items: ['Preheat the iron to the recommended temperature and turn off the steam function', 'Cover the beads with a sheet of ironing paper (baking paper) to keep the iron off the beads', 'Lay the iron flat on the paper and move it slowly in arcs from the center of the design outward', 'Hold each spot for about 3-5 seconds, watching for a subtle sheen on the bead surfaces', 'After about 30-50 seconds of ironing, gently flip the piece together with the paper', 'After flipping, iron the back for about 20-30 seconds'] },
@@ -117,7 +118,7 @@ export const TUTORIALS_EN = [
             ['Some beads fell off', 'Those beads never fully fused', 'Replace the missing beads, re-cover with ironing paper, and iron that area at low heat.']
           ] },
           { type: 'callout', variant: 'danger', title: 'When It Can\'t Be Saved', text: 'If beads have fully melted out of shape and turned black, the damage is irreversible. The only option is to remove the beads in that area, re-lay them, and iron again. Prevention beats rescue — when in doubt, go lower, never higher.' },
-          { type: 'keyPoint', text: 'Most mishaps come down to temperature getting out of control. Remember the golden rule: low heat, multiple passes. Never exceed 170°C, no matter what.' }
+          { type: 'keyPoint', text: 'Most mishaps come down to temperature getting out of control. Remember the golden rule: low heat, multiple passes. Every brand calls for medium, dry heat (Artkal officially recommends 160–180°C) — stay on the low side rather than risking one hot pass.' }
         ],
         content: '', steps: [], tips: ''
       }
@@ -267,7 +268,7 @@ export const TUTORIALS_EN = [
           { type: 'heading2', text: 'Key Technical Points' },
           { type: 'table', headers: ['Watch Out For', 'What It Means', 'How to Handle It'], rows: [
             ['Bead size differences', 'Mainstream brands come in both 5mm and 2.6mm, and the two will not mix', 'Check whether your beads are 5mm or 2.6mm, and use only one size per board'],
-            ['Different ironing temperatures', 'Artkal prefers low heat; Perler/Hama take medium heat', 'Use whichever brand needs the lower temperature as your baseline, and iron for a little longer'],
+            ['Different ironing temperatures', 'Artkal officially recommends 160–180°C; Perler/Hama take medium heat', 'Use whichever brand needs the lower temperature as your baseline, and iron for a little longer'],
             ['Different melting points', 'One brand may over-melt when mixed with another', 'Test on a small area first, and only iron the whole piece once the temperature is confirmed'],
             ['Different aging rates', 'The plastics of different brands age at slightly different speeds', 'For pieces you want to keep long-term, use beads from one brand throughout']
           ] },
