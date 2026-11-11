@@ -748,7 +748,11 @@
     "browsePatterns": "浏览拼豆图纸模板",
     "learnColors": "阅读拼豆教程",
     "notFound": "这个品牌还没有色卡数据。",
-    "relatedLinks": "相关页面"
+    "relatedLinks": "相关页面",
+    "descOpenTool": "上传照片，按这份色卡生成图纸",
+    "descBrowsePatterns": "按题材与难度挑选现成图案",
+    "descLearnColors": "从新手到进阶的制作教程",
+    "descAllBrands": "六个品牌的色号与色值总览"
   },
   "calculator": {
     "title": "拼豆豆子数量计算器",
@@ -774,7 +778,10 @@
     "formulaBody": "豆子数 ≈ 宽 × 高 × 实际填充比例。颜色数只用于计算每色平均用量，不影响总数。想在图纸上看到精确的非空格数，把作品载入画布或打开图库里的图纸详情页即可。",
     "openTool": "按图片生成拼豆图纸",
     "browsePatterns": "浏览拼豆图纸模板",
-    "colorCharts": "查看品牌色卡对照表"
+    "colorCharts": "查看品牌色卡对照表",
+    "descOpenTool": "上传照片，自动转换并匹配真实色号",
+    "descBrowsePatterns": "现成图案按题材挑选，一键载入",
+    "descColorCharts": "对照色号与色值，按需备料"
   },
   "contact": {
     "title": "联系我们",

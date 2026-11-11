@@ -39,12 +39,14 @@ describe('IroningGuidePage', () => {
     )
     expect(container.querySelectorAll('.tools-rule-card')).toHaveLength(4)
 
-    // 页脚相关链接:胶囊行(nav),每个入口都是明确的可点标识
+    // 页脚相关链接:引导卡片(nav),标题 + 一句「点了会去做什么」
     const footer = container.querySelector('nav.tools-links')
     expect(footer.getAttribute('aria-label')).toBe('相关页面')
-    const chips = [...footer.querySelectorAll('.tools-link-chip')]
-    expect(chips).toHaveLength(4)
-    const hrefs = chips.map((a) => a.getAttribute('href'))
+    const cards = [...footer.querySelectorAll('.tools-link-card')]
+    expect(cards).toHaveLength(4)
+    expect(cards.every((card) => card.querySelector('.tools-link-card-title'))).toBe(true)
+    expect(cards.every((card) => card.querySelector('.tools-link-card-desc'))).toBe(true)
+    const hrefs = cards.map((a) => a.getAttribute('href'))
     expect(hrefs).toContain('/colors')
     expect(hrefs).toContain('/bead-calculator')
   })

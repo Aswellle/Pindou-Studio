@@ -123,10 +123,22 @@ export default function PixelArtPage() {
       )}
 
       <nav className="tools-links" aria-label="相关页面">
-        <Link className="tools-link-chip" to="/">拼豆画布工具</Link>
-        <Link className="tools-link-chip" to="/gallery">拼豆图纸模板库</Link>
-        <Link className="tools-link-chip" to="/create/image">图片转拼豆图纸</Link>
-        <Link className="tools-link-chip" to="/colors">品牌色卡对照表</Link>
+        <Link className="tools-link-card" to="/">
+          <span className="tools-link-card-title">拼豆画布工具</span>
+          <span className="tools-link-card-desc">打开画布,从空白网格直接开画</span>
+        </Link>
+        <Link className="tools-link-card" to="/gallery">
+          <span className="tools-link-card-title">拼豆图纸模板库</span>
+          <span className="tools-link-card-desc">找现成图案参考、复刻或二次修改</span>
+        </Link>
+        <Link className="tools-link-card" to="/create/image">
+          <span className="tools-link-card-title">图片转拼豆图纸</span>
+          <span className="tools-link-card-desc">上传照片,自动转成像素图并配色</span>
+        </Link>
+        <Link className="tools-link-card" to="/colors">
+          <span className="tools-link-card-title">品牌色卡对照表</span>
+          <span className="tools-link-card-desc">按品牌色号挑颜色,画完直接备料</span>
+        </Link>
       </nav>
     </div>
   )

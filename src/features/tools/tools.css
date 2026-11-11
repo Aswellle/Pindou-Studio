@@ -112,33 +112,57 @@
   border-radius: 4px;
 }
 
-/* 页脚相关链接:胶囊行。上边框把「正文结束 / 继续去哪」分开,
-   flex + gap 给出均匀间隔,窄屏自动换行。 */
+/* 页脚相关链接:引导卡片。每个入口带一句话说明「点了会去做什么」,
+   上边框把「正文结束 / 继续去哪」分开,网格布局窄屏自动换列。 */
 .tools-links {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 10px;
   margin-top: 28px;
   padding-top: 18px;
   border-top: 1px solid var(--border-color);
 }
-.tools-link-chip {
-  display: inline-flex;
-  align-items: center;
-  padding: 7px 14px;
+.tools-link-card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  padding: 12px 30px 12px 14px;
   border: 1px solid var(--border-color);
-  border-radius: 999px;
+  border-radius: 12px;
   background: var(--bg-primary);
-  color: var(--accent);
-  font-size: 13px;
-  line-height: 1.5;
-  text-align: left;
   text-decoration: none;
-  transition: border-color 0.15s, background 0.15s;
+  transition: border-color 0.15s, background 0.15s, transform 0.15s;
 }
-.tools-link-chip:hover {
+.tools-link-card:hover {
   border-color: var(--accent);
   background: var(--accent-soft);
+  transform: translateY(-1px);
+}
+.tools-link-card-title {
+  color: var(--accent);
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1.5;
+}
+.tools-link-card-desc {
+  font-size: 12px;
+  line-height: 1.6;
+  color: var(--text-muted);
+}
+.tools-link-card::after {
+  content: "›";
+  position: absolute;
+  top: 10px;
+  right: 12px;
+  color: var(--text-muted);
+  font-size: 17px;
+  line-height: 1;
+  transition: color 0.15s, transform 0.15s;
+}
+.tools-link-card:hover::after {
+  color: var(--accent);
+  transform: translateX(2px);
 }
 
 /* ── 落地页 ─────────────────────────────────────────────── */

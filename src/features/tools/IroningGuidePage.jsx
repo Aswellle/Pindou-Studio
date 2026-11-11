@@ -93,10 +93,22 @@ export default function IroningGuidePage() {
       )}
 
       <nav className="tools-links" aria-label="相关页面">
-        <Link className="tools-link-chip" to="/create/image">图片转拼豆图纸</Link>
-        <Link className="tools-link-chip" to="/gallery">拼豆图纸模板库</Link>
-        <Link className="tools-link-chip" to="/colors">品牌色卡对照表</Link>
-        <Link className="tools-link-chip" to="/bead-calculator">豆子数量计算器</Link>
+        <Link className="tools-link-card" to="/create/image">
+          <span className="tools-link-card-title">图片转拼豆图纸</span>
+          <span className="tools-link-card-desc">上传照片,自动生成可照着熨的图纸</span>
+        </Link>
+        <Link className="tools-link-card" to="/gallery">
+          <span className="tools-link-card-title">拼豆图纸模板库</span>
+          <span className="tools-link-card-desc">按题材挑现成图案,载入就能开做</span>
+        </Link>
+        <Link className="tools-link-card" to="/colors">
+          <span className="tools-link-card-title">品牌色卡对照表</span>
+          <span className="tools-link-card-desc">按色号查颜色,备料找替代更省心</span>
+        </Link>
+        <Link className="tools-link-card" to="/bead-calculator">
+          <span className="tools-link-card-title">豆子数量计算器</span>
+          <span className="tools-link-card-desc">动手前先算好要买多少颗豆子</span>
+        </Link>
       </nav>
     </div>
   )

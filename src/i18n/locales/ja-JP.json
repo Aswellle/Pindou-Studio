@@ -748,7 +748,11 @@
     "browsePatterns": "ビーズ図案ギャラリーを見る",
     "learnColors": "ビーズのチュートリアルを読む",
     "notFound": "このブランドのカラーデータはまだありません。",
-    "relatedLinks": "関連ページ"
+    "relatedLinks": "関連ページ",
+    "descOpenTool": "このカラーチャートで図案を作る",
+    "descBrowsePatterns": "テーマ別に図案を選ぶ",
+    "descLearnColors": "入門から上級までのチュートリアル",
+    "descAllBrands": "6ブランドの色をひとまとめ"
   },
   "calculator": {
     "title": "ビーズ数 計算ツール",
@@ -774,7 +778,10 @@
     "formulaBody": "ビーズ数 ≈ 幅 × 高さ × 充填率。色数は1色あたりの平均にのみ使い、合計には影響しません。正確な空きマス以外の数は、キャンバスに読み込むか図案詳細ページで確認できます。",
     "openTool": "写真からビーズ図案を作る",
     "browsePatterns": "ビーズ図案ギャラリーを見る",
-    "colorCharts": "ブランド別カラー見本を見る"
+    "colorCharts": "ブランド別カラー見本を見る",
+    "descOpenTool": "写真をアップして実際の色番号で変換",
+    "descBrowsePatterns": "テーマ別の図案を選んで読み込む",
+    "descColorCharts": "色番号と色値を確認して準備"
   },
   "contact": {
     "title": "お問い合わせ",

@@ -748,7 +748,11 @@
     "browsePatterns": "비즈 도안 갤러리 보기",
     "learnColors": "비즈 튜토리얼 읽기",
     "notFound": "이 브랜드의 컬러 데이터가 아직 없습니다.",
-    "relatedLinks": "관련 페이지"
+    "relatedLinks": "관련 페이지",
+    "descOpenTool": "이 컬러 차트로 도안 만들기",
+    "descBrowsePatterns": "주제별로 도안 고르기",
+    "descLearnColors": "입문부터 심화까지 튜토리얼",
+    "descAllBrands": "6개 브랜드 색 한눈에 보기"
   },
   "calculator": {
     "title": "비즈 개수 계산기",
@@ -774,7 +778,10 @@
     "formulaBody": "비즈 수 ≈ 너비 × 높이 × 채움 비율. 색상 수는 색상당 평균에만 쓰이고 총합에는 영향을 주지 않습니다. 정확한 빈 칸 제외 개수는 캔버스에 불러오거나 도안 상세 페이지에서 확인하세요.",
     "openTool": "사진으로 비즈 도안 만들기",
     "browsePatterns": "비즈 도안 갤러리 보기",
-    "colorCharts": "브랜드 컬러 차트 보기"
+    "colorCharts": "브랜드 컬러 차트 보기",
+    "descOpenTool": "사진을 올리면 실제 색상 번호로 변환",
+    "descBrowsePatterns": "주제별 도안을 골라 바로 불러오기",
+    "descColorCharts": "색상 번호와 값을 확인해 준비"
   },
   "contact": {
     "title": "문의하기",

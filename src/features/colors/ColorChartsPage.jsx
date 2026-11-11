@@ -150,9 +150,18 @@ function BrandOverview() {
       )}
 
       <nav className="tools-links color-chart-links" aria-label={t('colorsPage.relatedLinks')}>
-        <Link className="tools-link-chip" to="/create/image">{t('colorsPage.openInTool')}</Link>
-        <Link className="tools-link-chip" to="/gallery">{t('colorsPage.browsePatterns')}</Link>
-        <Link className="tools-link-chip" to="/tutorials">{t('colorsPage.learnColors')}</Link>
+        <Link className="tools-link-card" to="/create/image">
+          <span className="tools-link-card-title">{t('colorsPage.openInTool')}</span>
+          <span className="tools-link-card-desc">{t('colorsPage.descOpenTool')}</span>
+        </Link>
+        <Link className="tools-link-card" to="/gallery">
+          <span className="tools-link-card-title">{t('colorsPage.browsePatterns')}</span>
+          <span className="tools-link-card-desc">{t('colorsPage.descBrowsePatterns')}</span>
+        </Link>
+        <Link className="tools-link-card" to="/tutorials">
+          <span className="tools-link-card-title">{t('colorsPage.learnColors')}</span>
+          <span className="tools-link-card-desc">{t('colorsPage.descLearnColors')}</span>
+        </Link>
       </nav>
     </div>
   )
@@ -228,8 +237,14 @@ function BrandChart({ palette, slug }) {
       </section>
 
       <nav className="tools-links color-chart-links" aria-label={t('colorsPage.relatedLinks')}>
-        <Link className="tools-link-chip" to="/colors">{t('colorsPage.allBrands')}</Link>
-        <Link className="tools-link-chip" to="/create/image">{t('colorsPage.openInTool')}</Link>
+        <Link className="tools-link-card" to="/colors">
+          <span className="tools-link-card-title">{t('colorsPage.allBrands')}</span>
+          <span className="tools-link-card-desc">{t('colorsPage.descAllBrands')}</span>
+        </Link>
+        <Link className="tools-link-card" to="/create/image">
+          <span className="tools-link-card-title">{t('colorsPage.openInTool')}</span>
+          <span className="tools-link-card-desc">{t('colorsPage.descOpenTool')}</span>
+        </Link>
       </nav>
     </div>
   )

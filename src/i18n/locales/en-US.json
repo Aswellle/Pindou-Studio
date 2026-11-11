@@ -748,7 +748,11 @@
     "browsePatterns": "Browse the pattern gallery",
     "learnColors": "Read the bead tutorials",
     "notFound": "No color data for this brand yet.",
-    "relatedLinks": "Related pages"
+    "relatedLinks": "Related pages",
+    "descOpenTool": "Turn a photo into a chart with this palette",
+    "descBrowsePatterns": "Browse ready-made patterns by theme",
+    "descLearnColors": "Tutorials from first project to advanced",
+    "descAllBrands": "All six brands at a glance"
   },
   "calculator": {
     "title": "Bead Count Calculator",
@@ -774,7 +778,10 @@
     "formulaBody": "Beads ≈ width × height × filled ratio. The color count only drives the per-color average, not the total. For exact non-empty counts, load the work on the canvas or open a pattern detail page.",
     "openTool": "Convert a photo into a bead pattern",
     "browsePatterns": "Browse the pattern gallery",
-    "colorCharts": "View brand color charts"
+    "colorCharts": "View brand color charts",
+    "descOpenTool": "Upload a photo and match real bead codes",
+    "descBrowsePatterns": "Pick a ready-made pattern and load it",
+    "descColorCharts": "Check codes and values before buying"
   },
   "contact": {
     "title": "Contact Us",

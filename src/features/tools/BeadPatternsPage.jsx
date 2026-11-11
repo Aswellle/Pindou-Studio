@@ -113,10 +113,22 @@ export default function BeadPatternsPage() {
       )}
 
       <nav className="tools-links" aria-label="相关页面">
-        <Link className="tools-link-chip" to="/gallery">拼豆图纸模板库</Link>
-        <Link className="tools-link-chip" to="/pixel-art">像素画生成器</Link>
-        <Link className="tools-link-chip" to="/bead-calculator">豆子数量计算器</Link>
-        <Link className="tools-link-chip" to="/ironing">熨烫温度对照表</Link>
+        <Link className="tools-link-card" to="/gallery">
+          <span className="tools-link-card-title">拼豆图纸模板库</span>
+          <span className="tools-link-card-desc">按题材与难度筛选,选中即可载入画布</span>
+        </Link>
+        <Link className="tools-link-card" to="/pixel-art">
+          <span className="tools-link-card-title">像素画生成器</span>
+          <span className="tools-link-card-desc">没有合适的图?从空白网格自己画一张</span>
+        </Link>
+        <Link className="tools-link-card" to="/bead-calculator">
+          <span className="tools-link-card-title">豆子数量计算器</span>
+          <span className="tools-link-card-desc">按网格尺寸估算这张图要多少豆子</span>
+        </Link>
+        <Link className="tools-link-card" to="/ironing">
+          <span className="tools-link-card-title">熨烫温度对照表</span>
+          <span className="tools-link-card-desc">开做之前查档位、时间与翻车处理</span>
+        </Link>
       </nav>
     </div>
   )
