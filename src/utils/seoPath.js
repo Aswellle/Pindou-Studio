@@ -11,6 +11,11 @@
  */
 
 const GALLERY_DETAIL_RE = /^\/gallery\/(?:theme|collection|pattern|category)\/[^/]+$/
+// 教程文章:/tutorials/<id>。构建期为全部文章生成独立 HTML(自指 canonical +
+// 独立 title/description),若这里不退化为页面级路径,React 首帧 Helmet 会把
+// 18 篇文章的 canonical 全部改写回 /tutorials —— 搜索端只能看到 1 个页面。
+// 形状只认小写短横线 slug,与 src/data/tutorials.*.js 的 id 命名一致。
+const TUTORIAL_DETAIL_RE = /^\/tutorials\/[a-z0-9]+(?:-[a-z0-9]+)*$/
 // 公开分享页:/share/<uuid>。只认 UUID 形状,与 shareUrl 生成、vercel.json 的
 // rewrite(→ /api/share-preview/:id)保持一致;/share/whatever 不是真实页面。
 const SHARE_DETAIL_RE = /^\/share\/[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/
@@ -39,6 +44,7 @@ export function isKnownPath(pathname) {
   return (
     KNOWN_EXACT.has(clean)
     || GALLERY_DETAIL_RE.test(clean)
+    || TUTORIAL_DETAIL_RE.test(clean)
     || SHARE_DETAIL_RE.test(clean)
     || LEGAL_VERSION_RE.test(clean)
   )
@@ -52,5 +58,7 @@ export function isKnownPath(pathname) {
 export function canonicalPathFor(pathname, fallback = '/') {
   if (typeof pathname !== 'string' || !pathname) return fallback
   const clean = pathname.replace(/\/+$/, '') || '/'
-  return GALLERY_DETAIL_RE.test(clean) || SHARE_DETAIL_RE.test(clean) ? clean : fallback
+  return GALLERY_DETAIL_RE.test(clean) || TUTORIAL_DETAIL_RE.test(clean) || SHARE_DETAIL_RE.test(clean)
+    ? clean
+    : fallback
 }

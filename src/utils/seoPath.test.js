@@ -59,3 +59,29 @@ describe('isKnownPath · 分享页', () => {
     expect(isKnownPath(`/share/${UUID}/extra`)).toBe(false)
   })
 })
+
+describe('canonicalPathFor · 教程文章', () => {
+  it('文章自指,不退化为 /tutorials(否则 18 篇文章被并成 1 个页面)', () => {
+    expect(canonicalPathFor('/tutorials/what-is-bead', '/tutorials')).toBe('/tutorials/what-is-bead')
+    expect(canonicalPathFor('/tutorials/image-to-pattern/', '/tutorials')).toBe('/tutorials/image-to-pattern')
+  })
+
+  it('多级或非 slug 形状仍回退页面级路径', () => {
+    expect(canonicalPathFor('/tutorials/a/b', '/tutorials')).toBe('/tutorials')
+    expect(canonicalPathFor('/tutorials/What_Is', '/tutorials')).toBe('/tutorials')
+    expect(canonicalPathFor('/tutorials', '/tutorials')).toBe('/tutorials')
+  })
+})
+
+describe('isKnownPath · 教程文章', () => {
+  it('slug 形状的文章路径视为已知页面', () => {
+    expect(isKnownPath('/tutorials/what-is-bead')).toBe(true)
+    expect(isKnownPath('/tutorials/what-is-bead/')).toBe(true)
+  })
+
+  it('总览页(含尾斜杠)是已知页面,多级路径仍为 404', () => {
+    expect(isKnownPath('/tutorials')).toBe(true)
+    expect(isKnownPath('/tutorials/')).toBe(true)
+    expect(isKnownPath('/tutorials/a/b')).toBe(false)
+  })
+})

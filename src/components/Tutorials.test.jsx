@@ -1,5 +1,7 @@
 import { describe, it, expect, beforeAll, afterEach } from 'vitest'
 import { render, screen, cleanup, fireEvent, waitFor } from '@testing-library/react'
+import { MemoryRouter, Routes, Route } from 'react-router-dom'
+import { HelmetProvider } from 'react-helmet-async'
 import Tutorials from './Tutorials'
 import i18n from '../i18n'
 
@@ -67,6 +69,52 @@ describe('Tutorials · 切换教程回到开头', () => {
 
     await waitFor(() => {
       expect(content.scrollTop).toBe(0)
+    })
+  })
+})
+
+describe('Tutorials · 文章页 SEO 覆盖', () => {
+  const renderAt = (id) =>
+    render(
+      <HelmetProvider>
+        <MemoryRouter initialEntries={[`/tutorials/${id}`]}>
+          <Routes>
+            <Route path="/tutorials/:id" element={<Tutorials />} />
+          </Routes>
+        </MemoryRouter>
+      </HelmetProvider>
+    )
+
+  afterEach(() => {
+    // Helmet 写入的是 document.head,cleanup 不会清掉 title/description
+    document.title = ''
+  })
+
+  it('已知文章:title 与 description 来自该文章,而不是教程总览', async () => {
+    localStorage.removeItem('tutorial-progress')
+    renderAt('what-is-bead')
+    // 进度文本随阅读记录变化(前面的用例会标记已读),只匹配形状
+    await screen.findByText(/\d+\/18/)
+
+    await waitFor(() => {
+      expect(document.title).toContain('什么是拼豆')
+      expect(document.title).toContain('拼豆教程')
+    })
+    const desc = document.querySelector('meta[name="description"]')?.getAttribute('content') || ''
+    expect(desc.startsWith('拼豆（英文常叫')).toBe(true)
+    // 不允许出现「半句 + 省略号」的描述
+    expect(desc.endsWith('…')).toBe(false)
+    expect(document.querySelector('meta[name="robots"]')?.getAttribute('content')).toContain('index')
+  })
+
+  it('不存在的文章 id:标记 noindex,避免软 404 被收录', async () => {
+    localStorage.removeItem('tutorial-progress')
+    renderAt('not-a-real-article')
+    await screen.findByText(/\d+\/18/)
+    await waitFor(() => {
+      expect(
+        document.querySelector('meta[name="robots"]')?.getAttribute('content')
+      ).toContain('noindex')
     })
   })
 })

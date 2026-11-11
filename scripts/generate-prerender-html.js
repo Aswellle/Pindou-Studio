@@ -19,6 +19,7 @@ import { TUTORIALS_ZH } from '../src/data/tutorials.zh.js'
 import { FAQ_PAGE_TEXT, faqItemsFor } from '../src/data/faq.js'
 import { GALLERY_CATEGORY_META, categoryPagePath } from '../src/features/gallery/categoryMeta.js'
 import { SEO_TEMPLATE_PATH } from './seo-template.mjs'
+import { clampSeoDescription } from '../src/utils/seoText.js'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const dist = path.join(__dirname, '..', 'dist')
@@ -259,10 +260,9 @@ function esc(s) {
 function escAttr(s) {
   return esc(s).replace(/"/g, '&quot;').replace(/'/g, '&#39;')
 }
-function clampDesc(text, max) {
-  const t = String(text).replace(/\s+/g, ' ').trim()
-  return t.length > max ? `${t.slice(0, max - 1)}…` : t
-}
+// 描述截断统一走 src/utils/seoText.js:与运行时 Helmet(Tutorials.jsx)共用同一套
+// 规则,保证抓取端与浏览器看到同一条 description;并优先在句末标点收尾。
+const clampDesc = clampSeoDescription
 const SEO_STYLE = `<style>
     #seo-static{max-width:860px;margin:0 auto;padding:32px 20px 60px;color:#33291f;font-family:system-ui,-apple-system,'Segoe UI',Roboto,'PingFang SC','Microsoft YaHei',sans-serif;font-size:15px;line-height:1.8;box-sizing:border-box}
     #seo-static h1{font-size:26px;line-height:1.45;margin:0 0 6px}

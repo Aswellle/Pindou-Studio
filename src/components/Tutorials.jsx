@@ -4,6 +4,8 @@ import { useTranslation } from 'react-i18next'
 import { flattenTutorials, loadTutorials } from '../data/tutorials'
 import i18n from '../i18n'
 import useTutorials from '../hooks/useTutorials'
+import ContentSeo from '../features/gallery/components/ContentSeo'
+import { clampSeoDescription } from '../utils/seoText'
 
 // chunk 被拉取时立即并行加载当前语言教程数据(与组件挂载重叠,少一拍等待)
 loadTutorials(i18n.language).catch(() => {})
@@ -210,6 +212,28 @@ export default function Tutorials() {
     setReadProgress([])
   }
 
+  // ── /tutorials/<id> 文章的 SEO 覆盖 ───────────────────────────────
+  // 构建期已为 18 篇文章各生成独立 title/description/canonical(见
+  // scripts/generate-prerender-html.js)。React 挂载后若不同样声明,Helmet 会
+  // 回退到 SEO_CONFIG.tutorials —— 18 个页面在搜索端又变回同一份文案。
+  // canonical 由 App 依 seoPath 计算(已支持文章自指),这里只补文案与索引策略。
+  const routeArticle = routeTutorialId
+    ? allTutorials.find((item) => item.id === routeTutorialId) || null
+    : null
+  const routeArticleSeo = (() => {
+    if (!routeTutorialId) return null
+    if (!routeArticle) {
+      // 文章不存在(旧链接/手改 id):不要以别的文章内容充当该 URL 的正文
+      return { noindex: true, title: null, description: null }
+    }
+    const title = `${t(`tutorials.articles.${routeArticle.id}`, routeArticle.title)} - 拼豆教程`
+    const firstText = (routeArticle.blocks || []).find((b) => b && b.type === 'paragraph' && b.text)
+    const description = firstText
+      ? clampSeoDescription(firstText.text, 90)
+      : `${routeArticle.title}:拼豆Studio 拼豆教程。`
+    return { noindex: false, title, description }
+  })()
+
   // 计算进度百分比(数据未就绪时总数为 0,避免除零得 NaN)
   const totalTutorials = allTutorials.length
   const progressPercent = totalTutorials
@@ -232,6 +256,13 @@ export default function Tutorials() {
 
   return (
     <div className="tutorials-page">
+      {routeArticleSeo ? (
+        <ContentSeo
+          title={routeArticleSeo.title}
+          description={routeArticleSeo.description}
+          noindex={routeArticleSeo.noindex}
+        />
+      ) : null}
       <div className="tutorials-sidebar">
         <div className="sidebar-header">
           <h2 className="sidebar-title">{t('tutorials.title')}</h2>
