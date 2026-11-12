@@ -9,6 +9,8 @@
 import { Link, useNavigate } from 'react-router-dom'
 import BackButton from '../../components/BackButton'
 import { IRONING_RULES, IRONING_SOURCES, ironingReference } from './ironingGuide'
+import ToolFaq from './ToolFaq.jsx'
+import { IRONING_FAQ } from './toolFaq'
 import '../gallery/gallery.css'
 import './tools.css'
 
@@ -77,6 +79,8 @@ export default function IroningGuidePage() {
         <h2>常见翻车与处理</h2>
         <DataTable table={failureTable} caption="熨烫常见问题的原因与急救方法" />
       </section>
+
+      <ToolFaq items={IRONING_FAQ} />
 
       {articles.length > 0 && (
         <section className="tools-section">

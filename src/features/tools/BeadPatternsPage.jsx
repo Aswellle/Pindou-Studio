@@ -14,6 +14,8 @@ import { GALLERY_CATEGORY_META, categoryPagePath } from '../gallery/categoryMeta
 import { tutorialArticle } from './ironingGuide'
 import { beadPresetRows } from './beadCalculator'
 import { PATTERN_ARTICLE_IDS, PATTERN_TIPS, PATTERN_WAYS } from './landingContent'
+import ToolFaq from './ToolFaq.jsx'
+import { PATTERNS_FAQ } from './toolFaq'
 import '../gallery/gallery.css'
 import './tools.css'
 
@@ -97,6 +99,8 @@ export default function BeadPatternsPage() {
           品牌色号对照见<Link to="/colors">色卡对照表</Link>。
         </p>
       </section>
+
+      <ToolFaq items={PATTERNS_FAQ} />
 
       {articles.length > 0 && (
         <section className="tools-section">

@@ -31,6 +31,7 @@ import {
 import { SEO_TEMPLATE_PATH } from './seo-template.mjs'
 import { clampSeoDescription } from '../src/utils/seoText.js'
 import { IRONING_ARTICLE_IDS, IRONING_RULES, IRONING_SOURCES, ironingReference, tutorialArticle } from '../src/features/tools/ironingGuide.js'
+import { IRONING_FAQ, PATTERNS_FAQ, PIXEL_ART_FAQ } from '../src/features/tools/toolFaq.js'
 import { beadPresetRows } from '../src/features/tools/beadCalculator.js'
 import {
   BEAD_PATTERNS_SEO,
@@ -276,6 +277,15 @@ function faqPageScript({ path = '/faq', name = '拼豆常见问题', items = faq
     mainEntity: items,
   }
   return jsonLdScript(data, 'FAQPage: 常见问题问答(与页面可见内容一致)')
+}
+
+/** 把 toolFaq.js 的 [问题, 答案] 对转成 FAQPage 的 Question 列表 */
+function faqQuestions(pairs) {
+  return pairs.map(([question, answer]) => ({
+    '@type': 'Question',
+    name: question,
+    acceptedAnswer: { '@type': 'Answer', text: answer },
+  }))
 }
 
 /**
@@ -705,6 +715,22 @@ function pageTable(headers, rows) {
   ].join('')
 }
 
+/**
+ * 工具页的「常见问题」段落(与 ToolFaq 组件同构)。
+ *
+ * Microsoft Bing 的 AI 内容指南要求答案能脱离上下文独立成立:一个问题一个
+ * <h3> + 一段 <p>,检索端可以直接摘取;与页面组件共用 toolFaq.js 的数据。
+ */
+function toolFaqHtml(items) {
+  if (!items || !items.length) return ''
+  const blocks = ['<h2>常见问题</h2>']
+  for (const [question, answer] of items) {
+    blocks.push(`<h3>${esc(question)}</h3>`)
+    blocks.push(`<p>${esc(answer)}</p>`)
+  }
+  return blocks.join('\n')
+}
+
 function ironingStatic() {
   const { brandTable, failureTable, articles } = ironingReference()
   const b = []
@@ -721,6 +747,7 @@ function ironingStatic() {
   b.push('<p class="note">新品牌第一次熨烫时,先在角落一两颗珠子上试温,观察融化程度再全面熨烫。</p>')
   b.push('<h2>常见翻车与处理</h2>')
   if (failureTable) b.push(pageTable(failureTable.headers, failureTable.rows))
+  b.push(toolFaqHtml(IRONING_FAQ))
   if (articles.length) {
     b.push('<h2>相关教程</h2>')
     b.push('<ul>')
@@ -797,6 +824,7 @@ function beadPatternsStatic() {
     beadPresetRows().map((row) => [`${row.size} × ${row.size}`, String(row.cells), String(row.filled80)]),
   ))
   b.push(`<p class="note">需要按自己的尺寸估算时,用${link('/bead-calculator', '豆子数量计算器')};品牌色号对照见${link('/colors', '色卡对照表')}。</p>`)
+  b.push(toolFaqHtml(PATTERNS_FAQ))
   b.push('<h2>相关教程</h2>')
   b.push(tutorialLinksHtml(PATTERN_ARTICLE_IDS))
   b.push(siteNav('/bead-patterns'))
@@ -828,6 +856,7 @@ function pixelArtStatic() {
   b.push(`<p class="note">不知道要多少豆子?用${link('/bead-calculator', '豆子数量计算器')}按填充比例估算;配色查${link('/colors', '品牌色卡对照表')}。</p>`)
   b.push('<h2>像素画还能怎么用</h2>')
   b.push(`<p>像素画和拼豆图纸是同一件事的两种叫法:都是网格上的一格一色。在拼豆Studio 里,同一张画布既能当像素画导出,也能转成带品牌色号的图纸。想要现成图案,可以从${link('/bead-patterns', '拼豆图案')}按题材进入;第一次做拼豆,建议先看${link('/ironing', '熨烫温度对照表')}。</p>`)
+  b.push(toolFaqHtml(PIXEL_ART_FAQ))
   b.push('<h2>相关教程</h2>')
   b.push(tutorialLinksHtml(PIXEL_ARTICLE_IDS))
   b.push(siteNav('/pixel-art'))
@@ -1101,6 +1130,7 @@ function pageSchema(page) {
           citations: IRONING_SOURCES.map((source) => source.href),
           dateModified: TOOLS_DATE_MODIFIED,
         }),
+        faqPageScript({ path: '/ironing', name: '拼豆熨烫常见问题', items: faqQuestions(IRONING_FAQ) }),
       ]
     case '/bead-calculator':
       return [
@@ -1124,6 +1154,7 @@ function pageSchema(page) {
             })),
           ),
         }),
+        faqPageScript({ path: '/bead-patterns', name: '拼豆图案常见问题', items: faqQuestions(PATTERNS_FAQ) }),
       ]
     case '/pixel-art':
       return [
@@ -1134,6 +1165,7 @@ function pageSchema(page) {
           featureList: PIXEL_FEATURES.map(([title]) => title),
           dateModified: TOOLS_DATE_MODIFIED,
         }),
+        faqPageScript({ path: '/pixel-art', name: '像素画常见问题', items: faqQuestions(PIXEL_ART_FAQ) }),
       ]
     default:
       return []

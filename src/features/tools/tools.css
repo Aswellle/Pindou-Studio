@@ -361,3 +361,27 @@
     font-size: 12px;
   }
 }
+
+/* ── 常见问题:问答独立成节,问题用 h3,便于检索端按段摘取 ── */
+.tools-faq-item {
+  padding: 14px 0;
+  border-top: 1px dashed var(--border-color);
+}
+
+.tools-faq-item:first-of-type {
+  border-top: 0;
+  padding-top: 0;
+}
+
+.tools-faq-item h3 {
+  margin: 0 0 6px;
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.tools-faq-item p {
+  margin: 0;
+  font-size: 14px;
+  line-height: 1.7;
+  color: var(--text-secondary);
+}

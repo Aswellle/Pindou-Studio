@@ -18,6 +18,8 @@ import {
   PIXEL_GRID_USES,
   PIXEL_STEPS,
 } from './landingContent'
+import ToolFaq from './ToolFaq.jsx'
+import { PIXEL_ART_FAQ } from './toolFaq'
 import '../gallery/gallery.css'
 import './tools.css'
 
@@ -107,6 +109,8 @@ export default function PixelArtPage() {
           第一次做拼豆,建议先看<Link to="/ironing">熨烫温度对照表</Link>。
         </p>
       </section>
+
+      <ToolFaq items={PIXEL_ART_FAQ} />
 
       {articles.length > 0 && (
         <section className="tools-section">
