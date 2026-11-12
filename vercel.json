@@ -13,6 +13,17 @@
       "permanent": true
     },
     {
+      "source": "/",
+      "has": [
+        {
+          "type": "host",
+          "value": "www.tangnotes.site"
+        }
+      ],
+      "destination": "https://tangnotes.site/",
+      "permanent": true
+    },
+    {
       "source": "/:path*",
       "has": [
         {
