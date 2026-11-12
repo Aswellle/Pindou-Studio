@@ -189,6 +189,53 @@ describe('useAuth · 身份归一化', () => {
   })
 })
 
+describe('useAuth · 本地资料镜像', () => {
+  const readMirror = () => JSON.parse(localStorage.getItem('cloud-profile-mirror') || '{}')
+
+  it('会话恢复时先读镜像:profiles 未返回前头像昵称即是上次已知值', async () => {
+    localStorage.setItem('cloud-profile-mirror', JSON.stringify({
+      'u-email': { nickname: '镜像昵称', avatarUrl: 'https://x/avatars/cached.webp' },
+    }))
+    state.session = emailSession
+    state.profile = null
+
+    const { result } = await mount()
+
+    expect(result.current.user?.avatarUrl).toBe('https://x/avatars/cached.webp')
+    expect(result.current.user?.nickname).toBe('镜像昵称')
+  })
+
+  it('profiles 返回后覆盖镜像,下次恢复用新值', async () => {
+    localStorage.setItem('cloud-profile-mirror', JSON.stringify({
+      'u-email': { nickname: '旧值', avatarUrl: 'https://x/avatars/old.webp' },
+    }))
+    state.session = emailSession
+    state.profile = { role: 'user', nickname: '新昵称', avatar_url: 'https://x/avatars/new.webp' }
+
+    const { result } = await mount()
+    await waitFor(() => expect(result.current.user?.avatarUrl).toBe('https://x/avatars/new.webp'))
+
+    expect(readMirror()['u-email']).toMatchObject({
+      nickname: '新昵称',
+      avatarUrl: 'https://x/avatars/new.webp',
+    })
+  })
+
+  it('镜像按 userId 分条,换账号不串用', async () => {
+    localStorage.setItem('cloud-profile-mirror', JSON.stringify({
+      'u-email': { nickname: '邮箱号', avatarUrl: 'https://x/avatars/a.webp' },
+      'u-name': { nickname: '用户名号', avatarUrl: 'https://x/avatars/n.webp' },
+    }))
+    state.session = usernameSession
+    state.profile = null
+
+    const { result } = await mount()
+
+    expect(result.current.user?.avatarUrl).toBe('https://x/avatars/n.webp')
+    expect(result.current.user?.nickname).toBe('用户名号')
+  })
+})
+
 describe('useAuth · 会话事件', () => {
   it('TOKEN_REFRESHED 不覆盖已加载的昵称与头像', async () => {
     state.session = emailSession

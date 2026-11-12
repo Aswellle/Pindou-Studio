@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import { supabase } from '../services/supabase'
 import { normalizeAuthUser } from '../utils/normalizeAuthUser'
+import { readProfileMirror, writeProfileMirror } from '../utils/profileMirror'
 import { clearDraft } from '../services/project/worksStore'
 
 /**
@@ -31,11 +32,20 @@ export function useAuth() {
       // 同步昵称/头像到当前 user(若已登录)。
       // 昵称为空时退回 user_metadata.nickname —— 早期账号注册时把昵称写进了元数据,
       // profiles 行却可能是空的;不回退会让这类账号在个人中心显示成邮箱前缀。
-      setUser(prev => prev && prev.id === userId ? {
-        ...prev,
-        nickname: data?.nickname || prev.metaNickname || '',
-        avatarUrl: data?.avatar_url || '',
-      } : prev)
+      // 行本身缺失时(data 为 null)保留现值 —— 那里面可能刚从镜像回填过,
+      // 不能被一次空查询抹掉重新闪回默认头像。
+      if (data) {
+        const nickname = data.nickname || ''
+        const avatarUrl = data.avatar_url || ''
+        setUser(prev => prev && prev.id === userId ? {
+          ...prev,
+          nickname: nickname || prev.metaNickname || '',
+          avatarUrl,
+        } : prev)
+        // 写入本地镜像:下次会话恢复时在 profiles 查询返回前就能显示这套
+        // 昵称/头像,消除「默认头像 → 真实头像」的首屏闪变
+        writeProfileMirror(userId, { nickname, avatarUrl })
+      }
     } catch {
       setIsAdmin(false)
     }
@@ -115,13 +125,23 @@ export function useAuth() {
   const buildUser = (sessionUser) => normalizeAuthUser(sessionUser)
 
   // 同一用户会话重建(切回标签页触发 token 刷新等)时保留已加载的昵称/头像,
-  // 避免头像闪回默认、昵称闪回初始值再恢复的跳动
+  // 避免头像闪回默认、昵称闪回初始值再恢复的跳动。
+  // 首次会话恢复(prev 为空)时读本地镜像:profiles 查询还没返回,
+  // Header 就能先渲染上次已知的昵称/头像 —— 这正是「默认头像闪一下才加载」
+  // 的根治点。镜像按 userId 存取,换账号互不串用。
   const mergeBuildUser = (sessionUser) => {
+    const mirror = readProfileMirror(sessionUser.id)
     return setUser(prev => {
       if (prev && prev.id === sessionUser.id && (prev.nickname || prev.avatarUrl)) {
         return { ...buildUser(sessionUser), nickname: prev.nickname, avatarUrl: prev.avatarUrl }
       }
-      return buildUser(sessionUser)
+      const built = buildUser(sessionUser)
+      if (!mirror) return built
+      return {
+        ...built,
+        nickname: mirror.nickname || built.nickname,
+        avatarUrl: mirror.avatarUrl || built.avatarUrl,
+      }
     })
   }
 
