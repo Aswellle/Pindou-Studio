@@ -14,6 +14,7 @@
  */
 import fs from 'fs'
 import path from 'path'
+import { execFileSync } from 'node:child_process'
 import { fileURLToPath } from 'url'
 import { TUTORIALS_ZH } from '../src/data/tutorials.zh.js'
 import { FAQ_PAGE_TEXT, faqItemsFor } from '../src/data/faq.js'
@@ -29,7 +30,7 @@ import {
 } from '../src/features/colors/colorCharts.js'
 import { SEO_TEMPLATE_PATH } from './seo-template.mjs'
 import { clampSeoDescription } from '../src/utils/seoText.js'
-import { IRONING_RULES, IRONING_SOURCES, ironingReference, tutorialArticle } from '../src/features/tools/ironingGuide.js'
+import { IRONING_ARTICLE_IDS, IRONING_RULES, IRONING_SOURCES, ironingReference, tutorialArticle } from '../src/features/tools/ironingGuide.js'
 import { beadPresetRows } from '../src/features/tools/beadCalculator.js'
 import {
   BEAD_PATTERNS_SEO,
@@ -49,6 +50,7 @@ import {
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const dist = path.join(__dirname, '..', 'dist')
+const ROOT = path.join(__dirname, '..')
 const SITE = 'https://tangnotes.site'
 
 const indexHtml = fs.readFileSync(path.join(dist, 'index.html'), 'utf-8')
@@ -123,6 +125,47 @@ fs.writeFileSync(SEO_TEMPLATE_PATH, indexWithBuildId)
  * 真正渲染的那几个标签才带它(keywords / og:site_name / og:locale / og:image:* 不带)。
  */
 const HEAD_ATTR = ' data-rh="true"'
+
+/**
+ * 取一组源文件最后一次提交的 UTC 日期,用于结构化数据的 dateModified。
+ *
+ * 与 sitemap-lastmod.mjs 同源(都读 git),但这里只服务页面内的 Article /
+ * CollectionPage:Vercel 的浅克隆可能查不到历史,查不到就返回 null,
+ * 由调用方省略 dateModified —— 宁可不写,也不编一个假日期。
+ */
+function gitDate(paths) {
+  try {
+    const out = execFileSync('git', ['log', '-1', '--format=%ct', '--', ...paths], {
+      cwd: ROOT,
+      encoding: 'utf8',
+      timeout: 15000,
+      stdio: ['ignore', 'pipe', 'ignore'],
+    }).trim()
+    if (!out) return null
+    const date = new Date(Number(out) * 1000)
+    return Number.isNaN(date.getTime()) ? null : date.toISOString().slice(0, 10)
+  } catch {
+    return null
+  }
+}
+
+const TUTORIAL_DATE_MODIFIED = gitDate(['src/data/tutorials.zh.js', 'src/data/tutorials.js'])
+const TOOLS_DATE_MODIFIED = gitDate(['src/features/tools'])
+const COLORS_DATE_MODIFIED = gitDate(['src/features/colors', 'src/data/palettes'])
+
+/** 统一的 JSON-LD 输出:转义 < > &,避免与 HTML 解析器冲突 */
+function jsonLdScript(data, comment) {
+  const body = JSON.stringify(data, null, 2)
+    .replace(/</g, '\\u003c')
+    .replace(/>/g, '\\u003e')
+    .replace(/&/g, '\\u0026')
+  return [
+    `  <!-- ${comment} -->`,
+    '  <script type="application/ld+json">',
+    body,
+    '  </script>',
+  ].join(EOL)
+}
 
 // ── 多语言 hreflang:只声明 zh-CN 与 x-default ─────────────
 // `?lang=en|ja|ko` 是界面语言偏好,不是独立可收录版本:一套静态 HTML 服务所有
@@ -221,29 +264,18 @@ function howToScript() {
  * 可见内容一致,否则会被判为误导性标记。答案里若出现 `<` 等字符,
  * JSON.stringify 后统一转义,避免与 HTML 解析器冲突。
  */
-function faqPageScript() {
+function faqPageScript({ path = '/faq', name = '拼豆常见问题', items = faqItemsFor('zh') } = {}) {
   const data = {
     '@context': 'https://schema.org',
     '@type': 'FAQPage',
+    '@id': `${SITE}${path}#webpage`,
+    url: `${SITE}${path}`,
+    name,
     inLanguage: 'zh-CN',
-    mainEntity: faqItemsFor('zh').map((item) => ({
-      '@type': 'Question',
-      name: item.question,
-      acceptedAnswer: {
-        '@type': 'Answer',
-        text: item.answer,
-      },
-    })),
+    isPartOf: { '@id': `${SITE}/#website` },
+    mainEntity: items,
   }
-  return [
-    '  <!-- FAQPage: 常见问题问答(与页面可见内容一致) -->',
-    '  <script type="application/ld+json">',
-    JSON.stringify(data, null, 2)
-      .replace(/</g, '\\u003c')
-      .replace(/>/g, '\\u003e')
-      .replace(/&/g, '\\u0026'),
-    '  </script>',
-  ].join(EOL)
+  return jsonLdScript(data, 'FAQPage: 常见问题问答(与页面可见内容一致)')
 }
 
 /**
@@ -252,7 +284,7 @@ function faqPageScript() {
  * 只描述页面本身:名称、描述、所属站点与对应应用实体,与静态正文一一对应,
  * 不添加正文里没有的信息(误导性结构化数据会被搜索引擎忽略)。
  */
-function collectionPageScript(page) {
+function collectionPageScript(page, extra = {}) {
   const data = {
     '@context': 'https://schema.org',
     '@type': 'CollectionPage',
@@ -263,13 +295,80 @@ function collectionPageScript(page) {
     inLanguage: 'zh-CN',
     isPartOf: { '@id': `${SITE}/#website` },
     about: { '@id': `${SITE}/#app` },
+    ...extra,
   }
-  return [
-    '  <!-- CollectionPage: 聚合页主题与归属 -->',
-    '  <script type="application/ld+json">',
-    JSON.stringify(data, null, 2),
-    '  </script>',
-  ].join(EOL)
+  if (page.dateModified) data.dateModified = page.dateModified
+  return jsonLdScript(data, 'CollectionPage: 聚合页主题与归属')
+}
+
+/**
+ * 参考工具页的 WebApplication 结构化数据。
+ *
+ * 计算器与像素画页本质是浏览器内可运行的应用,不是静态文章;用
+ * WebApplication 描述「能做什么、免费、无需安装」,比套 Article 更准确。
+ */
+function webApplicationScript({ path, name, description, featureList = [], dateModified }) {
+  const url = `${SITE}${path}`
+  const data = {
+    '@context': 'https://schema.org',
+    '@type': 'WebApplication',
+    '@id': `${url}#app`,
+    url,
+    name,
+    description,
+    applicationCategory: 'UtilitiesApplication',
+    operatingSystem: 'Web',
+    browserRequirements: '需要支持 JavaScript 的现代浏览器',
+    isAccessibleForFree: true,
+    inLanguage: 'zh-CN',
+    offers: { '@type': 'Offer', price: '0', priceCurrency: 'CNY' },
+    isPartOf: { '@id': `${SITE}/#website` },
+    publisher: { '@id': `${SITE}/#organization` },
+  }
+  if (featureList.length) data.featureList = featureList
+  if (dateModified) data.dateModified = dateModified
+  return jsonLdScript(data, 'WebApplication: 在线工具能力与免费属性')
+}
+
+/**
+ * 参考页的 Article 结构化数据(熨烫温度表)。
+ *
+ * citation 只列页面上真实展示的品牌官方渠道 —— 「引用权威来源」是 GEO
+ * 研究里少数稳定正向的策略,但引用必须可见、可核对,不能只写进 JSON-LD。
+ */
+function referenceArticleScript({ path, headline, description, articleSection, citations = [], dateModified }) {
+  const url = `${SITE}${path}`
+  const data = {
+    '@context': 'https://schema.org',
+    '@type': 'Article',
+    '@id': `${url}#article`,
+    headline,
+    description,
+    articleSection,
+    url,
+    mainEntityOfPage: url,
+    inLanguage: 'zh-CN',
+    isPartOf: { '@id': `${SITE}/#website` },
+    author: { '@id': `${SITE}/#organization` },
+    publisher: { '@id': `${SITE}/#organization` },
+    citation: citations,
+  }
+  if (dateModified) data.dateModified = dateModified
+  return jsonLdScript(data, 'Article: 参考页主题、来源与更新时间')
+}
+
+/** CollectionPage 的 ItemList:只列真实存在的站内页面 */
+function itemList(items) {
+  return {
+    '@type': 'ItemList',
+    numberOfItems: items.length,
+    itemListElement: items.map((item, index) => ({
+      '@type': 'ListItem',
+      position: index + 1,
+      name: item.name,
+      url: `${SITE}${item.path}`,
+    })),
+  }
 }
 
 // ── 静态正文块(C 批):预渲染进 #root,React 挂载时整体替换 ──
@@ -966,6 +1065,81 @@ const notFoundHtml = indexWithBuildId
 fs.writeFileSync(path.join(dist, '404.html'), notFoundHtml)
 console.log('prerendered: 404.html -> not-found page')
 
+// 图库内容(模板/主题/合集)与静态正文都可能影响 /gallery 的更新时间
+const GALLERY_DATE_MODIFIED = gitDate(['src/features/gallery'])
+
+/**
+ * 非聚合类内容页的专属结构化数据(数组,可为多条)。
+ *
+ * 图库与教程走上面的 CollectionPage,FAQ 与图片转拼豆页已有专用脚本;
+ * 这里补齐色卡、熨烫、计算器、图案、像素画五类页面的主题实体。
+ * 熨烫/图案/像素画页的可见问答同时输出 FAQPage —— 结构化数据必须与
+ * 页面可见内容一致,所以问答和正文取同一份 toolFaq.js。
+ */
+function pageSchema(page) {
+  switch (page.path) {
+    case '/colors':
+      return [
+        collectionPageScript(page, {
+          about: { '@type': 'Thing', name: '拼豆品牌色卡' },
+          dateModified: COLORS_DATE_MODIFIED,
+          mainEntity: itemList(
+            colorBrands().map(({ palette, id }) => ({
+              name: `${palette.nameZh || palette.name}色卡`,
+              path: colorChartPath(id),
+            })),
+          ),
+        }),
+      ]
+    case '/ironing':
+      return [
+        referenceArticleScript({
+          path: '/ironing',
+          headline: '拼豆熨烫温度对照表',
+          description: IRONING_SEO.desc,
+          articleSection: '熨烫参考',
+          citations: IRONING_SOURCES.map((source) => source.href),
+          dateModified: TOOLS_DATE_MODIFIED,
+        }),
+      ]
+    case '/bead-calculator':
+      return [
+        webApplicationScript({
+          path: '/bead-calculator',
+          name: '拼豆豆子数量计算器',
+          description: CALCULATOR_SEO.desc,
+          featureList: ['按网格宽高与填充比例估算用豆量', '按颜色数给出每色平均用量', '附常见方形网格用量表'],
+          dateModified: TOOLS_DATE_MODIFIED,
+        }),
+      ]
+    case '/bead-patterns':
+      return [
+        collectionPageScript(page, {
+          about: { '@type': 'Thing', name: '拼豆图案' },
+          dateModified: TOOLS_DATE_MODIFIED,
+          mainEntity: itemList(
+            GALLERY_CATEGORY_META.map((meta) => ({
+              name: `${meta.label}拼豆图案`,
+              path: categoryPagePath(meta.slug),
+            })),
+          ),
+        }),
+      ]
+    case '/pixel-art':
+      return [
+        webApplicationScript({
+          path: '/pixel-art',
+          name: '像素画生成器',
+          description: PIXEL_ART_SEO.desc,
+          featureList: PIXEL_FEATURES.map(([title]) => title),
+          dateModified: TOOLS_DATE_MODIFIED,
+        }),
+      ]
+    default:
+      return []
+  }
+}
+
 for (const page of PAGES) {
   const url = SITE + page.path
   // robots 指令与首页(index.html)及运行时 Helmet 保持一致,避免同一站出现两种写法
@@ -996,7 +1170,13 @@ for (const page of PAGES) {
   // 聚合页(图库/教程)补 CollectionPage;首页已有 SoftwareApplication/WebSite 实体,
   // /create/image 是工具页(用 HowTo)、/faq 用 FAQPage,色卡/工具页是查表页,都不该挂 CollectionPage。
   if (page.path === '/gallery' || page.path === '/tutorials') {
-    out = out.replace('</head>', collectionPageScript(page) + EOL + '</head>')
+    const dateModified = page.path === '/gallery' ? GALLERY_DATE_MODIFIED : TUTORIAL_DATE_MODIFIED
+    out = out.replace('</head>', collectionPageScript(page, { dateModified }) + EOL + '</head>')
+  }
+
+  // 色卡 / 熨烫 / 计算器 / 图案 / 像素画的专属主题实体
+  for (const schema of pageSchema(page)) {
+    out = out.replace('</head>', schema + EOL + '</head>')
   }
 
   // 常见问题页补 FAQPage(问答与静态正文取同一份数据)
@@ -1045,6 +1225,18 @@ for (const { palette } of colorBrands()) {
     { name: '拼豆色卡对照表', item: `${SITE}/colors` },
     { name: `${palette.nameZh || palette.name}色卡对照表`, item: url },
   ]) + EOL + '</head>')
+  // 品牌色卡页是查表页:用 CollectionPage 说明「本页是什么」,about 指向品牌色卡实体
+  out = out.replace('</head>', collectionPageScript(
+    { path: pagePath, title: `${palette.nameZh || palette.name}色卡对照表`, desc: seo.desc },
+    {
+      dateModified: COLORS_DATE_MODIFIED,
+      about: {
+        '@type': 'Thing',
+        name: `${palette.nameZh || palette.name}色卡`,
+        description: BRAND_INTROS[palette.id] || '',
+      },
+    },
+  ) + EOL + '</head>')
   out = injectRoot(out, colorChartBrandStatic(palette))
 
   const dir = path.join(dist, 'colors', palette.id)
@@ -1120,25 +1312,28 @@ function tutorialArticleBody(article, section, prev, next) {
   ].filter(Boolean).join('\n'))
 }
 
-function articleScript(article, url) {
+function articleScript(article, section, url) {
   const first = (article.blocks || []).find((b) => b && b.type === 'paragraph' && b.text)
   const data = {
     '@context': 'https://schema.org',
     '@type': 'Article',
+    '@id': `${url}#article`,
     headline: article.title,
     description: first ? clampDesc(first.text, 120) : article.title,
+    articleSection: section?.title || '拼豆教程',
+    url,
     inLanguage: 'zh-CN',
     mainEntityOfPage: url,
-    isPartOf: { '@id': `${SITE}/tutorials#webpage` },
+    isPartOf: { '@id': `${SITE}/#website` },
     author: { '@id': `${SITE}/#organization` },
     publisher: { '@id': `${SITE}/#organization` },
   }
-  return [
-    '  <!-- Article: 教程文章 -->',
-    '  <script type="application/ld+json">',
-    JSON.stringify(data, null, 2),
-    '  </script>',
-  ].join(EOL)
+  // 熨烫相关文章同步列出页面上可见的品牌官方渠道,供 AI 端核对温度口径
+  if (IRONING_ARTICLE_IDS.includes(article.id)) {
+    data.citation = IRONING_SOURCES.map((source) => source.href)
+  }
+  if (TUTORIAL_DATE_MODIFIED) data.dateModified = TUTORIAL_DATE_MODIFIED
+  return jsonLdScript(data, 'Article: 教程文章')
 }
 
 const tutorialArticles = TUTORIALS_ZH.flatMap((section) =>
@@ -1172,7 +1367,7 @@ for (let index = 0; index < tutorialArticles.length; index++) {
     { name: '拼豆教程', item: `${SITE}/tutorials` },
     { name: article.title, item: url },
   ]) + EOL + '</head>')
-  out = out.replace('</head>', articleScript(article, url) + EOL + '</head>')
+  out = out.replace('</head>', articleScript(article, section, url) + EOL + '</head>')
   out = injectRoot(out, tutorialArticleBody(article, section, prev, next))
 
   const dir = path.join(dist, 'tutorials', article.id)

@@ -143,7 +143,9 @@ describe('软 404 · 不存在的 URL 不再回退成首页', () => {
 
   it('构建期产出 404 页,且标 noindex', () => {
     expect(PRERENDER).toContain("'404.html'")
-    expect(PRERENDER).toMatch(/404\.html[\s\S]{0,400}noindex, nofollow/)
+    // 404 页面模板与「写盘语句」之间允许隔着页面级 schema 构建函数,
+    // 但两者必须同时存在于同一个预渲染脚本里
+    expect(PRERENDER).toMatch(/404\.html[\s\S]{0,4000}noindex, nofollow/)
   })
 
   it('客户端不再把未匹配路由静默重定向到首页', () => {
