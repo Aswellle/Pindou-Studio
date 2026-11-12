@@ -1050,16 +1050,52 @@
   outline-offset: 4px;
 }
 
-/* 跳转落点提示:从库存 / 匹配页签的空状态过来时,说明下一步在哪做 */
-.my-beads-builtin-focus-hint {
+/* 跳转落点横幅:固定显示,右侧 × 关闭。不用左侧色条 —— 大块强调色条
+   会让整段读起来像警告;改为普通描边 + 卡片底色,只做「这里可以操作」的提示 */
+.my-beads-builtin-hint {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
   margin: 0;
-  padding: 8px 10px;
+  padding: 8px 10px 8px 12px;
+  border: 1px solid var(--border-color);
   border-radius: 8px;
-  border-left: 3px solid var(--accent);
   background: var(--bg-primary);
   color: var(--text-primary);
   font-size: var(--text-sm);
   line-height: 1.6;
+}
+
+.my-beads-builtin-hint p {
+  flex: 1;
+  margin: 0;
+}
+
+.my-beads-builtin-hint-close {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  margin: -1px -2px 0 0;
+  padding: 0;
+  border: none;
+  border-radius: 6px;
+  background: none;
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+}
+
+.my-beads-builtin-hint-close:hover {
+  background: var(--bg-secondary);
+  color: var(--text-primary);
+}
+
+.my-beads-builtin-hint-close:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
 }
 
 .my-beads-builtin h3 {

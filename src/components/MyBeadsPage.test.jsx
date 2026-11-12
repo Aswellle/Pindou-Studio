@@ -678,7 +678,7 @@ describe('MyBeadsPage · 库存', () => {
       return el
     })
     expect(builtin.className).toContain('highlighted')
-    expect(builtin.querySelector('.my-beads-builtin-focus-hint')).toBeTruthy()
+    expect(builtin.querySelector('.my-beads-builtin-hint')).toBeTruthy()
   })
 
   it('点击内置目录里的复制按钮后,高亮提示消失', async () => {
@@ -702,6 +702,54 @@ describe('MyBeadsPage · 库存', () => {
     await waitFor(() => {
       expect(container.querySelector('.my-beads-builtin.highlighted')).toBeNull()
     })
+  })
+
+  it('引导横幅固定显示(高亮消失后仍在),点 × 关闭并记住选择', async () => {
+    const { container } = setup()
+    await openInventory(container)
+    fireEvent.click(within(container.querySelector('.inventory-picker')).getByText('我的色卡'))
+    const empty = await waitFor(() => {
+      const el = container.querySelector('.my-beads-empty-action')
+      expect(el).toBeTruthy()
+      return el
+    })
+    fireEvent.click(within(empty).getByText('复制品牌色卡'))
+
+    const hint = await waitFor(() => {
+      const el = container.querySelector('.my-beads-builtin-hint')
+      expect(el).toBeTruthy()
+      return el
+    })
+
+    // 4 秒高亮退场后,横幅仍然在(固定显示,不随高亮一起消失)
+    await waitFor(() => {
+      expect(container.querySelector('.my-beads-builtin.highlighted')).toBeNull()
+    }, { timeout: 8000 })
+    expect(container.querySelector('.my-beads-builtin-hint')).toBeTruthy()
+
+    // × 关闭后横幅连同占位一起消失,并写入关闭标记
+    fireEvent.click(within(hint).getByRole('button', { name: '关闭' }))
+    expect(container.querySelector('.my-beads-builtin-hint')).toBeNull()
+    expect(localStorage.getItem('my-beads-builtin-hint-dismissed')).toBe('1')
+  })
+
+  it('关过一次横幅后,再次从空状态进入内置目录不再显示', async () => {
+    localStorage.setItem('my-beads-builtin-hint-dismissed', '1')
+    const { container } = setup()
+    await openInventory(container)
+    fireEvent.click(within(container.querySelector('.inventory-picker')).getByText('我的色卡'))
+    const empty = await waitFor(() => {
+      const el = container.querySelector('.my-beads-empty-action')
+      expect(el).toBeTruthy()
+      return el
+    })
+    fireEvent.click(within(empty).getByText('复制品牌色卡'))
+
+    await waitFor(() => {
+      expect(screen.getByRole('tab', { name: /我的色卡/ }).getAttribute('aria-selected')).toBe('true')
+    })
+    expect(container.querySelector('.my-beads-builtin')).toBeTruthy()
+    expect(container.querySelector('.my-beads-builtin-hint')).toBeNull()
   })
 })
 

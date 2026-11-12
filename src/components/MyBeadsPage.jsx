@@ -20,7 +20,7 @@ import { createPortal } from 'react-dom'
 import { Navigate, useLocation, useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import {
-  Plus, Trash2, Pencil, Copy, Search, AlertTriangle,
+  Plus, Trash2, Pencil, Copy, Search, AlertTriangle, X,
   Palette as PaletteIcon, Layers, Package, Sparkles, Download, Upload, ClipboardCopy,
 } from 'lucide-react'
 import BackButton from '../components/BackButton'
@@ -57,6 +57,17 @@ import { PaletteEmptyState, CopyResultPanel } from '../features/my-beads/Palette
 import InventoryWorkspace from '../features/my-beads/InventoryWorkspace'
 import MatchWorkspace from '../features/my-beads/MatchWorkspace'
 import './myBeadsPage.css'
+
+/** 引导横幅的关闭标记:关过一次就不再打扰(与提示的「固定显示」配套) */
+const BUILTIN_HINT_DISMISSED_KEY = 'my-beads-builtin-hint-dismissed'
+
+function readBuiltinHintDismissed() {
+  try {
+    return localStorage.getItem(BUILTIN_HINT_DISMISSED_KEY) === '1'
+  } catch {
+    return false // 隐私模式/存储被禁:当作没关过,横幅仍然可关
+  }
+}
 
 const TAB_PALETTES = 'palettes'
 const TAB_INVENTORY = 'inventory'
@@ -120,6 +131,8 @@ export default function MyBeadsPage({ user, authLoading, canvasData, onApplyMapp
   const [reassignTargetId, setReassignTargetId] = useState('')
   const [busy, setBusy] = useState(false)
   const [highlightBuiltin, setHighlightBuiltin] = useState(false)
+  // 内置目录引导横幅:固定显示,由用户点 × 关闭;关闭后不再出现(记住选择)
+  const [builtinHintOpen, setBuiltinHintOpen] = useState(false)
   // 空状态跳转到内置目录:切页后需要等目录挂载完成再滚动
   const [pendingBuiltinFocus, setPendingBuiltinFocus] = useState(false)
 
@@ -442,6 +455,17 @@ export default function MyBeadsPage({ user, authLoading, canvasData, onApplyMapp
     setHighlightBuiltin(true)
     setPendingBuiltinFocus(true)
     setTimeout(() => setHighlightBuiltin(false), 4000)
+    // 固定横幅:用户关过一次就不再出现,其余情况一直留着等他看完
+    if (!readBuiltinHintDismissed()) setBuiltinHintOpen(true)
+  }
+
+  const dismissBuiltinHint = () => {
+    setBuiltinHintOpen(false)
+    try {
+      localStorage.setItem(BUILTIN_HINT_DISMISSED_KEY, '1')
+    } catch {
+      // 存不下只影响「下次不再显示」,本次仍然隐藏
+    }
   }
 
   // 切页后目录才挂载。用 effect 而不是 requestAnimationFrame:rAF 可能在 React
@@ -893,11 +917,20 @@ export default function MyBeadsPage({ user, authLoading, canvasData, onApplyMapp
               <div className={`my-beads-builtin${highlightBuiltin ? ' highlighted' : ''}`} ref={builtinRef}>
                 <h3>{t('myBeads.builtin.title')}</h3>
                 <p className="my-beads-hint small">{t('myBeads.builtin.hint')}</p>
-                {/* 从其他页签的空状态跳转过来时,用一句话说清下一步在哪做 */}
-                {highlightBuiltin && (
-                  <p className="my-beads-builtin-focus-hint" role="status">
-                    {t('myBeads.builtin.focusHint')}
-                  </p>
+                {/* 从其他页签的空状态跳过来时的固定引导横幅:不自动消失,
+                    右侧 × 关闭并记住选择,下次不再打扰 */}
+                {builtinHintOpen && (
+                  <div className="my-beads-builtin-hint" role="status">
+                    <p>{t('myBeads.builtin.focusHint')}</p>
+                    <button
+                      type="button"
+                      className="my-beads-builtin-hint-close"
+                      aria-label={t('common.close')}
+                      onClick={dismissBuiltinHint}
+                    >
+                      <X size={14} aria-hidden="true" />
+                    </button>
+                  </div>
                 )}
                 <div className="my-beads-builtin-grid">
                   {PALETTE_LIST.map((p) => (
