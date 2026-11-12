@@ -12,7 +12,7 @@
 import { useLocation, useNavigate } from 'react-router-dom'
 import ImageQuantizer from './ImageQuantizer/ImageQuantizer'
 
-export default function CreateImagePage({ onApply }) {
+export default function CreateImagePage({ onApply, onEnterEditor }) {
   const navigate = useNavigate()
   const location = useLocation()
 
@@ -21,5 +21,5 @@ export default function CreateImagePage({ onApply }) {
     else navigate('/', { replace: true })
   }
 
-  return <ImageQuantizer onApply={onApply} onClose={handleClose} />
+  return <ImageQuantizer onApply={onApply} onEnterEditor={onEnterEditor} onClose={handleClose} />
 }

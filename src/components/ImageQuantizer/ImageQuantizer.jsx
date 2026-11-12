@@ -117,7 +117,7 @@ function analyzeImageElement(img) {
   return recommendGridSize({ data, width: w, height: h, sourceWidth: img.width, sourceHeight: img.height })
 }
 
-export default function ImageQuantizer({ onApply, onClose }) {
+export default function ImageQuantizer({ onApply, onEnterEditor, onClose }) {
   const { t } = useTranslation()
   const { isProcessing, progress, result, error, quantize, reset: resetQuantizer } = useImageQuantizer()
   const [zoomPreview, setZoomPreview] = useState(false)
@@ -497,6 +497,22 @@ export default function ImageQuantizer({ onApply, onClose }) {
       onClose()
     }
   }, [result, selectedPalette, gridWidth, gridHeight, onApply, onClose])
+
+  // 进入专用编辑器(/editor):载荷与 handleApply 一致,但不关闭转换页 ——
+  // 编辑器里点返回回到这里,结果还在,可以直接调参重新生成
+  const handleEnterEditor = useCallback(() => {
+    if (!result || !onEnterEditor) return
+    const w = result.width || gridWidth
+    const h = result.height || gridHeight
+    onEnterEditor(result.canvasData, {
+      palette: selectedPalette,
+      gridSize: Math.max(w, h),
+      gridWidth: w,
+      gridHeight: h,
+      colorStats: result.colorStats
+    })
+    setHasUnsavedChanges(false)
+  }, [result, selectedPalette, gridWidth, gridHeight, onEnterEditor])
 
   const handleClose = useCallback(() => {
     handleCloseAttempt()
@@ -947,6 +963,13 @@ export default function ImageQuantizer({ onApply, onClose }) {
                 {isProcessing
                   ? `${t('quantizer.processing', '处理中')}…`
                   : `${t('quantizer.regenerate', '重新生成')}${hasUnsavedChanges ? ' ●' : ''}`}
+              </button>
+              <button
+                className="btn btn-primary"
+                onClick={handleEnterEditor}
+                disabled={isProcessing}
+              >
+                {t('quantizer.enterEditor', '进入编辑器')}
               </button>
               <button
                 className={`btn ${hasUnsavedChanges ? 'btn-secondary' : 'btn-primary'}`}

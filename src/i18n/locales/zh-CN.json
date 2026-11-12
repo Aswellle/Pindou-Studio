@@ -1007,7 +1007,8 @@
       "heicDecodeFailed": "HEIC 照片读取失败,请换一张,或先把照片转换为 JPG",
       "pdfDecodeFailed": "PDF 读取失败,请确认文件未加密、未损坏",
       "pdfUnsupported": "PDF 解析组件加载失败,请检查网络后重试"
-    }
+    },
+    "enterEditor": "进入编辑器"
   },
   "tutorials": {
     "title": "教程目录",

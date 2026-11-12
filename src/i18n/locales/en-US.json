@@ -1007,7 +1007,8 @@
       "heicDecodeFailed": "Could not read this HEIC photo. Try another one, or convert it to JPG first.",
       "pdfDecodeFailed": "Could not read this PDF. Make sure it is not encrypted or corrupted.",
       "pdfUnsupported": "The PDF parser failed to load. Check your connection and try again."
-    }
+    },
+    "enterEditor": "Open editor"
   },
   "tutorials": {
     "title": "Tutorial Contents",

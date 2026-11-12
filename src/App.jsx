@@ -758,6 +758,15 @@ export default function App() {
     }
   }
 
+  // 进入专用编辑器:与 handleQuantizerApply 同款载入(色号解析为 hex、来源标记),
+  // 然后 push 到 /editor —— push 而不是 replace,编辑器的返回键才能回到转换页
+  // (那里还留着结果,可以重新生成);不复用 handleApply,避免它的 onClose 回退
+  // 与这里的导航互相抵消。
+  const handleQuantizerToEditor = (quantizedCanvasData, options) => {
+    handleQuantizerApply(quantizedCanvasData, options)
+    navigate('/editor')
+  }
+
   const canvasProps = {
     gridSize,
     gridWidth,
@@ -1406,7 +1415,7 @@ export default function App() {
             path="/create/image"
             element={
               <Suspense fallback={<LoadingScreen />}>
-                <CreateImagePage onApply={handleQuantizerApply} />
+                <CreateImagePage onApply={handleQuantizerApply} onEnterEditor={handleQuantizerToEditor} />
               </Suspense>
             }
           />
@@ -1963,7 +1972,7 @@ export default function App() {
           path="/create/image"
           element={
             <Suspense fallback={<LoadingScreen />}>
-              <CreateImagePage onApply={handleQuantizerApply} />
+              <CreateImagePage onApply={handleQuantizerApply} onEnterEditor={handleQuantizerToEditor} />
             </Suspense>
           }
         />
