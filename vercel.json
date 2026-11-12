@@ -316,6 +316,15 @@
       ]
     },
     {
+      "source": "/editor",
+      "headers": [
+        {
+          "key": "X-Robots-Tag",
+          "value": "noindex, nofollow"
+        }
+      ]
+    },
+    {
       "source": "/llms.txt",
       "headers": [
         {

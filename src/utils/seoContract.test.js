@@ -148,6 +148,17 @@ describe('软 404 · 不存在的 URL 不再回退成首页', () => {
     expect(PRERENDER).toMatch(/404\.html[\s\S]{0,4000}noindex, nofollow/)
   })
 
+  it('私有工具页 /editor:noindex 三件套(rewrite + 响应头 + SEO_CONFIG)', () => {
+    // 原始 HTML 是 spa.html 壳(index, follow),noindex 依赖响应头 + Helmet;
+    // 漏掉响应头时,不执行 JS 的抓取端会把编辑器当可收录页
+    expect(VERCEL.rewrites.some(r => r.source === '/editor')).toBe(true)
+    const header = VERCEL.headers.find(h => h.source === '/editor')
+    expect(header).toBeTruthy()
+    const robots = header.headers.find(h => h.key === 'X-Robots-Tag')
+    expect(robots.value).toContain('noindex')
+    expect(APP).toMatch(/editor:\s*\{[\s\S]{0,300}noindex: true/)
+  })
+
   it('客户端不再把未匹配路由静默重定向到首页', () => {
     expect(APP).not.toContain('<Navigate to="/" replace />')
     expect(APP).toContain('<NotFoundPage />')
