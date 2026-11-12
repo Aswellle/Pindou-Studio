@@ -17,7 +17,7 @@ const { canvasPropsRef } = vi.hoisted(() => ({ canvasPropsRef: { current: null }
 
 vi.mock('./Canvas', async () => {
   const React = await import('react')
-  const MockCanvas = React.forwardRef(function MockCanvas(props, ref) {
+  const MockCanvas = React.forwardRef(function MockCanvas(props) {
     canvasPropsRef.current = props
     return React.createElement('div', { className: 'mock-canvas' })
   })
@@ -81,7 +81,9 @@ function renderEditor(overrides = {}) {
   return { ...view, props }
 }
 
-beforeAll(async () => { await i18n.changeLanguage('zh-CN') })
+beforeAll(async () => {
+  await i18n.changeLanguage('zh-CN')
+})
 afterEach(() => cleanup())
 
 describe('EditorPage · 图纸用色列表', () => {
@@ -171,6 +173,54 @@ describe('EditorPage · 工具与操作', () => {
   })
 })
 
+describe('EditorPage · 移动端分支', () => {
+  it('mobile + pick 工具渲染方向盘;桌面不渲染', () => {
+    const onPickMove = vi.fn()
+    const { props, rerender } = renderEditor({
+      mobile: true,
+      tool: 'pick',
+      pickCursor: { x: 1, y: 1 },
+      onPickMove,
+      onPickToggle: vi.fn(),
+    })
+    expect(document.querySelector('.pick-dpad')).toBeTruthy()
+
+    // 方向盘四向接线
+    fireEvent.click(screen.getByRole('button', { name: '光标右移一格' }))
+    expect(onPickMove).toHaveBeenCalledWith(1, 0)
+
+    // 桌面(mobile=false)即使 tool=pick 也不渲染方向盘
+    rerender(
+      <MemoryRouter initialEntries={['/editor']}>
+        <EditorPage {...props} mobile={false} />
+      </MemoryRouter>
+    )
+    expect(document.querySelector('.pick-dpad')).toBeNull()
+  })
+
+  it('mobile 长按菜单打开时渲染 SelectionContextMenu,命令走 onSelectionMenuCommand', () => {
+    const onSelectionMenuCommand = vi.fn()
+    const onCloseSelectionMenu = vi.fn()
+    renderEditor({
+      mobile: true,
+      tool: 'select',
+      selection: { x: 0, y: 0, w: 2, h: 2 },
+      selectionMenu: { x: 120, y: 300 },
+      onSelectionMenuCommand,
+      onCloseSelectionMenu,
+      canPaste: false,
+    })
+    // portal 到 body:命令项可寻址
+    const menu = document.body.querySelector('.selection-menu')
+    expect(menu).toBeTruthy()
+
+    const fillItem = [...menu.querySelectorAll('button')].find(b => b.textContent?.includes('填充'))
+    fireEvent.click(fillItem)
+    expect(onSelectionMenuCommand).toHaveBeenCalledWith('fill')
+    expect(onCloseSelectionMenu).toHaveBeenCalledTimes(1)
+  })
+})
+
 describe('EditorPage · 上下文选区条', () => {
   it('无选区时不渲染;有选区渲染命令并接线,粘贴按 canPaste 禁用', () => {
     const { props, rerender } = renderEditor()
@@ -178,11 +228,7 @@ describe('EditorPage · 上下文选区条', () => {
 
     rerender(
       <MemoryRouter initialEntries={['/editor']}>
-        <EditorPage
-          {...props}
-          selection={{ x: 0, y: 0, w: 2, h: 2 }}
-          canPaste
-        />
+        <EditorPage {...props} selection={{ x: 0, y: 0, w: 2, h: 2 }} canPaste />
       </MemoryRouter>
     )
     const bar = document.querySelector('[data-testid="editor-selection-bar"]')
