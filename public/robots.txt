@@ -70,6 +70,12 @@ Indexpage: https://tangnotes.site/
 Indexpage: https://tangnotes.site/gallery
 Indexpage: https://tangnotes.site/tutorials
 Indexpage: https://tangnotes.site/create/image
+Indexpage: https://tangnotes.site/colors
+Indexpage: https://tangnotes.site/ironing
+Indexpage: https://tangnotes.site/bead-calculator
+Indexpage: https://tangnotes.site/bead-patterns
+Indexpage: https://tangnotes.site/pixel-art
+Indexpage: https://tangnotes.site/faq
 
 # ── Google-Extended:允许 Gemini 检索增强(Grounding) ─────
 # 专属组会覆盖 * 组,所以重抄四条屏蔽路径。该 token 没有独立的抓取 UA,
