@@ -31,6 +31,7 @@ import { templateToProject } from '../../services/project/adapters'
 import { projectToImportWork } from '../../services/project/importProject'
 import { useToast } from '../../components/Toast'
 import ThumbnailCanvas from '../../components/ThumbnailCanvas'
+import GallerySearchInput from './components/GallerySearchInput'
 import ShareWorkDialog from '../sharing/ShareWorkDialog'
 import { useGalleryQuery } from './hooks/useGalleryQuery'
 import { templateMatchesQuery } from './hooks/useFilteredTemplates'
@@ -509,12 +510,11 @@ export default function GalleryPage({ onLoadTemplate, cloudStore, user, onSaveWo
             <div className="gallery-toolbar-end">
               <div className="gallery-search">
                 <Search size={15} className="gallery-search-icon" aria-hidden="true" />
-                <input
-                  type="search"
-                  placeholder={t('gallery.search')}
+                <GallerySearchInput
                   value={searchTerm}
-                  onChange={e => setSearchTerm(e.target.value)}
-                  aria-label={t('gallery.search')}
+                  onCommit={setSearchTerm}
+                  placeholder={t('gallery.search')}
+                  ariaLabel={t('gallery.search')}
                 />
               </div>
               <button

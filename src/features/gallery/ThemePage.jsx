@@ -20,6 +20,7 @@ import { COLOR_COUNT_TIERS } from './hooks/useGalleryQuery'
 import { resolveTemplatesByIds } from './discovery'
 import { localizedContentText } from '../../services/gallery/contentModel'
 import TemplateGrid from './components/TemplateGrid'
+import GallerySearchInput from './components/GallerySearchInput'
 import ContentPageSkeleton, { PageHeadSkeleton } from './components/ContentPageSkeleton'
 import ContentSeo from './components/ContentSeo'
 import './gallery.css'
@@ -185,12 +186,11 @@ export default function ThemePage({ cloudStore }) {
         <div className="content-filters">
           <label className="content-filter-search">
             <span className="sr-only">{t('gallery.discovery.filterSearch')}</span>
-            <input
-              type="search"
+            <GallerySearchInput
               value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
+              onCommit={setSearchTerm}
               placeholder={t('gallery.discovery.filterSearch')}
-              aria-label={t('gallery.discovery.filterSearch')}
+              ariaLabel={t('gallery.discovery.filterSearch')}
             />
           </label>
           <label className="content-filter-select">
