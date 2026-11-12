@@ -4,7 +4,7 @@ import { countLassoCells as lassoCount } from '../utils/lassoSelection'
 import {
   Pencil, Eraser, PaintBucket, Hand, Undo2, Redo2, Trash2, ChevronLeft, ChevronRight, FileJson,
   Pipette, SquareDashed, Lasso, Replace, FlipHorizontal2, FlipVertical2, RotateCw, RotateCcw, X,
-  Copy, ClipboardPaste, Scissors,
+  Copy, ClipboardPaste, Scissors, MousePointerClick,
 } from 'lucide-react'
 
 export default function Tools({
@@ -156,6 +156,14 @@ export default function Tools({
             >
               <Lasso size={20} />
             </button>
+            {/* 「点选」:逐格加入/移出选区,适合手工挑格子(跳过不要的杂色格等) */}
+            <button
+              className={`tool-btn ${tool === 'pick' ? 'active' : ''}`}
+              onClick={() => onToolChange('pick')}
+              title={t('canvas.tool.pick')}
+            >
+              <MousePointerClick size={20} />
+            </button>
           </div>
         </div>
 
@@ -163,7 +171,7 @@ export default function Tools({
             按钮排成单列(图标 + 文字,左对齐):侧栏只有 200px,两列布局下
             「顺时针旋转」这类标签会顶出按钮边界;单列保证任何语言都不换行、不溢出。
             A5:套索与矩形共用同一组命令,因此两种工具下都展开。 */}
-        {(tool === 'select' || tool === 'lasso') && (
+        {(tool === 'select' || tool === 'lasso' || tool === 'pick') && (
           <div className="tool-group selection-group">
             <label className="tool-label">{t('tools.selection')}</label>
             {selection ? (
@@ -242,11 +250,14 @@ export default function Tools({
                   />
                   <span>{t('tools.snapToEdgesHint')}</span>
                 </label>
-                {/* 拖拽移动没有按钮,只能靠提示告知(规格 04 §2 要求移动有明确入口) */}
-                <p className="selection-hint">{t('tools.selectionMoveHint')}</p>
+                {/* 点选工具:拖拽不搬内容(逐格 toggle),提示改为点选玩法;
+                    其他选区工具保留「按住可拖动」提示 */}
+                <p className="selection-hint">
+                  {tool === 'pick' ? t('tools.pickHint') : t('tools.selectionMoveHint')}
+                </p>
               </>
             ) : (
-              <p className="selection-hint">{t('tools.selectionEmpty')}</p>
+              <p className="selection-hint">{tool === 'pick' ? t('tools.pickHint') : t('tools.selectionEmpty')}</p>
             )}
           </div>
         )}

@@ -258,3 +258,17 @@ describe('MobileToolbar · 工具栏高度变量', () => {
     expect(document.documentElement.style.getPropertyValue('--mobile-toolbar-h')).toBe('')
   })
 })
+
+describe('MobileToolbar · 点选工具', () => {
+  it('pick 工具显示选区操作条与「点选」工具按钮', () => {
+    renderBar({ tool: 'pick' })
+    expect($('[data-testid="mobile-selection-bar"]')).toBeTruthy()
+    const labels = [...$$('.toolbar-tools .tool-label')].map(el => el.textContent)
+    expect(labels).toContain('点选')
+  })
+
+  it('pick 无选区时提示点选玩法(不是「先拖出选区」)', () => {
+    renderBar({ tool: 'pick', selection: null })
+    expect(document.body.textContent).toContain('点格子加入选区')
+  })
+})

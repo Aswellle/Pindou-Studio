@@ -2,7 +2,7 @@ import { useState, useRef, useEffect, useCallback, useImperativeHandle, forwardR
 import { useTranslation } from 'react-i18next'
 import { useCanvasPainter } from '../hooks/useCanvasPainter'
 import { normalizeSelection, clampMove } from '../utils/selectionUtils'
-import { drawMarquee, drawSelection, MARQUEE_DASH_PERIOD } from '../utils/marquee'
+import { drawMarquee, drawSelection, MARQUEE_DASH_PERIOD, MARQUEE_SNAP } from '../utils/marquee'
 import { HANDLE_CURSORS, HANDLE_HIT_PX, hitTestHandle, resizeSelection } from '../utils/selectionHandles'
 import { SNAP_THRESHOLD, snapSelection } from '../utils/selectionSnap'
 import {
@@ -28,6 +28,27 @@ function isCoarsePointer() {
 // 选框虚线的流动相位:落定后由 rAF 缓慢推进(marching ants),
 // 让选框始终「活着」,一眼能看出这是可操作区域而不是图案的一部分。
 const MARQUEE_TICK_MS = 60
+
+/**
+ * 点选光标(方向盘/键盘步进的落点):橙色虚线框 + 淡色填充,
+ * 与选区的青色系拉开 —— 一眼能区分「选区」与「光标即将操作的这一格」。
+ * 纯函数,与 marquee.js 同款 1/scale 补偿,任何缩放下屏幕观感一致。
+ */
+function drawPickCursor(ctx, cursor, { cellSize = CELL_SIZE, scale = 1 } = {}) {
+  if (!ctx || !cursor) return
+  const zoom = scale > 0 ? scale : 1
+  const inv = 1 / zoom
+  const px = cursor.x * cellSize
+  const py = cursor.y * cellSize
+  ctx.save()
+  ctx.fillStyle = 'rgba(255, 152, 0, 0.20)'
+  ctx.fillRect(px, py, cellSize, cellSize)
+  ctx.setLineDash([4 * inv, 3 * inv])
+  ctx.lineWidth = 2 * inv
+  ctx.strokeStyle = MARQUEE_SNAP
+  ctx.strokeRect(px + inv, py + inv, cellSize - 2 * inv, cellSize - 2 * inv)
+  ctx.restore()
+}
 
 const Canvas = forwardRef(function Canvas(
   {
@@ -55,6 +76,11 @@ const Canvas = forwardRef(function Canvas(
     // A4:长按选区内容时上报屏幕坐标,父组件据此弹上下文菜单。
     // 不传 = 不启用长按(桌面端用不上,右键菜单另有语义)。
     onSelectionLongPress,
+    // 「点选」工具:逐格 toggle 选区。Canvas 只上报格子坐标,
+    // 选区状态由父组件函数式更新 —— 拖扫连续 toggle 时不会有竞态。
+    onPickToggleCell,
+    // 点选光标(方向盘/键盘步进的落点):在 overlay 上画高亮框
+    pickCursor,
     // 保存入口放在画布 HUD 而不是全局顶栏:保存是画布专属动作,
     // 放顶栏会让右侧图标组随页面切换增减、整排跳位。
     onSave,
@@ -115,6 +141,14 @@ const Canvas = forwardRef(function Canvas(
   // 而轨迹只用来在 overlay 上画一条预览线,不需要参与 React 渲染。
   const lassoPointsRef = useRef(null)
   const lassoDraggingRef = useRef(false)
+
+  // ── 点选工具(tool === 'pick')────────────────────────────────
+  // 与套索同出「独立工具」的结构性保证:select/lasso 的路径原封不动。
+  // 按下 = toggle 起笔,拖扫逐格 toggle(每格一次),松手结束。
+  // toggle 本体在父组件(pickSelection.toggleCellInSelection,函数式更新),
+  // 这里只负责手势 → 格子坐标的上报与本笔画去重。
+  const pickDraggingRef = useRef(false)
+  const pickToggledRef = useRef(null)
 
   // 选框虚线的流动相位(marching ants)。用 ref 而非 state:动画每 60ms 推进一次,
   // 直接重画 overlay 即可,不应触发 React 重渲染。
@@ -258,7 +292,9 @@ const Canvas = forwardRef(function Canvas(
     // 线宽/虚线按 1/scale 补偿,缩放到 0.3× 或 5× 都保持同样的屏幕观感。
     // A5:drawSelection 按 selection.kind 分派 —— 矩形仍走原来的 drawMarquee,
     // 套索按掩码逐格画轮廓,调用方不需要关心区别。
-    if (tool === 'select' && selection) {
+    // 点选选区是掩码形状(套索形),也在这里画 —— 拖扫 toggle 时 hover 重绘
+    // 每帧都会清 overlay,只靠 ants tick 会出现选区闪烁。
+    if ((tool === 'select' || tool === 'pick') && selection) {
       drawSelection(painter.overlayRef.current?.getContext('2d'), selection, {
         cellSize: CELL_SIZE,
         scale: transform.scale,
@@ -276,7 +312,10 @@ const Canvas = forwardRef(function Canvas(
   // 因此条件里也接受 tool === 'lasso'。
   // ─────────────────────────────────────────────────────────────────
   useEffect(() => {
-    if ((tool !== 'select' && tool !== 'lasso') || !selection) return undefined
+    const antsActive = (tool === 'select' || tool === 'lasso') && selection
+    // 点选:有选区走 ants;只有光标(还没选任何格)也要实时重画光标
+    const pickActive = tool === 'pick' && (selection || pickCursor)
+    if (!antsActive && !pickActive) return undefined
     let raf = 0
     let last = 0
     const step = now => {
@@ -296,18 +335,20 @@ const Canvas = forwardRef(function Canvas(
         last = now
         dashOffsetRef.current = (dashOffsetRef.current + 1) % MARQUEE_DASH_PERIOD
         painter.clearOverlay()
-        drawSelection(painter.overlayRef.current?.getContext('2d'), selection, {
+        const ctx = painter.overlayRef.current?.getContext('2d')
+        drawSelection(ctx, selection, {
           cellSize: CELL_SIZE,
           scale: transform.scale,
           dashOffset: dashOffsetRef.current,
           resizeHandles: true,
         })
+        if (tool === 'pick') drawPickCursor(ctx, pickCursor, { scale: transform.scale })
       }
       raf = requestAnimationFrame(step)
     }
     raf = requestAnimationFrame(step)
     return () => cancelAnimationFrame(raf)
-  }, [tool, selection, painter, transform.scale])
+  }, [tool, selection, painter, transform.scale, pickCursor])
 
   // ─────────────────────────────────────────────────────────────────
   // 坐标转换
@@ -1021,6 +1062,20 @@ const Canvas = forwardRef(function Canvas(
             if (point) startLasso(point)
             return
           }
+          // 「点选」工具:按下 = toggle 起笔,拖扫逐格 toggle(每格一次)。
+          // 与铅笔同款 pan 规则:拖出画布才转平移,格子上拖不丢笔。
+          // toggle 本体在父组件函数式更新,这里只上报格子坐标。
+          if (tool === 'pick') {
+            e.preventDefault()
+            pickDraggingRef.current = true
+            pickToggledRef.current = new Set([`${pos.x},${pos.y}`])
+            onPickToggleCell?.(pos)
+            panHasStartedRef.current = false
+            isPanningRef.current = false
+            panCursorStartRef.current = { x: cursorX, y: cursorY }
+            panStartRef.current = { x: transform.cx, y: transform.cy }
+            return
+          }
           isDrawingRef.current = true
           drawStartRef.current = { x: e.clientX, y: e.clientY }
           startStroke()
@@ -1059,6 +1114,7 @@ const Canvas = forwardRef(function Canvas(
       startResize,
       copyDrag,
       startLasso,
+      onPickToggleCell,
     ]
   )
 
@@ -1105,6 +1161,28 @@ const Canvas = forwardRef(function Canvas(
       if (!resizeHandleRef.current) {
         const nextHandle = handleAtPoint(e.clientX, e.clientY)
         setHoverHandle(prev => (prev === nextHandle ? prev : nextHandle))
+      }
+
+      // 点选拖扫:进入新格子才 toggle(本笔画内去重),扫回已 toggle 的格不翻回。
+      // 拖出画布 → 结束点选转平移(与铅笔同规则)。
+      if (pickDraggingRef.current) {
+        const pos = getGridPos(e.clientX, e.clientY)
+        setHoverCell(pos)
+        if (pos) {
+          const key = `${pos.x},${pos.y}`
+          if (!pickToggledRef.current.has(key)) {
+            pickToggledRef.current.add(key)
+            onPickToggleCell?.(pos)
+          }
+          return
+        }
+        pickDraggingRef.current = false
+        pickToggledRef.current = null
+        panHasStartedRef.current = true
+        isPanningRef.current = true
+        panCursorStartRef.current = { x: cursorX, y: cursorY }
+        panStartRef.current = { x: transform.cx, y: transform.cy }
+        // 不 return —— 让本次事件继续走下方平移逻辑,拖动不丢帧
       }
 
       // Drawing mode: only draw if actually on a cell AND haven't exceeded pan threshold
@@ -1177,6 +1255,7 @@ const Canvas = forwardRef(function Canvas(
       updateResize,
       handleAtPoint,
       updateLasso,
+      onPickToggleCell,
     ]
   )
 
@@ -1185,6 +1264,10 @@ const Canvas = forwardRef(function Canvas(
     if (moveDraggingRef.current) endMove()
     if (selDraggingRef.current) endSelection()
     if (lassoDraggingRef.current) endLasso()
+    if (pickDraggingRef.current) {
+      pickDraggingRef.current = false
+      pickToggledRef.current = null
+    }
     if (isDrawingRef.current) commitStroke()
     isDrawingRef.current = false
     isPanningRef.current = false
@@ -1199,6 +1282,10 @@ const Canvas = forwardRef(function Canvas(
     // A5:鼠标移出画布区域时收掉套索,用已记录的轨迹光栅化 ——
     // 与矩形选区一致,「拖出边界再松手」应当提交而不是丢弃。
     if (lassoDraggingRef.current) endLasso()
+    if (pickDraggingRef.current) {
+      pickDraggingRef.current = false
+      pickToggledRef.current = null
+    }
     if (isDrawingRef.current) commitStroke()
     isDrawingRef.current = false
     isPanningRef.current = false
@@ -1338,6 +1425,14 @@ const Canvas = forwardRef(function Canvas(
           const point = getGridPoint(t.clientX, t.clientY)
           if (point) startLasso(point)
           return
+        }
+
+        // 「点选」工具:按下不立即 toggle —— 与铅笔同款「松手判定点按」,
+        // 拖动(>10px)仍然是平移,不会误改选区。按在已选格内允许长按弹菜单。
+        if (tool === 'pick' && gridPos) {
+          if (selection?.kind === 'lasso' && selectionContains(selection, gridPos)) {
+            scheduleLongPress(t.clientX, t.clientY)
+          }
         }
 
         // 抓手工具或不在grid上 → 开始单指平移
@@ -1562,6 +1657,9 @@ const Canvas = forwardRef(function Canvas(
           } else if (tool === 'select') {
             // 选区工具单击空点 = 取消选区(由 endSelection 语义覆盖)
             onSelectionChange?.(null)
+          } else if (tool === 'pick') {
+            // 点选:单指点按 = toggle 该格(加入/移出选区)
+            onPickToggleCell?.({ x, y })
           } else {
             startStroke()
             if (tool === 'pencil' || tool === 'eraser') paintToStroke(x, y)
@@ -1616,6 +1714,7 @@ const Canvas = forwardRef(function Canvas(
       endMove,
       endLasso,
       onSelectionChange,
+      onPickToggleCell,
       endResize,
       cancelLongPress,
     ]

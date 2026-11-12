@@ -45,6 +45,7 @@ import {
   pasteLasso,
 } from './utils/lassoCommands'
 import { selectionBounds } from './utils/lassoSelection'
+import { toggleCellInSelection } from './utils/pickSelection'
 import {
   loadFillIncludeEmpty,
   saveFillIncludeEmpty,
@@ -188,11 +189,17 @@ export default function App() {
   // 与操作条按钮是同一条路径,不会出现两套行为。
   const [selectionMenu, setSelectionMenu] = useState(null)
 
+  // 「点选」工具的光标:方向盘/键盘步进的落点,步进恒为 1 格。
+  // 画布 tap/拖扫不走光标(指哪打哪),光标只在需要精确定位时由
+  // 方向盘(移动端)或方向键(PC)移动。
+  const [pickCursor, setPickCursor] = useState(null)
+
   // 切页 / 网格尺寸变化(换模板、载入作品、调整画布)后,旧选区坐标可能失效
   // → 清空。普通绘制不改变网格,选区矩形仍然有效,无需清空。
   // biome-ignore lint/correctness/useExhaustiveDependencies: 切页/改网格尺寸时清空选区坐标,这些值只作触发信号
   useEffect(() => {
     setSelection(null)
+    setPickCursor(null)
   }, [location.pathname, gridSize, gridWidth, gridHeight])
 
   // 撤销/重做前先丢弃活动笔画,避免笔画进行中 undo 后 mouseUp 时 commitStroke 重推快照回滚
@@ -703,6 +710,14 @@ export default function App() {
     },
     selection,
     onSelectionChange: setSelection,
+    // 「点选」工具:逐格 toggle 选区。父组件函数式更新,拖扫连续 toggle 无竞态。
+    onPickToggleCell: ({ x, y }) => {
+      const cols = gridWidth || gridSize
+      const rows = gridHeight || gridSize
+      setSelection(prev => toggleCellInSelection(prev, x, y, cols, rows))
+    },
+    // 点选光标(方向盘/键盘步进的落点),画在 overlay 上
+    pickCursor,
     // A2:复制拖动开关(拖动选区内部时是复制而不是剪切)
     copyDrag,
     // A3:框选吸附到已有珠子的边缘

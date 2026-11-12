@@ -471,6 +471,7 @@
       "hand": "Hand",
       "select": "Select",
       "lasso": "Lasso",
+      "pick": "Cell pick",
       "eyedropper": "Eyedropper"
     },
     "reset": "Reset",
@@ -515,6 +516,7 @@
     "importFile": "Import File",
     "selection": "Selection",
     "selectionEmpty": "Drag on the canvas to make a selection",
+    "pickHint": "Tap cells to add them to the selection, tap again to remove; then fill, erase, or flip below",
     "fillSelection": "Fill selection",
     "clearSelection": "Erase selection",
     "mirrorH": "Flip horizontal",

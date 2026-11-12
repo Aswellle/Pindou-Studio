@@ -1641,3 +1641,111 @@ describe('Canvas 长按上下文菜单(A4)', () => {
     expect(onSelectionLongPress).not.toHaveBeenCalled()
   })
 })
+
+describe('Canvas 点选工具(逐格 toggle 选区)', () => {
+  let mock
+  beforeEach(() => { mock = installCanvasMocks() })
+  afterEach(() => {
+    mock.restore()
+    vi.useRealTimers()
+  })
+
+  function renderPick(overrides = {}) {
+    const onPickToggleCell = vi.fn()
+    const onCanvasChange = vi.fn()
+    const view = render(
+      <Canvas
+        gridSize={3}
+        gridWidth={null}
+        gridHeight={null}
+        selectedColor="#ff0000"
+        tool="pick"
+        committedData={blankGrid(3)}
+        onCanvasChange={onCanvasChange}
+        onPickToggleCell={onPickToggleCell}
+        {...overrides}
+      />
+    )
+    return { ...view, onPickToggleCell, onCanvasChange }
+  }
+
+  test('单击一格上报 toggle,不产生历史', () => {
+    const { container, onPickToggleCell, onCanvasChange } = renderPick()
+    const c = container.querySelector('.canvas-container')
+
+    fireEvent.mouseDown(c, { clientX: 24, clientY: 24 })
+    expect(onPickToggleCell).toHaveBeenCalledWith({ x: 1, y: 1 })
+    fireEvent.mouseUp(c, { clientX: 24, clientY: 24 })
+
+    expect(onPickToggleCell).toHaveBeenCalledTimes(1)
+    expect(onCanvasChange).not.toHaveBeenCalled()
+  })
+
+  test('拖扫逐格 toggle:同一格本笔画内只报一次,扫回已报格不翻回', () => {
+    const { container, onPickToggleCell } = renderPick()
+    const c = container.querySelector('.canvas-container')
+
+    fireEvent.mouseDown(c, { clientX: 24, clientY: 24 }) // (1,1)
+    fireEvent.mouseMove(c, { clientX: 26, clientY: 26 }) // 仍在 (1,1)
+    fireEvent.mouseMove(c, { clientX: 40, clientY: 24 }) // (2,1)
+    fireEvent.mouseMove(c, { clientX: 42, clientY: 26 }) // 仍在 (2,1)
+    fireEvent.mouseMove(c, { clientX: 24, clientY: 40 }) // (1,2)
+    fireEvent.mouseMove(c, { clientX: 24, clientY: 24 }) // 扫回 (1,1):不翻回
+    fireEvent.mouseUp(c, { clientX: 24, clientY: 24 })
+
+    const cells = onPickToggleCell.mock.calls.map(call => `${call[0].x},${call[0].y}`)
+    expect(cells).toEqual(['1,1', '2,1', '1,2'])
+  })
+
+  test('拖出画布转平移:不再上报格子', () => {
+    const { container, onPickToggleCell } = renderPick()
+    const c = container.querySelector('.canvas-container')
+
+    fireEvent.mouseDown(c, { clientX: 24, clientY: 24 }) // (1,1)
+    fireEvent.mouseMove(c, { clientX: 300, clientY: 300 }) // 画布外 → 平移
+    fireEvent.mouseMove(c, { clientX: 306, clientY: 300 })
+    fireEvent.mouseUp(c, { clientX: 306, clientY: 300 })
+
+    expect(onPickToggleCell).toHaveBeenCalledTimes(1)
+  })
+
+  test('触屏点按 toggle 一格;拖动(>10px)只平移不 toggle', () => {
+    const { container, onPickToggleCell } = renderPick()
+    const c = container.querySelector('.canvas-container')
+
+    // 手势一:按住拖远 → 只平移
+    fireEvent.touchStart(c, { touches: [{ clientX: 24, clientY: 24, identifier: 0 }] })
+    fireEvent.touchMove(c, { touches: [{ clientX: 120, clientY: 120, identifier: 0 }] })
+    fireEvent.touchEnd(c, { touches: [] })
+    expect(onPickToggleCell).not.toHaveBeenCalled()
+
+    // 手势二:纯点按 → toggle
+    fireEvent.touchStart(c, { touches: [{ clientX: 24, clientY: 24, identifier: 0 }] })
+    fireEvent.touchEnd(c, { touches: [] })
+    expect(onPickToggleCell).toHaveBeenCalledTimes(1)
+    expect(onPickToggleCell).toHaveBeenCalledWith({ x: 1, y: 1 })
+  })
+
+  test('按在已选格内长按弹菜单;长按手势不做 toggle', () => {
+    vi.useFakeTimers()
+    const onSelectionLongPress = vi.fn()
+    const sel = {
+      kind: 'lasso',
+      mask: Uint8Array.from([1, 0, 0, 0, 1, 0, 0, 0, 0]),
+      cols: 3,
+      rows: 3,
+      bounds: { x: 0, y: 0, w: 2, h: 2 },
+    }
+    const { container, onPickToggleCell } = renderPick({ selection: sel, onSelectionLongPress })
+    const c = container.querySelector('.canvas-container')
+
+    // (1,1) 在掩码内 → 长按计时
+    fireEvent.touchStart(c, { touches: [{ clientX: 24, clientY: 24, identifier: 0 }] })
+    vi.advanceTimersByTime(600)
+    expect(onSelectionLongPress).toHaveBeenCalledWith({ x: 24, y: 24 })
+    fireEvent.touchEnd(c, { touches: [] })
+
+    // 长按成立的那次手势收尾,不再 toggle
+    expect(onPickToggleCell).not.toHaveBeenCalled()
+  })
+})

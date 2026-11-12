@@ -132,3 +132,39 @@ describe('Tools · 桌面选区面板', () => {
     expect(props.onSelectionCommand).toHaveBeenCalledWith('copy')
   })
 })
+
+describe('Tools · 点选工具', () => {
+  it('工具栏有「点选」按钮,点击切换到 pick 工具', () => {
+    const { props } = renderTools()
+    const pickBtn = $$('button.tool-btn').find(btn => btn.getAttribute('title') === '点选')
+    expect(pickBtn).toBeTruthy()
+    fireEvent.click(pickBtn)
+    expect(props.onToolChange).toHaveBeenCalledWith('pick')
+  })
+
+  it('pick 工具下选区面板展开,提示为点选玩法', () => {
+    renderTools({ tool: 'pick', selection: null })
+    expect($('.selection-group')).toBeTruthy()
+    expect(document.body.textContent).toContain('点格子加入选区')
+  })
+
+  it('pick 选区按 kind 显示格子数(与套索同款读数)', () => {
+    renderTools({
+      tool: 'pick',
+      // 掩码尺寸必须与组件读到的网格(29×29)一致,否则格子数读数会错
+      selection: {
+        kind: 'lasso',
+        mask: (() => {
+          const m = new Uint8Array(29 * 29)
+          m[0] = 1
+          m[29 + 1] = 1
+          return m
+        })(),
+        cols: 29,
+        rows: 29,
+        bounds: { x: 0, y: 0, w: 2, h: 2 },
+      },
+    })
+    expect($('.selection-size').textContent).toContain('2')
+  })
+})

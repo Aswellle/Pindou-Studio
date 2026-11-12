@@ -60,6 +60,16 @@ const TOOL_ICONS = {
       <path d="M5 18a2 2 0 1 0 0-4 2 2 0 0 0 0 4z" />
     </svg>
   ),
+  // 点选:鼠标点击波纹(lucide MousePointerClick 同形)—— 逐格加入/移出选区
+  pick: (
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M9 8.5V4.5a1.5 1.5 0 0 1 3 0V9" />
+      <path d="M12 9V3.5a1.5 1.5 0 0 1 3 0V9" />
+      <path d="M15 9V5a1.5 1.5 0 0 1 3 0v5" />
+      <path d="M18 10V7a1.5 1.5 0 0 1 3 0v6a7 7 0 0 1-7 7h-2.5a6 6 0 0 1-5.2-3l-3-5.2a1.5 1.5 0 0 1 2.6-1.5L9 14" />
+      <path d="M3.5 3.5 6 6" /><path d="M2 8h2.5" /><path d="M8 2v2.5" />
+    </svg>
+  ),
 }
 
 const UndoIcon = () => (
@@ -445,6 +455,7 @@ export default function MobileToolbar({
     { id: 'eyedropper', label: t('canvas.tool.eyedropper') },
     { id: 'select', label: t('canvas.tool.select') },
     { id: 'lasso', label: t('canvas.tool.lasso') },
+    { id: 'pick', label: t('canvas.tool.pick') },
   ]
 
   const currentWidth = gridWidth || gridSize
@@ -501,7 +512,7 @@ export default function MobileToolbar({
           布局分两行:第一行是「尺寸 + 移动提示」,第二行是全部命令按钮。
           按钮一律「图标 + 文字」并自动换行 —— 移动端没有 hover,title 不可见,
           纯图标等于让用户猜;横向滚动则会把后几个命令藏到屏幕外。 */}
-      {(tool === 'select' || tool === 'lasso') && (
+      {(tool === 'select' || tool === 'lasso' || tool === 'pick') && (
         <div className="toolbar-selection" data-testid="mobile-selection-bar" ref={selectionBarRef}>
           {selection ? (
             <>
@@ -512,9 +523,10 @@ export default function MobileToolbar({
                     ? t('tools.lassoSize', { n: lassoCount(selection, currentWidth, currentHeight) })
                     : t('tools.selectionSize', { w: selection.w, h: selection.h })}
                 </span>
-                {/* 拖拽移动没有按钮(它直接发生在画布上),这里用图标 + 文字持续提示 */}
+                {/* 拖拽移动没有按钮(它直接发生在画布上),这里用图标 + 文字持续提示。
+                    点选工具的拖动是平移不是搬内容,提示换成点选玩法。 */}
                 <span className="selection-move-hint">
-                  <MoveIcon />{t('tools.selectionMoveHint')}
+                  <MoveIcon />{tool === 'pick' ? t('tools.pickHint') : t('tools.selectionMoveHint')}
                 </span>
                 {/* 规格 04 §2:默认只改已有珠子;开关打开才连空白一起填。
                     触屏没有 hover,所以做成常驻可见的胶囊按钮(不是 checkbox),
@@ -632,7 +644,9 @@ export default function MobileToolbar({
             </>
           ) : (
             <div className="selection-info-line">
-              <span className="selection-size-badge muted">{t('tools.selectionEmpty')}</span>
+              <span className="selection-size-badge muted">
+                {tool === 'pick' ? t('tools.pickHint') : t('tools.selectionEmpty')}
+              </span>
             </div>
           )}
         </div>

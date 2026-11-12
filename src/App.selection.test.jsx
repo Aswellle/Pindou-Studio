@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeAll, beforeEach, afterEach, vi } from 'vitest'
-import { render, fireEvent, cleanup, waitFor } from '@testing-library/react'
+import { render, fireEvent, cleanup, waitFor, act } from '@testing-library/react'
 import { MemoryRouter } from 'react-router-dom'
 import { HelmetProvider } from 'react-helmet-async'
 import i18n from './i18n'
@@ -569,5 +569,77 @@ describe('App · 复制/粘贴快捷键的接管边界', () => {
 
     // 有选区但没复制过:粘贴快捷键必须放行,而不是吃掉事件却什么都不做
     expect(fireEvent.keyDown(window, { key: 'v', ctrlKey: true })).toBe(true)
+  })
+})
+
+describe('App · 点选工具(逐格 toggle 选区)', () => {
+  it('逐格点选出的选区走掩码命令:填充一次撤销回到原矩阵', async () => {
+    const { getByTestId } = renderApp()
+
+    await waitFor(() => expect(canvasProps.current?.committedData).toBeTruthy())
+    const before = canvasProps.current.committedData.map(r => [...r])
+
+    // 画两颗不同色的珠子,再逐格点选这两格
+    const withBeads = before.map(r => [...r])
+    withBeads[0][0] = '#E53935'
+    withBeads[1][1] = '#1E88E5'
+    canvasProps.current.onCanvasChange(withBeads)
+    await act(async () => {
+      canvasProps.current.onPickToggleCell({ x: 0, y: 0 })
+      canvasProps.current.onPickToggleCell({ x: 1, y: 1 })
+    })
+    // 两格都在掩码里(逐格 toggle 累积,不互相覆盖)
+    await waitFor(() => expect(canvasProps.current.selection?.mask[29 + 1]).toBe(1))
+    expect(canvasProps.current.selection.mask[0]).toBe(1)
+
+    // 点选选区是掩码形状(kind 'lasso'),fill 走掩码命令:只改选中格
+    fireEvent.click(getByTestId('fill'))
+    await waitFor(() => {
+      const after = canvasProps.current.committedData
+      expect(after[0][0]).toBe('#E53935')
+      expect(after[1][1]).toBe('#E53935')
+    })
+    // 掩码外的格子不受影响
+    expect(canvasProps.current.committedData[0][1]).toBeNull()
+
+    // 一次撤销:回到填充前的「两颗珠子」状态 —— 填充本身只占一条历史
+    fireEvent.keyDown(window, { key: 'z', ctrlKey: true })
+    await waitFor(() => expect(canvasProps.current.committedData).toEqual(withBeads))
+  })
+
+  it('同一格 toggle 两次 = 移出选区:选区清空后命令只提示不改画布', async () => {
+    const { getByTestId } = renderApp()
+
+    await waitFor(() => expect(canvasProps.current?.committedData).toBeTruthy())
+    const before = canvasProps.current.committedData
+
+    await act(async () => {
+      canvasProps.current.onPickToggleCell({ x: 2, y: 2 })
+    })
+    await waitFor(() => expect(canvasProps.current.selection).toBeTruthy())
+    await act(async () => {
+      canvasProps.current.onPickToggleCell({ x: 2, y: 2 })
+    })
+    await waitFor(() => expect(canvasProps.current.selection).toBeNull())
+
+    fireEvent.click(getByTestId('fill'))
+    expect(canvasProps.current.committedData).toBe(before)
+  })
+
+  it('矩形选区上首点会替换为新的点选掩码(不叠加矩形范围)', async () => {
+    renderApp()
+
+    await waitFor(() => expect(canvasProps.current?.committedData).toBeTruthy())
+    selectRegion({ x: 0, y: 0, w: 3, h: 3 })
+    await waitFor(() => expect(canvasProps.current.selection).toBeTruthy())
+
+    await act(async () => {
+      canvasProps.current.onPickToggleCell({ x: 2, y: 2 })
+    })
+    await waitFor(() => expect(canvasProps.current.selection?.kind).toBe('lasso'))
+    const sel = canvasProps.current.selection
+    expect(sel.kind).toBe('lasso')
+    expect(sel.bounds).toEqual({ x: 2, y: 2, w: 1, h: 1 })
+    expect(sel.mask[0]).toBe(0)
   })
 })
