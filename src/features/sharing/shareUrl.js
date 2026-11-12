@@ -49,14 +49,3 @@ export function shareIdFromPath(pathname) {
   return match ? match[1] : null
 }
 
-/**
- * 登录后回跳白名单:只接受干净的 `/share/<uuid>`,拒绝其余一切。
- *
- * 带查询串或锚点的值一律拒绝(而不是剥离后再接受)——
- * 避免把未校验的参数间接带进跳转;跳转目标只需要路径本身。
- */
-export function safeShareReturnTo(value) {
-  if (typeof value !== 'string' || !value) return null
-  if (/[?#]/.test(value)) return null
-  return isSharePath(value) ? value.replace(/\/+$/, '') || value : null
-}

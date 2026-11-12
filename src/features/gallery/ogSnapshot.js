@@ -661,12 +661,17 @@ export function renderSnapshotHtml(
   // 抓取端不执行 JS,读得到;用户不会先看到一屏纯文字再被应用替换。
   const bootScript = '<script>document.documentElement.classList.add("js-booting")</script>'
   const bootStyle = '<style>html.js-booting #seo-static{visibility:hidden}</style>'
-  if (out.includes('</head>')) out = out.replace('</head>', `${bootScript}${bootStyle}</head>`)
+  // 替换值一律用函数返回(与上方 head 侧替换同一规则):统一写法避免将来
+  // 有人把动态值塞进来时踩 $&/$'/$` 展开的坑
+  if (out.includes('</head>')) out = out.replace('</head>', () => `${bootScript}${bootStyle}</head>`)
 
   const body = `${SEO_STYLE}<section id="seo-static">${snap.bodyHtml}</section>`
   // 注入的样式与正文是按 \n 拼的,统一换成模板文件的换行风格,
   // 避免同一份 HTML 里 CRLF/LF 混用(后续用文本工具处理时容易踩坑)
   const bodyForEol = EOL === '\n' ? body : body.replace(/\r?\n/g, EOL)
-  return out.replace('<div id="root"></div>', `<div id="root">${bodyForEol}</div>`)
+  // 函数形态替换:bodyHtml 含 escapeHtml 后的 DB 内容,$ 序列($&/$`/$')在
+  // 字符串形态替换值里会被展开——管理员标题写 $` 会把整份 head 复制进 #root,
+  // 造成 ld+json 双份/meta 重复的产物完整性破坏。函数返回值不展开。
+  return out.replace('<div id="root"></div>', () => `<div id="root">${bodyForEol}</div>`)
 }
 

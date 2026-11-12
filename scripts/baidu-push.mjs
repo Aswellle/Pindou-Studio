@@ -36,7 +36,9 @@ import { fileURLToPath } from 'node:url'
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const ROOT = path.join(__dirname, '..')
 const SITE = (process.env.BAIDU_PUSH_SITE || 'https://tangnotes.site').replace(/\/+$/, '')
-const ENDPOINT = `http://data.zz.baidu.com/urls?site=${encodeURIComponent(SITE)}`
+// 百度官方文档示例为 http;https 可用性经 CI 实测确认后即为最终态。
+// 不做 http 回退:能读明文流量的攻击者同样能让 https 握手失败,回退是降级反模式。
+const ENDPOINT = `https://data.zz.baidu.com/urls?site=${encodeURIComponent(SITE)}`
 
 // 百度普通收录单次请求上限为 2000 条;取 1000 留余量,单批失败不影响其他批
 const BATCH_SIZE = 1000

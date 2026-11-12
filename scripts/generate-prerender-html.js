@@ -125,6 +125,17 @@ fs.writeFileSync(SEO_TEMPLATE_PATH, indexWithBuildId)
  * 「上一轮留下的旧标签」删掉。所以只有 App.jsx 的 seoHelmet 与 ContentSeo.jsx
  * 真正渲染的那几个标签才带它(keywords / og:site_name / og:locale / og:image:* 不带)。
  */
+// JSON → ld+json 内联文本:转义 < > &,防止 </script> 提前终结脚本块
+// (与 ogSnapshot.js 的 jsonForScript 同一约定;此前 breadcrumbScript/howToScript
+//  的裸 JSON.stringify 是两套助手只防一套的历史遗留,统一走这里。
+//  当前数据全部来自仓库静态文件,纯防患于未然。)
+function jsonBody(data, indent = 2) {
+  return JSON.stringify(data, null, indent)
+    .replace(/</g, '\u003c')
+    .replace(/>/g, '\u003e')
+    .replace(/&/g, '\u0026')
+}
+
 const HEAD_ATTR = ' data-rh="true"'
 
 /**
@@ -198,8 +209,8 @@ function breadcrumbScript(crumbs) {
           '      {',
           '        "@type": "ListItem",',
           `        "position": ${i + 1},`,
-          `        "name": ${JSON.stringify(c.name)},`,
-          `        "item": ${JSON.stringify(c.item)}`,
+          `        "name": ${jsonBody(c.name)},`,
+          `        "item": ${jsonBody(c.item)}`,
           '      }',
         ].join(EOL),
     )
@@ -253,7 +264,7 @@ function howToScript() {
   return [
     '  <!-- HowTo: 图片转拼豆步骤(与页面步骤条一致) -->',
     '  <script type="application/ld+json">',
-    JSON.stringify(data, null, 2),
+    jsonBody(data, 2),
     '  </script>',
   ].join(EOL)
 }

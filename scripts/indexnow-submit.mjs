@@ -39,6 +39,8 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const ROOT = path.join(__dirname, '..')
 const SITE = 'https://tangnotes.site'
 const HOST = 'tangnotes.site'
+// IndexNow key 按协议是公开的站点所有权验证令牌(public/<KEY>.txt),不是机密;
+// 勿把真正的凭据迁移到此。轮换无意义(新 key 同样必须公开)。
 const KEY = '3d29195e94a2eea80e6f2cd015150c18' // 与 public/<KEY>.txt 同名同内容
 const KEY_LOCATION = `${SITE}/${KEY}.txt`
 const ENDPOINT = 'https://api.indexnow.org/indexnow'

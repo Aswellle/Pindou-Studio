@@ -46,19 +46,15 @@ function envValue(...names) {
   return ''
 }
 
-function siteOrigin(req) {
+function siteOrigin() {
   const explicit = envValue('SITE_URL', 'VITE_SITE_URL')
   if (explicit) return explicit.replace(/\/+$/, '')
-  const headers = req && req.headers
-  if (headers) {
-    const rawHost = String(headers['x-forwarded-host'] || headers.host || '').split(',')[0].trim()
-    if (/^[a-z0-9.-]+(:\d+)?$/i.test(rawHost)) {
-      const proto = String(headers['x-forwarded-proto'] || 'https').split(',')[0].trim()
-      return `${proto === 'http' ? 'http' : 'https'}://${rawHost}`
-    }
-  }
+  // 请求 host 不再作为兜底:x-forwarded-host 可被伪造,曾可经它污染
+  // canonical/og:url 并让壳 HTML 从外部域名自取后缓存(审计 run-2 #21)。
+  // 兜底链收敛为 VERCEL 平台注入的环境值 → 生产域常量。
   if (process.env.VERCEL_PROJECT_PRODUCTION_URL) return `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}`
-  if (process.env.VERCEL_URL) return `https://${process.env.VERCEL_URL}`
+  // 不落 VERCEL_URL:那是部署域名(带访问保护),og:image/canonical 会失效;
+  // 直接落到生产域常量(与 generate-prerender-html.js 的 SITE 同源)
   return 'https://tangnotes.site'
 }
 
@@ -68,7 +64,7 @@ function supabaseBase() {
 }
 
 /** 读构建产物(dist/spa.html / dist/404.html;vercel.json includeFiles 注入) */
-async function loadShell(req, name) {
+async function loadShell(name) {
   const cache = name === 'spa.html' ? shellCache.spa : shellCache.notFound
   const now = Date.now()
   if (cache.value && now < cache.expiresAt) return cache.value
@@ -90,7 +86,7 @@ async function loadShell(req, name) {
   }
 
   try {
-    const response = await fetch(`${siteOrigin(req)}/${name}`, { redirect: 'follow' })
+    const response = await fetch(`${siteOrigin()}/${name}`, { redirect: 'follow' })
     if (response.ok) {
       const value = await response.text()
       cache.value = value
@@ -168,25 +164,25 @@ export async function handleGalleryDetail(req, res, { type, value }) {
 
   // 形状不合法:直接 404,不发查询
   if (!value || !spec.validate.test(value)) {
-    const notFound = await loadShell(req, '404.html')
+    const notFound = await loadShell('404.html')
     return respondHtml(res, 404, notFound || NOT_FOUND_HTML, 's-maxage=60')
   }
 
   const result = await checkExists(req, type, value)
 
   if (result === 'found') {
-    const shell = await loadShell(req, 'spa.html')
+    const shell = await loadShell('spa.html')
     // 壳加载失败:纯文本 200(页面仍可由浏览器端兜底渲染)
     if (!shell) return respondHtml(res, 200, '<!doctype html><title>拼豆Studio</title>', 'no-store')
     return respondHtml(res, 200, shell, 's-maxage=60, stale-while-revalidate=300')
   }
 
   if (result === 'missing') {
-    const notFound = await loadShell(req, '404.html')
+    const notFound = await loadShell('404.html')
     return respondHtml(res, 404, notFound || NOT_FOUND_HTML, 's-maxage=60')
   }
 
   // 上游故障:不把临时失败固化成 404 —— 返回 SPA 壳,浏览器端可按实时数据渲染
-  const shell = await loadShell(req, 'spa.html')
+  const shell = await loadShell('spa.html')
   return respondHtml(res, 200, shell || '<!doctype html><title>拼豆Studio</title>', 'no-store')
 }

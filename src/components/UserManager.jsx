@@ -296,13 +296,18 @@ export default function UserManager() {
               </thead>
               <tbody>
                 {users.map(u => {
+                  // 用户名账号的合成邮箱(@custom.local)不直接展示:优先昵称,
+                  // 再取注册用户名(email 前缀),最后才是原始 email
+                  const displayName = u.is_custom && (u.nickname || (u.email || '').split('@custom.local')[0])
+                    ? (u.nickname || (u.email || '').split('@custom.local')[0])
+                    : u.email
                   const device = deviceLabel(u.last_login_user_agent)
                   const ipRegion = u.last_login_ip
                     ? (isPrivateIp(u.last_login_ip) ? t('admin.users.ipPrivate') : regions[u.last_login_ip])
                     : null
                   return (
                     <tr key={u.id}>
-                      <td className="users-email">{u.email}</td>
+                      <td className="users-email" title={u.email}>{displayName}</td>
                       <td>{u.nickname || '—'}</td>
                       <td>
                         <span className={`users-role-badge ${u.role === 'admin' ? 'admin' : 'user'}`}>

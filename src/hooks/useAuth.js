@@ -186,6 +186,10 @@ export function useAuth() {
     // 登录状态由 onAuthStateChange 统一更新
   }, [accountStatus, captureLoginSnapshot])
 
+  // ⚠ 未接线(AuthPage 走 sendOtp/verifyOtp 验证码流)。signUp 的确认邮件为
+  // 链接形态,与 supabase.js 已关闭的 detectSessionInUrl 不兼容(确认后不再
+  // 自动登录)。重新接线前请改走 OTP 或恢复 URL 会话检测(有登录 CSRF 面,
+  // 见 services/supabase.js 的 AUTH_OPTIONS 注释)。
   const register = useCallback(async (email, password, confirmPassword) => {
     if (!supabase) throw new Error('CLOUD_NOT_CONFIGURED')
     if (password !== confirmPassword) {
@@ -200,6 +204,9 @@ export function useAuth() {
     if (error) throw error
   }, [])
 
+  // ⚠ 未接线:resetPasswordForEmail 发 type=recovery 的链接,在 flowType:'pkce'
+  // 下解析会抛 flow mismatch、在 detectSessionInUrl:false 下静默无效。忘记密码
+  // 请走 sendForgotCode(OTP)。重新接线需配套 supabase.js 的 AUTH_OPTIONS 决策。
   const resetPassword = useCallback(async (email) => {
     if (!supabase) throw new Error('CLOUD_NOT_CONFIGURED')
     const { error } = await supabase.auth.resetPasswordForEmail(email, {

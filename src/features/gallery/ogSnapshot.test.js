@@ -544,4 +544,20 @@ describe('renderSnapshotHtml', () => {
     expect(out).toContain("<title>A $& B $' C $` D - 拼豆Studio</title>")
     expect(out.match(/<head>/g)).toHaveLength(1)
   })
+
+  it('正文(bodyHtml)里的 $ 序列同样不被字符串替换展开(670 行回归)', () => {
+    // bodyHtml 含 escapeHtml 后的 DB 派生内容(主题标题/策展说明等);
+    // 670 行此前是字符串形态 replace——bodyHtml 里的 $`(匹配点之前的内容)
+    // 会把整份 head 复制进 #root。函数形态返回值不做 $ 展开。
+    const hostile = renderSnapshotHtml(
+      INDEX,
+      { ...snap, bodyHtml: '<h1>A $` B $& C $\' D</h1><p>&amp;已转义</p>' },
+      'https://tangnotes.site/gallery/theme/x',
+    )
+    // $ 序列按字面保留;head 与 root 各只有一份
+    expect(hostile).toContain('<h1>A $` B $& C $\' D</h1><p>&amp;已转义</p>')
+    expect(hostile.match(/<head>/g)).toHaveLength(1)
+    expect(hostile.match(/<div id="root">/g)).toHaveLength(1)
+    expect(hostile).toContain('<section id="seo-static"><h1>A $` B $& C $\' D</h1>')
+  })
 })

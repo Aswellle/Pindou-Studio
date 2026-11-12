@@ -72,24 +72,15 @@ function envValue(...names) {
  *   3. VERCEL_PROJECT_PRODUCTION_URL —— 请求头缺失时的生产域兜底;
  *   4. VERCEL_URL / 站点默认域名。
  */
-function siteOrigin(req) {
+function siteOrigin() {
   const explicit = envValue('SITE_URL', 'VITE_SITE_URL')
   if (explicit) return explicit.replace(/\/+$/, '')
-
-  const headers = req && req.headers
-  if (headers) {
-    const rawHost = String(headers['x-forwarded-host'] || headers.host || '').split(',')[0].trim()
-    // 只接受合法主机名/端口,防止畸形 Host 头污染 canonical
-    if (/^[a-z0-9.-]+(:\d+)?$/i.test(rawHost)) {
-      const proto = String(headers['x-forwarded-proto'] || 'https').split(',')[0].trim()
-      return `${proto === 'http' ? 'http' : 'https'}://${rawHost}`
-    }
-  }
-
-  if (process.env.VERCEL_PROJECT_PRODUCTION_URL) {
-    return `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}`
-  }
-  if (process.env.VERCEL_URL) return `https://${process.env.VERCEL_URL}`
+  // 请求 host 不再作为兜底:x-forwarded-host 可被伪造,曾可经它污染
+  // canonical/og:url 并让壳 HTML 从外部域名自取后缓存(审计 run-2 #21)。
+  // 兜底链收敛为 VERCEL 平台注入的环境值 → 生产域常量。
+  if (process.env.VERCEL_PROJECT_PRODUCTION_URL) return `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}`
+  // 不落 VERCEL_URL:那是部署域名(带访问保护),og:image/canonical 会失效;
+  // 直接落到生产域常量(与 generate-prerender-html.js 的 SITE 同源)
   return 'https://tangnotes.site'
 }
 

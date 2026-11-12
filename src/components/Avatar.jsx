@@ -34,7 +34,7 @@ export default function Avatar({ user, size = 32, onClick }) {
       className="avatar-fallback"
       style={{ width: size, height: size, fontSize: Math.round(size * 0.42) }}
       onClick={onClick}
-      aria-label={user?.email}
+      aria-label={user?.nickname || user?.name || user?.username}
     >
       {initial}
     </span>

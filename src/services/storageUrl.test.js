@@ -83,3 +83,11 @@ describe('toStorageUrl', () => {
     expect(toStorageUrl(`${SUPABASE}${AVATAR_PATH}`, '', '')).toBeNull()
   })
 })
+
+describe('AUTH_OPTIONS · 会话注入面关闭', () => {
+  it('detectSessionInUrl 关闭且 flowType 为 pkce(防 URL 会话换绑回归)', async () => {
+    const { AUTH_OPTIONS } = await import('./supabase')
+    expect(AUTH_OPTIONS.auth.detectSessionInUrl).toBe(false)
+    expect(AUTH_OPTIONS.auth.flowType).toBe('pkce')
+  })
+})

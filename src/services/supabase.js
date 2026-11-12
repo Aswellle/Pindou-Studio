@@ -62,7 +62,21 @@ const effectiveUrl = resolveSupabaseBase(
   import.meta.env.VITE_SUPABASE_PROXY || 'auto'
 )
 
-export const supabase = effectiveUrl && supabaseAnonKey ? createClient(effectiveUrl, supabaseAnonKey) : null
+// 认证选项(显式关闭 URL 会话注入与 implicit 流):
+//   · detectSessionInUrl:false —— auth-js 默认会在任意路由解析 #access_token=
+//     并把浏览者静默换绑到该令牌所属账号(登录 CSRF);本应用全部认证走
+//     signInWithOtp 验证码 + verifyOtp,不经 URL 回调,关闭无副作用。
+//   · flowType:'pkce' —— 本应用无 OAuth 第三方登录,implicit 流只有默认值
+//     在用;PKCE 关掉 access_token 形态的会话注入面。
+//   · 导出 AUTH_OPTIONS 供契约测试锁定,防止将来无意改回默认值。
+// 注意:useAuth 的 register/resetPasswordForEmail 会生成邮件确认/恢复链接,
+// 它们与「关闭 URL 会话检测」不兼容(确认链接将不再自动登录,用户回站手动
+// 登录即可;恢复链接请改用 signInWithOtp 验证码流程),两条 UI 已未接线。
+export const AUTH_OPTIONS = {
+  auth: { detectSessionInUrl: false, flowType: 'pkce' },
+}
+
+export const supabase = effectiveUrl && supabaseAnonKey ? createClient(effectiveUrl, supabaseAnonKey, AUTH_OPTIONS) : null
 
 export const isCloudEnabled = () => supabase !== null
 

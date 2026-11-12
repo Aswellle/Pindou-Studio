@@ -77,7 +77,9 @@ export async function uploadShareCard(shareId, blob) {
   const { error } = await supabase.storage.from(SHARE_BUCKET).upload(path, blob, {
     contentType: 'image/png',
     upsert: false,
-    cacheControl: '31536000',
+    // 卡片是可撤销资产:撤销后 RPC 会删除对象,缓存只给 1 小时
+    // (此前 1 年 immutable 导致撤销后 CDN/客户端仍长期可取)
+    cacheControl: '3600',
   })
   if (error) return fail(toShareErrorCode(error), error.message)
   return ok(path)
@@ -94,11 +96,16 @@ export async function publishShare(shareId, previewPath) {
   return ok(true)
 }
 
-/** 撤销(幂等)。撤销后公开 RLS 立即拒绝该行。 */
+/** 撤销(幂等)。撤销后公开 RLS 立即拒绝该行;RPC 内已删除公开卡片对象。 */
 export async function revokeShare(shareId) {
   if (!supabase) return fail(SHARE_ERROR_CODES.UNAUTHORIZED)
   const { error } = await supabase.rpc('revoke_work_share', { p_share_id: shareId })
   if (error) return fail(toShareErrorCode(error), error.message)
+  // 兜底清理:RPC 删除失败时(对象名不在预期路径等),用 owner delete 权限再删一次。
+  // 失败静默——撤销主语义(DB 行)已生效,这里只是资产回收的最后努力。
+  try {
+    await supabase.storage.from(SHARE_BUCKET).remove([shareCardPath(shareId)])
+  } catch { /* 忽略兜底失败 */ }
   return ok(true)
 }
 

@@ -6,7 +6,6 @@ import {
   shareUrl,
   isSharePath,
   shareIdFromPath,
-  safeShareReturnTo,
 } from './shareUrl'
 
 const UUID = '550e8400-e29b-41d4-a716-446655440000'
@@ -60,23 +59,5 @@ describe('isSharePath / shareIdFromPath', () => {
     expect(shareIdFromPath('/share/not-a-uuid')).toBeNull()
     expect(shareIdFromPath('/gallery')).toBeNull()
     expect(shareIdFromPath(undefined)).toBeNull()
-  })
-})
-
-describe('safeShareReturnTo', () => {
-  it('接受站内分享页路径', () => {
-    expect(safeShareReturnTo(`/share/${UUID}`)).toBe(`/share/${UUID}`)
-    expect(safeShareReturnTo(`/share/${UUID}/`)).toBe(`/share/${UUID}`)
-  })
-
-  it('拒绝带查询串/锚点与任意其他值', () => {
-    expect(safeShareReturnTo(`/share/${UUID}?next=/x`)).toBeNull()
-    expect(safeShareReturnTo(`/share/${UUID}#top`)).toBeNull()
-    expect(safeShareReturnTo('https://evil.example.com/share/x')).toBeNull()
-    expect(safeShareReturnTo('//evil.example.com')).toBeNull()
-    expect(safeShareReturnTo('/')).toBeNull()
-    expect(safeShareReturnTo('')).toBeNull()
-    expect(safeShareReturnTo(null)).toBeNull()
-    expect(safeShareReturnTo(42)).toBeNull()
   })
 })

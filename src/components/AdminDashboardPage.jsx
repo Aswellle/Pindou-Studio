@@ -292,7 +292,7 @@ export default function AdminDashboardPage({ cloudStore, user, isAdmin, authLoad
                     <span className={`adash-badge ${row.method === 'username' ? 'username' : 'email'}`}>
                       {row.method === 'username' ? '用户名' : '邮箱'}
                     </span>
-                    <span className="adash-list-main">{row.nickname || row.email || '—'}</span>
+                    <span className="adash-list-main">{row.nickname || (row.method === 'username' && row.email ? row.email.split('@custom.local')[0] : row.email) || '—'}</span>
                     <span className="adash-list-time">{formatDateTime(row.created_at)}</span>
                   </li>
                 ))}

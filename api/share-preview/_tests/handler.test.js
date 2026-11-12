@@ -240,20 +240,24 @@ describe('OG Function 数据边界与状态码', () => {
     expect(init.headers.Authorization).toBe('Bearer publishable-key')
   })
 
-  it('无 SITE_URL 时 canonical/og:image 用请求 Host,不用受部署保护的 VERCEL_URL', async () => {
-    // 回归:VERCEL_URL 是部署域名(带部署保护),社交平台抓 og:image 会被跳登录页
+  it('无 SITE_URL 时 canonical/og:image 落到生产域常量,不取请求 Host 也不取部署域名', async () => {
+    // 安全回归(审计 run-2 #21):请求 host(x-forwarded-host)可伪造,曾可污染
+    // canonical/og:url;VERCEL_URL 是部署域名(带访问保护),og:image 会失效。
+    // 新兜底链:显式 env → VERCEL_PROJECT_PRODUCTION_URL → 生产域常量。
     vi.stubEnv('SITE_URL', '')
     vi.stubEnv('VITE_SITE_URL', '')
+    vi.stubEnv('VERCEL_PROJECT_PRODUCTION_URL', '')
     vi.stubEnv('VERCEL_URL', 'pin-bead-studio-abc123.vercel.app')
     handler = await loadHandler()
     vi.stubGlobal('fetch', vi.fn(async () => makeResponse({ body: [publishedRow()] })))
     const res = await callHandler(handler, {
-      headers: { 'x-forwarded-host': 'tangnotes.site', 'x-forwarded-proto': 'https' },
+      headers: { 'x-forwarded-host': 'evil.example.com', 'x-forwarded-proto': 'https' },
     })
     expect(res.body).toContain(`<link rel="canonical" href="https://tangnotes.site/share/${UUID}" data-rh="true"`)
     expect(res.body).toContain(
       `<meta property="og:image" content="https://tangnotes.site/sb/storage/v1/object/public/work-share-cards/${UUID}/r1.png" data-rh="true"`
     )
+    expect(res.body).not.toContain('evil.example.com')
     expect(res.body).not.toContain('pin-bead-studio-abc123.vercel.app')
   })
 
