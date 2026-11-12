@@ -178,6 +178,8 @@ function rowToTemplate(row) {
     // 分类聚合页按这个字段收窄;缺省为空,不会误归入任何分类。
     category: row.category || '',
     paletteId: row.palette_id || 'perler',
+    // 分类页摘要要统计难度分布;漏字段会让所有分类都显示「难度未标注」
+    difficulty: row.difficulty || '',
     pattern: row.pattern,
     updatedAt: row.updated_at,
     createdAt: row.created_at,

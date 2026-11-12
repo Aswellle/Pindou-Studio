@@ -18,6 +18,7 @@ import { categoryPagePath, categorySeo, resolveCategoryByRaw } from './categoryM
 // 预览图的 alt 文案只在纯函数里用;patternImage 只依赖 utils/patternGeometry
 // 与 patternHash,不反向依赖本文件,不会形成循环。
 import { patternImageAlt } from './patternImage.js'
+import { categoryStats, categoryStatsText } from './categoryStats.js'
 
 export const SITE = 'https://tangnotes.site'
 
@@ -314,10 +315,14 @@ export function buildCategorySnapshot(meta, patterns = [], {
   const description = escapeHtml(clampDescription(seo.desc))
 
   const related = (relatedCategories || []).filter((item) => item?.slug && item.slug !== meta.slug)
+  const statsLine = categoryStatsText(categoryStats(usable))
   const bodyHtml = [
     `<h1>${escapeHtml(label)}拼豆图纸模板</h1>`,
     // 专属简介(meta.intro):每个分类一段独立正文,避免 11 个聚合页正文近乎相同
     meta.intro ? `<p class="lead">${escapeHtml(meta.intro)}</p>` : '',
+    // 数据派生摘要:尺寸/难度/用色/总用豆量,每个分类数值不同,
+    // 让分类页与「/gallery?cat=」筛选结果有实质差异
+    statsLine ? `<p class="lead">${escapeHtml(statsLine)}</p>` : '',
     `<p class="lead">${escapeHtml(label)}主题共收录 ${usable.length} 张免费拼豆图纸模板,打开即可查看网格尺寸与用色;选中后能直接载入画布制作或继续修改。</p>`,
     `<h2>全部图纸(${usable.length} 张)</h2>`,
     patternListHtml(usable, previews, site),

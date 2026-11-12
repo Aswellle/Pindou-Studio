@@ -451,6 +451,10 @@ function homeStatic() {
     .map((meta) => link(categoryPagePath(meta.slug), `${meta.label}拼豆图纸`))
     .join(' · ')};更多分类见${link('/gallery', '拼豆图纸模板库')}。</p>`)
 
+  // 备料工具:首页直接给出五个资料页的锚文本链接(比底栏导航更强的入链信号)
+  b.push('<h2>备料与参考工具</h2>')
+  b.push(`<p>按图纸备料时常用:${link('/colors', '六大品牌色卡对照表')} · ${link('/ironing', '熨烫温度对照表')} · ${link('/bead-calculator', '豆子数量计算器')};想找现成图案可以看${link('/bead-patterns', '拼豆图案')},自己画可以用${link('/pixel-art', '像素画生成器')}。</p>`)
+
   b.push(siteNav('/'))
   return staticShell(b.join('\n'))
 }

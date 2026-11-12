@@ -25,6 +25,7 @@ import {
   resolveCategoryBySlug,
 } from './categoryMeta'
 import TemplateGrid from './components/TemplateGrid'
+import { categoryStats, categoryStatsText } from './categoryStats'
 import GallerySearchInput from './components/GallerySearchInput'
 import ContentPageSkeleton, { PageHeadSkeleton } from './components/ContentPageSkeleton'
 import ContentSeo from './components/ContentSeo'
@@ -97,6 +98,12 @@ export default function CategoryPage({ cloudStore }) {
   // 显示名以后台分类名称为准;分类加载完成前退回代码默认名(避免闪空标题)。
   const label = meta ? categoryLabelFor(meta, customCategories) : ''
   const effectiveSeo = meta ? categorySeo({ ...meta, label }) : null
+  // 数据派生的摘要(尺寸/难度/用色/总用豆量):每个分类各不相同,
+  // 也是与 /gallery?cat=xxx 筛选结果区分开的实质内容
+  const statsText = useMemo(
+    () => categoryStatsText(categoryStats(scopeTemplates)),
+    [scopeTemplates]
+  )
 
   return (
     <div className="content-page">
@@ -123,6 +130,9 @@ export default function CategoryPage({ cloudStore }) {
                 塞一段中文正文会让页面语言混杂。 */}
             {meta.intro && i18n.language?.startsWith('zh') ? (
               <p className="content-desc">{meta.intro}</p>
+            ) : null}
+            {statsText && i18n.language?.startsWith('zh') ? (
+              <p className="content-desc">{statsText}</p>
             ) : null}
             <span className="content-count">
               {t('gallery.discovery.filteredCount', { n: filtered.length })}
