@@ -8,7 +8,7 @@
   },
   "scripts": {
     "dev": "vite",
-    "build": "node scripts/generate-fonts-css.js && vite build && node scripts/generate-prerender-html.js && node scripts/generate-og-snapshots.js && node scripts/sitemap-lastmod.mjs && node scripts/generate-baidu-sitemap.mjs",
+    "build": "node scripts/generate-fonts-css.js && vite build && node scripts/generate-llms-txt.mjs && node scripts/generate-prerender-html.js && node scripts/generate-og-snapshots.js && node scripts/sitemap-lastmod.mjs && node scripts/generate-baidu-sitemap.mjs",
     "preview": "vite preview",
     "test": "vitest",
     "test:run": "vitest run",
