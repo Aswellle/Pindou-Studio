@@ -562,7 +562,10 @@
     "copyDragShort": "ドラッグ複製",
     "selectionCopiedDragToast": "{{n}} 個複製しました",
     "snapToEdgesHint": "選択範囲をビーズの縁に吸着",
-    "snapToEdgesShort": "吸着"
+    "snapToEdgesShort": "吸着",
+    "noiseCleanup": "ノイズ除去",
+    "noiseCleanedToast": "{n} か所のノイズを整理しました",
+    "noiseCleanNoneToast": "整理するノイズはありません"
   },
   "gallery": {
     "title": "ビーズ図案ギャラリー",

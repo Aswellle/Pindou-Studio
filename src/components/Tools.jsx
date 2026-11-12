@@ -4,11 +4,12 @@ import { countLassoCells as lassoCount } from '../utils/lassoSelection'
 import {
   Pencil, Eraser, PaintBucket, Hand, Undo2, Redo2, Trash2, ChevronLeft, ChevronRight, FileJson,
   Pipette, SquareDashed, Lasso, Replace, FlipHorizontal2, FlipVertical2, RotateCw, RotateCcw, X,
-  Copy, ClipboardPaste, Scissors, MousePointerClick,
+  Copy, ClipboardPaste, Scissors, MousePointerClick, Sparkles,
 } from 'lucide-react'
 
 export default function Tools({
   tool,
+  onNoiseCleanup,
   onToolChange,
   gridSize,
   gridWidth,
@@ -338,6 +339,14 @@ export default function Tools({
             <button className="action-btn replace-btn" onClick={onOpenReplace} title={t('tools.replaceColor')}>
               <Replace size={16} />
               {t('tools.replaceColor')}
+            </button>
+          )}
+          {/* 编辑器手动去噪:量化管线的自动清理只在转换时跑一次,
+              逐格修改后的新杂色从这里一键清掉(有选区时仅选区) */}
+          {onNoiseCleanup && (
+            <button className="action-btn noise-btn" onClick={onNoiseCleanup} title={t('tools.noiseCleanup')}>
+              <Sparkles size={16} />
+              {t('tools.noiseCleanup')}
             </button>
           )}
         </div>

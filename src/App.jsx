@@ -46,6 +46,7 @@ import {
 } from './utils/lassoCommands'
 import { selectionBounds, selectionContains } from './utils/lassoSelection'
 import { toggleCellInSelection } from './utils/pickSelection'
+import { removeNoiseBeads } from './utils/noiseCleanup'
 import {
   loadFillIncludeEmpty,
   saveFillIncludeEmpty,
@@ -826,6 +827,21 @@ export default function App() {
   )
 
   // 每个命令都只调用一次 setCanvas(单条历史),返回 null 表示无变化、不压栈。
+  // ── 编辑器手动去噪 ──────────────────────────────────────────
+  // 与品牌转换/替换颜色同一事务模式:一次 setCanvas = 一条撤销;
+  // 有选区时只清理选区(点选/套索的异形范围也支持),无选区清理全图。
+  // 结果为空图是合法输入(清完就是空),由 removeNoiseBeads 的 changed 判定。
+  const handleNoiseCleanup = useCallback(() => {
+    canvasRef.current?.cancelStroke?.()
+    const { data, changed } = removeNoiseBeads(canvasData, { area: selection })
+    if (!data) {
+      toast(t('tools.noiseCleanNoneToast'), 'info')
+      return
+    }
+    setCanvas(data)
+    toast(t('tools.noiseCleanedToast', { n: changed }), 'success')
+  }, [canvasData, selection, setCanvas, toast, t])
+
   const handleSelectionCommand = useCallback(
     command => {
       // 复制不依赖已有剪贴板,但必须有选区;粘贴反过来 —— 先分别守卫,
@@ -1158,6 +1174,7 @@ export default function App() {
             onToggleCopyDrag={setCopyDrag}
             snapToEdges={snapToEdges}
             onToggleSnapToEdges={setSnapToEdges}
+            onNoiseCleanup={handleNoiseCleanup}
           />
         </div>
         <div className="left-sidebar-bottom">
@@ -1674,6 +1691,7 @@ export default function App() {
                 onToggleCopyDrag={setCopyDrag}
                 snapToEdges={snapToEdges}
                 onToggleSnapToEdges={setSnapToEdges}
+                onNoiseCleanup={handleNoiseCleanup}
               />
 
               {/* 点选方向盘:手指不用贴在网格上就能逐格步进选取,

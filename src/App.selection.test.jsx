@@ -38,7 +38,7 @@ vi.mock('./components/Canvas', async () => {
 vi.mock('./components/Tools', async () => {
   const React = await import('react')
   return {
-    default: ({ selection, tool, onToolChange, onSelectionCommand, onClearSelection, onGridSizeChange, onToggleFillIncludeEmpty, canPaste }) => React.createElement(
+    default: ({ selection, tool, onToolChange, onSelectionCommand, onClearSelection, onGridSizeChange, onToggleFillIncludeEmpty, canPaste, onNoiseCleanup }) => React.createElement(
       'div',
       null,
       React.createElement('span', { 'data-testid': 'sel' }, selection ? `${selection.w}x${selection.h}` : 'none'),
@@ -52,7 +52,8 @@ vi.mock('./components/Tools', async () => {
       React.createElement('button', { 'data-testid': 'clear-sel', onClick: onClearSelection }, 'clear-sel'),
       React.createElement('button', { 'data-testid': 'resize', onClick: () => onGridSizeChange(57) }, 'resize'),
       // 规格 04 §2:填充默认跳过空白格,需要连空白一起填时由这个开关显式打开
-      React.createElement('button', { 'data-testid': 'toggle-empty', onClick: () => onToggleFillIncludeEmpty(true) }, 'include-empty')
+      React.createElement('button', { 'data-testid': 'toggle-empty', onClick: () => onToggleFillIncludeEmpty(true) }, 'include-empty'),
+      React.createElement('button', { 'data-testid': 'noise', onClick: onNoiseCleanup }, 'noise')
     ),
   }
 })
@@ -690,5 +691,59 @@ describe('App · 点选方向盘与键盘步进', () => {
     await waitFor(() => expect(canvasProps.current?.committedData).toBeTruthy())
     fireEvent.keyDown(window, { key: 'ArrowRight' })
     expect(canvasProps.current.pickCursor ?? null).toBeNull()
+  })
+})
+
+describe('App · 编辑器手动去噪', () => {
+  function renderWithNoise() {
+    const view = renderApp()
+    const base = canvasProps.current.committedData.map(r => [...r])
+    const noisy = base.map(r => [...r])
+    // 两颗互不相邻的孤立豆(彼此八邻全空):一轮清理应同时清掉
+    noisy[0][0] = '#E53935'
+    noisy[5][5] = '#1E88E5'
+    canvasProps.current.onCanvasChange(noisy)
+    return { ...view, base, noisy }
+  }
+
+  it('一键清理孤立杂色:一次 setCanvas 一条撤销', async () => {
+    const { getByTestId, base, noisy } = renderWithNoise()
+
+    await waitFor(() => expect(canvasProps.current.committedData[0][0]).toBe('#E53935'))
+
+    fireEvent.click(getByTestId('noise'))
+    await waitFor(() => {
+      expect(canvasProps.current.committedData[0][0]).toBeNull()
+      expect(canvasProps.current.committedData[5][5]).toBeNull()
+    })
+
+    // 一次撤销回到清理前(含两颗杂色豆的矩阵)
+    fireEvent.keyDown(window, { key: 'z', ctrlKey: true })
+    await waitFor(() => expect(canvasProps.current.committedData).toEqual(noisy))
+    // 基准(噪点写入前)在第二条历史
+    fireEvent.keyDown(window, { key: 'z', ctrlKey: true })
+    await waitFor(() => expect(canvasProps.current.committedData).toEqual(base))
+  })
+
+  it('有选区时只清理选区内:选区外的孤立点保留', async () => {
+    const { getByTestId } = renderWithNoise()
+    await waitFor(() => expect(canvasProps.current.committedData[0][0]).toBe('#E53935'))
+
+    // 只框住 (0,0) 一格
+    selectRegion({ x: 0, y: 0, w: 1, h: 1 })
+    await waitFor(() => expect(canvasProps.current.selection).toEqual({ x: 0, y: 0, w: 1, h: 1 }))
+    fireEvent.click(getByTestId('noise'))
+
+    await waitFor(() => expect(canvasProps.current.committedData[0][0]).toBeNull())
+    expect(canvasProps.current.committedData[5][5]).toBe('#1E88E5')
+  })
+
+  it('没有杂色时只提示,画布引用不变(不压栈)', async () => {
+    const { getByTestId } = renderApp()
+    await waitFor(() => expect(canvasProps.current?.committedData).toBeTruthy())
+    const before = canvasProps.current.committedData
+
+    fireEvent.click(getByTestId('noise'))
+    expect(canvasProps.current.committedData).toBe(before)
   })
 })

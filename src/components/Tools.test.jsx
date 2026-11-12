@@ -168,3 +168,14 @@ describe('Tools · 点选工具', () => {
     expect($('.selection-size').textContent).toContain('2')
   })
 })
+
+describe('Tools · 去噪入口', () => {
+  it('快捷操作组有「去噪」按钮,点击回调 onNoiseCleanup', () => {
+    const onNoiseCleanup = vi.fn()
+    renderTools({ onNoiseCleanup })
+    const btn = $$('button.action-btn').find(b => b.getAttribute('title') === '去噪')
+    expect(btn).toBeTruthy()
+    fireEvent.click(btn)
+    expect(onNoiseCleanup).toHaveBeenCalledTimes(1)
+  })
+})

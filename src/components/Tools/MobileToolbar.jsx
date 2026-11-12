@@ -86,6 +86,16 @@ const RedoIcon = () => (
   </svg>
 )
 
+// 去噪:四角星(lucide Sparkles 同形)—— 量化管线的自动清理只跑一次,
+// 逐格修改后的新杂色需要手动入口
+const SparklesIcon = () => (
+  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M9.9 4.6 11 1.8a.3.3 0 0 1 .56 0l1.1 2.8a2 2 0 0 0 1.13 1.13l2.8 1.1a.3.3 0 0 1 0 .56l-2.8 1.1a2 2 0 0 0-1.13 1.13l-1.1 2.8a.3.3 0 0 1-.56 0l-1.1-2.8a2 2 0 0 0-1.13-1.13l-2.8-1.1a.3.3 0 0 1 0-.56l2.8-1.1A2 2 0 0 0 9.9 4.6z" />
+    <path d="M18 17v3" /><path d="M16.5 18.5h3" />
+    <path d="M5 13v3" /><path d="M3.5 14.5h3" />
+  </svg>
+)
+
 const ClearIcon = () => (
   <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
     <polyline points="3,6 5,6 21,6" />
@@ -258,6 +268,7 @@ export default function MobileToolbar({
   onGridDimensionsChange,
   onUndo,
   onRedo,
+  onNoiseCleanup,
   canUndo,
   canRedo,
   onClear,
@@ -697,6 +708,15 @@ export default function MobileToolbar({
         >
           <RedoIcon />
           <span className="text-btn-label">{t('tools.redo')}</span>
+        </button>
+        {/* 去噪:图标 + 文字,与撤销/重做同款;有选区时仅清理选区 */}
+        <button
+          className="action-btn text-btn"
+          onClick={onNoiseCleanup}
+          title={t('tools.noiseCleanup')}
+        >
+          <SparklesIcon />
+          <span className="text-btn-label">{t('tools.noiseCleanup')}</span>
         </button>
         <button
           className="action-btn"

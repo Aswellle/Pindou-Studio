@@ -272,3 +272,15 @@ describe('MobileToolbar · 点选工具', () => {
     expect(document.body.textContent).toContain('点格子加入选区')
   })
 })
+
+describe('MobileToolbar · 去噪入口', () => {
+  it('操作行有「去噪」按钮(图标 + 可见文字),点击回调 onNoiseCleanup', () => {
+    const onNoiseCleanup = vi.fn()
+    renderBar({ onNoiseCleanup })
+    const btn = [...$$('button.action-btn')].find(b => b.getAttribute('title') === '去噪')
+    expect(btn).toBeTruthy()
+    expect(btn.textContent).toContain('去噪')
+    fireEvent.click(btn)
+    expect(onNoiseCleanup).toHaveBeenCalledTimes(1)
+  })
+})
