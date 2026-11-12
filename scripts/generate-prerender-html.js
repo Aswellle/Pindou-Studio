@@ -124,27 +124,21 @@ fs.writeFileSync(SEO_TEMPLATE_PATH, indexWithBuildId)
  */
 const HEAD_ATTR = ' data-rh="true"'
 
-// ── 多语言 hreflang:每路由指向本路由的语言变体 ─────────────
-// zh-CN / x-default 指向裸路径;en / ja / ko 指向 ?lang= 变体(与 public/sitemap.xml 一致)。
-// index.html 里首页的 5 行 hreflang 保持不动;子路由预渲染时整体改写。
+// ── 多语言 hreflang:只声明 zh-CN 与 x-default ─────────────
+// `?lang=en|ja|ko` 是界面语言偏好,不是独立可收录版本:一套静态 HTML 服务所有
+// 语言,声明成语言变体会让抓取端看到「中文内容 + 英文 alternate」。此前运行时
+// 还把 ?lang= 页的 canonical 改成自指、静态 HTML 却是裸路径 —— 同一页面两套
+// canonical,是 GSC「Google 选择的规范网页与用户指定的不同」的主要来源。
+// 现在所有页面统一:canonical 一律裸路径,hreflang 只保留默认语言。
+// 将来若要吃多语言搜索流量,必须按语言输出独立路径的 HTML,而不是恢复 ?lang=。
 //
 // 这几行 link 在 index.html 里带 data-rh="true"(见 index.html 的说明):
 // react-helmet-async 只清理带该属性的旧标签,预渲染写死的标签不带它就会在首帧
 // 被再追加一份,页面出现两条 canonical。所以这里的改写必须原样保留该属性。
-const LANGS = ['zh-CN', 'en', 'ja', 'ko', 'x-default']
-function langHref(lang, routePath) {
-  const base = SITE + routePath
-  if (lang === 'zh-CN' || lang === 'x-default') return base
-  return `${base}?lang=${lang.toLowerCase()}`
-}
-// 单语页(隐私政策 / 服务条款)只声明自身与 x-default。
-// 这两页正文写死在 LegalPages.jsx 里、只有中文,`?lang=en` 返回的仍是中文内容 ——
-// 声明 en/ja/ko 变体会让 hreflang 指向语言不符的页面,Google 会整组忽略,
-// 与 public/sitemap.xml 里「正文为中文单语,不提供 ?lang= 变体」的说明也自相矛盾。
-function hreflangBlock(routePath, singleLanguage = false) {
-  const langs = singleLanguage ? ['zh-CN', 'x-default'] : LANGS
-  return langs
-    .map((l) => `  <link rel="alternate" hreflang="${l}" href="${langHref(l, routePath)}" data-rh="true" />`)
+const LANGS = ['zh-CN', 'x-default']
+function hreflangBlock(routePath) {
+  return LANGS
+    .map((l) => `  <link rel="alternate" hreflang="${l}" href="${SITE}${routePath}" data-rh="true" />`)
     .join(EOL)
 }
 // 匹配 index.html 中连续的多语言 hreflang 块(zh-CN 起,x-default 终),兼容 CRLF/LF
@@ -988,7 +982,7 @@ for (const page of PAGES) {
   if (!HREFLANG_BLOCK_RE.test(out)) {
     throw new Error(`预渲染中止:index.html 多语言 hreflang 块缺失或结构变化,${page.file} 无法改写`)
   }
-  out = out.replace(HREFLANG_BLOCK_RE, hreflangBlock(page.path, page.singleLanguage))
+  out = out.replace(HREFLANG_BLOCK_RE, hreflangBlock(page.path))
 
   // 面包屑只给内容子页注入
   if (page.breadcrumb) {

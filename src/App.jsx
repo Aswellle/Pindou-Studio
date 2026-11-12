@@ -3,7 +3,6 @@ import { createPortal } from 'react-dom'
 import useKeyboardSafe from './hooks/useKeyboardSafe'
 import { Routes, Route, useNavigate, useLocation } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
-import { LANGUAGES, initialLangParam } from './i18n'
 import { Helmet } from 'react-helmet-async'
 import AuthPage from './components/AuthPage'
 import AdminLoginPage from './components/AdminLoginPage'
@@ -2173,19 +2172,12 @@ export default function App() {
     : `${SITE_ORIGIN}${canonicalPathFor(location.pathname, CANONICAL_PATH[currentPage] || '/')}`
 
   // hreflang 值统一为「语言子标签」(zh-CN 除外),与预渲染 HTML、sitemap.xml 保持一致。
-  // 此前 Helmet 输出 en-US/ja-JP/ko-KR 而静态文件写 en/ja/ko,同一语言两个值,
-  // 搜索引擎无法把语言变体归入同一组 → 多语言定向失效。
-  const HREFLANG = { 'zh-CN': 'zh-CN', 'en-US': 'en', 'ja-JP': 'ja', 'ko-KR': 'ko' }
-  const hreflangHref = code => (code === 'zh-CN' ? baseUrl : `${baseUrl}?lang=${HREFLANG[code]}`)
-
-  // canonical:?lang= 直达页自指(与上方 hreflang 互指,否则会被判为首页副本);
-  // 无该参数时自指裸路径。必须依据「请求进来的 URL」而非当前界面语言 ——
-  // 浏览器语言自动切换不等于用户访问的是语言版本 URL(i18n 初始化会把 ?lang= 从地址栏移除,
-  // 故用模块加载时捕获的 initialLangParam)。
-  const canonical =
-    initialLangParam && initialLangParam !== 'zh-CN'
-      ? `${baseUrl}?lang=${HREFLANG[initialLangParam]}`
-      : baseUrl
+  // canonical 一律自指裸路径:同一个 URL 去掉筛选/语言参数就是它的规范地址。
+  // `?lang=en|ja|ko` 只是界面语言偏好(一套静态 HTML 服务所有语言),不再声明为
+  // 语言变体 —— 此前这里让 ?lang= 页自指,而静态 HTML 的 canonical 是裸路径,
+  // 同一页面出现两套 canonical,正是 GSC「Google 选择的规范网页与用户指定的
+  // 不同」的主要来源。要多语言收录必须按语言输出独立路径的 HTML。
+  const canonical = baseUrl
 
   const seoHelmet = (
     <Helmet>
@@ -2200,12 +2192,8 @@ export default function App() {
         }
       />
       <link rel="canonical" href={canonical} />
-      {/* 单语页(隐私 / 条款)只声明 zh-CN 与 x-default —— 与构建期产出的
-          privacy.html / terms.html 及 sitemap.xml 保持一致。多声明 en/ja/ko 会
-          让 hreflang 指向内容仍是中文的页面,整组被 Google 判为无效。 */}
-      {(seo.singleLanguage ? LANGUAGES.filter(l => l.code === 'zh-CN') : LANGUAGES).map(l => (
-        <link key={l.code} rel="alternate" hrefLang={HREFLANG[l.code]} href={hreflangHref(l.code)} />
-      ))}
+      {/* 与预渲染 HTML 和 sitemap 保持同一套声明:只保留 zh-CN + x-default */}
+      <link rel="alternate" hrefLang="zh-CN" href={baseUrl} />
       <link rel="alternate" hrefLang="x-default" href={baseUrl} />
       <meta property="og:title" content={seo.title} />
       <meta property="og:description" content={seo.desc} />

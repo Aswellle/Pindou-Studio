@@ -404,13 +404,14 @@ function sitemapUrl({ loc, lastmod, priority, changefreq = 'weekly', image = nul
   return lines.join('\n')
 }
 
-/** 与页面内 hreflang / 预渲染 HTML 一致的 5 条语言变体 */
+/**
+ * sitemap 里的语言声明:只保留 zh-CN 与 x-default。
+ * `?lang=` 是界面语言偏好,不是独立可收录版本 —— 与页面 hreflang、预渲染
+ * HTML 保持一致,不再输出 en/ja/ko 变体(否则指向的仍是同一份中文 HTML)。
+ */
 export function hreflangPairs(url) {
   return [
     ['zh-CN', url],
-    ['en', `${url}?lang=en`],
-    ['ja', `${url}?lang=ja`],
-    ['ko', `${url}?lang=ko`],
     ['x-default', url],
   ]
 }
@@ -501,7 +502,8 @@ const SEO_STYLE = `<style>
     @media (max-width:640px){#seo-static h1{font-size:21px}#seo-static{padding-top:20px}}
   </style>`
 
-const HREFLANG_LANGS = ['zh-CN', 'en', 'ja', 'ko', 'x-default']
+// 只声明默认语言:?lang= 是界面偏好,不是独立可收录版本(见 hreflangPairs)
+const HREFLANG_LANGS = ['zh-CN', 'x-default']
 
 /**
  * 面包屑结构化数据(与 generate-prerender-html.js 的 breadcrumbScript 同形)。
@@ -614,12 +616,13 @@ export function renderSnapshotHtml(
     }
   }
 
-  // hreflang:首页那 5 行指向 /,留着会让每个快照页都声称自己是首页的语言变体
-  const hreflangBlock = HREFLANG_LANGS.map((lang) => {
-    const href = lang === 'zh-CN' || lang === 'x-default' ? canonicalUrl : `${canonicalUrl}?lang=${lang}`
-    return `  <link rel="alternate" hreflang="${lang}" href="${href}"${RH} />${EOL}`
-  }).join('')
-  const existingHreflang = /(?: {2}<link rel="alternate" hreflang="[^"]+" href="https:\/\/tangnotes\.site[^"]*"(?: data-rh="true")? \/>\r?\n){5}/
+  // hreflang:首页那两行指向 /,留着会让每个快照页都声称自己是首页的语言变体。
+  // 只声明默认语言 —— ?lang= 是界面语言偏好,不是独立可收录版本。
+  const hreflangBlock = HREFLANG_LANGS.map(
+    (lang) => `  <link rel="alternate" hreflang="${lang}" href="${canonicalUrl}"${RH} />${EOL}`,
+  ).join('')
+  // 首页模板现在是 2 行(zh-CN + x-default);按实际行数匹配,失配会残留首页 URL
+  const existingHreflang = /(?: {2}<link rel="alternate" hreflang="[^"]+" href="https:\/\/tangnotes\.site[^"]*"(?: data-rh="true")? \/>\r?\n){2}/
   out = out.replace(existingHreflang, () => hreflangBlock)
 
   // 面包屑:标题取 snap.title 去掉「 - 拼豆Studio」后缀,读起来才是页面名而不是完整标题。

@@ -229,23 +229,23 @@ describe('robots.txt · 抓取与索引分离', () => {
   })
 })
 
-describe('单语页 · hreflang 不声明不存在的语言版本', () => {
-  it('隐私 / 条款标记为 singleLanguage', () => {
-    const privacy = PRERENDER.slice(PRERENDER.indexOf("file: 'privacy.html'"))
-    expect(privacy.slice(0, 300)).toContain('singleLanguage: true')
-    const terms = PRERENDER.slice(PRERENDER.indexOf("file: 'terms.html'"))
-    expect(terms.slice(0, 300)).toContain('singleLanguage: true')
+describe('语言声明 · 只保留 zh-CN 与 x-default', () => {
+  it('预渲染 hreflang 只有两种语言,不再输出 ?lang= 变体', () => {
+    expect(PRERENDER).toContain("const LANGS = ['zh-CN', 'x-default']")
+    expect(PRERENDER).not.toContain('?lang=${')
   })
 
-  it('singleLanguage 只输出 zh-CN 与 x-default', () => {
-    expect(PRERENDER).toContain("singleLanguage ? ['zh-CN', 'x-default'] : LANGS")
-  })
-
-  it('运行时 Helmet 与预渲染一致:单语页不声明 en/ja/ko', () => {
+  it('运行时 Helmet 与预渲染一致:不再声明 en/ja/ko', () => {
     // 预渲染写 2 条、Helmet 首帧补回 5 条,静态修正等于白做 —— 两边必须同源。
-    expect(APP).toMatch(/privacy:\s*\{[\s\S]{0,600}?singleLanguage:\s*true/)
-    expect(APP).toMatch(/terms:\s*\{[\s\S]{0,600}?singleLanguage:\s*true/)
-    expect(APP).toContain("seo.singleLanguage ? LANGUAGES.filter(l => l.code === 'zh-CN') : LANGUAGES")
+    expect(APP).toContain('<link rel="alternate" hrefLang="zh-CN" href={baseUrl} />')
+    expect(APP).toContain('<link rel="alternate" hrefLang="x-default" href={baseUrl} />')
+    expect(APP).not.toContain('?lang=${')
+  })
+
+  it('canonical 不随 ?lang= 自指(与静态 HTML 的裸路径一致)', () => {
+    // 两套 canonical 是 GSC「Google 选择的规范网页与用户指定的不同」的成因。
+    expect(APP).toContain('const canonical = baseUrl')
+    expect(APP).not.toContain('initialLangParam && initialLangParam')
   })
 })
 

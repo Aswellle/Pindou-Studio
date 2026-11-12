@@ -45,11 +45,14 @@
   <meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1" data-rh="true" />
   <link rel="canonical" href="https://tangnotes.site/" data-rh="true" />
 
-  <!-- ── 多语言 hreflang ────────────────────────────────────── -->
+  <!-- ── 多语言 hreflang ──────────────────────────────────────
+       只声明 zh-CN 与 x-default。`?lang=en|ja|ko` 是界面语言偏好:静态 HTML
+       只有中文,一套文件服务所有语言,若把它们声明为语言变体,抓取端会看到
+       「中文内容 + 英文 alternate」。此前 React 首帧还会把 ?lang= 页的
+       canonical 改成自指,与静态 HTML 的裸路径 canonical 冲突 —— 这是 GSC
+       「Google 选择的规范网页与用户指定的不同」的主要来源。现在统一:所有查询
+       参数页的 canonical 都指向裸路径,hreflang 只保留默认语言。 -->
   <link rel="alternate" hreflang="zh-CN" href="https://tangnotes.site/" data-rh="true" />
-  <link rel="alternate" hreflang="en" href="https://tangnotes.site/?lang=en" data-rh="true" />
-  <link rel="alternate" hreflang="ja" href="https://tangnotes.site/?lang=ja" data-rh="true" />
-  <link rel="alternate" hreflang="ko" href="https://tangnotes.site/?lang=ko" data-rh="true" />
   <link rel="alternate" hreflang="x-default" href="https://tangnotes.site/" data-rh="true" />
 
   <!-- ── Open Graph (微信/微博/Facebook 分享预览) ───────────── -->

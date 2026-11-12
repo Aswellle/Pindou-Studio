@@ -249,7 +249,7 @@ describe('buildCategorySnapshot', () => {
 })
 
 describe('buildDynamicSitemap', () => {
-  it('每个已发布对象一条,含 lastmod 与 5 条 hreflang', () => {
+  it('每个已发布对象一条,含 lastmod 与 zh/x-default 两条语言声明', () => {
     const xml = buildDynamicSitemap({
       themes: [{ slug: 'spring', updated_at: '2026-10-01T10:00:00Z' }],
       collections: [{ slug: 'pets', updated_at: '2026-10-02T10:00:00Z' }],
@@ -335,7 +335,7 @@ describe('appendToSitemap', () => {
 })
 
 describe('renderSnapshotHtml', () => {
-  // 贴近真实的 index.html 结构(含 CRLF、5 行 hreflang、空 #root)。
+  // 贴近真实的 index.html 结构(含 CRLF、zh/x-default 两行 hreflang、空 #root)。
   // 关键:index.html 里 Helmet 会渲染的那些标签带 data-rh="true" —— 这是
   // react-helmet-async 识别「上一轮自己写下的标签」的唯一依据,改写时丢了它,
   // 首帧就会再追加一份同名标签。fixture 必须照实带上,否则测不出这个回归。
@@ -348,9 +348,6 @@ describe('renderSnapshotHtml', () => {
     '  <meta name="robots" content="index, follow" data-rh="true" />',
     '  <link rel="canonical" href="https://tangnotes.site/" data-rh="true" />',
     '  <link rel="alternate" hreflang="zh-CN" href="https://tangnotes.site/" data-rh="true" />',
-    '  <link rel="alternate" hreflang="en" href="https://tangnotes.site/?lang=en" data-rh="true" />',
-    '  <link rel="alternate" hreflang="ja" href="https://tangnotes.site/?lang=ja" data-rh="true" />',
-    '  <link rel="alternate" hreflang="ko" href="https://tangnotes.site/?lang=ko" data-rh="true" />',
     '  <link rel="alternate" hreflang="x-default" href="https://tangnotes.site/" data-rh="true" />',
     '  <meta property="og:title" content="OG 首页" data-rh="true" />',
     '  <meta property="og:description" content="OG 描述" data-rh="true" />',
@@ -402,12 +399,14 @@ describe('renderSnapshotHtml', () => {
     }
   })
 
-  it('hreflang 指向本页而不是首页', () => {
+  it('hreflang 指向本页而不是首页,且不再输出 ?lang= 变体', () => {
     const out = renderSnapshotHtml(INDEX, snap, 'https://tangnotes.site/gallery/pattern/t1')
-    expect(out).toContain('hreflang="en" href="https://tangnotes.site/gallery/pattern/t1?lang=en"')
+    expect(out).toContain('hreflang="zh-CN" href="https://tangnotes.site/gallery/pattern/t1"')
     expect(out).toContain('hreflang="x-default" href="https://tangnotes.site/gallery/pattern/t1"')
-    // 首页那几行必须已被整体替换,不能残留
-    expect(out).not.toContain('hreflang="en" href="https://tangnotes.site/?lang=en"')
+    // 首页那两行必须已被整体替换,不能残留
+    expect(out).not.toContain('hreflang="zh-CN" href="https://tangnotes.site/"')
+    // ?lang= 只是界面语言偏好,不得再作为语言变体出现在 head / sitemap
+    expect(out).not.toContain('?lang=')
   })
 
   it('无封面时保留站点默认 og:image(不留空 content)', () => {
