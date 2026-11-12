@@ -2250,5 +2250,16 @@
       "refresh": "Refresh"
     },
     "shareButton": "Share"
+  },
+  "pick": {
+    "dpad": {
+      "label": "Cell pick pad",
+      "left": "Move cursor left one cell",
+      "up": "Move cursor up one cell",
+      "down": "Move cursor down one cell",
+      "right": "Move cursor right one cell",
+      "add": "Pick current cell",
+      "remove": "Unpick current cell"
+    }
   }
 }

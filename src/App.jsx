@@ -44,7 +44,7 @@ import {
   cutLasso,
   pasteLasso,
 } from './utils/lassoCommands'
-import { selectionBounds } from './utils/lassoSelection'
+import { selectionBounds, selectionContains } from './utils/lassoSelection'
 import { toggleCellInSelection } from './utils/pickSelection'
 import {
   loadFillIncludeEmpty,
@@ -71,6 +71,7 @@ import { planBrandSwitch, applyBrandSwitch } from './utils/brandSwitch'
 import { canvasToLegacyWork, normalizeLegacyWork } from './services/project/adapters'
 import ImportPage from './components/ImportPage'
 import MobileToolbar from './components/Tools/MobileToolbar'
+import PickDPad from './components/PickDPad'
 import useCloudTemplates from './hooks/useCloudTemplates'
 import useGalleryFavorites from './hooks/useGalleryFavorites'
 import MobileColorPalette from './components/ColorPalette/MobileColorPalette'
@@ -201,6 +202,62 @@ export default function App() {
     setSelection(null)
     setPickCursor(null)
   }, [location.pathname, gridSize, gridWidth, gridHeight])
+
+  // ── 点选:方向盘与键盘步进(步进恒为 1 格)──────────────────
+  // 光标为空时初始化到画布中心:第一次按方向键就能立刻看到「即将操作哪格」,
+  // 不用先去网格上找落点。越界一律钳制,光标永远在网格内。
+  const movePickCursor = useCallback((dx, dy) => {
+    setPickCursor(prev => {
+      const cols = gridWidth || gridSize
+      const rows = gridHeight || gridSize
+      const base = prev || { x: Math.floor(cols / 2), y: Math.floor(rows / 2) }
+      return {
+        x: Math.max(0, Math.min(cols - 1, base.x + dx)),
+        y: Math.max(0, Math.min(rows - 1, base.y + dy)),
+      }
+    })
+  }, [gridWidth, gridSize, gridHeight])
+
+  const togglePickCursor = useCallback(() => {
+    const cols = gridWidth || gridSize
+    const rows = gridHeight || gridSize
+    let target = pickCursor
+    if (!target) {
+      target = { x: Math.floor(cols / 2), y: Math.floor(rows / 2) }
+      setPickCursor(target)
+    }
+    setSelection(prev => toggleCellInSelection(prev, target.x, target.y, cols, rows))
+  }, [pickCursor, gridWidth, gridSize, gridHeight])
+
+  // 点选工具下的键盘步进:方向键移动光标,Enter/Space toggle 当前格。
+  // 与撤销快捷键同款「输入框聚焦放行」;焦点在按钮上时 Enter/Space 交还
+  // 原生激活(否则方向盘按钮会双触发)。方向键在此工具下 preventDefault,
+  // 避免页面跟着滚动。
+  useEffect(() => {
+    if (tool !== 'pick') return undefined
+    const handler = e => {
+      if (e.isComposing || e.keyCode === 229) return
+      const t = e.target
+      if (t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA' || t.isContentEditable)) return
+      const arrows = {
+        ArrowLeft: [-1, 0],
+        ArrowRight: [1, 0],
+        ArrowUp: [0, -1],
+        ArrowDown: [0, 1],
+      }
+      if (arrows[e.key]) {
+        e.preventDefault()
+        movePickCursor(arrows[e.key][0], arrows[e.key][1])
+        return
+      }
+      if ((e.key === 'Enter' || e.key === ' ') && t?.tagName !== 'BUTTON') {
+        e.preventDefault()
+        togglePickCursor()
+      }
+    }
+    window.addEventListener('keydown', handler)
+    return () => window.removeEventListener('keydown', handler)
+  }, [tool, movePickCursor, togglePickCursor])
 
   // 撤销/重做前先丢弃活动笔画,避免笔画进行中 undo 后 mouseUp 时 commitStroke 重推快照回滚
   const handleUndo = useCallback(() => {
@@ -1618,6 +1675,17 @@ export default function App() {
                 snapToEdges={snapToEdges}
                 onToggleSnapToEdges={setSnapToEdges}
               />
+
+              {/* 点选方向盘:手指不用贴在网格上就能逐格步进选取,
+                  拇指不再挡住目标格;仅 pick 工具显示 */}
+              {tool === 'pick' && (
+                <PickDPad
+                  cursor={pickCursor}
+                  selected={pickCursor ? selectionContains(selection, pickCursor) : false}
+                  onMove={movePickCursor}
+                  onToggle={togglePickCursor}
+                />
+              )}
 
               {/* A4 长按上下文菜单:portal 到 body,位置由触点决定 */}
               <SelectionContextMenu

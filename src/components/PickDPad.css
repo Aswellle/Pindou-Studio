@@ -1,0 +1,92 @@
+/* PickDPad — 点选工具方向盘(仅移动端 pick 工具显示) */
+
+/* portal 到 body:fixed 定位,贴在移动端工具栏上方。
+   --mobile-toolbar-h 由 MobileToolbar 按实际行数写入,折叠/换行时自动跟随。 */
+.pick-dpad {
+  position: fixed;
+  left: 50%;
+  transform: translateX(-50%);
+  bottom: calc(var(--mobile-toolbar-h, 64px) + 8px);
+  z-index: 60;
+  display: flex;
+  align-items: flex-end;
+  gap: 10px;
+  padding: 8px;
+  background: var(--bg-primary, #fff);
+  border: 1px solid var(--border-color, #e5e5e5);
+  border-radius: 18px;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.14);
+}
+
+/* 左侧 3×2 的四向排布(上 / 左·下·右):按钮 44×44,触控目标充足 */
+.pick-dpad-left {
+  display: grid;
+  grid-template-columns: repeat(3, 44px);
+  grid-template-rows: 44px;
+  gap: 6px;
+}
+
+/* 排布:第 2 行放 上/下/右,第 1 行放 左 —— 左按钮独占第一行左侧,
+   视觉上四向呈十字感且整体高度紧凑 */
+.pick-dpad-left .pick-dpad-btn:nth-child(1) {
+  grid-column: 1;
+  grid-row: 2;
+}
+.pick-dpad-left .pick-dpad-btn:nth-child(2) {
+  grid-column: 2;
+  grid-row: 1;
+}
+.pick-dpad-left .pick-dpad-btn:nth-child(3) {
+  grid-column: 2;
+  grid-row: 2;
+}
+.pick-dpad-left .pick-dpad-btn:nth-child(4) {
+  grid-column: 3;
+  grid-row: 2;
+}
+
+.pick-dpad-btn {
+  width: 44px;
+  height: 44px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--border-color, #e5e5e5);
+  border-radius: 12px;
+  background: var(--bg-secondary, #f7f7f7);
+  color: var(--text-primary, #333);
+  padding: 0;
+}
+
+.pick-dpad-btn:active {
+  background: var(--accent-soft, #e8f0ee);
+  border-color: var(--accent, #4a9b8e);
+}
+
+/* 中央 toggle:未选 = 加(青色描边),已选 = 移除(暖橙描边 + 实底) */
+.pick-dpad-toggle {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  min-width: 64px;
+  min-height: 94px;
+  padding: 8px 10px;
+  border: 2px solid var(--accent, #4a9b8e);
+  border-radius: 14px;
+  background: var(--bg-primary, #fff);
+  color: var(--accent, #4a9b8e);
+}
+
+.pick-dpad-toggle.active {
+  border-color: #ff9800;
+  background: rgba(255, 152, 0, 0.12);
+  color: #ef6c00;
+}
+
+.pick-dpad-toggle-label {
+  font-size: 11px;
+  line-height: 1.2;
+  white-space: nowrap;
+}

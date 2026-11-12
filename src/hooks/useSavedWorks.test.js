@@ -31,9 +31,10 @@ const blank = (w, h) => Array.from({ length: h }, () => Array.from({ length: w }
  * 这里显式把整个异步链推完再断言。
  *
  * 满载并行时(全量测试套件),迁移写库可能落后 loading 落地不止一个宏任务,
- * 单个 setTimeout tick 不够 —— 改为轮询直到连续两次采样 works 数量一致
- * (works 数稳定 = 异步链推完)。期望空列表的用例会在两个 tick 后稳定退出,
- * 与旧行为等价。
+ * 单个 setTimeout tick 不够 —— 改为轮询直到 works 数量连续稳定后退出。
+ * 稳定阈值取「连续 3 个 tick 相同」:两个 tick 在满载下仍可能落在迁移链
+ * 中间(2026-11-13 全量套件偶发「works 还是空的就断言了」),3 个 tick
+ * 给满载环境留出余量;空闲时多花 1 个 tick,与旧行为基本等价。
  */
 const waitForLoad = async (result) => {
   await act(async () => {
@@ -45,11 +46,14 @@ const waitForLoad = async (result) => {
   })
   await waitFor(() => expect(result.current.worksLoading).toBe(false))
   let prev = null
-  for (let i = 0; i < 10; i++) {
+  let stable = 0
+  for (let i = 0; i < 60; i++) {
     await act(async () => { await new Promise((r) => setTimeout(r, 0)) })
     const count = String(result.current.works.length)
-    if (prev === count) break
+    if (prev === count) stable += 1
+    else stable = 0
     prev = count
+    if (stable >= 2) break
   }
 }
 

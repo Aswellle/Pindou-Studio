@@ -44,6 +44,7 @@ vi.mock('./components/Tools', async () => {
       React.createElement('span', { 'data-testid': 'sel' }, selection ? `${selection.w}x${selection.h}` : 'none'),
       React.createElement('span', { 'data-testid': 'tool' }, tool),
       React.createElement('button', { 'data-testid': 'select-tool', onClick: () => onToolChange('select') }, 'select-tool'),
+      React.createElement('button', { 'data-testid': 'pick-tool', onClick: () => onToolChange('pick') }, 'pick-tool'),
       React.createElement('button', { 'data-testid': 'fill', onClick: () => onSelectionCommand('fill') }, 'fill'),
       React.createElement('button', { 'data-testid': 'rotate', onClick: () => onSelectionCommand('rotateCw') }, 'rotate'),
       React.createElement('button', { 'data-testid': 'copy', onClick: () => onSelectionCommand('copy') }, 'copy'),
@@ -641,5 +642,53 @@ describe('App · 点选工具(逐格 toggle 选区)', () => {
     expect(sel.kind).toBe('lasso')
     expect(sel.bounds).toEqual({ x: 2, y: 2, w: 1, h: 1 })
     expect(sel.mask[0]).toBe(0)
+  })
+})
+
+describe('App · 点选方向盘与键盘步进', () => {
+  it('方向键步进:首按初始化到画布中心再移动,越界钳制', async () => {
+    const { getByTestId } = renderApp()
+
+    await waitFor(() => expect(canvasProps.current?.committedData).toBeTruthy())
+    fireEvent.click(getByTestId('pick-tool'))
+    await waitFor(() => expect(getByTestId('tool').textContent).toBe('pick'))
+
+    // 29×29 画布:首按 ArrowRight 初始化到中心 (14,14) 再右移 → (15,14)
+    fireEvent.keyDown(window, { key: 'ArrowRight' })
+    await waitFor(() => expect(canvasProps.current.pickCursor).toEqual({ x: 15, y: 14 }))
+
+    // 连续左移跨过中心:到 (0,14) 后继续按不动(钳制)
+    for (let i = 0; i < 20; i++) fireEvent.keyDown(window, { key: 'ArrowLeft' })
+    await waitFor(() => expect(canvasProps.current.pickCursor).toEqual({ x: 0, y: 14 }))
+    fireEvent.keyDown(window, { key: 'ArrowLeft' })
+    expect(canvasProps.current.pickCursor).toEqual({ x: 0, y: 14 })
+  })
+
+  it('Enter toggle 光标所在格,一次进入一条选区', async () => {
+    const { getByTestId } = renderApp()
+
+    await waitFor(() => expect(canvasProps.current?.committedData).toBeTruthy())
+    fireEvent.click(getByTestId('pick-tool'))
+    await waitFor(() => expect(getByTestId('tool').textContent).toBe('pick'))
+
+    // 光标未初始化:Enter 直接初始化中心 (14,14) 并 toggle 该格
+    fireEvent.keyDown(window, { key: 'Enter' })
+    await waitFor(() => {
+      const sel = canvasProps.current.selection
+      expect(sel?.kind).toBe('lasso')
+      expect(sel.mask[14 * 29 + 14]).toBe(1)
+    })
+
+    // 再按 Enter:同一格被移出,选区清空
+    fireEvent.keyDown(window, { key: 'Enter' })
+    await waitFor(() => expect(canvasProps.current.selection).toBeNull())
+  })
+
+  it('方向键在点选工具外不移动光标(不干扰其他工具)', async () => {
+    const { getByTestId } = renderApp()
+
+    await waitFor(() => expect(canvasProps.current?.committedData).toBeTruthy())
+    fireEvent.keyDown(window, { key: 'ArrowRight' })
+    expect(canvasProps.current.pickCursor ?? null).toBeNull()
   })
 })
