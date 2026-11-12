@@ -17,15 +17,12 @@ function drawBeadPreview(ctx, cx, cy, radius, hexColor) {
   const g = parseInt(hexColor.slice(3, 5), 16)
   const b = parseInt(hexColor.slice(5, 7), 16)
   const lighten = (c, f) => Math.min(255, Math.round(c + (255 - c) * f))
-  const darken  = (c, f) => Math.max(0,   Math.round(c * (1 - f)))
+  const darken = (c, f) => Math.max(0, Math.round(c * (1 - f)))
   const highlight = `rgb(${lighten(r, 0.35)},${lighten(g, 0.35)},${lighten(b, 0.35)})`
-  const shadow    = `rgb(${darken(r, 0.18)},${darken(g, 0.18)},${darken(b, 0.18)})`
+  const shadow = `rgb(${darken(r, 0.18)},${darken(g, 0.18)},${darken(b, 0.18)})`
 
-  const grad = ctx.createRadialGradient(
-    cx - radius * 0.25, cy - radius * 0.25, radius * 0.05,
-    cx, cy, radius
-  )
-  grad.addColorStop(0,   highlight)
+  const grad = ctx.createRadialGradient(cx - radius * 0.25, cy - radius * 0.25, radius * 0.05, cx, cy, radius)
+  grad.addColorStop(0, highlight)
   grad.addColorStop(0.5, hexColor)
   grad.addColorStop(1.0, shadow)
 
@@ -46,7 +43,7 @@ function drawBeadPreview(ctx, cx, cy, radius, hexColor) {
   if (radius >= 5) {
     ctx.beginPath()
     ctx.arc(cx, cy, radius * 0.14, 0, Math.PI * 2)
-    ctx.fillStyle = `rgba(${darken(r,0.3)},${darken(g,0.3)},${darken(b,0.3)},0.7)`
+    ctx.fillStyle = `rgba(${darken(r, 0.3)},${darken(g, 0.3)},${darken(b, 0.3)},0.7)`
     ctx.fill()
   }
 }
@@ -81,24 +78,19 @@ function ZoomPreviewCanvas({ result, resolveHex }) {
       }
     }
   }, [result, resolveHex])
-  return (
-    <canvas
-      ref={ref}
-      style={{ imageRendering: 'pixelated', maxWidth: '95vw', maxHeight: '85vh' }}
-    />
-  )
+  return <canvas ref={ref} style={{ imageRendering: 'pixelated', maxWidth: '95vw', maxHeight: '85vh' }} />
 }
 
 const GRID_PRESETS = [
   { key: 'auto', w: null, h: null, auto: true },
-  { key: '29x29',   w: 29,  h: 29  },
-  { key: '57x57',   w: 57,  h: 57  },
+  { key: '29x29', w: 29, h: 29 },
+  { key: '57x57', w: 57, h: 57 },
   { key: '114x114', w: 114, h: 114 },
   { key: '140x140', w: 140, h: 140 },
-  { key: '57x29',   w: 57,  h: 29  },
-  { key: '29x57',   w: 29,  h: 57  },
-  { key: 'aspect',  w: null, h: null, aspect: true },
-  { key: 'custom',  w: null, h: null },
+  { key: '57x29', w: 57, h: 29 },
+  { key: '29x57', w: 29, h: 57 },
+  { key: 'aspect', w: null, h: null, aspect: true },
+  { key: 'custom', w: null, h: null },
 ]
 
 // 图片解码 → 缩到 ≤96px 采样 → 内容分析推荐网格（DOM 依赖，纯分析在 utils/autoGrid）
@@ -136,19 +128,22 @@ export default function ImageQuantizer({ onApply, onEnterEditor, onClose }) {
   }, [result])
 
   // 只放行合法 hex(品牌 ID 与 '#xyz' 都会污染 canvas fillStyle → 渲染黑块)
-  const resolveHex = useCallback((v) => {
-    if (!v) return null
-    if (typeof v === 'string' && v.startsWith('#')) {
-      const test = parseInt(v.slice(1), 16)
-      return Number.isNaN(test) ? null : v
-    }
-    const resolved = resultColorMap[v]
-    if (resolved && typeof resolved === 'string' && resolved.startsWith('#')) {
-      const test = parseInt(resolved.slice(1), 16)
-      return Number.isNaN(test) ? null : resolved
-    }
-    return null
-  }, [resultColorMap])
+  const resolveHex = useCallback(
+    v => {
+      if (!v) return null
+      if (typeof v === 'string' && v.startsWith('#')) {
+        const test = parseInt(v.slice(1), 16)
+        return Number.isNaN(test) ? null : v
+      }
+      const resolved = resultColorMap[v]
+      if (resolved && typeof resolved === 'string' && resolved.startsWith('#')) {
+        const test = parseInt(resolved.slice(1), 16)
+        return Number.isNaN(test) ? null : resolved
+      }
+      return null
+    },
+    [resultColorMap]
+  )
 
   const [selectedPalette, setSelectedPalette] = useState('perler')
   const [gridPreset, setGridPreset] = useState('auto')
@@ -190,7 +185,10 @@ export default function ImageQuantizer({ onApply, onEnterEditor, onClose }) {
   // 避免用户随手点空白处就离开,误以为更改还在。
   const { ref: unsavedRef, dialogProps: unsavedDialogProps } = useDialogA11y({
     open: showUnsavedDialog,
-    onClose: () => { setShowUnsavedDialog(false); pendingCloseRef.current = false },
+    onClose: () => {
+      setShowUnsavedDialog(false)
+      pendingCloseRef.current = false
+    },
     label: t('quantizer.unsavedTitle'),
     role: 'alertdialog',
     dismissible: false,
@@ -217,14 +215,13 @@ export default function ImageQuantizer({ onApply, onEnterEditor, onClose }) {
       // 桌面：栏位有确定高度，用实测值；窄屏：.result-preview 高度由画布撑开(循环依赖),
       // 改用视口预算封顶,保证长图不把页面撑出屏幕
       const widthBudget = host.clientWidth > 40 ? host.clientWidth : 480
-      const heightBudget = host.clientHeight > 40
-        ? host.clientHeight
-        : Math.min(560, Math.round(window.innerHeight * 0.5))
+      const heightBudget =
+        host.clientHeight > 40 ? host.clientHeight : Math.min(560, Math.round(window.innerHeight * 0.5))
 
-      const cellSize = Math.max(2, Math.min(10, Math.floor(Math.min(
-        widthBudget / displayWidth,
-        heightBudget / displayHeight,
-      ))))
+      const cellSize = Math.max(
+        2,
+        Math.min(10, Math.floor(Math.min(widthBudget / displayWidth, heightBudget / displayHeight)))
+      )
       const cssW = displayWidth * cellSize
       const cssH = displayHeight * cellSize
       const dpr = Math.min(window.devicePixelRatio || 1, 2)
@@ -299,7 +296,20 @@ export default function ImageQuantizer({ onApply, onEnterEditor, onClose }) {
       lastGeneratedSettings.qualityMode !== qualityMode ||
       lastGeneratedSettings.imageMode !== imageMode
     )
-  }, [lastGeneratedSettings, selectedPalette, gridWidth, gridHeight, maxColors, dithering, colorSpace, brightness, contrast, removeBackground, qualityMode, imageMode])
+  }, [
+    lastGeneratedSettings,
+    selectedPalette,
+    gridWidth,
+    gridHeight,
+    maxColors,
+    dithering,
+    colorSpace,
+    brightness,
+    contrast,
+    removeBackground,
+    qualityMode,
+    imageMode,
+  ])
 
   // 处理关闭尝试
   const handleCloseAttempt = useCallback(() => {
@@ -346,7 +356,7 @@ export default function ImageQuantizer({ onApply, onEnterEditor, onClose }) {
   }, [result, settingsChanged])
 
   // 解码图片：取宽高比（按比例模式用）+ 内容分析（自动尺寸模式用）
-  const loadImageMeta = useCallback((url) => {
+  const loadImageMeta = useCallback(url => {
     const img = new Image()
     img.onload = () => {
       setImageAspectRatio(img.width / img.height)
@@ -366,68 +376,77 @@ export default function ImageQuantizer({ onApply, onEnterEditor, onClose }) {
   // HEIC(iOS 相册默认格式)先转成 PNG 再预览:Chrome/Firefox 解不了 HEIC,
   // 直接塞给 <img> 会显示破图,而用户看到的是「图片加载失败」这种误导性提示。
   // PDF 不在这里支持 —— 它是图纸格式,走「导入图纸」路径更合适。
-  const acceptFile = useCallback(async (file) => {
-    const fileCode = checkImageFile(file)
-    if (fileCode) {
-      setFileError(t(`quantizer.errors.${fileCode}`, fileCode))
-      return
-    }
-    let pixelCode = null
-    // PNG/JPEG 只需文件头:IHDR 与绝大多数 JPEG 的 SOF 都在前 64KB 内;
-    // SVG 读成全文文本才能拿到根元素尺寸(几 KB 的 SVG 可以声明上万像素,
-    // 且根标签前可以塞超长注释把标签推到头部之外)
-    const head = await readImageHead(file)
-    if (head) pixelCode = checkImagePixels(head)
-    if (pixelCode) {
-      setFileError(t(`quantizer.errors.${pixelCode}`, pixelCode))
-      return
-    }
-
-    // HEIC 的像素数要解码后才知道,这里不预判;转换本身在 worker 之外、
-    // 在预览之前完成,失败时给出明确的格式提示而不是「加载失败」。
-    let source = file
-    if (isHeicFile(file)) {
-      try {
-        source = await heicToPngBlob(file)
-      } catch (e) {
-        const code = ['heicUnsupported', 'tooManyPixels'].includes(e?.message)
-          ? e.message
-          : 'heicDecodeFailed'
-        setFileError(t(`quantizer.errors.${code}`, t('chartImport.decodeFailed')))
+  const acceptFile = useCallback(
+    async file => {
+      const fileCode = checkImageFile(file)
+      if (fileCode) {
+        setFileError(t(`quantizer.errors.${fileCode}`, fileCode))
         return
       }
-    }
+      let pixelCode = null
+      // PNG/JPEG 只需文件头:IHDR 与绝大多数 JPEG 的 SOF 都在前 64KB 内;
+      // SVG 读成全文文本才能拿到根元素尺寸(几 KB 的 SVG 可以声明上万像素,
+      // 且根标签前可以塞超长注释把标签推到头部之外)
+      const head = await readImageHead(file)
+      if (head) pixelCode = checkImagePixels(head)
+      if (pixelCode) {
+        setFileError(t(`quantizer.errors.${pixelCode}`, pixelCode))
+        return
+      }
 
-    setFileError('')
-    // 预览与量化都走这个 URL:量化时 `fetch(previewUrl).then(r => r.blob())`
-    // 取到的自然是转换后的 PNG,不需要额外的「源文件」状态。
-    const url = URL.createObjectURL(source)
-    setPreviewUrl(url)
-    loadImageMeta(url)
-    reset()
-    setHasUnsavedChanges(false)
-    setLastGeneratedSettings(null)
-  }, [t, loadImageMeta, reset])
+      // HEIC 的像素数要解码后才知道,这里不预判;转换本身在 worker 之外、
+      // 在预览之前完成,失败时给出明确的格式提示而不是「加载失败」。
+      let source = file
+      if (isHeicFile(file)) {
+        try {
+          source = await heicToPngBlob(file)
+        } catch (e) {
+          const code = ['heicUnsupported', 'tooManyPixels'].includes(e?.message)
+            ? e.message
+            : 'heicDecodeFailed'
+          setFileError(t(`quantizer.errors.${code}`, t('chartImport.decodeFailed')))
+          return
+        }
+      }
 
-  const handleFileSelect = useCallback((e) => {
-    const file = e.target.files[0]
-    if (file) acceptFile(file)
-    e.target.value = '' // 允许重新选择同一个文件
-  }, [acceptFile])
+      setFileError('')
+      // 预览与量化都走这个 URL:量化时 `fetch(previewUrl).then(r => r.blob())`
+      // 取到的自然是转换后的 PNG,不需要额外的「源文件」状态。
+      const url = URL.createObjectURL(source)
+      setPreviewUrl(url)
+      loadImageMeta(url)
+      reset()
+      setHasUnsavedChanges(false)
+      setLastGeneratedSettings(null)
+    },
+    [t, loadImageMeta, reset]
+  )
 
-  const handleDrop = useCallback((e) => {
-    e.preventDefault()
-    setIsDragActive(false)
-    const file = e.dataTransfer.files[0]
-    if (file) acceptFile(file)
-  }, [acceptFile])
+  const handleFileSelect = useCallback(
+    e => {
+      const file = e.target.files[0]
+      if (file) acceptFile(file)
+      e.target.value = '' // 允许重新选择同一个文件
+    },
+    [acceptFile]
+  )
 
-  const handleDragOver = useCallback((e) => {
+  const handleDrop = useCallback(
+    e => {
+      e.preventDefault()
+      setIsDragActive(false)
+      const file = e.dataTransfer.files[0]
+      if (file) acceptFile(file)
+    },
+    [acceptFile]
+  )
+
+  const handleDragOver = useCallback(e => {
     e.preventDefault()
     setIsDragActive(true)
   }, [])
 
-  const handleDragLeave = useCallback((e) => {
+  const handleDragLeave = useCallback(e => {
     e.preventDefault()
     setIsDragActive(false)
   }, [])
@@ -448,27 +467,24 @@ export default function ImageQuantizer({ onApply, onEnterEditor, onClose }) {
         contrast,
         removeBackground,
         qualityMode,
-        imageMode
+        imageMode,
       }
 
-      await quantize(
-        await fetch(previewUrl).then(r => r.blob()),
-        {
-          gridWidth,
-          gridHeight,
-          gridSize: Math.max(gridWidth, gridHeight),
-          maxColors,
-          paletteId: selectedPalette,
-          dithering,
-          brightness,
-          contrast,
-          qualityMode,
-          highQuality: qualityMode !== 'standard',
-          removeBackground,
-          colorSpace,
-          imageMode
-        }
-      )
+      await quantize(await fetch(previewUrl).then(r => r.blob()), {
+        gridWidth,
+        gridHeight,
+        gridSize: Math.max(gridWidth, gridHeight),
+        maxColors,
+        paletteId: selectedPalette,
+        dithering,
+        brightness,
+        contrast,
+        qualityMode,
+        highQuality: qualityMode !== 'standard',
+        removeBackground,
+        colorSpace,
+        imageMode,
+      })
 
       // 保存生成结果
       setLastGeneratedSettings(currentSettings)
@@ -478,7 +494,21 @@ export default function ImageQuantizer({ onApply, onEnterEditor, onClose }) {
       if (err?.message === 'CANCELLED') return // 用户主动取消,非错误
       console.error('Quantization failed:', err)
     }
-  }, [previewUrl, gridWidth, gridHeight, maxColors, selectedPalette, dithering, colorSpace, brightness, contrast, removeBackground, qualityMode, imageMode, quantize])
+  }, [
+    previewUrl,
+    gridWidth,
+    gridHeight,
+    maxColors,
+    selectedPalette,
+    dithering,
+    colorSpace,
+    brightness,
+    contrast,
+    removeBackground,
+    qualityMode,
+    imageMode,
+    quantize,
+  ])
 
   const handleApply = useCallback(() => {
     if (result) {
@@ -489,7 +519,7 @@ export default function ImageQuantizer({ onApply, onEnterEditor, onClose }) {
         gridSize: Math.max(w, h),
         gridWidth: w,
         gridHeight: h,
-        colorStats: result.colorStats
+        colorStats: result.colorStats,
       })
       // 清除未保存状态
       setHasUnsavedChanges(false)
@@ -498,8 +528,10 @@ export default function ImageQuantizer({ onApply, onEnterEditor, onClose }) {
     }
   }, [result, selectedPalette, gridWidth, gridHeight, onApply, onClose])
 
-  // 进入专用编辑器(/editor):载荷与 handleApply 一致,但不关闭转换页 ——
-  // 编辑器里点返回回到这里,结果还在,可以直接调参重新生成
+  // 进入专用编辑器(/editor):载荷与 handleApply 一致,但不触发 onClose ——
+  // 跳转由 App 的 handleQuantizerToEditor 负责。注意本组件随之被卸载,
+  // result/原图/参数不会留存:编辑器里点返回回到的是**重新上传页**,
+  // 不是「结果还在」;图案本身已应用进共享画布。
   const handleEnterEditor = useCallback(() => {
     if (!result || !onEnterEditor) return
     const w = result.width || gridWidth
@@ -509,7 +541,7 @@ export default function ImageQuantizer({ onApply, onEnterEditor, onClose }) {
       gridSize: Math.max(w, h),
       gridWidth: w,
       gridHeight: h,
-      colorStats: result.colorStats
+      colorStats: result.colorStats,
     })
     setHasUnsavedChanges(false)
   }, [result, selectedPalette, gridWidth, gridHeight, onEnterEditor])
@@ -527,7 +559,9 @@ export default function ImageQuantizer({ onApply, onEnterEditor, onClose }) {
         <header className="quantizer-header">
           <BackButton size="lg" onClick={handleClose} />
           <div className="quantizer-header-title">
-            <span className="quantizer-brand-mark" aria-hidden="true">✦</span>
+            <span className="quantizer-brand-mark" aria-hidden="true">
+              ✦
+            </span>
             <div>
               <p className="quantizer-eyebrow">PINDOU STUDIO / CREATE</p>
               <h1>{t('quantizer.title', '图片转拼豆')}</h1>
@@ -535,7 +569,13 @@ export default function ImageQuantizer({ onApply, onEnterEditor, onClose }) {
           </div>
           <div className="quantizer-header-meta">
             <span className="quantizer-status-dot" aria-hidden="true" />
-            <span>{result ? t('quantizer.stepResult', '预览成品') : previewUrl ? t('quantizer.stepConfigure', '调整设置') : t('quantizer.stepUpload', '上传图片')}</span>
+            <span>
+              {result
+                ? t('quantizer.stepResult', '预览成品')
+                : previewUrl
+                  ? t('quantizer.stepConfigure', '调整设置')
+                  : t('quantizer.stepUpload', '上传图片')}
+            </span>
           </div>
         </header>
 
@@ -579,12 +619,12 @@ export default function ImageQuantizer({ onApply, onEnterEditor, onClose }) {
                   <span className="upload-icon">📷</span>
                 </div>
                 <p className="upload-main-text">
-                  {isDragActive ? t('quantizer.dropActive', '松开鼠标上传图片') : t('quantizer.dragDrop', '拖拽图片到这里')}
+                  {isDragActive
+                    ? t('quantizer.dropActive', '松开鼠标上传图片')
+                    : t('quantizer.dragDrop', '拖拽图片到这里')}
                 </p>
                 <p className="upload-or">{t('quantizer.or', '或')}</p>
-                <button className="btn btn-secondary">
-                  {t('quantizer.browse', '浏览文件')}
-                </button>
+                <button className="btn btn-secondary">{t('quantizer.browse', '浏览文件')}</button>
                 <p className="upload-paste">{t('quantizer.paste', '粘贴图片 (Ctrl+V)')}</p>
               </div>
             ) : (
@@ -592,10 +632,7 @@ export default function ImageQuantizer({ onApply, onEnterEditor, onClose }) {
                 <div className="preview-image-frame">
                   <img src={previewUrl} alt="Preview" className="preview-image" />
                 </div>
-                <button
-                  className="btn btn-ghost change-btn"
-                  onClick={() => fileInputRef.current?.click()}
-                >
+                <button className="btn btn-ghost change-btn" onClick={() => fileInputRef.current?.click()}>
                   {t('quantizer.changeImage', '更换图片')}
                 </button>
                 <input
@@ -610,7 +647,10 @@ export default function ImageQuantizer({ onApply, onEnterEditor, onClose }) {
           </div>
 
           <div className="settings-section">
-            <h3><span className="settings-icon">⚙</span>{t('quantizer.settings', '量化设置')}</h3>
+            <h3>
+              <span className="settings-icon">⚙</span>
+              {t('quantizer.settings', '量化设置')}
+            </h3>
 
             <div className="setting-item">
               <label>{t('quantizer.palette', '目标色卡')}</label>
@@ -626,7 +666,8 @@ export default function ImageQuantizer({ onApply, onEnterEditor, onClose }) {
                 ))}
               </select>
               <span className="setting-hint">
-                {t(`palette.origin.${palette.id}`)} · {t(`palette.beadSize.${palette.id}`)} ({palette.beadSize}mm)
+                {t(`palette.origin.${palette.id}`)} · {t(`palette.beadSize.${palette.id}`)} (
+                {palette.beadSize}mm)
               </span>
             </div>
 
@@ -647,7 +688,9 @@ export default function ImageQuantizer({ onApply, onEnterEditor, onClose }) {
                 disabled={isProcessing}
               >
                 {GRID_PRESETS.map(p => (
-                  <option key={p.key} value={p.key}>{t(`quantizer.presets.${p.key}`)}</option>
+                  <option key={p.key} value={p.key}>
+                    {t(`quantizer.presets.${p.key}`)}
+                  </option>
                 ))}
               </select>
               {gridPreset === 'auto' && (
@@ -655,7 +698,9 @@ export default function ImageQuantizer({ onApply, onEnterEditor, onClose }) {
                   {!previewUrl
                     ? t('quantizer.autoSizePending')
                     : autoSuggest
-                      ? t('quantizer.autoSizeApplied', { size: `${autoSuggest.gridWidth} × ${autoSuggest.gridHeight}` })
+                      ? t('quantizer.autoSizeApplied', {
+                          size: `${autoSuggest.gridWidth} × ${autoSuggest.gridHeight}`,
+                        })
                       : t('quantizer.autoSizePending')}
                 </span>
               )}
@@ -674,7 +719,13 @@ export default function ImageQuantizer({ onApply, onEnterEditor, onClose }) {
                   />
                   <div style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 4 }}>
                     {previewUrl ? (
-                      <>{t('quantizer.actualSize')}: <strong>{gridWidth} × {gridHeight}</strong>（{t('quantizer.aspectRatio')} {imageAspectRatio.toFixed(3)}）</>
+                      <>
+                        {t('quantizer.actualSize')}:{' '}
+                        <strong>
+                          {gridWidth} × {gridHeight}
+                        </strong>
+                        （{t('quantizer.aspectRatio')} {imageAspectRatio.toFixed(3)}）
+                      </>
                     ) : (
                       t('quantizer.uploadFirst')
                     )}
@@ -730,44 +781,30 @@ export default function ImageQuantizer({ onApply, onEnterEditor, onClose }) {
                 <span>4</span>
                 <span>96</span>
               </div>
-              <span className="setting-hint">
-                {t('quantizer.colorHint')}
-              </span>
+              <span className="setting-hint">{t('quantizer.colorHint')}</span>
             </div>
 
             <div className="setting-item">
               <label>{t('quantizer.imageMode')}</label>
-              <select
-                value={imageMode}
-                onChange={e => setImageMode(e.target.value)}
-                disabled={isProcessing}
-              >
+              <select value={imageMode} onChange={e => setImageMode(e.target.value)} disabled={isProcessing}>
                 <option value="auto">{t('quantizer.imageModes.auto')}</option>
                 <option value="portrait">{t('quantizer.imageModes.portrait')}</option>
                 <option value="illustration">{t('quantizer.imageModes.illustration')}</option>
                 <option value="logo">{t('quantizer.imageModes.logo')}</option>
                 <option value="landscape">{t('quantizer.imageModes.landscape')}</option>
               </select>
-              <span className="setting-hint">
-                {t('quantizer.imageModeHint')}
-              </span>
+              <span className="setting-hint">{t('quantizer.imageModeHint')}</span>
             </div>
 
             <div className="setting-item">
               <label>{t('quantizer.algorithm')}</label>
-              <select
-                value={dithering}
-                onChange={e => setDithering(e.target.value)}
-                disabled={isProcessing}
-              >
+              <select value={dithering} onChange={e => setDithering(e.target.value)} disabled={isProcessing}>
                 <option value="auto">{t('quantizer.dithering.auto')}</option>
                 <option value="none">{t('quantizer.dithering.none')}</option>
                 <option value="floyd-steinberg">{t('quantizer.dithering.floydSteinberg')}</option>
                 <option value="ordered">{t('quantizer.dithering.ordered')}</option>
               </select>
-              <span className="setting-hint">
-                {t('quantizer.algorithmHint')}
-              </span>
+              <span className="setting-hint">{t('quantizer.algorithmHint')}</span>
             </div>
 
             <div className="setting-item">
@@ -780,9 +817,7 @@ export default function ImageQuantizer({ onApply, onEnterEditor, onClose }) {
                 <option value="lab">{t('quantizer.colorSpaces.lab')}</option>
                 <option value="oklab">{t('quantizer.colorSpaces.oklab')}</option>
               </select>
-              <span className="setting-hint">
-                {t('quantizer.colorMatchingHint')}
-              </span>
+              <span className="setting-hint">{t('quantizer.colorMatchingHint')}</span>
             </div>
 
             <div className="setting-item">
@@ -796,9 +831,7 @@ export default function ImageQuantizer({ onApply, onEnterEditor, onClose }) {
                 <option value="fine">{t('quantizer.qualityModes.fine')}</option>
                 <option value="master">{t('quantizer.qualityModes.master')}</option>
               </select>
-              <span className="setting-hint">
-                {t('quantizer.qualityHint')}
-              </span>
+              <span className="setting-hint">{t('quantizer.qualityHint')}</span>
             </div>
 
             <div className="setting-item">
@@ -811,9 +844,7 @@ export default function ImageQuantizer({ onApply, onEnterEditor, onClose }) {
                 />
                 <span>{t('quantizer.removeBackground')}</span>
               </label>
-              <span className="setting-hint">
-                {t('quantizer.removeBackgroundHint')}
-              </span>
+              <span className="setting-hint">{t('quantizer.removeBackgroundHint')}</span>
             </div>
 
             <div className="setting-item">
@@ -856,10 +887,7 @@ export default function ImageQuantizer({ onApply, onEnterEditor, onClose }) {
           {isProcessing && (
             <div className="progress-section">
               <div className="progress-bar">
-                <div
-                  className="progress-fill"
-                  style={{ width: `${progress}%` }}
-                />
+                <div className="progress-fill" style={{ width: `${progress}%` }} />
               </div>
               <span className="progress-text">
                 {t('quantizer.processing', '处理中')}... {progress}%
@@ -893,11 +921,18 @@ export default function ImageQuantizer({ onApply, onEnterEditor, onClose }) {
                   title={t('quantizer.zoomPreview')}
                   aria-label={t('quantizer.zoomPreview')}
                 >
-                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                    <circle cx="11" cy="11" r="7"/>
-                    <line x1="21" y1="21" x2="16.5" y2="16.5"/>
-                    <line x1="11" y1="8" x2="11" y2="14"/>
-                    <line x1="8" y1="11" x2="14" y2="11"/>
+                  <svg
+                    width="18"
+                    height="18"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                  >
+                    <circle cx="11" cy="11" r="7" />
+                    <line x1="21" y1="21" x2="16.5" y2="16.5" />
+                    <line x1="11" y1="8" x2="11" y2="14" />
+                    <line x1="8" y1="11" x2="14" y2="11" />
                   </svg>
                 </button>
               </div>
@@ -905,12 +940,20 @@ export default function ImageQuantizer({ onApply, onEnterEditor, onClose }) {
                 {result.detectedType && (
                   <span className="mode-badge">
                     {imageMode === 'auto'
-                      ? t('quantizer.detectedPrefix', { type: t(`quantizer.imageModes.${result.detectedType}`) })
-                      : t('quantizer.modeAppliedPrefix', { type: t(`quantizer.imageModes.${result.detectedType}`) })}
+                      ? t('quantizer.detectedPrefix', {
+                          type: t(`quantizer.imageModes.${result.detectedType}`),
+                        })
+                      : t('quantizer.modeAppliedPrefix', {
+                          type: t(`quantizer.imageModes.${result.detectedType}`),
+                        })}
                   </span>
                 )}
-                <span>{t('quantizer.colorsUsed', '使用颜色')}: {Object.keys(result.colorStats).length}</span>
-                {dithering === 'floyd-steinberg' || dithering === 'ordered' || result.effectiveDithering === 'floyd-steinberg' ? (
+                <span>
+                  {t('quantizer.colorsUsed', '使用颜色')}: {Object.keys(result.colorStats).length}
+                </span>
+                {dithering === 'floyd-steinberg' ||
+                dithering === 'ordered' ||
+                result.effectiveDithering === 'floyd-steinberg' ? (
                   <span className="dithering-badge">{t('quantizer.ditheringApplied')}</span>
                 ) : null}
                 {hasUnsavedChanges && (
@@ -924,11 +967,7 @@ export default function ImageQuantizer({ onApply, onEnterEditor, onClose }) {
         <div className="quantizer-footer">
           {!result ? (
             <>
-              <button
-                className="btn btn-secondary"
-                onClick={onClose}
-                disabled={isProcessing}
-              >
+              <button className="btn btn-secondary" onClick={onClose} disabled={isProcessing}>
                 {t('common.cancel', '取消')}
               </button>
               <button
@@ -937,11 +976,20 @@ export default function ImageQuantizer({ onApply, onEnterEditor, onClose }) {
                 disabled={!previewUrl || isProcessing}
               >
                 {!isProcessing && (
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                    <path d="M12 2l1.5 4.5L18 8l-4.5 1.5L12 14l-1.5-4.5L6 8l4.5-1.5L12 2z"/>
+                  <svg
+                    width="16"
+                    height="16"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                  >
+                    <path d="M12 2l1.5 4.5L18 8l-4.5 1.5L12 14l-1.5-4.5L6 8l4.5-1.5L12 2z" />
                   </svg>
                 )}
-                {isProcessing ? `${t('quantizer.processing', '处理中')}…` : t('quantizer.generate', '生成图纸')}
+                {isProcessing
+                  ? `${t('quantizer.processing', '处理中')}…`
+                  : t('quantizer.generate', '生成图纸')}
               </button>
             </>
           ) : (
@@ -958,17 +1006,17 @@ export default function ImageQuantizer({ onApply, onEnterEditor, onClose }) {
                 className={`btn ${hasUnsavedChanges ? 'btn-primary' : 'btn-secondary'}`}
                 onClick={handleGenerate}
                 disabled={isProcessing}
-                title={hasUnsavedChanges ? t('quantizer.paramsChangedHint', '参数已变更，点击按新参数重新生成') : ''}
+                title={
+                  hasUnsavedChanges
+                    ? t('quantizer.paramsChangedHint', '参数已变更，点击按新参数重新生成')
+                    : ''
+                }
               >
                 {isProcessing
                   ? `${t('quantizer.processing', '处理中')}…`
                   : `${t('quantizer.regenerate', '重新生成')}${hasUnsavedChanges ? ' ●' : ''}`}
               </button>
-              <button
-                className="btn btn-primary"
-                onClick={handleEnterEditor}
-                disabled={isProcessing}
-              >
+              <button className="btn btn-primary" onClick={handleEnterEditor} disabled={isProcessing}>
                 {t('quantizer.enterEditor', '进入编辑器')}
               </button>
               <button
@@ -983,43 +1031,59 @@ export default function ImageQuantizer({ onApply, onEnterEditor, onClose }) {
         </div>
 
         {/* 未保存更改对话框 —— portal 到 body(R5),避免 fixed 浮层嵌在页面滚动容器内 */}
-        {showUnsavedDialog && createPortal(
-          <div className="modal-overlay">
-            <div className="modal-content unsaved-dialog" ref={unsavedRef} {...unsavedDialogProps} onClick={e => e.stopPropagation()}>
-              <h3>{t('quantizer.unsavedTitle')}</h3>
-              <p>{t('quantizer.unsavedBody')}</p>
-              <div className="unsaved-dialog-buttons">
-                <button
-                  className="btn btn-secondary"
-                  autoFocus
-                  onClick={() => {
-                    setShowUnsavedDialog(false)
-                    pendingCloseRef.current = false
-                  }}
-                >
-                  {t('quantizer.continueEditing')}
-                </button>
-                <button
-                  className="btn btn-primary"
-                  onClick={handleDiscardChanges}
-                >
-                  {t('quantizer.discardClose')}
-                </button>
+        {showUnsavedDialog &&
+          createPortal(
+            <div className="modal-overlay">
+              <div
+                className="modal-content unsaved-dialog"
+                ref={unsavedRef}
+                {...unsavedDialogProps}
+                onClick={e => e.stopPropagation()}
+              >
+                <h3>{t('quantizer.unsavedTitle')}</h3>
+                <p>{t('quantizer.unsavedBody')}</p>
+                <div className="unsaved-dialog-buttons">
+                  <button
+                    className="btn btn-secondary"
+                    autoFocus
+                    onClick={() => {
+                      setShowUnsavedDialog(false)
+                      pendingCloseRef.current = false
+                    }}
+                  >
+                    {t('quantizer.continueEditing')}
+                  </button>
+                  <button className="btn btn-primary" onClick={handleDiscardChanges}>
+                    {t('quantizer.discardClose')}
+                  </button>
+                </div>
               </div>
-            </div>
-          </div>,
-          document.body,
-        )}
+            </div>,
+            document.body
+          )}
 
         {/* 放大查看 overlay:大尺寸纯色方块,点击任意处关闭 —— 同样 portal 到 body */}
-        {zoomPreview && result && createPortal(
-          <div className="quantizer-zoom" ref={zoomRef} {...zoomDialogProps} onClick={() => setZoomPreview(false)}>
-            <button className="quantizer-zoom-close" onClick={() => setZoomPreview(false)} aria-label={t('common.close')}>×</button>
-            <ZoomPreviewCanvas result={result} resolveHex={resolveHex} />
-            <p className="quantizer-zoom-hint">{t('quantizer.zoomHint')}</p>
-          </div>,
-          document.body,
-        )}
+        {zoomPreview &&
+          result &&
+          createPortal(
+            <div
+              className="quantizer-zoom"
+              ref={zoomRef}
+              {...zoomDialogProps}
+              onClick={() => setZoomPreview(false)}
+            >
+              <button
+                className="quantizer-zoom-close"
+                onClick={() => setZoomPreview(false)}
+                aria-label={t('common.close')}
+              >
+                ×
+              </button>
+              <ZoomPreviewCanvas result={result} resolveHex={resolveHex} />
+              <p className="quantizer-zoom-hint">{t('quantizer.zoomHint')}</p>
+            </div>,
+            document.body
+          )}
       </div>
     </div>
   )

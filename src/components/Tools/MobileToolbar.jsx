@@ -33,7 +33,16 @@ const TOOL_ICONS = {
   ),
   // 取色器(吸管):与桌面端 lucide Pipette 同形
   eyedropper: (
-    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <svg
+      width="20"
+      height="20"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
       <path d="m12 9-8.414 8.414A2 2 0 0 0 3 18.828v1.344a2 2 0 0 1-.586 1.414A2 2 0 0 1 3.828 21h1.344a2 2 0 0 0 1.414-.586L15 12" />
       <path d="m18 9 .4.4a1 1 0 1 1-3 3l-3.8-3.8a1 1 0 1 1 3-3l.4.4 3.4-3.4a1 1 0 1 1 3 3z" />
       <path d="m2 22 .414-.414" />
@@ -41,20 +50,42 @@ const TOOL_ICONS = {
   ),
   // 矩形选区:虚线方框
   select: (
-    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <svg
+      width="20"
+      height="20"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
       <path d="M5 3a2 2 0 0 0-2 2" />
       <path d="M19 3a2 2 0 0 1 2 2" />
       <path d="M21 19a2 2 0 0 1-2 2" />
       <path d="M5 21a2 2 0 0 1-2-2" />
-      <path d="M9 3h1" /><path d="M9 21h1" />
-      <path d="M14 3h1" /><path d="M14 21h1" />
-      <path d="M3 9v1" /><path d="M21 9v1" />
-      <path d="M3 14v1" /><path d="M21 14v1" />
+      <path d="M9 3h1" />
+      <path d="M9 21h1" />
+      <path d="M14 3h1" />
+      <path d="M14 21h1" />
+      <path d="M3 9v1" />
+      <path d="M21 9v1" />
+      <path d="M3 14v1" />
+      <path d="M21 14v1" />
     </svg>
   ),
   // 自由套索:与桌面端 lucide Lasso 同形的虚线套索圈 + 绳尾
   lasso: (
-    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <svg
+      width="20"
+      height="20"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
       <path d="M7 22a5 5 0 0 1-2-4" />
       <path d="M3.3 14A6.8 6.8 0 0 1 2 10c0-4.4 4.5-8 10-8s10 3.6 10 8-4.5 8-10 8a12 12 0 0 1-5-1" />
       <path d="M5 18a2 2 0 1 0 0-4 2 2 0 0 0 0 4z" />
@@ -62,12 +93,23 @@ const TOOL_ICONS = {
   ),
   // 点选:鼠标点击波纹(lucide MousePointerClick 同形)—— 逐格加入/移出选区
   pick: (
-    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <svg
+      width="20"
+      height="20"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
       <path d="M9 8.5V4.5a1.5 1.5 0 0 1 3 0V9" />
       <path d="M12 9V3.5a1.5 1.5 0 0 1 3 0V9" />
       <path d="M15 9V5a1.5 1.5 0 0 1 3 0v5" />
       <path d="M18 10V7a1.5 1.5 0 0 1 3 0v6a7 7 0 0 1-7 7h-2.5a6 6 0 0 1-5.2-3l-3-5.2a1.5 1.5 0 0 1 2.6-1.5L9 14" />
-      <path d="M3.5 3.5 6 6" /><path d="M2 8h2.5" /><path d="M8 2v2.5" />
+      <path d="M3.5 3.5 6 6" />
+      <path d="M2 8h2.5" />
+      <path d="M8 2v2.5" />
     </svg>
   ),
 }
@@ -89,10 +131,21 @@ const RedoIcon = () => (
 // 去噪:四角星(lucide Sparkles 同形)—— 量化管线的自动清理只跑一次,
 // 逐格修改后的新杂色需要手动入口
 const SparklesIcon = () => (
-  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+  <svg
+    width="16"
+    height="16"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+  >
     <path d="M9.9 4.6 11 1.8a.3.3 0 0 1 .56 0l1.1 2.8a2 2 0 0 0 1.13 1.13l2.8 1.1a.3.3 0 0 1 0 .56l-2.8 1.1a2 2 0 0 0-1.13 1.13l-1.1 2.8a.3.3 0 0 1-.56 0l-1.1-2.8a2 2 0 0 0-1.13-1.13l-2.8-1.1a.3.3 0 0 1 0-.56l2.8-1.1A2 2 0 0 0 9.9 4.6z" />
-    <path d="M18 17v3" /><path d="M16.5 18.5h3" />
-    <path d="M5 13v3" /><path d="M3.5 14.5h3" />
+    <path d="M18 17v3" />
+    <path d="M16.5 18.5h3" />
+    <path d="M5 13v3" />
+    <path d="M3.5 14.5h3" />
   </svg>
 )
 
@@ -114,15 +167,24 @@ const GridSizeIcon = () => (
 
 // 魔法魔杖 + 星光(lucide wand-2):表征「图片 → 拼豆」的魔力转化,替代难以辨认的相机
 const WandIcon = () => (
-  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-    <path d="m21.64 3.64-1.28-1.28a1.21 1.21 0 0 0-1.72 0L2.36 18.64a1.21 1.21 0 0 0 0 1.72l1.28 1.28a1.2 1.2 0 0 0 1.72 0L21.64 5.36a1.2 1.2 0 0 0 0-1.72"/>
-    <path d="m14 7 3 3"/>
-    <path d="M5 6v4"/>
-    <path d="M19 14v4"/>
-    <path d="M10 2v2"/>
-    <path d="M7 8H3"/>
-    <path d="M21 16h-4"/>
-    <path d="M11 3H9"/>
+  <svg
+    width="20"
+    height="20"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+  >
+    <path d="m21.64 3.64-1.28-1.28a1.21 1.21 0 0 0-1.72 0L2.36 18.64a1.21 1.21 0 0 0 0 1.72l1.28 1.28a1.2 1.2 0 0 0 1.72 0L21.64 5.36a1.2 1.2 0 0 0 0-1.72" />
+    <path d="m14 7 3 3" />
+    <path d="M5 6v4" />
+    <path d="M19 14v4" />
+    <path d="M10 2v2" />
+    <path d="M7 8H3" />
+    <path d="M21 16h-4" />
+    <path d="M11 3H9" />
   </svg>
 )
 
@@ -136,7 +198,16 @@ const ExportIcon = () => (
 
 // 导入项目文件(文件 + 向内箭头):与图片转拼豆并列的第二种导入入口
 const ImportIcon = () => (
-  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+  <svg
+    width="18"
+    height="18"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+  >
     <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
     <polyline points="14,2 14,8 20,8" />
     <line x1="12" y1="12" x2="12" y2="18" />
@@ -146,7 +217,16 @@ const ImportIcon = () => (
 
 // 颜色替换(两个重叠色块 + 交换箭头):与桌面端 lucide Replace 同义
 const ReplaceIcon = () => (
-  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+  <svg
+    width="18"
+    height="18"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+  >
     <path d="M14 4a1 1 0 0 1 1-1" />
     <path d="M15 10a1 1 0 0 1-1-1" />
     <path d="M21 4a1 1 0 0 0-1-1" />
@@ -160,7 +240,16 @@ const ReplaceIcon = () => (
 // ── 选区变换图标:与桌面端同一套线条,移动端配可见文字标签 ──────────
 // 填充 / 擦除:与工具行同一套图标,缩小到与变换按钮一致(14px)
 const PaintBucketIcon = () => (
-  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+  <svg
+    width="14"
+    height="14"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+  >
     <path d="M19 11l-8-8-8.5 8.5a5.5 5.5 0 0 0 7.78 7.78L19 11z" />
     <path d="M20 23a2 2 0 0 0 2-2c0-1.5-2-2.5-2-4s2-2.5 2-4" />
     <path d="M3 21l3-3" />
@@ -168,14 +257,32 @@ const PaintBucketIcon = () => (
 )
 
 const EraserIcon = () => (
-  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+  <svg
+    width="14"
+    height="14"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+  >
     <path d="M20 20H7L3 16l9-9 8 8-4 4" />
     <path d="M6.5 12.5l4 4" />
   </svg>
 )
 
 const MirrorHIcon = () => (
-  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+  <svg
+    width="14"
+    height="14"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+  >
     <path d="M8 3H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h3" />
     <path d="M16 3h3a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-3" />
     <path d="M12 2v20" />
@@ -183,7 +290,16 @@ const MirrorHIcon = () => (
 )
 
 const MirrorVIcon = () => (
-  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+  <svg
+    width="14"
+    height="14"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+  >
     <path d="M3 8V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v3" />
     <path d="M3 16v3a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-3" />
     <path d="M2 12h20" />
@@ -191,14 +307,32 @@ const MirrorVIcon = () => (
 )
 
 const RotateCwIcon = () => (
-  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+  <svg
+    width="14"
+    height="14"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+  >
     <path d="M21 12a9 9 0 1 1-3-6.7" />
     <polyline points="21,3 21,9 15,9" />
   </svg>
 )
 
 const RotateCcwIcon = () => (
-  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+  <svg
+    width="14"
+    height="14"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+  >
     <path d="M3 12a9 9 0 1 0 3-6.7" />
     <polyline points="3,3 3,9 9,9" />
   </svg>
@@ -206,14 +340,32 @@ const RotateCcwIcon = () => (
 
 // 复制 / 粘贴:与桌面端 lucide 同款线条(两个重叠方块 / 剪贴板 + 插入箭头)
 const CopyIcon = () => (
-  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+  <svg
+    width="14"
+    height="14"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+  >
     <rect x="8" y="8" width="13" height="13" rx="2" />
     <path d="M4 16a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2" />
   </svg>
 )
 
 const CutIcon = () => (
-  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+  <svg
+    width="14"
+    height="14"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+  >
     <circle cx="6" cy="6" r="3" />
     <circle cx="6" cy="18" r="3" />
     <path d="M20 4L8.12 15.88" />
@@ -223,7 +375,16 @@ const CutIcon = () => (
 )
 
 const PasteIcon = () => (
-  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+  <svg
+    width="14"
+    height="14"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+  >
     <path d="M15 4h2a2 2 0 0 1 2 2v3" />
     <path d="M9 4H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h5" />
     <rect x="9" y="2" width="6" height="4" rx="1" />
@@ -234,7 +395,16 @@ const PasteIcon = () => (
 
 // 四向箭头:提示「选区内可以拖动移动」
 const MoveIcon = () => (
-  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+  <svg
+    width="12"
+    height="12"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+  >
     <path d="M5 9l-3 3 3 3" />
     <path d="M9 5l3-3 3 3" />
     <path d="M15 19l-3 3-3-3" />
@@ -247,12 +417,16 @@ const MoveIcon = () => (
 // ── 引导 toast 的用户行为记录(localStorage)──────────────────────
 // 用途:判断「该用户需要图片转拼豆」或「该用户没发现该功能」。
 const BEHAVIOR_KEY = 'bead-studio-behavior'
-const GUIDE_DURATION = 5000       // toast 停留时长(ms)
-const ENGAGED_TRIGGER_MS = 10000  // 首次访问在画布活跃多久判定「需要该功能」
-const RETURNING_SESSION = 2       // 回访次数 ≥ 2 且从未点开过 → 「没发现该功能」
+const GUIDE_DURATION = 5000 // toast 停留时长(ms)
+const ENGAGED_TRIGGER_MS = 10000 // 首次访问在画布活跃多久判定「需要该功能」
+const RETURNING_SESSION = 2 // 回访次数 ≥ 2 且从未点开过 → 「没发现该功能」
 
 function getBehavior() {
-  try { return JSON.parse(localStorage.getItem(BEHAVIOR_KEY)) || {} } catch { return {} }
+  try {
+    return JSON.parse(localStorage.getItem(BEHAVIOR_KEY)) || {}
+  } catch {
+    return {}
+  }
 }
 function saveBehavior(b) {
   localStorage.setItem(BEHAVIOR_KEY, JSON.stringify(b))
@@ -315,6 +489,10 @@ export default function MobileToolbar({
 
   // 工具栏实际高度写进 CSS 变量:色卡条(.mobile-color-palette)以它为 bottom,
   // 选区操作条出现/按钮换行时工具栏会变高,色卡条必须跟着抬高,否则被工具栏盖住。
+  // 互斥性:该变量只有两个写入方 —— 本组件(画布页移动布局)与图纸编辑器
+  // 的操作台(EditorPage.jsx,路由互斥、不会同时挂载);卸载时 removeProperty
+  // 由下方 cleanup 保证,不把本页高度残留给另一页。消费方:PickDPad/色卡条/
+  // index.css 的 toast 抬升。出现第三个写方或嵌入场景时,改名并由单一 hook 写入。
   const rootRef = useRef(null)
   useLayoutEffect(() => {
     const root = rootRef.current
@@ -473,12 +651,15 @@ export default function MobileToolbar({
   const currentHeight = gridHeight || gridSize
   const isRectangular = gridWidth !== null && gridHeight !== null
 
-  const handlePresetChange = (e) => {
+  const handlePresetChange = e => {
     const value = e.target.value
     if (value === 'custom') {
       const input = prompt(t('tools.customSizePrompt'), `${currentWidth}x${currentHeight}`)
       if (!input) return
-      const parts = input.toLowerCase().split('x').map(s => parseInt(s.trim(), 10))
+      const parts = input
+        .toLowerCase()
+        .split('x')
+        .map(s => parseInt(s.trim(), 10))
       if (Number.isNaN(parts[0]) || parts[0] < 9 || parts[0] > 200) {
         toast(t('tools.widthRange'), 'error')
         return
@@ -507,7 +688,7 @@ export default function MobileToolbar({
   return (
     <div className="mobile-toolbar" ref={rootRef}>
       <div className="toolbar-row toolbar-tools">
-        {tools.map((t_item) => (
+        {tools.map(t_item => (
           <button
             key={t_item.id}
             className={`tool-btn ${tool === t_item.id ? 'active' : ''}`}
@@ -537,7 +718,8 @@ export default function MobileToolbar({
                 {/* 拖拽移动没有按钮(它直接发生在画布上),这里用图标 + 文字持续提示。
                     点选工具的拖动是平移不是搬内容,提示换成点选玩法。 */}
                 <span className="selection-move-hint">
-                  <MoveIcon />{tool === 'pick' ? t('tools.pickHint') : t('tools.selectionMoveHint')}
+                  <MoveIcon />
+                  {tool === 'pick' ? t('tools.pickHint') : t('tools.selectionMoveHint')}
                 </span>
                 {/* 规格 04 §2:默认只改已有珠子;开关打开才连空白一起填。
                     触屏没有 hover,所以做成常驻可见的胶囊按钮(不是 checkbox),
@@ -549,7 +731,10 @@ export default function MobileToolbar({
                   title={t('tools.fillIncludeEmpty')}
                   onClick={() => onToggleFillIncludeEmpty?.(!fillIncludeEmpty)}
                 >
-                  <span className="selection-fill-toggle-label">{fillIncludeEmpty ? '✓ ' : ''}{t('tools.fillIncludeEmptyShort')}</span>
+                  <span className="selection-fill-toggle-label">
+                    {fillIncludeEmpty ? '✓ ' : ''}
+                    {t('tools.fillIncludeEmptyShort')}
+                  </span>
                 </button>
                 {/* A2:复制拖动开关。触屏没有 Alt/Option,只能给可见入口 ——
                     打开后拖动选区内部 = 复制一份,原件留在原处。
@@ -561,7 +746,10 @@ export default function MobileToolbar({
                   title={t('tools.copyDragHint')}
                   onClick={() => onToggleCopyDrag?.(!copyDrag)}
                 >
-                  <span className="selection-fill-toggle-label">{copyDrag ? '✓ ' : ''}{t('tools.copyDragShort')}</span>
+                  <span className="selection-fill-toggle-label">
+                    {copyDrag ? '✓ ' : ''}
+                    {t('tools.copyDragShort')}
+                  </span>
                 </button>
                 {/* A3:框选吸附开关。默认关 —— 吸附会把落点从指针位置拽走 1–2 格,
                     触屏本来就难瞄,再抢手感就更像「拖不动」。需要贴边时手动打开。 */}
@@ -572,7 +760,10 @@ export default function MobileToolbar({
                   title={t('tools.snapToEdgesHint')}
                   onClick={() => onToggleSnapToEdges?.(!snapToEdges)}
                 >
-                  <span className="selection-fill-toggle-label">{snapToEdges ? '✓ ' : ''}{t('tools.snapToEdgesShort')}</span>
+                  <span className="selection-fill-toggle-label">
+                    {snapToEdges ? '✓ ' : ''}
+                    {t('tools.snapToEdgesShort')}
+                  </span>
                 </button>
               </div>
               {/* 按钮文字用「短标签」(填充 / 左右翻转 / 顺时针 …):
@@ -581,72 +772,91 @@ export default function MobileToolbar({
               <div className="selection-actions-row">
                 <button
                   className="selection-btn"
-                  aria-label={t('tools.fillSelection')} title={t('tools.fillSelection')}
+                  aria-label={t('tools.fillSelection')}
+                  title={t('tools.fillSelection')}
                   onClick={() => onSelectionCommand?.('fill')}
                 >
-                  <PaintBucketIcon /><span className="selection-btn-label">{t('tools.selectionFillShort')}</span>
+                  <PaintBucketIcon />
+                  <span className="selection-btn-label">{t('tools.selectionFillShort')}</span>
                 </button>
                 <button
                   className="selection-btn"
-                  aria-label={t('tools.clearSelection')} title={t('tools.clearSelection')}
+                  aria-label={t('tools.clearSelection')}
+                  title={t('tools.clearSelection')}
                   onClick={() => onSelectionCommand?.('erase')}
                 >
-                  <EraserIcon /><span className="selection-btn-label">{t('tools.selectionEraseShort')}</span>
+                  <EraserIcon />
+                  <span className="selection-btn-label">{t('tools.selectionEraseShort')}</span>
                 </button>
                 {/* 复制 / 剪切 / 粘贴:纯内存剪贴板;粘贴以选区左上角为落点,越界裁剪 */}
                 <button
                   className="selection-btn"
-                  aria-label={t('tools.copySelection')} title={t('tools.copySelection')}
+                  aria-label={t('tools.copySelection')}
+                  title={t('tools.copySelection')}
                   onClick={() => onSelectionCommand?.('copy')}
                 >
-                  <CopyIcon /><span className="selection-btn-label">{t('tools.selectionCopyShort')}</span>
+                  <CopyIcon />
+                  <span className="selection-btn-label">{t('tools.selectionCopyShort')}</span>
                 </button>
                 <button
                   className="selection-btn"
-                  aria-label={t('tools.cutSelection')} title={t('tools.cutSelection')}
+                  aria-label={t('tools.cutSelection')}
+                  title={t('tools.cutSelection')}
                   onClick={() => onSelectionCommand?.('cut')}
                 >
-                  <CutIcon /><span className="selection-btn-label">{t('tools.selectionCutShort')}</span>
+                  <CutIcon />
+                  <span className="selection-btn-label">{t('tools.selectionCutShort')}</span>
                 </button>
                 <button
                   className="selection-btn"
-                  aria-label={t('tools.pasteSelection')} title={t('tools.pasteSelection')}
+                  aria-label={t('tools.pasteSelection')}
+                  title={t('tools.pasteSelection')}
                   onClick={() => onSelectionCommand?.('paste')}
                   disabled={!canPaste}
                 >
-                  <PasteIcon /><span className="selection-btn-label">{t('tools.selectionPasteShort')}</span>
+                  <PasteIcon />
+                  <span className="selection-btn-label">{t('tools.selectionPasteShort')}</span>
                 </button>
                 <button
                   className="selection-btn"
-                  aria-label={t('tools.mirrorH')} title={t('tools.mirrorH')}
+                  aria-label={t('tools.mirrorH')}
+                  title={t('tools.mirrorH')}
                   onClick={() => onSelectionCommand?.('mirrorH')}
                 >
-                  <MirrorHIcon /><span className="selection-btn-label">{t('tools.selectionFlipHShort')}</span>
+                  <MirrorHIcon />
+                  <span className="selection-btn-label">{t('tools.selectionFlipHShort')}</span>
                 </button>
                 <button
                   className="selection-btn"
-                  aria-label={t('tools.mirrorV')} title={t('tools.mirrorV')}
+                  aria-label={t('tools.mirrorV')}
+                  title={t('tools.mirrorV')}
                   onClick={() => onSelectionCommand?.('mirrorV')}
                 >
-                  <MirrorVIcon /><span className="selection-btn-label">{t('tools.selectionFlipVShort')}</span>
+                  <MirrorVIcon />
+                  <span className="selection-btn-label">{t('tools.selectionFlipVShort')}</span>
                 </button>
                 <button
                   className="selection-btn"
-                  aria-label={t('tools.rotateCw')} title={t('tools.rotateCw')}
+                  aria-label={t('tools.rotateCw')}
+                  title={t('tools.rotateCw')}
                   onClick={() => onSelectionCommand?.('rotateCw')}
                 >
-                  <RotateCwIcon /><span className="selection-btn-label">{t('tools.selectionRotateCwShort')}</span>
+                  <RotateCwIcon />
+                  <span className="selection-btn-label">{t('tools.selectionRotateCwShort')}</span>
                 </button>
                 <button
                   className="selection-btn"
-                  aria-label={t('tools.rotateCcw')} title={t('tools.rotateCcw')}
+                  aria-label={t('tools.rotateCcw')}
+                  title={t('tools.rotateCcw')}
                   onClick={() => onSelectionCommand?.('rotateCcw')}
                 >
-                  <RotateCcwIcon /><span className="selection-btn-label">{t('tools.selectionRotateCcwShort')}</span>
+                  <RotateCcwIcon />
+                  <span className="selection-btn-label">{t('tools.selectionRotateCcwShort')}</span>
                 </button>
                 <button
                   className="selection-btn selection-clear"
-                  aria-label={t('tools.clearSelectionBtn')} title={t('tools.clearSelectionBtn')}
+                  aria-label={t('tools.clearSelectionBtn')}
+                  title={t('tools.clearSelectionBtn')}
                   onClick={onClearSelection}
                 >
                   <span className="selection-btn-label">{t('tools.clearSelectionBtn')}</span>
@@ -673,9 +883,7 @@ export default function MobileToolbar({
           style={selGuideStyle || undefined}
         >
           <span className="guide-text">
-            {selGuide === 'step1'
-              ? t('tools.selectionGuideStep1')
-              : t('tools.selectionGuideStep2')}
+            {selGuide === 'step1' ? t('tools.selectionGuideStep1') : t('tools.selectionGuideStep2')}
           </span>
           <span
             className="guide-arrow"
@@ -710,11 +918,7 @@ export default function MobileToolbar({
           <span className="text-btn-label">{t('tools.redo')}</span>
         </button>
         {/* 去噪:图标 + 文字,与撤销/重做同款;有选区时仅清理选区 */}
-        <button
-          className="action-btn text-btn"
-          onClick={onNoiseCleanup}
-          title={t('tools.noiseCleanup')}
-        >
+        <button className="action-btn text-btn" onClick={onNoiseCleanup} title={t('tools.noiseCleanup')}>
           <SparklesIcon />
           <span className="text-btn-label">{t('tools.noiseCleanup')}</span>
         </button>
@@ -727,7 +931,11 @@ export default function MobileToolbar({
           <ClearIcon />
         </button>
 
-        <label className="action-btn grid-size-btn" title={t('tools.canvasSize')} aria-label={t('tools.canvasSize')}>
+        <label
+          className="action-btn grid-size-btn"
+          title={t('tools.canvasSize')}
+          aria-label={t('tools.canvasSize')}
+        >
           <GridSizeIcon />
           <select
             className="grid-size-select"
@@ -770,7 +978,9 @@ export default function MobileToolbar({
           title={t('tools.imageToBead')}
         >
           <WandIcon />
-          <span className="magic-sparkle" aria-hidden="true">✦</span>
+          <span className="magic-sparkle" aria-hidden="true">
+            ✦
+          </span>
         </button>
 
         {onImport && (

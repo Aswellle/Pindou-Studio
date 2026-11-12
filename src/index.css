@@ -742,6 +742,11 @@ body:has(.quantizer-zoom) .mobile-toolbar {
 body:has(.mobile-toolbar) {
   --toast-bottom-offset: calc(var(--mobile-toolbar-h, 100px) + var(--keyboard-height, 0px) + 12px);
 }
+/* 图纸编辑器(/editor):底部操作台同样写 --mobile-toolbar-h,
+   toast 抬升与画布页同一套变量,避免盖住用色行与工具行 */
+body:has(.editor-console) {
+  --toast-bottom-offset: calc(var(--mobile-toolbar-h, 100px) + var(--keyboard-height, 0px) + 12px);
+}
 @media (max-width: 1024px) {
   body:has(.mobile-color-palette) {
     --toast-bottom-offset: calc(

@@ -209,17 +209,20 @@ export default function App() {
   // ── 点选:方向盘与键盘步进(步进恒为 1 格)──────────────────
   // 光标为空时初始化到画布中心:第一次按方向键就能立刻看到「即将操作哪格」,
   // 不用先去网格上找落点。越界一律钳制,光标永远在网格内。
-  const movePickCursor = useCallback((dx, dy) => {
-    setPickCursor(prev => {
-      const cols = gridWidth || gridSize
-      const rows = gridHeight || gridSize
-      const base = prev || { x: Math.floor(cols / 2), y: Math.floor(rows / 2) }
-      return {
-        x: Math.max(0, Math.min(cols - 1, base.x + dx)),
-        y: Math.max(0, Math.min(rows - 1, base.y + dy)),
-      }
-    })
-  }, [gridWidth, gridSize, gridHeight])
+  const movePickCursor = useCallback(
+    (dx, dy) => {
+      setPickCursor(prev => {
+        const cols = gridWidth || gridSize
+        const rows = gridHeight || gridSize
+        const base = prev || { x: Math.floor(cols / 2), y: Math.floor(rows / 2) }
+        return {
+          x: Math.max(0, Math.min(cols - 1, base.x + dx)),
+          y: Math.max(0, Math.min(rows - 1, base.y + dy)),
+        }
+      })
+    },
+    [gridWidth, gridSize, gridHeight]
+  )
 
   const togglePickCursor = useCallback(() => {
     const cols = gridWidth || gridSize
@@ -375,38 +378,39 @@ export default function App() {
                 ? 'beadPatterns'
                 : location.pathname.startsWith('/pixel-art')
                   ? 'pixelArt'
-        : location.pathname.startsWith('/admin/login')
-        ? 'adminLogin'
-        : location.pathname.startsWith('/admin')
-          ? 'admin'
-          : location.pathname.startsWith('/privacy')
-            ? 'privacy'
-            : location.pathname.startsWith('/terms')
-              ? 'terms'
-              : location.pathname.startsWith('/login')
-                ? 'login'
-                : location.pathname.startsWith('/create/image')
-                  ? 'createImage'
-                  : location.pathname.startsWith('/editor')
-                    ? 'editor'
-                    : location.pathname.startsWith('/import')
-                      ? 'import'
-                    : location.pathname.startsWith('/my/beads')
-                      ? 'myBeads'
-                      : location.pathname.startsWith('/contact')
-                        ? 'contact'
-                        : location.pathname.startsWith('/profile')
-                          ? 'profile'
-                          : location.pathname.startsWith('/share/')
-                            ? 'share'
-                            : 'canvas'
+                  : location.pathname.startsWith('/admin/login')
+                    ? 'adminLogin'
+                    : location.pathname.startsWith('/admin')
+                      ? 'admin'
+                      : location.pathname.startsWith('/privacy')
+                        ? 'privacy'
+                        : location.pathname.startsWith('/terms')
+                          ? 'terms'
+                          : location.pathname.startsWith('/login')
+                            ? 'login'
+                            : location.pathname.startsWith('/create/image')
+                              ? 'createImage'
+                              : location.pathname.startsWith('/editor')
+                                ? 'editor'
+                                : location.pathname.startsWith('/import')
+                                  ? 'import'
+                                  : location.pathname.startsWith('/my/beads')
+                                    ? 'myBeads'
+                                    : location.pathname.startsWith('/contact')
+                                      ? 'contact'
+                                      : location.pathname.startsWith('/profile')
+                                        ? 'profile'
+                                        : location.pathname.startsWith('/share/')
+                                          ? 'share'
+                                          : 'canvas'
   // 404 判定独立于 currentPage:上面是按前缀归组的(/gallery/whatever 仍算 gallery),
   // 这里要求路径形状**确实存在**。两者分开,才能让「渲染 404 页」与「meta 标 noindex」
   // 始终一致 —— 否则 /gallery/whatever 会渲染 404 页却带着图库页的 index,follow。
   const isNotFound = !isKnownPath(location.pathname)
   // 分类聚合页 /gallery/category/<slug>:slug 必须命中静态清单,
   // 未知 slug 与其它不存在路径一样按 404 处理,不生成可收录的软页面。
-  const categorySlug = location.pathname.replace(/\/+$/, '').match(/^\/gallery\/category\/([^/]+)$/)?.[1] || ''
+  const categorySlug =
+    location.pathname.replace(/\/+$/, '').match(/^\/gallery\/category\/([^/]+)$/)?.[1] || ''
   const categoryMeta = categorySlug ? resolveCategoryBySlug(categorySlug) : null
   // 品牌色卡页 /colors/<brand>:品牌必须命中本地色卡;未知品牌按 404 处理,
   // 与分类聚合页同一套判定(页面自己渲染 not-found,meta 走 notFound)。
@@ -759,9 +763,12 @@ export default function App() {
   }
 
   // 进入专用编辑器:与 handleQuantizerApply 同款载入(色号解析为 hex、来源标记),
-  // 然后 push 到 /editor —— push 而不是 replace,编辑器的返回键才能回到转换页
-  // (那里还留着结果,可以重新生成);不复用 handleApply,避免它的 onClose 回退
-  // 与这里的导航互相抵消。
+  // 然后 push 到 /editor —— push 让编辑器的返回键走标准历史回退回到转换入口;
+  // 注意 /create/image 与 /editor 是互斥路由,导航即卸载量化器,其 result/原图
+  // 都是组件内 state **不会留存**:返回看到的是重新上传页,图案本身已应用进
+  // 共享画布(「应用到画布」同语义)。要做到「返回后还能调参重生成」,需要把
+  // 量化会话落盘(仿 pindou-chart-import 的指纹键模式),另立提交。
+  // 不复用 handleApply:它的 onClose 回退会与本处的 navigate 互相抵消。
   const handleQuantizerToEditor = (quantizedCanvasData, options) => {
     handleQuantizerApply(quantizedCanvasData, options)
     navigate('/editor')
@@ -2323,13 +2330,14 @@ export default function App() {
   }
 
   // 404 覆盖:路径形状不存在时,不论 currentPage 归到哪一组,都改用 notFound 的 meta
-  const seo = isNotFound || (categorySlug && !categoryMeta) || colorNotFound
-    ? SEO_CONFIG.notFound
-    : categoryMeta
-      ? categorySeo(categoryMeta)
-      : colorBrand
-        ? brandSeo(colorBrand)
-        : SEO_CONFIG[currentPage] || SEO_CONFIG.canvas
+  const seo =
+    isNotFound || (categorySlug && !categoryMeta) || colorNotFound
+      ? SEO_CONFIG.notFound
+      : categoryMeta
+        ? categorySeo(categoryMeta)
+        : colorBrand
+          ? brandSeo(colorBrand)
+          : SEO_CONFIG[currentPage] || SEO_CONFIG.canvas
 
   // 各页面对应的规范路径(privacy/terms 的 :versionId 历史版本归并到父路径)
   const CANONICAL_PATH = {
@@ -2359,9 +2367,10 @@ export default function App() {
   // 仍归并到 /gallery,避免把未知路径当作可收录页面。
   // 404 页(含不存在的分类 slug)没有自己的规范地址:一律指向站点根,配合 noindex
   // 让搜索引擎把它当作一个不应存在的入口,而不是某个真实页面的别名。
-  const baseUrl = isNotFound || (categorySlug && !categoryMeta) || colorNotFound
-    ? `${SITE_ORIGIN}/`
-    : `${SITE_ORIGIN}${canonicalPathFor(location.pathname, CANONICAL_PATH[currentPage] || '/')}`
+  const baseUrl =
+    isNotFound || (categorySlug && !categoryMeta) || colorNotFound
+      ? `${SITE_ORIGIN}/`
+      : `${SITE_ORIGIN}${canonicalPathFor(location.pathname, CANONICAL_PATH[currentPage] || '/')}`
 
   // hreflang 值统一为「语言子标签」(zh-CN 除外),与预渲染 HTML、sitemap.xml 保持一致。
   // canonical 一律自指裸路径:同一个 URL 去掉筛选/语言参数就是它的规范地址。

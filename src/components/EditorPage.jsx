@@ -2,8 +2,20 @@ import { useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import {
-  Pencil, Eraser, PaintBucket, Pipette, MousePointerClick, Lasso, SquareDashed,
-  Sparkles, Undo2, Redo2, Save, ImageDown, Plus, X,
+  Pencil,
+  Eraser,
+  PaintBucket,
+  Pipette,
+  MousePointerClick,
+  Lasso,
+  SquareDashed,
+  Sparkles,
+  Undo2,
+  Redo2,
+  Save,
+  ImageDown,
+  Plus,
+  X,
 } from 'lucide-react'
 import BackButton from './BackButton'
 import Canvas from './Canvas'
@@ -99,14 +111,18 @@ export default function EditorPage({
   // 每次编辑后自动重算颗数 —— 这是「图纸用色列表」区别于完整色板的核心
   const colorStats = useMemo(
     () => calculateColorStats(canvasData, cols, rows, palette),
-    [canvasData, cols, rows, palette],
+    [canvasData, cols, rows, palette]
   )
   const totalBeads = useMemo(() => colorStats.reduce((sum, c) => sum + c.count, 0), [colorStats])
-  const colorName = (c) => t(`palette.colorNames.${palette.id}.${c.id}`, c.nameZh || c.name)
+  const colorName = c => t(`palette.colorNames.${palette.id}.${c.id}`, c.nameZh || c.name)
 
   // 操作台实际高度写入 --mobile-toolbar-h:PickDPad 的悬浮定位读这个变量,
-  // 折行/展开「更多颜色」时方向盘自动跟随(与 MobileToolbar 同款机制)
+  // 折行/展开「更多颜色」时方向盘自动跟随(与 MobileToolbar 同款机制)。
+  // 互斥性:该变量的写入方只有本页(编辑器路由)与画布页的 MobileToolbar,
+  // 两者路由互斥、不会同时挂载 —— 卸载时必须 removeProperty(下方 cleanup),
+  // 否则会把编辑器的高度残留到画布页。仅移动布局需要(桌面无消费方)。
   useLayoutEffect(() => {
+    if (!mobile) return undefined
     const el = consoleRef.current
     if (!el || typeof ResizeObserver === 'undefined') return undefined
     const update = () => {
@@ -119,19 +135,21 @@ export default function EditorPage({
       observer.disconnect()
       document.documentElement.style.removeProperty('--mobile-toolbar-h')
     }
-  }, [])
+  }, [mobile])
 
   const handleBack = () => {
     if (location.key !== 'default') navigate(-1)
     else navigate('/', { replace: true })
   }
 
+  // 命令清单:[命令名, i18n 键]。粘贴的禁用逻辑单独由 canPaste 决定(见下方 disabled),
+  // 不混入这份清单 —— 三元组的隐式约定(第三项只有 paste 才有)没人读得懂。
   const selectionCommands = [
     ['erase', 'tools.selectionEraseShort'],
     ['fill', 'tools.selectionFillShort'],
     ['copy', 'tools.selectionCopyShort'],
     ['cut', 'tools.selectionCutShort'],
-    ['paste', 'tools.selectionPasteShort', canPaste],
+    ['paste', 'tools.selectionPasteShort'],
     ['mirrorH', 'tools.selectionFlipHShort'],
     ['mirrorV', 'tools.selectionFlipVShort'],
     ['rotateCw', 'tools.selectionRotateCwShort'],
@@ -143,7 +161,9 @@ export default function EditorPage({
       <header className="editor-head">
         <BackButton size="md" onClick={handleBack} />
         <h1 className="editor-title">{t('editor.title')}</h1>
-        <span className="editor-size-chip">{cols} × {rows}</span>
+        <span className="editor-size-chip">
+          {cols} × {rows}
+        </span>
         <span className="editor-size-chip">{t('editor.beadCount', { n: totalBeads })}</span>
       </header>
 
@@ -155,9 +175,7 @@ export default function EditorPage({
         {/* 行 A:图纸用色(实时颗数)+ 补色入口 */}
         <div className="editor-color-row">
           <div className="editor-color-list">
-            {colorStats.length === 0 && (
-              <span className="editor-color-empty">{t('editor.emptyCanvas')}</span>
-            )}
+            {colorStats.length === 0 && <span className="editor-color-empty">{t('editor.emptyCanvas')}</span>}
             {colorStats.map(c => (
               <ColorChip
                 key={c.id}
@@ -201,12 +219,12 @@ export default function EditorPage({
         {/* 行 C:上下文选区命令(有选区才出现) */}
         {selection && (
           <div className="editor-selection-row" data-testid="editor-selection-bar">
-            {selectionCommands.map(([command, key, enabled]) => (
+            {selectionCommands.map(([command, key]) => (
               <button
                 key={command}
                 type="button"
                 className="editor-cmd-btn"
-                disabled={enabled === false}
+                disabled={command === 'paste' && !canPaste}
                 onClick={() => onSelectionCommand?.(command)}
               >
                 {t(key)}
@@ -217,7 +235,8 @@ export default function EditorPage({
               className={`editor-cmd-btn${fillIncludeEmpty ? ' active' : ''}`}
               onClick={() => onToggleFillIncludeEmpty?.(!fillIncludeEmpty)}
             >
-              {fillIncludeEmpty ? '✓ ' : ''}{t('tools.fillIncludeEmptyShort')}
+              {fillIncludeEmpty ? '✓ ' : ''}
+              {t('tools.fillIncludeEmptyShort')}
             </button>
             <button type="button" className="editor-cmd-btn danger" onClick={onClearSelection}>
               {t('tools.clearSelectionBtn')}
@@ -278,12 +297,7 @@ export default function EditorPage({
               <Save size={16} />
               {canvasProps.saveState === 'dirty' && <span className="editor-save-dot" />}
             </button>
-            <button
-              type="button"
-              className="editor-action-btn"
-              onClick={onExport}
-              title={t('editor.export')}
-            >
+            <button type="button" className="editor-action-btn" onClick={onExport} title={t('editor.export')}>
               <ImageDown size={16} />
               <span>{t('editor.export')}</span>
             </button>
