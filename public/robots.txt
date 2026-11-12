@@ -7,16 +7,31 @@
 #    Sogou inst spider / 360Spider / Applebot / DuckDuckBot / YandexBot /
 #    Yeti(Naver) / Daum / Bytespider / PetalBot 等;
 #    AI 检索 —— OAI-SearchBot / ChatGPT-User / PerplexityBot / Perplexity-User /
-#    Claude-SearchBot / Claude-User。
-# 2) AI「训练」型爬虫(GPTBot / ClaudeBot / anthropic-ai / CCBot /
-#    Google-Extended)→ 一律禁止;这些 token 不参与搜索排序,只用于模型训练。
+#    Claude-SearchBot / Claude-User / DuckAssistBot / MistralAI-User /
+#    Amazonbot / meta-externalfetcher。
+#    这些 token 决定内容能否出现在 ChatGPT 搜索、Perplexity、Claude、
+#    Copilot/Bing、Gemini 等 AI 检索结果里,是全站 GEO 的入口。
+# 2) 纯「训练」型爬虫(GPTBot / ClaudeBot / anthropic-ai / CCBot /
+#    Applebot-Extended / meta-externalagent)→ 一律禁止;它们不参与
+#    搜索索引与答案引用,只把内容用于模型训练。
+# 3) Google-Extended 是例外:它同时控制 Gemini 训练 **与** Gemini Apps /
+#    Vertex AI 的检索增强(Grounding)。屏蔽它会连带失去 Gemini 引用本站的
+#    机会,因此这里显式允许 —— 这是为 AI 检索可见性做的取舍。若将来更看重
+#    训练 opt-out,把下面 Google-Extended 组改成 `Disallow: /` 即可;
+#    Google Search / AI Overviews / AI Mode 用的是 Googlebot,不受该 token 影响。
+#
+# ── Content-Signal ───────────────────────────────────────
+# Cloudflare 2025-09 提出的内容用途信号(自愿遵守,非标准 robots 指令):
+# search=yes 允许进入搜索索引与结果链接;ai-input=yes 允许检索增强/答案引用;
+# ai-train=no 表示不希望内容进入模型训练。Google/Bing 都表示不依赖该文件,
+# 但它把「可检索、可引用、不训练」的偏好写在了爬虫一定会读的位置。
 #
 # ── 为什么只有一个 `User-agent: *` 组 ─────────────────────
 # robots.txt 的匹配规则是「命中专属组后完全忽略 * 组」。过去为每个引擎各写一组
 # (内容全是同样的两条 Disallow),一旦将来给 * 组新增规则,就必须记得在每组里
 # 再抄一遍,漏一处就是该引擎可以抓到本该屏蔽的路径 —— 这正是本文件此前漏掉
-# /spa.html 与 /sb/ 的原因。现在除「需要 360 扩展指令」与「整体禁止」这两种
-# 确实需要专属组的情况外,全部统一走 * 组,规则只有一处。
+# /spa.html 与 /sb/ 的原因。现在除「需要 360 扩展指令」「显式允许 Google-Extended」
+# 与「整体禁止」这三种确实需要专属组的情况外,全部统一走 * 组,规则只有一处。
 #
 # ── 私有页为什么不写进 robots.txt ────────────────────────
 # /login、/admin、/profile、/my/beads、/contact 等私有页**不在 robots.txt 里屏蔽**:
@@ -34,6 +49,7 @@
 #                与首页重复的页面。(真实路由不受影响:它们仍可被抓取并读到 noindex。)
 
 User-agent: *
+Content-Signal: search=yes, ai-input=yes, ai-train=no
 Allow: /
 Disallow: /api/
 Disallow: /_vercel/
@@ -55,15 +71,30 @@ Indexpage: https://tangnotes.site/gallery
 Indexpage: https://tangnotes.site/tutorials
 Indexpage: https://tangnotes.site/create/image
 
-# ── AI 训练型爬虫:整体禁止 ──────────────────────────────
+# ── Google-Extended:允许 Gemini 检索增强(Grounding) ─────
+# 专属组会覆盖 * 组,所以重抄四条屏蔽路径。该 token 没有独立的抓取 UA,
+# 规则由 Googlebot 抓取后按产品用途执行;它不影响普通 Google 搜索收录。
+User-agent: Google-Extended
+Allow: /
+Disallow: /api/
+Disallow: /_vercel/
+Disallow: /sb/
+Disallow: /spa.html
+
+# ── 纯训练型爬虫:整体禁止 ──────────────────────────────
 User-agent: GPTBot
 User-agent: ClaudeBot
 User-agent: anthropic-ai
 User-agent: CCBot
-User-agent: Google-Extended
+User-agent: Applebot-Extended
+User-agent: meta-externalagent
 Disallow: /
 
-# ── 站点地图 ─────────────────────────────────────────────
+# ── 站点地图与 AI 索引 ──────────────────────────────────
+# llms.txt 是自愿提案,不是搜索引擎排名因素;放在注释里只是方便维护者发现。
+# https://tangnotes.site/llms.txt
+# https://tangnotes.site/llms-full.txt
+#
 # 只声明标准 sitemap。百度专用的移动变体含 mobile 命名空间,不适合让
 # Google/Bing 抓取,仅通过百度搜索资源平台手动提交(baiduSitemap.test.js 锁定)。
 Sitemap: https://tangnotes.site/sitemap.xml
