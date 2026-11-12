@@ -1,4 +1,5 @@
 {
+  "trailingSlash": false,
   "redirects": [
     {
       "source": "/:path*",
@@ -9,6 +10,22 @@
         }
       ],
       "destination": "https://tangnotes.site/:path*",
+      "permanent": true
+    },
+    {
+      "source": "/:path*",
+      "has": [
+        {
+          "type": "host",
+          "value": "www.tangnotes.site"
+        }
+      ],
+      "destination": "https://tangnotes.site/:path*",
+      "permanent": true
+    },
+    {
+      "source": "/index.html",
+      "destination": "/",
       "permanent": true
     },
     {
