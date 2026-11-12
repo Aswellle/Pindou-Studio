@@ -564,7 +564,7 @@
     "snapToEdgesHint": "選択範囲をビーズの縁に吸着",
     "snapToEdgesShort": "吸着",
     "noiseCleanup": "ノイズ除去",
-    "noiseCleanedToast": "{n} か所のノイズを整理しました",
+    "noiseCleanedToast": "{{n}} か所のノイズを整理しました",
     "noiseCleanNoneToast": "整理するノイズはありません"
   },
   "gallery": {

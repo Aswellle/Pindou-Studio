@@ -564,7 +564,7 @@
     "snapToEdgesHint": "선택 영역을 비즈 가장자리에 붙이기",
     "snapToEdgesShort": "자석",
     "noiseCleanup": "노이즈 제거",
-    "noiseCleanedToast": "노이즈 {n}곳을 정리했습니다",
+    "noiseCleanedToast": "노이즈 {{n}}곳을 정리했습니다",
     "noiseCleanNoneToast": "정리할 노이즈가 없습니다"
   },
   "gallery": {

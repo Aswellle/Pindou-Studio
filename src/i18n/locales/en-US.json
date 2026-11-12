@@ -564,7 +564,7 @@
     "snapToEdgesHint": "Snap selection to bead edges",
     "snapToEdgesShort": "Snap",
     "noiseCleanup": "Denoise",
-    "noiseCleanedToast": "Cleaned {n} stray beads",
+    "noiseCleanedToast": "Cleaned {{n}} stray beads",
     "noiseCleanNoneToast": "No stray beads to clean"
   },
   "gallery": {

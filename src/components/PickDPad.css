@@ -1,12 +1,14 @@
 /* PickDPad — 点选工具方向盘(仅移动端 pick 工具显示) */
 
-/* portal 到 body:fixed 定位,贴在移动端工具栏上方。
-   --mobile-toolbar-h 由 MobileToolbar 按实际行数写入,折叠/换行时自动跟随。 */
+/* portal 到 body:fixed 定位,贴在移动端工具栏与色卡面板上方。
+   --mobile-toolbar-h 由 MobileToolbar 按实际行数写入,
+   --mobile-palette-h 由 MobileColorPalette 写入(常驻「当前颜色」面板的高度),
+   两者折叠/换行时方向盘自动跟随,不再被色卡面板盖住。 */
 .pick-dpad {
   position: fixed;
   left: 50%;
   transform: translateX(-50%);
-  bottom: calc(var(--mobile-toolbar-h, 64px) + 8px);
+  bottom: calc(var(--mobile-toolbar-h, 64px) + var(--mobile-palette-h, 0px) + 8px);
   z-index: 60;
   display: flex;
   align-items: flex-end;
