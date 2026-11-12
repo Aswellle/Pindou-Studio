@@ -942,7 +942,9 @@ export default function MyBeadsPage({ user, authLoading, canvasData, onApplyMapp
                           {p.beadSize ? ` · ${p.beadSize}mm` : ''}
                         </span>
                       </div>
-                      <button type="button" className="my-beads-btn ghost" onClick={() => openCopyBuiltin(p)}>
+                      {/* 主行动:沿用站点的手作暖调橙色底(accent)填充,
+                          在浅色卡片里是唯一实心按钮,一眼能认出「从这里开始」 */}
+                      <button type="button" className="my-beads-btn primary" onClick={() => openCopyBuiltin(p)}>
                         <Copy size={14} />{t('myBeads.builtin.copy')}
                       </button>
                     </div>

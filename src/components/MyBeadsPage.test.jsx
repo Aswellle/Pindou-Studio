@@ -152,8 +152,20 @@ describe('MyBeadsPage · 色卡管理(本地模式)', () => {
     expect(promptSpy).not.toHaveBeenCalled()
   })
 
-  it('复制成功后出现后续操作面板,可直达库存并自动选中副本', async () => {
+  it('内置色卡卡片的「复制为我的色卡」保持暖橙底主按钮样式', async () => {
     const { container } = setup()
+    await waitFor(() => expect(container.querySelector('.my-beads-inner')).toBeTruthy())
+
+    const buttons = [...container.querySelectorAll('.my-beads-builtin-card button')]
+    expect(buttons.length).toBeGreaterThan(0)
+    for (const button of buttons) {
+      // 主行动:实心 accent 底(手作暖调橙),不是透明 ghost
+      expect(button.className).toContain('primary')
+      expect(button.className).not.toContain('ghost')
+    }
+  })
+
+  it('复制成功后出现后续操作面板,可直达库存并自动选中副本', async () => {    const { container } = setup()
     await waitFor(() => expect(container.querySelector('.my-beads-inner')).toBeTruthy())
 
     fireEvent.click(within(container.querySelector('.my-beads-builtin-grid')).getAllByText('复制为我的色卡')[0])
