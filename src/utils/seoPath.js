@@ -36,7 +36,7 @@ const COLOR_CHART_RE = /^\/colors\/[a-z0-9]+$/
  */
 const KNOWN_EXACT = new Set([
   '/', '/login', '/profile', '/gallery', '/tutorials',
-  '/create/image', '/import', '/my/beads', '/contact', '/faq', '/colors',
+  '/create/image', '/editor', '/import', '/my/beads', '/contact', '/faq', '/colors',
   '/ironing', '/bead-calculator', '/bead-patterns', '/pixel-art',
   '/admin', '/admin/login', '/admin/dashboard',
   '/privacy', '/terms',

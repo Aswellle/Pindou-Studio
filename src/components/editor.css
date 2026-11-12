@@ -1,0 +1,310 @@
+/* 图纸编辑器(/editor)—— 画格区复用画布组件,操作台为修图定制 */
+
+/* 整页布局:头部 + 画布(剩余空间)+ 底部操作台,不滚动。
+   与 /create/image 同款「不套 .mobile-page-area」的模式:
+   块级滚动容器拿不到整段剩余高度,画布需要填满 header 与操作台之间。 */
+.editor-page {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  overflow: hidden;
+  background: var(--bg-primary);
+}
+
+.editor-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 14px;
+  border-bottom: 1px solid var(--border-color);
+  background: var(--bg-primary);
+}
+
+.editor-title {
+  margin: 0;
+  font-size: 17px;
+  font-weight: 700;
+}
+
+.editor-size-chip {
+  padding: 3px 10px;
+  border: 1px solid var(--border-color);
+  border-radius: 999px;
+  background: var(--bg-secondary);
+  font-size: 12px;
+  color: var(--text-secondary);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.editor-canvas-area {
+  flex: 1;
+  min-height: 0;
+  position: relative;
+}
+
+/* ── 底部操作台 ─────────────────────────────────────────── */
+.editor-console {
+  border-top: 1px solid var(--border-color);
+  background: var(--bg-primary);
+  padding: 8px 10px calc(8px + env(safe-area-inset-bottom, 0px));
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+/* 行 A:图纸用色横滚 */
+.editor-color-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.editor-color-list {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  gap: 6px;
+  overflow-x: auto;
+  padding: 2px;
+  scrollbar-width: none;
+}
+
+.editor-color-list::-webkit-scrollbar {
+  display: none;
+}
+
+.editor-color-empty {
+  font-size: 12px;
+  color: var(--text-muted);
+  padding: 6px 2px;
+  white-space: nowrap;
+}
+
+.editor-color-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 8px;
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+  background: var(--bg-secondary);
+  flex-shrink: 0;
+}
+
+.editor-color-chip.active {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+}
+
+.editor-color-swatch {
+  width: 22px;
+  height: 22px;
+  border-radius: 7px;
+  border: 1px solid rgba(0, 0, 0, 0.12);
+  flex-shrink: 0;
+}
+
+.editor-color-meta {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  line-height: 1.15;
+}
+
+.editor-color-label {
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.editor-color-count {
+  font-size: 10px;
+  color: var(--text-muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.editor-more-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 6px 10px;
+  border: 1px dashed var(--border-color);
+  border-radius: 12px;
+  background: transparent;
+  color: var(--text-secondary);
+  font-size: 12px;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.editor-more-btn.active {
+  border-style: solid;
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+/* 补色网格:当前品牌全部色号,高度受限内滚 */
+.editor-extra-colors {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(34px, 1fr));
+  gap: 6px;
+  max-height: 168px;
+  overflow-y: auto;
+  padding: 8px;
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+  background: var(--bg-secondary);
+}
+
+.editor-extra-swatch {
+  width: 100%;
+  aspect-ratio: 1;
+  border: 1px solid rgba(0, 0, 0, 0.12);
+  border-radius: 8px;
+  padding: 0;
+}
+
+.editor-extra-swatch.active {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+
+/* 行 C:上下文选区命令 */
+.editor-selection-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.editor-cmd-btn {
+  padding: 6px 10px;
+  border: 1px solid var(--border-color);
+  border-radius: 10px;
+  background: var(--bg-secondary);
+  font-size: 12px;
+  color: var(--text-primary);
+  white-space: nowrap;
+}
+
+.editor-cmd-btn.active {
+  border-color: var(--accent);
+  color: var(--accent);
+  background: var(--accent-soft);
+}
+
+.editor-cmd-btn.danger {
+  color: var(--error, #c62828);
+  border-color: color-mix(in srgb, var(--error, #c62828) 40%, transparent);
+}
+
+.editor-cmd-btn:disabled {
+  opacity: 0.45;
+}
+
+/* 行 B:工具 + 操作 */
+.editor-tools-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.editor-tools {
+  display: flex;
+  gap: 4px;
+}
+
+.editor-tool-btn {
+  width: 38px;
+  height: 38px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid transparent;
+  border-radius: 11px;
+  background: transparent;
+  color: var(--text-secondary);
+}
+
+.editor-tool-btn.active {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+  color: var(--accent);
+}
+
+.editor-actions {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+}
+
+.editor-action-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  height: 38px;
+  padding: 0 10px;
+  border: 1px solid var(--border-color);
+  border-radius: 11px;
+  background: var(--bg-secondary);
+  color: var(--text-primary);
+  font-size: 12px;
+  white-space: nowrap;
+}
+
+.editor-action-btn:disabled {
+  opacity: 0.45;
+}
+
+.editor-action-btn.noise {
+  color: var(--accent);
+  border-color: color-mix(in srgb, var(--accent) 45%, transparent);
+}
+
+.editor-save-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--error, #c62828);
+}
+
+/* ── 移动端(布局同构,只调密度)────────────────────────── */
+@media (max-width: 640px) {
+  .editor-head {
+    padding: 8px 10px;
+  }
+
+  .editor-title {
+    font-size: 15px;
+  }
+
+  .editor-console {
+    padding: 6px 8px calc(6px + env(safe-area-inset-bottom, 0px));
+    gap: 6px;
+  }
+
+  /* 窄屏工具行放不下 7 个工具 + 5 个操作:折成上下两行 */
+  .editor-tools-row {
+    flex-wrap: wrap;
+  }
+
+  .editor-tools {
+    width: 100%;
+    justify-content: space-between;
+  }
+
+  .editor-tool-btn {
+    flex: 1;
+    max-width: 44px;
+  }
+
+  .editor-actions {
+    width: 100%;
+    justify-content: space-between;
+  }
+
+  .editor-action-btn {
+    padding: 0 8px;
+  }
+}

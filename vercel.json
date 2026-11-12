@@ -195,6 +195,10 @@
       "destination": "/spa.html"
     },
     {
+      "source": "/editor",
+      "destination": "/spa.html"
+    },
+    {
       "source": "/import",
       "destination": "/spa.html"
     },

@@ -2264,5 +2264,13 @@
       "add": "현재 칸 선택",
       "remove": "현재 칸 선택 해제"
     }
+  },
+  "editor": {
+    "title": "도안 편집기",
+    "moreColors": "색상 추가",
+    "colorCount": "{n}색",
+    "beadCount": "{{n}}알",
+    "export": "내보내기",
+    "emptyCanvas": "캔버스가 비어 있습니다"
   }
 }

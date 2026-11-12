@@ -2264,5 +2264,13 @@
       "add": "現在のマスを選択",
       "remove": "現在のマスを解除"
     }
+  },
+  "editor": {
+    "title": "図案エディタ",
+    "moreColors": "色を追加",
+    "colorCount": "{n} 色",
+    "beadCount": "{{n}} 個",
+    "export": "書き出し",
+    "emptyCanvas": "キャンバスは空です"
   }
 }

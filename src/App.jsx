@@ -82,6 +82,8 @@ import NotFoundPage from './components/NotFoundPage'
 import MobileCanvasInfoBar from './components/MobileCanvasInfoBar'
 import AutoSaveStatus from './components/AutoSaveStatus'
 const CreateImagePage = lazy(() => import('./components/CreateImagePage'))
+// 图纸编辑器:/editor —— 图片转拼豆结果的专用编辑界面(修图操作台,不复用画布页工具栏)
+const EditorPage = lazy(() => import('./components/EditorPage'))
 import ProfilePage from './components/ProfilePage'
 // 联系我们:独立路由页(而非模态框)—— iOS Safari 键盘只收缩 visual viewport,
 // 浮层会被顶走露白,且浮层内两个编辑框在键盘弹起后互相挤压
@@ -385,8 +387,10 @@ export default function App() {
                 ? 'login'
                 : location.pathname.startsWith('/create/image')
                   ? 'createImage'
-                  : location.pathname.startsWith('/import')
-                    ? 'import'
+                  : location.pathname.startsWith('/editor')
+                    ? 'editor'
+                    : location.pathname.startsWith('/import')
+                      ? 'import'
                     : location.pathname.startsWith('/my/beads')
                       ? 'myBeads'
                       : location.pathname.startsWith('/contact')
@@ -416,6 +420,7 @@ export default function App() {
     currentPage === 'privacy' ||
     currentPage === 'terms' ||
     currentPage === 'createImage' ||
+    currentPage === 'editor' ||
     currentPage === 'import' ||
     currentPage === 'profile' ||
     currentPage === 'myBeads' ||
@@ -1405,6 +1410,38 @@ export default function App() {
               </Suspense>
             }
           />
+          <Route
+            path="/editor"
+            element={
+              <Suspense fallback={<LoadingScreen />}>
+                <EditorPage
+                  canvasProps={canvasProps}
+                  canvasRef={canvasRef}
+                  tool={tool}
+                  onToolChange={setTool}
+                  selectedColor={selectedColor}
+                  onColorSelect={setSelectedColor}
+                  currentPalette={currentPalette}
+                  canvasData={canvasData}
+                  gridSize={gridSize}
+                  gridWidth={gridWidth}
+                  gridHeight={gridHeight}
+                  canUndo={canUndo}
+                  canRedo={canRedo}
+                  onUndo={handleUndo}
+                  onRedo={handleRedo}
+                  selection={selection}
+                  onSelectionCommand={handleSelectionCommand}
+                  onClearSelection={handleClearSelection}
+                  canPaste={Boolean(clipboard)}
+                  fillIncludeEmpty={fillIncludeEmpty}
+                  onToggleFillIncludeEmpty={handleToggleFillIncludeEmpty}
+                  onNoiseCleanup={handleNoiseCleanup}
+                  onExport={() => setShowExport(true)}
+                />
+              </Suspense>
+            }
+          />
 
           <Route
             path="/import"
@@ -1931,6 +1968,45 @@ export default function App() {
           }
         />
         <Route
+          path="/editor"
+          element={
+            <Suspense fallback={<LoadingScreen />}>
+              <EditorPage
+                mobile
+                canvasProps={canvasProps}
+                canvasRef={canvasRef}
+                tool={tool}
+                onToolChange={setTool}
+                selectedColor={selectedColor}
+                onColorSelect={setSelectedColor}
+                currentPalette={currentPalette}
+                canvasData={canvasData}
+                gridSize={gridSize}
+                gridWidth={gridWidth}
+                gridHeight={gridHeight}
+                canUndo={canUndo}
+                canRedo={canRedo}
+                onUndo={handleUndo}
+                onRedo={handleRedo}
+                selection={selection}
+                onSelectionCommand={handleSelectionCommand}
+                onClearSelection={handleClearSelection}
+                canPaste={Boolean(clipboard)}
+                fillIncludeEmpty={fillIncludeEmpty}
+                onToggleFillIncludeEmpty={handleToggleFillIncludeEmpty}
+                onNoiseCleanup={handleNoiseCleanup}
+                onExport={() => setShowExport(true)}
+                pickCursor={pickCursor}
+                onPickMove={movePickCursor}
+                onPickToggle={togglePickCursor}
+                selectionMenu={selectionMenu}
+                onCloseSelectionMenu={() => setSelectionMenu(null)}
+                onSelectionMenuCommand={handleSelectionMenuCommand}
+              />
+            </Suspense>
+          }
+        />
+        <Route
           path="/import"
           element={
             <div className="mobile-page-area">
@@ -2193,6 +2269,11 @@ export default function App() {
       desc: '把现成的图纸文件导进来继续编辑，或从图纸截图里自动识别格子，保存为仅自己可见的拼豆图纸。',
       noindex: true,
     },
+    editor: {
+      title: '图纸编辑 - 拼豆Studio',
+      desc: '编辑图片转拼豆生成的图纸:按图纸用色修格、点选取舍与去噪,支持撤销重做与导出。',
+      noindex: true,
+    },
     myBeads: {
       title: '我的色卡与库存 - 拼豆Studio',
       desc: '管理个人拼豆色卡、豆子库存，并把当前图纸的颜色匹配到目标色卡。',
@@ -2257,6 +2338,7 @@ export default function App() {
     login: '/login',
     profile: '/profile',
     createImage: '/create/image',
+    editor: '/editor',
     import: '/import',
     privacy: '/privacy',
     terms: '/terms',
