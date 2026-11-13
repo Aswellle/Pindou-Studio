@@ -17,6 +17,8 @@ import {
   Palette,
   Maximize2,
   RotateCcw,
+  Check,
+  ImagePlus,
   X,
 } from 'lucide-react'
 import { createPortal } from 'react-dom'
@@ -156,6 +158,53 @@ function PalettePanel({ palette, colorStats, selectedColor, onSelect, onClose })
   )
 }
 
+/**
+ * 完成浮层:编辑器的出口。此前用户保存/导出后只能看到「返回」,
+ * 而返回会落到空的上传页 —— 完成动作显式给出去向,并区分「保存并退出」
+ * 与「只保存/只导出」。
+ */
+function FinishPanel({ dirty, onClose, onSaveAndExit, onSave, onExport, onExit }) {
+  const { t } = useTranslation()
+  return createPortal(
+    <div className="editor-sheet-overlay" onClick={onClose}>
+      <div
+        className="editor-sheet editor-finish-sheet"
+        role="dialog"
+        aria-label={t('editor.finishTitle')}
+        onClick={e => e.stopPropagation()}
+      >
+        <div className="editor-sheet-head">
+          <h2>{t('editor.finishTitle')}</h2>
+          <button
+            type="button"
+            className="editor-sheet-close"
+            onClick={onClose}
+            aria-label={t('common.close')}
+          >
+            <X size={16} />
+          </button>
+        </div>
+        {dirty && <p className="editor-finish-hint">{t('editor.finishDirty')}</p>}
+        <div className="editor-finish-actions">
+          <button type="button" className="editor-finish-primary" onClick={onSaveAndExit}>
+            {t('editor.saveAndExit')}
+          </button>
+          <button type="button" className="editor-finish-btn" onClick={onSave}>
+            {t('common.save')}
+          </button>
+          <button type="button" className="editor-finish-btn" onClick={onExport}>
+            {t('editor.export')}
+          </button>
+          <button type="button" className="editor-finish-btn ghost" onClick={onExit}>
+            {t('editor.exitEditor')}
+          </button>
+        </div>
+      </div>
+    </div>,
+    document.body
+  )
+}
+
 export default function EditorPage({
   mobile = false,
   canvasProps,
@@ -181,6 +230,10 @@ export default function EditorPage({
   onToggleFillIncludeEmpty,
   onNoiseCleanup,
   onExport,
+  // 完成流程:canvasSource 用来识别「深链进来的空白编辑器」,
+  // onFinishSave = 保存成功后退出(App 负责)
+  canvasSource,
+  onFinishSave,
   // 移动端专属:点选方向盘与长按菜单(桌面布局不传)
   pickCursor,
   onPickMove,
@@ -194,6 +247,7 @@ export default function EditorPage({
   const location = useLocation()
   const consoleRef = useRef(null)
   const [paletteOpen, setPaletteOpen] = useState(false)
+  const [finishOpen, setFinishOpen] = useState(false)
 
   const cols = gridWidth || gridSize
   const rows = gridHeight || gridSize
@@ -229,6 +283,12 @@ export default function EditorPage({
   }, [mobile])
 
   const handleBack = () => {
+    // 有未保存修改时先走完成面板:直接返回会把用户带回空的上传页,
+    // 修改只留在草稿里 —— 明确给一次「保存并退出」的机会。
+    if (canvasProps.saveState === 'dirty') {
+      setFinishOpen(true)
+      return
+    }
     if (location.key !== 'default') navigate(-1)
     else navigate('/', { replace: true })
   }
@@ -247,6 +307,35 @@ export default function EditorPage({
     ['rotateCcw', 'tools.selectionRotateCcwShort'],
   ]
 
+  // 深链/刷新进来的空编辑器没有任何可修图的内容:给出明确出口,
+  // 而不是让用户面对一整套操作台和 0 颗的空白网格。
+  // 用 canvasSource 判定而不是「0 颗」—— 用户可能在编辑器里把珠子全擦掉,
+  // 那份图纸仍然有来源,不该被当成空态踢出去。
+  const isEmptyDoc = !canvasSource && totalBeads === 0
+  if (isEmptyDoc) {
+    return (
+      <div className="editor-page">
+        <header className="editor-head">
+          <BackButton size="md" onClick={handleBack} />
+          <h1 className="editor-title">{t('editor.title')}</h1>
+        </header>
+        <div className="editor-empty">
+          <span className="editor-empty-icon" aria-hidden="true">
+            <ImagePlus size={26} />
+          </span>
+          <h2>{t('editor.emptyTitle')}</h2>
+          <p>{t('editor.emptyHint')}</p>
+          <button type="button" className="editor-empty-primary" onClick={() => navigate('/create/image')}>
+            {t('editor.goQuantize')}
+          </button>
+          <button type="button" className="editor-empty-ghost" onClick={() => navigate('/')}>
+            {t('editor.goHome')}
+          </button>
+        </div>
+      </div>
+    )
+  }
+
   return (
     <div className={`editor-page${mobile ? ' editor-page-mobile' : ''}`}>
       <header className="editor-head">
@@ -256,6 +345,10 @@ export default function EditorPage({
           {cols} × {rows}
         </span>
         <span className="editor-size-chip">{t('editor.beadCount', { n: totalBeads })}</span>
+        <button type="button" className="editor-finish-entry" onClick={() => setFinishOpen(true)}>
+          <Check size={15} />
+          {t('editor.finish')}
+        </button>
       </header>
 
       <div className="editor-canvas-area">
@@ -407,6 +500,29 @@ export default function EditorPage({
           </div>
         </div>
       </div>
+
+      {finishOpen && (
+        <FinishPanel
+          dirty={canvasProps.saveState === 'dirty'}
+          onClose={() => setFinishOpen(false)}
+          onSaveAndExit={() => {
+            setFinishOpen(false)
+            onFinishSave?.()
+          }}
+          onSave={() => {
+            setFinishOpen(false)
+            canvasProps.onSave?.()
+          }}
+          onExport={() => {
+            setFinishOpen(false)
+            onExport?.()
+          }}
+          onExit={() => {
+            setFinishOpen(false)
+            navigate('/')
+          }}
+        />
+      )}
 
       {paletteOpen && (
         <PalettePanel

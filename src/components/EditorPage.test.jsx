@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeAll, afterEach, vi } from 'vitest'
-import { render, screen, fireEvent, cleanup } from '@testing-library/react'
+import { render, screen, fireEvent, cleanup, within } from '@testing-library/react'
 import { MemoryRouter } from 'react-router-dom'
 import i18n from '../i18n'
 import { getPalette } from '../data/palettes'
@@ -23,6 +23,20 @@ vi.mock('./Canvas', async () => {
   })
   return { default: MockCanvas }
 })
+
+function renderEditorProps() {
+  return {
+    gridSize: 3,
+    gridWidth: null,
+    gridHeight: null,
+    committedData: makeCanvasData(),
+    onCanvasChange: vi.fn(),
+    selectedColor: R,
+    tool: 'pencil',
+    onSave: vi.fn(),
+    saveState: 'idle',
+  }
+}
 
 const R = '#E53935'
 const B = '#1E88E5'
@@ -71,6 +85,8 @@ function renderEditor(overrides = {}) {
     onToggleFillIncludeEmpty: vi.fn(),
     onNoiseCleanup: vi.fn(),
     onExport: vi.fn(),
+    canvasSource: 'photo-quantized',
+    onFinishSave: vi.fn(),
     ...overrides,
   }
   const view = render(
@@ -121,10 +137,25 @@ describe('EditorPage · 图纸用色列表', () => {
     expect(active.textContent).toContain(id)
   })
 
-  it('空画布显示占位而不渲染 chips', () => {
+  it('有来源的空画布显示占位而不渲染 chips', () => {
     renderEditor({ canvasData: Array.from({ length: 3 }, () => Array(3).fill(null)) })
     expect(document.querySelectorAll('.editor-color-chip')).toHaveLength(0)
     expect(document.querySelector('.editor-color-empty')).toBeTruthy()
+  })
+
+  it('无来源的空白编辑器(深链/刷新)显示空态引导,不渲染操作台', () => {
+    renderEditor({
+      canvasData: Array.from({ length: 29 }, () => Array(29).fill(null)),
+      gridSize: 29,
+      canvasSource: null,
+    })
+    const empty = document.querySelector('.editor-empty')
+    expect(empty).toBeTruthy()
+    expect(empty.textContent).toContain('还没有可编辑的图纸')
+    expect(screen.getByRole('button', { name: /去图片转拼豆/ })).toBeTruthy()
+    expect(screen.getByRole('button', { name: /回首页/ })).toBeTruthy()
+    // 操作台不出现:没有可编辑内容时不能把用户按在一整套工具前
+    expect(document.querySelector('.editor-console')).toBeNull()
   })
 })
 
@@ -257,5 +288,38 @@ describe('EditorPage · 上下文选区条', () => {
     fireEvent.click(eraseBtn)
     expect(props.onSelectionCommand).toHaveBeenCalledWith('erase')
     expect([...bar.querySelectorAll('button')].every(b => !b.disabled)).toBe(true)
+  })
+})
+
+describe('EditorPage · 完成流程', () => {
+  it('头部「完成」打开完成面板,保存并退出走 onFinishSave', () => {
+    const { props } = renderEditor()
+    fireEvent.click(screen.getByRole('button', { name: /完成/ }))
+    const sheet = document.querySelector('.editor-finish-sheet')
+    expect(sheet).toBeTruthy()
+
+    fireEvent.click(screen.getByRole('button', { name: '保存并退出' }))
+    expect(props.onFinishSave).toHaveBeenCalledTimes(1)
+    expect(document.querySelector('.editor-finish-sheet')).toBeNull()
+  })
+
+  it('完成面板的保存/导出分别接回既有回调,未保存时给出提示', () => {
+    const { props } = renderEditor({ canvasProps: { ...renderEditorProps(), saveState: 'dirty' } })
+    fireEvent.click(screen.getByRole('button', { name: /完成/ }))
+    expect(document.querySelector('.editor-finish-hint')).toBeTruthy()
+
+    fireEvent.click(screen.getByRole('button', { name: '保存' }))
+    expect(props.canvasProps.onSave).toHaveBeenCalledTimes(1)
+
+    fireEvent.click(screen.getByRole('button', { name: /完成/ }))
+    const sheet = document.querySelector('.editor-finish-sheet')
+    fireEvent.click(within(sheet).getByRole('button', { name: '导出' }))
+    expect(props.onExport).toHaveBeenCalledTimes(1)
+  })
+
+  it('有未保存修改时,返回键先打开完成面板而不是直接离开', () => {
+    renderEditor({ canvasProps: { ...renderEditorProps(), saveState: 'dirty' } })
+    fireEvent.click(screen.getByRole('button', { name: '返回' }))
+    expect(document.querySelector('.editor-finish-sheet')).toBeTruthy()
   })
 })

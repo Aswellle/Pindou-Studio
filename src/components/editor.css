@@ -500,3 +500,126 @@
     padding: 0 8px;
   }
 }
+
+/* ── 完成流程与空态 ─────────────────────────────────────── */
+.editor-finish-entry {
+  margin-left: auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  height: 34px;
+  padding: 0 14px;
+  border: 1px solid var(--accent);
+  border-radius: 11px;
+  background: var(--accent);
+  color: #fff;
+  font-size: 13px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.editor-finish-sheet {
+  gap: 10px;
+}
+
+.editor-finish-hint {
+  margin: 0;
+  padding: 8px 10px;
+  border-radius: 10px;
+  background: var(--accent-soft);
+  color: var(--text-secondary);
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.editor-finish-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.editor-finish-primary,
+.editor-finish-btn {
+  width: 100%;
+  height: 42px;
+  border-radius: 11px;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.editor-finish-primary {
+  border: 1px solid var(--accent);
+  background: var(--accent);
+  color: #fff;
+}
+
+.editor-finish-btn {
+  border: 1px solid var(--border-color);
+  background: var(--bg-secondary);
+  color: var(--text-primary);
+}
+
+.editor-finish-btn.ghost {
+  border-color: transparent;
+  background: transparent;
+  color: var(--text-muted);
+  font-weight: 500;
+}
+
+/* 空态:没有来源的 /editor(深链或刷新) */
+.editor-empty {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 24px;
+  text-align: center;
+}
+
+.editor-empty-icon {
+  width: 56px;
+  height: 56px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 18px;
+  background: var(--accent-soft);
+  color: var(--accent);
+}
+
+.editor-empty h2 {
+  margin: 4px 0 0;
+  font-size: 17px;
+}
+
+.editor-empty p {
+  margin: 0 0 6px;
+  max-width: 320px;
+  font-size: 13px;
+  line-height: 1.6;
+  color: var(--text-secondary);
+}
+
+.editor-empty-primary,
+.editor-empty-ghost {
+  width: min(320px, 100%);
+  height: 42px;
+  border-radius: 11px;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.editor-empty-primary {
+  border: 1px solid var(--accent);
+  background: var(--accent);
+  color: #fff;
+}
+
+.editor-empty-ghost {
+  border: 1px solid var(--border-color);
+  background: var(--bg-secondary);
+  color: var(--text-primary);
+}

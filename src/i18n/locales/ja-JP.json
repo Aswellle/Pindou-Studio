@@ -2270,6 +2270,15 @@
     "palette": "カラー",
     "beadCount": "{{n}} 個",
     "export": "書き出し",
-    "emptyCanvas": "キャンバスは空です"
+    "emptyCanvas": "キャンバスは空です",
+    "finish": "完了",
+    "finishTitle": "編集を完了",
+    "finishDirty": "未保存の変更があります。保存してから離開してください",
+    "saveAndExit": "保存して終了",
+    "exitEditor": "保存せず終了",
+    "emptyTitle": "編集できる図案がありません",
+    "emptyHint": "画像をビーズ図案に変換し、「エディタを開く」から1マスずつ編集できます。",
+    "goQuantize": "画像を変換",
+    "goHome": "ホームへ"
   }
 }

@@ -2270,6 +2270,15 @@
     "palette": "色卡",
     "beadCount": "{{n}} 颗",
     "export": "导出",
-    "emptyCanvas": "画布是空的"
+    "emptyCanvas": "画布是空的",
+    "finish": "完成",
+    "finishTitle": "完成编辑",
+    "finishDirty": "有未保存的修改,建议先保存再离开",
+    "saveAndExit": "保存并退出",
+    "exitEditor": "直接退出",
+    "emptyTitle": "还没有可编辑的图纸",
+    "emptyHint": "图片转拼豆生成图纸后,点「进入编辑器」即可逐格修改。",
+    "goQuantize": "去图片转拼豆",
+    "goHome": "回首页"
   }
 }

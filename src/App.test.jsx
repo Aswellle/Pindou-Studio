@@ -92,7 +92,7 @@ describe('App smoke test', () => {
     }
   })
 
-  it('/editor 渲染图纸编辑器操作台,不继承站点导航', async () => {
+  it('/editor 深链显示空态引导,不继承站点导航', async () => {
     const restore2d = installMock2dContext()
     const restoreMedia = installMockMatchMedia()
     try {
@@ -103,18 +103,19 @@ describe('App smoke test', () => {
           </HelmetProvider>
         </MemoryRouter>
       )
-      // 编辑器是 lazy 路由:等 Suspense 解析后断言操作台与画布都在
-      await waitFor(() => expect(container.querySelector('.editor-console')).toBeTruthy(), { timeout: 10000 })
-      expect(container.querySelector('.editor-canvas-area canvas, .editor-canvas-area .canvas-container')).toBeTruthy()
+      // 编辑器是 lazy 路由:没有转换结果/作品来源时是空态引导,
+      // 不能把用户按在一整套工具和 0 颗的空白网格前。
+      await waitFor(() => expect(container.querySelector('.editor-empty')).toBeTruthy(), { timeout: 10000 })
+      expect(container.textContent).toContain('还没有可编辑的图纸')
+      expect(container.querySelector('.editor-console')).toBeNull()
 
       // 站点导航不得出现
       expect(container.querySelector('header.header')).toBeNull()
       expect(container.querySelector('.language-select')).toBeNull()
 
-      // 操作台要素:工具行(画笔)+ 去噪入口 + 保存/导出
-      expect(container.querySelector('.editor-tool-btn')).toBeTruthy()
-      expect(container.textContent).toContain('去噪')
-      expect(container.textContent).toContain('导出')
+      // 空态给出两个明确出口:去转换 / 回首页
+      expect(container.querySelector('.editor-empty-primary')).toBeTruthy()
+      expect(container.querySelector('.editor-empty-ghost')).toBeTruthy()
     } finally {
       restore2d()
       restoreMedia()

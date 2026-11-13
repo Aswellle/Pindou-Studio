@@ -352,6 +352,9 @@ export default function App() {
   }, [i18n.language, t])
   const [showSaveDialog, setShowSaveDialog] = useState(false)
   const [saveInputName, setSaveInputName] = useState('')
+  // 编辑器「完成 → 保存并退出」:保存成功后回到画布页。
+  // 只影响这一次保存,取消/失败都不会把用户带走。
+  const [exitAfterSave, setExitAfterSave] = useState(false)
   // 当前画布内容的来源类别(导入 / 图库复制 / 手绘),随保存一起落库。
   // 只记录「这份矩阵是怎么来的」,不改变任何画布行为;切换网格/载入作品时同步更新,
   // 否则导入的图纸保存后会被当成手绘作品,重新打开就失去来源。
@@ -569,6 +572,14 @@ export default function App() {
   }
 
   const handleOpenSaveDialog = () => {
+    setExitAfterSave(false)
+    setSaveInputName(designName)
+    setShowSaveDialog(true)
+  }
+
+  // 编辑器「完成 → 保存并退出」:保存成功后回到画布页。
+  const handleSaveAndExit = () => {
+    setExitAfterSave(true)
     setSaveInputName(designName)
     setShowSaveDialog(true)
   }
@@ -592,6 +603,10 @@ export default function App() {
     await discardDraft()
     setShowSaveDialog(false)
     toast(user ? t('gallery.savedToastCloud') : t('gallery.savedToast'), 'success')
+    if (exitAfterSave) {
+      setExitAfterSave(false)
+      navigate('/')
+    }
   }
 
   // 顶部登录/注册入口:带上当前路径,成功后回到原页面,而不是一律回首页。
@@ -1460,6 +1475,8 @@ export default function App() {
                   onToggleFillIncludeEmpty={handleToggleFillIncludeEmpty}
                   onNoiseCleanup={handleNoiseCleanup}
                   onExport={() => setShowExport(true)}
+                  canvasSource={canvasSource}
+                  onFinishSave={handleSaveAndExit}
                 />
               </Suspense>
             }
@@ -2017,6 +2034,8 @@ export default function App() {
                 onToggleFillIncludeEmpty={handleToggleFillIncludeEmpty}
                 onNoiseCleanup={handleNoiseCleanup}
                 onExport={() => setShowExport(true)}
+                canvasSource={canvasSource}
+                onFinishSave={handleSaveAndExit}
                 pickCursor={pickCursor}
                 onPickMove={movePickCursor}
                 onPickToggle={togglePickCursor}

@@ -2270,6 +2270,15 @@
     "palette": "팔레트",
     "beadCount": "{{n}}알",
     "export": "내보내기",
-    "emptyCanvas": "캔버스가 비어 있습니다"
+    "emptyCanvas": "캔버스가 비어 있습니다",
+    "finish": "완료",
+    "finishTitle": "편집 완료",
+    "finishDirty": "저장하지 않은 변경 사항이 있습니다. 저장 후 나가세요",
+    "saveAndExit": "저장 후 나가기",
+    "exitEditor": "저장 없이 나가기",
+    "emptyTitle": "편집할 도안이 없습니다",
+    "emptyHint": "이미지를 비즈 도안으로 변환한 뒤 “편집기 열기”로 한 칸씩 수정하세요.",
+    "goQuantize": "이미지 변환",
+    "goHome": "홈으로"
   }
 }

@@ -2270,6 +2270,15 @@
     "palette": "Palette",
     "beadCount": "{{n}} beads",
     "export": "Export",
-    "emptyCanvas": "Canvas is empty"
+    "emptyCanvas": "Canvas is empty",
+    "finish": "Done",
+    "finishTitle": "Finish editing",
+    "finishDirty": "You have unsaved changes — save before leaving",
+    "saveAndExit": "Save and exit",
+    "exitEditor": "Exit without saving",
+    "emptyTitle": "No pattern to edit yet",
+    "emptyHint": "Convert an image to a bead pattern, then choose “Enter editor” to edit cell by cell.",
+    "goQuantize": "Convert an image",
+    "goHome": "Back to canvas"
   }
 }
