@@ -623,3 +623,175 @@
   background: var(--bg-secondary);
   color: var(--text-primary);
 }
+
+/* ── 整理抽屉与单色隔离 ─────────────────────────────────── */
+.editor-isolate-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 6px 9px;
+  border: 1px solid var(--accent);
+  border-radius: 12px;
+  background: var(--accent-soft);
+  color: var(--accent);
+  font-size: 11px;
+  font-weight: 600;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.editor-cleanup-sheet {
+  gap: 8px;
+}
+
+.editor-sheet-body {
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 2px;
+}
+
+.editor-cleanup-section {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.editor-cleanup-section h3 {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.editor-cleanup-section p {
+  margin: 0;
+  font-size: 11px;
+  line-height: 1.5;
+  color: var(--text-muted);
+}
+
+.editor-cleanup-action {
+  height: 36px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 0 12px;
+  border: 1px solid var(--border-color);
+  border-radius: 10px;
+  background: var(--bg-secondary);
+  color: var(--text-primary);
+  font-size: 12px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.editor-cleanup-action:disabled {
+  opacity: 0.45;
+}
+
+.editor-cleanup-action.danger {
+  color: var(--error, #c62828);
+  border-color: color-mix(in srgb, var(--error, #c62828) 40%, transparent);
+}
+
+.editor-cleanup-action.active {
+  color: var(--accent);
+  border-color: var(--accent);
+  background: var(--accent-soft);
+}
+
+.editor-cleanup-colors {
+  display: flex;
+  gap: 6px;
+  overflow-x: auto;
+  padding: 2px;
+  scrollbar-width: none;
+}
+
+.editor-cleanup-colors::-webkit-scrollbar {
+  display: none;
+}
+
+.editor-cleanup-color {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  height: 32px;
+  padding: 0 8px;
+  border: 1px solid var(--border-color);
+  border-radius: 9px;
+  background: var(--bg-secondary);
+  font-size: 11px;
+}
+
+.editor-cleanup-color.active {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+}
+
+.editor-cleanup-swatch {
+  width: 16px;
+  height: 16px;
+  border-radius: 5px;
+  border: 1px solid rgba(0, 0, 0, 0.12);
+}
+
+.editor-cleanup-count {
+  color: var(--text-muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.editor-cleanup-presets {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.editor-cleanup-preset {
+  width: 38px;
+  height: 34px;
+  border: 1px solid var(--border-color);
+  border-radius: 9px;
+  background: var(--bg-secondary);
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+}
+
+.editor-cleanup-preset.active {
+  border-color: var(--accent);
+  color: var(--accent);
+  background: var(--accent-soft);
+}
+
+.editor-cleanup-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.editor-cleanup-note {
+  padding: 8px 10px;
+  border-radius: 9px;
+  background: var(--bg-secondary);
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.editor-cleanup-done {
+  height: 40px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  border: 1px solid var(--accent);
+  border-radius: 11px;
+  background: var(--accent);
+  color: #fff;
+  font-size: 14px;
+  font-weight: 600;
+}

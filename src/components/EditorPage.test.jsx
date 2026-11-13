@@ -87,6 +87,9 @@ function renderEditor(overrides = {}) {
     onExport: vi.fn(),
     canvasSource: 'photo-quantized',
     onFinishSave: vi.fn(),
+    onCropCanvas: vi.fn(),
+    onOpenReplace: vi.fn(),
+    onToast: vi.fn(),
     ...overrides,
   }
   const view = render(
@@ -202,10 +205,14 @@ describe('EditorPage · 工具与操作', () => {
     expect(props.onToolChange).toHaveBeenCalledWith('pick')
   })
 
-  it('去噪/保存/导出回调接线;撤销按 canUndo 禁用', () => {
+  it('整理入口打开抽屉,去噪/保存/导出回调接线;撤销按 canUndo 禁用', () => {
     const { props } = renderEditor()
-    fireEvent.click(screen.getByTitle('去噪'))
+    fireEvent.click(screen.getByTitle('整理'))
+    const sheet = document.querySelector('.editor-cleanup-sheet')
+    expect(sheet).toBeTruthy()
+    fireEvent.click(within(sheet).getByRole('button', { name: '去噪' }))
     expect(props.onNoiseCleanup).toHaveBeenCalledTimes(1)
+    expect(document.querySelector('.editor-cleanup-sheet')).toBeNull()
 
     const saveBtn = screen.getByTitle('保存作品')
     fireEvent.click(saveBtn)
@@ -321,5 +328,92 @@ describe('EditorPage · 完成流程', () => {
     renderEditor({ canvasProps: { ...renderEditorProps(), saveState: 'dirty' } })
     fireEvent.click(screen.getByRole('button', { name: '返回' }))
     expect(document.querySelector('.editor-finish-sheet')).toBeTruthy()
+  })
+})
+
+describe('EditorPage · 整理抽屉(低频刚需)', () => {
+  it('删除颜色:把该色全部清成空白,颗数显示在按钮上', () => {
+    const { props } = renderEditor()
+    fireEvent.click(screen.getByTitle('整理'))
+    const sheet = document.querySelector('.editor-cleanup-sheet')
+    // 红色 2 颗是主色,默认选中
+    const btn = within(sheet).getByRole('button', { name: /删除 2 颗/ })
+    fireEvent.click(btn)
+    expect(props.canvasProps.onCanvasChange).toHaveBeenCalledTimes(1)
+    const next = props.canvasProps.onCanvasChange.mock.calls[0][0]
+    expect(next.flat().filter(Boolean)).toHaveLength(1)
+  })
+
+  it('合并相近色:按预设合并到目标色数,颗数不变', () => {
+    const colors = [
+      '#E53935',
+      '#1E88E5',
+      '#43A047',
+      '#FDD835',
+      '#8E24AA',
+      '#00ACC1',
+      '#FB8C00',
+      '#6D4C41',
+      '#546E7A',
+    ]
+    const data = colors.map((hex, i) => [hex, null, i === 0 ? '#E53A36' : null])
+    const { props } = renderEditor({ canvasData: data, gridSize: 3, gridWidth: null, gridHeight: null })
+    fireEvent.click(screen.getByTitle('整理'))
+    const sheet = document.querySelector('.editor-cleanup-sheet')
+    fireEvent.click(within(sheet).getByRole('button', { name: '8' }))
+    fireEvent.click(within(sheet).getByRole('button', { name: /合并到 8 色/ }))
+    expect(props.canvasProps.onCanvasChange).toHaveBeenCalledTimes(1)
+    const next = props.canvasProps.onCanvasChange.mock.calls[0][0]
+    expect(new Set(next.flat().filter(Boolean)).size).toBe(8)
+    expect(next.flat().filter(Boolean)).toHaveLength(data.flat().filter(Boolean).length)
+  })
+
+  it('裁切:裁到内容边界与裁到选区', () => {
+    const data = [
+      [null, null, null, null, null],
+      [null, '#E53935', null, null, null],
+      [null, null, '#1E88E5', null, null],
+      [null, null, null, null, null],
+      [null, null, null, null, null],
+    ]
+    const { props } = renderEditor({ canvasData: data, gridSize: 5 })
+    fireEvent.click(screen.getByTitle('整理'))
+    const sheet = document.querySelector('.editor-cleanup-sheet')
+    fireEvent.click(within(sheet).getByRole('button', { name: /裁到内容边界/ }))
+    expect(props.onCropCanvas).toHaveBeenCalledTimes(1)
+    const [cropped, w, h] = props.onCropCanvas.mock.calls[0]
+    expect([w, h]).toEqual([2, 2])
+    expect(cropped.flat().filter(Boolean)).toHaveLength(2)
+  })
+
+  it('裁到选区:没有选区时禁用', () => {
+    renderEditor()
+    fireEvent.click(screen.getByTitle('整理'))
+    const sheet = document.querySelector('.editor-cleanup-sheet')
+    expect(within(sheet).getByRole('button', { name: /裁到选区/ }).disabled).toBe(true)
+  })
+
+  it('替换色号走 App 的替换弹层入口', () => {
+    const { props } = renderEditor()
+    fireEvent.click(screen.getByTitle('整理'))
+    const sheet = document.querySelector('.editor-cleanup-sheet')
+    fireEvent.click(within(sheet).getByRole('button', { name: '颜色替换' }))
+    expect(props.onOpenReplace).toHaveBeenCalledTimes(1)
+  })
+
+  it('单色隔离:选中颜色后画布收到 isolateColor,控制台出现退出角标', () => {
+    const { props } = renderEditor()
+    fireEvent.click(screen.getByTitle('整理'))
+    const sheet = document.querySelector('.editor-cleanup-sheet')
+    const isolateSection = [...sheet.querySelectorAll('.editor-cleanup-section')].find(sec =>
+      sec.textContent.includes('单色隔离')
+    )
+    fireEvent.click(isolateSection.querySelector('.editor-cleanup-color'))
+    expect(canvasPropsRef.current.isolateColor).toBeTruthy()
+    expect(document.querySelector('.editor-isolate-badge')).toBeTruthy()
+
+    fireEvent.click(document.querySelector('.editor-isolate-badge'))
+    expect(document.querySelector('.editor-isolate-badge')).toBeNull()
+    expect(props.onToast).not.toHaveBeenCalled()
   })
 })

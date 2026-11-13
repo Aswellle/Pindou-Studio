@@ -85,6 +85,8 @@ const Canvas = forwardRef(function Canvas(
     // 放顶栏会让右侧图标组随页面切换增减、整排跳位。
     onSave,
     saveState,
+    // 单色隔离(编辑器整理面板):只改变绘制,不改画布数据
+    isolateColor = null,
   },
   ref
 ) {
@@ -254,8 +256,8 @@ const Canvas = forwardRef(function Canvas(
   // so this expensive full-grid scan no longer runs on every mousemove tick.
   // ─────────────────────────────────────────────────────────────────
   useEffect(() => {
-    painter.repaintBase(committedData, cols, rows)
-  }, [committedData, cols, rows, painter])
+    painter.repaintBase(committedData, cols, rows, isolateColor)
+  }, [committedData, cols, rows, isolateColor, painter])
 
   // ─────────────────────────────────────────────────────────────────
   // Effect 2: hover highlight + selection marquee on the overlay layer.
@@ -1578,7 +1580,17 @@ const Canvas = forwardRef(function Canvas(
         }
       }
     },
-    [getGridPos, transform, softClamp, updateSelection, updateMove, updateResize, cancelLongPress, getGridPoint, updateLasso]
+    [
+      getGridPos,
+      transform,
+      softClamp,
+      updateSelection,
+      updateMove,
+      updateResize,
+      cancelLongPress,
+      getGridPoint,
+      updateLasso,
+    ]
   )
 
   const handleTouchEnd = useCallback(

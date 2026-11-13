@@ -7,23 +7,34 @@ import { useCanvasPainter } from './useCanvasPainter'
  * hook. The mock captures every 2d draw call so we can assert on what was painted.
  */
 function installMock2dContext() {
-  const calls = { fillRect: [], stroke: 0, moveTo: [], lineTo: [] }
+  const calls = { fillRect: [], paints: [], stroke: 0, moveTo: [], lineTo: [] }
   const ctx = {
     fillStyle: '#000000',
     strokeStyle: '#000000',
     lineWidth: 1,
-    fillRect: (x, y, w, h) => calls.fillRect.push({ x, y, w, h }),
+    globalAlpha: 1,
+    fillRect: (x, y, w, h) => {
+      calls.fillRect.push({ x, y, w, h })
+      calls.paints.push({ fillStyle: ctx.fillStyle, alpha: ctx.globalAlpha })
+    },
     strokeRect: () => {},
     beginPath: () => {},
     closePath: () => {},
     moveTo: (x, y) => calls.moveTo.push({ x, y }),
     lineTo: (x, y) => calls.lineTo.push({ x, y }),
-    stroke: () => { calls.stroke++ },
+    stroke: () => {
+      calls.stroke++
+    },
     clearRect: () => {},
   }
   const orig = HTMLCanvasElement.prototype.getContext
   HTMLCanvasElement.prototype.getContext = () => ctx
-  return { calls, restore: () => { HTMLCanvasElement.prototype.getContext = orig } }
+  return {
+    calls,
+    restore: () => {
+      HTMLCanvasElement.prototype.getContext = orig
+    },
+  }
 }
 
 // Real jsdom <canvas> elements. getContext is satisfied by the prototype mock
@@ -34,19 +45,27 @@ function makeNode() {
 
 describe('useCanvasPainter grid painting', () => {
   let mock
-  beforeEach(() => { mock = installMock2dContext() })
+  beforeEach(() => {
+    mock = installMock2dContext()
+  })
   afterEach(() => mock.restore())
 
   function renderPainter() {
-    const { result } = renderHook(() => useCanvasPainter({ canvasWidth: 29 * 16, canvasHeight: 29 * 16, cellSize: 16 }))
+    const { result } = renderHook(() =>
+      useCanvasPainter({ canvasWidth: 29 * 16, canvasHeight: 29 * 16, cellSize: 16 })
+    )
     return result
   }
 
   function attachCanvases(result) {
     const base = makeNode()
     const overlay = makeNode()
-    act(() => { result.current.baseRefCallback(base) })
-    act(() => { result.current.overlayRefCallback(overlay) })
+    act(() => {
+      result.current.baseRefCallback(base)
+    })
+    act(() => {
+      result.current.overlayRefCallback(overlay)
+    })
     return { base, overlay }
   }
 
@@ -61,8 +80,12 @@ describe('useCanvasPainter grid painting', () => {
 
     // committedData = blank 3x3 grid → 4 vertical + 4 horizontal lines, each a
     // beginPath/moveTo/lineTo/stroke sequence.
-    const blank = Array(3).fill(null).map(() => Array(3).fill(null))
-    act(() => { result.current.repaintBase(blank, 3, 3) })
+    const blank = Array(3)
+      .fill(null)
+      .map(() => Array(3).fill(null))
+    act(() => {
+      result.current.repaintBase(blank, 3, 3)
+    })
 
     // 网格线合并为纵/横两条路径后:attach(2 次 stroke)+ data effect(2 次)= 4
     // (每次 repaint 一次 stroke 画全部纵线、一次画全部横线)
@@ -80,7 +103,9 @@ describe('useCanvasPainter grid painting', () => {
     const result = renderPainter()
     attachCanvases(result)
 
-    act(() => { result.current.repaintBase(null, 3, 3) })
+    act(() => {
+      result.current.repaintBase(null, 3, 3)
+    })
 
     // attach(2)+ data effect(2)= 4 — grid draws even with null data.
     expect(mock.calls.stroke).toBe(4)
@@ -91,33 +116,83 @@ describe('useCanvasPainter grid painting', () => {
     // Simulate the data effect recording paint state BEFORE the canvas node exists
     // (e.g. SSR-hydration edge case, or effect ordering). baseRef is still null, so
     // this records state but paints nothing.
-    const blank = Array(3).fill(null).map(() => Array(3).fill(null))
-    act(() => { result.current.repaintBase(blank, 3, 3) })
+    const blank = Array(3)
+      .fill(null)
+      .map(() => Array(3).fill(null))
+    act(() => {
+      result.current.repaintBase(blank, 3, 3)
+    })
     expect(mock.calls.stroke).toBe(0) // nothing painted: no node yet
 
     // Now the base node attaches — the callback must paint using the state that
     // was recorded above, so the grid appears without waiting for another effect.
     // 合并路径后一次 repaint = 2 次 stroke(纵线 + 横线)。
     const base = makeNode()
-    act(() => { result.current.baseRefCallback(base) })
+    act(() => {
+      result.current.baseRefCallback(base)
+    })
     expect(mock.calls.stroke).toBe(2)
   })
 
   test('paints and clears overlay cells without touching the base grid', () => {
     const result = renderPainter()
     attachCanvases(result)
-    act(() => { result.current.repaintBase(null, 3, 3) })
+    act(() => {
+      result.current.repaintBase(null, 3, 3)
+    })
     const gridStrokes = mock.calls.stroke
 
-    act(() => { result.current.paintOverlayCell(1, 1, '#ff0000') })
+    act(() => {
+      result.current.paintOverlayCell(1, 1, '#ff0000')
+    })
     // Overlay paint adds a fillRect but no stroke.
     const lastFill = mock.calls.fillRect[mock.calls.fillRect.length - 1]
     expect(lastFill).toEqual({ x: 16, y: 16, w: 16, h: 16 })
     expect(mock.calls.stroke).toBe(gridStrokes)
 
-    act(() => { result.current.clearOverlayCell(1, 1) })
-    act(() => { result.current.clearOverlay() })
+    act(() => {
+      result.current.clearOverlayCell(1, 1)
+    })
+    act(() => {
+      result.current.clearOverlay()
+    })
     // Grid strokes untouched by overlay operations.
     expect(mock.calls.stroke).toBe(gridStrokes)
+  })
+})
+
+describe('useCanvasPainter 单色隔离', () => {
+  let mock
+  beforeEach(() => {
+    mock = installMock2dContext()
+  })
+  afterEach(() => mock.restore())
+
+  test('隔离色正常绘制,其余颜色降到低透明度;传 null 恢复原样', () => {
+    const { result } = renderHook(() => useCanvasPainter({ canvasWidth: 32, canvasHeight: 16, cellSize: 16 }))
+    const base = makeNode()
+    act(() => {
+      result.current.baseRefCallback(base)
+    })
+    const data = [['#E53935', '#1E88E5']]
+
+    act(() => {
+      result.current.repaintBase(data, 2, 1)
+    })
+    const plain = mock.calls.paints.filter(c => c.fillStyle !== '#ffffff')
+    expect(plain.map(c => c.alpha)).toEqual([1, 1])
+
+    act(() => {
+      result.current.repaintBase(data, 2, 1, '#E53935')
+    })
+    const isolated = mock.calls.paints.filter(c => c.fillStyle !== '#ffffff').slice(2)
+    expect(isolated[0].alpha).toBe(1)
+    expect(isolated[1].alpha).toBeLessThan(1)
+
+    act(() => {
+      result.current.repaintBase(data, 2, 1, null)
+    })
+    const restored = mock.calls.paints.filter(c => c.fillStyle !== '#ffffff').slice(4)
+    expect(restored.map(c => c.alpha)).toEqual([1, 1])
   })
 })

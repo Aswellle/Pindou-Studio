@@ -1,4 +1,4 @@
-import { useLayoutEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import {
@@ -24,11 +24,19 @@ import {
 import { createPortal } from 'react-dom'
 import BackButton from './BackButton'
 import Canvas from './Canvas'
+import EditorCleanupPanel from './EditorCleanupPanel'
 import PickDPad from './PickDPad'
 import SelectionContextMenu from './SelectionContextMenu'
 import { getPalette } from '../data/palettes'
 import { calculateColorStats } from '../services/export/PatternDocument'
-import { selectionContains } from '../utils/lassoSelection'
+import { collectColorStats } from '../utils/selectionUtils'
+import { selectionBounds, selectionContains } from '../utils/lassoSelection'
+import {
+  cropCanvas,
+  cropCanvasToContent,
+  reduceCanvasColors,
+  removeCanvasColor,
+} from '../utils/editorCleanup'
 import './editor.css'
 
 /**
@@ -234,6 +242,9 @@ export default function EditorPage({
   // onFinishSave = 保存成功后退出(App 负责)
   canvasSource,
   onFinishSave,
+  onCropCanvas,
+  onOpenReplace,
+  onToast,
   // 移动端专属:点选方向盘与长按菜单(桌面布局不传)
   pickCursor,
   onPickMove,
@@ -248,6 +259,9 @@ export default function EditorPage({
   const consoleRef = useRef(null)
   const [paletteOpen, setPaletteOpen] = useState(false)
   const [finishOpen, setFinishOpen] = useState(false)
+  const [cleanupOpen, setCleanupOpen] = useState(false)
+  // 单色隔离只影响绘制,不改矩阵:视图态留在本页,App/Canvas 只收一个 hex
+  const [isolateColor, setIsolateColor] = useState(null)
 
   const cols = gridWidth || gridSize
   const rows = gridHeight || gridSize
@@ -260,6 +274,10 @@ export default function EditorPage({
     [canvasData, cols, rows, palette]
   )
   const totalBeads = useMemo(() => colorStats.reduce((sum, c) => sum + c.count, 0), [colorStats])
+  // 整理面板按「画布上的真实 hex」工作(删色/减色/隔离都直接写这个值);
+  // colorStats 是就近归并到品牌色号后的展示口径,两者在量化结果上一致,
+  // 但作品再编辑时可能含色卡外颜色 —— 整理必须用真实值,否则会删不掉。
+  const usedColors = useMemo(() => collectColorStats(canvasData), [canvasData])
 
   // 操作台实际高度写入 --mobile-toolbar-h:PickDPad 的悬浮定位读这个变量,
   // 折行/展开面板时方向盘自动跟随(与 MobileToolbar 同款机制)。
@@ -282,6 +300,14 @@ export default function EditorPage({
     }
   }, [mobile])
 
+  // 被隔离的颜色可能被删色/减色/换图之后不再存在:自动退出隔离,
+  // 否则画布会整片变淡而用户找不到原因。
+  useEffect(() => {
+    if (!isolateColor) return
+    const stillUsed = usedColors.some(c => c.hex.toLowerCase() === isolateColor.toLowerCase())
+    if (!stillUsed) setIsolateColor(null)
+  }, [usedColors, isolateColor])
+
   const handleBack = () => {
     // 有未保存修改时先走完成面板:直接返回会把用户带回空的上传页,
     // 修改只留在草稿里 —— 明确给一次「保存并退出」的机会。
@@ -291,6 +317,47 @@ export default function EditorPage({
     }
     if (location.key !== 'default') navigate(-1)
     else navigate('/', { replace: true })
+  }
+
+  const codeOf = hex => {
+    const found = palette.colors.find(c => c.hex?.toLowerCase() === String(hex).toLowerCase())
+    return found ? found.id : hex
+  }
+
+  const notify = (message, type = 'success') => onToast?.(message, type)
+
+  const handleDeleteColor = hex => {
+    const result = removeCanvasColor(canvasData, hex)
+    if (!result) return
+    canvasProps.onCanvasChange?.(result.data)
+    setCleanupOpen(false)
+    notify(t('editor.deleteDone', { n: result.removed }))
+  }
+
+  const handleReduceColors = keepCount => {
+    const result = reduceCanvasColors(canvasData, { keepCount })
+    if (!result) return
+    canvasProps.onCanvasChange?.(result.data)
+    setCleanupOpen(false)
+    notify(t('editor.reduceDone', { n: result.after }))
+  }
+
+  const handleCrop = mode => {
+    const result =
+      mode === 'selection'
+        ? cropCanvas(canvasData, selectionBounds(selection))
+        : cropCanvasToContent(canvasData)
+    if (!result) {
+      notify(t('editor.cropEmpty'), 'info')
+      return
+    }
+    setCleanupOpen(false)
+    onCropCanvas?.(result.data, result.width, result.height)
+  }
+
+  const handleToggleIsolate = hex => {
+    setIsolateColor(prev => (!hex || prev === hex ? null : hex))
+    setCleanupOpen(false)
   }
 
   // 命令清单:[命令名, i18n 键]。粘贴的禁用逻辑单独由 canPaste 决定(见下方 disabled),
@@ -352,7 +419,7 @@ export default function EditorPage({
       </header>
 
       <div className="editor-canvas-area">
-        <Canvas {...canvasProps} ref={canvasRef} />
+        <Canvas {...canvasProps} ref={canvasRef} isolateColor={isolateColor} />
         {mobile && (
           <div className="editor-zoom">
             <button
@@ -399,6 +466,17 @@ export default function EditorPage({
             <Palette size={14} />
             {t('editor.palette')}
           </button>
+          {isolateColor && (
+            <button
+              type="button"
+              className="editor-isolate-badge"
+              onClick={() => setIsolateColor(null)}
+              title={t('editor.cleanupIsolateExit')}
+            >
+              {t('editor.isolateBadge', { code: codeOf(isolateColor) })}
+              <X size={12} />
+            </button>
+          )}
         </div>
 
         {/* 行 B:工具 ⇄ 选区命令(同一位置替换,高度不变)
@@ -460,11 +538,12 @@ export default function EditorPage({
             <button
               type="button"
               className="editor-action-btn noise"
-              title={t('tools.noiseCleanup')}
-              onClick={onNoiseCleanup}
+              title={t('editor.cleanup')}
+              aria-label={t('editor.cleanup')}
+              onClick={() => setCleanupOpen(true)}
             >
               <Sparkles size={16} />
-              <span>{t('tools.noiseCleanup')}</span>
+              <span>{t('editor.cleanup')}</span>
             </button>
             <button
               type="button"
@@ -500,6 +579,28 @@ export default function EditorPage({
           </div>
         </div>
       </div>
+
+      {cleanupOpen && (
+        <EditorCleanupPanel
+          palette={palette}
+          usedColors={usedColors}
+          hasSelection={Boolean(selection)}
+          isolateColor={isolateColor}
+          onNoise={() => {
+            setCleanupOpen(false)
+            onNoiseCleanup?.()
+          }}
+          onOpenReplace={() => {
+            setCleanupOpen(false)
+            onOpenReplace?.()
+          }}
+          onDeleteColor={handleDeleteColor}
+          onReduceColors={handleReduceColors}
+          onCrop={handleCrop}
+          onToggleIsolate={handleToggleIsolate}
+          onClose={() => setCleanupOpen(false)}
+        />
+      )}
 
       {finishOpen && (
         <FinishPanel

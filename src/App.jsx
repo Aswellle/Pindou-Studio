@@ -632,6 +632,19 @@ export default function App() {
       state: { mode: 'register', next: location.pathname + location.search },
     })
 
+  // 编辑器整理面板的裁切:换画布尺寸 + 重置历史(与「换网格」同语义),
+  // 所以走 replaceCanvas(RESET)而不是 setCanvas —— 否则撤销会把旧尺寸的
+  // 矩阵塞回新网格,行列错位。来源(canvasSource)不变。
+  const handleCropCanvas = (data, width, height) => {
+    if (!Array.isArray(data) || !data.length || !Array.isArray(data[0])) return
+    setGridSize(Math.max(width, height))
+    setGridWidth(width === height ? null : width)
+    setGridHeight(width === height ? null : height)
+    setSelection(null)
+    replaceCanvas(data)
+    toast(t('editor.cropDone', { w: width, h: height }), 'success')
+  }
+
   const handleGridSizeChange = newSize => {
     setGridSize(newSize)
     setGridWidth(null)
@@ -1477,6 +1490,9 @@ export default function App() {
                   onExport={() => setShowExport(true)}
                   canvasSource={canvasSource}
                   onFinishSave={handleSaveAndExit}
+                  onCropCanvas={handleCropCanvas}
+                  onOpenReplace={() => setShowReplace(true)}
+                  onToast={toast}
                 />
               </Suspense>
             }
@@ -2036,6 +2052,9 @@ export default function App() {
                 onExport={() => setShowExport(true)}
                 canvasSource={canvasSource}
                 onFinishSave={handleSaveAndExit}
+                onCropCanvas={handleCropCanvas}
+                onOpenReplace={() => setShowReplace(true)}
+                onToast={toast}
                 pickCursor={pickCursor}
                 onPickMove={movePickCursor}
                 onPickToggle={togglePickCursor}
