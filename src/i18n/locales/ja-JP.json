@@ -2267,7 +2267,7 @@
   },
   "editor": {
     "title": "図案エディタ",
-    "moreColors": "色を追加",
+    "palette": "カラー",
     "beadCount": "{{n}} 個",
     "export": "書き出し",
     "emptyCanvas": "キャンバスは空です"

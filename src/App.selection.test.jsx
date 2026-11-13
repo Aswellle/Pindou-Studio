@@ -730,6 +730,9 @@ describe('App · 点选方向盘与键盘步进', () => {
   it('方向键步进:首按初始化到画布中心再移动,越界钳制', async () => {
     const { getByTestId } = renderApp('/editor')
 
+    // EditorPage 是 lazy 路由:等桩按钮真正挂载,不能只等 canvasProps ——
+    // 全量并发下 Suspense 可能晚一帧,pick-tool 还不存在。
+    await waitFor(() => expect(getByTestId('pick-tool')).toBeTruthy())
     await waitFor(() => expect(canvasProps.current?.committedData).toBeTruthy())
     fireEvent.click(getByTestId('pick-tool'))
     await waitFor(() => expect(getByTestId('tool').textContent).toBe('pick'))

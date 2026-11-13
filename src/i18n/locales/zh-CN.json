@@ -2267,7 +2267,7 @@
   },
   "editor": {
     "title": "图纸编辑",
-    "moreColors": "更多颜色",
+    "palette": "色卡",
     "beadCount": "{{n}} 颗",
     "export": "导出",
     "emptyCanvas": "画布是空的"

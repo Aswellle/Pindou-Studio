@@ -128,20 +128,37 @@ describe('EditorPage · 图纸用色列表', () => {
   })
 })
 
-describe('EditorPage · 补色网格', () => {
-  it('「更多颜色」展开品牌色板,选中即回调并收起', () => {
+describe('EditorPage · 色卡浮层', () => {
+  it('「色卡」打开全色板浮层,点选后回调并收起', () => {
     const { props } = renderEditor()
-    expect(document.querySelector('.editor-extra-colors')).toBeNull()
+    expect(document.querySelector('.editor-sheet')).toBeNull()
 
-    fireEvent.click(screen.getByRole('button', { name: /更多颜色/ }))
-    const grid = document.querySelector('.editor-extra-colors')
-    expect(grid).toBeTruthy()
+    fireEvent.click(screen.getByRole('button', { name: /色卡/ }))
+    const sheet = document.querySelector('.editor-sheet')
+    expect(sheet).toBeTruthy()
     // Perler 色板 80 色
-    expect(grid.querySelectorAll('.editor-extra-swatch').length).toBe(80)
+    const swatches = sheet.querySelectorAll('.editor-palette-swatch')
+    expect(swatches).toHaveLength(80)
 
-    fireEvent.click(grid.querySelector('.editor-extra-swatch'))
+    fireEvent.click(swatches[0])
     expect(props.onColorSelect).toHaveBeenCalledTimes(1)
-    expect(document.querySelector('.editor-extra-colors')).toBeNull()
+    expect(document.querySelector('.editor-sheet')).toBeNull()
+  })
+
+  it('色号搜索收窄结果,已用色显示颗数', () => {
+    renderEditor()
+    fireEvent.click(screen.getByRole('button', { name: /色卡/ }))
+    const sheet = document.querySelector('.editor-sheet')
+
+    // 红/蓝两色都已用,格子上应出现颗数角标
+    expect(sheet.querySelectorAll('.editor-palette-count').length).toBeGreaterThan(0)
+
+    fireEvent.change(sheet.querySelector('.editor-sheet-search'), { target: { value: 'P06' } })
+    const visible = [...sheet.querySelectorAll('.editor-palette-swatch')]
+    expect(visible.length).toBeLessThan(80)
+    expect(
+      visible.every(el => el.textContent.includes('P06') || el.getAttribute('aria-label').includes('P06'))
+    ).toBe(true)
   })
 })
 

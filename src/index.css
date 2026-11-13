@@ -331,7 +331,8 @@ button:focus-visible {
 .auth-prompt-overlay,
 .logout-confirm-overlay,
 .ironing-studio-overlay,
-.quantizer-zoom {
+.quantizer-zoom,
+.editor-sheet-overlay {
   position: fixed;
   /* 同 .modal-overlay:盖满布局视口(inset:0),视觉视口滚动也不露白 */
   inset: 0;
@@ -381,7 +382,8 @@ button:focus-visible {
 .my-beads-modal-overlay,
 .auth-prompt-overlay,
 .logout-confirm-overlay,
-.ironing-studio-overlay {
+.ironing-studio-overlay,
+.editor-sheet-overlay {
   display: grid;
   /* 与 .modal-overlay 同理:auto 行会随内容长高,子元素的高度约束全部失效;
      锁成 1fr 后行恒等于 overlay 内容区(已扣掉键盘与 safe-area 内边距)。 */
@@ -435,7 +437,8 @@ body:has(.my-beads-modal-overlay) .mobile-toolbar,
 body:has(.auth-prompt-overlay) .mobile-toolbar,
 body:has(.logout-confirm-overlay) .mobile-toolbar,
 body:has(.ironing-studio-overlay) .mobile-toolbar,
-body:has(.quantizer-zoom) .mobile-toolbar {
+body:has(.quantizer-zoom) .mobile-toolbar,
+body:has(.editor-sheet-overlay) .mobile-toolbar {
   opacity: 0;
   pointer-events: none;
   transition: opacity 0.2s ease;

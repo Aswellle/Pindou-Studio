@@ -14,9 +14,12 @@ import {
   Redo2,
   Save,
   ImageDown,
-  Plus,
+  Palette,
+  Maximize2,
+  RotateCcw,
   X,
 } from 'lucide-react'
+import { createPortal } from 'react-dom'
 import BackButton from './BackButton'
 import Canvas from './Canvas'
 import PickDPad from './PickDPad'
@@ -34,6 +37,12 @@ import './editor.css'
  * App 画布状态(useHistory/selection/保存/导出),底部操作台则是为
  * 修图定制的新 UI:图纸用色列表(点选为画笔色,实时重算颗数)、
  * 精简工具行、上下文选区条。不复用 Tools.jsx / MobileToolbar。
+ *
+ * 操作台的三条布局约束(实机测试后定稿):
+ *   1. 高度恒定:选区命令**替换**工具行,而不是在工具行下方追加 ——
+ *      否则选区一出现,画布就被挤矮、内容在用户眼皮底下跳;
+ *   2. 次级面板(色卡/整理/完成)一律走浮层,不参与文档流;
+ *   3. 移动端工具栏隐藏了画布 HUD,这里补一对「适应/重置」悬浮按钮。
  */
 
 const EDITOR_TOOLS = [
@@ -61,6 +70,89 @@ function ColorChip({ hex, label, count, active, onClick }) {
         <span className="editor-color-count">{count}</span>
       </span>
     </button>
+  )
+}
+
+/**
+ * 色卡浮层:当前品牌全部色号 + 色号搜索 + 已用颗数。
+ *
+ * 之前它内联在操作台里,展开时把画布压到一半;且只有色块没有色号,
+ * 触屏没有 hover,用户根本不知道补的是哪一色。浮层同时解决这两点。
+ */
+function PalettePanel({ palette, colorStats, selectedColor, onSelect, onClose }) {
+  const { t } = useTranslation()
+  const [query, setQuery] = useState('')
+
+  const counts = useMemo(() => {
+    const map = new Map()
+    for (const c of colorStats) map.set(c.id, c.count)
+    return map
+  }, [colorStats])
+
+  const nameOf = c => t(`palette.colorNames.${palette.id}.${c.id}`, c.nameZh || c.name)
+  const needle = query.trim().toLowerCase()
+  const colors = needle
+    ? palette.colors.filter(
+        c => c.id.toLowerCase().includes(needle) || nameOf(c).toLowerCase().includes(needle)
+      )
+    : palette.colors
+
+  return createPortal(
+    <div className="editor-sheet-overlay" onClick={onClose}>
+      <div
+        className="editor-sheet"
+        role="dialog"
+        aria-label={t('palette.title')}
+        onClick={e => e.stopPropagation()}
+      >
+        <div className="editor-sheet-head">
+          <h2>
+            {t('palette.title')}
+            <span className="editor-sheet-sub">{palette.colors.length}</span>
+          </h2>
+          <button
+            type="button"
+            className="editor-sheet-close"
+            onClick={onClose}
+            aria-label={t('common.close')}
+          >
+            <X size={16} />
+          </button>
+        </div>
+        <input
+          className="editor-sheet-search"
+          type="search"
+          value={query}
+          onChange={e => setQuery(e.target.value)}
+          placeholder={t('palette.search')}
+          aria-label={t('palette.search')}
+        />
+        <div className="editor-palette-grid">
+          {colors.map(c => {
+            const count = counts.get(c.id) || 0
+            return (
+              <button
+                key={c.id}
+                type="button"
+                className={`editor-palette-swatch${selectedColor === c.hex ? ' active' : ''}`}
+                title={`${c.id} ${nameOf(c)}${count ? ` · ${count}` : ''}`}
+                aria-label={`${c.id} ${nameOf(c)}`}
+                onClick={() => {
+                  onSelect(c.hex)
+                  onClose()
+                }}
+              >
+                <span className="editor-palette-color" style={{ background: c.hex }} />
+                <span className="editor-palette-code">{c.id}</span>
+                {count > 0 && <span className="editor-palette-count">{count}</span>}
+              </button>
+            )
+          })}
+          {colors.length === 0 && <p className="editor-palette-empty">{t('palette.search')}</p>}
+        </div>
+      </div>
+    </div>,
+    document.body
   )
 }
 
@@ -101,7 +193,7 @@ export default function EditorPage({
   const navigate = useNavigate()
   const location = useLocation()
   const consoleRef = useRef(null)
-  const [showMoreColors, setShowMoreColors] = useState(false)
+  const [paletteOpen, setPaletteOpen] = useState(false)
 
   const cols = gridWidth || gridSize
   const rows = gridHeight || gridSize
@@ -114,10 +206,9 @@ export default function EditorPage({
     [canvasData, cols, rows, palette]
   )
   const totalBeads = useMemo(() => colorStats.reduce((sum, c) => sum + c.count, 0), [colorStats])
-  const colorName = c => t(`palette.colorNames.${palette.id}.${c.id}`, c.nameZh || c.name)
 
   // 操作台实际高度写入 --mobile-toolbar-h:PickDPad 的悬浮定位读这个变量,
-  // 折行/展开「更多颜色」时方向盘自动跟随(与 MobileToolbar 同款机制)。
+  // 折行/展开面板时方向盘自动跟随(与 MobileToolbar 同款机制)。
   // 互斥性:该变量的写入方只有本页(编辑器路由)与画布页的 MobileToolbar,
   // 两者路由互斥、不会同时挂载 —— 卸载时必须 removeProperty(下方 cleanup),
   // 否则会把编辑器的高度残留到画布页。仅移动布局需要(桌面无消费方)。
@@ -169,10 +260,30 @@ export default function EditorPage({
 
       <div className="editor-canvas-area">
         <Canvas {...canvasProps} ref={canvasRef} />
+        {mobile && (
+          <div className="editor-zoom">
+            <button
+              type="button"
+              onClick={() => canvasRef?.current?.fitToScreen?.()}
+              aria-label={t('canvas.fitTitle')}
+              title={t('canvas.fitTitle')}
+            >
+              <Maximize2 size={16} />
+            </button>
+            <button
+              type="button"
+              onClick={() => canvasRef?.current?.resetTransform?.()}
+              aria-label={t('canvas.reset')}
+              title={t('canvas.reset')}
+            >
+              <RotateCcw size={16} />
+            </button>
+          </div>
+        )}
       </div>
 
       <div className="editor-console" ref={consoleRef}>
-        {/* 行 A:图纸用色(实时颗数)+ 补色入口 */}
+        {/* 行 A:图纸用色(实时颗数)+ 色卡浮层入口 */}
         <div className="editor-color-row">
           <div className="editor-color-list">
             {colorStats.length === 0 && <span className="editor-color-empty">{t('editor.emptyCanvas')}</span>}
@@ -189,77 +300,69 @@ export default function EditorPage({
           </div>
           <button
             type="button"
-            className={`editor-more-btn${showMoreColors ? ' active' : ''}`}
-            onClick={() => setShowMoreColors(v => !v)}
+            className={`editor-more-btn${paletteOpen ? ' active' : ''}`}
+            onClick={() => setPaletteOpen(true)}
           >
-            {showMoreColors ? <X size={14} /> : <Plus size={14} />}
-            {t('editor.moreColors')}
+            <Palette size={14} />
+            {t('editor.palette')}
           </button>
         </div>
 
-        {showMoreColors && (
-          <div className="editor-extra-colors">
-            {palette.colors.map(c => (
-              <button
-                key={c.id}
-                type="button"
-                className={`editor-extra-swatch${selectedColor === c.hex ? ' active' : ''}`}
-                style={{ background: c.hex }}
-                title={`${c.id} ${colorName(c)}`}
-                aria-label={`${c.id} ${colorName(c)}`}
-                onClick={() => {
-                  onColorSelect(c.hex)
-                  setShowMoreColors(false)
-                }}
-              />
-            ))}
-          </div>
-        )}
-
-        {/* 行 C:上下文选区命令(有选区才出现) */}
-        {selection && (
-          <div className="editor-selection-row" data-testid="editor-selection-bar">
-            {selectionCommands.map(([command, key]) => (
-              <button
-                key={command}
-                type="button"
-                className="editor-cmd-btn"
-                disabled={command === 'paste' && !canPaste}
-                onClick={() => onSelectionCommand?.(command)}
-              >
-                {t(key)}
-              </button>
-            ))}
-            <button
-              type="button"
-              className={`editor-cmd-btn${fillIncludeEmpty ? ' active' : ''}`}
-              onClick={() => onToggleFillIncludeEmpty?.(!fillIncludeEmpty)}
-            >
-              {fillIncludeEmpty ? '✓ ' : ''}
-              {t('tools.fillIncludeEmptyShort')}
-            </button>
-            <button type="button" className="editor-cmd-btn danger" onClick={onClearSelection}>
-              {t('tools.clearSelectionBtn')}
-            </button>
-          </div>
-        )}
-
-        {/* 行 B:工具 + 修图操作 */}
+        {/* 行 B:工具 ⇄ 选区命令(同一位置替换,高度不变)
+            行 C:常驻操作(去噪/撤销/重做/保存/导出) */}
         <div className="editor-tools-row">
-          <div className="editor-tools">
-            {EDITOR_TOOLS.map(({ id, icon: Icon }) => (
+          {selection ? (
+            <div className="editor-context">
+              <div className="editor-selection-scroll" data-testid="editor-selection-bar">
+                {selectionCommands.map(([command, key]) => (
+                  <button
+                    key={command}
+                    type="button"
+                    className="editor-cmd-btn"
+                    disabled={command === 'paste' && !canPaste}
+                    onClick={() => onSelectionCommand?.(command)}
+                  >
+                    {t(key)}
+                  </button>
+                ))}
+                <button
+                  type="button"
+                  className={`editor-cmd-btn${fillIncludeEmpty ? ' active' : ''}`}
+                  onClick={() => onToggleFillIncludeEmpty?.(!fillIncludeEmpty)}
+                >
+                  {fillIncludeEmpty ? '✓ ' : ''}
+                  {t('tools.fillIncludeEmptyShort')}
+                </button>
+                <button type="button" className="editor-cmd-btn danger" onClick={onClearSelection}>
+                  {t('tools.clearSelectionBtn')}
+                </button>
+              </div>
               <button
-                key={id}
                 type="button"
-                className={`editor-tool-btn${tool === id ? ' active' : ''}`}
-                title={t(`canvas.tool.${id}`)}
-                aria-label={t(`canvas.tool.${id}`)}
-                onClick={() => onToolChange(id)}
+                className="editor-context-exit"
+                onClick={onClearSelection}
+                aria-label={t('tools.clearSelectionBtn')}
+                title={t('tools.clearSelectionBtn')}
               >
-                <Icon size={18} />
+                <X size={16} />
               </button>
-            ))}
-          </div>
+            </div>
+          ) : (
+            <div className="editor-tools">
+              {EDITOR_TOOLS.map(({ id, icon: Icon }) => (
+                <button
+                  key={id}
+                  type="button"
+                  className={`editor-tool-btn${tool === id ? ' active' : ''}`}
+                  title={t(`canvas.tool.${id}`)}
+                  aria-label={t(`canvas.tool.${id}`)}
+                  onClick={() => onToolChange(id)}
+                >
+                  <Icon size={18} />
+                </button>
+              ))}
+            </div>
+          )}
           <div className="editor-actions">
             <button
               type="button"
@@ -304,6 +407,16 @@ export default function EditorPage({
           </div>
         </div>
       </div>
+
+      {paletteOpen && (
+        <PalettePanel
+          palette={palette}
+          colorStats={colorStats}
+          selectedColor={selectedColor}
+          onSelect={onColorSelect}
+          onClose={() => setPaletteOpen(false)}
+        />
+      )}
 
       {/* 移动端:点选方向盘 + 长按菜单,与画布页同款 */}
       {mobile && tool === 'pick' && (

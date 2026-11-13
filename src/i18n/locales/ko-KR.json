@@ -2267,7 +2267,7 @@
   },
   "editor": {
     "title": "도안 편집기",
-    "moreColors": "색상 추가",
+    "palette": "팔레트",
     "beadCount": "{{n}}알",
     "export": "내보내기",
     "emptyCanvas": "캔버스가 비어 있습니다"

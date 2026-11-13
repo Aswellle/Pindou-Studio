@@ -17,6 +17,7 @@ const OVERLAY_SELECTOR = [
   '.logout-confirm-overlay',
   '.ironing-studio-overlay',
   '.quantizer-zoom',
+  '.editor-sheet-overlay',
 ].join(',')
 
 // 本 hook 负责写入的 CSS 变量(卸载时逐一清理)

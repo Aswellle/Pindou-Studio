@@ -2267,7 +2267,7 @@
   },
   "editor": {
     "title": "Pattern Editor",
-    "moreColors": "More colors",
+    "palette": "Palette",
     "beadCount": "{{n}} beads",
     "export": "Export",
     "emptyCanvas": "Canvas is empty"
