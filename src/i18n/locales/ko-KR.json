@@ -1474,6 +1474,8 @@
       "worksClearSearch": "검색 지우기",
       "worksSyncHint": "이 기기의 작품 {{n}}개가 아직 계정에 동기화되지 않았습니다. 온라인이 되면 자동으로 동기화됩니다.",
       "workOpen": "열기",
+      "workEdit": "편집기",
+      "workEditAria": "편집기에서 열기",
       "workDelete": "삭제",
       "deleteWorkTitle": "이 작품을 삭제할까요?",
       "deleteWorkBody": "「{{name}}」과 버전 기록이 영구 삭제되며 되돌릴 수 없습니다.",

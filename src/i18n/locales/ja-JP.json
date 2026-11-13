@@ -1474,6 +1474,8 @@
       "worksClearSearch": "検索をクリア",
       "worksSyncHint": "この端末の作品 {{n}} 件がまだアカウントに同期されていません。オンラインになると自動で同期されます。",
       "workOpen": "開く",
+      "workEdit": "エディタ",
+      "workEditAria": "エディタで開く",
       "workDelete": "削除",
       "deleteWorkTitle": "この作品を削除しますか?",
       "deleteWorkBody": "「{{name}}」とそのバージョン履歴は完全に削除され、元に戻せません。",

@@ -7,12 +7,27 @@ beforeAll(async () => {
   await i18n.changeLanguage('zh-CN')
   // jsdom 无 canvas 实现:WorkThumbnail 直接 getContext 绘制,给个空上下文即可
   const ctx = {
-    fillStyle: '', strokeStyle: '', lineWidth: 1,
-    fillRect: () => {}, strokeRect: () => {}, clearRect: () => {},
-    beginPath: () => {}, closePath: () => {}, moveTo: () => {}, lineTo: () => {},
-    stroke: () => {}, fill: () => {}, arc: () => {}, save: () => {}, restore: () => {},
-    clip: () => {}, translate: () => {}, scale: () => {}, drawImage: () => {},
-    setTransform: () => {}, fillText: () => {},
+    fillStyle: '',
+    strokeStyle: '',
+    lineWidth: 1,
+    fillRect: () => {},
+    strokeRect: () => {},
+    clearRect: () => {},
+    beginPath: () => {},
+    closePath: () => {},
+    moveTo: () => {},
+    lineTo: () => {},
+    stroke: () => {},
+    fill: () => {},
+    arc: () => {},
+    save: () => {},
+    restore: () => {},
+    clip: () => {},
+    translate: () => {},
+    scale: () => {},
+    drawImage: () => {},
+    setTransform: () => {},
+    fillText: () => {},
     createRadialGradient: () => ({ addColorStop: () => {} }),
   }
   HTMLCanvasElement.prototype.getContext = () => ctx
@@ -23,7 +38,10 @@ afterEach(cleanup)
 const work = (overrides = {}) => ({
   id: 'w1',
   name: '小鸭',
-  canvasData: [[null, '#FFD700'], ['#FFD700', null]],
+  canvasData: [
+    [null, '#FFD700'],
+    ['#FFD700', null],
+  ],
   gridSize: 2,
   gridWidth: 2,
   gridHeight: 2,
@@ -40,6 +58,15 @@ describe('ProfileWorksSection', () => {
     expect(screen.getByText('2 × 2')).toBeTruthy()
     expect(screen.getByRole('button', { name: '打开' })).toBeTruthy()
     expect(screen.getByRole('button', { name: '删除' })).toBeTruthy()
+  })
+
+  it('已保存作品可以再次进入编辑器', () => {
+    const onOpenWorkInEditor = vi.fn()
+    render(<ProfileWorksSection works={[work()]} onOpenWorkInEditor={onOpenWorkInEditor} />)
+
+    fireEvent.click(screen.getByRole('button', { name: '在编辑器中打开' }))
+    expect(onOpenWorkInEditor).toHaveBeenCalledTimes(1)
+    expect(onOpenWorkInEditor.mock.calls[0][0].id).toBe('w1')
   })
 
   it('空列表显示空态,并给出「去图库看看」入口', () => {
@@ -69,9 +96,7 @@ describe('ProfileWorksSection', () => {
   })
 
   it('搜索按名称过滤,无匹配时提供清除搜索', () => {
-    const { container } = render(
-      <ProfileWorksSection works={[work(), work({ id: 'w2', name: '小熊' })]} />,
-    )
+    const { container } = render(<ProfileWorksSection works={[work(), work({ id: 'w2', name: '小熊' })]} />)
     const input = screen.getByRole('searchbox', { name: '搜索作品名称' })
 
     fireEvent.change(input, { target: { value: '熊' } })
@@ -119,7 +144,7 @@ describe('ProfileWorksSection', () => {
     const { container } = render(
       <ProfileWorksSection
         works={[work({ id: 'w1', sourceKind: 'chart-import' }), work({ id: 'w2', name: '旧作品' })]}
-      />,
+      />
     )
 
     const badges = [...container.querySelectorAll('.pf-work-source')]
@@ -129,12 +154,7 @@ describe('ProfileWorksSection', () => {
   })
 
   it('本机作品多于云端镜像时提示尚未同步', () => {
-    render(
-      <ProfileWorksSection
-        works={[work(), work({ id: 'w2', name: '小熊' })]}
-        cloudMirrorCount={1}
-      />,
-    )
+    render(<ProfileWorksSection works={[work(), work({ id: 'w2', name: '小熊' })]} cloudMirrorCount={1} />)
 
     expect(screen.getByText(/还有 1 个作品尚未同步/)).toBeTruthy()
   })

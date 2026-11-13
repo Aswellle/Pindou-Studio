@@ -23,7 +23,14 @@ import { useDialogA11y } from '../../hooks/useDialogA11y'
 import { useScrollLock } from '../../hooks/useScrollLock'
 
 /** 来源类别 → i18n 后缀;旧作品没有该字段时不显示徽标 */
-const SOURCE_KINDS = ['blank', 'photo-quantized', 'chart-import', 'native-file', 'gallery-copy', 'shared-copy']
+const SOURCE_KINDS = [
+  'blank',
+  'photo-quantized',
+  'chart-import',
+  'native-file',
+  'gallery-copy',
+  'shared-copy',
+]
 
 /** 分享只针对云端作品:works 表主键是 UUID;本地遗留 id(如 p-xxx)无法通过 RPC 校验 */
 const CLOUD_ID_RE = /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/
@@ -34,6 +41,7 @@ export default function ProfileWorksSection({
   worksError,
   onRetry,
   onLoadWork,
+  onOpenWorkInEditor,
   onDeleteWork,
   onShowVersions,
   cloudMirrorCount = 0,
@@ -61,10 +69,14 @@ export default function ProfileWorksSection({
   const filtered = useMemo(() => {
     const term = query.trim().toLowerCase()
     if (!term) return list
-    return list.filter((w) => String(w?.name || '').toLowerCase().includes(term))
+    return list.filter(w =>
+      String(w?.name || '')
+        .toLowerCase()
+        .includes(term)
+    )
   }, [list, query])
 
-  const formatDate = (value) => {
+  const formatDate = value => {
     if (!value) return ''
     const d = new Date(value)
     if (Number.isNaN(d.getTime())) return ''
@@ -117,20 +129,20 @@ export default function ProfileWorksSection({
               <input
                 type="search"
                 value={query}
-                onChange={(e) => setQuery(e.target.value)}
+                onChange={e => setQuery(e.target.value)}
                 placeholder={t('profile.center.worksSearch')}
                 aria-label={t('profile.center.worksSearch')}
               />
             </label>
-            <span className="pf-works-count">
-              {t('profile.center.worksCount', { n: filtered.length })}
-            </span>
+            <span className="pf-works-count">{t('profile.center.worksCount', { n: filtered.length })}</span>
           </div>
         ) : null}
 
         {loading ? (
           <div className="pf-works-skeleton" aria-hidden="true">
-            {[0, 1, 2].map((i) => <span key={i} className="pf-works-skeleton-card" />)}
+            {[0, 1, 2].map(i => (
+              <span key={i} className="pf-works-skeleton-card" />
+            ))}
           </div>
         ) : list.length === 0 ? (
           <div className="pf-empty">
@@ -163,7 +175,9 @@ export default function ProfileWorksSection({
                     <WorkThumbnail work={work} />
                   </div>
                   <div className="pf-work-body">
-                    <span className="pf-work-name" title={name}>{name}</span>
+                    <span className="pf-work-name" title={name}>
+                      {name}
+                    </span>
                     <span className="pf-work-meta">
                       {w && h ? `${w} × ${h}` : ''}
                       {date ? <span className="pf-work-date">{date}</span> : null}
@@ -175,37 +189,30 @@ export default function ProfileWorksSection({
                     ) : null}
                   </div>
                   <div className="pf-work-actions">
-                    <button
-                      type="button"
-                      className="pf-btn primary sm"
-                      onClick={() => onLoadWork?.(work)}
-                    >
+                    <button type="button" className="pf-btn primary sm" onClick={() => onLoadWork?.(work)}>
                       {t('profile.center.workOpen')}
                     </button>
+                    <button
+                      type="button"
+                      className="pf-btn ghost sm"
+                      aria-label={t('profile.center.workEditAria')}
+                      title={t('profile.center.workEditAria')}
+                      onClick={() => onOpenWorkInEditor?.(work)}
+                    >
+                      {t('profile.center.workEdit')}
+                    </button>
                     {typeof work.id === 'string' && CLOUD_ID_RE.test(work.id) ? (
-                      <button
-                        type="button"
-                        className="pf-btn ghost sm"
-                        onClick={() => setShareWork(work)}
-                      >
+                      <button type="button" className="pf-btn ghost sm" onClick={() => setShareWork(work)}>
                         <Share2 size={13} aria-hidden="true" />
                         {t('share.shareButton')}
                       </button>
                     ) : null}
                     {onShowVersions ? (
-                      <button
-                        type="button"
-                        className="pf-btn ghost sm"
-                        onClick={() => onShowVersions(work)}
-                      >
+                      <button type="button" className="pf-btn ghost sm" onClick={() => onShowVersions(work)}>
                         {t('versions.open')}
                       </button>
                     ) : null}
-                    <button
-                      type="button"
-                      className="pf-btn danger sm"
-                      onClick={() => setPendingDelete(work)}
-                    >
+                    <button type="button" className="pf-btn danger sm" onClick={() => setPendingDelete(work)}>
                       {t('profile.center.workDelete')}
                     </button>
                   </div>
@@ -216,15 +223,16 @@ export default function ProfileWorksSection({
         )}
       </section>
 
-      <ShareWorkDialog
-        open={!!shareWork}
-        work={shareWork}
-        onClose={() => setShareWork(null)}
-      />
+      <ShareWorkDialog open={!!shareWork} work={shareWork} onClose={() => setShareWork(null)} />
 
       {pendingDelete ? (
         <div className="profile-confirm-overlay">
-          <div className="modal-content confirm-box" ref={confirmRef} {...confirmDialogProps} onClick={(e) => e.stopPropagation()}>
+          <div
+            className="modal-content confirm-box"
+            ref={confirmRef}
+            {...confirmDialogProps}
+            onClick={e => e.stopPropagation()}
+          >
             <h3>{t('profile.center.deleteWorkTitle')}</h3>
             <p>
               {t('profile.center.deleteWorkBody', {

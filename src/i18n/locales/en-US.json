@@ -1474,6 +1474,8 @@
       "worksClearSearch": "Clear search",
       "worksSyncHint": "{{n}} works on this device are not synced to your account yet. They will sync automatically once you are online.",
       "workOpen": "Open",
+      "workEdit": "Editor",
+      "workEditAria": "Open in editor",
       "workDelete": "Delete",
       "deleteWorkTitle": "Delete this work?",
       "deleteWorkBody": "“{{name}}” and its version history will be permanently deleted. This cannot be undone.",

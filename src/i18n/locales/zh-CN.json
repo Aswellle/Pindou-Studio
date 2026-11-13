@@ -1474,6 +1474,8 @@
       "worksClearSearch": "清除搜索",
       "worksSyncHint": "这台设备上还有 {{n}} 个作品尚未同步到账号,联网后会自动同步。",
       "workOpen": "打开",
+      "workEdit": "编辑器",
+      "workEditAria": "在编辑器中打开",
       "workDelete": "删除",
       "deleteWorkTitle": "删除这个作品?",
       "deleteWorkBody": "「{{name}}」及其版本历史将被永久删除,无法恢复。",

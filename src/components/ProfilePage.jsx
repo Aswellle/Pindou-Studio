@@ -21,9 +21,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Navigate, useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
-import {
-  LayoutDashboard, UserRound, ShieldCheck, Boxes, Settings2, LayoutGrid, Heart,
-} from 'lucide-react'
+import { LayoutDashboard, UserRound, ShieldCheck, Boxes, Settings2, LayoutGrid, Heart } from 'lucide-react'
 import BackButton from './BackButton'
 import { buildProfileSummary } from './profile/profileSummary'
 import ProfileOverview from './profile/ProfileOverview'
@@ -62,6 +60,7 @@ export default function ProfilePage({
   onRetryBeads,
   // 作品操作(与图库时期同一套回调,由 App 传入)
   onLoadWork,
+  onOpenWorkInEditor,
   onDeleteWork,
   onShowVersions,
   // 收藏:图库卡片上的心形按钮与这里共用 useGalleryFavorites
@@ -101,7 +100,7 @@ export default function ProfilePage({
 
   const summary = useMemo(
     () => buildProfileSummary({ works, worksLoading, worksError, beadStore }),
-    [works, worksLoading, worksError, beadStore],
+    [works, worksLoading, worksError, beadStore]
   )
 
   const pushMessage = (text, tone = 'success') => setMessage({ text, tone })
@@ -145,11 +144,7 @@ export default function ProfilePage({
             <h1>{t('profile.center.title')}</h1>
             <p>{t('profile.center.subtitle')}</p>
           </div>
-          <button
-            type="button"
-            className="profile-create-btn"
-            onClick={() => navigate('/')}
-          >
+          <button type="button" className="profile-create-btn" onClick={() => navigate('/')}>
             {t('profile.center.backToCreate')}
           </button>
         </header>
@@ -201,6 +196,7 @@ export default function ProfilePage({
                   worksError={worksError}
                   onRetry={onRetryWorks}
                   onLoadWork={onLoadWork}
+                  onOpenWorkInEditor={onOpenWorkInEditor}
                   onDeleteWork={onDeleteWork}
                   onShowVersions={onShowVersions}
                   cloudMirrorCount={cloudMirrorCount}
@@ -222,11 +218,7 @@ export default function ProfilePage({
               />
             ) : null}
             {section === 'info' ? (
-              <ProfileInfoSection
-                user={user}
-                onUpdateProfile={onUpdateProfile}
-                onMessage={pushMessage}
-              />
+              <ProfileInfoSection user={user} onUpdateProfile={onUpdateProfile} onMessage={pushMessage} />
             ) : null}
             {section === 'security' ? (
               <ProfileSecuritySection

@@ -697,7 +697,9 @@ export default function App() {
     navigate('/')
   }
 
-  const handleLoadWork = rawWork => {
+  // 载入作品到画布:归一尺寸 → 换画布 → 记录来源。
+  // 两个出口共用同一套载入逻辑,只是落脚页不同(画布页 / 编辑器)。
+  const loadWorkIntoCanvas = rawWork => {
     // 载入前归一:旧作品的声明尺寸可能与 canvasData 实际形状不一致,
     // 直接 setGridSize 会让画布网格与数据错位(多出的行画不出来、少的行越界)。
     const work = normalizeLegacyWork(rawWork)
@@ -708,7 +710,19 @@ export default function App() {
     // 来源随作品一起载入:再次保存时不会把「图库复制」退化成「手绘」
     setCanvasSource(work.sourceKind || null)
     replaceCanvas(work.canvasData)
+    return work
+  }
+
+  const handleLoadWork = rawWork => {
+    loadWorkIntoCanvas(rawWork)
     navigate('/')
+  }
+
+  // 已保存作品再次进入编辑器:同样的载入,落到 /editor。
+  // 编辑器只服务「图纸级」修改(点选/去噪/整理),不改变作品的来源语义。
+  const handleOpenWorkInEditor = rawWork => {
+    loadWorkIntoCanvas(rawWork)
+    navigate('/editor')
   }
 
   /**
@@ -1432,6 +1446,7 @@ export default function App() {
                 onRetryBeads={beadStore.reload}
                 // 作品与收藏已从图库搬到个人中心,回调沿用 App 里同一套实例
                 onLoadWork={handleLoadWork}
+                onOpenWorkInEditor={handleOpenWorkInEditor}
                 onDeleteWork={deleteWork}
                 // 版本时间线只覆盖本地作品:云端作品的「里程碑版本」策略未定,
                 // 传 undefined 让按钮不出现,而不是给一个点了没反应的入口。
@@ -1976,6 +1991,7 @@ export default function App() {
                 onRetryBeads={beadStore.reload}
                 // 作品与收藏已从图库搬到个人中心,回调沿用 App 里同一套实例
                 onLoadWork={handleLoadWork}
+                onOpenWorkInEditor={handleOpenWorkInEditor}
                 onDeleteWork={deleteWork}
                 // 版本时间线只覆盖本地作品:云端作品的「里程碑版本」策略未定,
                 // 传 undefined 让按钮不出现,而不是给一个点了没反应的入口。
