@@ -2,14 +2,32 @@ import { useTranslation } from 'react-i18next'
 import { useToast } from './Toast'
 import { countLassoCells as lassoCount } from '../utils/lassoSelection'
 import {
-  Pencil, Eraser, PaintBucket, Hand, Undo2, Redo2, Trash2, ChevronLeft, ChevronRight, FileJson,
-  Pipette, SquareDashed, Lasso, Replace, FlipHorizontal2, FlipVertical2, RotateCw, RotateCcw, X,
-  Copy, ClipboardPaste, Scissors, MousePointerClick, Sparkles,
+  Pencil,
+  Eraser,
+  PaintBucket,
+  Hand,
+  Undo2,
+  Redo2,
+  Trash2,
+  ChevronLeft,
+  ChevronRight,
+  FileJson,
+  Pipette,
+  SquareDashed,
+  Lasso,
+  Replace,
+  FlipHorizontal2,
+  FlipVertical2,
+  RotateCw,
+  RotateCcw,
+  X,
+  Copy,
+  ClipboardPaste,
+  Scissors,
 } from 'lucide-react'
 
 export default function Tools({
   tool,
-  onNoiseCleanup,
   onToolChange,
   gridSize,
   gridWidth,
@@ -49,12 +67,15 @@ export default function Tools({
   const currentHeight = gridHeight || gridSize
   const isRectangular = gridWidth !== null && gridHeight !== null
 
-  const handlePresetChange = (e) => {
+  const handlePresetChange = e => {
     const value = e.target.value
     if (value === 'custom') {
       const input = prompt(t('tools.customSizePrompt'), `${currentWidth}x${currentHeight}`)
       if (!input) return
-      const parts = input.toLowerCase().split('x').map(s => parseInt(s.trim(), 10))
+      const parts = input
+        .toLowerCase()
+        .split('x')
+        .map(s => parseInt(s.trim(), 10))
       if (Number.isNaN(parts[0]) || parts[0] < 9 || parts[0] > 200) {
         toast(t('tools.widthRange'), 'error')
         return
@@ -157,14 +178,6 @@ export default function Tools({
             >
               <Lasso size={20} />
             </button>
-            {/* 「点选」:逐格加入/移出选区,适合手工挑格子(跳过不要的杂色格等) */}
-            <button
-              className={`tool-btn ${tool === 'pick' ? 'active' : ''}`}
-              onClick={() => onToolChange('pick')}
-              title={t('canvas.tool.pick')}
-            >
-              <MousePointerClick size={20} />
-            </button>
           </div>
         </div>
 
@@ -172,7 +185,7 @@ export default function Tools({
             按钮排成单列(图标 + 文字,左对齐):侧栏只有 200px,两列布局下
             「顺时针旋转」这类标签会顶出按钮边界;单列保证任何语言都不换行、不溢出。
             A5:套索与矩形共用同一组命令,因此两种工具下都展开。 */}
-        {(tool === 'select' || tool === 'lasso' || tool === 'pick') && (
+        {(tool === 'select' || tool === 'lasso') && (
           <div className="tool-group selection-group">
             <label className="tool-label">{t('tools.selection')}</label>
             {selection ? (
@@ -185,19 +198,39 @@ export default function Tools({
                     : t('tools.selectionSize', { w: selection.w, h: selection.h })}
                 </div>
                 <div className="selection-actions">
-                  <button className="action-btn" onClick={() => onSelectionCommand?.('fill')} title={t('tools.fillSelection')}>
-                    <PaintBucket size={15} /><span className="action-btn-label">{t('tools.fillSelection')}</span>
+                  <button
+                    className="action-btn"
+                    onClick={() => onSelectionCommand?.('fill')}
+                    title={t('tools.fillSelection')}
+                  >
+                    <PaintBucket size={15} />
+                    <span className="action-btn-label">{t('tools.fillSelection')}</span>
                   </button>
-                  <button className="action-btn" onClick={() => onSelectionCommand?.('erase')} title={t('tools.clearSelection')}>
-                    <Eraser size={15} /><span className="action-btn-label">{t('tools.clearSelection')}</span>
+                  <button
+                    className="action-btn"
+                    onClick={() => onSelectionCommand?.('erase')}
+                    title={t('tools.clearSelection')}
+                  >
+                    <Eraser size={15} />
+                    <span className="action-btn-label">{t('tools.clearSelection')}</span>
                   </button>
                   {/* 复制 / 剪切 / 粘贴:纯内存剪贴板,不碰系统剪贴板。
                       粘贴以当前选区左上角为落点(无选区时贴到画布左上角),越界裁剪。 */}
-                  <button className="action-btn" onClick={() => onSelectionCommand?.('copy')} title={t('tools.copySelection')}>
-                    <Copy size={15} /><span className="action-btn-label">{t('tools.copySelection')}</span>
+                  <button
+                    className="action-btn"
+                    onClick={() => onSelectionCommand?.('copy')}
+                    title={t('tools.copySelection')}
+                  >
+                    <Copy size={15} />
+                    <span className="action-btn-label">{t('tools.copySelection')}</span>
                   </button>
-                  <button className="action-btn" onClick={() => onSelectionCommand?.('cut')} title={t('tools.cutSelection')}>
-                    <Scissors size={15} /><span className="action-btn-label">{t('tools.cutSelection')}</span>
+                  <button
+                    className="action-btn"
+                    onClick={() => onSelectionCommand?.('cut')}
+                    title={t('tools.cutSelection')}
+                  >
+                    <Scissors size={15} />
+                    <span className="action-btn-label">{t('tools.cutSelection')}</span>
                   </button>
                   <button
                     className="action-btn"
@@ -205,22 +238,48 @@ export default function Tools({
                     disabled={!canPaste}
                     title={t('tools.pasteSelection')}
                   >
-                    <ClipboardPaste size={15} /><span className="action-btn-label">{t('tools.pasteSelection')}</span>
+                    <ClipboardPaste size={15} />
+                    <span className="action-btn-label">{t('tools.pasteSelection')}</span>
                   </button>
-                  <button className="action-btn" onClick={() => onSelectionCommand?.('mirrorH')} title={t('tools.mirrorH')}>
-                    <FlipHorizontal2 size={15} /><span className="action-btn-label">{t('tools.mirrorH')}</span>
+                  <button
+                    className="action-btn"
+                    onClick={() => onSelectionCommand?.('mirrorH')}
+                    title={t('tools.mirrorH')}
+                  >
+                    <FlipHorizontal2 size={15} />
+                    <span className="action-btn-label">{t('tools.mirrorH')}</span>
                   </button>
-                  <button className="action-btn" onClick={() => onSelectionCommand?.('mirrorV')} title={t('tools.mirrorV')}>
-                    <FlipVertical2 size={15} /><span className="action-btn-label">{t('tools.mirrorV')}</span>
+                  <button
+                    className="action-btn"
+                    onClick={() => onSelectionCommand?.('mirrorV')}
+                    title={t('tools.mirrorV')}
+                  >
+                    <FlipVertical2 size={15} />
+                    <span className="action-btn-label">{t('tools.mirrorV')}</span>
                   </button>
-                  <button className="action-btn" onClick={() => onSelectionCommand?.('rotateCw')} title={t('tools.rotateCw')}>
-                    <RotateCw size={15} /><span className="action-btn-label">{t('tools.rotateCw')}</span>
+                  <button
+                    className="action-btn"
+                    onClick={() => onSelectionCommand?.('rotateCw')}
+                    title={t('tools.rotateCw')}
+                  >
+                    <RotateCw size={15} />
+                    <span className="action-btn-label">{t('tools.rotateCw')}</span>
                   </button>
-                  <button className="action-btn" onClick={() => onSelectionCommand?.('rotateCcw')} title={t('tools.rotateCcw')}>
-                    <RotateCcw size={15} /><span className="action-btn-label">{t('tools.rotateCcw')}</span>
+                  <button
+                    className="action-btn"
+                    onClick={() => onSelectionCommand?.('rotateCcw')}
+                    title={t('tools.rotateCcw')}
+                  >
+                    <RotateCcw size={15} />
+                    <span className="action-btn-label">{t('tools.rotateCcw')}</span>
                   </button>
-                  <button className="action-btn selection-clear" onClick={onClearSelection} title={t('tools.clearSelectionBtn')}>
-                    <X size={15} /><span className="action-btn-label">{t('tools.clearSelectionBtn')}</span>
+                  <button
+                    className="action-btn selection-clear"
+                    onClick={onClearSelection}
+                    title={t('tools.clearSelectionBtn')}
+                  >
+                    <X size={15} />
+                    <span className="action-btn-label">{t('tools.clearSelectionBtn')}</span>
                   </button>
                 </div>
                 {/* 规格 04 §2:默认只改已有珠子;需要连空白一起填时由这个开关显式打开 */}
@@ -228,7 +287,7 @@ export default function Tools({
                   <input
                     type="checkbox"
                     checked={Boolean(fillIncludeEmpty)}
-                    onChange={(e) => onToggleFillIncludeEmpty?.(e.target.checked)}
+                    onChange={e => onToggleFillIncludeEmpty?.(e.target.checked)}
                   />
                   <span>{t('tools.fillIncludeEmpty')}</span>
                 </label>
@@ -238,7 +297,7 @@ export default function Tools({
                   <input
                     type="checkbox"
                     checked={Boolean(copyDrag)}
-                    onChange={(e) => onToggleCopyDrag?.(e.target.checked)}
+                    onChange={e => onToggleCopyDrag?.(e.target.checked)}
                   />
                   <span>{t('tools.copyDragHint')}</span>
                 </label>
@@ -247,29 +306,22 @@ export default function Tools({
                   <input
                     type="checkbox"
                     checked={Boolean(snapToEdges)}
-                    onChange={(e) => onToggleSnapToEdges?.(e.target.checked)}
+                    onChange={e => onToggleSnapToEdges?.(e.target.checked)}
                   />
                   <span>{t('tools.snapToEdgesHint')}</span>
                 </label>
-                {/* 点选工具:拖拽不搬内容(逐格 toggle),提示改为点选玩法;
-                    其他选区工具保留「按住可拖动」提示 */}
-                <p className="selection-hint">
-                  {tool === 'pick' ? t('tools.pickHint') : t('tools.selectionMoveHint')}
-                </p>
+                {/* 拖拽移动没有按钮,只能靠提示告知(规格 04 §2 要求移动有明确入口) */}
+                <p className="selection-hint">{t('tools.selectionMoveHint')}</p>
               </>
             ) : (
-              <p className="selection-hint">{tool === 'pick' ? t('tools.pickHint') : t('tools.selectionEmpty')}</p>
+              <p className="selection-hint">{t('tools.selectionEmpty')}</p>
             )}
           </div>
         )}
 
         <div className="tool-group">
           <label className="tool-label">{t('tools.canvasSize')}</label>
-          <select
-            value={getCurrentPreset()}
-            onChange={handlePresetChange}
-            className="tool-select"
-          >
+          <select value={getCurrentPreset()} onChange={handlePresetChange} className="tool-select">
             <optgroup label={`—— ${t('tools.presets.squareGroup')} ——`}>
               <option value="29">29×29 {t('tools.presets.smallIcon')}</option>
               <option value="57">57×57 {t('tools.presets.standard')}</option>
@@ -308,11 +360,21 @@ export default function Tools({
               <Trash2 size={16} />
               {t('tools.clear')}
             </button>
-            <button className="action-btn icon-btn" onClick={onUndo} disabled={!canUndo} title={t('tools.undoAction')}>
+            <button
+              className="action-btn icon-btn"
+              onClick={onUndo}
+              disabled={!canUndo}
+              title={t('tools.undoAction')}
+            >
               <Undo2 size={18} />
               <span>{t('tools.undo')}</span>
             </button>
-            <button className="action-btn icon-btn" onClick={onRedo} disabled={!canRedo} title={t('tools.redoAction')}>
+            <button
+              className="action-btn icon-btn"
+              onClick={onRedo}
+              disabled={!canRedo}
+              title={t('tools.redoAction')}
+            >
               <Redo2 size={18} />
               <span>{t('tools.redo')}</span>
             </button>
@@ -321,11 +383,15 @@ export default function Tools({
 
         <div className="tool-group">
           <label className="tool-label">{t('tools.import')}</label>
-          <button className="action-btn quantizer-btn" onClick={onOpenQuantizer} title={t('tools.imageToBead')}>
+          <button
+            className="action-btn quantizer-btn"
+            onClick={onOpenQuantizer}
+            title={t('tools.imageToBead')}
+          >
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
-              <circle cx="8.5" cy="8.5" r="1.5"/>
-              <polyline points="21,15 16,10 5,21"/>
+              <rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
+              <circle cx="8.5" cy="8.5" r="1.5" />
+              <polyline points="21,15 16,10 5,21" />
             </svg>
             {t('tools.imageToBead')}
           </button>
@@ -336,17 +402,13 @@ export default function Tools({
             </button>
           )}
           {onOpenReplace && (
-            <button className="action-btn replace-btn" onClick={onOpenReplace} title={t('tools.replaceColor')}>
+            <button
+              className="action-btn replace-btn"
+              onClick={onOpenReplace}
+              title={t('tools.replaceColor')}
+            >
               <Replace size={16} />
               {t('tools.replaceColor')}
-            </button>
-          )}
-          {/* 编辑器手动去噪:量化管线的自动清理只在转换时跑一次,
-              逐格修改后的新杂色从这里一键清掉(有选区时仅选区) */}
-          {onNoiseCleanup && (
-            <button className="action-btn noise-btn" onClick={onNoiseCleanup} title={t('tools.noiseCleanup')}>
-              <Sparkles size={16} />
-              {t('tools.noiseCleanup')}
             </button>
           )}
         </div>

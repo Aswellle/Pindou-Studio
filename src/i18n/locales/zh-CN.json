@@ -516,7 +516,6 @@
     "importFile": "导入图纸文件",
     "selection": "选区操作",
     "selectionEmpty": "先在画布上拖出选区",
-    "pickHint": "点格子加入选区，再点一次移出；配合下方操作填色、擦除或翻转",
     "fillSelection": "填充选区",
     "clearSelection": "擦除选区",
     "mirrorH": "水平镜像",

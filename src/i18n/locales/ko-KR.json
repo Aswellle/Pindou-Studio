@@ -516,7 +516,6 @@
     "importFile": "파일 가져오기",
     "selection": "선택 영역",
     "selectionEmpty": "캔버스에서 드래그하여 선택 영역을 만드세요",
-    "pickHint": "칸을 눌러 선택에 추가하고 다시 눌러 해제하세요. 아래 버튼으로 채우기·지우기·반전",
     "fillSelection": "선택 영역 채우기",
     "clearSelection": "선택 영역 지우기",
     "mirrorH": "좌우 반전",

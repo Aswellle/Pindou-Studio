@@ -15,7 +15,9 @@ import MobileToolbar from './MobileToolbar'
 
 const BEHAVIOR_KEY = 'bead-studio-behavior'
 
-beforeAll(async () => { await i18n.changeLanguage('zh-CN') })
+beforeAll(async () => {
+  await i18n.changeLanguage('zh-CN')
+})
 
 beforeEach(() => {
   localStorage.clear()
@@ -54,8 +56,8 @@ function renderBar(overrides = {}) {
   return { ...view, props }
 }
 
-const $ = (sel) => document.body.querySelector(sel)
-const $$ = (sel) => document.body.querySelectorAll(sel)
+const $ = sel => document.body.querySelector(sel)
+const $$ = sel => document.body.querySelectorAll(sel)
 
 describe('MobileToolbar · 选区操作条', () => {
   it('非选区工具时不渲染操作条', () => {
@@ -107,24 +109,31 @@ describe('MobileToolbar · 选区操作条', () => {
     // 手机最窄 320px,工具栏左右各 12px 内边距 → 可用约 296px = 24.6em(12px 字号)。
     // 预算 10em(约 120px)保证「图标 14px + 间距 + 内边距」之后仍远小于一行宽度,
     // 超长译文会先被省略号截断(见 .selection-btn-label),绝不会把布局撑破。
-    const widthEm = (text) => [...text].reduce((sum, ch) => {
-      const cjk = /[぀-ヿ㐀-䶿一-鿿가-힯]/.test(ch)
-      return sum + (cjk ? 1 : 0.55)
-    }, 0)
+    const widthEm = text =>
+      [...text].reduce((sum, ch) => {
+        const cjk = /[぀-ヿ㐀-䶿一-鿿가-힯]/.test(ch)
+        return sum + (cjk ? 1 : 0.55)
+      }, 0)
 
     const keys = [
-      'selectionFillShort', 'selectionEraseShort',
-      'selectionCopyShort', 'selectionPasteShort',
-      'selectionFlipHShort', 'selectionFlipVShort',
-      'selectionRotateCwShort', 'selectionRotateCcwShort',
+      'selectionFillShort',
+      'selectionEraseShort',
+      'selectionCopyShort',
+      'selectionPasteShort',
+      'selectionFlipHShort',
+      'selectionFlipVShort',
+      'selectionRotateCwShort',
+      'selectionRotateCcwShort',
     ]
     for (const lng of ['zh-CN', 'en-US', 'ja-JP', 'ko-KR']) {
       await ensureLanguage(lng)
       for (const key of keys) {
         const text = i18n.getResourceBundle(lng, 'translation').tools[key]
         expect(text, `${lng}.${key} 缺失`).toBeTruthy()
-        expect(widthEm(text), `${lng}.${key} 过宽(${widthEm(text).toFixed(1)}em):${text}`)
-          .toBeLessThanOrEqual(10)
+        expect(
+          widthEm(text),
+          `${lng}.${key} 过宽(${widthEm(text).toFixed(1)}em):${text}`
+        ).toBeLessThanOrEqual(10)
       }
     }
   })
@@ -135,8 +144,9 @@ describe('MobileToolbar · 选区操作条', () => {
     expect(row).toBeTruthy()
     // 结构层面:flex-wrap 由 CSS 保证;这里锁定每个按钮都带 label 容器,
     // 且「取消选区」与命令按钮分开放置(退出动作不混在编辑动作里)
-    const clearBtn = [...row.querySelectorAll('button')]
-      .find(b => b.textContent.includes(i18n.t('tools.clearSelectionBtn')))
+    const clearBtn = [...row.querySelectorAll('button')].find(b =>
+      b.textContent.includes(i18n.t('tools.clearSelectionBtn'))
+    )
     expect(clearBtn.classList.contains('selection-clear')).toBe(true)
   })
 
@@ -177,8 +187,10 @@ describe('MobileToolbar · 选区操作条', () => {
 
   it('空剪贴板时「粘贴」禁用,有内容时可用', () => {
     const { unmount } = renderBar({ selection: { x: 0, y: 0, w: 2, h: 2 }, canPaste: false })
-    const pasteOf = () => [...$$('.selection-actions-row button')]
-      .find(b => b.getAttribute('aria-label') === i18n.t('tools.pasteSelection'))
+    const pasteOf = () =>
+      [...$$('.selection-actions-row button')].find(
+        b => b.getAttribute('aria-label') === i18n.t('tools.pasteSelection')
+      )
 
     expect(pasteOf().disabled).toBe(true)
     unmount()
@@ -189,8 +201,9 @@ describe('MobileToolbar · 选区操作条', () => {
 
   it('复制按钮始终可点(复制不依赖剪贴板)', () => {
     const { props } = renderBar({ selection: { x: 0, y: 0, w: 2, h: 2 }, canPaste: false })
-    const copyBtn = [...$$('.selection-actions-row button')]
-      .find(b => b.getAttribute('aria-label') === i18n.t('tools.copySelection'))
+    const copyBtn = [...$$('.selection-actions-row button')].find(
+      b => b.getAttribute('aria-label') === i18n.t('tools.copySelection')
+    )
     expect(copyBtn.disabled).toBe(false)
     fireEvent.click(copyBtn)
     expect(props.onSelectionCommand).toHaveBeenCalledWith('copy')
@@ -208,9 +221,14 @@ describe('MobileToolbar · 选区分步引导', () => {
   it('首次框出选区 → 出现第 2 步引导,并标记完成', () => {
     renderBar()
     cleanup()
-    localStorage.setItem(BEHAVIOR_KEY, JSON.stringify({
-      sessions: 1, guideShown: true, selectionGuideStep1: true,
-    }))
+    localStorage.setItem(
+      BEHAVIOR_KEY,
+      JSON.stringify({
+        sessions: 1,
+        guideShown: true,
+        selectionGuideStep1: true,
+      })
+    )
 
     renderBar({ selection: { x: 0, y: 0, w: 2, h: 2 } })
     expect(screen.getByText(i18n.t('tools.selectionGuideStep2'))).toBeTruthy()
@@ -218,9 +236,14 @@ describe('MobileToolbar · 选区分步引导', () => {
   })
 
   it('看过之后不再出现(不反复打扰)', () => {
-    localStorage.setItem(BEHAVIOR_KEY, JSON.stringify({
-      sessions: 1, guideShown: true, selectionGuideDone: true,
-    }))
+    localStorage.setItem(
+      BEHAVIOR_KEY,
+      JSON.stringify({
+        sessions: 1,
+        guideShown: true,
+        selectionGuideDone: true,
+      })
+    )
     renderBar({ selection: { x: 0, y: 0, w: 2, h: 2 } })
     expect(screen.queryByText(i18n.t('tools.selectionGuideStep2'))).toBeNull()
   })
@@ -259,28 +282,16 @@ describe('MobileToolbar · 工具栏高度变量', () => {
   })
 })
 
-describe('MobileToolbar · 点选工具', () => {
-  it('pick 工具显示选区操作条与「点选」工具按钮', () => {
-    renderBar({ tool: 'pick' })
-    expect($('[data-testid="mobile-selection-bar"]')).toBeTruthy()
+describe('MobileToolbar · 画布页不提供编辑器专属能力', () => {
+  it('工具行没有「点选」(点选是 /editor 专属工具)', () => {
+    renderBar()
     const labels = [...$$('.toolbar-tools .tool-label')].map(el => el.textContent)
-    expect(labels).toContain('点选')
+    expect(labels).not.toContain('点选')
   })
 
-  it('pick 无选区时提示点选玩法(不是「先拖出选区」)', () => {
-    renderBar({ tool: 'pick', selection: null })
-    expect(document.body.textContent).toContain('点格子加入选区')
-  })
-})
-
-describe('MobileToolbar · 去噪入口', () => {
-  it('操作行有「去噪」按钮(图标 + 可见文字),点击回调 onNoiseCleanup', () => {
-    const onNoiseCleanup = vi.fn()
-    renderBar({ onNoiseCleanup })
+  it('操作行没有「去噪」按钮(去噪是 /editor 专属操作)', () => {
+    renderBar({ onNoiseCleanup: vi.fn() })
     const btn = [...$$('button.action-btn')].find(b => b.getAttribute('title') === '去噪')
-    expect(btn).toBeTruthy()
-    expect(btn.textContent).toContain('去噪')
-    fireEvent.click(btn)
-    expect(onNoiseCleanup).toHaveBeenCalledTimes(1)
+    expect(btn).toBeUndefined()
   })
 })

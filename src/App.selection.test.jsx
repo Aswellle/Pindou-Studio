@@ -16,7 +16,7 @@ import App from './App'
 
 const { canvasProps } = vi.hoisted(() => ({ canvasProps: { current: null } }))
 
-vi.mock('./services/supabase', async (importOriginal) => {
+vi.mock('./services/supabase', async importOriginal => {
   const actual = await importOriginal()
   return { ...actual, supabase: null, SUPABASE_URL: '', SUPABASE_DIRECT_URL: '', SUPABASE_PROXIED: false }
 })
@@ -26,7 +26,9 @@ vi.mock('./components/Canvas', async () => {
   const MockCanvas = React.forwardRef(function MockCanvas(props, ref) {
     canvasProps.current = props
     React.useImperativeHandle(ref, () => ({
-      cancelStroke: () => {}, resetTransform: () => {}, fitToScreen: () => {},
+      cancelStroke: () => {},
+      resetTransform: () => {},
+      fitToScreen: () => {},
     }))
     return React.createElement('div', { className: 'mock-canvas' })
   })
@@ -35,38 +37,111 @@ vi.mock('./components/Canvas', async () => {
 
 // Tools 桩:把选区状态、选区命令与网格尺寸变更暴露成按钮,
 // 绕开侧栏折叠等视觉细节,只验证 App 的接线与事务语义。
+// 编辑器桩:去噪是 /editor 专属操作,App 只向 EditorPage 传 onNoiseCleanup。
+// 渲染真实 Canvas 桩以便 canvasProps 捕获(与画布页同一套 App 状态)。
+vi.mock('./components/EditorPage', async () => {
+  const React = await import('react')
+  const Canvas = (await import('./components/Canvas')).default
+  return {
+    default: ({ canvasProps, onNoiseCleanup, tool, onToolChange }) =>
+      React.createElement(
+        'div',
+        null,
+        React.createElement(Canvas, canvasProps),
+        React.createElement('span', { 'data-testid': 'tool' }, tool),
+        React.createElement(
+          'button',
+          { 'data-testid': 'pick-tool', onClick: () => onToolChange('pick') },
+          'pick-tool'
+        ),
+        React.createElement('button', { 'data-testid': 'noise', onClick: onNoiseCleanup }, 'noise')
+      ),
+  }
+})
+
 vi.mock('./components/Tools', async () => {
   const React = await import('react')
   return {
-    default: ({ selection, tool, onToolChange, onSelectionCommand, onClearSelection, onGridSizeChange, onToggleFillIncludeEmpty, canPaste, onNoiseCleanup }) => React.createElement(
-      'div',
-      null,
-      React.createElement('span', { 'data-testid': 'sel' }, selection ? `${selection.w}x${selection.h}` : 'none'),
-      React.createElement('span', { 'data-testid': 'tool' }, tool),
-      React.createElement('button', { 'data-testid': 'select-tool', onClick: () => onToolChange('select') }, 'select-tool'),
-      React.createElement('button', { 'data-testid': 'pick-tool', onClick: () => onToolChange('pick') }, 'pick-tool'),
-      React.createElement('button', { 'data-testid': 'fill', onClick: () => onSelectionCommand('fill') }, 'fill'),
-      React.createElement('button', { 'data-testid': 'rotate', onClick: () => onSelectionCommand('rotateCw') }, 'rotate'),
-      React.createElement('button', { 'data-testid': 'copy', onClick: () => onSelectionCommand('copy') }, 'copy'),
-      React.createElement('button', { 'data-testid': 'paste', disabled: !canPaste, onClick: () => onSelectionCommand('paste') }, 'paste'),
-      React.createElement('button', { 'data-testid': 'clear-sel', onClick: onClearSelection }, 'clear-sel'),
-      React.createElement('button', { 'data-testid': 'resize', onClick: () => onGridSizeChange(57) }, 'resize'),
-      // 规格 04 §2:填充默认跳过空白格,需要连空白一起填时由这个开关显式打开
-      React.createElement('button', { 'data-testid': 'toggle-empty', onClick: () => onToggleFillIncludeEmpty(true) }, 'include-empty'),
-      React.createElement('button', { 'data-testid': 'noise', onClick: onNoiseCleanup }, 'noise')
-    ),
+    default: ({
+      selection,
+      tool,
+      onToolChange,
+      onSelectionCommand,
+      onClearSelection,
+      onGridSizeChange,
+      onToggleFillIncludeEmpty,
+      canPaste,
+    }) =>
+      React.createElement(
+        'div',
+        null,
+        React.createElement(
+          'span',
+          { 'data-testid': 'sel' },
+          selection ? `${selection.w}x${selection.h}` : 'none'
+        ),
+        React.createElement('span', { 'data-testid': 'tool' }, tool),
+        React.createElement(
+          'button',
+          { 'data-testid': 'select-tool', onClick: () => onToolChange('select') },
+          'select-tool'
+        ),
+        React.createElement(
+          'button',
+          { 'data-testid': 'pick-tool', onClick: () => onToolChange('pick') },
+          'pick-tool'
+        ),
+        React.createElement(
+          'button',
+          { 'data-testid': 'fill', onClick: () => onSelectionCommand('fill') },
+          'fill'
+        ),
+        React.createElement(
+          'button',
+          { 'data-testid': 'rotate', onClick: () => onSelectionCommand('rotateCw') },
+          'rotate'
+        ),
+        React.createElement(
+          'button',
+          { 'data-testid': 'copy', onClick: () => onSelectionCommand('copy') },
+          'copy'
+        ),
+        React.createElement(
+          'button',
+          { 'data-testid': 'paste', disabled: !canPaste, onClick: () => onSelectionCommand('paste') },
+          'paste'
+        ),
+        React.createElement('button', { 'data-testid': 'clear-sel', onClick: onClearSelection }, 'clear-sel'),
+        React.createElement(
+          'button',
+          { 'data-testid': 'resize', onClick: () => onGridSizeChange(57) },
+          'resize'
+        ),
+        // 规格 04 §2:填充默认跳过空白格,需要连空白一起填时由这个开关显式打开
+        React.createElement(
+          'button',
+          { 'data-testid': 'toggle-empty', onClick: () => onToggleFillIncludeEmpty(true) },
+          'include-empty'
+        )
+      ),
   }
 })
 
 function installMatchMedia() {
   const orig = window.matchMedia
-  window.matchMedia = (query) => ({
-    matches: true, media: query, onchange: null,
-    addListener: () => {}, removeListener: () => {},
-    addEventListener: () => {}, removeEventListener: () => {},
+  window.matchMedia = query => ({
+    matches: true,
+    media: query,
+    onchange: null,
+    addListener: () => {},
+    removeListener: () => {},
+    addEventListener: () => {},
+    removeEventListener: () => {},
     dispatchEvent: () => false,
   })
-  return () => { window.matchMedia = orig }
+  return () => {
+    window.matchMedia = orig
+  }
 }
 
 let restoreMedia
@@ -76,7 +151,9 @@ beforeAll(async () => {
   await i18n.changeLanguage('zh-CN')
 })
 
-beforeEach(() => { restoreMedia = installMatchMedia() })
+beforeEach(() => {
+  restoreMedia = installMatchMedia()
+})
 
 afterEach(() => {
   cleanup()
@@ -84,9 +161,9 @@ afterEach(() => {
   localStorage.clear()
 })
 
-function renderApp() {
+function renderApp(path = '/') {
   return render(
-    <MemoryRouter initialEntries={['/']}>
+    <MemoryRouter initialEntries={[path]}>
       <HelmetProvider>
         <App />
       </HelmetProvider>
@@ -312,7 +389,10 @@ describe('App · 拖拽移动选区(M5.2)', () => {
     const before = canvasProps.current.committedData.map(r => [...r])
 
     canvasProps.current.onSelectionMove({
-      dx: 2, dy: 2, selection: { x: 0, y: 0, w: 2, h: 2 }, copy: true,
+      dx: 2,
+      dy: 2,
+      selection: { x: 0, y: 0, w: 2, h: 2 },
+      copy: true,
     })
 
     await waitFor(() => {
@@ -648,7 +728,7 @@ describe('App · 点选工具(逐格 toggle 选区)', () => {
 
 describe('App · 点选方向盘与键盘步进', () => {
   it('方向键步进:首按初始化到画布中心再移动,越界钳制', async () => {
-    const { getByTestId } = renderApp()
+    const { getByTestId } = renderApp('/editor')
 
     await waitFor(() => expect(canvasProps.current?.committedData).toBeTruthy())
     fireEvent.click(getByTestId('pick-tool'))
@@ -666,7 +746,7 @@ describe('App · 点选方向盘与键盘步进', () => {
   })
 
   it('Enter toggle 光标所在格,一次进入一条选区', async () => {
-    const { getByTestId } = renderApp()
+    const { getByTestId } = renderApp('/editor')
 
     await waitFor(() => expect(canvasProps.current?.committedData).toBeTruthy())
     fireEvent.click(getByTestId('pick-tool'))
@@ -686,7 +766,7 @@ describe('App · 点选方向盘与键盘步进', () => {
   })
 
   it('方向键在点选工具外不移动光标(不干扰其他工具)', async () => {
-    const { getByTestId } = renderApp()
+    renderApp()
 
     await waitFor(() => expect(canvasProps.current?.committedData).toBeTruthy())
     fireEvent.keyDown(window, { key: 'ArrowRight' })
@@ -695,19 +775,25 @@ describe('App · 点选方向盘与键盘步进', () => {
 })
 
 describe('App · 编辑器手动去噪', () => {
-  function renderWithNoise() {
-    const view = renderApp()
+  async function renderWithNoise() {
+    // 去噪入口只在 /editor —— 画布页工具栏已移除该按钮。
+    // EditorPage 是 lazy 路由:先等 Canvas 桩拿到本次渲染的 props,
+    // 否则会读到上一个测试残留的 canvasProps。
+    const view = renderApp('/editor')
+    await waitFor(() => expect(canvasProps.current?.committedData).toBeTruthy())
     const base = canvasProps.current.committedData.map(r => [...r])
     const noisy = base.map(r => [...r])
     // 两颗互不相邻的孤立豆(彼此八邻全空):一轮清理应同时清掉
     noisy[0][0] = '#E53935'
     noisy[5][5] = '#1E88E5'
-    canvasProps.current.onCanvasChange(noisy)
+    await act(async () => {
+      canvasProps.current.onCanvasChange(noisy)
+    })
     return { ...view, base, noisy }
   }
 
   it('一键清理孤立杂色:一次 setCanvas 一条撤销', async () => {
-    const { getByTestId, base, noisy } = renderWithNoise()
+    const { getByTestId, base, noisy } = await renderWithNoise()
 
     await waitFor(() => expect(canvasProps.current.committedData[0][0]).toBe('#E53935'))
 
@@ -726,7 +812,7 @@ describe('App · 编辑器手动去噪', () => {
   })
 
   it('有选区时只清理选区内:选区外的孤立点保留', async () => {
-    const { getByTestId } = renderWithNoise()
+    const { getByTestId } = await renderWithNoise()
     await waitFor(() => expect(canvasProps.current.committedData[0][0]).toBe('#E53935'))
 
     // 只框住 (0,0) 一格
@@ -739,7 +825,7 @@ describe('App · 编辑器手动去噪', () => {
   })
 
   it('没有杂色时只提示,画布引用不变(不压栈)', async () => {
-    const { getByTestId } = renderApp()
+    const { getByTestId } = renderApp('/editor')
     await waitFor(() => expect(canvasProps.current?.committedData).toBeTruthy())
     const before = canvasProps.current.committedData
 

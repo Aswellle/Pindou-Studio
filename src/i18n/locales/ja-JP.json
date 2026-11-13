@@ -516,7 +516,6 @@
     "importFile": "ファイルをインポート",
     "selection": "選択範囲",
     "selectionEmpty": "キャンバス上でドラッグして選択範囲を作成",
-    "pickHint": "マスをタップして選択に追加、もう一度タップで解除。下のボタンで塗る・消す・反転",
     "fillSelection": "選択範囲を塗りつぶし",
     "clearSelection": "選択範囲を消去",
     "mirrorH": "左右反転",

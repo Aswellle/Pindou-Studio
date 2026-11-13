@@ -12,7 +12,9 @@ import Tools from './Tools'
  * 这里锁定:每个命令都有可见文字、文字有可省略容器、按钮不跨列。
  */
 
-beforeAll(async () => { await i18n.changeLanguage('zh-CN') })
+beforeAll(async () => {
+  await i18n.changeLanguage('zh-CN')
+})
 afterEach(() => cleanup())
 
 function renderTools(overrides = {}) {
@@ -45,18 +47,23 @@ function renderTools(overrides = {}) {
   return { ...view, props }
 }
 
-const $ = (sel) => document.body.querySelector(sel)
-const $$ = (sel) => [...document.body.querySelectorAll(sel)]
+const $ = sel => document.body.querySelector(sel)
+const $$ = sel => [...document.body.querySelectorAll(sel)]
 
 describe('Tools · 桌面选区面板', () => {
   it('每个选区命令都有可见文字(镜像/旋转不再只有图标)', () => {
     renderTools()
     const buttons = $$('.selection-actions button')
     const expected = [
-      'tools.fillSelection', 'tools.clearSelection',
-      'tools.copySelection', 'tools.cutSelection', 'tools.pasteSelection',
-      'tools.mirrorH', 'tools.mirrorV',
-      'tools.rotateCw', 'tools.rotateCcw',
+      'tools.fillSelection',
+      'tools.clearSelection',
+      'tools.copySelection',
+      'tools.cutSelection',
+      'tools.pasteSelection',
+      'tools.mirrorH',
+      'tools.mirrorV',
+      'tools.rotateCw',
+      'tools.rotateCcw',
       'tools.clearSelectionBtn',
     ]
     expect(buttons).toHaveLength(expected.length)
@@ -83,8 +90,7 @@ describe('Tools · 桌面选区面板', () => {
 
   it('点击镜像按钮回调对应命令', () => {
     const { props } = renderTools()
-    const btn = $$('.selection-actions button')
-      .find(b => b.textContent.includes(i18n.t('tools.mirrorV')))
+    const btn = $$('.selection-actions button').find(b => b.textContent.includes(i18n.t('tools.mirrorV')))
     fireEvent.click(btn)
     expect(props.onSelectionCommand).toHaveBeenCalledWith('mirrorV')
   })
@@ -114,8 +120,8 @@ describe('Tools · 桌面选区面板', () => {
 
   it('空剪贴板时「粘贴」禁用,有内容时可用', () => {
     const { unmount } = renderTools({ canPaste: false })
-    const pasteOf = () => $$('.selection-actions button')
-      .find(b => b.textContent.includes(i18n.t('tools.pasteSelection')))
+    const pasteOf = () =>
+      $$('.selection-actions button').find(b => b.textContent.includes(i18n.t('tools.pasteSelection')))
     expect(pasteOf().disabled).toBe(true)
     unmount()
 
@@ -125,57 +131,25 @@ describe('Tools · 桌面选区面板', () => {
 
   it('复制按钮始终可点(复制不依赖剪贴板)', () => {
     const { props } = renderTools({ canPaste: false })
-    const copyBtn = $$('.selection-actions button')
-      .find(b => b.textContent.includes(i18n.t('tools.copySelection')))
+    const copyBtn = $$('.selection-actions button').find(b =>
+      b.textContent.includes(i18n.t('tools.copySelection'))
+    )
     expect(copyBtn.disabled).toBe(false)
     fireEvent.click(copyBtn)
     expect(props.onSelectionCommand).toHaveBeenCalledWith('copy')
   })
 })
 
-describe('Tools · 点选工具', () => {
-  it('工具栏有「点选」按钮,点击切换到 pick 工具', () => {
-    const { props } = renderTools()
+describe('Tools · 画布页不提供编辑器专属能力', () => {
+  it('工具栏没有「点选」按钮(点选是 /editor 专属工具)', () => {
+    renderTools()
     const pickBtn = $$('button.tool-btn').find(btn => btn.getAttribute('title') === '点选')
-    expect(pickBtn).toBeTruthy()
-    fireEvent.click(pickBtn)
-    expect(props.onToolChange).toHaveBeenCalledWith('pick')
+    expect(pickBtn).toBeUndefined()
   })
 
-  it('pick 工具下选区面板展开,提示为点选玩法', () => {
-    renderTools({ tool: 'pick', selection: null })
-    expect($('.selection-group')).toBeTruthy()
-    expect(document.body.textContent).toContain('点格子加入选区')
-  })
-
-  it('pick 选区按 kind 显示格子数(与套索同款读数)', () => {
-    renderTools({
-      tool: 'pick',
-      // 掩码尺寸必须与组件读到的网格(29×29)一致,否则格子数读数会错
-      selection: {
-        kind: 'lasso',
-        mask: (() => {
-          const m = new Uint8Array(29 * 29)
-          m[0] = 1
-          m[29 + 1] = 1
-          return m
-        })(),
-        cols: 29,
-        rows: 29,
-        bounds: { x: 0, y: 0, w: 2, h: 2 },
-      },
-    })
-    expect($('.selection-size').textContent).toContain('2')
-  })
-})
-
-describe('Tools · 去噪入口', () => {
-  it('快捷操作组有「去噪」按钮,点击回调 onNoiseCleanup', () => {
-    const onNoiseCleanup = vi.fn()
-    renderTools({ onNoiseCleanup })
-    const btn = $$('button.action-btn').find(b => b.getAttribute('title') === '去噪')
-    expect(btn).toBeTruthy()
-    fireEvent.click(btn)
-    expect(onNoiseCleanup).toHaveBeenCalledTimes(1)
+  it('快捷操作组没有「去噪」按钮(去噪是 /editor 专属操作)', () => {
+    renderTools({ onNoiseCleanup: vi.fn() })
+    const noiseBtn = $$('button.action-btn').find(b => b.getAttribute('title') === '去噪')
+    expect(noiseBtn).toBeUndefined()
   })
 })

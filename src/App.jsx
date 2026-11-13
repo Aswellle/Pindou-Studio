@@ -235,12 +235,13 @@ export default function App() {
     setSelection(prev => toggleCellInSelection(prev, target.x, target.y, cols, rows))
   }, [pickCursor, gridWidth, gridSize, gridHeight])
 
-  // 点选工具下的键盘步进:方向键移动光标,Enter/Space toggle 当前格。
+  // 点选工具下的键盘步进(编辑器专属):方向键移动光标,Enter/Space toggle 当前格。
   // 与撤销快捷键同款「输入框聚焦放行」;焦点在按钮上时 Enter/Space 交还
   // 原生激活(否则方向盘按钮会双触发)。方向键在此工具下 preventDefault,
-  // 避免页面跟着滚动。
+  // 避免页面跟着滚动。点选/去噪是 /editor 的专属能力,画布页不提供入口,
+  // 因此这里也按路由门控 —— 从编辑器返回画布后不会残留方向键行为。
   useEffect(() => {
-    if (tool !== 'pick') return undefined
+    if (tool !== 'pick' || !location.pathname.startsWith('/editor')) return undefined
     const handler = e => {
       if (e.isComposing || e.keyCode === 229) return
       const t = e.target
@@ -263,7 +264,13 @@ export default function App() {
     }
     window.addEventListener('keydown', handler)
     return () => window.removeEventListener('keydown', handler)
-  }, [tool, movePickCursor, togglePickCursor])
+  }, [tool, location.pathname, movePickCursor, togglePickCursor])
+
+  // 点选是编辑器专属工具:离开 /editor 后把工具重置回画笔 ——
+  // 画布页没有点选按钮,否则会停在「当前工具无任何按钮高亮」的残留态
+  useEffect(() => {
+    if (!location.pathname.startsWith('/editor') && tool === 'pick') setTool('pencil')
+  }, [location.pathname, tool])
 
   // 撤销/重做前先丢弃活动笔画,避免笔画进行中 undo 后 mouseUp 时 commitStroke 重推快照回滚
   const handleUndo = useCallback(() => {
@@ -1195,7 +1202,6 @@ export default function App() {
             onToggleCopyDrag={setCopyDrag}
             snapToEdges={snapToEdges}
             onToggleSnapToEdges={setSnapToEdges}
-            onNoiseCleanup={handleNoiseCleanup}
           />
         </div>
         <div className="left-sidebar-bottom">
@@ -1744,7 +1750,6 @@ export default function App() {
                 onToggleCopyDrag={setCopyDrag}
                 snapToEdges={snapToEdges}
                 onToggleSnapToEdges={setSnapToEdges}
-                onNoiseCleanup={handleNoiseCleanup}
               />
 
               {/* 点选方向盘:手指不用贴在网格上就能逐格步进选取,
