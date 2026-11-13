@@ -129,6 +129,11 @@ function PalettePanel({ palette, colorStats, selectedColor, onSelect, onClose })
             <X size={16} />
           </button>
         </div>
+        {/* 品牌与颗粒规格:拿到图纸第一件事是确认「这是哪个牌子的色号体系 */}
+        <p className="editor-palette-brand">
+          {t(`palette.brand.${palette.id}`)}
+          <span className="editor-palette-brand-sub">· {t(`palette.beadSize.${palette.id}`)}</span>
+        </p>
         <input
           className="editor-sheet-search"
           type="search"
@@ -262,6 +267,10 @@ export default function EditorPage({
   const [cleanupOpen, setCleanupOpen] = useState(false)
   // 单色隔离只影响绘制,不改矩阵:视图态留在本页,App/Canvas 只收一个 hex
   const [isolateColor, setIsolateColor] = useState(null)
+  // 图标按钮的触屏轻提示:触屏没有 hover,title 形同虚设 —— 点按按钮时
+  // 在按钮上方浮现功能名,1.5s 自动消失;点其他按钮立即让位/消失。
+  const [hint, setHint] = useState(null)
+  const hintTimerRef = useRef(null)
 
   const cols = gridWidth || gridSize
   const rows = gridHeight || gridSize
@@ -318,6 +327,24 @@ export default function EditorPage({
     if (location.key !== 'default') navigate(-1)
     else navigate('/', { replace: true })
   }
+
+  const showHint = e => {
+    const btn = e.currentTarget
+    const label = btn.getAttribute('aria-label') || btn.getAttribute('title')
+    if (!label) return
+    const rect = btn.getBoundingClientRect()
+    clearTimeout(hintTimerRef.current)
+    setHint({ label, x: rect.left + rect.width / 2, y: rect.top })
+    hintTimerRef.current = setTimeout(() => setHint(null), 1500)
+  }
+
+  const hideHint = () => {
+    clearTimeout(hintTimerRef.current)
+    setHint(null)
+  }
+
+  // 卸载时收掉计时器,避免对已卸载组件 setState
+  useEffect(() => () => clearTimeout(hintTimerRef.current), [])
 
   const codeOf = hex => {
     const found = palette.colors.find(c => c.hex?.toLowerCase() === String(hex).toLowerCase())
@@ -427,6 +454,7 @@ export default function EditorPage({
               onClick={() => canvasRef?.current?.fitToScreen?.()}
               aria-label={t('canvas.fitTitle')}
               title={t('canvas.fitTitle')}
+              onPointerDown={showHint}
             >
               <Maximize2 size={16} />
             </button>
@@ -435,6 +463,7 @@ export default function EditorPage({
               onClick={() => canvasRef?.current?.resetTransform?.()}
               aria-label={t('canvas.reset')}
               title={t('canvas.reset')}
+              onPointerDown={showHint}
             >
               <RotateCcw size={16} />
             </button>
@@ -442,7 +471,9 @@ export default function EditorPage({
         )}
       </div>
 
-      <div className="editor-console" ref={consoleRef}>
+      {/* onPointerDownCapture 先于按钮自身 handler:图标按钮随后 showHint 重新浮现,
+          其余按钮(已有可见文字)只负责把上一条提示立即关掉 */}
+      <div className="editor-console" ref={consoleRef} onPointerDownCapture={hideHint}>
         {/* 行 A:图纸用色(实时颗数)+ 色卡浮层入口 */}
         <div className="editor-color-row">
           <div className="editor-color-list">
@@ -514,6 +545,7 @@ export default function EditorPage({
                 onClick={onClearSelection}
                 aria-label={t('tools.clearSelectionBtn')}
                 title={t('tools.clearSelectionBtn')}
+                onPointerDown={showHint}
               >
                 <X size={16} />
               </button>
@@ -527,6 +559,7 @@ export default function EditorPage({
                   className={`editor-tool-btn${tool === id ? ' active' : ''}`}
                   title={t(`canvas.tool.${id}`)}
                   aria-label={t(`canvas.tool.${id}`)}
+                  onPointerDown={showHint}
                   onClick={() => onToolChange(id)}
                 >
                   <Icon size={18} />
@@ -535,9 +568,21 @@ export default function EditorPage({
             </div>
           )}
           <div className="editor-actions">
+            {/* 去噪直达:量化图纸的最高频动作,操作台上必须有一眼可见的同名按钮
+                (整理 ≠ 去噪,标签不能合并 —— 整理抽屉里另有同一入口) */}
             <button
               type="button"
               className="editor-action-btn noise"
+              title={t('tools.noiseCleanup')}
+              aria-label={t('tools.noiseCleanup')}
+              onClick={onNoiseCleanup}
+            >
+              <Sparkles size={16} />
+              <span>{t('tools.noiseCleanup')}</span>
+            </button>
+            <button
+              type="button"
+              className="editor-action-btn tidy"
               title={t('editor.cleanup')}
               aria-label={t('editor.cleanup')}
               onClick={() => setCleanupOpen(true)}
@@ -551,8 +596,10 @@ export default function EditorPage({
               onClick={onUndo}
               disabled={!canUndo}
               title={t('tools.undoAction')}
+              aria-label={t('common.undo')}
             >
               <Undo2 size={16} />
+              <span>{t('common.undo')}</span>
             </button>
             <button
               type="button"
@@ -560,14 +607,18 @@ export default function EditorPage({
               onClick={onRedo}
               disabled={!canRedo}
               title={t('tools.redoAction')}
+              aria-label={t('common.redo')}
             >
               <Redo2 size={16} />
+              <span>{t('common.redo')}</span>
             </button>
             <button
               type="button"
               className="editor-action-btn"
               onClick={canvasProps.onSave}
               title={t('gallery.saveTitle')}
+              aria-label={t('gallery.saveTitle')}
+              onPointerDown={showHint}
             >
               <Save size={16} />
               {canvasProps.saveState === 'dirty' && <span className="editor-save-dot" />}
@@ -579,6 +630,14 @@ export default function EditorPage({
           </div>
         </div>
       </div>
+
+      {hint &&
+        createPortal(
+          <span className="editor-hint" style={{ left: hint.x, top: hint.y }}>
+            {hint.label}
+          </span>,
+          document.body
+        )}
 
       {cleanupOpen && (
         <EditorCleanupPanel

@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeAll, afterEach, vi } from 'vitest'
-import { render, screen, fireEvent, cleanup, within } from '@testing-library/react'
+import { render, screen, fireEvent, cleanup, within, act } from '@testing-library/react'
 import { MemoryRouter } from 'react-router-dom'
 import i18n from '../i18n'
 import { getPalette } from '../data/palettes'
@@ -205,13 +205,21 @@ describe('EditorPage · 工具与操作', () => {
     expect(props.onToolChange).toHaveBeenCalledWith('pick')
   })
 
-  it('整理入口打开抽屉,去噪/保存/导出回调接线;撤销按 canUndo 禁用', () => {
+  it('去噪直达按钮与整理抽屉并存,保存/导出接线;撤销/重做带文字且按 canUndo 禁用', () => {
     const { props } = renderEditor()
+
+    // 去噪直达:操作台上一眼可见的同名按钮(最高频动作,不能只藏在抽屉里)
+    fireEvent.click(screen.getByTitle('去噪'))
+    expect(props.onNoiseCleanup).toHaveBeenCalledTimes(1)
+
+    // 整理抽屉:里面另有同一入口
     fireEvent.click(screen.getByTitle('整理'))
     const sheet = document.querySelector('.editor-cleanup-sheet')
     expect(sheet).toBeTruthy()
-    fireEvent.click(within(sheet).getByRole('button', { name: '去噪' }))
-    expect(props.onNoiseCleanup).toHaveBeenCalledTimes(1)
+    expect(document.querySelector('.editor-cleanup-sheet')).toBeTruthy()
+    fireEvent.click(screen.getByTitle('整理'))
+    // 关闭抽屉(点遮罩)后继续
+    fireEvent.click(document.querySelector('.editor-sheet-overlay'))
     expect(document.querySelector('.editor-cleanup-sheet')).toBeNull()
 
     const saveBtn = screen.getByTitle('保存作品')
@@ -221,10 +229,56 @@ describe('EditorPage · 工具与操作', () => {
     fireEvent.click(screen.getByTitle('导出'))
     expect(props.onExport).toHaveBeenCalledTimes(1)
 
-    const undoBtn = screen.getByTitle('撤销 (Ctrl+Z)')
+    // 撤销/重做带可见文字(用户反馈:图标语义不直观)
+    const undoBtn = screen.getByRole('button', { name: '撤销' })
     expect(undoBtn.disabled).toBe(false)
-    const redoBtn = screen.getByTitle('重做 (Ctrl+Y)')
+    expect(undoBtn.textContent).toContain('撤销')
+    const redoBtn = screen.getByRole('button', { name: '重做' })
     expect(redoBtn.disabled).toBe(true)
+    expect(redoBtn.textContent).toContain('重做')
+  })
+})
+
+describe('EditorPage · 触屏轻提示', () => {
+  it('点按图标工具按钮浮现功能名,1.5s 后自动消失', () => {
+    vi.useFakeTimers()
+    try {
+      renderEditor()
+      expect(document.querySelector('.editor-hint')).toBeNull()
+
+      const pencil = screen.getByTitle('画笔')
+      fireEvent.pointerDown(pencil)
+      const bubble = document.querySelector('.editor-hint')
+      expect(bubble).toBeTruthy()
+      expect(bubble.textContent).toBe('画笔')
+
+      act(() => {
+        vi.advanceTimersByTime(1600)
+      })
+      expect(document.querySelector('.editor-hint')).toBeNull()
+    } finally {
+      vi.useRealTimers()
+    }
+  })
+
+  it('点按其他按钮立即让位:提示切到新按钮且只显示一条', () => {
+    renderEditor()
+    fireEvent.pointerDown(screen.getByTitle('画笔'))
+    expect(document.querySelector('.editor-hint').textContent).toBe('画笔')
+
+    // 有可见文字的按钮(整理)点下也会立即接管提示位 —— 立即消失旧提示
+    fireEvent.pointerDown(screen.getByTitle('整理'))
+    const bubbles = [...document.querySelectorAll('.editor-hint')]
+    expect(bubbles).toHaveLength(0)
+  })
+
+  it('色卡浮层显示品牌与颗粒规格', () => {
+    renderEditor()
+    fireEvent.click(screen.getByRole('button', { name: /色卡/ }))
+    const brand = document.querySelector('.editor-palette-brand')
+    expect(brand).toBeTruthy()
+    expect(brand.textContent).toContain('Perler 拼豆')
+    expect(brand.textContent).toContain('中颗粒')
   })
 })
 
