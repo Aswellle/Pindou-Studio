@@ -158,7 +158,7 @@ function PalettePanel({ palette, colorStats, selectedColor, onSelect, onClose })
               </button>
             )
           })}
-          {colors.length === 0 && <p className="editor-palette-empty">{t('palette.search')}</p>}
+          {colors.length === 0 && <p className="editor-palette-empty">{t('palette.noMatch')}</p>}
         </div>
       </div>
     </div>,

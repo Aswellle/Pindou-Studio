@@ -253,10 +253,9 @@
 }
 
 .editor-palette-swatch {
-  position: relative;
-  display: flex;
-  flex-direction: column;
-  align-items: stretch;
+  display: grid;
+  grid-template-columns: 1fr auto;
+  align-items: center;
   gap: 3px;
   padding: 4px;
   border: 1px solid var(--border-color);
@@ -270,6 +269,7 @@
 }
 
 .editor-palette-color {
+  grid-column: 1 / -1;
   height: 26px;
   border-radius: 6px;
   border: 1px solid rgba(0, 0, 0, 0.12);
@@ -280,19 +280,15 @@
   font-weight: 600;
   line-height: 1;
   color: var(--text-secondary);
-  text-align: center;
+  text-align: left;
 }
 
 .editor-palette-count {
-  position: absolute;
-  top: 2px;
-  right: 2px;
-  padding: 1px 3px;
-  border-radius: 5px;
-  background: rgba(255, 255, 255, 0.88);
-  color: var(--text-secondary);
+  color: var(--text-muted);
   font-size: 9px;
-  line-height: 1.1;
+  font-weight: 500;
+  line-height: 1;
+  text-align: right;
   font-variant-numeric: tabular-nums;
 }
 

@@ -16,7 +16,7 @@
 import { useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { createPortal } from 'react-dom'
-import { Sparkles, Replace, Trash2, Merge, Crop, Eye, EyeOff, X } from 'lucide-react'
+import { Sparkles, Replace, Trash2, Merge, Crop, Check, EyeOff, X } from 'lucide-react'
 
 const REDUCE_PRESETS = [8, 12, 16, 24, 32, 48]
 
@@ -197,7 +197,7 @@ export default function EditorCleanupPanel({
         </div>
 
         <button type="button" className="editor-cleanup-done" onClick={onClose}>
-          <Eye size={15} />
+          <Check size={15} />
           {t('editor.cleanupDone')}
         </button>
       </div>

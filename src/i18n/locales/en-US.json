@@ -460,7 +460,8 @@
       "perler": "Medium",
       "hama": "Medium",
       "artkal": "Micro"
-    }
+    },
+    "noMatch": "No matching colors"
   },
   "canvas": {
     "size": "Canvas Size",
