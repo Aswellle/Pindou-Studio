@@ -3,7 +3,9 @@ import { render, screen, fireEvent, cleanup } from '@testing-library/react'
 import ReplaceColorDialog from './ReplaceColorDialog'
 import i18n from '../i18n'
 
-beforeAll(async () => { await i18n.changeLanguage('zh-CN') })
+beforeAll(async () => {
+  await i18n.changeLanguage('zh-CN')
+})
 afterEach(() => cleanup())
 
 const R = '#E53935'
@@ -19,8 +21,8 @@ function sample() {
 
 // 组件通过 createPortal 挂到 document.body,因此断言一律查 document.body,
 // 不用 RTL render 返回的 container(它是空的)。
-const $ = (sel) => document.body.querySelector(sel)
-const $$ = (sel) => document.body.querySelectorAll(sel)
+const $ = sel => document.body.querySelector(sel)
+const $$ = sel => document.body.querySelectorAll(sel)
 
 function setup(props = {}) {
   const onConfirm = vi.fn()
@@ -61,7 +63,7 @@ describe('ReplaceColorDialog', () => {
 
   it('确认时把 (from, to) 交给 onConfirm', () => {
     const { onConfirm } = setup()
-    const targets = $$('.replace-swatches.compact .replace-swatch')
+    const targets = $$('.replace-swatches.compact .replace-target')
     fireEvent.click(targets[1])
     fireEvent.click(screen.getByText('确认替换'))
     expect(onConfirm).toHaveBeenCalledTimes(1)
@@ -72,10 +74,37 @@ describe('ReplaceColorDialog', () => {
   })
 
   it('画布为空时给出提示,不渲染替换控件', () => {
-    setup({ canvasData: [[null, null], [null, null]] })
+    setup({
+      canvasData: [
+        [null, null],
+        [null, null],
+      ],
+    })
     expect(screen.getByText(/画布上还没有颜色/)).toBeTruthy()
     expect($('.replace-preview')).toBeNull()
     expect(screen.queryByText('确认替换')).toBeNull()
+  })
+
+  it('有名字的色卡目标色显示「编号 名字」,预览行显示原颜色→替换后', () => {
+    setup()
+    const targets = $$('.replace-swatches.compact .replace-target')
+    // Perler P01 = 白色
+    expect(targets[0].textContent).toContain('P01')
+    expect(targets[0].querySelector('.replace-target-name')?.textContent).toBe('白色')
+
+    const chips = $$('.replace-preview-chip')
+    expect(chips).toHaveLength(2)
+    expect(chips[0].textContent).toContain('原颜色')
+    expect(chips[1].textContent).toContain('替换为')
+    // 画布色不在色卡内时,名称位回退为 hex
+    expect(chips[0].textContent).toContain('#')
+  })
+
+  it('名字即编号的色卡(COCO)目标色显示 hex 值', () => {
+    setup({ paletteId: 'coco' })
+    const targets = $$('.replace-swatches.compact .replace-target')
+    expect(targets[0].textContent).toContain('A01')
+    expect(targets[0].querySelector('.replace-target-name').textContent).toContain('#')
   })
 
   it('关闭按钮回调 onClose', () => {

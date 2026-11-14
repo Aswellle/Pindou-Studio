@@ -55,10 +55,14 @@ export default function ReplaceColorDialog({
 
   if (!open) return null
 
-  const colorName = (c) => c && t(`palette.colorNames.${palette.id}.${c.id}`, c.nameZh || c.name)
-  const nameOf = (hex) => {
+  const colorName = c => c && t(`palette.colorNames.${palette.id}.${c.id}`, c.nameZh || c.name)
+  // 触屏没有 hover:title 里的名称看不到 —— 标签必须落在可见文字里。
+  // 有官方名字的色卡显示「编号 名字」;名字就是编号的(COCO/MARD)显示「编号 · hex」。
+  const nameOf = hex => {
     const pc = palette.colors.find(c => c.hex?.toLowerCase() === String(hex).toLowerCase())
-    return pc ? `${pc.id} ${colorName(pc)}` : hex
+    if (!pc) return hex
+    const name = colorName(pc)
+    return name && name !== pc.id ? `${pc.id} ${name}` : `${pc.id} · ${pc.hex}`
   }
 
   const canApply = Boolean(from) && Boolean(to) && from !== to && hits > 0
@@ -108,27 +112,43 @@ export default function ReplaceColorDialog({
 
             <div className="replace-section">
               <label className="replace-label">{t('replace.to')}</label>
-              <div className="replace-swatches compact">
-                {palette.colors.map(c => (
-                  <button
-                    key={c.id}
-                    type="button"
-                    className={`replace-swatch square${to === c.hex ? ' active' : ''}`}
-                    onClick={() => setTo(c.hex)}
-                    title={`${c.id} · ${colorName(c)}`}
-                  >
-                    <span className="replace-dot" style={{ backgroundColor: c.hex }} />
-                  </button>
-                ))}
+              <div className="replace-swatches compact target">
+                {palette.colors.map(c => {
+                  const name = colorName(c)
+                  const hasName = name && name !== c.id
+                  return (
+                    <button
+                      key={c.id}
+                      type="button"
+                      className={`replace-target${to === c.hex ? ' active' : ''}`}
+                      onClick={() => setTo(c.hex)}
+                      aria-label={hasName ? `${c.id} ${name}` : `${c.id} · ${c.hex}`}
+                    >
+                      <span className="replace-target-color" style={{ backgroundColor: c.hex }} />
+                      <span className="replace-target-id">{c.id}</span>
+                      <span className="replace-target-name">{hasName ? name : c.hex}</span>
+                    </button>
+                  )
+                })}
               </div>
             </div>
 
             <div className="replace-preview">
               <span className="replace-preview-label">{t('replace.hits', { n: hits })}</span>
               <span className="replace-preview-flow">
-                <span className="replace-dot" style={{ backgroundColor: from || 'transparent' }} />
-                <span aria-hidden="true">→</span>
-                <span className="replace-dot" style={{ backgroundColor: to || 'transparent' }} />
+                <span className="replace-preview-chip">
+                  <span className="replace-preview-tag">{t('replace.from')}</span>
+                  <span className="replace-dot" style={{ backgroundColor: from || 'transparent' }} />
+                  <span className="replace-preview-name">{from ? nameOf(from) : '—'}</span>
+                </span>
+                <span aria-hidden="true" className="replace-preview-arrow">
+                  →
+                </span>
+                <span className="replace-preview-chip">
+                  <span className="replace-preview-tag">{t('replace.to')}</span>
+                  <span className="replace-dot" style={{ backgroundColor: to || 'transparent' }} />
+                  <span className="replace-preview-name">{to ? nameOf(to) : '—'}</span>
+                </span>
               </span>
             </div>
 
@@ -201,7 +221,80 @@ export default function ReplaceColorDialog({
             max-height: 168px;
             overflow-y: auto;
           }
-          .replace-swatches.compact { max-height: 132px; }
+          .replace-swatches.compact.target {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(76px, 1fr));
+            gap: 6px;
+            max-height: 180px;
+          }
+          .replace-swatches,
+          .replace-swatches.target {
+            scrollbar-width: none;
+          }
+          .replace-swatches::-webkit-scrollbar,
+          .replace-swatches.target::-webkit-scrollbar {
+            display: none;
+          }
+          .replace-target {
+            display: flex;
+            flex-direction: column;
+            gap: 3px;
+            padding: 4px;
+            border-radius: 8px;
+            border: 2px solid transparent;
+            background: var(--bg-secondary);
+            cursor: pointer;
+            font-family: inherit;
+            min-width: 0;
+          }
+          .replace-target.active {
+            border-color: var(--accent);
+            background: var(--bg-tertiary);
+          }
+          .replace-target-color {
+            height: 24px;
+            border-radius: 5px;
+            border: 1px solid var(--border-color);
+          }
+          .replace-target-id {
+            font-size: 11px;
+            font-weight: 600;
+            line-height: 1.1;
+            color: var(--text-primary);
+          }
+          .replace-target-name {
+            font-size: 10px;
+            line-height: 1.2;
+            color: var(--text-muted);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+          }
+          .replace-preview-flow {
+            flex-wrap: wrap;
+          }
+          .replace-preview-chip {
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            padding: 3px 8px;
+            border-radius: 8px;
+            background: var(--bg-primary);
+            border: 1px solid var(--border-color);
+            min-width: 0;
+          }
+          .replace-preview-tag {
+            font-size: 10px;
+            color: var(--text-muted);
+          }
+          .replace-preview-name {
+            font-size: 11px;
+            color: var(--text-primary);
+            white-space: nowrap;
+          }
+          .replace-preview-arrow {
+            color: var(--text-muted);
+          }
           .replace-swatch {
             display: inline-flex;
             align-items: center;

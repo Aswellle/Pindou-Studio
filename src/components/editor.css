@@ -263,7 +263,7 @@
   min-height: 0;
   overflow-y: auto;
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(56px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(64px, 1fr));
   gap: 6px;
   padding: 2px;
 }
@@ -297,6 +297,17 @@
   line-height: 1;
   color: var(--text-secondary);
   text-align: left;
+}
+
+.editor-palette-name {
+  grid-column: 1 / -1;
+  font-size: 9px;
+  line-height: 1.2;
+  color: var(--text-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  text-align: center;
 }
 
 .editor-palette-count {

@@ -183,6 +183,19 @@ describe('EditorPage · 色卡浮层', () => {
     expect(document.querySelector('.editor-sheet')).toBeNull()
   })
 
+  it('有名字的色卡格子显示编号+颜色名', () => {
+    renderEditor()
+    fireEvent.click(screen.getByRole('button', { name: /色卡/ }))
+    const sheet = document.querySelector('.editor-sheet')
+    const named = [...sheet.querySelectorAll('.editor-palette-swatch')].find(b =>
+      b.querySelector('.editor-palette-name')
+    )
+    expect(named).toBeTruthy()
+    expect(named.querySelector('.editor-palette-name').textContent).toBe('白色')
+    // 编号仍在名字上方
+    expect(named.querySelector('.editor-palette-code').textContent).toBe('P01')
+  })
+
   it('色号搜索收窄结果,已用色显示颗数', () => {
     renderEditor()
     fireEvent.click(screen.getByRole('button', { name: /色卡/ }))

@@ -162,6 +162,7 @@ function PalettePanel({ palette, colorStats, selectedColor, onSelect, onClose })
               >
                 <span className="editor-palette-color" style={{ background: c.hex }} />
                 <span className="editor-palette-code">{c.id}</span>
+                {nameOf(c) !== c.id && <span className="editor-palette-name">{nameOf(c)}</span>}
                 {count > 0 && <span className="editor-palette-count">{count}</span>}
               </button>
             )
