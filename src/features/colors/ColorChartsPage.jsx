@@ -15,7 +15,7 @@ import { useTranslation } from 'react-i18next'
 import BackButton from '../../components/BackButton'
 import { PALETTE_LIST } from '../../data/palettes'
 import {
-  BRAND_INTROS,
+  brandIntro,
   colorBrands,
   colorChartPath,
   colorGroups,
@@ -34,28 +34,32 @@ const HEX_COLOR_RE = /^#[0-9a-f]{3,8}$/i
 /** 色卡表:色号 / 颜色 / 名称 / HEX / RGB */
 function ColorTable({ palette, groups, query }) {
   const { t } = useTranslation()
-  const nameOf = (color) =>
+  const nameOf = color =>
     t(`palette.colorNames.${palette.id}.${color.id}`, color.nameZh || color.name || color.id)
 
   const needle = query.trim().toLowerCase()
   const visible = groups
-    .map((group) => ({
+    .map(group => ({
       ...group,
       colors: needle
-        ? group.colors.filter((color) => {
-          const name = nameOf(color)
-          return (
-            color.id.toLowerCase().includes(needle) ||
-            String(name).toLowerCase().includes(needle) ||
-            String(color.hex).toLowerCase().includes(needle)
-          )
-        })
+        ? group.colors.filter(color => {
+            const name = nameOf(color)
+            return (
+              color.id.toLowerCase().includes(needle) ||
+              String(name).toLowerCase().includes(needle) ||
+              String(color.hex).toLowerCase().includes(needle)
+            )
+          })
         : group.colors,
     }))
-    .filter((group) => group.colors.length > 0)
+    .filter(group => group.colors.length > 0)
 
   if (visible.length === 0) {
-    return <p className="content-desc" role="status">{t('colorsPage.searchEmpty')}</p>
+    return (
+      <p className="content-desc" role="status">
+        {t('colorsPage.searchEmpty')}
+      </p>
+    )
   }
 
   return (
@@ -70,7 +74,7 @@ function ColorTable({ palette, groups, query }) {
         </tr>
       </thead>
       <tbody>
-        {visible.map((group) => [
+        {visible.map(group => [
           group.key ? (
             <tr key={`g-${group.key}`} className="color-group-row">
               <th scope="colgroup" colSpan={5}>
@@ -81,11 +85,13 @@ function ColorTable({ palette, groups, query }) {
               </th>
             </tr>
           ) : null,
-          ...group.colors.map((color) => {
+          ...group.colors.map(color => {
             const name = nameOf(color)
             return (
               <tr key={color.id}>
-                <td className="color-code"><code>{color.id}</code></td>
+                <td className="color-code">
+                  <code>{color.id}</code>
+                </td>
                 <td>
                   <span
                     className="color-swatch"
@@ -94,8 +100,12 @@ function ColorTable({ palette, groups, query }) {
                   />
                 </td>
                 <td>{name}</td>
-                <td className="color-hex"><code>{color.hex}</code></td>
-                <td className="color-rgb">{color.rgb.r}, {color.rgb.g}, {color.rgb.b}</td>
+                <td className="color-hex">
+                  <code>{color.hex}</code>
+                </td>
+                <td className="color-rgb">
+                  {color.rgb.r}, {color.rgb.g}, {color.rgb.b}
+                </td>
               </tr>
             )
           }),
@@ -129,7 +139,7 @@ function BrandOverview() {
             </span>
             <span className="color-brand-origin">{t(`palette.origin.${id}`)}</span>
             <span className="color-brand-swatch-strip" aria-hidden="true">
-              {palette.colors.slice(0, 12).map((color) => (
+              {palette.colors.slice(0, 12).map(color => (
                 <span
                   key={color.id}
                   className="color-brand-dot"
@@ -141,13 +151,10 @@ function BrandOverview() {
         ))}
       </section>
 
-      {/* 中文正文只在中文界面展示:其余语言下塞中文段落会让页面语言混杂 */}
-      {i18n.language?.startsWith('zh') && (
-        <section className="color-chart-hub-note">
-          <h2>{t('colorsPage.hubTitle')}</h2>
-          <p className="content-desc">{t('colorsPage.hubBody')}</p>
-        </section>
-      )}
+      <section className="color-chart-hub-note">
+        <h2>{t('colorsPage.hubTitle')}</h2>
+        <p className="content-desc">{t('colorsPage.hubBody')}</p>
+      </section>
 
       <nav className="tools-links color-chart-links" aria-label={t('colorsPage.relatedLinks')}>
         <Link className="tools-link-card" to="/create/image">
@@ -180,11 +187,9 @@ function BrandChart({ palette, slug }) {
       <div className="content-page-head">
         <BackButton size="md" onClick={() => navigate('/colors')} />
         <span className="content-kicker">{t('colorsPage.kicker')}</span>
-        <h1 className="content-title">
-          {t('colorsPage.titleWithBrand', { brand })}
-        </h1>
-        {i18n.language?.startsWith('zh') && BRAND_INTROS[palette.id] ? (
-          <p className="content-desc">{BRAND_INTROS[palette.id]}</p>
+        <h1 className="content-title">{t('colorsPage.titleWithBrand', { brand })}</h1>
+        {brandIntro(palette.id, i18n.language) ? (
+          <p className="content-desc">{brandIntro(palette.id, i18n.language)}</p>
         ) : null}
       </div>
 
@@ -203,7 +208,7 @@ function BrandChart({ palette, slug }) {
         </div>
         <div>
           <dt>{t('colorsPage.factGroups')}</dt>
-          <dd>{groups.filter((g) => g.key).length || '—'}</dd>
+          <dd>{groups.filter(g => g.key).length || '—'}</dd>
         </div>
       </dl>
 
@@ -212,7 +217,7 @@ function BrandChart({ palette, slug }) {
         <input
           type="search"
           value={query}
-          onChange={(e) => setQuery(e.target.value)}
+          onChange={e => setQuery(e.target.value)}
           placeholder={t('colorsPage.searchPlaceholder')}
           aria-label={t('colorsPage.searchPlaceholder')}
         />
@@ -225,7 +230,7 @@ function BrandChart({ palette, slug }) {
       <section className="content-related" aria-label={t('colorsPage.otherBrands')}>
         <h2 className="content-related-title">{t('colorsPage.otherBrands')}</h2>
         <div className="content-related-rail">
-          {PALETTE_LIST.filter((item) => item.id !== slug).map((item) => (
+          {PALETTE_LIST.filter(item => item.id !== slug).map(item => (
             <Link key={item.id} className="content-related-card" to={colorChartPath(item.id)}>
               <span className="content-related-name">{t(`palette.brand.${item.id}`)}</span>
               <span className="content-related-desc">
@@ -258,7 +263,9 @@ export default function ColorChartsPage() {
   if (!palette) {
     return (
       <div className="content-page">
-        <p className="content-desc" role="status">{t('colorsPage.notFound')}</p>
+        <p className="content-desc" role="status">
+          {t('colorsPage.notFound')}
+        </p>
       </div>
     )
   }
