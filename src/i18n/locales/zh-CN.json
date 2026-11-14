@@ -2310,6 +2310,18 @@
     "cropEmpty": "没有可裁的内容",
     "cropDone": "已裁切为 {{w}} × {{h}}",
     "more": "更多",
-    "moreTitle": "更多工具"
+    "moreTitle": "更多工具",
+    "confirmNoiseTitle": "确认去噪",
+    "confirmNoiseDesc": "将清理 {{n}} 处杂色：孤立的单颗珠子会移除，杂色点会改成邻近主色；清理后可撤销。",
+    "confirmDeleteTitle": "确认删除颜色",
+    "confirmDeleteDesc": "将删除 {{label}} 的全部 {{n}} 颗珠子，这些位置变为空白；删除后可撤销。",
+    "confirmReduceTitle": "确认合并相近色",
+    "confirmReduceDesc": "保留用量最多的 {{after}} 种颜色，其余 {{merged}} 种相近颜色并入：用豆总数不变，图案几乎看不出差别，需要买的颜色种类变少。共 {{beads}} 颗珠子会换成保留色；合并后可撤销。",
+    "confirmCropTitle": "确认裁切",
+    "confirmCropDesc": "画布将从 {{w0}} × {{h0}} 裁成 {{w}} × {{h}}，框外内容会被移除；裁切会重置撤销记录，不能用撤销恢复。",
+    "previewBefore": "当前",
+    "previewAfter": "处理后",
+    "confirmExecute": "确认执行",
+    "reduceExplainer": "照片转换常常带出几十种相近颜色。合并相近色会把相似颜色并成一种：图案几乎看不出变化、用豆总数不变，但需要买的颜色种类立刻变少。"
   }
 }

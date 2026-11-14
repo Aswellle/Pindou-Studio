@@ -23,6 +23,7 @@ import {
 } from 'lucide-react'
 import { createPortal } from 'react-dom'
 import BackButton from './BackButton'
+import EditorPreview from './EditorPreview'
 import Canvas from './Canvas'
 import EditorCleanupPanel from './EditorCleanupPanel'
 import PickDPad from './PickDPad'
@@ -31,6 +32,7 @@ import { getPalette } from '../data/palettes'
 import { calculateColorStats } from '../services/export/PatternDocument'
 import { collectColorStats } from '../utils/selectionUtils'
 import { selectionBounds, selectionContains } from '../utils/lassoSelection'
+import { removeNoiseBeads } from '../utils/noiseCleanup'
 import {
   cropCanvas,
   cropCanvasToContent,
@@ -267,6 +269,9 @@ export default function EditorPage({
   const [paletteOpen, setPaletteOpen] = useState(false)
   const [finishOpen, setFinishOpen] = useState(false)
   const [cleanupOpen, setCleanupOpen] = useState(false)
+  // 二次确认:去噪/删色/合并/裁切都是「一键改全图」的操作 ——
+  // 先在这里挂起,弹确认框给出后果说明与前后效果预览,确认才真正执行。
+  const [pending, setPending] = useState(null)
   // 单色隔离只影响绘制,不改矩阵:视图态留在本页,App/Canvas 只收一个 hex
   const [isolateColor, setIsolateColor] = useState(null)
   // 图标按钮的触屏轻提示:触屏没有 hover,title 形同虚设 —— 点按按钮时
@@ -355,34 +360,23 @@ export default function EditorPage({
 
   const notify = (message, type = 'success') => onToast?.(message, type)
 
-  const handleDeleteColor = hex => {
-    const result = removeCanvasColor(canvasData, hex)
-    if (!result) return
-    canvasProps.onCanvasChange?.(result.data)
-    setCleanupOpen(false)
-    notify(t('editor.deleteDone', { n: result.removed }))
-  }
-
-  const handleReduceColors = keepCount => {
-    const result = reduceCanvasColors(canvasData, { keepCount })
-    if (!result) return
-    canvasProps.onCanvasChange?.(result.data)
-    setCleanupOpen(false)
-    notify(t('editor.reduceDone', { n: result.after }))
-  }
-
-  const handleCrop = mode => {
-    const result =
-      mode === 'selection'
-        ? cropCanvas(canvasData, selectionBounds(selection))
-        : cropCanvasToContent(canvasData)
-    if (!result) {
-      notify(t('editor.cropEmpty'), 'info')
+  // ── 二次确认的入口:只挂起,不执行 ──
+  const openNoiseConfirm = () => {
+    const result = removeNoiseBeads(canvasData, { area: selection })
+    if (!result.data) {
+      // 没有杂色:不打断用户,直接走 App 的提示(「没有需要清理的杂色」)
+      setCleanupOpen(false)
+      onNoiseCleanup?.()
       return
     }
-    setCleanupOpen(false)
-    onCropCanvas?.(result.data, result.width, result.height)
+    setPending({ kind: 'noise', noise: result })
   }
+
+  const openDeleteConfirm = hex => setPending({ kind: 'delete', hex })
+
+  const openReduceConfirm = keepCount => setPending({ kind: 'reduce', keepCount })
+
+  const openCropConfirm = mode => setPending({ kind: 'crop', mode })
 
   const handleToggleIsolate = hex => {
     setIsolateColor(prev => (!hex || prev === hex ? null : hex))
@@ -402,6 +396,118 @@ export default function EditorPage({
     ['rotateCw', 'tools.selectionRotateCwShort'],
     ['rotateCcw', 'tools.selectionRotateCcwShort'],
   ]
+
+  // 二次确认框的内容与执行闭包。预览统一「当前 → 处理后」两帧,
+  // 说明文字必须交代后果与可否撤销,给用户停留思考的余地。
+  const pendingView = useMemo(() => {
+    if (!pending) return null
+
+    if (pending.kind === 'noise') {
+      return {
+        title: t('editor.confirmNoiseTitle'),
+        desc: t('editor.confirmNoiseDesc', { n: pending.noise.changed }),
+        before: canvasData,
+        after: pending.noise.data,
+        confirmLabel: t('tools.noiseCleanup'),
+        run: () => {
+          setPending(null)
+          setCleanupOpen(false)
+          onNoiseCleanup?.()
+        },
+      }
+    }
+
+    if (pending.kind === 'delete') {
+      const target = usedColors.find(c => c.hex === pending.hex)
+      const result = removeCanvasColor(canvasData, pending.hex)
+      if (!result) return null
+      const pc = palette.colors.find(c => c.hex?.toLowerCase() === pending.hex.toLowerCase())
+      const name = pc ? t(`palette.colorNames.${palette.id}.${pc.id}`, pc.nameZh || pc.name) : null
+      const label = pc ? (name && name !== pc.id ? `${pc.id} ${name}` : pc.id) : pending.hex
+      return {
+        title: t('editor.confirmDeleteTitle'),
+        desc: t('editor.confirmDeleteDesc', { label, n: target?.count || result.removed }),
+        before: canvasData,
+        after: result.data,
+        confirmLabel: t('editor.confirmExecute'),
+        danger: true,
+        run: () => {
+          setPending(null)
+          setCleanupOpen(false)
+          canvasProps.onCanvasChange?.(result.data)
+          notify(t('editor.deleteDone', { n: result.removed }))
+        },
+      }
+    }
+
+    if (pending.kind === 'reduce') {
+      const result = reduceCanvasColors(canvasData, { keepCount: pending.keepCount })
+      if (!result) return null
+      const mapped = new Set([...result.mapping.keys()])
+      const beads = usedColors
+        .filter(c => mapped.has(c.hex.toLowerCase()))
+        .reduce((sum, c) => sum + c.count, 0)
+      return {
+        title: t('editor.confirmReduceTitle'),
+        desc: t('editor.confirmReduceDesc', {
+          after: result.after,
+          merged: result.before - result.after,
+          beads,
+        }),
+        before: canvasData,
+        after: result.data,
+        confirmLabel: t('editor.confirmExecute'),
+        run: () => {
+          setPending(null)
+          setCleanupOpen(false)
+          canvasProps.onCanvasChange?.(result.data)
+          notify(t('editor.reduceDone', { n: result.after }))
+        },
+      }
+    }
+
+    if (pending.kind === 'crop') {
+      const result =
+        pending.mode === 'selection'
+          ? cropCanvas(canvasData, selectionBounds(selection))
+          : cropCanvasToContent(canvasData)
+      if (!result) {
+        notify(t('editor.cropEmpty'), 'info')
+        return null
+      }
+      return {
+        title: t('editor.confirmCropTitle'),
+        desc: t('editor.confirmCropDesc', {
+          w0: cols,
+          h0: rows,
+          w: result.width,
+          h: result.height,
+        }),
+        before: canvasData,
+        after: result.data,
+        confirmLabel: t('editor.confirmExecute'),
+        run: () => {
+          setPending(null)
+          setCleanupOpen(false)
+          onCropCanvas?.(result.data, result.width, result.height)
+        },
+      }
+    }
+
+    return null
+  }, [
+    pending,
+    canvasData,
+    usedColors,
+    palette,
+    cols,
+    rows,
+    t,
+    onNoiseCleanup,
+    canvasProps,
+    notify,
+    onCropCanvas,
+  ])
 
   // 深链/刷新进来的空编辑器没有任何可修图的内容:给出明确出口,
   // 而不是让用户面对一整套操作台和 0 颗的空白网格。
@@ -631,23 +737,69 @@ export default function EditorPage({
           document.body
         )}
 
+      {pending &&
+        pendingView &&
+        createPortal(
+          <div className="editor-sheet-overlay">
+            <div className="editor-sheet editor-confirm-sheet" role="dialog" aria-label={pendingView.title}>
+              <div className="editor-sheet-head">
+                <h2>{pendingView.title}</h2>
+                <button
+                  type="button"
+                  className="editor-sheet-close"
+                  onClick={() => setPending(null)}
+                  aria-label={t('common.close')}
+                >
+                  <X size={16} />
+                </button>
+              </div>
+              <p className="editor-confirm-desc">{pendingView.desc}</p>
+              {pendingView.after && (
+                <div className="editor-confirm-preview">
+                  <figure>
+                    <EditorPreview data={pendingView.before} label={t('editor.previewBefore')} />
+                    <figcaption>{t('editor.previewBefore')}</figcaption>
+                  </figure>
+                  <span className="editor-confirm-arrow" aria-hidden="true">
+                    →
+                  </span>
+                  <figure>
+                    <EditorPreview data={pendingView.after} label={t('editor.previewAfter')} />
+                    <figcaption>{t('editor.previewAfter')}</figcaption>
+                  </figure>
+                </div>
+              )}
+              <div className="editor-finish-actions">
+                <button type="button" className="editor-finish-btn" onClick={() => setPending(null)}>
+                  {t('common.cancel')}
+                </button>
+                <button
+                  type="button"
+                  className={`editor-finish-primary${pendingView.danger ? ' danger' : ''}`}
+                  onClick={pendingView.run}
+                >
+                  {pendingView.confirmLabel}
+                </button>
+              </div>
+            </div>
+          </div>,
+          document.body
+        )}
+
       {cleanupOpen && (
         <EditorCleanupPanel
           palette={palette}
           usedColors={usedColors}
           hasSelection={Boolean(selection)}
           isolateColor={isolateColor}
-          onNoise={() => {
-            setCleanupOpen(false)
-            onNoiseCleanup?.()
-          }}
+          onNoise={openNoiseConfirm}
           onOpenReplace={() => {
             setCleanupOpen(false)
             onOpenReplace?.()
           }}
-          onDeleteColor={handleDeleteColor}
-          onReduceColors={handleReduceColors}
-          onCrop={handleCrop}
+          onDeleteColor={openDeleteConfirm}
+          onReduceColors={openReduceConfirm}
+          onCrop={openCropConfirm}
           onToggleIsolate={handleToggleIsolate}
           onClose={() => setCleanupOpen(false)}
         />

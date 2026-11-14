@@ -138,6 +138,7 @@ export default function EditorCleanupPanel({
           </Section>
 
           <Section title={t('editor.cleanupReduce')} hint={t('editor.cleanupReduceHint')}>
+            <p className="editor-cleanup-explainer">{t('editor.reduceExplainer')}</p>
             {reduceOptions.length === 0 ? (
               <p className="editor-cleanup-note">{t('editor.cleanupReduceNone')}</p>
             ) : (

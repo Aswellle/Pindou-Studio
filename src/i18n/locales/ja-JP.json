@@ -2310,6 +2310,18 @@
     "cropEmpty": "切り取れる内容がありません",
     "cropDone": "{{w}} × {{h}} に切り取りました",
     "more": "もっと",
-    "moreTitle": "その他のツール"
+    "moreTitle": "その他のツール",
+    "confirmNoiseTitle": "ノイズ除去の確認",
+    "confirmNoiseDesc": "{{n}} か所のノイズを整理します：孤立したビーズは削除、色ズレのビーズは周囲の主色に置き換わります。取り消し可能です。",
+    "confirmDeleteTitle": "色削除の確認",
+    "confirmDeleteDesc": "{{label}} のビーズ {{n}} 個をすべて空白にします。取り消し可能です。",
+    "confirmReduceTitle": "色統合の確認",
+    "confirmReduceDesc": "使用数の多い {{after}} 色を残し、近い色 {{merged}} 色をそこへ統合します。ビーズ総数は変わらず、見た目もほぼ変わらず、購入する色が少なくて済みます。{{beads}} 個のビーズが入れ替わります。取り消し可能です。",
+    "confirmCropTitle": "トリミングの確認",
+    "confirmCropDesc": "キャンバスを {{w0}} × {{h0}} から {{w}} × {{h}} に切り取り、枠外の内容は削除されます。トリミングすると取り消し履歴はリセットされ、元に戻せません。",
+    "previewBefore": "変更前",
+    "previewAfter": "変更後",
+    "confirmExecute": "実行",
+    "reduceExplainer": "写真の変換では数十色の近似色が出がちです。類似色を統合すると、見た目もビーズ総数もほぼそのままで、購入する色の種類を減らせます。"
   }
 }

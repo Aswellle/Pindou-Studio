@@ -471,6 +471,65 @@
   background: var(--error, #c62828);
 }
 
+/* ── 二次确认框:后果说明 + 前后效果预览,只允许显式确认/取消 ── */
+.editor-confirm-sheet {
+  gap: 10px;
+}
+
+.editor-confirm-desc {
+  margin: 0;
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: var(--bg-secondary);
+  font-size: 13px;
+  line-height: 1.7;
+  color: var(--text-primary);
+}
+
+.editor-confirm-preview {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 10px;
+  border: 1px dashed var(--border-color);
+  border-radius: 12px;
+}
+
+.editor-confirm-preview figure {
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  min-width: 0;
+}
+
+.editor-confirm-preview figcaption {
+  font-size: 11px;
+  color: var(--text-muted);
+  white-space: nowrap;
+}
+
+.editor-preview-canvas {
+  display: block;
+  max-width: 100%;
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  background: #fff;
+}
+
+.editor-confirm-arrow {
+  color: var(--text-muted);
+  font-size: 16px;
+  flex-shrink: 0;
+}
+
+.editor-finish-primary.danger {
+  border-color: var(--error, #c62828);
+  background: var(--error, #c62828);
+}
+
 /* ── 触屏轻提示:点按图标按钮在上方浮现功能名,1.5s 自动消失 ── */
 .editor-hint {
   position: fixed;
@@ -829,6 +888,17 @@
 .editor-cleanup-count {
   color: var(--text-muted);
   font-variant-numeric: tabular-nums;
+}
+
+/* 通俗说明:让用户在选参数前就理解这个功能解决什么问题 */
+.editor-cleanup-explainer {
+  margin: 0;
+  padding: 8px 10px;
+  border-radius: 9px;
+  background: color-mix(in srgb, var(--accent-soft) 60%, transparent);
+  font-size: 12px;
+  line-height: 1.7;
+  color: var(--text-secondary);
 }
 
 .editor-cleanup-presets {

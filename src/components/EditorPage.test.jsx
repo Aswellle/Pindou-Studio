@@ -224,10 +224,30 @@ describe('EditorPage · 工具与操作', () => {
     fireEvent.click(document.querySelector('.editor-sheet-overlay'))
     expect(document.querySelector('.editor-cleanup-sheet')).toBeTruthy()
 
-    // 面板顶部去噪直达(分区列表不再重复去噪)
+    // 测试数据(对角 3 颗)没有可清理的杂色:不打断用户,直接走 App 提示
     fireEvent.click(within(sheet).getByRole('button', { name: '去噪' }))
     expect(props.onNoiseCleanup).toHaveBeenCalledTimes(1)
     expect(document.querySelector('.editor-cleanup-sheet')).toBeNull()
+  })
+
+  it('有杂色时去噪先弹带预览的确认框,确认才执行', () => {
+    const { props } = renderEditor({
+      canvasData: Array.from({ length: 3 }, () => Array(3).fill('#43A047')).map((row, y) =>
+        row.map((cell, x) => (x === 1 && y === 1 ? '#1E88E5' : cell))
+      ),
+    })
+    fireEvent.click(screen.getByTitle('更多'))
+    fireEvent.click(
+      within(document.querySelector('.editor-cleanup-sheet')).getByRole('button', { name: '去噪' })
+    )
+    const confirm = document.querySelector('.editor-confirm-sheet')
+    expect(confirm).toBeTruthy()
+    expect(confirm.textContent).toContain('1 处杂色')
+    expect(confirm.querySelectorAll('.editor-preview-canvas')).toHaveLength(2)
+
+    fireEvent.click(within(confirm).getByRole('button', { name: '去噪' }))
+    expect(props.onNoiseCleanup).toHaveBeenCalledTimes(1)
+    expect(document.querySelector('.editor-confirm-sheet')).toBeNull()
   })
 
   it('撤销/重做带可见文字;保存/导出接线', () => {
@@ -398,16 +418,43 @@ describe('EditorPage · 完成流程', () => {
 })
 
 describe('EditorPage · 整理抽屉(低频刚需)', () => {
-  it('删除颜色:把该色全部清成空白,颗数显示在按钮上', () => {
+  it('删除颜色:先弹带预览的二次确认,确认才清空该色', () => {
     const { props } = renderEditor()
     fireEvent.click(screen.getByTitle('更多'))
     const sheet = document.querySelector('.editor-cleanup-sheet')
     // 红色 2 颗是主色,默认选中
     const btn = within(sheet).getByRole('button', { name: /删除 2 颗/ })
     fireEvent.click(btn)
+
+    // 确认框:后果说明 + 前后两帧预览;此时矩阵还未被改
+    const confirm = document.querySelector('.editor-confirm-sheet')
+    expect(confirm).toBeTruthy()
+    expect(confirm.textContent).toContain('删除')
+    expect(confirm.querySelectorAll('.editor-preview-canvas')).toHaveLength(2)
+    expect(props.canvasProps.onCanvasChange).not.toHaveBeenCalled()
+
+    // 点遮罩不关闭
+    fireEvent.click(confirm.parentElement)
+    expect(document.querySelector('.editor-confirm-sheet')).toBeTruthy()
+
+    // 取消:不执行,回到更多面板
+    fireEvent.click(
+      within(confirm.querySelector('.editor-finish-actions')).getByRole('button', { name: '取消' })
+    )
+    expect(document.querySelector('.editor-confirm-sheet')).toBeNull()
+    expect(document.querySelector('.editor-cleanup-sheet')).toBeTruthy()
+    expect(props.canvasProps.onCanvasChange).not.toHaveBeenCalled()
+
+    // 再走一遍并确认执行
+    fireEvent.click(btn)
+    fireEvent.click(
+      within(document.querySelector('.editor-confirm-sheet')).getByRole('button', { name: '确认执行' })
+    )
     expect(props.canvasProps.onCanvasChange).toHaveBeenCalledTimes(1)
     const next = props.canvasProps.onCanvasChange.mock.calls[0][0]
     expect(next.flat().filter(Boolean)).toHaveLength(1)
+    expect(document.querySelector('.editor-confirm-sheet')).toBeNull()
+    expect(document.querySelector('.editor-cleanup-sheet')).toBeNull()
   })
 
   it('合并相近色:按预设合并到目标色数,颗数不变', () => {
@@ -426,8 +473,20 @@ describe('EditorPage · 整理抽屉(低频刚需)', () => {
     const { props } = renderEditor({ canvasData: data, gridSize: 3, gridWidth: null, gridHeight: null })
     fireEvent.click(screen.getByTitle('更多'))
     const sheet = document.querySelector('.editor-cleanup-sheet')
+    // 分区里有通俗易懂的说明
+    expect(sheet.textContent).toContain('需要买的颜色种类立刻变少')
+
     fireEvent.click(within(sheet).getByRole('button', { name: '8' }))
     fireEvent.click(within(sheet).getByRole('button', { name: /合并到 8 色/ }))
+
+    const confirm = document.querySelector('.editor-confirm-sheet')
+    expect(confirm).toBeTruthy()
+    expect(confirm.textContent).toContain('用豆总数不变')
+    expect(confirm.querySelectorAll('.editor-preview-canvas')).toHaveLength(2)
+
+    fireEvent.click(
+      within(confirm.querySelector('.editor-finish-actions')).getByRole('button', { name: '确认执行' })
+    )
     expect(props.canvasProps.onCanvasChange).toHaveBeenCalledTimes(1)
     const next = props.canvasProps.onCanvasChange.mock.calls[0][0]
     expect(new Set(next.flat().filter(Boolean)).size).toBe(8)
@@ -446,6 +505,15 @@ describe('EditorPage · 整理抽屉(低频刚需)', () => {
     fireEvent.click(screen.getByTitle('更多'))
     const sheet = document.querySelector('.editor-cleanup-sheet')
     fireEvent.click(within(sheet).getByRole('button', { name: /裁到内容边界/ }))
+
+    const confirm = document.querySelector('.editor-confirm-sheet')
+    expect(confirm).toBeTruthy()
+    expect(confirm.textContent).toContain('重置撤销记录')
+    expect(confirm.querySelectorAll('.editor-preview-canvas')).toHaveLength(2)
+
+    fireEvent.click(
+      within(confirm.querySelector('.editor-finish-actions')).getByRole('button', { name: '确认执行' })
+    )
     expect(props.onCropCanvas).toHaveBeenCalledTimes(1)
     const [cropped, w, h] = props.onCropCanvas.mock.calls[0]
     expect([w, h]).toEqual([2, 2])

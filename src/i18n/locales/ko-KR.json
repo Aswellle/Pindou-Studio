@@ -2310,6 +2310,18 @@
     "cropEmpty": "자를 내용이 없습니다",
     "cropDone": "{{w}} × {{h}} 로 잘랐습니다",
     "more": "더 보기",
-    "moreTitle": "더 많은 도구"
+    "moreTitle": "더 많은 도구",
+    "confirmNoiseTitle": "노이즈 정리 확인",
+    "confirmNoiseDesc": "노이즈 {{n}}곳을 정리합니다. 고립된 비즈는 제거되고, 색이 어긋난 비즈는 주변 주색으로 바뀝니다. 이후 실행 취소할 수 있습니다.",
+    "confirmDeleteTitle": "색상 삭제 확인",
+    "confirmDeleteDesc": "{{label}} 비즈 {{n}}개를 모두 빈 칸으로 만듭니다. 이후 실행 취소할 수 있습니다.",
+    "confirmReduceTitle": "유사색 병합 확인",
+    "confirmReduceDesc": "사용량이 많은 {{after}}색을 남기고 비슷한 {{merged}}색을 합칩니다. 총 개수와 모양은 거의 그대로이지만 구입할 색 종류가 줄어듭니다. {{beads}}개의 비즈가 바뀝니다. 이후 실행 취소할 수 있습니다.",
+    "confirmCropTitle": "자르기 확인",
+    "confirmCropDesc": "캔버스를 {{w0}} × {{h0}}에서 {{w}} × {{h}}로 자르고, 영역 밖 내용은 제거됩니다. 자르면 실행 취소 기록이 초기화되어 되돌릴 수 없습니다.",
+    "previewBefore": "이전",
+    "previewAfter": "이후",
+    "confirmExecute": "실행",
+    "reduceExplainer": "사진 변환에는 비슷한 색이 수십 가지 생기기 쉽습니다. 유사색을 병합하면 모양과 총 개수는 거의 그대로인 채 구입할 색 종류를 줄일 수 있습니다."
   }
 }

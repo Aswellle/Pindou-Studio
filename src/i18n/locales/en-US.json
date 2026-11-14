@@ -2310,6 +2310,18 @@
     "cropEmpty": "Nothing to crop",
     "cropDone": "Cropped to {{w}} × {{h}}",
     "more": "More",
-    "moreTitle": "More tools"
+    "moreTitle": "More tools",
+    "confirmNoiseTitle": "Confirm cleanup",
+    "confirmNoiseDesc": "Will clean {{n}} stray spots: isolated single beads are removed, off-color beads are snapped to the surrounding main color. Undoable afterwards.",
+    "confirmDeleteTitle": "Confirm color deletion",
+    "confirmDeleteDesc": "Will delete all {{n}} beads of {{label}}; those cells become empty. Undoable afterwards.",
+    "confirmReduceTitle": "Confirm color merge",
+    "confirmReduceDesc": "Keeps the {{after}} most-used colors and merges {{merged}} similar ones into them: same total bead count, almost no visible change, and far fewer colors to buy. {{beads}} beads will be recolored. Undoable afterwards.",
+    "confirmCropTitle": "Confirm crop",
+    "confirmCropDesc": "Canvas will be cropped from {{w0}} × {{h0}} to {{w}} × {{h}}; content outside is removed. Cropping resets undo history and cannot be undone.",
+    "previewBefore": "Before",
+    "previewAfter": "After",
+    "confirmExecute": "Confirm",
+    "reduceExplainer": "Photo conversion often produces dozens of near-identical colors. Merging similar colors collapses them into one: almost no visible change, same bead count, and far fewer bags to buy."
   }
 }
