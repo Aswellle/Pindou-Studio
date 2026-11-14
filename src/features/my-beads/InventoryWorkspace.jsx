@@ -59,48 +59,66 @@ export default function InventoryWorkspace({
   const colors = useMemo(() => {
     if (!paletteId) return []
     if (source === 'builtin') {
-      const palette = palettes.builtin.find((p) => p.id === paletteId)
+      const palette = palettes.builtin.find(p => p.id === paletteId)
       if (!palette) return []
-      return palette.colors.map((c) => ({
+      return palette.colors.map(c => ({
         id: c.id,
         code: c.id,
-        name: c.nameZh || c.name,
+        name: t(`palette.colorNames.${paletteId}.${c.id}`, c.nameZh || c.name),
         hex: c.hex,
         key: `builtin:${paletteId}:${c.id}`,
       }))
     }
     const list = colorsByPalette.get(paletteId) || []
-    return list.map((c) => ({ ...c, key: `user:${paletteId}:${c.id}` }))
-  }, [source, paletteId, palettes.builtin, colorsByPalette])
+    return list.map(c => ({ ...c, key: `user:${paletteId}:${c.id}` }))
+  }, [source, paletteId, palettes.builtin, colorsByPalette, t])
 
   const summary = useMemo(() => buildStockSummary(colors, inventoryByKey), [colors, inventoryByKey])
 
   const visible = useMemo(() => {
     const q = search.trim().toLowerCase()
-    return colors.filter((c) => {
+    return colors.filter(c => {
       if (q) {
-        const hit = String(c.code).toLowerCase().includes(q)
-          || String(c.name || '').toLowerCase().includes(q)
-          || String(c.hex || '').toLowerCase().includes(q)
+        const hit =
+          String(c.code).toLowerCase().includes(q) ||
+          String(c.name || '')
+            .toLowerCase()
+            .includes(q) ||
+          String(c.hex || '')
+            .toLowerCase()
+            .includes(q)
         if (!hit) return false
       }
       return matchesStockFilter(deriveStockState(inventoryByKey.get(c.key)), filter)
     })
   }, [colors, search, filter, inventoryByKey])
 
-  const visibleKeys = useMemo(() => visible.map((c) => c.key), [visible])
-  const allVisibleSelected = visibleKeys.length > 0 && visibleKeys.every((k) => selectedKeys.has(k))
+  const visibleKeys = useMemo(() => visible.map(c => c.key), [visible])
+  const allVisibleSelected = visibleKeys.length > 0 && visibleKeys.every(k => selectedKeys.has(k))
 
   // 切换色卡/来源时清空选择与批量草稿(规格 §5.1 第 5 条)
-  const resetSelection = () => { setSelectedKeys(new Set()); setBatchQty('') }
+  const resetSelection = () => {
+    setSelectedKeys(new Set())
+    setBatchQty('')
+  }
 
-  const changeSource = (next) => { resetSelection(); setFilter('all'); setSearch(''); onSourceChange(next) }
+  const changeSource = next => {
+    resetSelection()
+    setFilter('all')
+    setSearch('')
+    onSourceChange(next)
+  }
   // 换色卡与换来源同样要清空搜索与筛选:上一张色卡的色号/名称在新色卡里
   // 通常不存在,留着查询会直接呈现空列表,看起来像"这张色卡没有颜色"。
-  const changePalette = (next) => { resetSelection(); setFilter('all'); setSearch(''); onPaletteChange(next) }
+  const changePalette = next => {
+    resetSelection()
+    setFilter('all')
+    setSearch('')
+    onPaletteChange(next)
+  }
 
-  const toggleKey = (key) => {
-    setSelectedKeys((prev) => {
+  const toggleKey = key => {
+    setSelectedKeys(prev => {
       const next = new Set(prev)
       if (next.has(key)) next.delete(key)
       else next.add(key)
@@ -109,23 +127,26 @@ export default function InventoryWorkspace({
   }
 
   const toggleAll = () => {
-    setSelectedKeys((prev) => {
+    setSelectedKeys(prev => {
       const next = new Set(prev)
-      if (allVisibleSelected) visibleKeys.forEach((k) => next.delete(k))
-      else visibleKeys.forEach((k) => next.add(k))
+      if (allVisibleSelected) visibleKeys.forEach(k => next.delete(k))
+      else visibleKeys.forEach(k => next.add(k))
       return next
     })
   }
 
   const runBatch = async (buildPatch, successKey) => {
-    const targets = visible.filter((c) => selectedKeys.has(c.key))
+    const targets = visible.filter(c => selectedKeys.has(c.key))
     if (targets.length === 0) return null
     let ok = 0
     let failed = 0
     for (const color of targets) {
       const record = inventoryByKey.get(color.key)
       const patch = buildPatch(color, record)
-      if (patch === null) { ok++; continue }
+      if (patch === null) {
+        ok++
+        continue
+      }
       if (patch.__remove) {
         const res = await onClearRecord(color, { silent: true })
         if (res?.ok) ok++
@@ -144,23 +165,24 @@ export default function InventoryWorkspace({
   const applyBatchQty = () => {
     const parsed = normalizeQuantityDraft(batchQty)
     if (!parsed.ok) return
-    runBatch((_color, record) => ({
-      quantity: parsed.quantity,
-      status: statusForQuantity(parsed.quantity, record?.status || 'owned'),
-    }), 'myBeads.inventory.batchQtyDone')
+    runBatch(
+      (_color, record) => ({
+        quantity: parsed.quantity,
+        status: statusForQuantity(parsed.quantity, record?.status || 'owned'),
+      }),
+      'myBeads.inventory.batchQtyDone'
+    )
   }
 
-  const applyBatchStatus = (status) => runBatch(
-    (_color, record) => (status === 'out_of_stock'
-      ? { quantity: 0, status }
-      : { quantity: record?.quantity ?? null, status }),
-    'myBeads.inventory.batchStatusDone',
-  )
+  const applyBatchStatus = status =>
+    runBatch(
+      (_color, record) =>
+        status === 'out_of_stock' ? { quantity: 0, status } : { quantity: record?.quantity ?? null, status },
+      'myBeads.inventory.batchStatusDone'
+    )
 
-  const clearBatch = () => runBatch(
-    (_color, record) => (record ? { __remove: true } : null),
-    'myBeads.inventory.batchCleared',
-  )
+  const clearBatch = () =>
+    runBatch((_color, record) => (record ? { __remove: true } : null), 'myBeads.inventory.batchCleared')
 
   const commitRow = async (color, quantity, status) => {
     setSavingKey(color.key)
@@ -211,8 +233,8 @@ export default function InventoryWorkspace({
 
         <label className="picker-palette">
           <span>{t('myBeads.inventory.paletteLabel')}</span>
-          <select value={paletteId || ''} onChange={(e) => changePalette(e.target.value)}>
-            {(source === 'builtin' ? builtinList : userPalettes).map((p) => (
+          <select value={paletteId || ''} onChange={e => changePalette(e.target.value)}>
+            {(source === 'builtin' ? builtinList : userPalettes).map(p => (
               <option key={p.id} value={p.id}>
                 {source === 'builtin'
                   ? t(`palette.brand.${p.id}`, p.nameZh || p.name)
@@ -230,10 +252,12 @@ export default function InventoryWorkspace({
           <p className="my-beads-hint small">{t('myBeads.inventory.noPalettesDesc')}</p>
           <div className="empty-actions">
             <button type="button" className="my-beads-btn primary" onClick={onCopyBuiltin}>
-              <Copy size={14} />{t('myBeads.gettingStarted.copyBuiltin')}
+              <Copy size={14} />
+              {t('myBeads.gettingStarted.copyBuiltin')}
             </button>
             <button type="button" className="my-beads-btn secondary" onClick={onNewPalette}>
-              <Plus size={14} />{t('myBeads.gettingStarted.createCustom')}
+              <Plus size={14} />
+              {t('myBeads.gettingStarted.createCustom')}
             </button>
           </div>
         </div>
@@ -250,7 +274,7 @@ export default function InventoryWorkspace({
         <>
           {/* 摘要:每一项可点,点击即设置对应筛选 */}
           <div className="inventory-summary" role="group" aria-label={t('myBeads.inventory.summaryLabel')}>
-            {SUMMARY_ITEMS.map((item) => (
+            {SUMMARY_ITEMS.map(item => (
               <button
                 key={item.filter}
                 type="button"
@@ -271,23 +295,28 @@ export default function InventoryWorkspace({
               <Search size={14} />
               <input
                 value={search}
-                onChange={(e) => setSearch(e.target.value)}
+                onChange={e => setSearch(e.target.value)}
                 placeholder={t('myBeads.inventory.search')}
                 aria-label={t('myBeads.inventory.search')}
               />
             </label>
             <select
               value={filter}
-              onChange={(e) => setFilter(e.target.value)}
+              onChange={e => setFilter(e.target.value)}
               aria-label={t('myBeads.inventory.filterLabel')}
             >
-              {FILTERS.map((f) => (
+              {FILTERS.map(f => (
                 <option key={f} value={f}>
-                  {f === 'all' ? t('myBeads.inventory.filterAll')
-                    : f === 'recorded' ? t('myBeads.inventory.filterRecorded')
-                      : f === 'owned' ? t('myBeads.inventory.filterOwned')
-                        : f === 'low' ? t('myBeads.inventory.filterLow')
-                          : f === 'out' ? t('myBeads.inventory.filterOut')
+                  {f === 'all'
+                    ? t('myBeads.inventory.filterAll')
+                    : f === 'recorded'
+                      ? t('myBeads.inventory.filterRecorded')
+                      : f === 'owned'
+                        ? t('myBeads.inventory.filterOwned')
+                        : f === 'low'
+                          ? t('myBeads.inventory.filterLow')
+                          : f === 'out'
+                            ? t('myBeads.inventory.filterOut')
                             : t('myBeads.inventory.filterUnknown')}
                 </option>
               ))}
@@ -306,20 +335,40 @@ export default function InventoryWorkspace({
                 step="1"
                 className="qty-input"
                 value={batchQty}
-                onChange={(e) => setBatchQty(e.target.value)}
+                onChange={e => setBatchQty(e.target.value)}
                 placeholder={t('myBeads.inventory.batchQtyPlaceholder')}
                 aria-label={t('myBeads.inventory.batchQtyPlaceholder')}
               />
-              <button type="button" className="my-beads-btn secondary" disabled={busy} onClick={applyBatchQty}>
+              <button
+                type="button"
+                className="my-beads-btn secondary"
+                disabled={busy}
+                onClick={applyBatchQty}
+              >
                 {t('myBeads.inventory.batchSetQty')}
               </button>
-              <button type="button" className="my-beads-btn ghost" disabled={busy} onClick={() => applyBatchStatus('owned')}>
+              <button
+                type="button"
+                className="my-beads-btn ghost"
+                disabled={busy}
+                onClick={() => applyBatchStatus('owned')}
+              >
                 {t('myBeads.inventory.markOwned')}
               </button>
-              <button type="button" className="my-beads-btn ghost" disabled={busy} onClick={() => applyBatchStatus('low')}>
+              <button
+                type="button"
+                className="my-beads-btn ghost"
+                disabled={busy}
+                onClick={() => applyBatchStatus('low')}
+              >
                 {t('myBeads.inventory.markLow')}
               </button>
-              <button type="button" className="my-beads-btn ghost" disabled={busy} onClick={() => applyBatchStatus('out_of_stock')}>
+              <button
+                type="button"
+                className="my-beads-btn ghost"
+                disabled={busy}
+                onClick={() => applyBatchStatus('out_of_stock')}
+              >
                 {t('myBeads.inventory.markOut')}
               </button>
               <button type="button" className="my-beads-btn ghost" disabled={busy} onClick={clearBatch}>
@@ -344,7 +393,7 @@ export default function InventoryWorkspace({
                 </span>
               </label>
               <ul className="my-beads-inv-list">
-                {visible.map((color) => (
+                {visible.map(color => (
                   <InventoryColorRow
                     key={color.key}
                     color={color}
@@ -352,7 +401,7 @@ export default function InventoryWorkspace({
                     selected={selectedKeys.has(color.key)}
                     saving={savingKey === color.key}
                     onToggleSelect={toggleKey}
-                    onSetStatus={(status) => {
+                    onSetStatus={status => {
                       const record = inventoryByKey.get(color.key)
                       const quantity = status === 'out_of_stock' ? 0 : (record?.quantity ?? null)
                       return commitRow(color, quantity, status)

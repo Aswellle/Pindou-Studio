@@ -24,11 +24,7 @@ import {
   matchCanvasToInventory,
 } from '../../services/beads/inventoryMatch'
 import { buildMappingPreview, acceptedEntries } from './mappingPreview'
-import {
-  THRESHOLD_PRESETS,
-  resolveThreshold,
-  thresholdPresetId,
-} from './paletteOptions'
+import { THRESHOLD_PRESETS, resolveThreshold, thresholdPresetId } from './paletteOptions'
 
 const COLOR_STATUS_KEY = {
   [COLOR_STATUS.EXACT]: 'myBeads.match.status.exact',
@@ -75,7 +71,9 @@ function WhenToUse({ t }) {
 function StepHead({ n, title }) {
   return (
     <div className="match-step-head">
-      <span className="match-step-no" aria-hidden="true">{n}</span>
+      <span className="match-step-no" aria-hidden="true">
+        {n}
+      </span>
       <h3>{title}</h3>
     </div>
   )
@@ -110,29 +108,29 @@ export default function MatchWorkspace({
 
   // 目标色卡候选
   const targetPalette = useMemo(() => {
-    if (source === 'builtin') return builtinPalettes.find((p) => p.id === targetId) || null
-    return userPalettes.find((p) => p.id === targetId) || null
+    if (source === 'builtin') return builtinPalettes.find(p => p.id === targetId) || null
+    return userPalettes.find(p => p.id === targetId) || null
   }, [source, targetId, builtinPalettes, userPalettes])
 
   const candidates = useMemo(() => {
     if (!targetPalette) return []
     if (source === 'builtin') {
-      return targetPalette.colors.map((c) => ({
+      return targetPalette.colors.map(c => ({
         id: c.id,
         code: c.id,
-        name: c.nameZh || c.name,
+        name: t(`palette.colorNames.${targetPalette.id}.${c.id}`, c.nameZh || c.name),
         hex: c.hex,
         beadSizeMm: targetPalette.beadSize,
       }))
     }
-    return (colorsByPalette.get(targetPalette.id) || []).map((c) => ({
+    return (colorsByPalette.get(targetPalette.id) || []).map(c => ({
       id: c.id,
       code: c.code,
       name: c.name,
       hex: c.hex,
       beadSizeMm: targetPalette.beadSizeMm ?? null,
     }))
-  }, [targetPalette, source, colorsByPalette])
+  }, [targetPalette, source, colorsByPalette, t])
 
   const targetInventory = useMemo(() => {
     const m = new Map()
@@ -158,10 +156,10 @@ export default function MatchWorkspace({
   // 手动替色优先于算法结果
   const items = useMemo(() => {
     if (Object.keys(overrides).length === 0) return matchResult.items
-    return matchResult.items.map((item) => {
+    return matchResult.items.map(item => {
       const overrideId = overrides[item.sourceHex]
       if (!overrideId) return item
-      const target = candidates.find((c) => c.id === overrideId)
+      const target = candidates.find(c => c.id === overrideId)
       if (!target) return item
       return { ...item, targetColor: target, deltaE00: null, autoApplicable: true, manual: true }
     })
@@ -169,7 +167,7 @@ export default function MatchWorkspace({
 
   const preview = useMemo(
     () => buildMappingPreview(canvasData, items, accepted),
-    [canvasData, items, accepted],
+    [canvasData, items, accepted]
   )
 
   const shopping = useMemo(() => buildShoppingList(items), [items])
@@ -180,8 +178,8 @@ export default function MatchWorkspace({
     onSourceChange(nextSource, nextId)
   }
 
-  const toggleAccept = (sourceHex) => {
-    setAccepted((prev) => {
+  const toggleAccept = sourceHex => {
+    setAccepted(prev => {
       const next = { ...prev }
       if (next[sourceHex]) delete next[sourceHex]
       else next[sourceHex] = true
@@ -203,9 +201,12 @@ export default function MatchWorkspace({
 
   const acceptedCount = Object.keys(accepted).length
   const canApply = preview.changedCells > 0 && preview.selectedColors > 0
-  const applyDisabledReason = preview.selectedColors === 0
-    ? t('myBeads.match.applyDisabledEmpty')
-    : (preview.changedCells === 0 ? t('myBeads.match.applyDisabledNoChange') : '')
+  const applyDisabledReason =
+    preview.selectedColors === 0
+      ? t('myBeads.match.applyDisabledEmpty')
+      : preview.changedCells === 0
+        ? t('myBeads.match.applyDisabledNoChange')
+        : ''
 
   const apply = () => {
     if (!canApply) return
@@ -215,7 +216,7 @@ export default function MatchWorkspace({
     setAccepted({})
   }
 
-  const hasCanvas = !!canvasData && canvasData.some((row) => row.some(Boolean))
+  const hasCanvas = !!canvasData && canvasData.some(row => row.some(Boolean))
   const targetHasNoColors = targetPalette && candidates.length === 0
   // 切到「我的色卡」但一张都没有:这是「还没建色卡」,不是「色卡里没颜色」,
   // 两者该给的下一步不同(复制/新建 vs 去管理颜色)。
@@ -225,7 +226,9 @@ export default function MatchWorkspace({
   if (!hasCanvas) {
     return (
       <section className="my-beads-section match-workspace">
-        <div className="my-beads-section-head"><h2>{t('myBeads.match.title')}</h2></div>
+        <div className="my-beads-section-head">
+          <h2>{t('myBeads.match.title')}</h2>
+        </div>
         <p className="my-beads-hint small">{t('myBeads.match.intro')}</p>
 
         {/* 空状态下更要说清「这个页面是干什么的」:用户很可能就是在这里
@@ -237,7 +240,8 @@ export default function MatchWorkspace({
           <h3>{t('myBeads.match.noCanvasTitle')}</h3>
           <p className="my-beads-hint small">{t('myBeads.match.noCanvasDesc')}</p>
           <button type="button" className="my-beads-btn primary" onClick={onBackToCanvas}>
-            <ArrowLeft size={14} />{t('myBeads.match.backToCanvas')}
+            <ArrowLeft size={14} />
+            {t('myBeads.match.backToCanvas')}
           </button>
         </div>
       </section>
@@ -246,15 +250,26 @@ export default function MatchWorkspace({
 
   return (
     <section className="my-beads-section match-workspace">
-      <div className="my-beads-section-head"><h2>{t('myBeads.match.title')}</h2></div>
+      <div className="my-beads-section-head">
+        <h2>{t('myBeads.match.title')}</h2>
+      </div>
       <p className="my-beads-hint small">{t('myBeads.match.intro')}</p>
 
       {/* 流程条:编号与下面的分区一一对应,用户随时知道自己在第几步。
           原来这里是「什么时候用得上」三条 + 另一组三步说明,同一件事讲了两遍。 */}
       <ol className="match-flow" aria-label={t('myBeads.match.flowLabel')}>
-        <li><span>1</span>{t('myBeads.match.step1')}</li>
-        <li><span>2</span>{t('myBeads.match.step2')}</li>
-        <li><span>3</span>{t('myBeads.match.step3')}</li>
+        <li>
+          <span>1</span>
+          {t('myBeads.match.step1')}
+        </li>
+        <li>
+          <span>2</span>
+          {t('myBeads.match.step2')}
+        </li>
+        <li>
+          <span>3</span>
+          {t('myBeads.match.step3')}
+        </li>
       </ol>
 
       {/* ═══ 第 1 步:选色卡 ═══════════════════════════════ */}
@@ -287,17 +302,14 @@ export default function MatchWorkspace({
 
           <label className="picker-palette">
             <span>{t('myBeads.match.targetPalette')}</span>
-            <select
-              value={targetId || ''}
-              onChange={(e) => changeTarget(source, e.target.value)}
-            >
-              {(source === 'builtin' ? builtinPalettes : userPalettes).map((p) => (
+            <select value={targetId || ''} onChange={e => changeTarget(source, e.target.value)}>
+              {(source === 'builtin' ? builtinPalettes : userPalettes).map(p => (
                 <option key={p.id} value={p.id}>
-                  {source === 'builtin'
-                    ? t(`palette.brand.${p.id}`, p.nameZh || p.name)
-                    : p.name}
+                  {source === 'builtin' ? t(`palette.brand.${p.id}`, p.nameZh || p.name) : p.name}
                   {source === 'builtin' && p.beadSize ? ` · ${p.beadSize}mm` : ''}
-                  {source === 'builtin' ? ` · ${p.colors.length}` : ` · ${(colorsByPalette.get(p.id) || []).length}`}
+                  {source === 'builtin'
+                    ? ` · ${p.colors.length}`
+                    : ` · ${(colorsByPalette.get(p.id) || []).length}`}
                 </option>
               ))}
             </select>
@@ -307,7 +319,7 @@ export default function MatchWorkspace({
             type="button"
             className="my-beads-btn ghost advanced-toggle"
             aria-expanded={showAdvanced}
-            onClick={() => setShowAdvanced((v) => !v)}
+            onClick={() => setShowAdvanced(v => !v)}
           >
             {t('myBeads.match.advanced')}
           </button>
@@ -321,9 +333,12 @@ export default function MatchWorkspace({
                 <select
                   value={sizeCustom ? '__custom__' : requiredSize}
                   aria-label={t('myBeads.match.sizeLabel')}
-                  onChange={(e) => {
+                  onChange={e => {
                     const next = e.target.value
-                    if (next === '__custom__') { setSizeCustom(true); return }
+                    if (next === '__custom__') {
+                      setSizeCustom(true)
+                      return
+                    }
                     setSizeCustom(false)
                     setRequiredSize(next)
                   }}
@@ -342,7 +357,7 @@ export default function MatchWorkspace({
                   step="0.1"
                   className="qty-input"
                   value={requiredSize}
-                  onChange={(e) => setRequiredSize(e.target.value)}
+                  onChange={e => setRequiredSize(e.target.value)}
                   aria-label={t('myBeads.match.sizeLabel')}
                 />
               )}
@@ -352,15 +367,17 @@ export default function MatchWorkspace({
                 <span>{t('myBeads.match.thresholdLabel')}</span>
                 <select
                   value={thresholdPresetId(threshold)}
-                  onChange={(e) => {
-                    const preset = THRESHOLD_PRESETS.find((p) => p.id === e.target.value)
+                  onChange={e => {
+                    const preset = THRESHOLD_PRESETS.find(p => p.id === e.target.value)
                     if (preset) setThresholdRaw(String(preset.value))
                     else setThresholdRaw('0')
                   }}
                   aria-label={t('myBeads.match.thresholdLabel')}
                 >
-                  {THRESHOLD_PRESETS.map((p) => (
-                    <option key={p.id} value={p.id}>{t(p.key)}</option>
+                  {THRESHOLD_PRESETS.map(p => (
+                    <option key={p.id} value={p.id}>
+                      {t(p.key)}
+                    </option>
                   ))}
                   <option value="custom">{t('myBeads.match.thresholdCustom')}</option>
                 </select>
@@ -373,7 +390,7 @@ export default function MatchWorkspace({
                   step="0.5"
                   className="qty-input"
                   value={thresholdRaw}
-                  onChange={(e) => setThresholdRaw(e.target.value)}
+                  onChange={e => setThresholdRaw(e.target.value)}
                   aria-label={t('myBeads.match.thresholdLabel')}
                 />
               )}
@@ -390,10 +407,12 @@ export default function MatchWorkspace({
           <p className="my-beads-hint small">{t('myBeads.inventory.noPalettesDesc')}</p>
           <div className="empty-actions">
             <button type="button" className="my-beads-btn primary" onClick={onCopyBuiltin}>
-              <Copy size={14} />{t('myBeads.gettingStarted.copyBuiltin')}
+              <Copy size={14} />
+              {t('myBeads.gettingStarted.copyBuiltin')}
             </button>
             <button type="button" className="my-beads-btn secondary" onClick={onNewPalette}>
-              <Plus size={14} />{t('myBeads.gettingStarted.createCustom')}
+              <Plus size={14} />
+              {t('myBeads.gettingStarted.createCustom')}
             </button>
           </div>
         </div>
@@ -434,7 +453,7 @@ export default function MatchWorkspace({
 
             {/* 结果列表:桌面为一行一条,移动端为卡片(CSS 切换) */}
             <ul className="match-results">
-              {items.map((item) => {
+              {items.map(item => {
                 const checked = !!accepted[item.sourceHex]
                 const incompatible = item.mappingStatus === MAPPING_STATUS.INCOMPATIBLE_SIZE
                 return (
@@ -457,16 +476,24 @@ export default function MatchWorkspace({
                     <div className="match-col match-target">
                       {item.targetColor ? (
                         <>
-                          <span className="swatch" style={{ background: item.targetColor.hex }} aria-hidden="true" />
+                          <span
+                            className="swatch"
+                            style={{ background: item.targetColor.hex }}
+                            aria-hidden="true"
+                          />
                           <code>{item.targetColor.code}</code>
                           <select
                             className="override-select"
                             aria-label={`${t('myBeads.match.manualPickLabel')} ${item.sourceHex}`}
                             value={overrides[item.sourceHex] || item.targetColor.id}
-                            onChange={(e) => setOverrides((prev) => ({ ...prev, [item.sourceHex]: e.target.value }))}
+                            onChange={e =>
+                              setOverrides(prev => ({ ...prev, [item.sourceHex]: e.target.value }))
+                            }
                           >
-                            {candidates.map((c) => (
-                              <option key={c.id} value={c.id}>{c.code}</option>
+                            {candidates.map(c => (
+                              <option key={c.id} value={c.id}>
+                                {c.code}
+                              </option>
                             ))}
                           </select>
                         </>
@@ -492,16 +519,20 @@ export default function MatchWorkspace({
 
                     <div className="match-col match-badges">
                       {incompatible ? (
-                        <span className="status-badge size">{t('myBeads.match.status.incompatibleSize')}</span>
+                        <span className="status-badge size">
+                          {t('myBeads.match.status.incompatibleSize')}
+                        </span>
                       ) : (
                         <>
                           {/* 色差数值只放在 title 里:主界面用日常说法,需要精确值的人
                               悬停即可看到,不必先理解 ΔE00 是什么。 */}
                           <span
                             className={`status-badge ${TONE[item.colorStatus] || 'missing'}`}
-                            title={item.deltaE00 === null || item.deltaE00 === undefined
-                              ? undefined
-                              : t('myBeads.match.deltaTitle', { value: item.deltaE00.toFixed(2) })}
+                            title={
+                              item.deltaE00 === null || item.deltaE00 === undefined
+                                ? undefined
+                                : t('myBeads.match.deltaTitle', { value: item.deltaE00.toFixed(2) })
+                            }
                           >
                             {t(COLOR_STATUS_KEY[item.colorStatus] || COLOR_STATUS_KEY[COLOR_STATUS.MISSING])}
                           </span>
@@ -510,7 +541,9 @@ export default function MatchWorkspace({
                               {t(STOCK_STATUS_KEY[item.stockStatus])}
                             </span>
                           )}
-                          {item.manual && <span className="status-badge manual">{t('myBeads.match.manual')}</span>}
+                          {item.manual && (
+                            <span className="status-badge manual">{t('myBeads.match.manual')}</span>
+                          )}
                         </>
                       )}
                     </div>
@@ -550,7 +583,9 @@ export default function MatchWorkspace({
                 <span>{t('myBeads.match.previewSelected', { n: preview.selectedColors })}</span>
                 <span>{t('myBeads.match.previewCells', { n: preview.changedCells })}</span>
                 <span>{t('myBeads.match.summaryColors', { n: matchResult.summary?.colorCount ?? 0 })}</span>
-                <span>{t('myBeads.match.summaryShortage', { n: matchResult.summary?.shortageBeads ?? 0 })}</span>
+                <span>
+                  {t('myBeads.match.summaryShortage', { n: matchResult.summary?.shortageBeads ?? 0 })}
+                </span>
               </div>
               <p className="my-beads-hint small">{t('myBeads.match.previewHint')}</p>
             </div>
@@ -574,14 +609,21 @@ export default function MatchWorkspace({
 
           {/* ── 结果:采购清单 ───────────────────────────── */}
           <div className="my-beads-shopping">
-            <h3><ShoppingCart size={14} aria-hidden="true" />{t('myBeads.match.shoppingTitle')}</h3>
+            <h3>
+              <ShoppingCart size={14} aria-hidden="true" />
+              {t('myBeads.match.shoppingTitle')}
+            </h3>
             {shopping.need.length === 0 ? (
               <p className="my-beads-hint small">{t('myBeads.match.shoppingNone')}</p>
             ) : (
               <ul>
-                {shopping.need.map((item) => (
+                {shopping.need.map(item => (
                   <li key={item.targetColor.id}>
-                    <span className="swatch" style={{ background: item.targetColor.hex }} aria-hidden="true" />
+                    <span
+                      className="swatch"
+                      style={{ background: item.targetColor.hex }}
+                      aria-hidden="true"
+                    />
                     <code>{item.targetColor.code}</code>
                     <span>{t('myBeads.match.buy', { n: item.shortageCount })}</span>
                   </li>
