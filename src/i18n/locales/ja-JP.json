@@ -2308,6 +2308,8 @@
     "deleteDone": "{{n}} 個を削除しました",
     "reduceDone": "{{n}} 色に統合しました",
     "cropEmpty": "切り取れる内容がありません",
-    "cropDone": "{{w}} × {{h}} に切り取りました"
+    "cropDone": "{{w}} × {{h}} に切り取りました",
+    "more": "もっと",
+    "moreTitle": "その他のツール"
   }
 }

@@ -2308,6 +2308,8 @@
     "deleteDone": "已删除 {{n}} 颗",
     "reduceDone": "已合并为 {{n}} 色",
     "cropEmpty": "没有可裁的内容",
-    "cropDone": "已裁切为 {{w}} × {{h}}"
+    "cropDone": "已裁切为 {{w}} × {{h}}",
+    "more": "更多",
+    "moreTitle": "更多工具"
   }
 }

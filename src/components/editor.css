@@ -696,6 +696,17 @@
   gap: 8px;
 }
 
+/* 浮窗内滚动条全部隐藏:滚动条占位会压住右侧按钮与文字,触屏滚动不受影响 */
+.editor-sheet-body,
+.editor-palette-grid {
+  scrollbar-width: none;
+}
+
+.editor-sheet-body::-webkit-scrollbar,
+.editor-palette-grid::-webkit-scrollbar {
+  display: none;
+}
+
 .editor-sheet-body {
   min-height: 0;
   overflow-y: auto;
@@ -704,6 +715,28 @@
   flex-direction: column;
   gap: 16px;
   padding: 2px;
+}
+
+/* 面板顶部去噪直达:最高频整理动作,与分区列表视觉分层 */
+.editor-cleanup-quick {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 10px;
+  border: 1px solid color-mix(in srgb, var(--accent) 40%, transparent);
+  border-radius: 12px;
+  background: color-mix(in srgb, var(--accent-soft) 60%, transparent);
+}
+
+.editor-cleanup-quick .editor-cleanup-action {
+  background: var(--bg-primary);
+}
+
+.editor-cleanup-quick p {
+  margin: 0;
+  font-size: 11px;
+  line-height: 1.5;
+  color: var(--text-secondary);
 }
 
 .editor-cleanup-section {

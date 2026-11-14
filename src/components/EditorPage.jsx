@@ -9,12 +9,12 @@ import {
   MousePointerClick,
   Lasso,
   SquareDashed,
-  Sparkles,
   Undo2,
   Redo2,
   Save,
   ImageDown,
   Palette,
+  MoreHorizontal,
   Maximize2,
   RotateCcw,
   Check,
@@ -108,7 +108,8 @@ function PalettePanel({ palette, colorStats, selectedColor, onSelect, onClose })
     : palette.colors
 
   return createPortal(
-    <div className="editor-sheet-overlay" onClick={onClose}>
+    /* 遮罩点击不关闭:必须按 × 或选完颜色才离开 */
+    <div className="editor-sheet-overlay">
       <div
         className="editor-sheet"
         role="dialog"
@@ -179,7 +180,8 @@ function PalettePanel({ palette, colorStats, selectedColor, onSelect, onClose })
 function FinishPanel({ dirty, onClose, onSaveAndExit, onSave, onExport, onExit }) {
   const { t } = useTranslation()
   return createPortal(
-    <div className="editor-sheet-overlay" onClick={onClose}>
+    /* 遮罩点击不关闭:完成/离开必须显式选择 */
+    <div className="editor-sheet-overlay">
       <div
         className="editor-sheet editor-finish-sheet"
         role="dialog"
@@ -568,27 +570,17 @@ export default function EditorPage({
             </div>
           )}
           <div className="editor-actions">
-            {/* 去噪直达:量化图纸的最高频动作,操作台上必须有一眼可见的同名按钮
-                (整理 ≠ 去噪,标签不能合并 —— 整理抽屉里另有同一入口) */}
+            {/* 去噪/整理都是低频批量操作:收进一个「更多」入口,把常驻位留给
+                撤销/重做/保存/导出这些高频带文字按钮 */}
             <button
               type="button"
-              className="editor-action-btn noise"
-              title={t('tools.noiseCleanup')}
-              aria-label={t('tools.noiseCleanup')}
-              onClick={onNoiseCleanup}
-            >
-              <Sparkles size={16} />
-              <span>{t('tools.noiseCleanup')}</span>
-            </button>
-            <button
-              type="button"
-              className="editor-action-btn tidy"
-              title={t('editor.cleanup')}
-              aria-label={t('editor.cleanup')}
+              className="editor-action-btn more"
+              title={t('editor.more')}
+              aria-label={t('editor.more')}
               onClick={() => setCleanupOpen(true)}
             >
-              <Sparkles size={16} />
-              <span>{t('editor.cleanup')}</span>
+              <MoreHorizontal size={16} />
+              <span>{t('editor.more')}</span>
             </button>
             <button
               type="button"

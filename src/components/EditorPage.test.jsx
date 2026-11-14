@@ -174,6 +174,10 @@ describe('EditorPage · 色卡浮层', () => {
     const swatches = sheet.querySelectorAll('.editor-palette-swatch')
     expect(swatches).toHaveLength(80)
 
+    // 点遮罩不关闭:必须显式点 × 或选完颜色
+    fireEvent.click(document.querySelector('.editor-sheet-overlay'))
+    expect(document.querySelector('.editor-sheet')).toBeTruthy()
+
     fireEvent.click(swatches[0])
     expect(props.onColorSelect).toHaveBeenCalledTimes(1)
     expect(document.querySelector('.editor-sheet')).toBeNull()
@@ -205,37 +209,41 @@ describe('EditorPage · 工具与操作', () => {
     expect(props.onToolChange).toHaveBeenCalledWith('pick')
   })
 
-  it('去噪直达按钮与整理抽屉并存,保存/导出接线;撤销/重做带文字且按 canUndo 禁用', () => {
+  it('「更多」收纳去噪与整理,面板顶部去噪直达;遮罩点击不关闭', () => {
     const { props } = renderEditor()
 
-    // 去噪直达:操作台上一眼可见的同名按钮(最高频动作,不能只藏在抽屉里)
-    fireEvent.click(screen.getByTitle('去噪'))
-    expect(props.onNoiseCleanup).toHaveBeenCalledTimes(1)
-
-    // 整理抽屉:里面另有同一入口
-    fireEvent.click(screen.getByTitle('整理'))
+    // 去噪/整理是低频操作:操作台不再各占一个常驻按钮,合并进「更多」
+    expect(screen.queryByTitle('去噪')).toBeNull()
+    expect(screen.queryByTitle('整理')).toBeNull()
+    fireEvent.click(screen.getByTitle('更多'))
     const sheet = document.querySelector('.editor-cleanup-sheet')
     expect(sheet).toBeTruthy()
-    expect(document.querySelector('.editor-cleanup-sheet')).toBeTruthy()
-    fireEvent.click(screen.getByTitle('整理'))
-    // 关闭抽屉(点遮罩)后继续
+    expect(sheet.textContent).toContain('更多工具')
+
+    // 点遮罩不关闭:必须走 × / 底部完成 / 具体操作
     fireEvent.click(document.querySelector('.editor-sheet-overlay'))
+    expect(document.querySelector('.editor-cleanup-sheet')).toBeTruthy()
+
+    // 面板顶部去噪直达(分区列表不再重复去噪)
+    fireEvent.click(within(sheet).getByRole('button', { name: '去噪' }))
+    expect(props.onNoiseCleanup).toHaveBeenCalledTimes(1)
     expect(document.querySelector('.editor-cleanup-sheet')).toBeNull()
+  })
 
-    const saveBtn = screen.getByTitle('保存作品')
-    fireEvent.click(saveBtn)
-    expect(props.canvasProps.onSave).toHaveBeenCalledTimes(1)
+  it('撤销/重做带可见文字;保存/导出接线', () => {
+    const { props } = renderEditor()
 
-    fireEvent.click(screen.getByTitle('导出'))
-    expect(props.onExport).toHaveBeenCalledTimes(1)
-
-    // 撤销/重做带可见文字(用户反馈:图标语义不直观)
     const undoBtn = screen.getByRole('button', { name: '撤销' })
     expect(undoBtn.disabled).toBe(false)
     expect(undoBtn.textContent).toContain('撤销')
     const redoBtn = screen.getByRole('button', { name: '重做' })
     expect(redoBtn.disabled).toBe(true)
     expect(redoBtn.textContent).toContain('重做')
+
+    fireEvent.click(screen.getByTitle('保存作品'))
+    expect(props.canvasProps.onSave).toHaveBeenCalledTimes(1)
+    fireEvent.click(screen.getByTitle('导出'))
+    expect(props.onExport).toHaveBeenCalledTimes(1)
   })
 })
 
@@ -267,7 +275,7 @@ describe('EditorPage · 触屏轻提示', () => {
     expect(document.querySelector('.editor-hint').textContent).toBe('画笔')
 
     // 有可见文字的按钮(整理)点下也会立即接管提示位 —— 立即消失旧提示
-    fireEvent.pointerDown(screen.getByTitle('整理'))
+    fireEvent.pointerDown(screen.getByTitle('更多'))
     const bubbles = [...document.querySelectorAll('.editor-hint')]
     expect(bubbles).toHaveLength(0)
   })
@@ -359,6 +367,10 @@ describe('EditorPage · 完成流程', () => {
     const sheet = document.querySelector('.editor-finish-sheet')
     expect(sheet).toBeTruthy()
 
+    // 点遮罩不关闭:完成/离开必须显式选择
+    fireEvent.click(document.querySelector('.editor-finish-sheet').parentElement)
+    expect(document.querySelector('.editor-finish-sheet')).toBeTruthy()
+
     fireEvent.click(screen.getByRole('button', { name: '保存并退出' }))
     expect(props.onFinishSave).toHaveBeenCalledTimes(1)
     expect(document.querySelector('.editor-finish-sheet')).toBeNull()
@@ -388,7 +400,7 @@ describe('EditorPage · 完成流程', () => {
 describe('EditorPage · 整理抽屉(低频刚需)', () => {
   it('删除颜色:把该色全部清成空白,颗数显示在按钮上', () => {
     const { props } = renderEditor()
-    fireEvent.click(screen.getByTitle('整理'))
+    fireEvent.click(screen.getByTitle('更多'))
     const sheet = document.querySelector('.editor-cleanup-sheet')
     // 红色 2 颗是主色,默认选中
     const btn = within(sheet).getByRole('button', { name: /删除 2 颗/ })
@@ -412,7 +424,7 @@ describe('EditorPage · 整理抽屉(低频刚需)', () => {
     ]
     const data = colors.map((hex, i) => [hex, null, i === 0 ? '#E53A36' : null])
     const { props } = renderEditor({ canvasData: data, gridSize: 3, gridWidth: null, gridHeight: null })
-    fireEvent.click(screen.getByTitle('整理'))
+    fireEvent.click(screen.getByTitle('更多'))
     const sheet = document.querySelector('.editor-cleanup-sheet')
     fireEvent.click(within(sheet).getByRole('button', { name: '8' }))
     fireEvent.click(within(sheet).getByRole('button', { name: /合并到 8 色/ }))
@@ -431,7 +443,7 @@ describe('EditorPage · 整理抽屉(低频刚需)', () => {
       [null, null, null, null, null],
     ]
     const { props } = renderEditor({ canvasData: data, gridSize: 5 })
-    fireEvent.click(screen.getByTitle('整理'))
+    fireEvent.click(screen.getByTitle('更多'))
     const sheet = document.querySelector('.editor-cleanup-sheet')
     fireEvent.click(within(sheet).getByRole('button', { name: /裁到内容边界/ }))
     expect(props.onCropCanvas).toHaveBeenCalledTimes(1)
@@ -442,14 +454,14 @@ describe('EditorPage · 整理抽屉(低频刚需)', () => {
 
   it('裁到选区:没有选区时禁用', () => {
     renderEditor()
-    fireEvent.click(screen.getByTitle('整理'))
+    fireEvent.click(screen.getByTitle('更多'))
     const sheet = document.querySelector('.editor-cleanup-sheet')
     expect(within(sheet).getByRole('button', { name: /裁到选区/ }).disabled).toBe(true)
   })
 
   it('替换色号走 App 的替换弹层入口', () => {
     const { props } = renderEditor()
-    fireEvent.click(screen.getByTitle('整理'))
+    fireEvent.click(screen.getByTitle('更多'))
     const sheet = document.querySelector('.editor-cleanup-sheet')
     fireEvent.click(within(sheet).getByRole('button', { name: '颜色替换' }))
     expect(props.onOpenReplace).toHaveBeenCalledTimes(1)
@@ -457,7 +469,7 @@ describe('EditorPage · 整理抽屉(低频刚需)', () => {
 
   it('单色隔离:选中颜色后画布收到 isolateColor,控制台出现退出角标', () => {
     const { props } = renderEditor()
-    fireEvent.click(screen.getByTitle('整理'))
+    fireEvent.click(screen.getByTitle('更多'))
     const sheet = document.querySelector('.editor-cleanup-sheet')
     const isolateSection = [...sheet.querySelectorAll('.editor-cleanup-section')].find(sec =>
       sec.textContent.includes('单色隔离')

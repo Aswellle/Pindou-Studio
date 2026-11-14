@@ -2308,6 +2308,8 @@
     "deleteDone": "{{n}}개를 삭제했습니다",
     "reduceDone": "{{n}}색으로 병합했습니다",
     "cropEmpty": "자를 내용이 없습니다",
-    "cropDone": "{{w}} × {{h}} 로 잘랐습니다"
+    "cropDone": "{{w}} × {{h}} 로 잘랐습니다",
+    "more": "더 보기",
+    "moreTitle": "더 많은 도구"
   }
 }

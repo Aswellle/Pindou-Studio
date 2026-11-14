@@ -1,10 +1,10 @@
 /**
  * EditorCleanupPanel — 图纸编辑器「整理」抽屉。
  *
- * 低频但不可缺的批量操作集中在这里,不占常驻操作台:
- *   去噪 / 替换色号 / 删除颜色 / 合并相近色 / 裁切 / 单色隔离。
+ * 低频但不可缺的批量操作集中在这里,不占常驻操作台(操作台只留一个「更多」入口):
+ *   去噪(直达)/ 替换色号 / 删除颜色 / 合并相近色 / 裁切 / 单色隔离。
  *
- * 与画布页共用同一套底层能力(removeNoiseBeads、replaceColor、
+ * 与画布页共用同一套底层能力(replaceColor、
  * editorCleanup 纯函数);面板只负责选择参数与确认,真正的写入由
  * EditorPage 转交 App 的 setCanvas / replaceCanvas 完成 —— 一次操作
  * 一条历史(裁切例外:换画布尺寸会重置历史,面板内明确提示)。
@@ -76,15 +76,17 @@ export default function EditorCleanupPanel({
   const deleteTarget = usedColors.find(c => c.hex === deleteHex) || usedColors[0] || null
 
   return createPortal(
-    <div className="editor-sheet-overlay" onClick={onClose}>
+    /* 遮罩点击不关闭:低频批量操作必须显式选择「执行/取消」才离开,
+       防止误触面板外的空白把进行中的选择整个丢掉 */
+    <div className="editor-sheet-overlay">
       <div
         className="editor-sheet editor-cleanup-sheet"
         role="dialog"
-        aria-label={t('editor.cleanupTitle')}
+        aria-label={t('editor.moreTitle')}
         onClick={e => e.stopPropagation()}
       >
         <div className="editor-sheet-head">
-          <h2>{t('editor.cleanupTitle')}</h2>
+          <h2>{t('editor.moreTitle')}</h2>
           <button
             type="button"
             className="editor-sheet-close"
@@ -96,12 +98,19 @@ export default function EditorCleanupPanel({
         </div>
 
         <div className="editor-sheet-body">
-          <Section title={t('editor.cleanupNoise')} hint={t('editor.cleanupNoiseHint')}>
-            <button type="button" className="editor-cleanup-action" onClick={onNoise}>
+          {/* 去噪直达:最高频的整理动作,固定在面板第一屏(分区列表不再重复) */}
+          <div className="editor-cleanup-quick">
+            <button
+              type="button"
+              className="editor-cleanup-action"
+              aria-label={t('tools.noiseCleanup')}
+              onClick={onNoise}
+            >
               <Sparkles size={15} />
-              {t('tools.noiseCleanup')}
+              <span>{t('tools.noiseCleanup')}</span>
             </button>
-          </Section>
+            <p>{t('editor.cleanupNoiseHint')}</p>
+          </div>
 
           <Section title={t('editor.cleanupReplace')} hint={t('editor.cleanupReplaceHint')}>
             <button type="button" className="editor-cleanup-action" onClick={onOpenReplace}>
