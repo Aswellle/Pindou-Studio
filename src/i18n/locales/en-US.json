@@ -2324,4 +2324,121 @@
     "confirmExecute": "Confirm",
     "reduceExplainer": "Photo conversion often produces dozens of near-identical colors. Merging similar colors collapses them into one: almost no visible change, same bead count, and far fewer bags to buy."
   }
+,
+  "toolsPage": {
+    "faqTitle": "FAQ",
+    "relatedTutorials": "Related tutorials",
+    "relatedPages": "Related pages",
+    "ironing": {
+      "kicker": "Ironing reference",
+      "title": "Fuse Bead Ironing Temperature Chart",
+      "lead": "Iron settings, timing for both sides, and common failures per brand. The tables come straight from the ironing chapters of our tutorials — always defer to the instructions on your bead package.",
+      "rulesTitle": "Ironing essentials",
+      "brandTitle": "Brand temperature chart",
+      "brandCaption": "Iron settings and characteristics per fuse bead brand",
+      "brandTip": "First time with a new brand? Test one or two beads in a corner and watch how they fuse before ironing the whole board.",
+      "failureTitle": "Common failures and fixes",
+      "failureCaption": "Causes and first aid for common ironing problems",
+      "sourcesTitle": "Sources",
+      "sourcesNote": "All links above are official channels; always defer to the instructions on your product.",
+      "sourceLabel": "Official {{brand}} instructions ({{domain}})",
+      "links": {
+        "createImage": {
+          "title": "Photo-to-pattern tool",
+          "desc": "Upload a photo and get a pattern you can fuse right away"
+        },
+        "gallery": {
+          "title": "Pattern library",
+          "desc": "Pick a ready-made pattern by theme and load it onto the canvas"
+        },
+        "colors": {
+          "title": "Brand color chart",
+          "desc": "Look up color codes and find substitutes faster"
+        },
+        "calculator": {
+          "title": "Bead calculator",
+          "desc": "Work out how many beads to buy before you start"
+        }
+      }
+    },
+    "patterns": {
+      "kicker": "Pattern hub",
+      "title": "Fuse Bead Patterns",
+      "lead": "A fuse bead pattern is a pixel image made one bead at a time. Below you will find free patterns grouped by theme, how to choose size, difficulty, and colors, plus three ways to get a pattern.",
+      "byThemeTitle": "Find patterns by theme",
+      "pickTitle": "How to pick the right pattern",
+      "waysTitle": "Three ways to get a pattern",
+      "sizeTitle": "Common grid sizes and bead counts",
+      "sizeCaption": "Bead count estimates for common square grids",
+      "colGrid": "Grid",
+      "colCells": "Total cells",
+      "colFilled": "80% fill",
+      "notePre": "Need your own size? Use the ",
+      "noteCalc": "bead calculator",
+      "noteMid": "; brand color codes live in the ",
+      "noteColors": "color chart",
+      "notePost": ".",
+      "links": {
+        "gallery": {
+          "title": "Pattern library",
+          "desc": "Filter by theme and difficulty and load onto the canvas"
+        },
+        "pixel": {
+          "title": "Pixel art maker",
+          "desc": "Nothing fits? Draw your own from a blank grid"
+        },
+        "calculator": {
+          "title": "Bead calculator",
+          "desc": "Estimate the bead count for this grid size"
+        },
+        "ironing": {
+          "title": "Ironing temperature chart",
+          "desc": "Check settings, timing, and fixes before you start"
+        }
+      }
+    },
+    "pixel": {
+      "kicker": "Online tool",
+      "title": "Pixel Art Maker",
+      "lead": "Draw pixel art right in the browser: custom grid sizes with pencil, fill, selections, and mirroring built in — or upload a photo to convert automatically, then export PNG / SVG or a coded bead pattern.",
+      "ctaCanvas": "Open the canvas and draw",
+      "ctaPhoto": "Upload a photo to convert",
+      "featuresTitle": "What you can do",
+      "stepsTitle": "Three steps to a pixel drawing",
+      "gridTitle": "Choosing a grid size",
+      "gridCaption": "Pixel grid sizes and common uses",
+      "colGrid": "Grid",
+      "colCells": "Total cells",
+      "colUses": "Common uses",
+      "notePre": "Not sure how many beads? Estimate the fill ratio with the ",
+      "noteCalc": "bead calculator",
+      "noteMid": "; for colors see the ",
+      "noteColors": "brand color chart",
+      "notePost": ".",
+      "crossTitle": "More ways to use pixel art",
+      "crossA": "Pixel art and fuse bead patterns are two names for the same thing: one cell, one color. In BeadStudio the same canvas exports as pixel art or as a coded bead pattern — shop beads by code and place by cell. For ready-made designs, browse ",
+      "crossLinkPatterns": "fuse bead patterns",
+      "crossB": " by theme; if this is your first time beading, start with the ",
+      "crossLinkIroning": "ironing temperature chart",
+      "crossC": ".",
+      "links": {
+        "canvas": {
+          "title": "Bead canvas tool",
+          "desc": "Open the canvas and draw from a blank grid"
+        },
+        "gallery": {
+          "title": "Pattern library",
+          "desc": "Find ready-made patterns to reference, remake, or edit"
+        },
+        "createImage": {
+          "title": "Photo-to-pattern tool",
+          "desc": "Upload a photo and it becomes a colored pixel image"
+        },
+        "colors": {
+          "title": "Brand color chart",
+          "desc": "Pick colors by brand code and shop as soon as you finish"
+        }
+      }
+    }
+  }
 }

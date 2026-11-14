@@ -25,7 +25,7 @@ describe('BeadPatternsPage', () => {
     const cards = [...container.querySelectorAll('.pattern-category-card')]
     expect(cards).toHaveLength(GALLERY_CATEGORY_META.length)
     for (const meta of GALLERY_CATEGORY_META) {
-      expect(cards.some((a) => a.getAttribute('href') === `/gallery/category/${meta.slug}`)).toBe(true)
+      expect(cards.some(a => a.getAttribute('href') === `/gallery/category/${meta.slug}`)).toBe(true)
     }
   })
 
@@ -39,7 +39,7 @@ describe('BeadPatternsPage', () => {
     expect(rows[0].textContent).toContain('29 × 29')
 
     // 工具页互链
-    const hrefs = [...container.querySelectorAll('a')].map((a) => a.getAttribute('href'))
+    const hrefs = [...container.querySelectorAll('a')].map(a => a.getAttribute('href'))
     expect(hrefs).toContain('/bead-calculator')
     expect(hrefs).toContain('/pixel-art')
     expect(hrefs).toContain('/colors')

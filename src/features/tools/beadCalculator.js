@@ -50,7 +50,7 @@ export function beadEstimate({ width, height, fillRatio = 1, colorCount = 0 } = 
 
 /** 常见网格尺寸的用量表(静态正文与页面共用) */
 export function beadPresetRows() {
-  return GRID_PRESETS.map((size) => {
+  return GRID_PRESETS.map(size => {
     const cells = size * size
     return {
       size,

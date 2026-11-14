@@ -36,7 +36,7 @@ describe('PixelArtPage', () => {
     expect(primary.getAttribute('href')).toBe('/')
     expect(primary.textContent).toContain('画布')
 
-    const hrefs = [...container.querySelectorAll('a')].map((a) => a.getAttribute('href'))
+    const hrefs = [...container.querySelectorAll('a')].map(a => a.getAttribute('href'))
     for (const href of ['/create/image', '/bead-patterns', '/bead-calculator', '/colors', '/ironing']) {
       expect(hrefs, href).toContain(href)
     }

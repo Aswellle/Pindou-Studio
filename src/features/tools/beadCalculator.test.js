@@ -1,11 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import {
-  GRID_PRESETS,
-  MAX_GRID,
-  beadEstimate,
-  beadPresetRows,
-  parseGridValue,
-} from './beadCalculator'
+import { GRID_PRESETS, MAX_GRID, beadEstimate, beadPresetRows, parseGridValue } from './beadCalculator'
 
 describe('parseGridValue', () => {
   it('接受 1–500 的整数', () => {
@@ -68,7 +62,7 @@ describe('beadEstimate', () => {
 describe('beadPresetRows', () => {
   it('覆盖全部预设尺寸,并给出八成/六成用量', () => {
     const rows = beadPresetRows()
-    expect(rows.map((r) => r.size)).toEqual(GRID_PRESETS)
+    expect(rows.map(r => r.size)).toEqual(GRID_PRESETS)
     for (const row of rows) {
       expect(row.cells).toBe(row.size * row.size)
       expect(row.filled80).toBe(Math.round(row.cells * 0.8))

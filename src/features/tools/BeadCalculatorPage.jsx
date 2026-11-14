@@ -27,7 +27,7 @@ export default function BeadCalculatorPage() {
   )
   const presets = useMemo(() => beadPresetRows(), [])
 
-  const numberToText = (value) => Number(value).toLocaleString()
+  const numberToText = value => Number(value).toLocaleString()
 
   return (
     <div className="content-page tools-page">
@@ -47,7 +47,7 @@ export default function BeadCalculatorPage() {
             min="1"
             max="500"
             value={width}
-            onChange={(e) => setWidth(e.target.value)}
+            onChange={e => setWidth(e.target.value)}
           />
         </label>
         <label className="calc-field">
@@ -58,7 +58,7 @@ export default function BeadCalculatorPage() {
             min="1"
             max="500"
             value={height}
-            onChange={(e) => setHeight(e.target.value)}
+            onChange={e => setHeight(e.target.value)}
           />
         </label>
         <label className="calc-field calc-field-range">
@@ -71,7 +71,7 @@ export default function BeadCalculatorPage() {
             max="100"
             step="5"
             value={fillPct}
-            onChange={(e) => setFillPct(Number(e.target.value))}
+            onChange={e => setFillPct(Number(e.target.value))}
           />
         </label>
         <label className="calc-field">
@@ -82,7 +82,7 @@ export default function BeadCalculatorPage() {
             min="1"
             placeholder={t('calculator.colorsPlaceholder')}
             value={colors}
-            onChange={(e) => setColors(e.target.value)}
+            onChange={e => setColors(e.target.value)}
           />
         </label>
       </div>
@@ -111,7 +111,9 @@ export default function BeadCalculatorPage() {
           )}
         </dl>
       ) : (
-        <p className="calc-invalid" role="status">{t('calculator.invalidHint')}</p>
+        <p className="calc-invalid" role="status">
+          {t('calculator.invalidHint')}
+        </p>
       )}
 
       <section className="tools-section">
@@ -127,9 +129,11 @@ export default function BeadCalculatorPage() {
             </tr>
           </thead>
           <tbody>
-            {presets.map((row) => (
+            {presets.map(row => (
               <tr key={row.size}>
-                <td>{row.size} × {row.size}</td>
+                <td>
+                  {row.size} × {row.size}
+                </td>
                 <td>{numberToText(row.cells)}</td>
                 <td>{numberToText(row.filled80)}</td>
                 <td>{numberToText(row.filled60)}</td>

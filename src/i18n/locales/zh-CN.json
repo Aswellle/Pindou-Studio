@@ -2324,4 +2324,121 @@
     "confirmExecute": "确认执行",
     "reduceExplainer": "照片转换常常带出几十种相近颜色。合并相近色会把相似颜色并成一种：图案几乎看不出变化、用豆总数不变，但需要买的颜色种类立刻变少。"
   }
+,
+  "toolsPage": {
+    "faqTitle": "常见问题",
+    "relatedTutorials": "相关教程",
+    "relatedPages": "相关页面",
+    "ironing": {
+      "kicker": "熨烫参考",
+      "title": "拼豆熨烫温度对照表",
+      "lead": "各品牌熨斗档位、正反面时间与常见翻车的对照。表格内容与拼豆教程的熨烫章节同源,具体温度请以手上那包珠子的说明为准。",
+      "rulesTitle": "熨烫要点",
+      "brandTitle": "品牌温度对照",
+      "brandCaption": "各拼豆品牌的熨斗档位与特性",
+      "brandTip": "新品牌第一次熨烫时,先在角落一两颗珠子上试温,观察融化程度再全面熨烫。",
+      "failureTitle": "常见翻车与处理",
+      "failureCaption": "熨烫常见问题的原因与急救方法",
+      "sourcesTitle": "参考来源",
+      "sourcesNote": "以上为各品牌官方渠道;具体温度与时间请以你手上的产品说明为准。",
+      "sourceLabel": "{{brand}} 官方使用说明({{domain}})",
+      "links": {
+        "createImage": {
+          "title": "图片转拼豆图纸",
+          "desc": "上传照片,自动生成可照着熨的图纸"
+        },
+        "gallery": {
+          "title": "拼豆图纸模板库",
+          "desc": "按题材挑现成图案,载入就能开做"
+        },
+        "colors": {
+          "title": "品牌色卡对照表",
+          "desc": "按色号查颜色,备料找替代更省心"
+        },
+        "calculator": {
+          "title": "豆子数量计算器",
+          "desc": "动手前先算好要买多少颗豆子"
+        }
+      }
+    },
+    "patterns": {
+      "kicker": "图案入口",
+      "title": "拼豆图案",
+      "lead": "拼豆图案就是一颗颗豆子拼出的像素化图形。下面按题材汇总可以直接使用的免费图案,并说明尺寸、难度与用色怎么选,以及三种获取图案的方式。",
+      "byThemeTitle": "按题材找拼豆图案",
+      "pickTitle": "怎么挑一张合适的图案",
+      "waysTitle": "三种获取图案的方式",
+      "sizeTitle": "常见网格尺寸与用豆量",
+      "sizeCaption": "常见方形网格尺寸的用豆量估算",
+      "colGrid": "网格",
+      "colCells": "总格数",
+      "colFilled": "八成填充",
+      "notePre": "需要按自己的尺寸估算时,用",
+      "noteCalc": "豆子数量计算器",
+      "noteMid": ";品牌色号对照见",
+      "noteColors": "色卡对照表",
+      "notePost": "。",
+      "links": {
+        "gallery": {
+          "title": "拼豆图纸模板库",
+          "desc": "按题材与难度筛选,选中即可载入画布"
+        },
+        "pixel": {
+          "title": "像素画生成器",
+          "desc": "没有合适的图?从空白网格自己画一张"
+        },
+        "calculator": {
+          "title": "豆子数量计算器",
+          "desc": "按网格尺寸估算这张图要多少豆子"
+        },
+        "ironing": {
+          "title": "熨烫温度对照表",
+          "desc": "开做之前查档位、时间与翻车处理"
+        }
+      }
+    },
+    "pixel": {
+      "kicker": "在线工具",
+      "title": "像素画生成器",
+      "lead": "在浏览器里直接画像素画:自定义网格尺寸,画笔、填充、选区、镜像都齐备;也可以上传照片自动转成像素图,最后导出 PNG / SVG 或带色号的拼豆图纸。",
+      "ctaCanvas": "打开画布开始画",
+      "ctaPhoto": "上传照片转像素图",
+      "featuresTitle": "能做什么",
+      "stepsTitle": "三步画出一张像素图",
+      "gridTitle": "网格尺寸怎么选",
+      "gridCaption": "像素画网格尺寸与常见用途",
+      "colGrid": "网格",
+      "colCells": "总格数",
+      "colUses": "常见用途",
+      "notePre": "不知道要多少豆子?用",
+      "noteCalc": "豆子数量计算器",
+      "noteMid": "按填充比例估算;配色查",
+      "noteColors": "品牌色卡对照表",
+      "notePost": "。",
+      "crossTitle": "像素画还能怎么用",
+      "crossA": "像素画和拼豆图纸是同一件事的两种叫法:都是网格上的一格一色。在拼豆Studio 里,同一张画布既能当像素画导出,也能转成带品牌色号的图纸 —— 按色号买豆子、按网格数着拼即可。想要现成图案,可以从",
+      "crossLinkPatterns": "拼豆图案",
+      "crossB": "按题材进入;第一次做拼豆,建议先看",
+      "crossLinkIroning": "熨烫温度对照表",
+      "crossC": "。",
+      "links": {
+        "canvas": {
+          "title": "拼豆画布工具",
+          "desc": "打开画布,从空白网格直接开画"
+        },
+        "gallery": {
+          "title": "拼豆图纸模板库",
+          "desc": "找现成图案参考、复刻或二次修改"
+        },
+        "createImage": {
+          "title": "图片转拼豆图纸",
+          "desc": "上传照片,自动转成像素图并配色"
+        },
+        "colors": {
+          "title": "品牌色卡对照表",
+          "desc": "按品牌色号挑颜色,画完直接备料"
+        }
+      }
+    }
+  }
 }

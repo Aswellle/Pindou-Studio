@@ -14,7 +14,7 @@ describe('ironingGuide · 数据同源', () => {
 
   it('相关教程都能解析出标题与所属章节', () => {
     const { articles } = ironingReference()
-    expect(articles.map((a) => a.id)).toEqual(IRONING_ARTICLE_IDS)
+    expect(articles.map(a => a.id)).toEqual(IRONING_ARTICLE_IDS)
     for (const article of articles) {
       expect(article.title.length).toBeGreaterThan(0)
       expect(article.sectionTitle.length).toBeGreaterThan(0)

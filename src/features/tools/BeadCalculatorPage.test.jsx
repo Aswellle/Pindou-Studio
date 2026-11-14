@@ -9,10 +9,8 @@ beforeAll(async () => {
 })
 afterEach(() => cleanup())
 
-const resultNumbers = (container) =>
-  [...container.querySelectorAll('.calc-results dd')].map((dd) =>
-    Number(dd.textContent.replace(/[^\d]/g, ''))
-  )
+const resultNumbers = container =>
+  [...container.querySelectorAll('.calc-results dd')].map(dd => Number(dd.textContent.replace(/[^\d]/g, '')))
 
 describe('BeadCalculatorPage', () => {
   it('默认 29×29、八成填充:841 格 / 673 颗', () => {

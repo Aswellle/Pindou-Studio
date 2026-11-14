@@ -5,50 +5,58 @@
  * 首页标题里只带过一句「像素画在线制作」。这一页讲清楚能画什么、怎么画、
  * 网格怎么选,并把三条真实路径(空白画布 / 图片转像素 / 现成图案)摆出来。
  *
- * 正文中文单语,按单语页声明 hreflang。
+ * 正文四语言:固定文案走 toolsPage.pixel 键,内容块(能力/步骤/尺寸用途)
+ * 与 FAQ 按当前语言取自 landingContent / toolFaq 的语言数据;
+ * 构建期静态快照仍用 zh 具名导出(始终中文,canonical 裸路径不变)。
  */
 
 import { Link, useNavigate } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
 import BackButton from '../../components/BackButton'
 import { beadPresetRows } from './beadCalculator'
 import { tutorialArticle } from './ironingGuide'
 import {
   PIXEL_ARTICLE_IDS,
-  PIXEL_FEATURES,
-  PIXEL_GRID_USES,
-  PIXEL_STEPS,
+  PIXEL_GRID_SIZES,
+  pixelFeatures,
+  pixelGridUses,
+  pixelSteps,
 } from './landingContent'
 import ToolFaq from './ToolFaq.jsx'
-import { PIXEL_ART_FAQ } from './toolFaq'
+import { faqFor } from './toolFaq'
 import '../gallery/gallery.css'
 import './tools.css'
 
 export default function PixelArtPage() {
   const navigate = useNavigate()
+  const { t, i18n } = useTranslation()
+  const lang = i18n.language
   const presets = beadPresetRows()
-  const articles = PIXEL_ARTICLE_IDS.map((id) => tutorialArticle(id)).filter(Boolean)
+  const features = pixelFeatures(lang)
+  const steps = pixelSteps(lang)
+  const uses = pixelGridUses(lang)
+  const articles = PIXEL_ARTICLE_IDS.map(id => tutorialArticle(id, lang)).filter(Boolean)
 
   return (
     <div className="content-page tools-page">
       <div className="content-page-head">
         <BackButton size="md" onClick={() => navigate('/')} />
-        <span className="content-kicker">在线工具</span>
-        <h1 className="content-title">像素画生成器</h1>
-        <p className="content-desc">
-          在浏览器里直接画像素画:自定义网格尺寸,画笔、填充、选区、镜像都齐备;
-          也可以上传照片自动转成像素图,最后导出 PNG / SVG 或带色号的拼豆图纸。
-        </p>
+        <span className="content-kicker">{t('toolsPage.pixel.kicker')}</span>
+        <h1 className="content-title">{t('toolsPage.pixel.title')}</h1>
+        <p className="content-desc">{t('toolsPage.pixel.lead')}</p>
       </div>
 
       <div className="tools-cta">
-        <Link className="tools-cta-primary" to="/">打开画布开始画</Link>
-        <Link to="/create/image">上传照片转像素图</Link>
+        <Link className="tools-cta-primary" to="/">
+          {t('toolsPage.pixel.ctaCanvas')}
+        </Link>
+        <Link to="/create/image">{t('toolsPage.pixel.ctaPhoto')}</Link>
       </div>
 
       <section className="tools-section">
-        <h2>能做什么</h2>
+        <h2>{t('toolsPage.pixel.featuresTitle')}</h2>
         <div className="tools-rules">
-          {PIXEL_FEATURES.map(([title, text]) => (
+          {features.map(([title, text]) => (
             <div key={title} className="tools-rule-card">
               <h3>{title}</h3>
               <p>{text}</p>
@@ -58,9 +66,9 @@ export default function PixelArtPage() {
       </section>
 
       <section className="tools-section">
-        <h2>三步画出一张像素图</h2>
+        <h2>{t('toolsPage.pixel.stepsTitle')}</h2>
         <ol className="pattern-steps">
-          {PIXEL_STEPS.map(([title, text]) => (
+          {steps.map(([title, text]) => (
             <li key={title}>
               <strong>{title}</strong>
               <span>{text}</span>
@@ -70,78 +78,85 @@ export default function PixelArtPage() {
       </section>
 
       <section className="tools-section">
-        <h2>网格尺寸怎么选</h2>
+        <h2>{t('toolsPage.pixel.gridTitle')}</h2>
         <table className="tools-table">
-          <caption className="sr-only">像素画网格尺寸与常见用途</caption>
+          <caption className="sr-only">{t('toolsPage.pixel.gridCaption')}</caption>
           <thead>
             <tr>
-              <th scope="col">网格</th>
-              <th scope="col">总格数</th>
-              <th scope="col">常见用途</th>
+              <th scope="col">{t('toolsPage.pixel.colGrid')}</th>
+              <th scope="col">{t('toolsPage.pixel.colCells')}</th>
+              <th scope="col">{t('toolsPage.pixel.colUses')}</th>
             </tr>
           </thead>
           <tbody>
-            {PIXEL_GRID_USES.map(([size, use]) => {
-              const row = presets.find((item) => item.size === size)
+            {PIXEL_GRID_SIZES.map((size, index) => {
+              const row = presets.find(item => item.size === size)
               return (
                 <tr key={size}>
-                  <td>{size} × {size}</td>
+                  <td>
+                    {size} × {size}
+                  </td>
                   <td>{row ? row.cells : '—'}</td>
-                  <td>{use}</td>
+                  <td>{uses[index]}</td>
                 </tr>
               )
             })}
           </tbody>
         </table>
         <p className="tools-note">
-          不知道要多少豆子?用<Link to="/bead-calculator">豆子数量计算器</Link>按填充比例估算;
-          配色查<Link to="/colors">品牌色卡对照表</Link>。
+          {t('toolsPage.pixel.notePre')}
+          <Link to="/bead-calculator">{t('toolsPage.pixel.noteCalc')}</Link>
+          {t('toolsPage.pixel.noteMid')}
+          <Link to="/colors">{t('toolsPage.pixel.noteColors')}</Link>
+          {t('toolsPage.pixel.notePost')}
         </p>
       </section>
 
       <section className="tools-section">
-        <h2>像素画还能怎么用</h2>
+        <h2>{t('toolsPage.pixel.crossTitle')}</h2>
         <p>
-          像素画和拼豆图纸是同一件事的两种叫法:都是网格上的一格一色。
-          在拼豆Studio 里,同一张画布既能当像素画导出,也能转成带品牌色号的图纸 ——
-          按色号买豆子、按网格数着拼即可。想要现成图案,可以从
-          <Link to="/bead-patterns">拼豆图案</Link>按题材进入;
-          第一次做拼豆,建议先看<Link to="/ironing">熨烫温度对照表</Link>。
+          {t('toolsPage.pixel.crossA')}
+          <Link to="/bead-patterns">{t('toolsPage.pixel.crossLinkPatterns')}</Link>
+          {t('toolsPage.pixel.crossB')}
+          <Link to="/ironing">{t('toolsPage.pixel.crossLinkIroning')}</Link>
+          {t('toolsPage.pixel.crossC')}
         </p>
       </section>
 
-      <ToolFaq items={PIXEL_ART_FAQ} />
+      <ToolFaq items={faqFor('pixel', lang)} />
 
       {articles.length > 0 && (
         <section className="tools-section">
-          <h2>相关教程</h2>
+          <h2>{t('toolsPage.relatedTutorials')}</h2>
           <ul className="tools-link-list">
-            {articles.map((article) => (
+            {articles.map(article => (
               <li key={article.id}>
                 <Link to={`/tutorials/${article.id}`}>{article.title}</Link>
-                {article.sectionTitle ? <span className="tools-link-meta">{article.sectionTitle}</span> : null}
+                {article.sectionTitle ? (
+                  <span className="tools-link-meta">{article.sectionTitle}</span>
+                ) : null}
               </li>
             ))}
           </ul>
         </section>
       )}
 
-      <nav className="tools-links" aria-label="相关页面">
+      <nav className="tools-links" aria-label={t('toolsPage.relatedPages')}>
         <Link className="tools-link-card" to="/">
-          <span className="tools-link-card-title">拼豆画布工具</span>
-          <span className="tools-link-card-desc">打开画布,从空白网格直接开画</span>
+          <span className="tools-link-card-title">{t('toolsPage.pixel.links.canvas.title')}</span>
+          <span className="tools-link-card-desc">{t('toolsPage.pixel.links.canvas.desc')}</span>
         </Link>
         <Link className="tools-link-card" to="/gallery">
-          <span className="tools-link-card-title">拼豆图纸模板库</span>
-          <span className="tools-link-card-desc">找现成图案参考、复刻或二次修改</span>
+          <span className="tools-link-card-title">{t('toolsPage.pixel.links.gallery.title')}</span>
+          <span className="tools-link-card-desc">{t('toolsPage.pixel.links.gallery.desc')}</span>
         </Link>
         <Link className="tools-link-card" to="/create/image">
-          <span className="tools-link-card-title">图片转拼豆图纸</span>
-          <span className="tools-link-card-desc">上传照片,自动转成像素图并配色</span>
+          <span className="tools-link-card-title">{t('toolsPage.pixel.links.createImage.title')}</span>
+          <span className="tools-link-card-desc">{t('toolsPage.pixel.links.createImage.desc')}</span>
         </Link>
         <Link className="tools-link-card" to="/colors">
-          <span className="tools-link-card-title">品牌色卡对照表</span>
-          <span className="tools-link-card-desc">按品牌色号挑颜色,画完直接备料</span>
+          <span className="tools-link-card-title">{t('toolsPage.pixel.links.colors.title')}</span>
+          <span className="tools-link-card-desc">{t('toolsPage.pixel.links.colors.desc')}</span>
         </Link>
       </nav>
     </div>

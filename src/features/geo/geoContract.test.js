@@ -180,17 +180,18 @@ describe('内容页结构化数据 · 与可见内容同源', () => {
 })
 
 describe('工具页问答 · React 与静态快照同源', () => {
+  // 页面按语言取问答(faqFor(kind, lang)),构建期快照用同一模块的 zh 具名导出
   const pages = [
-    ['src/features/tools/IroningGuidePage.jsx', 'IRONING_FAQ'],
-    ['src/features/tools/BeadPatternsPage.jsx', 'PATTERNS_FAQ'],
-    ['src/features/tools/PixelArtPage.jsx', 'PIXEL_ART_FAQ'],
+    ['src/features/tools/IroningGuidePage.jsx', 'ironing'],
+    ['src/features/tools/BeadPatternsPage.jsx', 'patterns'],
+    ['src/features/tools/PixelArtPage.jsx', 'pixel'],
   ]
 
-  it('三页都引入 ToolFaq 并渲染同一份问答数据', () => {
-    for (const [file, faqConst] of pages) {
+  it('三页都引入 ToolFaq 并按语言取同一份问答数据', () => {
+    for (const [file, kind] of pages) {
       const source = read(...file.split('/'))
-      expect(source).toContain(`import { ${faqConst} } from './toolFaq'`)
-      expect(source).toContain(`<ToolFaq items={${faqConst}} />`)
+      expect(source).toContain("import { faqFor } from './toolFaq'")
+      expect(source).toContain(`faqFor('${kind}'`)
     }
     expect(PRERENDER).toContain('function toolFaqHtml(items)')
     expect(PRERENDER).toContain('toolFaqHtml(IRONING_FAQ)')

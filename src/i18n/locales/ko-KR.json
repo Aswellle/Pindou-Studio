@@ -2324,4 +2324,121 @@
     "confirmExecute": "실행",
     "reduceExplainer": "사진 변환에는 비슷한 색이 수십 가지 생기기 쉽습니다. 유사색을 병합하면 모양과 총 개수는 거의 그대로인 채 구입할 색 종류를 줄일 수 있습니다."
   }
+,
+  "toolsPage": {
+    "faqTitle": "자주 묻는 질문",
+    "relatedTutorials": "관련 튜토리얼",
+    "relatedPages": "관련 페이지",
+    "ironing": {
+      "kicker": "다림질 참고",
+      "title": "퓨즈 비즈 다림질 온도표",
+      "lead": "브랜드별 다리미 설정, 앞뒤면 가열 시간, 흔한 실패 대처를 한 표로 정리했습니다. 표의 내용은 튜토리얼 다림질 장과 같은 출처입니다. 온도는 손에 쥔 비즈 설명서를 우선하세요.",
+      "rulesTitle": "다림질 핵심",
+      "brandTitle": "브랜드별 온도 대조",
+      "brandCaption": "퓨즈 비즈 브랜드별 다리미 설정과 특성",
+      "brandTip": "새 브랜드는 처음에 구석 비즈 한두 개로 녹는 정도를 확인한 뒤 전체로 진행하세요.",
+      "failureTitle": "흔한 실패와 대처",
+      "failureCaption": "다림질 문제의 원인과 응급 처치",
+      "sourcesTitle": "참고 자료",
+      "sourcesNote": "위 링크는 각 브랜드 공식 채널입니다. 온도와 시간은 제품 설명서를 우선하세요.",
+      "sourceLabel": "{{brand}} 공식 사용 설명({{domain}})",
+      "links": {
+        "createImage": {
+          "title": "사진 도안 변환",
+          "desc": "사진을 올리면 바로 다림질할 수 있는 도안으로"
+        },
+        "gallery": {
+          "title": "도안 라이브러리",
+          "desc": "테마별 기성 도안을 골라 캔버스로 불러오기"
+        },
+        "colors": {
+          "title": "브랜드 색상표",
+          "desc": "색상 코드로 색을 찾고 대체 색도 빠르게"
+        },
+        "calculator": {
+          "title": "비즈 계산기",
+          "desc": "시작 전 필요한 수량을 계산"
+        }
+      }
+    },
+    "patterns": {
+      "kicker": "도안 입구",
+      "title": "퓨즈 비즈 도안",
+      "lead": "퓨즈 비즈 도안은 비즈를 한 알씩 놓아 만드는 픽셀 그림입니다. 테마별 무료 도안을 모아 보여드리고, 크기·난이도·배색 고르는 법과 세 가지 구입 방법을 소개합니다.",
+      "byThemeTitle": "테마별 도안 찾기",
+      "pickTitle": "도안 고르는 요령",
+      "waysTitle": "도안을 얻는 세 가지 방법",
+      "sizeTitle": "흔한 그리드 크기와 비즈 수",
+      "sizeCaption": "정사각 그리드의 비즈 수 추정",
+      "colGrid": "그리드",
+      "colCells": "총 칸 수",
+      "colFilled": "80% 채움",
+      "notePre": "내 크기로 계산하려면",
+      "noteCalc": "비즈 계산기",
+      "noteMid": "를 사용하세요. 브랜드 색상 코드는",
+      "noteColors": "색상표",
+      "notePost": "에서.",
+      "links": {
+        "gallery": {
+          "title": "도안 라이브러리",
+          "desc": "테마와 난이도로 걸러 캔버스에 불러오기"
+        },
+        "pixel": {
+          "title": "픽셀 아트 메이커",
+          "desc": "마음에 드는 게 없다면 빈 그리드에서 직접"
+        },
+        "calculator": {
+          "title": "비즈 계산기",
+          "desc": "이 그리드 크기의 필요 수량을 추정"
+        },
+        "ironing": {
+          "title": "다림질 온도표",
+          "desc": "시작 전 설정, 시간, 실패 대처 확인"
+        }
+      }
+    },
+    "pixel": {
+      "kicker": "온라인 도구",
+      "title": "픽셀 아트 메이커",
+      "lead": "브라우저에서 바로 픽셀 아트를 그리세요: 그리드 크기 자유, 펜·채우기·선택 영역·미러 기본 탑재. 사진을 올려 자동 변환하고 PNG / SVG 또는 색상 코드가 있는 비즈 도안으로 내보낼 수 있습니다.",
+      "ctaCanvas": "캔버스 열고 그리기",
+      "ctaPhoto": "사진 올려 변환",
+      "featuresTitle": "할 수 있는 일",
+      "stepsTitle": "3단계로 픽셀 아트 완성",
+      "gridTitle": "그리드 크기 고르기",
+      "gridCaption": "픽셀 그리드 크기와 흔한 용도",
+      "colGrid": "그리드",
+      "colCells": "총 칸 수",
+      "colUses": "흔한 용도",
+      "notePre": "비즈 수를 모르겠다면",
+      "noteCalc": "비즈 계산기",
+      "noteMid": "로 채움 비율을 계산하세요. 배색은",
+      "noteColors": "브랜드 색상표",
+      "notePost": "에서.",
+      "crossTitle": "픽셀 아트의 다른 활용",
+      "crossA": "픽셀 아트와 퓨즈 비즈 도안은 같은 것의 두 이름입니다: 한 칸 = 한 색. BeadStudio에서는 같은 캔버스를 픽셀 아트로도, 색상 코드가 있는 도안으로도 내보낼 수 있습니다. 기성 도안은 ",
+      "crossLinkPatterns": "퓨즈 비즈 도안",
+      "crossB": "에서 테마별로 고르세요. 처음 비즈를 만든다면 ",
+      "crossLinkIroning": "다림질 온도표",
+      "crossC": "를 먼저 보세요.",
+      "links": {
+        "canvas": {
+          "title": "비즈 캔버스 도구",
+          "desc": "캔버스를 열어 빈 그리드에서 바로 그리기"
+        },
+        "gallery": {
+          "title": "도안 라이브러리",
+          "desc": "기성 도안을 참고·재현·수정하는 용도"
+        },
+        "createImage": {
+          "title": "사진 도안 변환",
+          "desc": "사진을 올리면 픽셀 변환과 배색까지 자동"
+        },
+        "colors": {
+          "title": "브랜드 색상표",
+          "desc": "브랜드 코드로 색을 골라 완성 즉시 준비"
+        }
+      }
+    }
+  }
 }
