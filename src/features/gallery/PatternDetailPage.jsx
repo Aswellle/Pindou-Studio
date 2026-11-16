@@ -39,11 +39,16 @@ export default function PatternDetailPage({ cloudStore, onSaveProject, onLoadTem
   const navigate = useNavigate()
   const toast = useToast()
   const { id } = useParams()
-  const { allTemplates, cloudDown } = useGalleryTemplates(cloudStore)
+  const { allTemplates, cloudDown, templatesLoading } = useGalleryTemplates(cloudStore)
   const [busy, setBusy] = useState(false)
   const [saved, setSaved] = useState(false)
 
   const template = useMemo(() => templateById(allTemplates, id), [allTemplates, id])
+  // 只有「确认不存在」才 noindex:加载中与云端故障都不能判负。
+  // 模板库经 /sb 同源代理异步读取,渲染首帧必然先经过「还没有数据」的窗口;
+  // 若按 !template 直接判 noindex,慢网/上游抖动都会让合法图纸页被 Google
+  // 记成 noindex(GSC「被 noindex 标记排除」的实际来源之一)。
+  const confirmedMissing = !templatesLoading && !cloudDown && !template
   const { width, height } = templateDimensions(template)
   // 制作信息:豆子总数、用色数,以及逐色清单(颗数降序)。
   // 逐色清单是「照着买豆子」真正需要的信息,比只给一个总数有用得多。
@@ -137,7 +142,7 @@ export default function PatternDetailPage({ cloudStore, onSaveProject, onLoadTem
         description={template
           ? `${name} · ${width} × ${height} · ${t(`palette.brand.${template.paletteId || 'perler'}`)}`
           : undefined}
-        noindex={!template}
+        noindex={confirmedMissing}
       />
 
       <div className="content-page-head">

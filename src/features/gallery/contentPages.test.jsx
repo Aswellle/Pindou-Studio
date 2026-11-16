@@ -67,6 +67,7 @@ beforeAll(async () => {
 afterEach(() => {
   cleanup()
   contentState.loading = false
+  contentState.error = ''
   contentState.themes = []
   contentState.collections = []
   contentState.themeTemplateIds = new Map()
@@ -407,5 +408,95 @@ describe('主题页 / 合集页骨架屏', () => {
     )
     expect(container.querySelector('.skeleton-head-group')).toBeNull()
     expect(screen.getByText(/内容不存在或尚未发布/)).toBeTruthy()
+  })
+})
+
+/**
+ * robots 判定口径:只有「确认不存在」才 noindex。
+ *
+ * 这是 GSC「被 noindex 标记排除」的实际来源:内容页在数据到达前用
+ * `!template` / `!theme` 判 noindex,而云端数据经 /sb 代理读取,
+ * robots.txt 又屏蔽了 /sb/ —— Googlebot 渲染时拉不到数据就会看到
+ * 一个稳定的 noindex,合法内容页被排除出索引。加载中与故障期必须是
+ * index,follow;真缺失(HTTP 层已 404)才 noindex。
+ */
+describe('内容页 robots:加载中与云端故障不判 noindex', () => {
+  const robotsMeta = () => document.querySelector('meta[name="robots"]')?.getAttribute('content') || ''
+  const failingStore = () => ({
+    enabled: true, loading: false, error: 'timeout', templates: [], categories: [],
+    refresh: vi.fn(), loadAll: vi.fn(),
+  })
+  const loadingStore = () => ({
+    enabled: true, loading: true, error: null, templates: [], categories: [],
+    refresh: vi.fn(), loadAll: vi.fn(),
+  })
+
+  it('图纸详情页:模板库加载中不 noindex', async () => {
+    renderAt(
+      <PatternDetailPage cloudStore={loadingStore()} />,
+      '/gallery/pattern/x', '/gallery/pattern/:id',
+    )
+    await waitFor(() => expect(robotsMeta()).not.toMatch(/noindex/i))
+  })
+
+  it('图纸详情页:云端故障不 noindex(一次超时不能把图纸页排除)', async () => {
+    renderAt(
+      <PatternDetailPage cloudStore={failingStore()} />,
+      '/gallery/pattern/x', '/gallery/pattern/:id',
+    )
+    await waitFor(() => expect(robotsMeta()).not.toMatch(/noindex/i))
+  })
+
+  it('图纸详情页:确认不存在才 noindex', async () => {
+    renderAt(
+      <PatternDetailPage cloudStore={cloudStore([])} />,
+      '/gallery/pattern/x', '/gallery/pattern/:id',
+    )
+    await waitFor(() => expect(robotsMeta()).toMatch(/noindex/i))
+  })
+
+  it('主题页:加载中不 noindex,确认不存在才 noindex', async () => {
+    contentState.loading = true
+    const first = renderAt(
+      <ThemePage cloudStore={loadingStore()} />,
+      '/gallery/theme/nope', '/gallery/theme/:slug',
+    )
+    await waitFor(() => expect(robotsMeta()).not.toMatch(/noindex/i))
+    first.unmount()
+
+    contentState.loading = false
+    renderAt(
+      <ThemePage cloudStore={cloudStore([])} />,
+      '/gallery/theme/nope', '/gallery/theme/:slug',
+    )
+    await waitFor(() => expect(robotsMeta()).toMatch(/noindex/i))
+  })
+
+  it('主题页:云端故障不 noindex', async () => {
+    contentState.loading = false
+    contentState.error = 'timeout'
+    renderAt(
+      <ThemePage cloudStore={cloudStore([])} />,
+      '/gallery/theme/spring', '/gallery/theme/:slug',
+    )
+    await waitFor(() => expect(robotsMeta()).not.toMatch(/noindex/i))
+  })
+
+  it('合集页:加载中与故障都不 noindex', async () => {
+    contentState.loading = true
+    const first = renderAt(
+      <CollectionPage cloudStore={loadingStore()} />,
+      '/gallery/collection/nope', '/gallery/collection/:slug',
+    )
+    await waitFor(() => expect(robotsMeta()).not.toMatch(/noindex/i))
+    first.unmount()
+
+    contentState.loading = false
+    contentState.error = 'timeout'
+    renderAt(
+      <CollectionPage cloudStore={cloudStore([])} />,
+      '/gallery/collection/nope', '/gallery/collection/:slug',
+    )
+    await waitFor(() => expect(robotsMeta()).not.toMatch(/noindex/i))
   })
 })

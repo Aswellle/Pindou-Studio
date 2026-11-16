@@ -90,13 +90,17 @@ export default function ThemePage({ cloudStore }) {
   // 注意只判 !theme —— 已有 theme 但模板仍在加载时走下面的局部骨架。
   const showPageSkeleton = loading && !theme
 
+  // 只有「确认不存在」才 noindex:加载中不能判负,云端故障更不能 ——
+  // 否则一次超时就会把已发布主题页排除出索引(与图纸详情页同一口径)。
+  const confirmedMissing = !content.loading && !content.error && !theme
+
   return (
     <div className="content-page">
       <ContentSeo
         title={text?.title}
         description={text?.description}
         image={theme?.coverUrl}
-        noindex={!theme}
+        noindex={confirmedMissing}
       />
       <div className="content-page-head">
         <BackButton size="md" onClick={() => navigate('/gallery')} />

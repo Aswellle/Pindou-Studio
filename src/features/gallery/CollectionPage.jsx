@@ -56,13 +56,16 @@ export default function CollectionPage({ cloudStore }) {
   const loading = content.loading || templatesLoading
   const showPageSkeleton = loading && !collection
 
+  // 与主题页同一口径:加载中与云端故障都不算「不存在」,不能因此 noindex。
+  const confirmedMissing = !content.loading && !content.error && !collection
+
   return (
     <div className="content-page">
       <ContentSeo
         title={text?.title}
         description={text?.curationNote || text?.description}
         image={collection?.coverUrl}
-        noindex={!collection}
+        noindex={confirmedMissing}
       />
       <div className="content-page-head">
         <BackButton size="md" onClick={() => navigate('/gallery')} />
