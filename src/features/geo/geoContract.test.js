@@ -83,12 +83,15 @@ describe('robots.txt · AI 检索与训练策略分离', () => {
     'meta-externalagent',
   ]
 
-  it('* 组放行全部路径,只屏蔽四条非内容路径', () => {
+  it('* 组放行全部路径,只屏蔽三条非内容路径', () => {
     expect(starGroup).toBeTruthy()
     expect(starGroup.allow).toContain('/')
-    for (const path of ['/api/', '/_vercel/', '/sb/', '/spa.html']) {
+    for (const path of ['/api/', '/_vercel/', '/spa.html']) {
       expect(starGroup.disallow).toContain(path)
     }
+    // /sb/ 是 SPA 渲染详情页的数据源,不能屏蔽(Googlebot 对 fetch/XHR
+    // 同样先查 robots.txt;屏蔽后详情页会退化成「内容不存在」+ noindex)。
+    expect(starGroup.disallow).not.toContain('/sb/')
   })
 
   it('* 组带 Content-Signal:允许检索与引用、不允许训练', () => {
@@ -113,7 +116,7 @@ describe('robots.txt · AI 检索与训练策略分离', () => {
     }
   })
 
-  it('Google-Extended 显式允许,并重抄四条屏蔽路径', () => {
+  it('Google-Extended 显式允许,并重抄三条屏蔽路径', () => {
     const group = groups.find((g) => g.agents.includes('Google-Extended'))
     expect(group).toBeTruthy()
     expect(group.allow).toContain('/')

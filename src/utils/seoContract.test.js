@@ -237,6 +237,13 @@ describe('robots.txt · 抓取与索引分离', () => {
     expect(ROBOTS).toContain('Disallow: /_vercel/')
   })
 
+  it('不屏蔽 /sb/:Googlebot 渲染详情页要读取同源 Supabase 数据', () => {
+    // 图库详情/主题/分享页的正文数据走 /sb 代理。Googlebot 对 fetch/XHR 同样
+    // 先查 robots.txt,屏蔽 /sb/ 会让渲染器取不到数据 → 合法页面显示「不存在」
+    // 并输出 noindex(GSC「被 noindex 标记排除」的实际成因之一)。
+    expect(ROBOTS).not.toContain('Disallow: /sb/')
+  })
+
   it('声明 sitemap 绝对地址', () => {
     expect(ROBOTS).toContain('Sitemap: https://tangnotes.site/sitemap.xml')
   })
