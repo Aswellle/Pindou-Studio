@@ -449,13 +449,15 @@ function siteNav(exclude = '') {
     ['/gallery', '拼豆图库与模板'],
     ['/tutorials', '拼豆教程'],
     ['/create/image', '图片转拼豆图纸工具'],
-    ['/my/beads', '我的色卡与库存'],
     ['/colors', '拼豆色卡对照表'],
     ['/ironing', '拼豆熨烫温度对照表'],
     ['/bead-calculator', '豆子数量计算器'],
     ['/bead-patterns', '拼豆图案'],
     ['/pixel-art', '像素画生成器'],
     ['/faq', '拼豆常见问题'],
+    // 私有页(/login、/profile、/my/beads 等)刻意不放进静态导航:
+    // 它们本身是 noindex,从这里链出去只会让爬虫反复发现「已知不该收录」
+    // 的地址,在 GSC 里堆积 noindex 排除记录。站内导航仍在应用内可达。
   ].filter(([href]) => href !== exclude)
   return `<p class="note">继续浏览:${items.map(([href, text]) => link(href, text)).join(' · ')}</p>`
 }
