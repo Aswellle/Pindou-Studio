@@ -1,9 +1,8 @@
 <!DOCTYPE html>
 <html lang="zh-CN">
 <head>
-  <!-- 预连接 Supabase:加速首屏会话恢复与模板库请求 -->
-  <link rel="preconnect" href="https://gccrwnepwtpcsiqowzro.supabase.co" crossorigin />
-  <link rel="dns-prefetch" href="https://gccrwnepwtpcsiqowzro.supabase.co" />
+  <!-- 不预连接 Supabase 直连域名:生产环境 REST/Storage 全走同源 /sb 代理,
+       预连接只会让移动端多一次用不上的 TLS 握手;本地开发直连时浏览器自会连接。 -->
   <meta charset="UTF-8" />
   <!-- 主题防白闪:首帧绘制前同步解析 bead_studio_settings.themeMode(缺省/非法 = system,
        未登录用户没有偏好入口,恒为 system),把 data-theme 与 color-scheme 写到 <html> 上。
