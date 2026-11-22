@@ -4,19 +4,15 @@ import useKeyboardSafe from './hooks/useKeyboardSafe'
 import { Routes, Route, useNavigate, useLocation } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { Helmet } from 'react-helmet-async'
-import AuthPage from './components/AuthPage'
-import AdminLoginPage from './components/AdminLoginPage'
 import Header from './components/Header'
 import Canvas from './components/Canvas'
 import LoadingScreen from './components/LoadingScreen'
 import ColorPalette from './components/ColorPalette'
 import Tools from './components/Tools'
-import ExportPanel from './components/ExportPanel'
 import ColorStatsBar from './components/ColorStatsBar'
 import ReplaceColorDialog from './components/ReplaceColorDialog'
 import BrandSwitchDialog from './components/BrandSwitchDialog'
 import DraftRestorePrompt from './components/DraftRestorePrompt'
-import MyBeadsPage from './components/MyBeadsPage'
 import SelectionContextMenu from './components/SelectionContextMenu'
 import VersionHistoryDialog from './components/VersionHistoryDialog'
 import { useToast } from './components/Toast'
@@ -70,7 +66,6 @@ import { COLOR_CHARTS_SEO, brandSeo, resolveColorBrand } from './features/colors
 import { CALCULATOR_SEO, IRONING_SEO, BEAD_PATTERNS_SEO, PIXEL_ART_SEO } from './features/tools/toolSeo'
 import { planBrandSwitch, applyBrandSwitch } from './utils/brandSwitch'
 import { canvasToLegacyWork, normalizeLegacyWork } from './services/project/adapters'
-import ImportPage from './components/ImportPage'
 import MobileToolbar from './components/Tools/MobileToolbar'
 import PickDPad from './components/PickDPad'
 import useCloudTemplates from './hooks/useCloudTemplates'
@@ -84,7 +79,18 @@ import AutoSaveStatus from './components/AutoSaveStatus'
 const CreateImagePage = lazy(() => import('./components/CreateImagePage'))
 // 图纸编辑器:/editor —— 图片转拼豆结果的专用编辑界面(修图操作台,不复用画布页工具栏)
 const EditorPage = lazy(() => import('./components/EditorPage'))
-import ProfilePage from './components/ProfilePage'
+// 登录/注册与管理登录只在对应路由需要,不进入画布首页主包
+const AuthPage = lazy(() => import('./components/AuthPage'))
+const AdminLoginPage = lazy(() => import('./components/AdminLoginPage'))
+// 导出面板依赖整套导出渲染器(IroningEffect / Raster / Vector / PatternDocument),
+// 只在用户点「导出」时加载,不占首页首屏
+const ExportPanel = lazy(() => import('./components/ExportPanel'))
+// 个人中心 / 我的色卡库存 / 图表导入 / 后台管理都是重页面:
+// 各自按路由懒加载,避免把它们的业务代码塞进所有移动端首屏
+const ProfilePage = lazy(() => import('./components/ProfilePage'))
+const MyBeadsPage = lazy(() => import('./components/MyBeadsPage'))
+const ImportPage = lazy(() => import('./components/ImportPage'))
+const AdminPanel = lazy(() => import('./components/AdminPanel'))
 // 联系我们:独立路由页(而非模态框)—— iOS Safari 键盘只收缩 visual viewport,
 // 浮层会被顶走露白,且浮层内两个编辑框在键盘弹起后互相挤压
 const ContactPage = lazy(() => import('./components/ContactPage'))
@@ -111,7 +117,6 @@ const AdminDashboardPage = lazy(() => import('./components/AdminDashboardPage'))
 const Tutorials = lazy(() => import('./components/Tutorials'))
 // 常见问题:独立内容页,四语言正文来自 data/faq.js
 const FaqPage = lazy(() => import('./components/FaqPage'))
-import AdminPanel from './components/AdminPanel'
 
 export default function App() {
   const { t, i18n } = useTranslation()
@@ -153,7 +158,10 @@ export default function App() {
     forgotPasswordCustom,
     usernameExists,
   } = useAuth()
-  const cloudStore = useCloudTemplates()
+  // 云端模板库只在需要模板实体的路由加载:图库 / 后台 / 个人中心收藏。
+  // 模板含完整 pattern 矩阵,一次拉取约 540KB;首页画布/教程/备料页没有理由为它买单。
+  const cloudActive = ['/gallery', '/admin', '/profile'].some(p => location.pathname.startsWith(p))
+  const cloudStore = useCloudTemplates({ active: cloudActive })
   // 收藏在 App 层持有:图库卡片的心形按钮与个人中心的收藏分区是两条路由,
   // 各自 useState 会导致切回来读到旧值。这份实例同时传给两处。
   const { favorites, isFavorite, removeFavorite } = useGalleryFavorites()
@@ -1248,21 +1256,24 @@ export default function App() {
         </div>
         <div className="left-sidebar-bottom">
           <ColorStatsBar canvasData={canvasData} paletteId={currentPalette} />
-          {/* 桌面端侧边栏常驻实例:不传 onClose(有 onClose 会被判定为模态框实例并默认展开) */}
-          <ExportPanel
-            canvasData={canvasData}
-            gridSize={gridSize}
-            gridWidth={gridWidth}
-            gridHeight={gridHeight}
-            designName={designName}
-            paletteId={currentPalette}
-            deductInventory={deductInventory}
-            onToggleDeductInventory={handleToggleDeductInventory}
-            onExportComplete={handleExportComplete}
-            isAuthenticated={!!user}
-            authEnabled={authAvailable}
-            onRequireAuth={handleRequireAuth}
-          />
+          {/* 桌面端侧边栏常驻实例:不传 onClose(有 onClose 会被判定为模态框实例并默认展开)。
+              ExportPanel 体积大,已按需加载;桌面端进画布时加载一次,移动端不渲染这个布局。 */}
+          <Suspense fallback={null}>
+            <ExportPanel
+              canvasData={canvasData}
+              gridSize={gridSize}
+              gridWidth={gridWidth}
+              gridHeight={gridHeight}
+              designName={designName}
+              paletteId={currentPalette}
+              deductInventory={deductInventory}
+              onToggleDeductInventory={handleToggleDeductInventory}
+              onExportComplete={handleExportComplete}
+              isAuthenticated={!!user}
+              authEnabled={authAvailable}
+              onRequireAuth={handleRequireAuth}
+            />
+          </Suspense>
         </div>
       </aside>
 
@@ -1306,7 +1317,10 @@ export default function App() {
       >
         <Routes>
           <Route path="/" element={renderCanvasPage()} />
-          <Route path="/login" element={renderAuthPage()} />
+          <Route
+            path="/login"
+            element={<Suspense fallback={<LoadingScreen />}>{renderAuthPage()}</Suspense>}
+          />
           <Route
             path="/gallery"
             element={
@@ -1432,38 +1446,40 @@ export default function App() {
           <Route
             path="/profile"
             element={
-              <ProfilePage
-                user={user}
-                authLoading={authLoading}
-                onUpdateProfile={updateProfile}
-                onChangePassword={changePassword}
-                works={savedWorks}
-                worksLoading={worksLoading}
-                worksError={worksError}
-                cloudMirrorCount={cloudMirrorCount}
-                beadStore={beadStore}
-                onRetryWorks={reloadWorks}
-                onRetryBeads={beadStore.reload}
-                // 作品与收藏已从图库搬到个人中心,回调沿用 App 里同一套实例
-                onLoadWork={handleLoadWork}
-                onOpenWorkInEditor={handleOpenWorkInEditor}
-                onDeleteWork={deleteWork}
-                // 版本时间线只覆盖本地作品:云端作品的「里程碑版本」策略未定,
-                // 传 undefined 让按钮不出现,而不是给一个点了没反应的入口。
-                onShowVersions={!user ? setVersionsWork : undefined}
-                favorites={favorites}
-                isFavorite={isFavorite}
-                removeFavorite={removeFavorite}
-                cloudStore={cloudStore}
-                onLoadTemplate={handleLoadTemplate}
-                onSendOtp={sendOtp}
-                onSetPasswordWithOtp={setPasswordWithOtp}
-                onChangeEmail={changeEmail}
-                onVerifyPassword={verifyPassword}
-                onSetSecurityKey={setSecurityKey}
-                autoSaveEnabled={autoSaveEnabled}
-                onToggleAutoSave={toggleAutoSave}
-              />
+              <Suspense fallback={<LoadingScreen />}>
+                <ProfilePage
+                  user={user}
+                  authLoading={authLoading}
+                  onUpdateProfile={updateProfile}
+                  onChangePassword={changePassword}
+                  works={savedWorks}
+                  worksLoading={worksLoading}
+                  worksError={worksError}
+                  cloudMirrorCount={cloudMirrorCount}
+                  beadStore={beadStore}
+                  onRetryWorks={reloadWorks}
+                  onRetryBeads={beadStore.reload}
+                  // 作品与收藏已从图库搬到个人中心,回调沿用 App 里同一套实例
+                  onLoadWork={handleLoadWork}
+                  onOpenWorkInEditor={handleOpenWorkInEditor}
+                  onDeleteWork={deleteWork}
+                  // 版本时间线只覆盖本地作品:云端作品的「里程碑版本」策略未定,
+                  // 传 undefined 让按钮不出现,而不是给一个点了没反应的入口。
+                  onShowVersions={!user ? setVersionsWork : undefined}
+                  favorites={favorites}
+                  isFavorite={isFavorite}
+                  removeFavorite={removeFavorite}
+                  cloudStore={cloudStore}
+                  onLoadTemplate={handleLoadTemplate}
+                  onSendOtp={sendOtp}
+                  onSetPasswordWithOtp={setPasswordWithOtp}
+                  onChangeEmail={changeEmail}
+                  onVerifyPassword={verifyPassword}
+                  onSetSecurityKey={setSecurityKey}
+                  autoSaveEnabled={autoSaveEnabled}
+                  onToggleAutoSave={toggleAutoSave}
+                />
+              </Suspense>
             }
           />
 
@@ -1515,20 +1531,26 @@ export default function App() {
 
           <Route
             path="/import"
-            element={<ImportPage onLoadProject={handleLoadImportedProject} onSaveProject={saveWork} />}
+            element={
+              <Suspense fallback={<LoadingScreen />}>
+                <ImportPage onLoadProject={handleLoadImportedProject} onSaveProject={saveWork} />
+              </Suspense>
+            }
           />
 
           <Route
             path="/my/beads"
             element={
-              <MyBeadsPage
-                user={user}
-                authLoading={authLoading}
-                canvasData={canvasData}
-                onApplyMapping={handleApplyBeadMapping}
-                works={savedWorks}
-                onReassignWorkPalette={handleReassignWorkPalette}
-              />
+              <Suspense fallback={<LoadingScreen />}>
+                <MyBeadsPage
+                  user={user}
+                  authLoading={authLoading}
+                  canvasData={canvasData}
+                  onApplyMapping={handleApplyBeadMapping}
+                  works={savedWorks}
+                  onReassignWorkPalette={handleReassignWorkPalette}
+                />
+              </Suspense>
             }
           />
 
@@ -1565,19 +1587,24 @@ export default function App() {
               </Suspense>
             }
           />
-          <Route path="/admin/login" element={renderAdminLoginPage()} />
+          <Route
+            path="/admin/login"
+            element={<Suspense fallback={<LoadingScreen />}>{renderAdminLoginPage()}</Suspense>}
+          />
           <Route
             path="/admin"
             element={
-              <AdminPanel
-                user={user}
-                isAdmin={isAdmin}
-                authLoading={authLoading}
-                onLogin={() => navigate('/admin/login')}
-                onLogout={logout}
-                onChangePassword={changePassword}
-                cloudStore={cloudStore}
-              />
+              <Suspense fallback={<LoadingScreen />}>
+                <AdminPanel
+                  user={user}
+                  isAdmin={isAdmin}
+                  authLoading={authLoading}
+                  onLogin={() => navigate('/admin/login')}
+                  onLogout={logout}
+                  onChangePassword={changePassword}
+                  cloudStore={cloudStore}
+                />
+              </Suspense>
             }
           />
           <Route path="/privacy" element={<PrivacyPolicy onBack={handleLegalBack} />} />
@@ -1590,21 +1617,23 @@ export default function App() {
       </main>
 
       {showExport && (
-        <ExportPanel
-          canvasData={canvasData}
-          gridSize={gridSize}
-          gridWidth={gridWidth}
-          gridHeight={gridHeight}
-          designName={designName}
-          paletteId={currentPalette}
-          deductInventory={deductInventory}
-          onToggleDeductInventory={handleToggleDeductInventory}
-          onExportComplete={handleExportComplete}
-          isAuthenticated={!!user}
-          authEnabled={authAvailable}
-          onRequireAuth={handleRequireAuth}
-          onClose={() => setShowExport(false)}
-        />
+        <Suspense fallback={<LoadingScreen />}>
+          <ExportPanel
+            canvasData={canvasData}
+            gridSize={gridSize}
+            gridWidth={gridWidth}
+            gridHeight={gridHeight}
+            designName={designName}
+            paletteId={currentPalette}
+            deductInventory={deductInventory}
+            onToggleDeductInventory={handleToggleDeductInventory}
+            onExportComplete={handleExportComplete}
+            isAuthenticated={!!user}
+            authEnabled={authAvailable}
+            onRequireAuth={handleRequireAuth}
+            onClose={() => setShowExport(false)}
+          />
+        </Suspense>
       )}
 
       {showSaveDialog &&
@@ -1739,7 +1768,7 @@ export default function App() {
       )}
 
       <Routes>
-        <Route path="/login" element={renderAuthPage()} />
+        <Route path="/login" element={<Suspense fallback={<LoadingScreen />}>{renderAuthPage()}</Suspense>} />
         <Route
           path="/"
           element={
@@ -1977,38 +2006,40 @@ export default function App() {
           path="/profile"
           element={
             <div className="mobile-page-area">
-              <ProfilePage
-                user={user}
-                authLoading={authLoading}
-                onUpdateProfile={updateProfile}
-                onChangePassword={changePassword}
-                works={savedWorks}
-                worksLoading={worksLoading}
-                worksError={worksError}
-                cloudMirrorCount={cloudMirrorCount}
-                beadStore={beadStore}
-                onRetryWorks={reloadWorks}
-                onRetryBeads={beadStore.reload}
-                // 作品与收藏已从图库搬到个人中心,回调沿用 App 里同一套实例
-                onLoadWork={handleLoadWork}
-                onOpenWorkInEditor={handleOpenWorkInEditor}
-                onDeleteWork={deleteWork}
-                // 版本时间线只覆盖本地作品:云端作品的「里程碑版本」策略未定,
-                // 传 undefined 让按钮不出现,而不是给一个点了没反应的入口。
-                onShowVersions={!user ? setVersionsWork : undefined}
-                favorites={favorites}
-                isFavorite={isFavorite}
-                removeFavorite={removeFavorite}
-                cloudStore={cloudStore}
-                onLoadTemplate={handleLoadTemplate}
-                onSendOtp={sendOtp}
-                onSetPasswordWithOtp={setPasswordWithOtp}
-                onChangeEmail={changeEmail}
-                onVerifyPassword={verifyPassword}
-                onSetSecurityKey={setSecurityKey}
-                autoSaveEnabled={autoSaveEnabled}
-                onToggleAutoSave={toggleAutoSave}
-              />
+              <Suspense fallback={<LoadingScreen />}>
+                <ProfilePage
+                  user={user}
+                  authLoading={authLoading}
+                  onUpdateProfile={updateProfile}
+                  onChangePassword={changePassword}
+                  works={savedWorks}
+                  worksLoading={worksLoading}
+                  worksError={worksError}
+                  cloudMirrorCount={cloudMirrorCount}
+                  beadStore={beadStore}
+                  onRetryWorks={reloadWorks}
+                  onRetryBeads={beadStore.reload}
+                  // 作品与收藏已从图库搬到个人中心,回调沿用 App 里同一套实例
+                  onLoadWork={handleLoadWork}
+                  onOpenWorkInEditor={handleOpenWorkInEditor}
+                  onDeleteWork={deleteWork}
+                  // 版本时间线只覆盖本地作品:云端作品的「里程碑版本」策略未定,
+                  // 传 undefined 让按钮不出现,而不是给一个点了没反应的入口。
+                  onShowVersions={!user ? setVersionsWork : undefined}
+                  favorites={favorites}
+                  isFavorite={isFavorite}
+                  removeFavorite={removeFavorite}
+                  cloudStore={cloudStore}
+                  onLoadTemplate={handleLoadTemplate}
+                  onSendOtp={sendOtp}
+                  onSetPasswordWithOtp={setPasswordWithOtp}
+                  onChangeEmail={changeEmail}
+                  onVerifyPassword={verifyPassword}
+                  onSetSecurityKey={setSecurityKey}
+                  autoSaveEnabled={autoSaveEnabled}
+                  onToggleAutoSave={toggleAutoSave}
+                />
+              </Suspense>
             </div>
           }
         />
@@ -2085,7 +2116,9 @@ export default function App() {
           path="/import"
           element={
             <div className="mobile-page-area">
-              <ImportPage onLoadProject={handleLoadImportedProject} onSaveProject={saveWork} />
+              <Suspense fallback={<LoadingScreen />}>
+                <ImportPage onLoadProject={handleLoadImportedProject} onSaveProject={saveWork} />
+              </Suspense>
             </div>
           }
         />
@@ -2093,14 +2126,16 @@ export default function App() {
           path="/my/beads"
           element={
             <div className="mobile-page-area">
-              <MyBeadsPage
-                user={user}
-                authLoading={authLoading}
-                canvasData={canvasData}
-                onApplyMapping={handleApplyBeadMapping}
-                works={savedWorks}
-                onReassignWorkPalette={handleReassignWorkPalette}
-              />
+              <Suspense fallback={<LoadingScreen />}>
+                <MyBeadsPage
+                  user={user}
+                  authLoading={authLoading}
+                  canvasData={canvasData}
+                  onApplyMapping={handleApplyBeadMapping}
+                  works={savedWorks}
+                  onReassignWorkPalette={handleReassignWorkPalette}
+                />
+              </Suspense>
             </div>
           }
         />
@@ -2117,7 +2152,10 @@ export default function App() {
             </Suspense>
           }
         />
-        <Route path="/admin/login" element={renderAdminLoginPage()} />
+        <Route
+          path="/admin/login"
+          element={<Suspense fallback={<LoadingScreen />}>{renderAdminLoginPage()}</Suspense>}
+        />
         <Route
           path="/share/:id"
           element={
@@ -2153,23 +2191,25 @@ export default function App() {
       </Routes>
 
       {showExport && (
-        <ExportPanel
-          canvasData={canvasData}
-          gridSize={gridSize}
-          gridWidth={gridWidth}
-          gridHeight={gridHeight}
-          designName={designName}
-          paletteId={currentPalette}
-          deductInventory={deductInventory}
-          onToggleDeductInventory={handleToggleDeductInventory}
-          onExportComplete={handleExportComplete}
-          // 移动端与桌面端共用同一套高级导出守卫:游客限制屏幕画质,
-          // 高分辨率/打印与熨烫效果点击后跳转登录页并说明原因。
-          isAuthenticated={!!user}
-          authEnabled={authAvailable}
-          onRequireAuth={handleRequireAuth}
-          onClose={() => setShowExport(false)}
-        />
+        <Suspense fallback={<LoadingScreen />}>
+          <ExportPanel
+            canvasData={canvasData}
+            gridSize={gridSize}
+            gridWidth={gridWidth}
+            gridHeight={gridHeight}
+            designName={designName}
+            paletteId={currentPalette}
+            deductInventory={deductInventory}
+            onToggleDeductInventory={handleToggleDeductInventory}
+            onExportComplete={handleExportComplete}
+            // 移动端与桌面端共用同一套高级导出守卫:游客限制屏幕画质,
+            // 高分辨率/打印与熨烫效果点击后跳转登录页并说明原因。
+            isAuthenticated={!!user}
+            authEnabled={authAvailable}
+            onRequireAuth={handleRequireAuth}
+            onClose={() => setShowExport(false)}
+          />
+        </Suspense>
       )}
 
       {showSaveDialog &&

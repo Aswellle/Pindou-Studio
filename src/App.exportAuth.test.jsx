@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeAll, beforeEach, afterEach, vi } from 'vitest'
-import { render, fireEvent, cleanup, act } from '@testing-library/react'
+import { render, fireEvent, cleanup, act, waitFor } from '@testing-library/react'
 import { MemoryRouter, useLocation } from 'react-router-dom'
 import { HelmetProvider } from 'react-helmet-async'
 import './i18n'
@@ -139,20 +139,22 @@ function renderMobileApp() {
 }
 
 describe('App 移动端导出守卫接线', () => {
-  it('移动端 ExportPanel 拿到游客守卫参数', () => {
+  it('移动端 ExportPanel 拿到游客守卫参数', async () => {
     const { getByTestId } = renderMobileApp()
     fireEvent.click(getByTestId('mobile-export'))
 
-    expect(exportProps.current).toBeTruthy()
+    // ExportPanel 已按路由/交互懒加载,弹层在 chunk 到达后才挂载
+    await waitFor(() => expect(exportProps.current).toBeTruthy())
     expect(exportProps.current.isAuthenticated).toBe(false)
     expect(exportProps.current.authEnabled).toBe(true)
     expect(typeof exportProps.current.onRequireAuth).toBe('function')
   })
 
-  it('移动端守卫入口跳转登录页并带上原因', () => {
+  it('移动端守卫入口跳转登录页并带上原因', async () => {
     const { getByTestId } = renderMobileApp()
     fireEvent.click(getByTestId('mobile-export'))
 
+    await waitFor(() => expect(exportProps.current).toBeTruthy())
     act(() => {
       exportProps.current.onRequireAuth('ironing')
     })
