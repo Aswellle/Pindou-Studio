@@ -1,8 +1,37 @@
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 
+/**
+ * 首屏样式改为异步加载。
+ *
+ * Vite 默认把 app CSS 以 render-blocking <link rel="stylesheet"> 注入 head:
+ * 移动端弱网下这 56KB(约 13KB gzip)会卡住首帧,连已经内联好样式的骨架屏
+ * 都画不出来。改成 preload + onload 切 stylesheet:
+ *   - 骨架屏可以立即绘制(样式全在 index.html 内联);
+ *   - CSS 到达前不阻塞渲染,到达后应用样式;
+ *   - main.jsx 会等 link 的 load 事件再挂载 React,不会出现无样式应用;
+ *   - <noscript> 保留原始 stylesheet,无 JS 抓取端样式不变。
+ */
+function asyncAppCss() {
+  return {
+    name: 'async-app-css',
+    apply: 'build',
+    transformIndexHtml: {
+      order: 'post',
+      handler(html) {
+        return html.replace(/<link rel="stylesheet"([^>]*)>/g, (tag, attrs) => {
+          const href = /href="([^"]+)"/.exec(attrs)?.[1]
+          if (!href) return tag
+          const crossorigin = /crossorigin/.test(attrs) ? ' crossorigin' : ''
+          return `<link rel="preload" as="style" href="${href}"${crossorigin} data-app-css onload="this.dataset.appCssLoaded='1';this.onload=null;this.rel='stylesheet'"><noscript><link rel="stylesheet" href="${href}"${crossorigin}></noscript>`
+        })
+      },
+    },
+  }
+}
+
 export default defineConfig({
-  plugins: [react()],
+  plugins: [react(), asyncAppCss()],
   // 兼容 VITE_ 前缀(local .env.local)与无前缀/其他前缀(Vercel 环境变量)两种命名
   // (自定义后需显式包含 VITE_,否则默认前缀失效)
   envPrefix: ['VITE_', 'SUPABASE_', 'NEXT_PUBLIC_'],

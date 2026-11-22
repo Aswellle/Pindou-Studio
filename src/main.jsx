@@ -56,9 +56,21 @@ import './index.css'
 // 注册系统明暗变化监听(跟随系统模式下,系统切换深浅色时实时生效)。
 initTheme()
 
+// app CSS 由 vite.config.js 的 asyncAppCss 改成 preload + onload。
+// 首帧骨架不依赖它,但 React 挂载必须等它到达,否则会出现无样式应用。
+// 已加载/加载失败都放行;骨架屏会一直盖到应用真正上屏。
+const appCssReady = (() => {
+  const link = document.querySelector('link[data-app-css]')
+  if (!link || link.sheet || link.dataset.appCssLoaded === '1') return Promise.resolve()
+  return new Promise((resolve) => {
+    link.addEventListener('load', resolve, { once: true })
+    link.addEventListener('error', resolve, { once: true })
+  })
+})()
+
 // 初始语言非 zh-CN 时先加载该语言包再挂载 React(避免非中文用户看到中文兜底闪烁;
 // 加载失败不阻塞,回退 zh-CN)。zh-CN 用户只需让出一个宏任务,不额外等待网络。
-i18nReady.then(() => {
+Promise.all([i18nReady, appCssReady]).then(() => {
   // 先让出一个宏任务:模块求值结束后浏览器才能把首屏骨架画出来,
   // 否则 React 挂载的同步渲染会一直占着主线程,骨架等到被移除都没上屏。
   setTimeout(() => {

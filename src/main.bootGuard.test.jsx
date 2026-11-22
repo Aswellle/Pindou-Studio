@@ -21,6 +21,7 @@ const ROOT = join(process.cwd())
 const PRERENDER = readFileSync(join(ROOT, 'scripts', 'generate-prerender-html.js'), 'utf8')
 const OG_SNAPSHOT = readFileSync(join(ROOT, 'src', 'features', 'gallery', 'ogSnapshot.js'), 'utf8')
 const MAIN = readFileSync(join(ROOT, 'src', 'main.jsx'), 'utf8')
+const VITE = readFileSync(join(ROOT, 'vite.config.js'), 'utf8')
 
 describe('预渲染守卫 · 构建侧', () => {
   it('两个注入点都写入同步脚本与隐藏样式', () => {
@@ -45,7 +46,16 @@ describe('预渲染守卫 · 构建侧', () => {
     // 无 JS 时保持 display:none,抓取端仍读 #seo-static
     expect(INDEX).toContain('html.js-booting #boot-skeleton')
     expect(MAIN).toContain("getElementById('boot-skeleton')")
-    expect(MAIN).toContain(".remove()")
+    expect(MAIN).toContain('.remove()')
+  })
+
+  it('app CSS 异步加载:骨架不被 render-blocking 样式表卡住', () => {
+    // Vite 默认通过 <link rel="stylesheet"> 阻塞首帧;改成 preload 后
+    // 骨架可以先画,React 再等 link load 后挂载,避免无样式应用。
+    expect(VITE).toContain('rel="preload" as="style"')
+    expect(VITE).toContain('data-app-css')
+    expect(VITE).toContain('<noscript>')
+    expect(MAIN).toContain("link[data-app-css]")
   })
 })
 
