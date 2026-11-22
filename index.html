@@ -4,6 +4,8 @@
   <!-- 不预连接 Supabase 直连域名:生产环境 REST/Storage 全走同源 /sb 代理,
        预连接只会让移动端多一次用不上的 TLS 握手;本地开发直连时浏览器自会连接。 -->
   <meta charset="UTF-8" />
+  <!-- JS 一启动就显示骨架(见文件末尾的 #boot-skeleton);无 JS 时不加类,骨架保持隐藏。 -->
+  <script>document.documentElement.classList.add("js-booting")</script>
   <!-- 主题防白闪:首帧绘制前同步解析 bead_studio_settings.themeMode(缺省/非法 = system,
        未登录用户没有偏好入口,恒为 system),把 data-theme 与 color-scheme 写到 <html> 上。
        判定规则与 src/utils/theme.js 严格一致(两处无共享代码,改动必须同步);
@@ -202,8 +204,75 @@
     }
   }
   </script>
+
+  <!-- 首屏骨架:HTML/CSS 到达即绘制品牌 + 画布轮廓,React 提交后由 BootGuard 同帧移除。
+       只在 JS 启动时显示(html.js-booting);无 JS 抓取端保持隐藏,仍读 #seo-static 正文。
+       这里用内联 CSS,避免等主样式表到达才出现骨架。 -->
+  <style>
+    #boot-skeleton { display: none }
+    html.js-booting #boot-skeleton {
+      display: flex; flex-direction: column; position: fixed; inset: 0; z-index: 9999;
+      background: #faf7f2; color: #33291f;
+      font-family: system-ui, -apple-system, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+    }
+    html[data-theme='dark'].js-booting #boot-skeleton { background: #1e1a17; color: #f2ece4 }
+    #boot-skeleton .bs-top { height: 56px; flex: none; border-bottom: 1px solid rgba(127,127,127,.18) }
+    #boot-skeleton .bs-main { flex: 1; display: flex; min-height: 0 }
+    #boot-skeleton .bs-side {
+      display: none; flex: none; width: 220px; border-right: 1px solid rgba(127,127,127,.18);
+      background: rgba(127,127,127,.03);
+    }
+    #boot-skeleton .bs-side.bs-right { border-right: 0; border-left: 1px solid rgba(127,127,127,.18) }
+    #boot-skeleton .bs-stage {
+      flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center;
+      gap: 20px; padding: 24px; min-width: 0;
+    }
+    #boot-skeleton .bs-logo {
+      display: flex; align-items: center; gap: 10px; font-size: 15px; font-weight: 700;
+      letter-spacing: .02em; opacity: .85;
+    }
+    #boot-skeleton .bs-mark {
+      width: 34px; height: 34px; border-radius: 9px;
+      background: conic-gradient(#e53935 0 25%, #fdd835 0 50%, #32cd32 0 75%, #1976d2 0);
+      box-shadow: inset 0 0 0 4px rgba(255,255,255,.35);
+    }
+    #boot-skeleton .bs-spinner {
+      width: 15px; height: 15px; border: 2px solid currentColor; border-right-color: transparent;
+      border-radius: 50%; animation: bs-spin .8s linear infinite; opacity: .45;
+    }
+    #boot-skeleton .bs-canvas {
+      width: min(76vw, 520px); aspect-ratio: 1 / 1; border-radius: 16px;
+      border: 1px solid rgba(127,127,127,.18); background-color: rgba(255,255,255,.5);
+      background-image:
+        linear-gradient(to right, rgba(127,127,127,.10) 1px, transparent 1px),
+        linear-gradient(to bottom, rgba(127,127,127,.10) 1px, transparent 1px);
+      background-size: 22px 22px;
+    }
+    html[data-theme='dark'].js-booting #boot-skeleton .bs-canvas { background-color: rgba(255,255,255,.04) }
+    #boot-skeleton .bs-bottom { display: none; height: 64px; flex: none; border-top: 1px solid rgba(127,127,127,.18) }
+    @keyframes bs-spin { to { transform: rotate(360deg) } }
+    @media (min-width: 1025px) { #boot-skeleton .bs-side { display: block } }
+    @media (max-width: 1024px) { #boot-skeleton .bs-bottom { display: block } }
+    @media (prefers-reduced-motion: reduce) { #boot-skeleton .bs-spinner { animation: none } }
+  </style>
 </head>
 <body>
+  <div id="boot-skeleton" aria-hidden="true">
+    <div class="bs-top"></div>
+    <div class="bs-main">
+      <div class="bs-side"></div>
+      <div class="bs-stage">
+        <div class="bs-logo">
+          <span class="bs-mark"></span>
+          <span>拼豆 Studio</span>
+          <span class="bs-spinner"></span>
+        </div>
+        <div class="bs-canvas"></div>
+      </div>
+      <div class="bs-side bs-right"></div>
+    </div>
+    <div class="bs-bottom"></div>
+  </div>
   <div id="root"></div>
   <script type="module" src="/src/main.jsx"></script>
 </body>

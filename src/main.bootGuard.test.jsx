@@ -38,6 +38,15 @@ describe('预渲染守卫 · 构建侧', () => {
     expect(PRERENDER).toContain('html.js-booting #seo-static')
     expect(OG_SNAPSHOT).toContain('html.js-booting #seo-static')
   })
+
+  it('首屏骨架存在,只在 JS 启动时显示,并由 BootGuard 同帧移除', () => {
+    const INDEX = readFileSync(join(ROOT, 'index.html'), 'utf8')
+    expect(INDEX).toContain('id="boot-skeleton"')
+    // 无 JS 时保持 display:none,抓取端仍读 #seo-static
+    expect(INDEX).toContain('html.js-booting #boot-skeleton')
+    expect(MAIN).toContain("getElementById('boot-skeleton')")
+    expect(MAIN).toContain(".remove()")
+  })
 })
 
 describe('预渲染守卫 · 运行时摘除时机', () => {
