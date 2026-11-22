@@ -63,8 +63,17 @@ const appCssReady = (() => {
   const link = document.querySelector('link[data-app-css]')
   if (!link || link.sheet || link.dataset.appCssLoaded === '1') return Promise.resolve()
   return new Promise((resolve) => {
-    link.addEventListener('load', resolve, { once: true })
-    link.addEventListener('error', resolve, { once: true })
+    let done = false
+    const finish = () => {
+      if (done) return
+      done = true
+      resolve()
+    }
+    link.addEventListener('load', finish, { once: true })
+    link.addEventListener('error', finish, { once: true })
+    // 兜底:极端情况下 load 事件可能早于监听丢失(或内联 onload 被策略拦截),
+    // 不能因此永远不挂载应用;超时后按无样式/稍后补齐处理。
+    setTimeout(finish, 8000)
   })
 })()
 
