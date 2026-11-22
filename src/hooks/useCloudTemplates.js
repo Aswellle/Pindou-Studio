@@ -15,12 +15,12 @@ import { normalizeCustomTemplate, patternDimensions } from '../data/templates'
 // 超时后转入已有的错误+重试界面,并在网络恢复 / 页面重新可见时自动重试。
 const CLOUD_TIMEOUT_MS = 15000
 
-const isAbortError = (e) => e?.name === 'AbortError' || /abort/i.test(e?.message || '')
+const isAbortError = e => e?.name === 'AbortError' || /abort/i.test(e?.message || '')
 
 // 云端行 → UI 模板。宽高在读取时由 pattern 推导(不依赖 DB 列,零迁移):
 // templates 表只有单值 size,矩形信息只能从 pattern 恢复。
 // 若未来加了 grid_width/grid_height 列,这里会优先使用行上的显式值。
-export const rowToTemplate = (row) => {
+export const rowToTemplate = row => {
   const derived = patternDimensions(row.pattern)
   const gridWidth = Number(row.grid_width) || derived.width
   const gridHeight = Number(row.grid_height) || derived.height
@@ -45,7 +45,7 @@ export const rowToTemplate = (row) => {
   }
 }
 
-const templateToRow = (t) => ({
+const templateToRow = t => ({
   name: t.name,
   name_zh: t.nameZh || null,
   category: t.category,
@@ -58,18 +58,21 @@ const templateToRow = (t) => ({
   palette_id: t.paletteId || 'perler',
 })
 
-export default function useCloudTemplates() {
+export default function useCloudTemplates({ active = true } = {}) {
   const [enabled] = useState(() => supabase !== null)
-  const [loading, setLoading] = useState(enabled)
+  const [loading, setLoading] = useState(false)
   const [templates, setTemplates] = useState([])
   const [categories, setCategories] = useState([])
   const [error, setError] = useState('')
 
+  // 是否已经发起过至少一次拉取。active 从 false 切到 true 时,首帧就要把
+  // loading 报成 true,否则图库会先渲染一帧「空模板库」再跳成真实列表。
+  const attemptedRef = useRef(false)
   // 上一次拉取是否失败(供网络恢复 / 页面重新可见时判断要不要自动重试)
   const failedRef = useRef(false)
 
   // 拉取模板 + 分类(超时由调用方通过 signal 控制;失败抛错交给调用方)
-  const fetchCloudData = useCallback(async (signal) => {
+  const fetchCloudData = useCallback(async signal => {
     const [tplRes, catRes] = await Promise.all([
       supabase.from('templates').select('*').order('source').order('created_at').abortSignal(signal),
       supabase.from('categories').select('*').order('id').abortSignal(signal),
@@ -105,13 +108,16 @@ export default function useCloudTemplates() {
       console.error('云端模板加载失败:', e)
       setError(isAbortError(e) ? 'timeout' : 'failed')
     } finally {
+      attemptedRef.current = true
       setLoading(false)
     }
   }, [fetchWithTimeout])
 
+  // 只有当前路由真的需要模板库时才拉取:首页画布 / 教程 / 备料页不再
+  // 下载 540KB 的模板 JSON,把移动端首屏带宽留给主包与首屏渲染。
   useEffect(() => {
-    if (enabled) loadAll()
-  }, [enabled, loadAll])
+    if (enabled && active) loadAll()
+  }, [enabled, active, loadAll])
 
   // 静默刷新:重拉模板/分类,不切换 loading(供实时订阅/后台操作后刷新)
   const refresh = useCallback(async () => {
@@ -132,34 +138,44 @@ export default function useCloudTemplates() {
   // 自愈:上一次拉取失败(含超时)后,网络恢复或页面重新可见时自动重试。
   // 移动端最常见的就是「切走再回来 / 信号恢复」,不该让用户卡在错误页只能手点重试。
   useEffect(() => {
-    if (!enabled || !supabase) return undefined
-    const retry = () => { if (failedRef.current) loadAll() }
-    const onVisible = () => { if (document.visibilityState === 'visible') retry() }
+    if (!enabled || !active || !supabase) return undefined
+    const retry = () => {
+      if (failedRef.current) loadAll()
+    }
+    const onVisible = () => {
+      if (document.visibilityState === 'visible') retry()
+    }
     window.addEventListener('online', retry)
     document.addEventListener('visibilitychange', onVisible)
     return () => {
       window.removeEventListener('online', retry)
       document.removeEventListener('visibilitychange', onVisible)
     }
-  }, [enabled, loadAll])
+  }, [enabled, active, loadAll])
 
   // 实时订阅:模板/分类被增删改(管理员操作或他人)时自动刷新,无需手动刷新/切 tab。
   // 同域代理下 Realtime WebSocket 不可用(vercel rewrite 不转发 WS),跳过订阅,
   // 由「网络恢复 / 页面重新可见」的自动刷新与手动重试兜底。
   useEffect(() => {
-    if (!enabled || !supabase || SUPABASE_PROXIED) return undefined
+    if (!enabled || !active || !supabase || SUPABASE_PROXIED) return undefined
     let t
-    const trigger = () => { clearTimeout(t); t = setTimeout(() => refresh(), 400) }
+    const trigger = () => {
+      clearTimeout(t)
+      t = setTimeout(() => refresh(), 400)
+    }
     const ch = supabase
       .channel('tpl-realtime')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'templates' }, trigger)
       .on('postgres_changes', { event: '*', schema: 'public', table: 'categories' }, trigger)
       .subscribe()
-    return () => { clearTimeout(t); supabase.removeChannel(ch) }
-  }, [enabled, refresh])
+    return () => {
+      clearTimeout(t)
+      supabase.removeChannel(ch)
+    }
+  }, [enabled, active, refresh])
 
   // ── 模板 CRUD(写操作由 RLS 限制为 admin) ──────────────────
-  const addTemplate = useCallback(async (input) => {
+  const addTemplate = useCallback(async input => {
     if (!supabase) return { ok: false, errors: [{ code: 'cloudNotConfigured' }] }
     const res = normalizeCustomTemplate(input)
     if (!res.ok) return res
@@ -188,7 +204,7 @@ export default function useCloudTemplates() {
     return { ok: true }
   }, [])
 
-  const deleteTemplate = useCallback(async (id) => {
+  const deleteTemplate = useCallback(async id => {
     if (!supabase) return { ok: false, errors: [{ code: 'cloudNotConfigured' }] }
     const { error: err } = await supabase.from('templates').delete().eq('id', id)
     if (err) return { ok: false, errors: [{ code: 'dbError', detail: err.message }] }
@@ -213,10 +229,12 @@ export default function useCloudTemplates() {
     if (!supabase) return { ok: false, errors: [{ code: 'cloudNotConfigured' }] }
     const { error: err } = await supabase.from('categories').update({ id, label }).eq('id', oldId)
     if (err) return { ok: false, errors: [{ code: 'dbError', detail: err.message }] }
-    setCategories(prev => prev
-      .filter(c => c.id !== oldId)
-      .concat([{ id, label }])
-      .sort((a, b) => a.id.localeCompare(b.id)))
+    setCategories(prev =>
+      prev
+        .filter(c => c.id !== oldId)
+        .concat([{ id, label }])
+        .sort((a, b) => a.id.localeCompare(b.id))
+    )
     // 模板中的分类引用随 id 改名同步(非事务,第二步失败时返回错误让 UI 提示)
     if (id !== oldId) {
       const { error: tplErr } = await supabase
@@ -229,7 +247,7 @@ export default function useCloudTemplates() {
     return { ok: true }
   }, [])
 
-  const deleteCategory = useCallback(async (id) => {
+  const deleteCategory = useCallback(async id => {
     if (!supabase) return { ok: false, errors: [{ code: 'cloudNotConfigured' }] }
     const { error: err } = await supabase.from('categories').delete().eq('id', id)
     if (err) return { ok: false, errors: [{ code: 'dbError', detail: err.message }] }
@@ -237,9 +255,12 @@ export default function useCloudTemplates() {
     return { ok: true }
   }, [])
 
+  // active=false 时永远不报加载中;active 刚变 true、还没发起拉取时先报 true。
+  const effectiveLoading = enabled && active && (loading || !attemptedRef.current)
+
   return {
     enabled,
-    loading,
+    loading: effectiveLoading,
     templates,
     categories,
     error,
