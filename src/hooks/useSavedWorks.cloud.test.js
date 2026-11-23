@@ -15,13 +15,13 @@ import { renderHook, act, cleanup, waitFor } from '@testing-library/react'
 const cloud = {
   rows: [],
   missingColumns: new Set(),
-  inserted: [],   // 每次 insert 调用(含失败重试),用于断言重试确实发生
+  inserted: [], // 每次 insert 调用(含失败重试),用于断言重试确实发生
   upserted: [],
   failNext: null, // 强制下一次写入返回该错误(模拟真实业务失败)
   failSelect: null, // 强制作品列表查询失败(模拟云端读取失败 → 降级本机)
 }
 
-const missingError = (col) => ({
+const missingError = col => ({
   code: 'PGRST204',
   message: `Could not find the '${col}' column of 'works' in the schema cache`,
   details: null,
@@ -64,9 +64,15 @@ function makeBuilder(kind, payload) {
   }
 
   const builder = {
-    select() { return builder },
-    eq() { return builder },
-    order() { return Promise.resolve(resolve()) },
+    select() {
+      return builder
+    },
+    eq() {
+      return builder
+    },
+    order() {
+      return Promise.resolve(resolve())
+    },
     single() {
       const r = resolve()
       return Promise.resolve({ data: r.data, error: r.error })
@@ -82,8 +88,8 @@ vi.mock('../services/supabase', () => ({
   supabase: {
     from: () => ({
       select: () => makeBuilder('select'),
-      insert: (row) => makeBuilder('insert', row),
-      upsert: (rows) => makeBuilder('upsert', rows),
+      insert: row => makeBuilder('insert', row),
+      upsert: rows => makeBuilder('upsert', rows),
       delete: () => makeBuilder('delete'),
     }),
   },
@@ -196,23 +202,30 @@ describe('useSavedWorks · 云端元数据列(迁移 0024)', () => {
     })
 
     expect(ok).toBe(false)
-    expect(cloud.inserted).toHaveLength(1)   // 没有重试
+    expect(cloud.inserted).toHaveLength(1) // 没有重试
     spy.mockRestore()
   })
 
   it('登录迁移的 upsert 同样在缺列时降级,不阻断本地作品上云', async () => {
     cloud.missingColumns = new Set(['schema_version'])
-    localStorage.setItem('saved-works', JSON.stringify([{
-      id: 5,
-      name: '本机作品',
-      canvasData: blank(9, 9),
-      gridSize: 9,
-      paletteId: 'perler',
-      savedAt: '2026-10-19T00:00:00.000Z',
-    }]))
+    localStorage.setItem(
+      'saved-works',
+      JSON.stringify([
+        {
+          id: 5,
+          name: '本机作品',
+          canvasData: blank(9, 9),
+          gridSize: 9,
+          paletteId: 'perler',
+          savedAt: '2026-10-19T00:00:00.000Z',
+        },
+      ])
+    )
 
     const { result } = renderHook(() => useSavedWorks(USER))
-    await act(async () => { await Promise.resolve() })
+    await act(async () => {
+      await Promise.resolve()
+    })
 
     // 第一次 upsert 带元数据失败 → 第二次不带元数据成功
     expect(cloud.upserted).toHaveLength(2)
@@ -228,14 +241,19 @@ describe('useSavedWorks · 云端元数据列(迁移 0024)', () => {
 describe('useSavedWorks · 云端读取失败的对外状态', () => {
   it('读取失败时置位 worksError,同时仍回退到本机作品', async () => {
     cloud.failSelect = { message: 'network unreachable' }
-    localStorage.setItem('saved-works', JSON.stringify([{
-      id: 9,
-      name: '本机作品',
-      canvasData: blank(9, 9),
-      gridSize: 9,
-      paletteId: 'perler',
-      savedAt: '2026-10-19T00:00:00.000Z',
-    }]))
+    localStorage.setItem(
+      'saved-works',
+      JSON.stringify([
+        {
+          id: 9,
+          name: '本机作品',
+          canvasData: blank(9, 9),
+          gridSize: 9,
+          paletteId: 'perler',
+          savedAt: '2026-10-19T00:00:00.000Z',
+        },
+      ])
+    )
 
     const spy = vi.spyOn(console, 'error').mockImplementation(() => {})
     const { result } = renderHook(() => useSavedWorks(USER))
@@ -243,9 +261,7 @@ describe('useSavedWorks · 云端读取失败的对外状态', () => {
     await waitFor(() => expect(result.current.worksLoading).toBe(false))
 
     // 失败事实被暴露出来 —— 个人中心据此显示「当前为本机数据」而不是「你没有作品」
-    expect(result.current.worksError).toEqual(
-      expect.objectContaining({ code: 'loadFailed' })
-    )
+    expect(result.current.worksError).toEqual(expect.objectContaining({ code: 'loadFailed' }))
     // 但数据没有丢:仍是本机那份
     expect(result.current.works).toHaveLength(1)
     expect(result.current.works[0].name).toBe('本机作品')
@@ -261,16 +277,47 @@ describe('useSavedWorks · 云端读取失败的对外状态', () => {
     // 模拟网络恢复:重新挂载(等价于用户刷新页面)
     cleanup()
     cloud.failSelect = null
-    cloud.rows = [{
-      id: 'row-1', name: '云端作品', canvas_data: blank(9, 9),
-      grid_size: 9, grid_width: null, grid_height: null,
-      palette_id: 'perler', saved_at: '2026-10-20T00:00:00.000Z',
-    }]
+    cloud.rows = [
+      {
+        id: 'row-1',
+        name: '云端作品',
+        canvas_data: blank(9, 9),
+        grid_size: 9,
+        grid_width: null,
+        grid_height: null,
+        palette_id: 'perler',
+        saved_at: '2026-10-20T00:00:00.000Z',
+      },
+    ]
     const second = renderHook(() => useSavedWorks(USER))
     await waitFor(() => expect(second.result.current.worksLoading).toBe(false))
 
     expect(second.result.current.worksError).toBeNull()
     expect(second.result.current.works[0].name).toBe('云端作品')
     spy.mockRestore()
+  })
+
+  it('cloudActive=false 时不拉云端作品,激活后再加载', async () => {
+    cloud.rows = [
+      {
+        id: 'row-1',
+        name: '云端作品',
+        canvas_data: blank(9, 9),
+        grid_size: 9,
+        grid_width: null,
+        grid_height: null,
+        palette_id: 'perler',
+        saved_at: '2026-10-20T00:00:00.000Z',
+      },
+    ]
+    const { result, rerender } = renderHook(({ active }) => useSavedWorks(USER, { cloudActive: active }), {
+      initialProps: { active: false },
+    })
+    await waitFor(() => expect(result.current.worksLoading).toBe(false))
+    expect(result.current.works).toEqual([])
+
+    rerender({ active: true })
+    await waitFor(() => expect(result.current.works).toHaveLength(1))
+    expect(result.current.works[0].name).toBe('云端作品')
   })
 })

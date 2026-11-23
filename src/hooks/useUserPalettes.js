@@ -35,13 +35,16 @@ function normalizeLoaded(data) {
   }
 }
 
-export function useUserPalettes(user) {
+export function useUserPalettes(user, { active = true } = {}) {
   const isCloud = !!user && !!supabase
   const [state, setState] = useState(EMPTY)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
   const [pendingLocal, setPendingLocal] = useState(0)
   const [reloadKey, setReloadKey] = useState(0)
+  // 是否已发起过首次加载:active 由 false 变 true 时,首帧仍要报 loading,
+  // 避免个人中心/库存页先闪一帧空色卡。
+  const loadedOnceRef = useRef(false)
 
   // 仓库随登录态切换;localStorage 实例在模块内构造时读取一次。
   // 云端仓库需要 userId 写入 user_id 列(RLS 的 with check 同时校验它 = auth.uid())
@@ -50,15 +53,20 @@ export function useUserPalettes(user) {
     [isCloud, user?.id]
   )
   const storeRef = useRef(store)
-  useEffect(() => { storeRef.current = store }, [store])
+  useEffect(() => {
+    storeRef.current = store
+  }, [store])
 
   // 本机待导入数量(仅在云端模式下有意义)
   // biome-ignore lint/correctness/useExhaustiveDependencies: reloadKey 只作强制重载的触发信号
   useEffect(() => {
-    if (!isCloud) { setPendingLocal(0); return }
+    if (!active || !isCloud) {
+      setPendingLocal(0)
+      return
+    }
     const { state: local } = readLocalBeadState()
     setPendingLocal(local.palettes.length)
-  }, [isCloud, reloadKey])
+  }, [isCloud, active, reloadKey])
 
   const refresh = useCallback(async () => {
     const current = storeRef.current
@@ -72,12 +80,16 @@ export function useUserPalettes(user) {
       setState(EMPTY)
       setError({ code: 'loadFailed', detail: e?.message || String(e) })
     } finally {
+      loadedOnceRef.current = true
       setLoading(false)
     }
   }, [])
 
   // biome-ignore lint/correctness/useExhaustiveDependencies: store 通过 storeRef 读取,避免每次 store 换引用都重跑;reloadKey 作触发信号
   useEffect(() => {
+    // 色卡/库存只在个人中心、我的色卡与导出面板需要;首页画布不加载,
+    // 登录用户的大色卡列表不再和首屏抢带宽。
+    if (!active) return undefined
     let cancelled = false
     const current = storeRef.current
     setLoading(true)
@@ -92,138 +104,172 @@ export function useUserPalettes(user) {
           setError({ code: 'loadFailed', detail: e?.message || String(e) })
         }
       } finally {
-        if (!cancelled) setLoading(false)
+        if (!cancelled) {
+          loadedOnceRef.current = true
+          setLoading(false)
+        }
       }
     })()
-    return () => { cancelled = true }
+    return () => {
+      cancelled = true
+    }
     // user?.id:资料刷新(昵称/头像)不触发重载
-  }, [store, user?.id, reloadKey])
+  }, [store, user?.id, active, reloadKey])
 
-  const reload = useCallback(() => setReloadKey((k) => k + 1), [])
+  const reload = useCallback(() => setReloadKey(k => k + 1), [])
 
-  const fail = useCallback((errors) => {
+  const fail = useCallback(errors => {
     setError(errors?.[0] || { code: 'unknown' })
     return { ok: false, errors: errors || [{ code: 'unknown' }] }
   }, [])
 
   // ── 色卡 CRUD ─────────────────────────────────────────────
-  const createPalette = useCallback(async (input) => {
-    const res = await storeRef.current.createPalette(input)
-    if (!res.ok) return fail(res.errors)
-    setState((s) => ({ ...s, palettes: [...s.palettes, res.palette] }))
-    return res
-  }, [fail])
+  const createPalette = useCallback(
+    async input => {
+      const res = await storeRef.current.createPalette(input)
+      if (!res.ok) return fail(res.errors)
+      setState(s => ({ ...s, palettes: [...s.palettes, res.palette] }))
+      return res
+    },
+    [fail]
+  )
 
   /** 复制内置色卡为个人色卡(独立 ID;内置数据永不被修改) */
-  const copyBuiltinPalette = useCallback(async (builtin, name) => {
-    if (!builtin) return fail([{ code: 'notFound' }])
-    const { palette, colors } = buildPaletteFromBuiltin(builtin, { name })
-    if (!palette) return fail([{ code: 'notFound' }])
-    const res = await storeRef.current.createPaletteWithColors(palette, colors)
-    if (!res.ok) return fail(res.errors)
-    setState((s) => ({
-      ...s,
-      palettes: [...s.palettes, res.palette],
-      colors: [...s.colors, ...(res.colors || [])],
-    }))
-    return res
-  }, [fail])
-
-  const updatePalette = useCallback(async (id, patch) => {
-    const existing = state.palettes.find((p) => p.id === id)
-    if (!existing) return fail([{ code: 'notFound' }])
-    const res = await storeRef.current.updatePalette(id, { ...existing, ...patch })
-    if (!res.ok) return fail(res.errors)
-    setState((s) => ({
-      ...s,
-      palettes: s.palettes.map((p) => (p.id === id ? res.palette : p)),
-    }))
-    return res
-  }, [fail, state.palettes])
-
-  const deletePalette = useCallback(async (id) => {
-    const res = await storeRef.current.deletePalette(id)
-    if (!res.ok) return fail(res.errors)
-    setState((s) => {
-      const colorIds = new Set(s.colors.filter((c) => c.paletteId === id).map((c) => c.id))
-      return {
+  const copyBuiltinPalette = useCallback(
+    async (builtin, name) => {
+      if (!builtin) return fail([{ code: 'notFound' }])
+      const { palette, colors } = buildPaletteFromBuiltin(builtin, { name })
+      if (!palette) return fail([{ code: 'notFound' }])
+      const res = await storeRef.current.createPaletteWithColors(palette, colors)
+      if (!res.ok) return fail(res.errors)
+      setState(s => ({
         ...s,
-        palettes: s.palettes.filter((p) => p.id !== id),
-        colors: s.colors.filter((c) => c.paletteId !== id),
-        inventory: s.inventory.filter(
-          (i) => !colorIds.has(i.paletteColorId)
-            && !String(i.paletteKey || '').startsWith(`user:${id}:`)
-        ),
-      }
-    })
-    return res
-  }, [fail])
+        palettes: [...s.palettes, res.palette],
+        colors: [...s.colors, ...(res.colors || [])],
+      }))
+      return res
+    },
+    [fail]
+  )
+
+  const updatePalette = useCallback(
+    async (id, patch) => {
+      const existing = state.palettes.find(p => p.id === id)
+      if (!existing) return fail([{ code: 'notFound' }])
+      const res = await storeRef.current.updatePalette(id, { ...existing, ...patch })
+      if (!res.ok) return fail(res.errors)
+      setState(s => ({
+        ...s,
+        palettes: s.palettes.map(p => (p.id === id ? res.palette : p)),
+      }))
+      return res
+    },
+    [fail, state.palettes]
+  )
+
+  const deletePalette = useCallback(
+    async id => {
+      const res = await storeRef.current.deletePalette(id)
+      if (!res.ok) return fail(res.errors)
+      setState(s => {
+        const colorIds = new Set(s.colors.filter(c => c.paletteId === id).map(c => c.id))
+        return {
+          ...s,
+          palettes: s.palettes.filter(p => p.id !== id),
+          colors: s.colors.filter(c => c.paletteId !== id),
+          inventory: s.inventory.filter(
+            i => !colorIds.has(i.paletteColorId) && !String(i.paletteKey || '').startsWith(`user:${id}:`)
+          ),
+        }
+      })
+      return res
+    },
+    [fail]
+  )
 
   // ── 颜色 CRUD ─────────────────────────────────────────────
-  const addColor = useCallback(async (paletteId, input) => {
-    const siblings = state.colors.filter((c) => c.paletteId === paletteId)
-    const res = await storeRef.current.addColor(paletteId, input, siblings)
-    if (!res.ok) return fail(res.errors)
-    setState((s) => ({ ...s, colors: [...s.colors, res.color] }))
-    return res
-  }, [fail, state.colors])
+  const addColor = useCallback(
+    async (paletteId, input) => {
+      const siblings = state.colors.filter(c => c.paletteId === paletteId)
+      const res = await storeRef.current.addColor(paletteId, input, siblings)
+      if (!res.ok) return fail(res.errors)
+      setState(s => ({ ...s, colors: [...s.colors, res.color] }))
+      return res
+    },
+    [fail, state.colors]
+  )
 
   /**
    * 批量添加颜色(CSV/JSON 导入)。整批一次写入:任何一行不合法则整体拒绝,
    * 不会出现「导入了一半」的状态。
    */
-  const addColors = useCallback(async (paletteId, inputs) => {
-    const siblings = state.colors.filter((c) => c.paletteId === paletteId)
-    const res = await storeRef.current.addColors(paletteId, inputs, siblings)
-    if (!res.ok) return fail(res.errors)
-    setState((s) => ({ ...s, colors: [...s.colors, ...(res.colors || [])] }))
-    return res
-  }, [fail, state.colors])
+  const addColors = useCallback(
+    async (paletteId, inputs) => {
+      const siblings = state.colors.filter(c => c.paletteId === paletteId)
+      const res = await storeRef.current.addColors(paletteId, inputs, siblings)
+      if (!res.ok) return fail(res.errors)
+      setState(s => ({ ...s, colors: [...s.colors, ...(res.colors || [])] }))
+      return res
+    },
+    [fail, state.colors]
+  )
 
-  const updateColor = useCallback(async (id, patch) => {
-    const existing = state.colors.find((c) => c.id === id)
-    if (!existing) return fail([{ code: 'notFound' }])
-    const siblings = state.colors.filter((c) => c.paletteId === existing.paletteId)
-    const res = await storeRef.current.updateColor(id, { ...existing, ...patch }, siblings)
-    if (!res.ok) return fail(res.errors)
-    setState((s) => ({
-      ...s,
-      colors: s.colors.map((c) => (c.id === id ? res.color : c)),
-    }))
-    return res
-  }, [fail, state.colors])
+  const updateColor = useCallback(
+    async (id, patch) => {
+      const existing = state.colors.find(c => c.id === id)
+      if (!existing) return fail([{ code: 'notFound' }])
+      const siblings = state.colors.filter(c => c.paletteId === existing.paletteId)
+      const res = await storeRef.current.updateColor(id, { ...existing, ...patch }, siblings)
+      if (!res.ok) return fail(res.errors)
+      setState(s => ({
+        ...s,
+        colors: s.colors.map(c => (c.id === id ? res.color : c)),
+      }))
+      return res
+    },
+    [fail, state.colors]
+  )
 
-  const deleteColor = useCallback(async (id) => {
-    const res = await storeRef.current.deleteColor(id)
-    if (!res.ok) return fail(res.errors)
-    setState((s) => ({
-      ...s,
-      colors: s.colors.filter((c) => c.id !== id),
-      inventory: s.inventory.filter((i) => i.paletteColorId !== id),
-    }))
-    return res
-  }, [fail])
+  const deleteColor = useCallback(
+    async id => {
+      const res = await storeRef.current.deleteColor(id)
+      if (!res.ok) return fail(res.errors)
+      setState(s => ({
+        ...s,
+        colors: s.colors.filter(c => c.id !== id),
+        inventory: s.inventory.filter(i => i.paletteColorId !== id),
+      }))
+      return res
+    },
+    [fail]
+  )
 
   // ── 库存 ──────────────────────────────────────────────────
-  const setInventory = useCallback(async (payload) => {
-    const res = await storeRef.current.setInventory(payload)
-    if (!res.ok) return fail(res.errors)
-    setState((s) => {
-      const rest = s.inventory.filter((i) => i.paletteKey !== payload.paletteKey)
-      return { ...s, inventory: [...rest, res.record] }
-    })
-    return res
-  }, [fail])
+  const setInventory = useCallback(
+    async payload => {
+      const res = await storeRef.current.setInventory(payload)
+      if (!res.ok) return fail(res.errors)
+      setState(s => {
+        const rest = s.inventory.filter(i => i.paletteKey !== payload.paletteKey)
+        return { ...s, inventory: [...rest, res.record] }
+      })
+      return res
+    },
+    [fail]
+  )
 
-  const removeInventory = useCallback(async (paletteKey) => {
-    const res = await storeRef.current.removeInventory(paletteKey)
-    if (!res.ok) return fail(res.errors)
-    setState((s) => ({
-      ...s,
-      inventory: s.inventory.filter((i) => i.paletteKey !== paletteKey),
-    }))
-    return res
-  }, [fail])
+  const removeInventory = useCallback(
+    async paletteKey => {
+      const res = await storeRef.current.removeInventory(paletteKey)
+      if (!res.ok) return fail(res.errors)
+      setState(s => ({
+        ...s,
+        inventory: s.inventory.filter(i => i.paletteKey !== paletteKey),
+      }))
+      return res
+    },
+    [fail]
+  )
 
   // ── 登录后显式导入本机色卡 ─────────────────────────────────
   const importLocal = useCallback(async () => {
@@ -236,13 +282,13 @@ export function useUserPalettes(user) {
         const pres = await storeRef.current.createPalette(p)
         if (!pres.ok) throw new Error(pres.errors?.[0]?.code || 'createPaletteFailed')
         const idMap = new Map()
-        for (const c of local.colors.filter((c) => c.paletteId === p.id)) {
+        for (const c of local.colors.filter(c => c.paletteId === p.id)) {
           const cres = await storeRef.current.addColor(pres.palette.id, c, [])
           if (!cres.ok) throw new Error(cres.errors?.[0]?.code || 'addColorFailed')
           idMap.set(c.id, cres.color.id)
         }
-        for (const inv of local.inventory.filter(
-          (i) => String(i.paletteKey || '').startsWith(`user:${p.id}:`)
+        for (const inv of local.inventory.filter(i =>
+          String(i.paletteKey || '').startsWith(`user:${p.id}:`)
         )) {
           const parsed = parsePaletteKey(inv.paletteKey)
           const newColorId = parsed ? idMap.get(parsed.colorId) : null
@@ -258,9 +304,7 @@ export function useUserPalettes(user) {
         imported++
       }
       // 内置色卡的库存记录原样搬运(键不变)
-      for (const inv of local.inventory.filter(
-        (i) => String(i.paletteKey || '').startsWith('builtin:')
-      )) {
+      for (const inv of local.inventory.filter(i => String(i.paletteKey || '').startsWith('builtin:'))) {
         await storeRef.current.setInventory({
           paletteKey: inv.paletteKey,
           paletteColorId: null,
@@ -282,23 +326,29 @@ export function useUserPalettes(user) {
 
   // ── 备份导出 / 本地导入(规格 05 §5)─────────────────────────
   /** 导出当前数据为备份对象(纯数据,不含账号信息) */
-  const exportBackup = useCallback(() => ({
-    palettes: state.palettes,
-    colors: state.colors,
-    inventory: state.inventory,
-  }), [state])
+  const exportBackup = useCallback(
+    () => ({
+      palettes: state.palettes,
+      colors: state.colors,
+      inventory: state.inventory,
+    }),
+    [state]
+  )
 
   /**
    * 合并导入备份。仅本地模式支持:云端模式下 id 由数据库生成,
    * 无法保留备份里的 id,去重语义会变 —— 那需要另一套 remap 流程。
    */
-  const importBackup = useCallback(async (plan) => {
-    if (isCloud) return { ok: false, errors: [{ code: 'importLocalOnly' }] }
-    const res = await storeRef.current.mergeBackup(plan)
-    if (!res.ok) return fail(res.errors)
-    await refresh()
-    return res
-  }, [isCloud, refresh, fail])
+  const importBackup = useCallback(
+    async plan => {
+      if (isCloud) return { ok: false, errors: [{ code: 'importLocalOnly' }] }
+      const res = await storeRef.current.mergeBackup(plan)
+      if (!res.ok) return fail(res.errors)
+      await refresh()
+      return res
+    },
+    [isCloud, refresh, fail]
+  )
 
   // 库存按 paletteKey 索引,匹配页/库存页共用
   const inventoryByKey = useMemo(() => {
@@ -317,9 +367,12 @@ export function useUserPalettes(user) {
     return m
   }, [state.colors])
 
+  // active=false 时永远不报加载中;active 刚变 true、还没发起拉取时先报 true。
+  const effectiveLoading = active && (loading || !loadedOnceRef.current)
+
   return {
     mode: isCloud ? 'cloud' : 'local',
-    loading,
+    loading: effectiveLoading,
     error,
     clearError: () => setError(null),
     palettes: state.palettes,

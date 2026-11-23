@@ -31,6 +31,19 @@ describe('useUserPalettes · 本地模式', () => {
     expect(result.current.palettes).toEqual([])
   })
 
+  it('active=false 时不加载,激活后再加载', async () => {
+    const { result, rerender } = renderHook(({ active }) => useUserPalettes(null, { active }), {
+      initialProps: { active: false },
+    })
+    await waitFor(() => expect(result.current.loading).toBe(false))
+    expect(result.current.palettes).toEqual([])
+
+    rerender({ active: true })
+    // 激活首帧先报 loading,避免先闪一帧空色卡
+    expect(result.current.loading).toBe(true)
+    await waitFor(() => expect(result.current.loading).toBe(false))
+  })
+
   it('新建色卡后立即可见并持久化,刷新(新 hook 实例)后仍在', async () => {
     const first = renderHook(() => useUserPalettes(null))
     await waitFor(() => expect(first.result.current.loading).toBe(false))

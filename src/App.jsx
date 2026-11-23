@@ -301,6 +301,11 @@ export default function App() {
     },
     [resetCanvas]
   )
+  // 云端作品 / 我的色卡库存只在需要它们的页面加载:
+  // 作品列表带完整 canvas_data、色卡库存可能是上百行,登录用户在首页拉一遍
+  // 会占满移动端带宽并产生 JSON 解析长任务。保存/导出等写入仍可独立工作。
+  const profileDataActive =
+    location.pathname.startsWith('/profile') || location.pathname.startsWith('/my/beads')
   const {
     works: savedWorks,
     worksLoading,
@@ -316,7 +321,7 @@ export default function App() {
     reload: reloadWorks,
     loadVersions,
     rollbackToVersion,
-  } = useSavedWorks(user)
+  } = useSavedWorks(user, { cloudActive: profileDataActive })
 
   // 画布内容变化 → 标记「未保存」。
   // 只在 canvasData 真的换了一个矩阵对象时触发(useHistory 每次 PUSH/RESET
@@ -350,8 +355,9 @@ export default function App() {
     setDeductInventory(value)
     saveDeductInventory(value)
   }, [])
-  // 导出面板需要读库存与色卡,与 /my/beads 共用同一份数据源
-  const beadStore = useUserPalettes(user)
+  // 导出面板需要读库存与色卡,与 /my/beads 共用同一份数据源;
+  // 打开导出面板时才触发加载,首页不预取。
+  const beadStore = useUserPalettes(user, { active: profileDataActive || showExport })
   const [designName, setDesignName] = useState(() => t('export.defaultName'))
   // 语言切换时同步默认导出名(designName 只作默认值,用户自定义名走 saveInputName)
   // biome-ignore lint/correctness/useExhaustiveDependencies: 语言切换时同步默认导出名,i18n.language 只作触发信号

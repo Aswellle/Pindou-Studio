@@ -128,7 +128,7 @@ function createDeferred() {
   return { promise, resolve }
 }
 
-export function useSavedWorks(user) {
+export function useSavedWorks(user, { cloudActive = true } = {}) {
   const toast = useToast()
   const [works, setWorks] = useState([])
   const [worksLoading, setWorksLoading] = useState(true)
@@ -202,6 +202,13 @@ export function useSavedWorks(user) {
     // 是 null(会话恢复异步完成),不算登出。
     const loggingOut = !cloud && prevUserIdRef.current != null
     prevUserIdRef.current = user?.id || null
+    // 云端作品列表只在个人中心/我的色卡等需要它的路由加载:
+    // 列表带完整 canvas_data,登录用户作品多时在首页拉一遍会占满移动端带宽,
+    // 且解析 JSON 造成长任务。保存/更新/删除仍可独立工作(不依赖预加载)。
+    if (cloud && !cloudActive) {
+      setWorksLoading(false)
+      return undefined
+    }
     if (cloud) {
       setWorksLoading(true)
       setWorksError(null)
@@ -298,7 +305,7 @@ export function useSavedWorks(user) {
     }
     // 依赖 user?.id:昵称/头像等资料刷新(refreshProfile 生成新对象)不触发重拉
     // reloadToken:仅由 reloadWorks() 递增,用于失败后手动重试
-  }, [user?.id, reloadToken])
+  }, [user?.id, cloudActive, reloadToken])
 
   const reload = useCallback(() => setReloadToken(n => n + 1), [])
 
