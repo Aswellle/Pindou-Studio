@@ -72,7 +72,6 @@ import useCloudTemplates from './hooks/useCloudTemplates'
 import useGalleryFavorites from './hooks/useGalleryFavorites'
 import MobileColorPalette from './components/ColorPalette/MobileColorPalette'
 import { getPalette, PALETTES } from './data/palettes'
-import { PrivacyPolicy, TermsOfService } from './components/LegalPages'
 import NotFoundPage from './components/NotFoundPage'
 import MobileCanvasInfoBar from './components/MobileCanvasInfoBar'
 import AutoSaveStatus from './components/AutoSaveStatus'
@@ -117,6 +116,11 @@ const AdminDashboardPage = lazy(() => import('./components/AdminDashboardPage'))
 const Tutorials = lazy(() => import('./components/Tutorials'))
 // 常见问题:独立内容页,四语言正文来自 data/faq.js
 const FaqPage = lazy(() => import('./components/FaqPage'))
+// 隐私政策/服务条款正文约 48KB,只有这两个路由需要,按需加载
+const PrivacyPolicy = lazy(() => import('./components/LegalPages').then(m => ({ default: m.PrivacyPolicy })))
+const TermsOfService = lazy(() =>
+  import('./components/LegalPages').then(m => ({ default: m.TermsOfService }))
+)
 
 export default function App() {
   const { t, i18n } = useTranslation()
@@ -1201,6 +1205,13 @@ export default function App() {
   // 桌面端画布页
   const renderAdminLoginPage = () => <AdminLoginPage onLogin={login} />
 
+  // 隐私政策 / 服务条款:正文体积大,按需加载,进入路由时才取 chunk
+  const renderLegalPage = LegalComponent => (
+    <Suspense fallback={<LoadingScreen />}>
+      <LegalComponent onBack={handleLegalBack} />
+    </Suspense>
+  )
+
   const renderAuthPage = () => (
     <AuthPage
       initialMode={location.state?.mode === 'register' ? 'register' : 'login'}
@@ -1613,10 +1624,10 @@ export default function App() {
               </Suspense>
             }
           />
-          <Route path="/privacy" element={<PrivacyPolicy onBack={handleLegalBack} />} />
-          <Route path="/privacy/:versionId" element={<PrivacyPolicy onBack={handleLegalBack} />} />
-          <Route path="/terms" element={<TermsOfService onBack={handleLegalBack} />} />
-          <Route path="/terms/:versionId" element={<TermsOfService onBack={handleLegalBack} />} />
+          <Route path="/privacy" element={renderLegalPage(PrivacyPolicy)} />
+          <Route path="/privacy/:versionId" element={renderLegalPage(PrivacyPolicy)} />
+          <Route path="/terms" element={renderLegalPage(TermsOfService)} />
+          <Route path="/terms/:versionId" element={renderLegalPage(TermsOfService)} />
           {/* 未匹配路由:渲染 404 页,不再静默改写地址栏跳回首页(软 404) */}
           <Route path="*" element={<NotFoundPage />} />
         </Routes>
@@ -2188,10 +2199,10 @@ export default function App() {
             </Suspense>
           }
         />
-        <Route path="/privacy" element={<PrivacyPolicy onBack={handleLegalBack} />} />
-        <Route path="/privacy/:versionId" element={<PrivacyPolicy onBack={handleLegalBack} />} />
-        <Route path="/terms" element={<TermsOfService onBack={handleLegalBack} />} />
-        <Route path="/terms/:versionId" element={<TermsOfService onBack={handleLegalBack} />} />
+        <Route path="/privacy" element={renderLegalPage(PrivacyPolicy)} />
+        <Route path="/privacy/:versionId" element={renderLegalPage(PrivacyPolicy)} />
+        <Route path="/terms" element={renderLegalPage(TermsOfService)} />
+        <Route path="/terms/:versionId" element={renderLegalPage(TermsOfService)} />
         {/* 未匹配路由:渲染 404 页,不再静默改写地址栏跳回首页(软 404) */}
         <Route path="*" element={<NotFoundPage />} />
       </Routes>
