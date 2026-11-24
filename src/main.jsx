@@ -42,7 +42,7 @@ if (mql) {
   if (mql.matches) {
     loadFonts()
   }
-  mql.addEventListener('change', (e) => {
+  mql.addEventListener('change', e => {
     if (e.matches) loadFonts() // 重复触发幂等(import 已缓存,不重复下载)
   })
 }
@@ -57,23 +57,32 @@ import './index.css'
 initTheme()
 
 // app CSS 由 vite.config.js 的 asyncAppCss 改成 preload + onload。
-// 首帧骨架不依赖它,但 React 挂载必须等它到达,否则会出现无样式应用。
-// 已加载/加载失败都放行;骨架屏会一直盖到应用真正上屏。
+// 首帧骨架不依赖它,但 React 挂载最好等它到达,否则会出现短暂无样式应用。
+// Safari 对 preload 内联 onload 的触发并不可靠:这里主动把 rel 切成 stylesheet,
+// 并用 load/error + sheet 轮询 + 2s 超时三重兜底,绝不把挂载无限期卡住。
 const appCssReady = (() => {
   const link = document.querySelector('link[data-app-css]')
   if (!link || link.sheet || link.dataset.appCssLoaded === '1') return Promise.resolve()
-  return new Promise((resolve) => {
+  return new Promise(resolve => {
     let done = false
+    let timer = null
+    let poll = null
     const finish = () => {
       if (done) return
       done = true
+      if (timer) clearTimeout(timer)
+      if (poll) clearInterval(poll)
       resolve()
     }
     link.addEventListener('load', finish, { once: true })
     link.addEventListener('error', finish, { once: true })
-    // 兜底:极端情况下 load 事件可能早于监听丢失(或内联 onload 被策略拦截),
-    // 不能因此永远不挂载应用;超时后按无样式/稍后补齐处理。
-    setTimeout(finish, 8000)
+    timer = setTimeout(finish, 2000)
+    // 有些 Safari 版本不派发 preload 的 load 事件,但 rel 切成 stylesheet 后
+    // sheet 会立即可用;轮询能提前放行,不必等满 2 秒。
+    poll = setInterval(() => {
+      if (link.sheet) finish()
+    }, 100)
+    if (link.rel !== 'stylesheet') link.rel = 'stylesheet'
   })
 })()
 
