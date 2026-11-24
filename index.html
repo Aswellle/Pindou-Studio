@@ -8,17 +8,13 @@
   <script>document.documentElement.classList.add("js-booting")</script>
   <!-- 部署后旧 HTML 可能仍引用已被删除的 /assets/<hash>:
        浏览器缓存/恢复的旧标签页会拿到 404 的入口 JS 或惰性 chunk,表现为白屏。
-       这里捕获资源错误,最多每 30 秒强制带 _r 重新加载一次,换到最新 HTML。
-       只在 /assets/ 资源失败时触发,不影响正常网络抖动。 -->
+       这里捕获资源错误,自动带 _r 重新加载一次换到最新 HTML。
+       只自动重载一次(URL 已带 _r 或本标签页已重载过就停),避免慢网/无痕模式下
+       反复刷新导致「一直在加载」;15 秒仍停在骨架则显示手动重试按钮。 -->
   <script>
     (function () {
-      var KEY = 'bead_studio_asset_reload_at'
-      function reloadOnce() {
-        try {
-          var last = Number(sessionStorage.getItem(KEY) || 0)
-          if (Date.now() - last < 30000) return
-          sessionStorage.setItem(KEY, String(Date.now()))
-        } catch (e) { /* 无痕模式 sessionStorage 不可用:仍允许一次重载 */ }
+      var DONE_KEY = 'bead_studio_asset_reload_done'
+      function forceReload() {
         try {
           var u = new URL(location.href)
           u.searchParams.set('_r', String(Date.now()))
@@ -27,6 +23,21 @@
           location.reload()
         }
       }
+      function reloadOnce() {
+        try {
+          if (new URL(location.href).searchParams.has('_r')) return
+        } catch (e) { /* 忽略 */ }
+        try {
+          if (sessionStorage.getItem(DONE_KEY)) return
+          sessionStorage.setItem(DONE_KEY, '1')
+        } catch (e) {
+          // 无痕模式/禁用存储:用内存标记 + URL 上的 _r 双重防循环
+          if (window.__beadAssetReloaded) return
+          window.__beadAssetReloaded = true
+        }
+        forceReload()
+      }
+      window.__beadRetry = forceReload
       window.addEventListener('error', function (e) {
         var t = e.target
         if (!t) return
@@ -37,11 +48,15 @@
         var m = String((e.reason && (e.reason.message || e.reason)) || '')
         if (/dynamically imported module|Importing a module script failed|module script failed|ChunkLoadError/i.test(m)) reloadOnce()
       })
-      // 看门狗:15 秒后仍停在骨架(入口脚本静默失败/被 Safari 丢弃)时强制换新 HTML。
-      // reloadOnce 自带 30 秒节流,不会形成刷新循环。
+      // 慢网/入口脚本静默失败:只展示手动重试按钮,不再自动刷新 —— 自动刷新会在
+      // 弱网下反复重启加载,表现就是「点击结果页一直加载中」。
+      // 注意不要等 DOMContentLoaded:延迟的 module 脚本会拖住它,定时器要立即开始。
       setTimeout(function () {
         try {
-          if (document.getElementById('boot-skeleton') && !document.querySelector('.app')) reloadOnce()
+          var btn = document.getElementById('boot-retry')
+          if (btn && document.getElementById('boot-skeleton') && !document.querySelector('.app')) {
+            btn.hidden = false
+          }
         } catch (e) { /* 忽略 */ }
       }, 15000)
     })()
@@ -289,6 +304,13 @@
       background-size: 22px 22px;
     }
     html[data-theme='dark'].js-booting #boot-skeleton .bs-canvas { background-color: rgba(255,255,255,.04) }
+    #boot-skeleton #boot-retry {
+      margin-top: 2px; padding: 8px 16px; border-radius: 999px; cursor: pointer;
+      border: 1px solid rgba(127,127,127,.35); background: rgba(255,255,255,.55);
+      color: inherit; font: inherit; font-size: 13px; line-height: 1.2;
+    }
+    #boot-skeleton #boot-retry:hover { background: rgba(255,255,255,.8) }
+    html[data-theme='dark'].js-booting #boot-skeleton #boot-retry { background: rgba(255,255,255,.06) }
     #boot-skeleton .bs-bottom { display: none; height: 64px; flex: none; border-top: 1px solid rgba(127,127,127,.18) }
     @keyframes bs-spin { to { transform: rotate(360deg) } }
     @media (min-width: 1025px) { #boot-skeleton .bs-side { display: block } }
@@ -325,6 +347,7 @@
           <span class="bs-spinner"></span>
         </div>
         <div class="bs-canvas"></div>
+        <button id="boot-retry" type="button" hidden onclick="window.__beadRetry && window.__beadRetry()">加载较慢，点击重试</button>
       </div>
       <div class="bs-side bs-right"></div>
     </div>
