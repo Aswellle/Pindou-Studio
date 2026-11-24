@@ -6,6 +6,46 @@
   <meta charset="UTF-8" />
   <!-- JS 一启动就显示骨架(见文件末尾的 #boot-skeleton);无 JS 时不加类,骨架保持隐藏。 -->
   <script>document.documentElement.classList.add("js-booting")</script>
+  <!-- 部署后旧 HTML 可能仍引用已被删除的 /assets/<hash>:
+       浏览器缓存/恢复的旧标签页会拿到 404 的入口 JS 或惰性 chunk,表现为白屏。
+       这里捕获资源错误,最多每 30 秒强制带 _r 重新加载一次,换到最新 HTML。
+       只在 /assets/ 资源失败时触发,不影响正常网络抖动。 -->
+  <script>
+    (function () {
+      var KEY = 'bead_studio_asset_reload_at'
+      function reloadOnce() {
+        try {
+          var last = Number(sessionStorage.getItem(KEY) || 0)
+          if (Date.now() - last < 30000) return
+          sessionStorage.setItem(KEY, String(Date.now()))
+        } catch (e) { /* 无痕模式 sessionStorage 不可用:仍允许一次重载 */ }
+        try {
+          var u = new URL(location.href)
+          u.searchParams.set('_r', String(Date.now()))
+          location.replace(u.toString())
+        } catch (e) {
+          location.reload()
+        }
+      }
+      window.addEventListener('error', function (e) {
+        var t = e.target
+        if (!t) return
+        var url = t.src || t.href || ''
+        if ((t.tagName === 'SCRIPT' || t.tagName === 'LINK') && url.indexOf('/assets/') !== -1) reloadOnce()
+      }, true)
+      window.addEventListener('unhandledrejection', function (e) {
+        var m = String((e.reason && (e.reason.message || e.reason)) || '')
+        if (/dynamically imported module|Importing a module script failed|module script failed|ChunkLoadError/i.test(m)) reloadOnce()
+      })
+      // 看门狗:15 秒后仍停在骨架(入口脚本静默失败/被 Safari 丢弃)时强制换新 HTML。
+      // reloadOnce 自带 30 秒节流,不会形成刷新循环。
+      setTimeout(function () {
+        try {
+          if (document.getElementById('boot-skeleton') && !document.querySelector('.app')) reloadOnce()
+        } catch (e) { /* 忽略 */ }
+      }, 15000)
+    })()
+  </script>
   <!-- 主题防白闪:首帧绘制前同步解析 bead_studio_settings.themeMode(缺省/非法 = system,
        未登录用户没有偏好入口,恒为 system),把 data-theme 与 color-scheme 写到 <html> 上。
        判定规则与 src/utils/theme.js 严格一致(两处无共享代码,改动必须同步);
@@ -90,6 +130,7 @@
   <!-- 站点图标:真实文件而非 data: URI —— 搜索引擎需要可抓取的独立资源才会在
        搜索结果中显示站点图标(data: URI 无法被抓取,Google/Bing 均不显示)。
        图形与原 data: URI 完全一致(4×4 拼豆色卡),由 scripts/generate-favicon.mjs 生成。 -->
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2032%2032%22%20width%3D%2232%22%20height%3D%2232%22%20role%3D%22img%22%20aria-label%3D%22%E6%8B%BC%E8%B1%86Studio%22%3E%3Crect%20x%3D%220%22%20y%3D%220%22%20width%3D%228%22%20height%3D%228%22%20fill%3D%22%23e53935%22%2F%3E%3Crect%20x%3D%228%22%20y%3D%220%22%20width%3D%228%22%20height%3D%228%22%20fill%3D%22%23fdd835%22%2F%3E%3Crect%20x%3D%2216%22%20y%3D%220%22%20width%3D%228%22%20height%3D%228%22%20fill%3D%22%2332cd32%22%2F%3E%3Crect%20x%3D%2224%22%20y%3D%220%22%20width%3D%228%22%20height%3D%228%22%20fill%3D%22%231976d2%22%2F%3E%3Crect%20x%3D%220%22%20y%3D%228%22%20width%3D%228%22%20height%3D%228%22%20fill%3D%22%23f06292%22%2F%3E%3Crect%20x%3D%228%22%20y%3D%228%22%20width%3D%228%22%20height%3D%228%22%20fill%3D%22%23ba68c8%22%2F%3E%3Crect%20x%3D%2216%22%20y%3D%228%22%20width%3D%228%22%20height%3D%228%22%20fill%3D%22%2300bcd4%22%2F%3E%3Crect%20x%3D%2224%22%20y%3D%228%22%20width%3D%228%22%20height%3D%228%22%20fill%3D%22%23ff9800%22%2F%3E%3Crect%20x%3D%220%22%20y%3D%2216%22%20width%3D%228%22%20height%3D%228%22%20fill%3D%22%23ffffff%22%2F%3E%3Crect%20x%3D%228%22%20y%3D%2216%22%20width%3D%228%22%20height%3D%228%22%20fill%3D%22%23e0e0e0%22%2F%3E%3Crect%20x%3D%2216%22%20y%3D%2216%22%20width%3D%228%22%20height%3D%228%22%20fill%3D%22%23000000%22%2F%3E%3Crect%20x%3D%2224%22%20y%3D%2216%22%20width%3D%228%22%20height%3D%228%22%20fill%3D%22%23795548%22%2F%3E%3Crect%20x%3D%220%22%20y%3D%2224%22%20width%3D%228%22%20height%3D%228%22%20fill%3D%22%238d6e63%22%2F%3E%3Crect%20x%3D%228%22%20y%3D%2224%22%20width%3D%228%22%20height%3D%228%22%20fill%3D%22%23a1887f%22%2F%3E%3Crect%20x%3D%2216%22%20y%3D%2224%22%20width%3D%228%22%20height%3D%228%22%20fill%3D%22%23bdbdbd%22%2F%3E%3Crect%20x%3D%2224%22%20y%3D%2224%22%20width%3D%228%22%20height%3D%228%22%20fill%3D%22%236d4c41%22%2F%3E%3C%2Fsvg%3E%0A" />
   <link rel="icon" href="/favicon.ico" sizes="any" />
   <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
   <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png" />
@@ -232,9 +273,8 @@
       letter-spacing: .02em; opacity: .85;
     }
     #boot-skeleton .bs-mark {
-      width: 34px; height: 34px; border-radius: 9px;
-      background: conic-gradient(#e53935 0 25%, #fdd835 0 50%, #32cd32 0 75%, #1976d2 0);
-      box-shadow: inset 0 0 0 4px rgba(255,255,255,.35);
+      width: 34px; height: 34px; display: block; border-radius: 9px; overflow: hidden;
+      box-shadow: 0 0 0 1px rgba(127,127,127,.18);
     }
     #boot-skeleton .bs-spinner {
       width: 15px; height: 15px; border: 2px solid currentColor; border-right-color: transparent;
@@ -263,7 +303,24 @@
       <div class="bs-side"></div>
       <div class="bs-stage">
         <div class="bs-logo">
-          <span class="bs-mark"></span>
+          <svg class="bs-mark" viewBox="0 0 32 32" aria-hidden="true">
+            <rect width="8" height="8" x="0" y="0" fill="#e53935" />
+            <rect width="8" height="8" x="8" y="0" fill="#fdd835" />
+            <rect width="8" height="8" x="16" y="0" fill="#32cd32" />
+            <rect width="8" height="8" x="24" y="0" fill="#1976d2" />
+            <rect width="8" height="8" x="0" y="8" fill="#f06292" />
+            <rect width="8" height="8" x="8" y="8" fill="#ba68c8" />
+            <rect width="8" height="8" x="16" y="8" fill="#00bcd4" />
+            <rect width="8" height="8" x="24" y="8" fill="#ff9800" />
+            <rect width="8" height="8" x="0" y="16" fill="#ffffff" />
+            <rect width="8" height="8" x="8" y="16" fill="#e0e0e0" />
+            <rect width="8" height="8" x="16" y="16" fill="#000000" />
+            <rect width="8" height="8" x="24" y="16" fill="#795548" />
+            <rect width="8" height="8" x="0" y="24" fill="#8d6e63" />
+            <rect width="8" height="8" x="8" y="24" fill="#a1887f" />
+            <rect width="8" height="8" x="16" y="24" fill="#bdbdbd" />
+            <rect width="8" height="8" x="24" y="24" fill="#6d4c41" />
+          </svg>
           <span>拼豆 Studio</span>
           <span class="bs-spinner"></span>
         </div>

@@ -258,155 +258,74 @@
       ]
     },
     {
-      "source": "/",
+      "source": "/favicon.ico",
       "headers": [
         {
           "key": "Cache-Control",
-          "value": "public, max-age=0, s-maxage=60, stale-while-revalidate=300"
+          "value": "public, max-age=604800, s-maxage=604800"
         }
       ]
     },
     {
-      "source": "/gallery",
+      "source": "/favicon.svg",
       "headers": [
         {
           "key": "Cache-Control",
-          "value": "public, max-age=0, s-maxage=60, stale-while-revalidate=300"
+          "value": "public, max-age=604800, s-maxage=604800"
         }
       ]
     },
     {
-      "source": "/gallery/:path*",
+      "source": "/favicon-32.png",
       "headers": [
         {
           "key": "Cache-Control",
-          "value": "public, max-age=0, s-maxage=60, stale-while-revalidate=300"
+          "value": "public, max-age=604800, s-maxage=604800"
         }
       ]
     },
     {
-      "source": "/tutorials",
+      "source": "/favicon-48.png",
       "headers": [
         {
           "key": "Cache-Control",
-          "value": "public, max-age=0, s-maxage=60, stale-while-revalidate=300"
+          "value": "public, max-age=604800, s-maxage=604800"
         }
       ]
     },
     {
-      "source": "/tutorials/:path*",
+      "source": "/favicon-192.png",
       "headers": [
         {
           "key": "Cache-Control",
-          "value": "public, max-age=0, s-maxage=60, stale-while-revalidate=300"
+          "value": "public, max-age=604800, s-maxage=604800"
         }
       ]
     },
     {
-      "source": "/create/image",
+      "source": "/logo-512.png",
       "headers": [
         {
           "key": "Cache-Control",
-          "value": "public, max-age=0, s-maxage=60, stale-while-revalidate=300"
+          "value": "public, max-age=604800, s-maxage=604800"
         }
       ]
     },
     {
-      "source": "/faq",
+      "source": "/apple-touch-icon.png",
       "headers": [
         {
           "key": "Cache-Control",
-          "value": "public, max-age=0, s-maxage=60, stale-while-revalidate=300"
+          "value": "public, max-age=604800, s-maxage=604800"
         }
       ]
     },
     {
-      "source": "/colors",
+      "source": "/site.webmanifest",
       "headers": [
         {
           "key": "Cache-Control",
-          "value": "public, max-age=0, s-maxage=60, stale-while-revalidate=300"
-        }
-      ]
-    },
-    {
-      "source": "/colors/:brand",
-      "headers": [
-        {
-          "key": "Cache-Control",
-          "value": "public, max-age=0, s-maxage=60, stale-while-revalidate=300"
-        }
-      ]
-    },
-    {
-      "source": "/ironing",
-      "headers": [
-        {
-          "key": "Cache-Control",
-          "value": "public, max-age=0, s-maxage=60, stale-while-revalidate=300"
-        }
-      ]
-    },
-    {
-      "source": "/bead-calculator",
-      "headers": [
-        {
-          "key": "Cache-Control",
-          "value": "public, max-age=0, s-maxage=60, stale-while-revalidate=300"
-        }
-      ]
-    },
-    {
-      "source": "/bead-patterns",
-      "headers": [
-        {
-          "key": "Cache-Control",
-          "value": "public, max-age=0, s-maxage=60, stale-while-revalidate=300"
-        }
-      ]
-    },
-    {
-      "source": "/pixel-art",
-      "headers": [
-        {
-          "key": "Cache-Control",
-          "value": "public, max-age=0, s-maxage=60, stale-while-revalidate=300"
-        }
-      ]
-    },
-    {
-      "source": "/privacy",
-      "headers": [
-        {
-          "key": "Cache-Control",
-          "value": "public, max-age=0, s-maxage=60, stale-while-revalidate=300"
-        }
-      ]
-    },
-    {
-      "source": "/privacy/:versionId",
-      "headers": [
-        {
-          "key": "Cache-Control",
-          "value": "public, max-age=0, s-maxage=60, stale-while-revalidate=300"
-        }
-      ]
-    },
-    {
-      "source": "/terms",
-      "headers": [
-        {
-          "key": "Cache-Control",
-          "value": "public, max-age=0, s-maxage=60, stale-while-revalidate=300"
-        }
-      ]
-    },
-    {
-      "source": "/terms/:versionId",
-      "headers": [
-        {
-          "key": "Cache-Control",
-          "value": "public, max-age=0, s-maxage=60, stale-while-revalidate=300"
+          "value": "public, max-age=604800, s-maxage=604800"
         }
       ]
     },
