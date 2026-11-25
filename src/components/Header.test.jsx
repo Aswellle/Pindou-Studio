@@ -165,6 +165,14 @@ describe('Header · 纯图标导航与圆形登录', () => {
 })
 
 describe('Header · 备料资料入口', () => {
+  it('收起时也保留真实 href,搜索引擎能发现五个资料页', () => {
+    renderHeader({ simplified: false })
+    const menu = document.querySelector('.prep-menu')
+    expect(menu?.hidden).toBe(true)
+    const hrefs = [...menu.querySelectorAll('a')].map(link => link.getAttribute('href'))
+    expect(hrefs).toEqual(['/colors', '/ironing', '/bead-calculator', '/bead-patterns', '/pixel-art'])
+  })
+
   it('展开后列出五个资料页并可以跳转', () => {
     renderHeader({ simplified: false })
     fireEvent.click(screen.getByRole('button', { name: '备料资料' }))

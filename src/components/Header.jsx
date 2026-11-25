@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { NavLink, useLocation, useNavigate } from 'react-router-dom'
+import { Link, NavLink, useLocation, useNavigate } from 'react-router-dom'
 import {
   PenTool,
   LayoutGrid,
@@ -153,25 +153,24 @@ export default function Header({
         >
           <Boxes size={iconSize} aria-hidden="true" />
         </button>
-        {prepMenuOpen && (
-          <div className="prep-menu" id="prep-menu" role="menu">
-            {prepItems.map(item => (
-              <button
-                key={item.path}
-                type="button"
-                role="menuitem"
-                className="prep-menu-item"
-                onClick={() => {
-                  setPrepMenuOpen(false)
-                  navigate(item.path)
-                }}
-              >
-                <item.icon size={15} aria-hidden="true" />
-                <span>{item.label}</span>
-              </button>
-            ))}
-          </div>
-        )}
+        {/* 菜单始终留在 DOM 里,只用 hidden 控制显示:
+            收起时也能被搜索引擎读到真实 href,五个资料页不再只靠 sitemap 发现。
+            改用 <Link> 而不是 onClick 跳转的按钮 —— 按钮没有 href,渲染后的
+            DOM 里等于没有内链。 */}
+        <div className="prep-menu" id="prep-menu" role="menu" hidden={!prepMenuOpen}>
+          {prepItems.map(item => (
+            <Link
+              key={item.path}
+              to={item.path}
+              role="menuitem"
+              className="prep-menu-item"
+              onClick={() => setPrepMenuOpen(false)}
+            >
+              <item.icon size={15} aria-hidden="true" />
+              <span>{item.label}</span>
+            </Link>
+          ))}
+        </div>
       </div>
     </nav>
   )
@@ -426,6 +425,10 @@ export default function Header({
           border-radius: 12px;
           box-shadow: 0 12px 30px rgba(43, 36, 32, 0.18);
           z-index: 1200;
+        }
+        /* display:flex 会盖掉浏览器对 [hidden] 的默认 display:none */
+        .prep-menu[hidden] {
+          display: none;
         }
         .prep-menu-item {
           display: flex;
