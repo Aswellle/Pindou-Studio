@@ -1,7 +1,20 @@
 import { useEffect, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { NavLink, useLocation, useNavigate } from 'react-router-dom'
-import { PenTool, LayoutGrid, BookOpen, Palette, ChevronDown, LogOut, UserRound, Boxes, SwatchBook, Flame, Calculator, Grid3x3 } from 'lucide-react'
+import {
+  PenTool,
+  LayoutGrid,
+  BookOpen,
+  Palette,
+  ChevronDown,
+  LogOut,
+  UserRound,
+  Boxes,
+  SwatchBook,
+  Flame,
+  Calculator,
+  Grid3x3,
+} from 'lucide-react'
 import LanguageSelector from './Header/LanguageSelector'
 import Avatar from './Avatar'
 import LogoutConfirmDialog from './auth/LogoutConfirmDialog'
@@ -167,6 +180,11 @@ export default function Header({
   // 其余语言(英/日/韩)统一显示英文 Login,避免长词撑破圆形。
   const loginText = i18n.language?.startsWith('zh') ? t('auth.login') : 'Login'
 
+  // 画布页全屏工具没有可见的大标题,把顶栏品牌名作为页面 h1:
+  // 它是用户能看到的文字,Bing 的「缺少 H1」检查才认;其他页面各自有
+  // 内容 h1,品牌名保持 span,避免一页多个 h1。
+  const BrandHeading = currentPage === 'canvas' ? 'h1' : 'span'
+
   return (
     <header className={`header ${simplified ? 'simplified' : ''}`}>
       <div className="header-left">
@@ -189,7 +207,12 @@ export default function Header({
             <rect width="8" height="8" x="16" y="24" fill="#BDBDBD" />
             <rect width="8" height="8" x="24" y="24" fill="#6D4C41" />
           </svg>
-          {!simplified && <span className="logo-text">{SITE_NAME}</span>}
+          {!simplified && (
+            <BrandHeading className="logo-text">
+              {SITE_NAME}
+              {currentPage === 'canvas' && <span className="sr-only"> · 免费在线拼豆图纸生成器</span>}
+            </BrandHeading>
+          )}
         </NavLink>
       </div>
 
@@ -343,6 +366,7 @@ export default function Header({
           gap: 10px;
         }
         .logo-text {
+          margin: 0;
           font-size: var(--text-xl);
           font-weight: var(--font-weight-semibold);
         }

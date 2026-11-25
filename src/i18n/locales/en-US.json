@@ -1012,6 +1012,7 @@
   },
   "tutorials": {
     "title": "Tutorial Contents",
+    "pageTitle": "Fuse Bead Tutorials",
     "markAllRead": "Mark all as read",
     "reset": "Reset",
     "steps": "Steps",

@@ -133,6 +133,18 @@ describe('Header · 纯图标导航与圆形登录', () => {
     expect(document.querySelectorAll('.nav-text, .nav-label')).toHaveLength(0)
   })
 
+  it('画布页把品牌名渲染为页面唯一 h1,其他页面不抢 h1', () => {
+    renderHeader({ simplified: false, currentPage: 'canvas' })
+    const heading = document.querySelector('h1.logo-text')
+    expect(heading).toBeTruthy()
+    expect(heading.textContent).toContain('拼豆Studio')
+    expect(document.querySelectorAll('h1')).toHaveLength(1)
+    cleanup()
+
+    renderHeader({ simplified: false, currentPage: 'gallery' })
+    expect(document.querySelector('h1.logo-text')).toBeNull()
+  })
+
   it('保存按钮不进顶栏:画布动作不会让右侧图标组随页面切换跳位', () => {
     renderHeader({ simplified: false, currentPage: 'canvas', onSave: vi.fn(), saveState: 'dirty' })
     expect(document.querySelector('.save-work-btn, .info-save-btn')).toBeNull()

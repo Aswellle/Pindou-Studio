@@ -1012,6 +1012,7 @@
   },
   "tutorials": {
     "title": "チュートリアル目次",
+    "pageTitle": "拼豆チュートリアル",
     "markAllRead": "すべて既読にする",
     "reset": "リセット",
     "steps": "手順",

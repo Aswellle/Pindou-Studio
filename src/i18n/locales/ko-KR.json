@@ -1012,6 +1012,7 @@
   },
   "tutorials": {
     "title": "튜토리얼 목차",
+    "pageTitle": "비즈 튜토리얼",
     "markAllRead": "모두 읽음으로 표시",
     "reset": "초기화",
     "steps": "단계",

@@ -1012,6 +1012,7 @@
   },
   "tutorials": {
     "title": "教程目录",
+    "pageTitle": "拼豆教程",
     "markAllRead": "全部标为已读",
     "reset": "重置",
     "steps": "操作步骤",

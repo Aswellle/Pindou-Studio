@@ -21,6 +21,20 @@ describe('Tutorials 页面(教程数据按语言异步加载)', () => {
   })
 })
 
+describe('Tutorials · 页面主标题', () => {
+  it('总览页侧栏标题是唯一可见 h1,正文预览标题降为 h2', async () => {
+    render(<Tutorials />)
+    await screen.findByText(/\d+\/18/)
+
+    const headings = document.querySelectorAll('h1')
+    expect(headings).toHaveLength(1)
+    expect(headings[0].textContent).toContain('拼豆教程')
+    expect(document.querySelector('.sidebar-title')?.tagName).toBe('H1')
+    // 总览页会自动预览第一篇,它的标题不能和侧栏抢 h1
+    expect(document.querySelector('.content-title')?.tagName).toBe('H2')
+  })
+})
+
 describe('Tutorials · 数据来源说明', () => {
   it('页脚显示来源说明,且排在正文与翻页按钮之后', async () => {
     render(<Tutorials />)
@@ -74,7 +88,7 @@ describe('Tutorials · 切换教程回到开头', () => {
 })
 
 describe('Tutorials · 文章页 SEO 覆盖', () => {
-  const renderAt = (id) =>
+  const renderAt = id =>
     render(
       <HelmetProvider>
         <MemoryRouter initialEntries={[`/tutorials/${id}`]}>
@@ -105,6 +119,10 @@ describe('Tutorials · 文章页 SEO 覆盖', () => {
     // 不允许出现「半句 + 省略号」的描述
     expect(desc.endsWith('…')).toBe(false)
     expect(document.querySelector('meta[name="robots"]')?.getAttribute('content')).toContain('index')
+    // 文章页由文章标题承担 h1,侧栏标题降为 h2
+    expect(document.querySelector('h1.content-title')?.textContent).toContain('什么是拼豆')
+    expect(document.querySelector('.sidebar-title')?.tagName).toBe('H2')
+    expect(document.querySelectorAll('h1')).toHaveLength(1)
   })
 
   it('不存在的文章 id:标记 noindex,避免软 404 被收录', async () => {
@@ -112,9 +130,7 @@ describe('Tutorials · 文章页 SEO 覆盖', () => {
     renderAt('not-a-real-article')
     await screen.findByText(/\d+\/18/)
     await waitFor(() => {
-      expect(
-        document.querySelector('meta[name="robots"]')?.getAttribute('content')
-      ).toContain('noindex')
+      expect(document.querySelector('meta[name="robots"]')?.getAttribute('content')).toContain('noindex')
     })
   })
 })

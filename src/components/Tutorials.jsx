@@ -304,6 +304,12 @@ export default function Tutorials() {
     )
   }
 
+  // 每页只保留一个 h1:教程总览页用侧栏「拼豆教程」作为主标题,正文预览的
+  // 文章标题降为 h2;直达文章页(/tutorials/:id)反过来,文章标题是 h1。
+  // 这样 Bing 在总览页渲染后能读到可见 h1,文章页也不会出现两个。
+  const SidebarHeading = routeTutorialId ? 'h2' : 'h1'
+  const ArticleHeading = routeTutorialId ? 'h1' : 'h2'
+
   return (
     <div className="tutorials-page">
       {routeArticleSeo ? (
@@ -315,7 +321,9 @@ export default function Tutorials() {
       ) : null}
       <div className="tutorials-sidebar">
         <div className="sidebar-header">
-          <h2 className="sidebar-title">{t('tutorials.title')}</h2>
+          <SidebarHeading className="sidebar-title">
+            {routeTutorialId ? t('tutorials.title') : t('tutorials.pageTitle')}
+          </SidebarHeading>
           <div className="progress-info">
             <div className="progress-bar">
               <div className="progress-fill" style={{ width: `${progressPercent}%` }} />
@@ -418,9 +426,9 @@ export default function Tutorials() {
                         {t(`tutorials.articles.${selectedTutorial.id}`, activeTutorial.title)}
                       </span>
                     </div>
-                    <h1 className="content-title">
+                    <ArticleHeading className="content-title">
                       {t(`tutorials.articles.${selectedTutorial.id}`, activeTutorial.title)}
-                    </h1>
+                    </ArticleHeading>
                   </div>
 
                   <div className="content-body">
