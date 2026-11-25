@@ -15,6 +15,7 @@ import { useFilteredTemplates } from './hooks/useFilteredTemplates'
 import { COLOR_COUNT_TIERS } from './hooks/useGalleryQuery'
 import { resolveTemplatesByIds } from './discovery'
 import { localizedContentText } from '../../services/gallery/contentModel'
+import { collectionSeoDescription } from './contentSeoText'
 import TemplateGrid from './components/TemplateGrid'
 import GallerySearchInput from './components/GallerySearchInput'
 import ContentPageSkeleton, { PageHeadSkeleton } from './components/ContentPageSkeleton'
@@ -36,20 +37,28 @@ export default function CollectionPage({ cloudStore }) {
 
   const scopeTemplates = useMemo(() => {
     if (!collection) return []
-    return resolveTemplatesByIds(allTemplates, content.collectionTemplateIds.get(collection.id) || []).templates
+    return resolveTemplatesByIds(allTemplates, content.collectionTemplateIds.get(collection.id) || [])
+      .templates
   }, [collection, allTemplates, content.collectionTemplateIds])
 
   const resolveName = useMemo(
-    () => (template) => (
+    () => template =>
       template?.name
-        ? (template.nameZh || template.name)
-        : t(`templates.names.${template?.nameKey}`, template?.nameKey || '')
-    ),
+        ? template.nameZh || template.name
+        : t(`templates.names.${template?.nameKey}`, template?.nameKey || ''),
     [t]
   )
   const {
-    filtered, searchTerm, setSearchTerm, category, setCategory,
-    difficulty, setDifficulty, maxColors, setMaxColors, resetFilters,
+    filtered,
+    searchTerm,
+    setSearchTerm,
+    category,
+    setCategory,
+    difficulty,
+    setDifficulty,
+    maxColors,
+    setMaxColors,
+    resetFilters,
   } = useFilteredTemplates(scopeTemplates, resolveName)
 
   // 与主题页同一判定:元数据与模板库任一未到都算加载中
@@ -63,7 +72,16 @@ export default function CollectionPage({ cloudStore }) {
     <div className="content-page">
       <ContentSeo
         title={text?.title}
-        description={text?.curationNote || text?.description}
+        description={
+          collection && !templatesLoading
+            ? collectionSeoDescription({
+                title: text?.title,
+                description: text?.description,
+                curationNote: text?.curationNote,
+                count: scopeTemplates.length,
+              })
+            : undefined
+        }
         image={collection?.coverUrl}
         noindex={confirmedMissing}
       />
@@ -71,7 +89,9 @@ export default function CollectionPage({ cloudStore }) {
         <BackButton size="md" onClick={() => navigate('/gallery')} />
         {showPageSkeleton && <PageHeadSkeleton kind="collection" />}
         {!showPageSkeleton && !collection && (
-          <p className="content-desc" role="status">{t('gallery.discovery.notFound')}</p>
+          <p className="content-desc" role="status">
+            {t('gallery.discovery.notFound')}
+          </p>
         )}
         {!showPageSkeleton && collection && (
           <>
@@ -83,7 +103,9 @@ export default function CollectionPage({ cloudStore }) {
                   alt={t('gallery.discovery.coverAlt', { title: text.title })}
                   loading="lazy"
                   decoding="async"
-                  onError={(e) => { e.currentTarget.style.display = 'none' }}
+                  onError={e => {
+                    e.currentTarget.style.display = 'none'
+                  }}
                 />
               </div>
             )}
@@ -117,19 +139,31 @@ export default function CollectionPage({ cloudStore }) {
           </label>
           <label className="content-filter-select">
             <span>{t('gallery.discovery.filterCategory')}</span>
-            <select value={category} onChange={(e) => setCategory(e.target.value)} aria-label={t('gallery.discovery.filterCategory')}>
+            <select
+              value={category}
+              onChange={e => setCategory(e.target.value)}
+              aria-label={t('gallery.discovery.filterCategory')}
+            >
               <option value="all">{t('gallery.allTemplates')}</option>
-              {[...new Set(scopeTemplates.map((tpl) => tpl.category).filter(Boolean))].map((cat) => (
-                <option key={cat} value={cat}>{t(`gallery.categories.${cat}`, cat)}</option>
+              {[...new Set(scopeTemplates.map(tpl => tpl.category).filter(Boolean))].map(cat => (
+                <option key={cat} value={cat}>
+                  {t(`gallery.categories.${cat}`, cat)}
+                </option>
               ))}
             </select>
           </label>
           <label className="content-filter-select">
             <span>{t('gallery.discovery.filterDifficulty')}</span>
-            <select value={difficulty} onChange={(e) => setDifficulty(e.target.value)} aria-label={t('gallery.discovery.filterDifficulty')}>
+            <select
+              value={difficulty}
+              onChange={e => setDifficulty(e.target.value)}
+              aria-label={t('gallery.discovery.filterDifficulty')}
+            >
               <option value="all">{t('gallery.allTemplates')}</option>
-              {[...new Set(scopeTemplates.map((tpl) => tpl.difficulty).filter(Boolean))].map((diff) => (
-                <option key={diff} value={diff}>{t(`gallery.difficulties.${diff}`, diff)}</option>
+              {[...new Set(scopeTemplates.map(tpl => tpl.difficulty).filter(Boolean))].map(diff => (
+                <option key={diff} value={diff}>
+                  {t(`gallery.difficulties.${diff}`, diff)}
+                </option>
               ))}
             </select>
           </label>
@@ -137,12 +171,14 @@ export default function CollectionPage({ cloudStore }) {
             <span>{t('gallery.discovery.filterColors')}</span>
             <select
               value={maxColors ?? ''}
-              onChange={(e) => setMaxColors(e.target.value)}
+              onChange={e => setMaxColors(e.target.value)}
               aria-label={t('gallery.discovery.filterColors')}
             >
               <option value="">{t('gallery.discovery.filterColorsAny')}</option>
-              {COLOR_COUNT_TIERS.map((n) => (
-                <option key={n} value={n}>{t('gallery.discovery.filterColorsMax', { n })}</option>
+              {COLOR_COUNT_TIERS.map(n => (
+                <option key={n} value={n}>
+                  {t('gallery.discovery.filterColorsMax', { n })}
+                </option>
               ))}
             </select>
           </label>
@@ -159,7 +195,7 @@ export default function CollectionPage({ cloudStore }) {
           templates={filtered}
           // 模板库未到时不要说「没有匹配」——那是「还没到」,不是「没有」
           emptyText={templatesLoading ? t('gallery.cloudLoading') : t('gallery.discovery.noMatch')}
-          onOpen={(template) => navigate(`/gallery/pattern/${encodeURIComponent(template.id)}`)}
+          onOpen={template => navigate(`/gallery/pattern/${encodeURIComponent(template.id)}`)}
         />
       )}
     </div>

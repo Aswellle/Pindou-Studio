@@ -19,6 +19,7 @@ import { useFilteredTemplates } from './hooks/useFilteredTemplates'
 import { COLOR_COUNT_TIERS } from './hooks/useGalleryQuery'
 import { resolveTemplatesByIds } from './discovery'
 import { localizedContentText } from '../../services/gallery/contentModel'
+import { themeSeoDescription } from './contentSeoText'
 import TemplateGrid from './components/TemplateGrid'
 import GallerySearchInput from './components/GallerySearchInput'
 import ContentPageSkeleton, { PageHeadSkeleton } from './components/ContentPageSkeleton'
@@ -47,38 +48,45 @@ export default function ThemePage({ cloudStore }) {
   // 子主题与相关合集(0027)。只认已发布对象 —— 管理员可能看到草稿,
   // 但公开主题页不应把未发布内容暴露出去。
   const publishedThemes = useMemo(
-    () => (content.themes || []).filter((t) => t.status === 'published'),
+    () => (content.themes || []).filter(t => t.status === 'published'),
     [content.themes]
   )
   const publishedCollections = useMemo(
-    () => (content.collections || []).filter((c) => c.status === 'published'),
+    () => (content.collections || []).filter(c => c.status === 'published'),
     [content.collections]
   )
   const childThemes = useMemo(() => {
     if (!theme) return []
     const ids = content.childThemeIds?.get(theme.id) || []
-    const byId = new Map(publishedThemes.map((t) => [String(t.id), t]))
-    return ids.map((id) => byId.get(String(id))).filter(Boolean)
+    const byId = new Map(publishedThemes.map(t => [String(t.id), t]))
+    return ids.map(id => byId.get(String(id))).filter(Boolean)
   }, [theme, content.childThemeIds, publishedThemes])
 
   const relatedCollections = useMemo(() => {
     if (!theme) return []
     const ids = content.themeCollectionIds?.get(theme.id) || []
-    const byId = new Map(publishedCollections.map((c) => [String(c.id), c]))
-    return ids.map((id) => byId.get(String(id))).filter(Boolean)
+    const byId = new Map(publishedCollections.map(c => [String(c.id), c]))
+    return ids.map(id => byId.get(String(id))).filter(Boolean)
   }, [theme, content.themeCollectionIds, publishedCollections])
 
   const resolveName = useMemo(
-    () => (template) => (
+    () => template =>
       template?.name
-        ? (template.nameZh || template.name)
-        : t(`templates.names.${template?.nameKey}`, template?.nameKey || '')
-    ),
+        ? template.nameZh || template.name
+        : t(`templates.names.${template?.nameKey}`, template?.nameKey || ''),
     [t]
   )
   const {
-    filtered, searchTerm, setSearchTerm, category, setCategory,
-    difficulty, setDifficulty, maxColors, setMaxColors, resetFilters,
+    filtered,
+    searchTerm,
+    setSearchTerm,
+    category,
+    setCategory,
+    difficulty,
+    setDifficulty,
+    maxColors,
+    setMaxColors,
+    resetFilters,
   } = useFilteredTemplates(scopeTemplates, resolveName)
 
   // 加载中 = 主题元数据还没到,或模板库还没到。
@@ -98,7 +106,15 @@ export default function ThemePage({ cloudStore }) {
     <div className="content-page">
       <ContentSeo
         title={text?.title}
-        description={text?.description}
+        description={
+          theme && !templatesLoading
+            ? themeSeoDescription({
+                title: text?.title,
+                description: text?.description,
+                count: scopeTemplates.length,
+              })
+            : undefined
+        }
         image={theme?.coverUrl}
         noindex={confirmedMissing}
       />
@@ -108,7 +124,9 @@ export default function ThemePage({ cloudStore }) {
             已确认不存在(!theme 且不在加载)才显示「内容不存在」。 */}
         {showPageSkeleton && <PageHeadSkeleton kind="theme" />}
         {!showPageSkeleton && !theme && (
-          <p className="content-desc" role="status">{t('gallery.discovery.notFound')}</p>
+          <p className="content-desc" role="status">
+            {t('gallery.discovery.notFound')}
+          </p>
         )}
         {!showPageSkeleton && theme && (
           <>
@@ -120,7 +138,9 @@ export default function ThemePage({ cloudStore }) {
                   alt={t('gallery.discovery.coverAlt', { title: text.title })}
                   loading="lazy"
                   decoding="async"
-                  onError={(e) => { e.currentTarget.style.display = 'none' }}
+                  onError={e => {
+                    e.currentTarget.style.display = 'none'
+                  }}
                 />
               </div>
             )}
@@ -141,7 +161,7 @@ export default function ThemePage({ cloudStore }) {
         <section className="content-related" aria-label={t('gallery.discovery.childThemes')}>
           <h2 className="content-related-title">{t('gallery.discovery.childThemes')}</h2>
           <div className="content-related-rail">
-            {childThemes.map((child) => {
+            {childThemes.map(child => {
               const childText = localizedContentText(child, i18n.language)
               return (
                 <button
@@ -166,7 +186,7 @@ export default function ThemePage({ cloudStore }) {
         <section className="content-related" aria-label={t('gallery.discovery.relatedCollections')}>
           <h2 className="content-related-title">{t('gallery.discovery.relatedCollections')}</h2>
           <div className="content-related-rail">
-            {relatedCollections.map((collection) => {
+            {relatedCollections.map(collection => {
               const cText = localizedContentText(collection, i18n.language)
               return (
                 <button
@@ -176,9 +196,7 @@ export default function ThemePage({ cloudStore }) {
                   onClick={() => navigate(`/gallery/collection/${encodeURIComponent(collection.slug)}`)}
                 >
                   <span className="content-related-name">{cText.title}</span>
-                  {cText.description && (
-                    <span className="content-related-desc">{cText.description}</span>
-                  )}
+                  {cText.description && <span className="content-related-desc">{cText.description}</span>}
                 </button>
               )
             })}
@@ -199,19 +217,31 @@ export default function ThemePage({ cloudStore }) {
           </label>
           <label className="content-filter-select">
             <span>{t('gallery.discovery.filterCategory')}</span>
-            <select value={category} onChange={(e) => setCategory(e.target.value)} aria-label={t('gallery.discovery.filterCategory')}>
+            <select
+              value={category}
+              onChange={e => setCategory(e.target.value)}
+              aria-label={t('gallery.discovery.filterCategory')}
+            >
               <option value="all">{t('gallery.allTemplates')}</option>
-              {[...new Set(scopeTemplates.map((tpl) => tpl.category).filter(Boolean))].map((cat) => (
-                <option key={cat} value={cat}>{t(`gallery.categories.${cat}`, cat)}</option>
+              {[...new Set(scopeTemplates.map(tpl => tpl.category).filter(Boolean))].map(cat => (
+                <option key={cat} value={cat}>
+                  {t(`gallery.categories.${cat}`, cat)}
+                </option>
               ))}
             </select>
           </label>
           <label className="content-filter-select">
             <span>{t('gallery.discovery.filterDifficulty')}</span>
-            <select value={difficulty} onChange={(e) => setDifficulty(e.target.value)} aria-label={t('gallery.discovery.filterDifficulty')}>
+            <select
+              value={difficulty}
+              onChange={e => setDifficulty(e.target.value)}
+              aria-label={t('gallery.discovery.filterDifficulty')}
+            >
               <option value="all">{t('gallery.allTemplates')}</option>
-              {[...new Set(scopeTemplates.map((tpl) => tpl.difficulty).filter(Boolean))].map((diff) => (
-                <option key={diff} value={diff}>{t(`gallery.difficulties.${diff}`, diff)}</option>
+              {[...new Set(scopeTemplates.map(tpl => tpl.difficulty).filter(Boolean))].map(diff => (
+                <option key={diff} value={diff}>
+                  {t(`gallery.difficulties.${diff}`, diff)}
+                </option>
               ))}
             </select>
           </label>
@@ -219,12 +249,14 @@ export default function ThemePage({ cloudStore }) {
             <span>{t('gallery.discovery.filterColors')}</span>
             <select
               value={maxColors ?? ''}
-              onChange={(e) => setMaxColors(e.target.value)}
+              onChange={e => setMaxColors(e.target.value)}
               aria-label={t('gallery.discovery.filterColors')}
             >
               <option value="">{t('gallery.discovery.filterColorsAny')}</option>
-              {COLOR_COUNT_TIERS.map((n) => (
-                <option key={n} value={n}>{t('gallery.discovery.filterColorsMax', { n })}</option>
+              {COLOR_COUNT_TIERS.map(n => (
+                <option key={n} value={n}>
+                  {t('gallery.discovery.filterColorsMax', { n })}
+                </option>
               ))}
             </select>
           </label>
@@ -241,7 +273,7 @@ export default function ThemePage({ cloudStore }) {
           templates={filtered}
           // 模板库未到时不要断言「没有匹配」——那是语义错误(不是没有,是还没到)
           emptyText={templatesLoading ? t('gallery.cloudLoading') : t('gallery.discovery.noMatch')}
-          onOpen={(template) => navigate(`/gallery/pattern/${encodeURIComponent(template.id)}`)}
+          onOpen={template => navigate(`/gallery/pattern/${encodeURIComponent(template.id)}`)}
         />
       )}
     </div>

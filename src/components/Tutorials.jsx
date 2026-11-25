@@ -5,7 +5,7 @@ import { flattenTutorials, loadTutorials } from '../data/tutorials'
 import i18n from '../i18n'
 import useTutorials from '../hooks/useTutorials'
 import ContentSeo from '../features/gallery/components/ContentSeo'
-import { clampSeoDescription } from '../utils/seoText'
+import { tutorialSeoDescription } from '../utils/tutorialSeo'
 
 // chunk 被拉取时立即并行加载当前语言教程数据(与组件挂载重叠,少一拍等待)
 loadTutorials(i18n.language).catch(() => {})
@@ -14,43 +14,61 @@ loadTutorials(i18n.language).catch(() => {})
 const SVG_DIAGRAMS = {
   'ironing-motion': (
     <svg width="280" height="180" viewBox="0 0 280 180" fill="none" xmlns="http://www.w3.org/2000/svg">
-      <rect width="280" height="180" rx="12" fill="#f5f5f5"/>
+      <rect width="280" height="180" rx="12" fill="#f5f5f5" />
       {/* pegboard dots */}
-      {Array.from({length: 6}).map((_, i) =>
-        Array.from({length: 9}).map((_, j) => (
-          <circle key={`${i}-${j}`} cx={28 + j*28} cy={28 + i*28} r={5} fill="#e0e0e0"/>
+      {Array.from({ length: 6 }).map((_, i) =>
+        Array.from({ length: 9 }).map((_, j) => (
+          <circle key={`${i}-${j}`} cx={28 + j * 28} cy={28 + i * 28} r={5} fill="#e0e0e0" />
         ))
       )}
       {/* concentric arcs */}
-      <path d="M80 120 Q140 40 200 120" stroke="#1976D2" strokeWidth="3" fill="none" strokeDasharray="6 4"/>
-      <path d="M60 120 Q140 10 220 120" stroke="#1976D2" strokeWidth="2" fill="none" strokeDasharray="6 4" opacity="0.5"/>
-      <path d="M40 120 Q140 -20 240 120" stroke="#1976D2" strokeWidth="1.5" fill="none" strokeDasharray="6 4" opacity="0.25"/>
-      <polygon points="200,116 210,120 202,124" fill="#1976D2"/>
-      <polygon points="220,116 230,120 222,124" fill="#1976D2" opacity="0.5"/>
+      <path d="M80 120 Q140 40 200 120" stroke="#1976D2" strokeWidth="3" fill="none" strokeDasharray="6 4" />
+      <path
+        d="M60 120 Q140 10 220 120"
+        stroke="#1976D2"
+        strokeWidth="2"
+        fill="none"
+        strokeDasharray="6 4"
+        opacity="0.5"
+      />
+      <path
+        d="M40 120 Q140 -20 240 120"
+        stroke="#1976D2"
+        strokeWidth="1.5"
+        fill="none"
+        strokeDasharray="6 4"
+        opacity="0.25"
+      />
+      <polygon points="200,116 210,120 202,124" fill="#1976D2" />
+      <polygon points="220,116 230,120 222,124" fill="#1976D2" opacity="0.5" />
       {/* iron */}
-      <rect x="100" y="130" width="80" height="36" rx="8" fill="#607D8B"/>
-      <rect x="140" y="130" width="45" height="36" rx="4" fill="#78909C"/>
-      <rect x="100" y="133" width="80" height="5" rx="2.5" fill="#90A4AE"/>
-      <text x="140" y="174" textAnchor="middle" fontSize="11" fill="#9E9E9E">{i18n.t('tutorials.diagrams.ironingMotion')}</text>
+      <rect x="100" y="130" width="80" height="36" rx="8" fill="#607D8B" />
+      <rect x="140" y="130" width="45" height="36" rx="4" fill="#78909C" />
+      <rect x="100" y="133" width="80" height="5" rx="2.5" fill="#90A4AE" />
+      <text x="140" y="174" textAnchor="middle" fontSize="11" fill="#9E9E9E">
+        {i18n.t('tutorials.diagrams.ironingMotion')}
+      </text>
     </svg>
   ),
   'pressing-stack': (
     <svg width="280" height="180" viewBox="0 0 280 180" fill="none" xmlns="http://www.w3.org/2000/svg">
-      <rect width="280" height="180" rx="12" fill="#f5f5f5"/>
+      <rect width="280" height="180" rx="12" fill="#f5f5f5" />
       {/* bead pattern board */}
-      <rect x="60" y="40" width="160" height="100" rx="8" fill="#FFECB3" stroke="#FFC107" strokeWidth="2"/>
+      <rect x="60" y="40" width="160" height="100" rx="8" fill="#FFECB3" stroke="#FFC107" strokeWidth="2" />
       {/* books stacked */}
-      <rect x="50" y="90" width="180" height="16" rx="3" fill="#8D6E63"/>
-      <rect x="50" y="106" width="180" height="16" rx="3" fill="#795548"/>
-      <rect x="50" y="122" width="180" height="16" rx="3" fill="#6D4C41"/>
+      <rect x="50" y="90" width="180" height="16" rx="3" fill="#8D6E63" />
+      <rect x="50" y="106" width="180" height="16" rx="3" fill="#795548" />
+      <rect x="50" y="122" width="180" height="16" rx="3" fill="#6D4C41" />
       {/* arrows down */}
-      <path d="M100 30 L100 38" stroke="#E53935" strokeWidth="3"/>
-      <polygon points="96,38 104,38 100,45" fill="#E53935"/>
-      <path d="M140 30 L140 38" stroke="#E53935" strokeWidth="3"/>
-      <polygon points="136,38 144,38 140,45" fill="#E53935"/>
-      <path d="M180 30 L180 38" stroke="#E53935" strokeWidth="3"/>
-      <polygon points="176,38 184,38 180,45" fill="#E53935"/>
-      <text x="140" y="158" textAnchor="middle" fontSize="11" fill="#9E9E9E">{i18n.t('tutorials.diagrams.pressing')}</text>
+      <path d="M100 30 L100 38" stroke="#E53935" strokeWidth="3" />
+      <polygon points="96,38 104,38 100,45" fill="#E53935" />
+      <path d="M140 30 L140 38" stroke="#E53935" strokeWidth="3" />
+      <polygon points="136,38 144,38 140,45" fill="#E53935" />
+      <path d="M180 30 L180 38" stroke="#E53935" strokeWidth="3" />
+      <polygon points="176,38 184,38 180,45" fill="#E53935" />
+      <text x="140" y="158" textAnchor="middle" fontSize="11" fill="#9E9E9E">
+        {i18n.t('tutorials.diagrams.pressing')}
+      </text>
     </svg>
   ),
 }
@@ -63,22 +81,46 @@ function BlockRenderer({ blocks = [] }) {
       {blocks.map((block, i) => {
         switch (block.type) {
           case 'paragraph':
-            return <p key={i} className="block-paragraph">{block.text}</p>
+            return (
+              <p key={i} className="block-paragraph">
+                {block.text}
+              </p>
+            )
           case 'heading2':
-            return <h2 key={i} className="block-h2">{block.text}</h2>
+            return (
+              <h2 key={i} className="block-h2">
+                {block.text}
+              </h2>
+            )
           case 'heading3':
-            return <h3 key={i} className="block-h3">{block.text}</h3>
+            return (
+              <h3 key={i} className="block-h3">
+                {block.text}
+              </h3>
+            )
           case 'callout': {
             const variantColors = {
-              tip:     { bg: '#e7f2ef', border: 'var(--secondary-accent)', title: 'var(--secondary-accent-hover)' },
-              warning:  { bg: 'var(--warning-bg)', border: 'var(--warning)', title: '#a3691f' },
-              danger:   { bg: 'var(--error-bg)', border: 'var(--error)', title: '#b53337' },
-              info:     { bg: '#e9edf5', border: '#5b6f9e', title: '#455586' },
+              tip: {
+                bg: '#e7f2ef',
+                border: 'var(--secondary-accent)',
+                title: 'var(--secondary-accent-hover)',
+              },
+              warning: { bg: 'var(--warning-bg)', border: 'var(--warning)', title: '#a3691f' },
+              danger: { bg: 'var(--error-bg)', border: 'var(--error)', title: '#b53337' },
+              info: { bg: '#e9edf5', border: '#5b6f9e', title: '#455586' },
             }
             const c = variantColors[block.variant] || variantColors.info
             return (
-              <div key={i} className="block-callout" style={{ background: c.bg, borderLeft: `4px solid ${c.border}` }}>
-                {block.title && <div className="callout-title" style={{ color: c.title }}>{block.title}</div>}
+              <div
+                key={i}
+                className="block-callout"
+                style={{ background: c.bg, borderLeft: `4px solid ${c.border}` }}
+              >
+                {block.title && (
+                  <div className="callout-title" style={{ color: c.title }}>
+                    {block.title}
+                  </div>
+                )}
                 <div className="callout-text">{block.text}</div>
               </div>
             )
@@ -86,13 +128,17 @@ function BlockRenderer({ blocks = [] }) {
           case 'bulletList':
             return (
               <ul key={i} className="block-bullet-list">
-                {block.items.map((item, j) => <li key={j}>{item}</li>)}
+                {block.items.map((item, j) => (
+                  <li key={j}>{item}</li>
+                ))}
               </ul>
             )
           case 'numberedList':
             return (
               <ol key={i} className="block-numbered-list">
-                {block.items.map((item, j) => <li key={j}>{item}</li>)}
+                {block.items.map((item, j) => (
+                  <li key={j}>{item}</li>
+                ))}
               </ol>
             )
           case 'table':
@@ -100,18 +146,26 @@ function BlockRenderer({ blocks = [] }) {
               <div key={i} className="block-table-wrap">
                 <table className="block-table">
                   <thead>
-                    <tr>{block.headers.map((h, j) => <th key={j}>{h}</th>)}</tr>
+                    <tr>
+                      {block.headers.map((h, j) => (
+                        <th key={j}>{h}</th>
+                      ))}
+                    </tr>
                   </thead>
                   <tbody>
                     {block.rows.map((row, j) => (
-                      <tr key={j}>{row.map((cell, k) => <td key={k}>{cell}</td>)}</tr>
+                      <tr key={j}>
+                        {row.map((cell, k) => (
+                          <td key={k}>{cell}</td>
+                        ))}
+                      </tr>
                     ))}
                   </tbody>
                 </table>
               </div>
             )
           case 'divider':
-            return <hr key={i} className="block-divider"/>
+            return <hr key={i} className="block-divider" />
           case 'svgDiagram': {
             const diagram = SVG_DIAGRAMS[block.id]
             return diagram ? (
@@ -124,7 +178,7 @@ function BlockRenderer({ blocks = [] }) {
           case 'keyPoint':
             return (
               <div key={i} className="block-key-point">
-                <span className="key-point-bar"/>
+                <span className="key-point-bar" />
                 <span className="key-point-text">{block.text}</span>
               </div>
             )
@@ -147,7 +201,11 @@ export default function Tutorials() {
   const [readProgress, setReadProgress] = useState(() => {
     const saved = localStorage.getItem('tutorial-progress')
     if (!saved) return []
-    try { return JSON.parse(saved) } catch { return [] } // 脏数据不白屏
+    try {
+      return JSON.parse(saved)
+    } catch {
+      return []
+    } // 脏数据不白屏
   })
 
   // 数据就绪且无选中时:优先按 URL 里的 id 选中对应文章,否则选第一篇。
@@ -156,7 +214,7 @@ export default function Tutorials() {
   useEffect(() => {
     if (TUTORIALS && !selectedTutorial) {
       const fromUrl = routeTutorialId
-        ? flattenTutorials(TUTORIALS).find((item) => item.id === routeTutorialId)
+        ? flattenTutorials(TUTORIALS).find(item => item.id === routeTutorialId)
         : null
       setSelectedTutorial(fromUrl || TUTORIALS[0].children[0])
     }
@@ -185,16 +243,14 @@ export default function Tutorials() {
   const allTutorials = useMemo(() => flattenTutorials(TUTORIALS), [TUTORIALS])
 
   // 切换章节展开/收起
-  const toggleSection = (sectionId) => {
+  const toggleSection = sectionId => {
     setExpandedSections(prev =>
-      prev.includes(sectionId)
-        ? prev.filter(id => id !== sectionId)
-        : [...prev, sectionId]
+      prev.includes(sectionId) ? prev.filter(id => id !== sectionId) : [...prev, sectionId]
     )
   }
 
   // 选中教程
-  const selectTutorial = (tutorial) => {
+  const selectTutorial = tutorial => {
     setSelectedTutorial(tutorial)
     // 标记为已读
     if (!readProgress.includes(tutorial.id)) {
@@ -217,9 +273,7 @@ export default function Tutorials() {
   // scripts/generate-prerender-html.js)。React 挂载后若不同样声明,Helmet 会
   // 回退到 SEO_CONFIG.tutorials —— 18 个页面在搜索端又变回同一份文案。
   // canonical 由 App 依 seoPath 计算(已支持文章自指),这里只补文案与索引策略。
-  const routeArticle = routeTutorialId
-    ? allTutorials.find((item) => item.id === routeTutorialId) || null
-    : null
+  const routeArticle = routeTutorialId ? allTutorials.find(item => item.id === routeTutorialId) || null : null
   const routeArticleSeo = (() => {
     if (!routeTutorialId) return null
     if (!routeArticle) {
@@ -227,18 +281,14 @@ export default function Tutorials() {
       return { noindex: true, title: null, description: null }
     }
     const title = `${t(`tutorials.articles.${routeArticle.id}`, routeArticle.title)} - 拼豆教程`
-    const firstText = (routeArticle.blocks || []).find((b) => b && b.type === 'paragraph' && b.text)
-    const description = firstText
-      ? clampSeoDescription(firstText.text, 90)
-      : `${routeArticle.title}:拼豆Studio 拼豆教程。`
+    // 与构建期文章快照共用同一个生成器(tutorialSeo.js),保证首帧前后一致。
+    const description = tutorialSeoDescription(routeArticle, routeArticle.sectionTitle)
     return { noindex: false, title, description }
   })()
 
   // 计算进度百分比(数据未就绪时总数为 0,避免除零得 NaN)
   const totalTutorials = allTutorials.length
-  const progressPercent = totalTutorials
-    ? Math.round((readProgress.length / totalTutorials) * 100)
-    : 0
+  const progressPercent = totalTutorials ? Math.round((readProgress.length / totalTutorials) * 100) : 0
 
   // 当前语言数据尚未就绪 → loading 态(数据按语言异步 chunk 加载)
   if (!TUTORIALS) {
@@ -268,16 +318,19 @@ export default function Tutorials() {
           <h2 className="sidebar-title">{t('tutorials.title')}</h2>
           <div className="progress-info">
             <div className="progress-bar">
-              <div
-                className="progress-fill"
-                style={{ width: `${progressPercent}%` }}
-              />
+              <div className="progress-fill" style={{ width: `${progressPercent}%` }} />
             </div>
-            <span className="progress-text">{readProgress.length}/{totalTutorials}</span>
+            <span className="progress-text">
+              {readProgress.length}/{totalTutorials}
+            </span>
           </div>
           <div className="progress-actions">
-            <button className="progress-btn" onClick={markAllRead}>{t('tutorials.markAllRead')}</button>
-            <button className="progress-btn reset" onClick={resetProgress}>{t('tutorials.reset')}</button>
+            <button className="progress-btn" onClick={markAllRead}>
+              {t('tutorials.markAllRead')}
+            </button>
+            <button className="progress-btn reset" onClick={resetProgress}>
+              {t('tutorials.reset')}
+            </button>
           </div>
         </div>
 
@@ -289,9 +342,7 @@ export default function Tutorials() {
                 onClick={() => toggleSection(section.id)}
               >
                 <span className="section-icon">{section.icon}</span>
-                <span className="section-title">
-                  {t(`tutorials.chapters.${section.id}`, section.title)}
-                </span>
+                <span className="section-title">{t(`tutorials.chapters.${section.id}`, section.title)}</span>
                 <svg
                   className="chevron"
                   width="16"
@@ -301,7 +352,7 @@ export default function Tutorials() {
                   stroke="currentColor"
                   strokeWidth="2"
                 >
-                  <path d="M6 9l6 6 6-6"/>
+                  <path d="M6 9l6 6 6-6" />
                 </svg>
               </button>
 
@@ -326,7 +377,7 @@ export default function Tutorials() {
                           stroke="#4CAF50"
                           strokeWidth="2"
                         >
-                          <path d="M20 6L9 17l-5-5"/>
+                          <path d="M20 6L9 17l-5-5" />
                         </svg>
                       )}
                     </button>
@@ -341,81 +392,103 @@ export default function Tutorials() {
       <div className="tutorials-content" ref={contentRef}>
         {/* 语言切换时 selectedTutorial 仍指向旧语言对象,按 id 解析当前语言版本 */}
         {(() => {
-        const activeTutorial = TUTORIALS
-          .flatMap(sec => sec.children)
-          .find(c => c.id === selectedTutorial?.id) || selectedTutorial
-        return (
-        <>
-        {selectedTutorial ? (
-          <>
-            <div className="content-header">
-              <div className="breadcrumb">
-                <span>{TUTORIALS.find(s => s.children.some(c => c.id === activeTutorial.id))?.title}</span>
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                  <path d="M9 18l6-6-6-6"/>
-                </svg>
-                <span className="current">
-                  {t(`tutorials.articles.${selectedTutorial.id}`, activeTutorial.title)}
-                </span>
-              </div>
-              <h1 className="content-title">
-                  {t(`tutorials.articles.${selectedTutorial.id}`, activeTutorial.title)}
-                </h1>
-            </div>
-
-            <div className="content-body">
-              {activeTutorial.blocks && activeTutorial.blocks.length > 0 ? (
-                <BlockRenderer blocks={activeTutorial.blocks} />
-              ) : (
+          const activeTutorial =
+            TUTORIALS.flatMap(sec => sec.children).find(c => c.id === selectedTutorial?.id) ||
+            selectedTutorial
+          return (
+            <>
+              {selectedTutorial ? (
                 <>
-                  {activeTutorial.content && (
-                    <div className="tutorial-content">
-                      {activeTutorial.content.split('\n\n').map((paragraph, index) => (
-                        <p key={index} className="block-paragraph">{paragraph}</p>
-                      ))}
+                  <div className="content-header">
+                    <div className="breadcrumb">
+                      <span>
+                        {TUTORIALS.find(s => s.children.some(c => c.id === activeTutorial.id))?.title}
+                      </span>
+                      <svg
+                        width="16"
+                        height="16"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="2"
+                      >
+                        <path d="M9 18l6-6-6-6" />
+                      </svg>
+                      <span className="current">
+                        {t(`tutorials.articles.${selectedTutorial.id}`, activeTutorial.title)}
+                      </span>
                     </div>
-                  )}
-                  {activeTutorial.steps && activeTutorial.steps.length > 0 && (
-                    <div className="steps-section">
-                      <h3 className="steps-title">{t('tutorials.steps')}</h3>
-                      <ol className="steps-list">
-                        {activeTutorial.steps.map((step, index) => (
-                          <li key={index} className="step-item">
-                            <span className="step-number">{index + 1}</span>
-                            <span className="step-text">{step}</span>
-                          </li>
-                        ))}
-                      </ol>
+                    <h1 className="content-title">
+                      {t(`tutorials.articles.${selectedTutorial.id}`, activeTutorial.title)}
+                    </h1>
+                  </div>
+
+                  <div className="content-body">
+                    {activeTutorial.blocks && activeTutorial.blocks.length > 0 ? (
+                      <BlockRenderer blocks={activeTutorial.blocks} />
+                    ) : (
+                      <>
+                        {activeTutorial.content && (
+                          <div className="tutorial-content">
+                            {activeTutorial.content.split('\n\n').map((paragraph, index) => (
+                              <p key={index} className="block-paragraph">
+                                {paragraph}
+                              </p>
+                            ))}
+                          </div>
+                        )}
+                        {activeTutorial.steps && activeTutorial.steps.length > 0 && (
+                          <div className="steps-section">
+                            <h3 className="steps-title">{t('tutorials.steps')}</h3>
+                            <ol className="steps-list">
+                              {activeTutorial.steps.map((step, index) => (
+                                <li key={index} className="step-item">
+                                  <span className="step-number">{index + 1}</span>
+                                  <span className="step-text">{step}</span>
+                                </li>
+                              ))}
+                            </ol>
+                          </div>
+                        )}
+                        {activeTutorial.tips && (
+                          <div className="tips-box">
+                            <div className="tips-header">{t('tutorials.tips')}</div>
+                            <p className="tips-content">{activeTutorial.tips}</p>
+                          </div>
+                        )}
+                      </>
+                    )}
+                    <div className="content-footer">
+                      <NavigationButtons
+                        currentTutorial={selectedTutorial}
+                        allTutorials={allTutorials}
+                        onSelect={selectTutorial}
+                      />
+                      <p className="content-sources">{t('tutorials.sources')}</p>
+                      <p className="content-sources">
+                        <a href="/faq">{t('tutorials.faqLink')}</a>
+                      </p>
                     </div>
-                  )}
-                  {activeTutorial.tips && (
-                    <div className="tips-box">
-                      <div className="tips-header">{t('tutorials.tips')}</div>
-                      <p className="tips-content">{activeTutorial.tips}</p>
-                    </div>
-                  )}
+                  </div>
                 </>
+              ) : (
+                <div className="no-selection">
+                  <svg
+                    width="64"
+                    height="64"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="1.5"
+                  >
+                    <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20" />
+                    <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z" />
+                  </svg>
+                  <p>{t('tutorials.noSelection')}</p>
+                </div>
               )}
-              <div className="content-footer">
-                <NavigationButtons currentTutorial={selectedTutorial} allTutorials={allTutorials} onSelect={selectTutorial} />
-                <p className="content-sources">{t('tutorials.sources')}</p>
-                <p className="content-sources">
-                  <a href="/faq">{t('tutorials.faqLink')}</a>
-                </p>
-              </div>
-            </div>
-          </>
-        ) : (
-          <div className="no-selection">
-            <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
-              <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/>
-              <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/>
-            </svg>
-            <p>{t('tutorials.noSelection')}</p>
-          </div>
-        )}
-        </>
-        )
+            </>
+          )
         })()}
       </div>
 
@@ -845,20 +918,26 @@ function NavigationButtons({ currentTutorial, allTutorials = [], onSelect }) {
         onClick={() => prevTutorial && onSelect(prevTutorial)}
       >
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-          <path d="M19 12H5"/>
-          <path d="M12 19l-7-7 7-7"/>
+          <path d="M19 12H5" />
+          <path d="M12 19l-7-7 7-7" />
         </svg>
-        {t('tutorials.prev')}{prevTutorial ? t(`tutorials.articles.${prevTutorial.id}`, prevTutorial.title) : t('tutorials.noMore')}
+        {t('tutorials.prev')}
+        {prevTutorial
+          ? t(`tutorials.articles.${prevTutorial.id}`, prevTutorial.title)
+          : t('tutorials.noMore')}
       </button>
       <button
         className="nav-btn"
         disabled={!nextTutorial}
         onClick={() => nextTutorial && onSelect(nextTutorial)}
       >
-        {t('tutorials.next')}{nextTutorial ? t(`tutorials.articles.${nextTutorial.id}`, nextTutorial.title) : t('tutorials.noMore')}
+        {t('tutorials.next')}
+        {nextTutorial
+          ? t(`tutorials.articles.${nextTutorial.id}`, nextTutorial.title)
+          : t('tutorials.noMore')}
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-          <path d="M5 12h14"/>
-          <path d="M12 5l7 7-7 7"/>
+          <path d="M5 12h14" />
+          <path d="M12 5l7 7-7 7" />
         </svg>
       </button>
     </div>

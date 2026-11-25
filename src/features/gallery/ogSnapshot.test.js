@@ -18,7 +18,7 @@ import { categorySeo } from './categoryMeta'
 describe('ogSnapshot · 基础工具', () => {
   it('escapeHtml 转义全部五个字符(静态正文是拼字符串,漏一个就能注入)', () => {
     expect(escapeHtml('<img src=x onerror="alert(1)"> & \'')).toBe(
-      '&lt;img src=x onerror=&quot;alert(1)&quot;&gt; &amp; &#39;',
+      '&lt;img src=x onerror=&quot;alert(1)&quot;&gt; &amp; &#39;'
     )
     expect(escapeHtml(null)).toBe('')
     expect(escapeHtml(undefined)).toBe('')
@@ -48,7 +48,10 @@ describe('ogSnapshot · 基础工具', () => {
   })
 
   it('patternStats 统计颗数并按数量降序', () => {
-    const stats = patternStats([['#a', '#a', '#b'], ['#c', null, '#a']])
+    const stats = patternStats([
+      ['#a', '#a', '#b'],
+      ['#c', null, '#a'],
+    ])
     expect(stats.beads).toBe(5)
     expect(stats.colorCount).toBe(3)
     expect(stats.list[0]).toEqual({ hex: '#a', count: 3 })
@@ -61,7 +64,10 @@ describe('buildPatternSnapshot', () => {
     name: 'Duck',
     nameZh: '小鸭',
     paletteId: 'perler',
-    pattern: [['#FFD700', '#FFD700'], ['#000000', null]],
+    pattern: [
+      ['#FFD700', '#FFD700'],
+      ['#000000', null],
+    ],
   }
 
   it('生成绝对路径 + 含尺寸/豆数/用色数的标题描述', () => {
@@ -71,6 +77,8 @@ describe('buildPatternSnapshot', () => {
     expect(snap.description).toContain('2×2')
     expect(snap.description).toContain('3 颗豆子')
     expect(snap.description).toContain('2 种颜色')
+    expect([...snap.description].length).toBeGreaterThanOrEqual(150)
+    expect([...snap.description].length).toBeLessThanOrEqual(160)
   })
 
   it('正文含颜色清单与制作信息', () => {
@@ -147,7 +155,10 @@ describe('buildThemeSnapshot / buildCollectionSnapshot', () => {
     const snap = buildThemeSnapshot({ slug: 'spring', title: '春天', description: '春季主题' }, patterns)
     expect(snap.path).toBe('/gallery/theme/spring')
     expect(snap.title).toBe('春天 - 拼豆图纸主题 - 拼豆Studio')
-    expect(snap.description).toBe('春季主题')
+    // 描述会补齐到搜索引擎建议长度,策展文案仍必须完整保留在最前面
+    expect(snap.description).toContain('春季主题')
+    expect([...snap.description].length).toBeGreaterThanOrEqual(150)
+    expect([...snap.description].length).toBeLessThanOrEqual(160)
     expect(snap.bodyHtml).toContain('小鸭')
     expect(snap.bodyHtml).toContain('包含图纸(2 张)')
   })
@@ -158,18 +169,21 @@ describe('buildThemeSnapshot / buildCollectionSnapshot', () => {
   })
 
   it('主题封面补全为绝对地址;无封面为空', () => {
-    expect(buildThemeSnapshot({ slug: 's', title: 'T', coverUrl: '/c.png' }).image)
-      .toBe('https://tangnotes.site/c.png')
+    expect(buildThemeSnapshot({ slug: 's', title: 'T', coverUrl: '/c.png' }).image).toBe(
+      'https://tangnotes.site/c.png'
+    )
     expect(buildThemeSnapshot({ slug: 's', title: 'T' }).image).toBe('')
   })
 
   it('合集优先用策展说明作为描述', () => {
     const snap = buildCollectionSnapshot(
       { slug: 'pets', title: '宠物', description: '描述', curationNote: '策展说明' },
-      patterns,
+      patterns
     )
     expect(snap.title).toBe('宠物 - 拼豆精选合集 - 拼豆Studio')
-    expect(snap.description).toBe('策展说明')
+    expect(snap.description).toContain('策展说明')
+    expect([...snap.description].length).toBeGreaterThanOrEqual(150)
+    expect([...snap.description].length).toBeLessThanOrEqual(160)
     expect(snap.bodyHtml).toContain('策展说明')
   })
 
@@ -228,10 +242,9 @@ describe('buildCategorySnapshot', () => {
   })
 
   it('分类名与图纸名里的 HTML 被转义', () => {
-    const snap = buildCategorySnapshot(
-      { ...meta, label: '<script>alert(1)</script>' },
-      [{ id: 'p1', name: '<b>Duck</b>' }],
-    )
+    const snap = buildCategorySnapshot({ ...meta, label: '<script>alert(1)</script>' }, [
+      { id: 'p1', name: '<b>Duck</b>' },
+    ])
     expect(snap.title).not.toContain('<script>')
     expect(snap.bodyHtml).not.toContain('<b>Duck</b>')
     expect(snap.bodyHtml).toContain('&lt;b&gt;Duck&lt;/b&gt;')
@@ -298,7 +311,9 @@ describe('buildDynamicSitemap', () => {
   it('一条图纸可挂多张图(分享卡片 + 图案预览)', () => {
     const xml = buildDynamicSitemap({
       templates: [{ id: 't1', name: 'Duck' }],
-      images: new Map([['t1', ['https://tangnotes.site/og/a.png', 'https://tangnotes.site/pattern-img/b.png']]]),
+      images: new Map([
+        ['t1', ['https://tangnotes.site/og/a.png', 'https://tangnotes.site/pattern-img/b.png']],
+      ]),
     })
     expect(xml).toContain('<image:loc>https://tangnotes.site/og/a.png</image:loc>')
     expect(xml).toContain('<image:loc>https://tangnotes.site/pattern-img/b.png</image:loc>')
@@ -379,8 +394,12 @@ describe('renderSnapshotHtml', () => {
     const out = renderSnapshotHtml(INDEX, snap, 'https://tangnotes.site/gallery/pattern/t1')
     expect(out).toContain('<title>小鸭 拼豆图纸 - 拼豆Studio</title>')
     expect(out).toContain('<meta name="description" content="小鸭拼豆图纸" data-rh="true" />')
-    expect(out).toContain('<link rel="canonical" href="https://tangnotes.site/gallery/pattern/t1" data-rh="true" />')
-    expect(out).toContain('<meta property="og:url" content="https://tangnotes.site/gallery/pattern/t1" data-rh="true" />')
+    expect(out).toContain(
+      '<link rel="canonical" href="https://tangnotes.site/gallery/pattern/t1" data-rh="true" />'
+    )
+    expect(out).toContain(
+      '<meta property="og:url" content="https://tangnotes.site/gallery/pattern/t1" data-rh="true" />'
+    )
     expect(out).toContain('<meta name="twitter:title" content="小鸭 拼豆图纸 - 拼豆Studio" data-rh="true" />')
   })
 
@@ -411,17 +430,23 @@ describe('renderSnapshotHtml', () => {
 
   it('无封面时保留站点默认 og:image(不留空 content)', () => {
     const out = renderSnapshotHtml(INDEX, snap, 'https://tangnotes.site/gallery/pattern/t1')
-    expect(out).toContain('<meta property="og:image" content="https://tangnotes.site/og-image.png" data-rh="true" />')
+    expect(out).toContain(
+      '<meta property="og:image" content="https://tangnotes.site/og-image.png" data-rh="true" />'
+    )
   })
 
   it('有封面时替换 og:image 与 twitter:image', () => {
     const out = renderSnapshotHtml(
       INDEX,
       { ...snap, image: 'https://tangnotes.site/covers/a.png' },
-      'https://tangnotes.site/gallery/pattern/t1',
+      'https://tangnotes.site/gallery/pattern/t1'
     )
-    expect(out).toContain('<meta property="og:image" content="https://tangnotes.site/covers/a.png" data-rh="true" />')
-    expect(out).toContain('<meta name="twitter:image" content="https://tangnotes.site/covers/a.png" data-rh="true" />')
+    expect(out).toContain(
+      '<meta property="og:image" content="https://tangnotes.site/covers/a.png" data-rh="true" />'
+    )
+    expect(out).toContain(
+      '<meta name="twitter:image" content="https://tangnotes.site/covers/a.png" data-rh="true" />'
+    )
   })
 
   it('封面尺寸未知时删除 og:image:width/height(避免按错误比例裁切)', () => {
@@ -430,7 +455,7 @@ describe('renderSnapshotHtml', () => {
     const out = renderSnapshotHtml(
       INDEX,
       { ...snap, image: 'https://tangnotes.site/covers/a.png' },
-      'https://tangnotes.site/gallery/pattern/t1',
+      'https://tangnotes.site/gallery/pattern/t1'
     )
     expect(out).not.toContain('og:image:width')
     expect(out).not.toContain('og:image:height')
@@ -441,7 +466,7 @@ describe('renderSnapshotHtml', () => {
       INDEX,
       { ...snap, image: 'https://tangnotes.site/og/pattern/x-abc.png' },
       'https://tangnotes.site/gallery/pattern/x',
-      { imageSize: { width: 1200, height: 630 } },
+      { imageSize: { width: 1200, height: 630 } }
     )
     expect(out).toContain('<meta property="og:image:width" content="1200" />')
     expect(out).toContain('<meta property="og:image:height" content="630" />')
@@ -452,7 +477,7 @@ describe('renderSnapshotHtml', () => {
       INDEX,
       { ...snap, image: 'https://tangnotes.site/covers/a.png' },
       'https://tangnotes.site/gallery/theme/t',
-      { imageSize: { width: 800, height: 450 } },
+      { imageSize: { width: 800, height: 450 } }
     )
     expect(out).toContain('<meta property="og:image:width" content="800" />')
     expect(out).toContain('<meta property="og:image:height" content="450" />')
@@ -469,7 +494,7 @@ describe('renderSnapshotHtml', () => {
     const out = renderSnapshotHtml(
       INDEX,
       { ...snap, image: 'https://tangnotes.site/og/pattern/x-abc.png' },
-      'https://tangnotes.site/gallery/pattern/x',
+      'https://tangnotes.site/gallery/pattern/x'
     )
     expect(out).toContain('<meta property="og:image:alt" content="小鸭 拼豆图纸 - 拼豆Studio" />')
     expect(out).not.toContain('在线拼豆图纸设计工具')
@@ -500,7 +525,9 @@ describe('renderSnapshotHtml', () => {
   })
 
   it('noindex 时 robots 改为 noindex', () => {
-    const out = renderSnapshotHtml(INDEX, snap, 'https://tangnotes.site/gallery/pattern/t1', { noindex: true })
+    const out = renderSnapshotHtml(INDEX, snap, 'https://tangnotes.site/gallery/pattern/t1', {
+      noindex: true,
+    })
     expect(out).toContain('<meta name="robots" content="noindex, nofollow" data-rh="true" />')
   })
 
@@ -519,7 +546,7 @@ describe('renderSnapshotHtml', () => {
     const out = renderSnapshotHtml(
       INDEX,
       { ...snap, title: escapeHtml(`${hostile} - 拼豆Studio`) },
-      'https://tangnotes.site/gallery/theme/x',
+      'https://tangnotes.site/gallery/theme/x'
     )
     expect(out).toContain('\\u003c/script\\u003e')
     expect(out).not.toContain('<script>alert(1)</script>')
@@ -529,17 +556,17 @@ describe('renderSnapshotHtml', () => {
     const out = renderSnapshotHtml(
       INDEX,
       { ...snap, image: '/c.png" /><script>alert(1)</script><meta x="' },
-      'https://tangnotes.site/gallery/theme/x',
+      'https://tangnotes.site/gallery/theme/x'
     )
     expect(out).not.toContain('<script>alert(1)</script>')
     expect(out).toContain('&quot;')
   })
 
-  it('标题里的 $& 与 $\' 不被当成替换模式展开', () => {
+  it("标题里的 $& 与 $' 不被当成替换模式展开", () => {
     const out = renderSnapshotHtml(
       INDEX,
       { ...snap, title: "A $& B $' C $` D - 拼豆Studio" },
-      'https://tangnotes.site/gallery/theme/x',
+      'https://tangnotes.site/gallery/theme/x'
     )
     expect(out).toContain("<title>A $& B $' C $` D - 拼豆Studio</title>")
     expect(out.match(/<head>/g)).toHaveLength(1)
@@ -551,11 +578,11 @@ describe('renderSnapshotHtml', () => {
     // 会把整份 head 复制进 #root。函数形态返回值不做 $ 展开。
     const hostile = renderSnapshotHtml(
       INDEX,
-      { ...snap, bodyHtml: '<h1>A $` B $& C $\' D</h1><p>&amp;已转义</p>' },
-      'https://tangnotes.site/gallery/theme/x',
+      { ...snap, bodyHtml: "<h1>A $` B $& C $' D</h1><p>&amp;已转义</p>" },
+      'https://tangnotes.site/gallery/theme/x'
     )
     // $ 序列按字面保留;head 与 root 各只有一份
-    expect(hostile).toContain('<h1>A $` B $& C $\' D</h1><p>&amp;已转义</p>')
+    expect(hostile).toContain("<h1>A $` B $& C $' D</h1><p>&amp;已转义</p>")
     expect(hostile.match(/<head>/g)).toHaveLength(1)
     expect(hostile.match(/<div id="root">/g)).toHaveLength(1)
     expect(hostile).toContain('<section id="seo-static"><h1>A $` B $& C $\' D</h1>')

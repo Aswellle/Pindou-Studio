@@ -17,16 +17,15 @@ import { useTranslation } from 'react-i18next'
 import { Copy, Pencil, Download } from 'lucide-react'
 import BackButton from '../../components/BackButton'
 import { useToast } from '../../components/Toast'
-import {
-  templateDimensions,
-  convertTemplateToBrand,
-} from '../../data/templates'
+import { templateDimensions, convertTemplateToBrand } from '../../data/templates'
 import { getPalette, findClosestColor } from '../../data/palettes'
 import { exportAsPNG } from '../../services/BeadPatternExporter'
 import { templateToProject } from '../../services/project/adapters'
 import { projectToImportWork } from '../../services/project/importProject'
 import { useGalleryTemplates } from './hooks/useGalleryTemplates'
 import { templateById } from './discovery'
+import { patternSeoDescription } from './contentSeoText'
+import { resolveCategoryByRaw } from './categoryMeta'
 import ContentSeo from './components/ContentSeo'
 import PatternPreview from './components/PatternPreview'
 import './gallery.css'
@@ -79,7 +78,9 @@ export default function PatternDetailPage({ cloudStore, onSaveProject, onLoadTem
     return { beads, colors: list.length, list }
   }, [template])
   const name = template
-    ? (template.name ? (template.nameZh || template.name) : t(`templates.names.${template.nameKey}`, template.nameKey))
+    ? template.name
+      ? template.nameZh || template.name
+      : t(`templates.names.${template.nameKey}`, template.nameKey)
     : ''
 
   // 复制到我的图纸:生成独立副本,源模板不被修改
@@ -139,9 +140,20 @@ export default function PatternDetailPage({ cloudStore, onSaveProject, onLoadTem
     <div className="content-page detail-page">
       <ContentSeo
         title={name}
-        description={template
-          ? `${name} · ${width} × ${height} · ${t(`palette.brand.${template.paletteId || 'perler'}`)}`
-          : undefined}
+        description={
+          template
+            ? patternSeoDescription({
+                name,
+                width,
+                height,
+                beads: makingInfo.beads,
+                colorCount: makingInfo.colors,
+                difficulty: template.difficulty,
+                categoryLabel: resolveCategoryByRaw(template.category)?.label,
+                brandLabel: getPalette(template.paletteId || 'perler')?.nameZh,
+              })
+            : undefined
+        }
         noindex={confirmedMissing}
       />
 
@@ -181,7 +193,9 @@ export default function PatternDetailPage({ cloudStore, onSaveProject, onLoadTem
             <dl className="detail-facts">
               <div>
                 <dt>{t('gallery.discovery.factSize')}</dt>
-                <dd>{width} × {height}</dd>
+                <dd>
+                  {width} × {height}
+                </dd>
               </div>
               <div>
                 <dt>{t('gallery.discovery.factBeads')}</dt>
@@ -215,7 +229,11 @@ export default function PatternDetailPage({ cloudStore, onSaveProject, onLoadTem
                 {t('export.title')}
               </button>
             </div>
-            {saved && <span className="content-count" role="status">{t('gallery.discovery.copied')}</span>}
+            {saved && (
+              <span className="content-count" role="status">
+                {t('gallery.discovery.copied')}
+              </span>
+            )}
           </aside>
         </div>
       )}
@@ -234,7 +252,7 @@ export default function PatternDetailPage({ cloudStore, onSaveProject, onLoadTem
             </span>
           </div>
           <ul className="detail-color-grid">
-            {makingInfo.list.map((c) => (
+            {makingInfo.list.map(c => (
               <li key={c.hex} className="detail-color-item">
                 {/* backgroundColor(单值属性)+ hex 形状校验:pattern 数据
                     经数据库与复制链路流转,残值/畸形串不该原样进 style ——
@@ -248,9 +266,7 @@ export default function PatternDetailPage({ cloudStore, onSaveProject, onLoadTem
                   {c.code && <code className="detail-color-code">{c.code}</code>}
                   <span className="detail-color-hex">{c.hex}</span>
                 </span>
-                <span className="detail-color-count">
-                  {t('gallery.discovery.beadCount', { n: c.count })}
-                </span>
+                <span className="detail-color-count">{t('gallery.discovery.beadCount', { n: c.count })}</span>
               </li>
             ))}
           </ul>

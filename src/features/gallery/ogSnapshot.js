@@ -19,6 +19,8 @@ import { categoryPagePath, categorySeo, resolveCategoryByRaw } from './categoryM
 // 与 patternHash,不反向依赖本文件,不会形成循环。
 import { patternImageAlt } from './patternImage.js'
 import { categoryStats, categoryStatsText } from './categoryStats.js'
+import { collectionSeoDescription, patternSeoDescription, themeSeoDescription } from './contentSeoText.js'
+import { getPalette } from '../../data/palettes/index.js'
 
 export const SITE = 'https://tangnotes.site'
 
@@ -40,10 +42,7 @@ export function escapeHtml(value) {
  * 原字符,但解析器不会再把它当成标签。
  */
 export function jsonForScript(value) {
-  return JSON.stringify(value)
-    .replace(/</g, '\\u003c')
-    .replace(/>/g, '\\u003e')
-    .replace(/&/g, '\\u0026')
+  return JSON.stringify(value).replace(/</g, '\\u003c').replace(/>/g, '\\u003e').replace(/&/g, '\\u0026')
 }
 
 /**
@@ -58,16 +57,18 @@ export function absoluteUrl(url, site = SITE) {
 
 /** meta description 控制在 160 字以内,超出截断并补省略号 */
 export function clampDescription(text, max = 160) {
-  const s = String(text || '').replace(/\s+/g, ' ').trim()
+  const s = String(text || '')
+    .replace(/\s+/g, ' ')
+    .trim()
   if (s.length <= max) return s
   return `${s.slice(0, max - 1).trimEnd()}…`
 }
 
-export const themePath = (slug) => `/gallery/theme/${encodeURIComponent(slug)}`
-export const collectionPath = (slug) => `/gallery/collection/${encodeURIComponent(slug)}`
-export const patternPath = (id) => `/gallery/pattern/${encodeURIComponent(id)}`
+export const themePath = slug => `/gallery/theme/${encodeURIComponent(slug)}`
+export const collectionPath = slug => `/gallery/collection/${encodeURIComponent(slug)}`
+export const patternPath = id => `/gallery/pattern/${encodeURIComponent(id)}`
 /** 分类聚合页路径由 categoryMeta 统一定义,这里复用,避免两份 slug 拼装规则 */
-export const categoryPath = (slug) => categoryPagePath(slug)
+export const categoryPath = slug => categoryPagePath(slug)
 
 /** 模板展示名:云端模板有 name/nameZh,内置模板只有 nameKey(不进快照) */
 export function templateDisplayName(template) {
@@ -99,9 +100,7 @@ export function patternStats(pattern) {
       counts.set(cell, (counts.get(cell) || 0) + 1)
     }
   }
-  const list = [...counts.entries()]
-    .sort((a, b) => b[1] - a[1])
-    .map(([hex, count]) => ({ hex, count }))
+  const list = [...counts.entries()].sort((a, b) => b[1] - a[1]).map(([hex, count]) => ({ hex, count }))
   return { beads, colorCount: list.length, list }
 }
 
@@ -112,13 +111,16 @@ export function patternStats(pattern) {
 // 在数据层统一转义比让每个调用点记得转义更不容易漏。
 function listItems(items) {
   if (!items.length) return ''
-  return `<ul>${items.map((x) => `<li>${x}</li>`).join('')}</ul>`
+  return `<ul>${items.map(x => `<li>${x}</li>`).join('')}</ul>`
 }
 
 function colorListHtml(stats) {
-  return listItems(stats.list.map(
-    (c) => `<span style="display:inline-block;width:11px;height:11px;border-radius:2px;background:${escapeHtml(c.hex)};margin-right:6px;vertical-align:-1px"></span>${escapeHtml(c.hex)} · ${c.count} 颗`,
-  ))
+  return listItems(
+    stats.list.map(
+      c =>
+        `<span style="display:inline-block;width:11px;height:11px;border-radius:2px;background:${escapeHtml(c.hex)};margin-right:6px;vertical-align:-1px"></span>${escapeHtml(c.hex)} · ${c.count} 颗`
+    )
+  )
 }
 
 /**
@@ -135,9 +137,8 @@ function colorListHtml(stats) {
 export function previewImgHtml(preview, alt, { site = SITE, loading = 'lazy' } = {}) {
   if (!preview?.src) return ''
   const src = escapeHtml(absoluteUrl(preview.src, site))
-  const dims = preview.width > 0 && preview.height > 0
-    ? ` width="${preview.width}" height="${preview.height}"`
-    : ''
+  const dims =
+    preview.width > 0 && preview.height > 0 ? ` width="${preview.width}" height="${preview.height}"` : ''
   return `<img src="${src}" alt="${escapeHtml(alt)}"${dims} loading="${loading}" decoding="async">`
 }
 
@@ -150,13 +151,17 @@ function previewFor(previews, id) {
 
 /** 主题/合集/分类的图纸列表:每项都带预览图与详情页链接 */
 function patternListHtml(patterns, previews, site) {
-  return listItems(patterns.map((p) => {
-    const name = templateDisplayName(p)
-    const { width, height } = patternDimensions(p.pattern)
-    return `<a href="${site}${patternPath(p.id)}">${
-      previewImgHtml(previewFor(previews, p.id), patternImageAlt(name, width, height), { site })
-    }<span>${escapeHtml(name)}</span></a>`
-  }))
+  return listItems(
+    patterns.map(p => {
+      const name = templateDisplayName(p)
+      const { width, height } = patternDimensions(p.pattern)
+      return `<a href="${site}${patternPath(p.id)}">${previewImgHtml(
+        previewFor(previews, p.id),
+        patternImageAlt(name, width, height),
+        { site }
+      )}<span>${escapeHtml(name)}</span></a>`
+    })
+  )
 }
 
 /**
@@ -174,12 +179,10 @@ function patternListHtml(patterns, previews, site) {
  *   有值时正文首屏带一张真实 <img>,图片搜索与非 JS 抓取端才拿得到图纸
  * @returns {{path:string,title:string,description:string,image:string,imageSize:object|null,bodyHtml:string}|null}
  */
-export function buildPatternSnapshot(template, {
-  site = SITE,
-  ogImage = '',
-  ogImageSize = null,
-  preview = null,
-} = {}) {
+export function buildPatternSnapshot(
+  template,
+  { site = SITE, ogImage = '', ogImageSize = null, preview = null } = {}
+) {
   if (!template?.id || !template?.pattern) return null
   const name = templateDisplayName(template)
   if (!name) return null
@@ -193,10 +196,22 @@ export function buildPatternSnapshot(template, {
   const categoryMeta = resolveCategoryByRaw(template.category)
 
   const title = escapeHtml(`${name} 拼豆图纸 - 拼豆Studio`)
-  const description = escapeHtml(clampDescription(
-    `${name}拼豆图纸:${width}×${height},共 ${stats.beads} 颗豆子、${stats.colorCount} 种颜色。` +
-    '可一键载入画布继续编辑,或导出带色号的专业 PNG/SVG 图纸。',
-  ))
+  // 与运行时 PatternDetailPage 共用同一个生成器:首帧 Helmet 与静态快照
+  // 必须给出同一条描述,且长度落在 150–160 字符。
+  const description = escapeHtml(
+    clampDescription(
+      patternSeoDescription({
+        name,
+        width,
+        height,
+        beads: stats.beads,
+        colorCount: stats.colorCount,
+        difficulty: template.difficulty,
+        categoryLabel: categoryMeta?.label,
+        brandLabel: getPalette(brand)?.nameZh,
+      })
+    )
+  )
 
   const bodyHtml = [
     `<h1>${escapeHtml(name)} 拼豆图纸</h1>`,
@@ -221,7 +236,9 @@ export function buildPatternSnapshot(template, {
       ? `<p class="note">同类图纸:浏览<a href="${site}${categoryPath(categoryMeta.slug)}">${escapeHtml(categoryMeta.label)}拼豆图纸模板</a>,或从<a href="${site}/gallery">完整图库</a>按分类筛选。</p>`
       : '',
     `<p class="note">想把自己的照片做成图纸?试试<a href="${site}/create/image">图片转拼豆图纸工具</a>;更多模板见<a href="${site}/gallery">拼豆图纸模板库</a>。</p>`,
-  ].filter(Boolean).join('\n')
+  ]
+    .filter(Boolean)
+    .join('\n')
 
   return { path, title, description, image: absoluteUrl(ogImage, site), imageSize: ogImageSize, bodyHtml }
 }
@@ -236,13 +253,13 @@ export function buildThemeSnapshot(theme, patterns = [], { site = SITE, previews
 
   const path = themePath(theme.slug)
   const desc = theme.description || ''
-  const usable = (patterns || []).filter((p) => p?.id && templateDisplayName(p))
-  const names = usable.map((p) => templateDisplayName(p))
+  const usable = (patterns || []).filter(p => p?.id && templateDisplayName(p))
+  const names = usable.map(p => templateDisplayName(p))
 
   const metaTitle = escapeHtml(`${title} - 拼豆图纸主题 - 拼豆Studio`)
-  const description = escapeHtml(clampDescription(
-    desc || `${title}主题共收录 ${names.length} 张拼豆图纸,可直接载入画布制作。`,
-  ))
+  const description = escapeHtml(
+    clampDescription(themeSeoDescription({ title, description: desc, count: names.length }))
+  )
 
   const bodyHtml = [
     `<h1>${escapeHtml(title)}</h1>`,
@@ -250,7 +267,9 @@ export function buildThemeSnapshot(theme, patterns = [], { site = SITE, previews
     `<h2>包含图纸(${names.length} 张)</h2>`,
     usable.length ? patternListHtml(usable, previews, site) : '<p>该主题的图纸正在整理中。</p>',
     '<p class="note">在拼豆Studio 打开主题页可按分类、难度与用色数进一步筛选。</p>',
-  ].filter(Boolean).join('\n')
+  ]
+    .filter(Boolean)
+    .join('\n')
 
   return { path, title: metaTitle, description, image: absoluteUrl(theme.coverUrl, site), bodyHtml }
 }
@@ -264,21 +283,30 @@ export function buildCollectionSnapshot(collection, patterns = [], { site = SITE
   const path = collectionPath(collection.slug)
   const note = collection.curationNote || ''
   const desc = collection.description || ''
-  const usable = (patterns || []).filter((p) => p?.id && templateDisplayName(p))
-  const names = usable.map((p) => templateDisplayName(p))
+  const usable = (patterns || []).filter(p => p?.id && templateDisplayName(p))
+  const names = usable.map(p => templateDisplayName(p))
 
   const metaTitle = escapeHtml(`${title} - 拼豆精选合集 - 拼豆Studio`)
-  const description = escapeHtml(clampDescription(
-    note || desc || `${title}合集共收录 ${names.length} 张拼豆图纸。`,
-  ))
+  const description = escapeHtml(
+    clampDescription(
+      collectionSeoDescription({
+        title,
+        description: desc,
+        curationNote: note,
+        count: names.length,
+      })
+    )
+  )
 
   const bodyHtml = [
     `<h1>${escapeHtml(title)}</h1>`,
-    note ? `<p class="lead">${escapeHtml(note)}</p>` : (desc ? `<p class="lead">${escapeHtml(desc)}</p>` : ''),
+    note ? `<p class="lead">${escapeHtml(note)}</p>` : desc ? `<p class="lead">${escapeHtml(desc)}</p>` : '',
     `<h2>合集内容(${names.length} 张)</h2>`,
     usable.length ? patternListHtml(usable, previews, site) : '<p>该合集的图纸正在整理中。</p>',
     '<p class="note">在拼豆Studio 打开合集页可查看全部图纸并一键载入画布。</p>',
-  ].filter(Boolean).join('\n')
+  ]
+    .filter(Boolean)
+    .join('\n')
 
   return { path, title: metaTitle, description, image: absoluteUrl(collection.coverUrl, site), bodyHtml }
 }
@@ -297,13 +325,13 @@ export function buildCollectionSnapshot(collection, patterns = [], { site = SITE
  *   其它有内容的分类,用于页内互链
  * @param {Map|object} [opts.previews] 模板 id → 预览图;有值时列表带真实图片
  */
-export function buildCategorySnapshot(meta, patterns = [], {
-  site = SITE,
-  relatedCategories = [],
-  previews = null,
-} = {}) {
+export function buildCategorySnapshot(
+  meta,
+  patterns = [],
+  { site = SITE, relatedCategories = [], previews = null } = {}
+) {
   if (!meta?.slug || !meta?.label) return null
-  const usable = (patterns || []).filter((p) => p?.id && templateDisplayName(p))
+  const usable = (patterns || []).filter(p => p?.id && templateDisplayName(p))
   if (!usable.length) return null
 
   const path = categoryPath(meta.slug)
@@ -314,7 +342,7 @@ export function buildCategorySnapshot(meta, patterns = [], {
   const title = escapeHtml(seo.title)
   const description = escapeHtml(clampDescription(seo.desc))
 
-  const related = (relatedCategories || []).filter((item) => item?.slug && item.slug !== meta.slug)
+  const related = (relatedCategories || []).filter(item => item?.slug && item.slug !== meta.slug)
   const statsLine = categoryStatsText(categoryStats(usable))
   const bodyHtml = [
     `<h1>${escapeHtml(label)}拼豆图纸模板</h1>`,
@@ -328,11 +356,13 @@ export function buildCategorySnapshot(meta, patterns = [], {
     patternListHtml(usable, previews, site),
     related.length ? '<h2>其他分类</h2>' : '',
     related.length
-      ? `<p>${related.map((item) => `<a href="${site}${categoryPath(item.slug)}">${escapeHtml(item.label)}拼豆图纸</a>`).join(' · ')}</p>`
+      ? `<p>${related.map(item => `<a href="${site}${categoryPath(item.slug)}">${escapeHtml(item.label)}拼豆图纸</a>`).join(' · ')}</p>`
       : '',
     '<p class="note">在拼豆Studio 打开本页可按难度与用色数进一步筛选。</p>',
     `<p class="note">想把自己的照片做成图纸?试试<a href="${site}/create/image">图片转拼豆图纸工具</a>;制作方法见<a href="${site}/tutorials">拼豆教程</a>,更多模板见<a href="${site}/gallery">拼豆图纸模板库</a>。</p>`,
-  ].filter(Boolean).join('\n')
+  ]
+    .filter(Boolean)
+    .join('\n')
 
   return {
     path,
@@ -367,11 +397,7 @@ function categoryJsonLd(meta, patterns, site) {
       })),
     },
   }
-  return [
-    '<script type="application/ld+json">',
-    jsonForScript(data),
-    '</script>',
-  ].join('\n')
+  return ['<script type="application/ld+json">', jsonForScript(data), '</script>'].join('\n')
 }
 
 // ── sitemap ────────────────────────────────────────────────
@@ -383,17 +409,14 @@ function isoDate(value) {
 }
 
 function sitemapUrl({ loc, lastmod, priority, changefreq = 'weekly', image = null }) {
-  const lines = [
-    '  <url>',
-    `    <loc>${escapeHtml(loc)}</loc>`,
-  ]
+  const lines = ['  <url>', `    <loc>${escapeHtml(loc)}</loc>`]
   if (lastmod) lines.push(`    <lastmod>${lastmod}</lastmod>`)
   lines.push(`    <changefreq>${changefreq}</changefreq>`)
   lines.push(`    <priority>${priority}</priority>`)
   // 图片 sitemap 扩展:让图纸预览图进入图片搜索。只在实际生成过图片的
   // 条目上输出,避免指向 404 的 image:loc。一条 URL 可以挂多张图
   // (分享卡片 + 透明底的图案预览),两者用途不同,都能被图片搜索采用。
-  const imageList = Array.isArray(image) ? image : (image ? [image] : [])
+  const imageList = Array.isArray(image) ? image : image ? [image] : []
   for (const loc of imageList) {
     if (!loc) continue
     lines.push('    <image:image>')
@@ -434,49 +457,60 @@ export function buildDynamicSitemap({
   site = SITE,
   images = null,
 } = {}) {
-  const imageFor = (id) =>
-    (images instanceof Map ? images.get(String(id)) : images?.[String(id)]) || null
+  const imageFor = id => (images instanceof Map ? images.get(String(id)) : images?.[String(id)]) || null
   const blocks = []
 
   for (const theme of themes) {
-    blocks.push(sitemapUrl({
-      loc: `${site}${themePath(theme.slug)}`,
-      lastmod: isoDate(theme.updatedAt || theme.updated_at || theme.createdAt || theme.created_at),
-      priority: '0.6',
-      changefreq: 'weekly',
-    }))
+    blocks.push(
+      sitemapUrl({
+        loc: `${site}${themePath(theme.slug)}`,
+        lastmod: isoDate(theme.updatedAt || theme.updated_at || theme.createdAt || theme.created_at),
+        priority: '0.6',
+        changefreq: 'weekly',
+      })
+    )
   }
 
   for (const collection of collections) {
-    blocks.push(sitemapUrl({
-      loc: `${site}${collectionPath(collection.slug)}`,
-      lastmod: isoDate(collection.updatedAt || collection.updated_at || collection.createdAt || collection.created_at),
-      priority: '0.6',
-      changefreq: 'weekly',
-    }))
+    blocks.push(
+      sitemapUrl({
+        loc: `${site}${collectionPath(collection.slug)}`,
+        lastmod: isoDate(
+          collection.updatedAt || collection.updated_at || collection.createdAt || collection.created_at
+        ),
+        priority: '0.6',
+        changefreq: 'weekly',
+      })
+    )
   }
 
   // 分类聚合页:lastmod 取该分类下最新一张图纸的时间,而不是构建日期。
   // 只有实际生成过快照的分类才会传进来(空分类不写入 sitemap)。
   for (const category of categories) {
     if (!category?.slug) continue
-    blocks.push(sitemapUrl({
-      loc: `${site}${categoryPath(category.slug)}`,
-      lastmod: isoDate(category.updatedAt || category.updated_at),
-      priority: '0.6',
-      changefreq: 'weekly',
-    }))
+    blocks.push(
+      sitemapUrl({
+        loc: `${site}${categoryPath(category.slug)}`,
+        lastmod: isoDate(category.updatedAt || category.updated_at),
+        priority: '0.6',
+        changefreq: 'weekly',
+      })
+    )
   }
 
   for (const template of templates) {
     if (!templateDisplayName(template)) continue
-    blocks.push(sitemapUrl({
-      loc: `${site}${patternPath(template.id)}`,
-      lastmod: isoDate(template.updatedAt || template.updated_at || template.createdAt || template.created_at),
-      priority: '0.5',
-      changefreq: 'monthly',
-      image: imageFor(template.id),
-    }))
+    blocks.push(
+      sitemapUrl({
+        loc: `${site}${patternPath(template.id)}`,
+        lastmod: isoDate(
+          template.updatedAt || template.updated_at || template.createdAt || template.created_at
+        ),
+        priority: '0.5',
+        changefreq: 'monthly',
+        image: imageFor(template.id),
+      })
+    )
   }
 
   return blocks.join('\n')
@@ -518,14 +552,16 @@ const HREFLANG_LANGS = ['zh-CN', 'x-default']
  * 面包屑里的每一级都必须是真实可达的页面,否则会被判为误导性标记。
  */
 function breadcrumbJsonLd(crumbs) {
-  const items = crumbs.map((c, i) => [
-    '  {',
-    '    "@type": "ListItem",',
-    `    "position": ${i + 1},`,
-    `    "name": ${jsonForScript(c.name)},`,
-    `    "item": ${jsonForScript(c.item)}`,
-    '  }',
-  ].join('\n'))
+  const items = crumbs.map((c, i) =>
+    [
+      '  {',
+      '    "@type": "ListItem",',
+      `    "position": ${i + 1},`,
+      `    "name": ${jsonForScript(c.name)},`,
+      `    "item": ${jsonForScript(c.item)}`,
+      '  }',
+    ].join('\n')
+  )
   return [
     '<script type="application/ld+json">',
     '{',
@@ -564,7 +600,7 @@ export function renderSnapshotHtml(
   indexHtml,
   snap,
   canonicalUrl,
-  { noindex = false, imageSize = null, extraHead = '' } = {},
+  { noindex = false, imageSize = null, extraHead = '' } = {}
 ) {
   const EOL = indexHtml.includes('\r\n') ? '\r\n' : '\n'
   const robots = noindex
@@ -582,14 +618,38 @@ export function renderSnapshotHtml(
   // 会把整份文档片段拼进 head。
   let out = indexHtml
     .replace(/<title>.*?<\/title>/s, () => `<title>${snap.title}</title>`)
-    .replace(/<meta name="description" content="[^"]*"[^>]*>/, () => `<meta name="description" content="${snap.description}"${RH} />`)
-    .replace(/<meta name="robots" content="[^"]*"[^>]*>/, () => `<meta name="robots" content="${robots}"${RH} />`)
-    .replace(/<link rel="canonical" href="[^"]*"[^>]*>/, () => `<link rel="canonical" href="${canonicalUrl}"${RH} />`)
-    .replace(/<meta property="og:url" content="[^"]*"[^>]*>/, () => `<meta property="og:url" content="${canonicalUrl}"${RH} />`)
-    .replace(/<meta property="og:title" content="[^"]*"[^>]*>/, () => `<meta property="og:title" content="${snap.title}"${RH} />`)
-    .replace(/<meta property="og:description" content="[^"]*"[^>]*>/, () => `<meta property="og:description" content="${snap.description}"${RH} />`)
-    .replace(/<meta name="twitter:title" content="[^"]*"[^>]*>/, () => `<meta name="twitter:title" content="${snap.title}"${RH} />`)
-    .replace(/<meta name="twitter:description" content="[^"]*"[^>]*>/, () => `<meta name="twitter:description" content="${snap.description}"${RH} />`)
+    .replace(
+      /<meta name="description" content="[^"]*"[^>]*>/,
+      () => `<meta name="description" content="${snap.description}"${RH} />`
+    )
+    .replace(
+      /<meta name="robots" content="[^"]*"[^>]*>/,
+      () => `<meta name="robots" content="${robots}"${RH} />`
+    )
+    .replace(
+      /<link rel="canonical" href="[^"]*"[^>]*>/,
+      () => `<link rel="canonical" href="${canonicalUrl}"${RH} />`
+    )
+    .replace(
+      /<meta property="og:url" content="[^"]*"[^>]*>/,
+      () => `<meta property="og:url" content="${canonicalUrl}"${RH} />`
+    )
+    .replace(
+      /<meta property="og:title" content="[^"]*"[^>]*>/,
+      () => `<meta property="og:title" content="${snap.title}"${RH} />`
+    )
+    .replace(
+      /<meta property="og:description" content="[^"]*"[^>]*>/,
+      () => `<meta property="og:description" content="${snap.description}"${RH} />`
+    )
+    .replace(
+      /<meta name="twitter:title" content="[^"]*"[^>]*>/,
+      () => `<meta name="twitter:title" content="${snap.title}"${RH} />`
+    )
+    .replace(
+      /<meta name="twitter:description" content="[^"]*"[^>]*>/,
+      () => `<meta name="twitter:description" content="${snap.description}"${RH} />`
+    )
 
   // 封面:有则替换;无则保留站点默认图(空 content 会让社交平台显示无图卡片)
   //
@@ -602,11 +662,20 @@ export function renderSnapshotHtml(
     // 从未限制过引号/尖括号。这里必须转义,否则它会把 content 属性提前闭合。
     const image = escapeHtml(snap.image)
     out = out
-      .replace(/<meta property="og:image" content="[^"]*"[^>]*>/, () => `<meta property="og:image" content="${image}"${RH} />`)
-      .replace(/<meta name="twitter:image" content="[^"]*"[^>]*>/, () => `<meta name="twitter:image" content="${image}"${RH} />`)
+      .replace(
+        /<meta property="og:image" content="[^"]*"[^>]*>/,
+        () => `<meta property="og:image" content="${image}"${RH} />`
+      )
+      .replace(
+        /<meta name="twitter:image" content="[^"]*"[^>]*>/,
+        () => `<meta name="twitter:image" content="${image}"${RH} />`
+      )
       // alt 描述的是「这张图是什么」。换成内容自己的图后仍留着站点级 alt,
       // 无障碍与部分平台的图片描述会张冠李戴。
-      .replace(/<meta property="og:image:alt" content="[^"]*"[^>]*>/, () => `<meta property="og:image:alt" content="${snap.title}" />`)
+      .replace(
+        /<meta property="og:image:alt" content="[^"]*"[^>]*>/,
+        () => `<meta property="og:image:alt" content="${snap.title}" />`
+      )
 
     // 尺寸未知的封面(主题/合集)直接删掉这两行 —— 缺元数据时平台会自己探测
     // 图片尺寸,比声明一个错误的尺寸更安全。
@@ -616,18 +685,25 @@ export function renderSnapshotHtml(
         .replace(/\s*<meta property="og:image:height" content="[^"]*"[^>]*>/g, '')
     } else {
       out = out
-        .replace(/<meta property="og:image:width" content="[^"]*"[^>]*>/, `<meta property="og:image:width" content="${imageSize.width}" />`)
-        .replace(/<meta property="og:image:height" content="[^"]*"[^>]*>/, `<meta property="og:image:height" content="${imageSize.height}" />`)
+        .replace(
+          /<meta property="og:image:width" content="[^"]*"[^>]*>/,
+          `<meta property="og:image:width" content="${imageSize.width}" />`
+        )
+        .replace(
+          /<meta property="og:image:height" content="[^"]*"[^>]*>/,
+          `<meta property="og:image:height" content="${imageSize.height}" />`
+        )
     }
   }
 
   // hreflang:首页那两行指向 /,留着会让每个快照页都声称自己是首页的语言变体。
   // 只声明默认语言 —— ?lang= 是界面语言偏好,不是独立可收录版本。
   const hreflangBlock = HREFLANG_LANGS.map(
-    (lang) => `  <link rel="alternate" hreflang="${lang}" href="${canonicalUrl}"${RH} />${EOL}`,
+    lang => `  <link rel="alternate" hreflang="${lang}" href="${canonicalUrl}"${RH} />${EOL}`
   ).join('')
   // 首页模板现在是 2 行(zh-CN + x-default);按实际行数匹配,失配会残留首页 URL
-  const existingHreflang = /(?: {2}<link rel="alternate" hreflang="[^"]+" href="https:\/\/tangnotes\.site[^"]*"(?: data-rh="true")? \/>\r?\n){2}/
+  const existingHreflang =
+    /(?: {2}<link rel="alternate" hreflang="[^"]+" href="https:\/\/tangnotes\.site[^"]*"(?: data-rh="true")? \/>\r?\n){2}/
   out = out.replace(existingHreflang, () => hreflangBlock)
 
   // 面包屑:标题取 snap.title 去掉「 - 拼豆Studio」后缀,读起来才是页面名而不是完整标题。
@@ -637,7 +713,10 @@ export function renderSnapshotHtml(
     // 否则名称里出现「&amp;」这种实体,富媒体结果会原样显示。
     const crumbTitle = String(snap.title || '')
       .replace(/\s*-\s*拼豆Studio\s*$/, '')
-      .replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&quot;/g, '"')
+      .replace(/&amp;/g, '&')
+      .replace(/&lt;/g, '<')
+      .replace(/&gt;/g, '>')
+      .replace(/&quot;/g, '"')
     let crumbPath = '/'
     try {
       crumbPath = new URL(canonicalUrl).pathname
@@ -674,4 +753,3 @@ export function renderSnapshotHtml(
   // 造成 ld+json 双份/meta 重复的产物完整性破坏。函数返回值不展开。
   return out.replace('<div id="root"></div>', () => `<div id="root">${bodyForEol}</div>`)
 }
-
