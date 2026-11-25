@@ -10,6 +10,7 @@
  */
 
 import { PALETTE_LIST, PALETTES } from '../../data/palettes/index.js'
+import { composeSeoDescription } from '../../utils/seoText.js'
 
 export const COLORS_PATH = '/colors'
 
@@ -124,21 +125,37 @@ export function brandIntro(id, lang) {
 /** 网站总览页的 meta(与运行时 Helmet 共用同一份文案) */
 export const COLOR_CHARTS_SEO = {
   title: '拼豆色卡对照表 - 六大品牌色号与色值查询 | 拼豆Studio',
-  desc: 'COCO、MARD、MARD 291、Perler、Hama、Artkal 六大拼豆品牌色卡对照:全部色号、颜色名称、HEX/RGB 色值与豆径,方便按图纸备料、找替代色。',
+  desc:
+    'COCO、MARD、MARD 291、Perler、Hama、Artkal 六大拼豆品牌色卡对照表：按色系列出全部色号、' +
+    '颜色名称、HEX/RGB 色值与豆径，支持搜索与近似色查找。按图纸备料、补色或寻找替代色时' +
+    '可以直接对照色值挑选，也能在拼豆Studio 里用同一份色卡生成或转换图纸。数据持续校对更新。',
 }
 
 /**
  * 单个品牌的 meta。
  * 不写死标题:色号数量从数据派生,色卡增删后标题会自动跟上。
+ *
+ * 描述复用页面里已有的品牌简介(每个品牌独立撰写),再按需追加固定说明,
+ * 使长度落在 Bing 建议的 150–160 字符内。简介本身已含色号数量;数据变化
+ * 导致数量对不上时,补一句带真实数量的开头,避免描述与页面数据不一致。
  */
 export function brandSeo(palette) {
   if (!palette) return COLOR_CHARTS_SEO
   const count = palette.colors.length
   const brand = palette.nameZh || palette.name
+  const intro = BRAND_INTROS[palette.id] || ''
+  const head = intro.includes(String(count))
+    ? intro
+    : `${brand} 拼豆色卡共 ${count} 色。${intro || '按色号列出全部颜色、名称与色值。'}`
   return {
     title: `${brand}色卡对照表 - ${count} 色色号与色值 | 拼豆Studio`,
-    desc:
-      `${brand} ${count} 色完整色卡:全部色号、颜色名称、HEX/RGB 色值与豆径对照,` +
-      `方便按图纸备料、寻找近似替代色,或直接在拼豆Studio 里用这份色卡生成图纸。`,
+    desc: composeSeoDescription([
+      head,
+      '按色号顺序排列，找色时先定位色系再比对色值。',
+      '全部色号、名称与 HEX/RGB 色值都可在页面内搜索，也能直接选用这份色卡生成或转换图纸。',
+      '适合按图纸备料、补色和寻找近似替代色。',
+      '全部免费查看，无需注册。',
+      '打开即用。',
+    ]),
   }
 }

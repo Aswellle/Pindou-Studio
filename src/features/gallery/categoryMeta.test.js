@@ -10,8 +10,8 @@ import {
 
 describe('categoryMeta · 分类聚合页映射', () => {
   it('slug 与 raw 都唯一', () => {
-    const slugs = GALLERY_CATEGORY_META.map((item) => item.slug)
-    const raws = GALLERY_CATEGORY_META.map((item) => item.raw)
+    const slugs = GALLERY_CATEGORY_META.map(item => item.slug)
+    const raws = GALLERY_CATEGORY_META.map(item => item.raw)
     expect(new Set(slugs).size).toBe(slugs.length)
     expect(new Set(raws).size).toBe(raws.length)
   })
@@ -54,18 +54,23 @@ describe('categoryMeta · 分类聚合页映射', () => {
   })
 
   it('每个分类都有专属简介,描述互不相同(11 个聚合页不能共用同一句模板)', () => {
-    const descs = GALLERY_CATEGORY_META.map((meta) => categorySeo(meta).desc)
+    const descs = GALLERY_CATEGORY_META.map(meta => categorySeo(meta).desc)
     expect(new Set(descs).size).toBe(descs.length)
     for (const meta of GALLERY_CATEGORY_META) {
       expect(meta.intro, meta.slug).toBeTruthy()
       expect([...meta.intro].length, `${meta.slug} intro 过短`).toBeGreaterThanOrEqual(30)
-      expect(categorySeo(meta).desc).toContain(meta.label)
+      const desc = categorySeo(meta).desc
+      expect(desc).toContain(meta.label)
+      // Bing Webmaster 建议 150–160 字符,过短会被标成待改进
+      expect([...desc].length, `${meta.slug} 描述过短`).toBeGreaterThanOrEqual(150)
+      expect([...desc].length, `${meta.slug} 描述过长`).toBeLessThanOrEqual(160)
     }
   })
 
   it('简介缺失时回退到通用描述,不产生空描述', () => {
     const seo = categorySeo({ raw: 'x', slug: 'x', label: '测试' })
     expect(seo.desc).toContain('测试')
-    expect(seo.desc.length).toBeGreaterThan(30)
+    expect([...seo.desc].length).toBeGreaterThanOrEqual(150)
+    expect([...seo.desc].length).toBeLessThanOrEqual(160)
   })
 })

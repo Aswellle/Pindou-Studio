@@ -26,7 +26,7 @@ describe('colorCharts · 路由与数据', () => {
   })
 
   it('品牌列表与色板顺序一致,色号数从数据派生', () => {
-    expect(colorBrands().map((b) => b.id)).toEqual(PALETTE_LIST.map((p) => p.id))
+    expect(colorBrands().map(b => b.id)).toEqual(PALETTE_LIST.map(p => p.id))
     for (const brand of colorBrands()) {
       expect(brand.colorCount).toBe(brand.palette.colors.length)
     }
@@ -43,7 +43,7 @@ describe('colorGroups · 分组完整性', () => {
 
   it('有色系名称的品牌按 groupOrder 排序', () => {
     const mard = resolveColorBrand('mard')
-    const keys = colorGroups(mard).map((g) => g.key)
+    const keys = colorGroups(mard).map(g => g.key)
     expect(keys.slice(0, 6)).toEqual(['H', 'E', 'B', 'C', 'A', 'F'])
     expect(new Set(keys).size).toBe(keys.length)
   })
@@ -72,8 +72,9 @@ describe('colorGroups · 分组完整性', () => {
 describe('色卡页 SEO 文案', () => {
   it('总览页标题与描述在长度约束内', () => {
     expect(COLOR_CHARTS_SEO.title.length).toBeLessThanOrEqual(40)
-    expect(COLOR_CHARTS_SEO.desc.length).toBeGreaterThan(40)
-    expect(COLOR_CHARTS_SEO.desc.length).toBeLessThanOrEqual(90)
+    // Bing Webmaster 建议描述 150–160 字符
+    expect([...COLOR_CHARTS_SEO.desc].length).toBeGreaterThanOrEqual(150)
+    expect([...COLOR_CHARTS_SEO.desc].length).toBeLessThanOrEqual(160)
   })
 
   it('每个品牌页标题/描述唯一且带色号数量', () => {
@@ -85,7 +86,8 @@ describe('色卡页 SEO 文案', () => {
       descs.add(seo.desc)
       expect(seo.title).toContain(String(palette.colors.length))
       expect(seo.title.length).toBeLessThanOrEqual(40)
-      expect(seo.desc.length).toBeLessThanOrEqual(90)
+      expect([...seo.desc].length).toBeGreaterThanOrEqual(150)
+      expect([...seo.desc].length).toBeLessThanOrEqual(160)
       expect(seo.desc).toContain(String(palette.colors.length))
     }
     // 六个页面不能互相竞争同一段标题描述
