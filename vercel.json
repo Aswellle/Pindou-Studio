@@ -10,7 +10,7 @@
         }
       ],
       "destination": "https://tangnotes.site/:path*",
-      "permanent": true
+      "statusCode": 301
     },
     {
       "source": "/",
@@ -21,7 +21,7 @@
         }
       ],
       "destination": "https://tangnotes.site/",
-      "permanent": true
+      "statusCode": 301
     },
     {
       "source": "/:path*",
@@ -32,7 +32,7 @@
         }
       ],
       "destination": "https://tangnotes.site/:path*",
-      "permanent": true
+      "statusCode": 301
     },
     {
       "source": "/index.html",
@@ -254,6 +254,21 @@
         {
           "key": "Referrer-Policy",
           "value": "strict-origin-when-cross-origin"
+        }
+      ]
+    },
+    {
+      "source": "/(.*)",
+      "has": [
+        {
+          "type": "query",
+          "key": "lang"
+        }
+      ],
+      "headers": [
+        {
+          "key": "X-Robots-Tag",
+          "value": "noindex, follow"
         }
       ]
     },

@@ -340,3 +340,33 @@ describe('head 标签 · Helmet 接管不留重复', () => {
     expect(SNAPSHOT).toContain('const RH = \' data-rh="true"\'')
   })
 })
+
+describe('主机与语言变体 · 跳转与索引策略', () => {
+  const wwwRedirects = VERCEL.redirects.filter(rule =>
+    rule.has?.some(cond => cond.type === 'host' && cond.value === 'www.tangnotes.site')
+  )
+
+  it('www 与 vercel.app 用 301 永久收敛到裸域', () => {
+    // 308 虽然也是永久跳转,但 Bing 对 301 的跟随更稳定;GSC 里
+    // 「网页会自动重定向」本身是预期结果,前提是单跳指向 canonical 主机。
+    expect(wwwRedirects.length).toBeGreaterThanOrEqual(2)
+    for (const rule of wwwRedirects) {
+      expect(rule.destination.startsWith('https://tangnotes.site')).toBe(true)
+      expect(rule.statusCode).toBe(301)
+    }
+    const vercelHost = VERCEL.redirects.find(rule =>
+      rule.has?.some(cond => cond.type === 'host' && cond.value === 'pindou-studio.vercel.app')
+    )
+    expect(vercelHost?.statusCode).toBe(301)
+  })
+
+  it('?lang= 变体带 noindex 响应头,不参与索引', () => {
+    // ?lang= 只是界面语言偏好,静态 HTML 只有一套中文,canonical 恒为裸路径。
+    // 给它 noindex 可避免 GSC 反复报「已抓取 - 尚未编入索引」。
+    const langHeader = VERCEL.headers.find(rule =>
+      rule.has?.some(cond => cond.type === 'query' && cond.key === 'lang')
+    )
+    expect(langHeader, '缺少 ?lang= 变体响应头').toBeTruthy()
+    expect(langHeader.headers).toContainEqual({ key: 'X-Robots-Tag', value: 'noindex, follow' })
+  })
+})
