@@ -3,6 +3,7 @@ import { readFileSync, existsSync } from 'node:fs'
 import { join } from 'node:path'
 import { isKnownPath } from './seoPath'
 import { GALLERY_CATEGORY_META } from '../features/gallery/categoryMeta'
+import { HOME_SEO } from '../features/seo/staticSeo'
 
 /**
  * SEO 落地契约(防回归)。
@@ -107,9 +108,7 @@ describe('软 404 · 不存在的 URL 不再回退成首页', () => {
     expect(rewrite, '缺少分类聚合页兜底 rewrite').toBeTruthy()
     const group = rewrite.source.match(/:slug\(([^)]+)\)/)
     expect(group, '分类 rewrite 必须用 slug 白名单,不能匹配任意路径').toBeTruthy()
-    expect(new Set(group[1].split('|'))).toEqual(
-      new Set(GALLERY_CATEGORY_META.map(meta => meta.slug)),
-    )
+    expect(new Set(group[1].split('|'))).toEqual(new Set(GALLERY_CATEGORY_META.map(meta => meta.slug)))
   })
 
   it('App.jsx 里声明的每条路由都有 rewrite 或静态文件兜底', () => {
@@ -276,10 +275,14 @@ describe('首页 head · 标题与描述长度', () => {
     expect(title.length).toBeLessThanOrEqual(40)
   })
 
-  it('description 不超过 90 字', () => {
+  it('description 与首页 SEO 常量一致,长度 150–160 字符', () => {
     const desc = (INDEX_HTML.match(/<meta name="description" content="([^"]*)"/) || [])[1] || ''
-    expect(desc.length).toBeGreaterThan(40)
-    expect(desc.length).toBeLessThanOrEqual(90)
+    // index.html 是静态文件,无法 import 常量;这条断言锁住两边逐字一致,
+    // 避免运行时 Helmet 首帧把预渲染的描述改写掉。
+    expect(desc).toBe(HOME_SEO.desc)
+    // Bing Webmaster 建议 150–160 字符;过短会被标成「元描述过短」
+    expect([...desc].length).toBeGreaterThanOrEqual(150)
+    expect([...desc].length).toBeLessThanOrEqual(160)
   })
 
   it('keywords 收敛到 10 个以内(堆砌无收益且有风险)', () => {

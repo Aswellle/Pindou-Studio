@@ -40,6 +40,16 @@ import {
   PIXEL_ART_SEO,
 } from '../src/features/tools/toolSeo.js'
 import {
+  CREATE_IMAGE_SEO,
+  FAQ_SEO,
+  GALLERY_SEO,
+  HOME_SEO,
+  PRIVACY_SEO,
+  TERMS_SEO,
+  TUTORIALS_SEO,
+} from '../src/features/seo/staticSeo.js'
+import { tutorialSeoDescription } from '../src/utils/tutorialSeo.js'
+import {
   PATTERN_ARTICLE_IDS,
   PATTERN_TIPS,
   PATTERN_WAYS,
@@ -922,8 +932,8 @@ const PAGES = [
   {
     file: 'gallery.html',
     path: '/gallery',
-    title: '拼豆图纸模板与免费图库 - 拼豆Studio',
-    desc: '免费拼豆图纸模板库：按主题与难度筛选像素画图案，一键载入画布制作；支持重映射到 COCO/MARD/Perler 品牌色卡，收藏并云端保存作品。',
+    title: GALLERY_SEO.title,
+    desc: GALLERY_SEO.desc,
     breadcrumb: [
       { name: '首页', item: `${SITE}/` },
       { name: '拼豆图库与模板', item: `${SITE}/gallery` },
@@ -932,8 +942,8 @@ const PAGES = [
   {
     file: 'tutorials.html',
     path: '/tutorials',
-    title: '拼豆教程 - 新手入门、熨烫温度与配色全攻略 | 拼豆Studio',
-    desc: '拼豆新手与进阶教程：工具选择、第一个作品、熨烫温度与防变形、配色设计、成品保护，配图示与温度对照表，可配合在线拼豆图纸工具直接制作。',
+    title: TUTORIALS_SEO.title,
+    desc: TUTORIALS_SEO.desc,
     breadcrumb: [
       { name: '首页', item: `${SITE}/` },
       { name: '拼豆教程', item: `${SITE}/tutorials` },
@@ -942,8 +952,8 @@ const PAGES = [
   {
     file: 'faq.html',
     path: '/faq',
-    title: '拼豆常见问题 - 使用、导出、色号与商用解答 | 拼豆Studio',
-    desc: '拼豆Studio 常见问题：是否需要注册、图片转图纸流程、支持的图片格式与品牌色卡、导出方式、作品保存、分享与商用范围。',
+    title: FAQ_SEO.title,
+    desc: FAQ_SEO.desc,
     breadcrumb: [
       { name: '首页', item: `${SITE}/` },
       { name: '拼豆常见问题', item: `${SITE}/faq` },
@@ -1007,8 +1017,8 @@ const PAGES = [
   {
     file: 'create-image.html',
     path: '/create/image',
-    title: '图片转拼豆图纸 - 免费在线转换工具 | 拼豆Studio',
-    desc: '免费图片转拼豆图纸:上传照片自动生成带品牌色号的网格图纸,可调网格尺寸与颜色数,支持六大品牌色卡,导出 PNG/SVG。',
+    title: CREATE_IMAGE_SEO.title,
+    desc: CREATE_IMAGE_SEO.desc,
     breadcrumb: [
       { name: '首页', item: `${SITE}/` },
       { name: '图片转拼豆图纸', item: `${SITE}/create/image` },
@@ -1025,8 +1035,8 @@ const PAGES = [
   {
     file: 'privacy.html',
     path: '/privacy',
-    title: '隐私政策 - 拼豆Studio',
-    desc: '了解拼豆Studio如何收集、使用和保护您的个人信息，以及账号验证、云端存储与第三方服务的详细说明。',
+    title: PRIVACY_SEO.title,
+    desc: PRIVACY_SEO.desc,
     singleLanguage: true,
     breadcrumb: [
       { name: '首页', item: `${SITE}/` },
@@ -1036,8 +1046,8 @@ const PAGES = [
   {
     file: 'terms.html',
     path: '/terms',
-    title: '服务条款 - 拼豆Studio',
-    desc: '使用拼豆Studio在线拼豆图纸设计工具的服务条款：账户安全、用户内容、模板库与使用规范。',
+    title: TERMS_SEO.title,
+    desc: TERMS_SEO.desc,
     singleLanguage: true,
     breadcrumb: [
       { name: '首页', item: `${SITE}/` },
@@ -1072,7 +1082,7 @@ const spaHtml = indexWithBuildId
   .replace(/<title>.*?<\/title>/s, '<title>拼豆Studio - 免费在线拼豆图纸生成</title>')
   .replace(
     /<meta name="description" content="[^"]*"[^>]*>/,
-    `<meta name="description" content="拼豆Studio 免费在线拼豆图纸生成工具：自由绘制或上传图片转像素拼豆，支持六大品牌色卡与 PNG/SVG 图纸导出。"${HEAD_ATTR} />`,
+    `<meta name="description" content="${escAttr(HOME_SEO.desc)}"${HEAD_ATTR} />`,
   )
   .replace(/\s*<link rel="canonical" href="[^"]*"[^>]*>/, '')
   .replace(/\s*<meta property="og:url" content="[^"]*"[^>]*>/, '')
@@ -1392,8 +1402,8 @@ for (let index = 0; index < tutorialArticles.length; index++) {
   const pagePath = `/tutorials/${article.id}`
   const url = `${SITE}${pagePath}`
   const title = `${article.title} - 拼豆教程 - 拼豆Studio`
-  const first = (article.blocks || []).find((b) => b && b.type === 'paragraph' && b.text)
-  const desc = first ? clampDesc(first.text, 90) : `${article.title}:拼豆Studio 拼豆教程。`
+  // 与运行时 Tutorials.jsx 共用同一个生成器,描述统一在 150–160 字符。
+  const desc = tutorialSeoDescription(article, section.title)
 
   let out = indexWithBuildId
     .replace(/<title>.*?<\/title>/s, `<title>${esc(title)}</title>`)

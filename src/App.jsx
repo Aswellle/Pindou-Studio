@@ -64,6 +64,15 @@ import { categorySeo, resolveCategoryBySlug } from './features/gallery/categoryM
 // 品牌色卡对照页的 meta 与静态快照共用同一份文案
 import { COLOR_CHARTS_SEO, brandSeo, resolveColorBrand } from './features/colors/colorCharts'
 import { CALCULATOR_SEO, IRONING_SEO, BEAD_PATTERNS_SEO, PIXEL_ART_SEO } from './features/tools/toolSeo'
+import {
+  HOME_SEO,
+  GALLERY_SEO,
+  TUTORIALS_SEO,
+  FAQ_SEO,
+  CREATE_IMAGE_SEO,
+  PRIVACY_SEO,
+  TERMS_SEO,
+} from './features/seo/staticSeo'
 import { planBrandSwitch, applyBrandSwitch } from './utils/brandSwitch'
 import { canvasToLegacyWork, normalizeLegacyWork } from './services/project/adapters'
 import MobileToolbar from './components/Tools/MobileToolbar'
@@ -2321,24 +2330,12 @@ export default function App() {
 
   // ── 每页动态 SEO(不改变功能与界面)───────────────────────
   const SEO_CONFIG = {
-    canvas: {
-      // 标题长度按「百度 PC 约 30 汉字截断、Google 约 60 字符」收敛:
-      // 此前 51 字,品牌名 + 后半段色卡清单都会被切掉,只剩前半句。
-      title: '拼豆图纸生成器 - 图片转拼豆与像素画在线制作 | 拼豆Studio',
-      desc: '免费在线拼豆图纸生成器：上传图片一键转拼豆图纸，也能自由绘制像素画与网格图案；六大品牌色卡精准配色，导出带色号 PNG/SVG，内置免费模板与教程。',
-    },
-    gallery: {
-      title: '拼豆图纸模板与免费图库 - 拼豆Studio',
-      desc: '免费拼豆图纸模板库：按主题与难度筛选像素画图案，一键载入画布制作；支持重映射到 COCO/MARD/Perler 品牌色卡，收藏并云端保存作品。',
-    },
-    tutorials: {
-      title: '拼豆教程 - 新手入门、熨烫温度与配色全攻略 | 拼豆Studio',
-      desc: '拼豆新手与进阶教程：工具选择、第一个作品、熨烫温度与防变形、配色设计、成品保护，配图示与温度对照表，可配合在线拼豆图纸工具直接制作。',
-    },
-    faq: {
-      title: '拼豆常见问题 - 使用、导出、色号与商用解答 | 拼豆Studio',
-      desc: '拼豆Studio 常见问题：是否需要注册、图片转图纸流程、支持的图片格式与品牌色卡、导出方式、作品保存、分享与商用范围。',
-    },
+    // 索引型静态页的文案与构建期预渲染共用 features/seo/staticSeo.js,
+    // 避免 App 与快照各写一份、改一边忘另一边。
+    canvas: HOME_SEO,
+    gallery: GALLERY_SEO,
+    tutorials: TUTORIALS_SEO,
+    faq: FAQ_SEO,
     // 品牌色卡对照页:总览页用固定文案;单个品牌由 brandSeo(palette) 动态生成
     // (见上方 seo 选择),两边共用同一份数据,不会出现首帧换标题。
     colors: {
@@ -2390,12 +2387,9 @@ export default function App() {
       desc: '管理拼豆Studio账号资料、昵称与头像。',
       noindex: true,
     },
-    createImage: {
-      // 独立工具页承接「图片转拼豆 / image to perler bead pattern」核心词,
-      // 静态正文与 HowTo 结构化数据在 generate-prerender-html.js 里生成。
-      title: '图片转拼豆图纸 - 免费在线转换工具 | 拼豆Studio',
-      desc: '免费图片转拼豆图纸:上传照片自动生成带品牌色号的网格图纸,可调网格尺寸与颜色数,支持六大品牌色卡,导出 PNG/SVG。',
-    },
+    // 独立工具页承接「图片转拼豆 / image to perler bead pattern」核心词,
+    // 静态正文与 HowTo 结构化数据在 generate-prerender-html.js 里生成。
+    createImage: CREATE_IMAGE_SEO,
     import: {
       title: '导入图纸 - 拼豆Studio',
       desc: '把现成的图纸文件导进来继续编辑，或从图纸截图里自动识别格子，保存为仅自己可见的拼豆图纸。',
@@ -2423,19 +2417,11 @@ export default function App() {
       desc: '查看分享的拼豆图纸:尺寸、用豆量与配色一目了然,登录后可复制到自己的作品继续创作。',
       noindex: true,
     },
-    privacy: {
-      title: '隐私政策 - 拼豆Studio',
-      desc: '了解拼豆Studio如何收集、使用和保护您的个人信息，以及账号验证、云端存储与第三方服务的详细说明。',
-      // 正文写死在 LegalPages.jsx 里、只有中文,?lang=en 返回的仍是中文内容。
-      // 声明 en/ja/ko 变体等于让 hreflang 指向语言不符的页面,Google 会整组忽略 ——
-      // 预渲染的 privacy.html 也只写 zh-CN 与 x-default,两边必须一致。
-      singleLanguage: true,
-    },
-    terms: {
-      title: '服务条款 - 拼豆Studio',
-      desc: '使用拼豆Studio在线拼豆图纸设计工具的服务条款：账户安全、用户内容、模板库与使用规范。',
-      singleLanguage: true,
-    },
+    // 正文写死在 LegalPages.jsx 里、只有中文,?lang=en 返回的仍是中文内容。
+    // 声明 en/ja/ko 变体等于让 hreflang 指向语言不符的页面,Google 会整组忽略 ——
+    // 预渲染的 privacy.html 也只写 zh-CN 与 x-default,两边必须一致。
+    privacy: { ...PRIVACY_SEO, singleLanguage: true },
+    terms: { ...TERMS_SEO, singleLanguage: true },
     // 404:不存在的地址。必须 noindex —— 让搜索引擎知道这些 URL 不该被收录,
     // 否则每个乱路径都会作为「标题描述与首页相同」的副本进索引。
     notFound: {
