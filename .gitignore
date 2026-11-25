@@ -92,3 +92,13 @@ _legacy/
 .indexnow-state.json
 # 百度普通收录推送的增量基线,同上
 .baidu-push-state.json
+
+# Local AI/planning state, working notes and reference images (never committed)
+.zcode/
+.zcodeignore
+real-images/
+testing-images/
+scripts/_tmp_landing.py
+SEO各搜索引擎优化指南/
+gpt针对Pindou-Studio的各项改进.md
+大功能开发文档/
