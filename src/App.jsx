@@ -2480,6 +2480,10 @@ export default function App() {
   // 同一页面出现两套 canonical,正是 GSC「Google 选择的规范网页与用户指定的
   // 不同」的主要来源。要多语言收录必须按语言输出独立路径的 HTML。
   const canonical = baseUrl
+  // ?lang= 只是界面语言偏好,不是独立页面:服务端已对带该参数的请求加
+  // X-Robots-Tag: noindex(见 vercel.json),这里让首帧 meta 给出同一结论,
+  // 避免响应头与页面内 robots 互相矛盾。
+  const hasLangParam = new URLSearchParams(location.search).has('lang')
 
   const seoHelmet = (
     <Helmet>
@@ -2488,9 +2492,11 @@ export default function App() {
       <meta
         name="robots"
         content={
-          seo.noindex
-            ? 'noindex, nofollow'
-            : 'index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1'
+          hasLangParam
+            ? 'noindex, follow'
+            : seo.noindex
+              ? 'noindex, nofollow'
+              : 'index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1'
         }
       />
       <link rel="canonical" href={canonical} />

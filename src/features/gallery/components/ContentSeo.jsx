@@ -17,9 +17,15 @@ const SITE = 'https://tangnotes.site'
 
 export default function ContentSeo({ title, description, image, noindex = false }) {
   const fullTitle = title ? `${title} - ${SITE_NAME}` : null
+  // ?lang= 是界面语言偏好,不是独立页面:服务端已加 X-Robots-Tag: noindex
+  // (vercel.json),页面内 robots 必须给同一结论,否则首帧会把它改回 index。
+  const hasLangParam =
+    typeof window !== 'undefined' && new URLSearchParams(window.location.search).has('lang')
   const robots = noindex
     ? 'noindex, nofollow'
-    : 'index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1'
+    : hasLangParam
+      ? 'noindex, follow'
+      : 'index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1'
 
   return (
     <Helmet>
