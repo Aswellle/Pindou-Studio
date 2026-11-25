@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { plainText, clampSeoDescription } from './seoText'
+import { plainText, clampSeoDescription, composeSeoDescription } from './seoText'
 
 describe('plainText', () => {
   it('压缩换行与连续空格', () => {
@@ -59,5 +59,47 @@ describe('clampSeoDescription · 第一句超长', () => {
     const out = clampSeoDescription(`${sentence}后面继续写很多很多内容。`, 60)
     expect(out).toBe(sentence)
     expect(out.endsWith('…')).toBe(false)
+  })
+})
+
+describe('composeSeoDescription', () => {
+  it('按顺序拼接完整句子,达到下限就停止', () => {
+    const out = composeSeoDescription([
+      `${'甲'.repeat(50)}。`,
+      `${'乙'.repeat(50)}。`,
+      `${'丙'.repeat(50)}。`,
+    ])
+    // 51 + 51 = 102 < 150,再加第三句到 153 后停止
+    expect([...out].length).toBe(153)
+    expect(out).toContain('丙')
+    expect(out.endsWith('。')).toBe(true)
+  })
+
+  it('跳过会超出上限的句子,继续尝试后面的短句', () => {
+    const out = composeSeoDescription([
+      `${'甲'.repeat(120)}。`,
+      `${'乙'.repeat(44)}。`,
+      `${'丙'.repeat(37)}。`,
+    ])
+    expect([...out].length).toBe(159)
+    expect(out).toContain('丙')
+    expect(out).not.toContain('乙')
+  })
+
+  it('第一句就超长时硬截断并补省略号', () => {
+    const out = composeSeoDescription(['拼'.repeat(200)])
+    expect(out.endsWith('…')).toBe(true)
+    expect([...out].length).toBe(160)
+  })
+
+  it('中英文单词边界补空格', () => {
+    const out = composeSeoDescription(['Perler', 'bead palette guide '.repeat(8)])
+    expect(out.startsWith('Perler bead palette')).toBe(true)
+  })
+
+  it('空输入返回空字符串', () => {
+    expect(composeSeoDescription([])).toBe('')
+    expect(composeSeoDescription(null)).toBe('')
+    expect(composeSeoDescription(['', '   '])).toBe('')
   })
 })
