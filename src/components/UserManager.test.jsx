@@ -1,11 +1,12 @@
 import { describe, it, expect, beforeAll, afterEach, vi } from 'vitest'
 import { render, screen, cleanup, waitFor } from '@testing-library/react'
 import UserManager from './UserManager'
+import { resetIpRegionCache } from '../utils/ipGeolocation'
 import i18n from '../i18n'
 
 /**
  * 用户管理表格:登录环境(IP / 设备)两列的数据绑定与降级。
- * supabase 走 mock —— jsdom 里不真连云端;公网 IP 只展示原值,不再调用第三方归属地接口。
+ * supabase 走 mock —— jsdom 里不真连云端;归属地请求走本站 /api/ip-region。
  */
 
 const publicUser = {
@@ -38,6 +39,9 @@ const rpcMock = vi.fn()
 vi.mock('../services/supabase', () => ({
   supabase: {
     rpc: (...args) => rpcMock(...args),
+    auth: {
+      getSession: async () => ({ data: { session: { access_token: 'unit' + '-session' } } }),
+    },
     channel: () => ({ on: () => ({ subscribe: () => 'ch' }) }),
     removeChannel: () => {},
   },
@@ -60,6 +64,7 @@ beforeAll(async () => {
 afterEach(() => {
   cleanup()
   rpcMock.mockReset()
+  resetIpRegionCache()
   vi.unstubAllGlobals()
 })
 
@@ -78,19 +83,24 @@ function installRpc(users) {
 }
 
 describe('UserManager · 登录环境列', () => {
-  it('展示最近登录 IP 与设备摘要(解析 UA),公网 IP 不再查归属地', async () => {
+  it('展示最近登录 IP、归属地与设备摘要(解析 UA)', async () => {
     installRpc([publicUser])
-    const fetchMock = vi.fn()
+    const fetchMock = vi.fn(async () => ({
+      ok: true,
+      json: async () => ({ regions: { '114.114.114.114': '中国 江苏 南京' } }),
+    }))
     vi.stubGlobal('fetch', fetchMock)
 
     const { container } = render(<UserManager />)
     await waitFor(() =>
       expect(container.querySelector('.users-ip-addr')?.textContent).toBe('114.114.114.114')
     )
+    await waitFor(() =>
+      expect(container.querySelector('.users-ip-region')?.textContent).toBe('中国 江苏 南京')
+    )
 
-    // 公网 IP 只展示原值:不请求第三方归属地接口,也不显示地区行
-    expect(fetchMock).not.toHaveBeenCalled()
-    expect(container.querySelector('.users-ip-region')).toBeNull()
+    // 走本站代理,而不是浏览器直连第三方
+    expect(fetchMock).toHaveBeenCalledWith('/api/ip-region', expect.objectContaining({ method: 'POST' }))
     // 设备列解析 UA 为「系统 · 浏览器」,原始 UA 留在悬浮提示
     const deviceCell = container.querySelector('.users-device')
     expect(deviceCell.textContent).toContain('Windows')

@@ -8,7 +8,7 @@ import { useAuth } from '../hooks/useAuth'
 import { useScrollLock } from '../hooks/useScrollLock'
 import { useDialogA11y } from '../hooks/useDialogA11y'
 import { parseUserAgent } from '../utils/userAgent'
-import { isPrivateIp } from '../utils/ipGeolocation'
+import { isPrivateIp, lookupIpRegions } from '../utils/ipGeolocation'
 
 /**
  * 用户管理面板(管理员仪表盘)
@@ -32,6 +32,8 @@ export default function UserManager() {
   const [error, setError] = useState('')
   // 最近注册记录(入库:registration_notifications 表,经 RPC admin_list_registrations 读取)
   const [registrations, setRegistrations] = useState([])
+  // IP 归属地:经本站 /api/ip-region 批量查询(管理员会话校验),值为规范化地区
+  const [regions, setRegions] = useState({})
   // 数据看板 / 最近注册 加载中标志:未就绪时用固定高度骨架占位,避免「先空→数据到→布局跳动」
   const [statsLoading, setStatsLoading] = useState(true)
   const [regLoading, setRegLoading] = useState(true)
@@ -139,6 +141,31 @@ export default function UserManager() {
     const timer = setTimeout(loadUsers, 300)
     return () => clearTimeout(timer)
   }, [loadUsers])
+
+  // 公网 IP 归属地:批量交给本站代理查询,浏览器不直连第三方。
+  // 私网地址不发请求;失败由组件显示「—」,不阻塞列表。
+  useEffect(() => {
+    let alive = true
+    const ips = [...new Set(users.map(u => u.last_login_ip).filter(Boolean))]
+    const publicIps = ips.filter(ip => !isPrivateIp(ip))
+    if (!publicIps.length) return undefined
+
+    ;(async () => {
+      try {
+        const { data } = await supabase.auth.getSession()
+        const token = data?.session?.access_token
+        if (!token) return
+        const map = await lookupIpRegions(publicIps, token)
+        if (alive) setRegions(prev => ({ ...prev, ...map }))
+      } catch {
+        // 查询失败不打断用户列表;下一次刷新会重试
+      }
+    })()
+
+    return () => {
+      alive = false
+    }
+  }, [users])
 
   // 「设备 / 环境」列的展示文本:解析 UA 为「系统 · 浏览器」,原始 UA 在悬浮提示里
   const deviceLabel = userAgent => parseUserAgent(userAgent)?.label || ''
@@ -333,6 +360,11 @@ export default function UserManager() {
                       : u.email
                   const device = deviceLabel(u.last_login_user_agent)
                   const isPrivateLoginIp = u.last_login_ip ? isPrivateIp(u.last_login_ip) : false
+                  const ipRegion = u.last_login_ip
+                    ? isPrivateLoginIp
+                      ? t('admin.users.ipPrivate')
+                      : regions[u.last_login_ip]
+                    : null
                   return (
                     <tr key={u.id}>
                       <td className="users-email" title={u.email}>
@@ -381,9 +413,7 @@ export default function UserManager() {
                         {u.last_login_ip ? (
                           <span className="users-ip-stack">
                             <span className="users-ip-addr">{u.last_login_ip}</span>
-                            {isPrivateLoginIp && (
-                              <span className="users-ip-region">{t('admin.users.ipPrivate')}</span>
-                            )}
+                            <span className="users-ip-region">{ipRegion || '—'}</span>
                           </span>
                         ) : (
                           <span className="users-admin-note">—</span>
