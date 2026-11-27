@@ -245,7 +245,7 @@
         },
         {
           "key": "Content-Security-Policy",
-          "value": "frame-ancestors 'none'"
+          "value": "frame-ancestors 'none'; object-src 'none'; base-uri 'self'; form-action 'self'"
         },
         {
           "key": "X-Content-Type-Options",
