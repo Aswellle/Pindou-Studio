@@ -8,7 +8,7 @@ import { useAuth } from '../hooks/useAuth'
 import { useScrollLock } from '../hooks/useScrollLock'
 import { useDialogA11y } from '../hooks/useDialogA11y'
 import { parseUserAgent } from '../utils/userAgent'
-import { isPrivateIp, lookupIpRegion } from '../utils/ipGeolocation'
+import { isPrivateIp } from '../utils/ipGeolocation'
 
 /**
  * 用户管理面板(管理员仪表盘)
@@ -32,8 +32,6 @@ export default function UserManager() {
   const [error, setError] = useState('')
   // 最近注册记录(入库:registration_notifications 表,经 RPC admin_list_registrations 读取)
   const [registrations, setRegistrations] = useState([])
-  // IP 归属地查询结果:ip → 「国家 省 市」;内网地址直接标「内网/本地」
-  const [regions, setRegions] = useState({})
   // 数据看板 / 最近注册 加载中标志:未就绪时用固定高度骨架占位,避免「先空→数据到→布局跳动」
   const [statsLoading, setStatsLoading] = useState(true)
   const [regLoading, setRegLoading] = useState(true)
@@ -48,11 +46,16 @@ export default function UserManager() {
   // 请求进行中同样由 disabled 兜底。
   const { ref: confirmRef, dialogProps: confirmDialogProps } = useDialogA11y({
     open: !!confirm,
-    onClose: () => { if (!busy) setConfirm(null) },
+    onClose: () => {
+      if (!busy) setConfirm(null)
+    },
     disabled: busy,
-    label: confirm?.type === 'delete' ? t('admin.users.confirmDeleteTitle')
-      : confirm?.type === 'lock' ? t('admin.users.confirmLockTitle')
-        : t('admin.users.confirmUnlockTitle'),
+    label:
+      confirm?.type === 'delete'
+        ? t('admin.users.confirmDeleteTitle')
+        : confirm?.type === 'lock'
+          ? t('admin.users.confirmLockTitle')
+          : t('admin.users.confirmUnlockTitle'),
     role: 'alertdialog',
     dismissible: false,
   })
@@ -60,32 +63,42 @@ export default function UserManager() {
   const loadStats = useCallback(async () => {
     setStatsLoading(true)
     const { data, error: err } = await supabase.rpc('admin_user_stats')
-    if (err) { setError(err.message || String(err)); setStatsLoading(false); return } // 此前吞错,统计卡静默显示 '—'
+    if (err) {
+      setError(err.message || String(err))
+      setStatsLoading(false)
+      return
+    } // 此前吞错,统计卡静默显示 '—'
     setStats(data[0] || null)
     setStatsLoading(false)
   }, [])
 
-  const loadUsers = useCallback(async (silent = false) => {
-    if (!silent) setLoading(true)
-    setError('')
-    const { data, error: err } = await supabase.rpc('admin_list_users', {
-      search: search.trim(),
-      page,
-      page_size: PAGE_SIZE,
-    })
-    if (err) {
-      setError(err.message || String(err))
-      setUsers([])
-    } else {
-      setUsers(data || [])
-    }
-    if (!silent) setLoading(false)
-  }, [search, page])
+  const loadUsers = useCallback(
+    async (silent = false) => {
+      if (!silent) setLoading(true)
+      setError('')
+      const { data, error: err } = await supabase.rpc('admin_list_users', {
+        search: search.trim(),
+        page,
+        page_size: PAGE_SIZE,
+      })
+      if (err) {
+        setError(err.message || String(err))
+        setUsers([])
+      } else {
+        setUsers(data || [])
+      }
+      if (!silent) setLoading(false)
+    },
+    [search, page]
+  )
 
   // 最近注册:读取 registration_notifications 表(仅管理员,security definer RPC)
   const loadRegistrations = useCallback(async () => {
     setRegLoading(true)
-    if (!supabase) { setRegLoading(false); return }
+    if (!supabase) {
+      setRegLoading(false)
+      return
+    }
     const { data, error: err } = await supabase.rpc('admin_list_registrations', { p_limit: 10 })
     if (!err) setRegistrations(data || [])
     setRegLoading(false)
@@ -100,9 +113,11 @@ export default function UserManager() {
       else if (confirm.type === 'lock') await adminLockUser(confirm.user.id)
       else await adminUnlockUser(confirm.user.id)
       toast(
-        confirm.type === 'delete' ? t('admin.users.deleted')
-          : confirm.type === 'lock' ? t('admin.users.locked')
-          : t('admin.users.unlocked'),
+        confirm.type === 'delete'
+          ? t('admin.users.deleted')
+          : confirm.type === 'lock'
+            ? t('admin.users.locked')
+            : t('admin.users.unlocked'),
         'success'
       )
       setConfirm(null)
@@ -125,30 +140,19 @@ export default function UserManager() {
     return () => clearTimeout(timer)
   }, [loadUsers])
 
-  // IP 归属地按需查询:列表里出现没查过的公网 IP 才发请求。
-  // 查询与失败结果都在 ipGeolocation 模块级缓存里,实时刷新不会重复打接口。
-  useEffect(() => {
-    let alive = true
-    const ips = [...new Set(users.map(u => u.last_login_ip).filter(Boolean))]
-    for (const ip of ips) {
-      if (isPrivateIp(ip)) continue
-      lookupIpRegion(ip).then(region => {
-        if (alive && region) setRegions(prev => (prev[ip] ? prev : { ...prev, [ip]: region }))
-      })
-    }
-    return () => { alive = false }
-  }, [users])
-
   // 「设备 / 环境」列的展示文本:解析 UA 为「系统 · 浏览器」,原始 UA 在悬浮提示里
-  const deviceLabel = (userAgent) => parseUserAgent(userAgent)?.label || ''
+  const deviceLabel = userAgent => parseUserAgent(userAgent)?.label || ''
 
   // 登录快照时间(悬浮在 IP 上):快照晚于最近登录时间才算新鲜
-  const snapshotTime = (ts) => {
+  const snapshotTime = ts => {
     const date = new Date(ts)
     if (Number.isNaN(date.getTime())) return undefined
     return date.toLocaleString(undefined, {
-      year: 'numeric', month: '2-digit', day: '2-digit',
-      hour: '2-digit', minute: '2-digit',
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit',
     })
   }
 
@@ -156,16 +160,26 @@ export default function UserManager() {
   // 无需手动刷新页面或切换 tab。静默刷新(不闪 loading)。
   useEffect(() => {
     let t
-    const reload = () => { clearTimeout(t); t = setTimeout(() => { loadStats(); loadUsers(true); loadRegistrations() }, 400) }
+    const reload = () => {
+      clearTimeout(t)
+      t = setTimeout(() => {
+        loadStats()
+        loadUsers(true)
+        loadRegistrations()
+      }, 400)
+    }
     const ch = supabase
       .channel('users-realtime')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'profiles' }, reload)
       .subscribe()
-    return () => { clearTimeout(t); supabase.removeChannel(ch) }
+    return () => {
+      clearTimeout(t)
+      supabase.removeChannel(ch)
+    }
   }, [loadStats, loadUsers, loadRegistrations])
 
   // 最近登录:近 1 分钟视为"在线中"(绿点标记),否则展示本地化日期时间
-  const renderLastSignIn = (ts) => {
+  const renderLastSignIn = ts => {
     if (!ts) return '—'
     const date = new Date(ts)
     if (Number.isNaN(date.getTime())) return '—'
@@ -173,18 +187,23 @@ export default function UserManager() {
       return <span className="users-online">{t('admin.users.online')}</span>
     }
     return date.toLocaleString(undefined, {
-      year: 'numeric', month: '2-digit', day: '2-digit',
-      hour: '2-digit', minute: '2-digit',
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit',
     })
   }
 
-  const statCards = stats ? [
-    { label: t('admin.users.total'), value: stats.total, tone: 'accent' },
-    { label: t('admin.users.verified'), value: stats.verified, tone: 'ok' },
-    { label: t('admin.users.unverified'), value: stats.unverified, tone: 'warn' },
-    { label: t('admin.users.admins'), value: stats.admins, tone: 'accent' },
-    { label: t('admin.users.recent30'), value: stats.recent_30d, tone: 'ok' },
-  ] : []
+  const statCards = stats
+    ? [
+        { label: t('admin.users.total'), value: stats.total, tone: 'accent' },
+        { label: t('admin.users.verified'), value: stats.verified, tone: 'ok' },
+        { label: t('admin.users.unverified'), value: stats.unverified, tone: 'warn' },
+        { label: t('admin.users.admins'), value: stats.admins, tone: 'accent' },
+        { label: t('admin.users.recent30'), value: stats.recent_30d, tone: 'ok' },
+      ]
+    : []
 
   return (
     <div>
@@ -252,7 +271,10 @@ export default function UserManager() {
                     </span>
                     <span className="reg-tile-time">
                       {new Date(r.created_at).toLocaleString(undefined, {
-                        month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit',
+                        month: '2-digit',
+                        day: '2-digit',
+                        hour: '2-digit',
+                        minute: '2-digit',
                       })}
                     </span>
                   </div>
@@ -268,10 +290,17 @@ export default function UserManager() {
           className="admin-input admin-search"
           placeholder={t('admin.users.searchPlaceholder')}
           value={search}
-          onChange={e => { setSearch(e.target.value); setPage(0) }}
+          onChange={e => {
+            setSearch(e.target.value)
+            setPage(0)
+          }}
         />
 
-        {error && <div className="admin-result warn">{t('admin.users.loadFailed')}: {error}</div>}
+        {error && (
+          <div className="admin-result warn">
+            {t('admin.users.loadFailed')}: {error}
+          </div>
+        )}
 
         {loading ? (
           <LoadingScreen text={t('gallery.cloudLoading')} />
@@ -298,16 +327,17 @@ export default function UserManager() {
                 {users.map(u => {
                   // 用户名账号的合成邮箱(@custom.local)不直接展示:优先昵称,
                   // 再取注册用户名(email 前缀),最后才是原始 email
-                  const displayName = u.is_custom && (u.nickname || (u.email || '').split('@custom.local')[0])
-                    ? (u.nickname || (u.email || '').split('@custom.local')[0])
-                    : u.email
+                  const displayName =
+                    u.is_custom && (u.nickname || (u.email || '').split('@custom.local')[0])
+                      ? u.nickname || (u.email || '').split('@custom.local')[0]
+                      : u.email
                   const device = deviceLabel(u.last_login_user_agent)
-                  const ipRegion = u.last_login_ip
-                    ? (isPrivateIp(u.last_login_ip) ? t('admin.users.ipPrivate') : regions[u.last_login_ip])
-                    : null
+                  const isPrivateLoginIp = u.last_login_ip ? isPrivateIp(u.last_login_ip) : false
                   return (
                     <tr key={u.id}>
-                      <td className="users-email" title={u.email}>{displayName}</td>
+                      <td className="users-email" title={u.email}>
+                        {displayName}
+                      </td>
                       <td>{u.nickname || '—'}</td>
                       <td>
                         <span className={`users-role-badge ${u.role === 'admin' ? 'admin' : 'user'}`}>
@@ -319,7 +349,10 @@ export default function UserManager() {
                           {u.email_confirmed ? t('admin.users.verifiedYes') : t('admin.users.verifiedNo')}
                         </span>
                         {u.banned && (
-                          <span className="users-status warn users-banned" title={t('admin.users.bannedTitle')}>
+                          <span
+                            className="users-status warn users-banned"
+                            title={t('admin.users.bannedTitle')}
+                          >
                             {t('admin.users.bannedBadge')}
                           </span>
                         )}
@@ -330,38 +363,51 @@ export default function UserManager() {
                         </span>
                       </td>
                       <td className="users-date">
-                        {new Date(u.created_at).toLocaleDateString(undefined, { year: 'numeric', month: '2-digit', day: '2-digit' })}
+                        {new Date(u.created_at).toLocaleDateString(undefined, {
+                          year: 'numeric',
+                          month: '2-digit',
+                          day: '2-digit',
+                        })}
                       </td>
-                      <td className="users-date">
-                        {renderLastSignIn(u.last_sign_in_at)}
-                      </td>
+                      <td className="users-date">{renderLastSignIn(u.last_sign_in_at)}</td>
                       <td
                         className="users-ip"
-                        title={u.last_login_snapshot_at ? `${t('admin.users.snapshotAt')} ${snapshotTime(u.last_login_snapshot_at)}` : undefined}
+                        title={
+                          u.last_login_snapshot_at
+                            ? `${t('admin.users.snapshotAt')} ${snapshotTime(u.last_login_snapshot_at)}`
+                            : undefined
+                        }
                       >
                         {u.last_login_ip ? (
                           <span className="users-ip-stack">
                             <span className="users-ip-addr">{u.last_login_ip}</span>
-                            <span className="users-ip-region">{ipRegion || '—'}</span>
+                            {isPrivateLoginIp && (
+                              <span className="users-ip-region">{t('admin.users.ipPrivate')}</span>
+                            )}
                           </span>
                         ) : (
                           <span className="users-admin-note">—</span>
                         )}
                       </td>
-                      <td
-                        className="users-device"
-                        title={u.last_login_user_agent || undefined}
-                      >
+                      <td className="users-device" title={u.last_login_user_agent || undefined}>
                         {device || <span className="users-admin-note">—</span>}
                       </td>
                       <td>
                         {/* admin 拥有最高权限,不提供 删除/锁定 */}
                         {u.role !== 'admin' ? (
                           <div className="users-actions">
-                            <button className="admin-btn secondary small" disabled={busy} onClick={() => setConfirm({ type: u.banned ? 'unlock' : 'lock', user: u })}>
+                            <button
+                              className="admin-btn secondary small"
+                              disabled={busy}
+                              onClick={() => setConfirm({ type: u.banned ? 'unlock' : 'lock', user: u })}
+                            >
                               {u.banned ? t('admin.users.unlock') : t('admin.users.lock')}
                             </button>
-                            <button className="admin-btn danger small" disabled={busy} onClick={() => setConfirm({ type: 'delete', user: u })}>
+                            <button
+                              className="admin-btn danger small"
+                              disabled={busy}
+                              onClick={() => setConfirm({ type: 'delete', user: u })}
+                            >
                               {t('admin.users.delete')}
                             </button>
                           </div>
@@ -378,11 +424,19 @@ export default function UserManager() {
         )}
 
         <div className="users-pagination">
-          <button className="admin-btn secondary small" disabled={page === 0} onClick={() => setPage(p => p - 1)}>
+          <button
+            className="admin-btn secondary small"
+            disabled={page === 0}
+            onClick={() => setPage(p => p - 1)}
+          >
             {t('admin.users.pagePrev')}
           </button>
           <span className="users-page-info">{t('admin.users.pageInfo', { page: page + 1 })}</span>
-          <button className="admin-btn secondary small" disabled={users.length < PAGE_SIZE} onClick={() => setPage(p => p + 1)}>
+          <button
+            className="admin-btn secondary small"
+            disabled={users.length < PAGE_SIZE}
+            onClick={() => setPage(p => p + 1)}
+          >
             {t('admin.users.pageNext')}
           </button>
         </div>
@@ -391,31 +445,48 @@ export default function UserManager() {
       {/* 删除 / 锁定 / 解锁 确认对话框。
           portal 到 body:后台 confirm 浮层位于 .admin-panel 滚动容器内,iOS Safari
           滚动容器内的 fixed 在键盘/滚动后错位 → 移到 body 下稳定相对视口。 */}
-      {confirm && createPortal(
-        <div className="users-confirm-overlay">
-          <div className="users-confirm" ref={confirmRef} {...confirmDialogProps} onClick={e => e.stopPropagation()}>
-            <h3 className="users-confirm-title">
-              {confirm.type === 'delete' ? t('admin.users.confirmDeleteTitle')
-                : confirm.type === 'lock' ? t('admin.users.confirmLockTitle')
-                : t('admin.users.confirmUnlockTitle')}
-            </h3>
-            <p className="users-confirm-body">
-              {confirm.type === 'delete'
-                ? t('admin.users.confirmDeleteBody', { name: confirm.user.nickname || confirm.user.email })
-                : confirm.type === 'lock'
-                  ? t('admin.users.confirmLockBody', { name: confirm.user.nickname || confirm.user.email })
-                  : t('admin.users.confirmUnlockBody', { name: confirm.user.nickname || confirm.user.email })}
-            </p>
-            <div className="users-confirm-actions">
-              <button className="admin-btn secondary" disabled={busy} autoFocus onClick={() => setConfirm(null)}>{t('admin.cancel')}</button>
-              <button className="admin-btn danger" disabled={busy} onClick={doAction}>
-                {busy ? t('auth.processing') : t('admin.users.confirmBtn')}
-              </button>
+      {confirm &&
+        createPortal(
+          <div className="users-confirm-overlay">
+            <div
+              className="users-confirm"
+              ref={confirmRef}
+              {...confirmDialogProps}
+              onClick={e => e.stopPropagation()}
+            >
+              <h3 className="users-confirm-title">
+                {confirm.type === 'delete'
+                  ? t('admin.users.confirmDeleteTitle')
+                  : confirm.type === 'lock'
+                    ? t('admin.users.confirmLockTitle')
+                    : t('admin.users.confirmUnlockTitle')}
+              </h3>
+              <p className="users-confirm-body">
+                {confirm.type === 'delete'
+                  ? t('admin.users.confirmDeleteBody', { name: confirm.user.nickname || confirm.user.email })
+                  : confirm.type === 'lock'
+                    ? t('admin.users.confirmLockBody', { name: confirm.user.nickname || confirm.user.email })
+                    : t('admin.users.confirmUnlockBody', {
+                        name: confirm.user.nickname || confirm.user.email,
+                      })}
+              </p>
+              <div className="users-confirm-actions">
+                <button
+                  className="admin-btn secondary"
+                  disabled={busy}
+                  autoFocus
+                  onClick={() => setConfirm(null)}
+                >
+                  {t('admin.cancel')}
+                </button>
+                <button className="admin-btn danger" disabled={busy} onClick={doAction}>
+                  {busy ? t('auth.processing') : t('admin.users.confirmBtn')}
+                </button>
+              </div>
             </div>
-          </div>
-        </div>,
-        document.body
-      )}
+          </div>,
+          document.body
+        )}
 
       <style>{`
         .users-stats {

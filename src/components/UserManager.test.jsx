@@ -1,12 +1,11 @@
 import { describe, it, expect, beforeAll, afterEach, vi } from 'vitest'
 import { render, screen, cleanup, waitFor } from '@testing-library/react'
 import UserManager from './UserManager'
-import { resetIpRegionCache } from '../utils/ipGeolocation'
 import i18n from '../i18n'
 
 /**
- * 用户管理表格:登录环境(IP 归属地 / 设备)两列的数据绑定与降级。
- * supabase 走 mock —— jsdom 里不真连云端;归属地接口同样 mock 掉。
+ * 用户管理表格:登录环境(IP / 设备)两列的数据绑定与降级。
+ * supabase 走 mock —— jsdom 里不真连云端;公网 IP 只展示原值,不再调用第三方归属地接口。
  */
 
 const publicUser = {
@@ -61,13 +60,17 @@ beforeAll(async () => {
 afterEach(() => {
   cleanup()
   rpcMock.mockReset()
-  resetIpRegionCache()
+  vi.unstubAllGlobals()
 })
 
 function installRpc(users) {
-  rpcMock.mockImplementation(async (name) => {
+  rpcMock.mockImplementation(async name => {
     if (name === 'admin_user_stats') {
-      return { data: [{ total: users.length, verified: users.length, unverified: 0, admins: 0, recent_30d: users.length }] }
+      return {
+        data: [
+          { total: users.length, verified: users.length, unverified: 0, admins: 0, recent_30d: users.length },
+        ],
+      }
     }
     if (name === 'admin_list_users') return { data: users }
     return { data: [] }
@@ -75,18 +78,19 @@ function installRpc(users) {
 }
 
 describe('UserManager · 登录环境列', () => {
-  it('展示最近登录 IP 与归属地、设备摘要(解析 UA)', async () => {
+  it('展示最近登录 IP 与设备摘要(解析 UA),公网 IP 不再查归属地', async () => {
     installRpc([publicUser])
-    vi.stubGlobal('fetch', vi.fn(async () => ({
-      ok: true,
-      json: async () => ({ success: true, country: '中国', region: '江苏省', city: '南京' }),
-    })))
+    const fetchMock = vi.fn()
+    vi.stubGlobal('fetch', fetchMock)
 
     const { container } = render(<UserManager />)
-    await waitFor(() => expect(container.querySelector('.users-ip-addr')?.textContent).toBe('114.114.114.114'))
+    await waitFor(() =>
+      expect(container.querySelector('.users-ip-addr')?.textContent).toBe('114.114.114.114')
+    )
 
-    // 归属地来自异步查询,就绪后填入
-    await waitFor(() => expect(container.querySelector('.users-ip-region')?.textContent).toBe('中国 江苏省 南京'))
+    // 公网 IP 只展示原值:不请求第三方归属地接口,也不显示地区行
+    expect(fetchMock).not.toHaveBeenCalled()
+    expect(container.querySelector('.users-ip-region')).toBeNull()
     // 设备列解析 UA 为「系统 · 浏览器」,原始 UA 留在悬浮提示
     const deviceCell = container.querySelector('.users-device')
     expect(deviceCell.textContent).toContain('Windows')
@@ -109,10 +113,6 @@ describe('UserManager · 登录环境列', () => {
 
   it('两个新列都带表头(移动端与 PC 共用横向滚动表格)', async () => {
     installRpc([publicUser])
-    vi.stubGlobal('fetch', vi.fn(async () => ({
-      ok: true,
-      json: async () => ({ success: true, country: '中国', region: '江苏省', city: '南京' }),
-    })))
 
     const { container } = render(<UserManager />)
     await waitFor(() => expect(container.querySelector('.users-ip-addr')).toBeTruthy())
