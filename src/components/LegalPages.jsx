@@ -255,8 +255,8 @@ function LegalDocument({ versions, type, onBack }) {
 const PRIVACY_VERSIONS = [
   {
     id: 'v3',
-    version: '3.0',
-    date: '2026年8月23日',
+    version: '3.1',
+    date: '2026年11月28日',
     title: '隐私政策',
     content: (
       <>
@@ -281,6 +281,7 @@ const PRIVACY_VERSIONS = [
             <li><strong>浏览器语言</strong>：用于自动适配界面语言（支持简体中文、英语、日语、韩语四种，其余语言回退简体中文）。</li>
             <li><strong>使用数据</strong>：我们使用 Vercel Analytics 收集匿名化的访问数据（页面、来源网站、设备类型、浏览器类型、操作系统、国家级别地理位置）。</li>
             <li><strong>性能数据</strong>：我们使用 Vercel Speed Insights 收集网页性能指标（LCP、CLS 等）。</li>
+            <li><strong>登录环境</strong>：登录时记录最近一次 IP 地址与浏览器 User-Agent，仅用于账号安全与异常登录排查，仅管理员可见。</li>
             <li><strong>模板下载量</strong>：当您在图库中导出模板图纸时，我们会累计对应模板的下载次数（仅计数，不含您的身份信息）。</li>
             <li>本工具不使用 Cookie，不接入任何广告网络或第三方追踪器。</li>
           </ul>
@@ -293,7 +294,7 @@ const PRIVACY_VERSIONS = [
             <li><strong>身份展示</strong>：您的昵称与头像（若设置）用于站点内的身份展示；头像为公开可见。</li>
             <li><strong>界面适配</strong>：根据浏览器语言自动切换界面语言。</li>
             <li><strong>作品同步</strong>：登录后将您的作品同步至云端，以便跨设备访问与备份。</li>
-            <li><strong>平台运营管理</strong>：为保障服务安全与正常运营，管理员可在后台"用户管理"中查看注册用户的邮箱、昵称、角色、邮箱验证状态、注册时间、最近登录时间与注册方式（邮箱注册 / 自定义账号）。该信息仅管理员可访问，<strong>不包含密码、安全密钥等任何敏感数据</strong>，也不用于用户行为追踪。</li>
+            <li><strong>平台运营管理</strong>：为保障服务安全与正常运营，管理员可在后台"用户管理"中查看注册用户的邮箱、昵称、角色、邮箱验证状态、注册时间、最近登录时间、注册方式（邮箱注册 / 自定义账号）以及最近一次登录的 IP、IP 归属地与设备信息（User-Agent）。该信息仅管理员可访问，<strong>不包含密码、安全密钥等任何敏感数据</strong>，也不用于用户行为追踪。</li>
             <li><strong>服务改进</strong>：匿名化的使用数据用于改进功能与性能。</li>
           </ul>
         </section>
@@ -314,6 +315,7 @@ const PRIVACY_VERSIONS = [
           <ul>
             <li><strong>Supabase</strong>：数据库、认证、文件存储（头像与云端作品），数据处理受其<a href="https://supabase.com/privacy" target="_blank" rel="noopener noreferrer">隐私政策</a>约束。</li>
             <li><strong>Vercel</strong>：网站托管与匿名分析，数据处理受其<a href="https://vercel.com/legal/privacy-policy" target="_blank" rel="noopener noreferrer">隐私政策</a>约束。</li>
+            <li><strong>ipwho.is</strong>：仅在管理员查看登录 IP 归属地时，由本站服务端向其查询该 IP 对应的国家/地区/城市；不传递账号、邮箱或作品数据。数据处理受其<a href="https://ipwhois.io/privacy" target="_blank" rel="noopener noreferrer">隐私政策</a>约束。</li>
             <li><strong>邮件服务商</strong>：发送验证码邮件（仅传递邮箱地址与验证码）。</li>
           </ul>
         </section>
